@@ -1,0 +1,4827 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:STSTEM_DUNGEON.ERB
+;	Facility	:ダンジョンＲＰＧモジュール
+;
+;	Licence		:。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX			N鳥					新規作成
+;	002		2011/01/15			P					ダンジョン内調教においてASSIを排除する条件を追加
+;	003		2011/01/21			P					トリッシュを調整
+;	004		2011/01/27			旅人				CAPSLOCK実装
+;	005		2011/02/04			P					トリッシュの価格調整・チュートリアルの条件にガンスリンガー所持を加える
+;	006		2011/02/05			Rsp暇人				性格変化酒の解決処理を追加
+;	007		2011/02/06			P					ガリバーマジックを主人が死亡・
+;	008		2011/02/24			P					デバッグフラグがONのとき、ハニービーを常に使用可能なように変更
+;	009		2011/02/27			P					ATTACK開始時に会話不能・先制攻撃キャンセル・逃走不能のフラグを0にするように
+;	010		2011/03/04			P					SHOPダンジョンにコインによる購入処理を追加。また少しアイテム表示の字数を増やし、最大個数判定関数がない場合も落ちないように変更
+;													金を取得する宝ばこがBIT演算に対応していなかったのを修正
+;	011		2011/03/06			P					ダンジョンSHOPでスキルカードを扱う場合字数の問題で【スキル名】だけ扱うように
+;	012		2011/03/08			P					DDMのバグを修正
+;	013		2011/03/18			P					探索中でも方法によって、自宅サーバー所属の仲魔を送還できていたのを修正
+;	014		2011/03/28			P					ダークゾーン・@DUNGEON_WORPの仕様を一部変更。COMP使用不能の処理を追加
+;	015		2011/04/27			Ｎ鳥				探索開始時に衣装を設定、探索終了時に保存するように変更
+;	016		2011/05/02			P					汎用的配置関数を作成
+;	017		2011/05/02			P					汎用的配置関数の共通配置数関数を製作
+;	018		2011/05/08			Ｎ鳥				ＣＯＭＰ合体を基本機能に
+;	019		2011/05/10			P					ダンジョン内のANALYZEをTAからSAVESTR:10000~に変更
+;	019		2011/05/23			P					一時アナライズをダンジョンサイズ互換処理のあとに移動
+;	020		2011/06/20			P					ダークゾーン内のアナライズの視界を自分のマスだけに戻し、そのかわり壁にぶつかった際に壁のアナライズをとるように
+;	021		2011/11/06			旅人				統合整備(タイル文字の共通化)
+;	022		2012/01/02			Ｎ鳥				魔法の箱追加
+;	023		2012/01/18			P					COMPからマントラDL出来るように変更
+;	024		2012/02/17			ネトリス			素質『発情可』を持っていると魅了状態時に10％の確率で発情
+;													欲情が10000以上になる、または5000以上で素質『発情可』があると発情
+;													発情状態の時に30％の確率でHAPPYに
+;													気力0と発情しているときは、ステート経過ターンが増えない、以上を追加
+;	025		2012/02/28			ネトリス			性欲処理を使えるようにしました
+;	026		2012/12/02			ネトリス			性欲処理周りを『CFLAG:ダンジョン内発情用欲情値』を参照するように変更などなど
+;													『CFLAG:ダンジョン内発情用欲情値』に上限を設定、発情すると膣内とヴァギナに『汚れ:愛液』がつくように
+;	027		2012/12/27			P					ダンジョン内でマントラを取得しようとする際にポジションに空きがあるとエラーがでていたのを修正
+;	028		2013/12/02			ひみつ				ダンジョンリストの表示方法を変更。自動効果以外の装備スキルも機能するように変更。
+;													スキル属性表示の適用範囲拡大。スキル属性表示にキャラ情報を渡すように
+;	029		2014/01/03			GunＰ				ターミナルからベルベットルームとマントラに行ける様に加筆
+;	030		2015/01/13			Ｊ( 'ー`)し			マージ時に生じていたターミナル不具合を修正
+;	031		2015/01/18			Ｊ( 'ー`)し			ターミナルでメニューが余剰に表示される不具合を修正
+;	032		2015/09/19			54-762				ＭＡＧ消費処理から種族：人間を除外されるよう処置
+;	032		2015/12/11			JK好き				エストマ等が画面に表示されるように修正
+;	033		2016/05/02			ネトリス			休憩を追加
+;	034		2016/05/02			（U´・ω・｀）		日記帳exeに基づくフィルタリング機能の追加
+;	035		2016/07/29			（U´・ω・｀）		RanRanDungeonのための記述を追加
+;	036		2016/07/30			（U´・ω・｀）		オートフィルタの確認が個人的にうざかったので除去
+;													あとRanRanDungeonの記述を修正
+;	037		2016/08/01			（U´・ω・｀）		RanRanDungeonのフラグ管理修正×２
+;	038		2016/08/07			（U´・ω・｀）		WORP,FORCEMOVE時のRanRanDungeonの移動中断処理を実装
+;	039		2016/09/25			多治見国々			ダンジョンの推奨レベルの表示をオプションでも選択できるように
+;	040		2017/06/23			kuni				キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=====================================================================
+;ダンジョンＲＰＧモジュール
+;=====================================================================
+
+
+@SHOPCOMABLE_101
+RESULTS = Search
+;一日一回
+SIF FLAG:ダンジョン探索済み == 1
+	RETURN 0
+;あなたが臨月だと不可
+SIF (TALENT:MASTER:妊娠 && CFLAG:MASTER:出産予定日 - 2 <= DAY)
+	RETURN 0
+;あなた育児中だと不可
+SIF TALENT:MASTER:育児中
+	RETURN 0
+;パーティに一人以上いるなら
+LOCAL = 0
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:PTフラグ == 2
+		LOCAL += 1
+REND
+IF LOCAL > 0
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+@SHOP_COM_101
+DRAWLINE
+PRINTL Please select a location to explore
+;RanRanDungeonの効果リセット
+SIF EQUIP:MASTER:RanRanDungeon == 0 || FLAG:COMP使用不能
+	CLEARBIT FLAG:232,0
+CALL SHOW_DUNGEONLIST
+SIF RESULT == -1
+	RETURN 0
+LOCAL = RESULT
+FLAG:現ダンジョン = LOCAL
+FLAG:MAG消費率 = 100
+FLAG:月齢進行率 = 100
+;エストマの効果リセット挟みませてもらいます
+CALL ENCOUNTER_CHANGER
+;スタート地点を呼び出し(現M、現X、現Yにそれぞれ代入)
+CALLFORM START_DUNGEON_{FLAG:現ダンジョン}
+;現在のフロアデータを読み込み
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+CALL AUTOMAP
+FLAG:ダンジョン探索済み = 1
+;ダンジョン開始時のイベント
+TRYCALLFORM EVENT_DUNGEON_START_{FLAG:現ダンジョン}
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+;---- EDIT 015 ADD START -------------------------
+;探索に参加可能なキャラの衣装を設定、PALAM・SOURCE・EXを初期化
+FOR LOCAL , 0 , CHARANUM
+	SIF CFLAG:LOCAL:戦闘参加不可能 == 1
+		CONTINUE
+	SIF (ABL:LOCAL:種族 == 0 || CFLAG:LOCAL:召喚不可 || CFLAG:LOCAL:所属ＣＯＭＰ == -1) && CFLAG:LOCAL:PTフラグ == 1
+		CONTINUE
+	CALL CLOTHES_TRAIN,LOCAL,1
+	VARSET PALAM:LOCAL:0 , 0
+	VARSET SOURCE:LOCAL:0 , 0
+	VARSET EX:LOCAL:0 , 0
+NEXT
+;---- EDIT 015 ADD END   -------------------------
+CALL DUNGEON_ATTACK
+;---- EDIT 015 ADD START -------------------------
+;探索に参加可能なキャラの衣装を保存
+FOR LOCAL , 0 , CHARANUM
+	SIF CFLAG:LOCAL:戦闘参加不可能 == 1
+		CONTINUE
+	SIF (ABL:LOCAL:種族 == 0 || CFLAG:LOCAL:召喚不可 || CFLAG:LOCAL:所属ＣＯＭＰ == -1) && CFLAG:LOCAL:PTフラグ == 1
+		CONTINUE
+	CALL CLOTHES_TRAIN,LOCAL,1
+NEXT
+;---- EDIT 015 ADD END   -------------------------
+;---- EDIT 002 ADD START -------------------------
+;ここに来れないASSI及び健在でないASSIを排除する
+IF FLAG:ダンジョン内調教 == 1
+	FLAG:ダンジョン内調教助手退避 = ASSI
+	SIF ASSI >= 0 && ABL:ASSI:種族 == 0 && CFLAG:ASSI:PTフラグ == 1
+		ASSI = -1
+	SIF ASSI >= 0 && GET_STATE(CFLAG:ASSI:ステート) != "GOOD"
+		ASSI = -1
+	BEGIN TRAIN
+ENDIF
+;---- EDIT 002 ADD END   -------------------------
+
+;SIF FLAG:ダンジョン内調教 == 1
+;	BEGIN TRAIN
+FLAG:脱出 = 0
+;---- EDIT 003 ADD START -------------------------
+;日付変更時の処理に移動
+;SIF FLAG:トリッシュの泉利用回数 > 0
+;	FLAG:トリッシュの泉利用回数 = 1
+;SIF FLAG:トリッシュ調教 == -1
+;	FLAG:トリッシュ調教 = -2
+;---- EDIT 003 ADD START -------------------------
+
+FLAG:ショップコマンド = 0
+FLAG:ソーマギフト = 0
+FLAG:BeadChainギフト = 0
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:悪魔変身 == 1
+		CALL ACTION_2310 , LOCAL , 0
+NEXT
+BEGIN TURNEND
+RESTART
+;=====================================================================
+;攻略可能ダンジョンを表示
+;=====================================================================
+@SHOW_DUNGEONLIST
+#LOCALSIZE 300
+VARSET LOCAL, -1
+LOCAL:99 = 1
+FOR LOCAL,1 ,100
+	IF LOCAL <= 63
+		SIF GETBIT(FLAG:ダンジョンフィルタ1,LOCAL)
+			CONTINUE
+	ELSE
+		SIF GETBIT(FLAG:ダンジョンフィルタ2,LOCAL - 64)
+			CONTINUE
+	ENDIF
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{LOCAL}
+		IF RESULT || FLAG:DEBUG
+			LOCAL:(LOCAL:99) = LOCAL
+			LOCAL:99 ++
+		ENDIF
+	CATCH
+	ENDCATCH
+NEXT
+LOCAL:99 = 0
+$SHOW_LIST
+FOR LOCAL, LOCAL:99 * リスト表示数(), (LOCAL:99 + 1) * リスト表示数()
+	SIF LOCAL == 0 || LOCAL == 99
+		CONTINUE
+	SIF LOCAL:LOCAL == -1
+		BREAK
+	CALLFORM GET_DUNGEON_NAME_{LOCAL:LOCAL}
+	IF FLAG:DEBUG || FLAG:ダンジョンの推奨レベル表示設定
+		PRINTFORM [{LOCAL:LOCAL,2}] %RESULTS,20,LEFT%
+		TRYCCALLFORM GET_DUNGEON_LV_{LOCAL:LOCAL}
+			PRINTFORMLC 　(Recommended LV:{RESULT, 2}\@ FLAG:DEBUG ?　Lowest LV:{RESULT:1, 2}　Highest LV:{RESULT:2, 2}　Boss LV:{RESULT:3, 2}#\@)
+		CATCH
+		ENDCATCH
+		PRINTL 
+	ELSE
+		PRINTFORMLC [{LOCAL:LOCAL, 2}] %RESULTS, 20, LEFT%
+	ENDIF
+NEXT
+PRINTFORM \@ LINEISEMPTY() ? # \n \@
+IF FLAG:DEBUG
+	PRINTL [998] Sample Dungeon
+;	PRINTL [999] ダンジョンメーカー
+ENDIF
+;ノーマル以下で一周目の一日目のみチュートリアルが出現する
+IF FLAG:周回回数 == 0 && FLAG:戦闘難易度 < 3 && DAY == 1 && TALENT:MASTER:ガンスリンガー && TALENT:MASTER:道具知識 == 3
+	DRAWLINE
+	PRINTL [200] Tutorial(Only available on first day)
+	DRAWLINE
+ENDIF
+DRAWLINE
+PRINTLC [102] Filter settings
+PRINTLC [110] Automatic filtering
+PRINTL [111] Cancel all filters
+DRAWLINE
+PRINTL [100] Return
+PRINTFORMLC \@ LOCAL:99 > 0 ? [101] Previous page # %" " * 16%\@
+PRINTFORMLC \@ LOCAL:99 < 5 && LOCAL:((LOCAL:99+1) * リスト表示数()) >= 0 ? [103] Next page # %" " * 16%\@
+$INPUT_LOOP
+INPUT
+IF RESULT == 200 && FLAG:周回回数 == 0 && FLAG:戦闘難易度 < 3 && DAY == 1
+	PRINTW You can receive a turorial on dungeon searching and battling.
+	PRINTW This would take place in Hatsudai Shelter
+;	PRINTW You can acquire an item useful for advancing through the game.
+	PRINTW But it will reduce the reward for clearing that dungeon.
+	PRINTW Because eraMegaten's battle system is somewhat complicated, the tutorial is recommended for newcomers.
+	PRINTL Take the turorial?
+	CALL INPUT_YN,"Yes","No"
+	SIF RESULT == 1
+		RESTART
+	PRINTW Then, the tutorial shall begin.
+	PRINTL 
+	CUSTOMDRAWLINE =
+	WAIT
+	ダンジョンフラグ:34:30 = 1
+	RETURN 34
+ELSEIF RESULT == 100
+	RETURN -1
+ELSEIF RESULT == 101 && LOCAL:99 > 0
+	LOCAL:99 -= 1
+	GOTO SHOW_LIST
+ELSEIF RESULT == 102
+	PRINTL Select a dungeon to change it's filter setting.
+	CALL FILTER_DUNGEONLIST
+	RESTART
+ELSEIF RESULT == 110
+	CALL DIARY_DUNGEON_FILTER_MAIN
+	PRINTW Filtered out dungeons considered cleared in the Diary.exe
+	PRINTL 
+	RESTART
+ELSEIF RESULT == 111
+	CALL DIARY_DUNGEON_FILTER_ALLOFF
+	PRINTW All dungeon filters have been reset.
+	PRINTL 
+	RESTART
+ELSEIF RESULT == 103 && LOCAL:99 < 5 && LOCAL:((LOCAL:99 + 1) * リスト表示数()) >= 0
+	LOCAL:99 += 1
+	GOTO SHOW_LIST
+ELSEIF RESULT == 998
+	RETURN 0
+;ELSEIF RESULT == 999 && FLAG:DEBUG
+;	CALL DUNGEON_MAKER
+;	RESTART
+ELSE
+	LOCAL = RESULT
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{RESULT}
+		SIF RESULT == 0 && FLAG:DEBUG == 0
+			GOTO INPUT_LOOP
+		RETURN LOCAL
+	CATCH
+		REUSELASTLINE 
+		GOTO INPUT_LOOP
+	ENDCATCH
+ENDIF
+;=====================================================================
+;攻略可能ダンジョンのリストをフィルタリングする
+;=====================================================================
+@FILTER_DUNGEONLIST
+LOCAL:99 = 0
+FOR LOCAL,0,99
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{LOCAL}
+		IF RESULT || FLAG:DEBUG
+			LOCAL:1 = 0
+			IF LOCAL <= 63
+				SIF GETBIT(FLAG:ダンジョンフィルタ1,LOCAL)
+					LOCAL:1 = 1
+			ELSE
+				SIF GETBIT(FLAG:ダンジョンフィルタ2,LOCAL - 64)
+					LOCAL:1 = 1
+			ENDIF
+			;色セット
+			SIF LOCAL:1
+				SETCOLOR 0x990000
+			TRYCCALLFORM GET_DUNGEON_NAME_{LOCAL}
+			CATCH
+				CONTINUE
+			ENDCATCH
+			PRINTFORMLC [{LOCAL, 2}] %RESULTS, 20, LEFT%
+			LOCAL:99++
+			RESETCOLOR
+		ENDIF
+	CATCH
+	ENDCATCH
+NEXT
+PRINTFORM \@ LINEISEMPTY() ? # \n \@
+PRINTL [100] Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN
+ELSEIF RESULT >= 0 && RESULT <= 100
+	LOCAL = RESULT
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{LOCAL}
+		IF RESULT || FLAG:DEBUG
+			TRYCCALLFORM GET_DUNGEON_NAME_{LOCAL}
+			CATCH
+				REUSELASTLINE 
+				GOTO INPUT_LOOP
+			ENDCATCH
+			IF LOCAL < 64
+				INVERTBIT FLAG:ダンジョンフィルタ1,LOCAL
+			ELSE
+				INVERTBIT FLAG:ダンジョンフィルタ2,LOCAL-64
+			ENDIF
+			REUSELASTLINE 
+			RESTART
+		ELSE
+			REUSELASTLINE 
+			GOTO INPUT_LOOP
+		ENDIF
+	CATCH
+		REUSELASTLINE 
+		GOTO INPUT_LOOP
+	ENDCATCH
+ELSE
+ENDIF
+
+;=====================================================================
+;現在のダンジョンの現在のフロアのANALYZE情報獲得
+;引数はＸ・Ｙ
+;描画速度改善用
+;=====================================================================
+@GET_FLOOR_ANALYZE_T, ARG, ARG:1
+#FUNCTION
+;RETURNF DA:ARG:(ARG:1+100)
+RETURNF DPOINT("GET" , , ARG , ARG:1 , FLAG:現M , @"ダンジョン%TOSTR(FLAG:現ダンジョン , "00")%")
+
+;=====================================================================
+;フロアのANALYZE情報設置
+;ARGは代入する数値で、
+;以降の引数はそれぞれ、ダンジョン・階層・Ｘ・Ｙを示す
+;=====================================================================
+@SET_FLOOR_ANALYZE, ARG, ARG:1, ARG:2, ARG:3, ARG:4
+#LOCALSIZE 1
+;現在のFLOORのANALYZE情報も同時に更新
+CALLF DPOINT("SET" , ARG , ARG:3 , ARG:4 , ARG:2 , @"ダンジョン%TOSTR(ARG:1 , "00")%")
+
+;DA:(ARG:3):(ARG:4+100) = ARG
+;LOCAL = ARG:3+ARG:4*FLAG:最大X
+;SAVESTR:GET_FLOOR_ANALYZE_NUM(ARG:1, ARG:2) = %SUBSTRING(SAVESTR:GET_FLOOR_ANALYZE_NUM(ARG:1, ARG:2), 0, LOCAL)%%TOSTR(ARG)%%SUBSTRING(SAVESTR:GET_FLOOR_ANALYZE_NUM(ARG:1, ARG:2), LOCAL+1)%
+RETURN 0
+
+;=====================================================================
+;フロアデータ作成処理
+;引数はダンジョン番号
+;=====================================================================
+@MAKE_FLOOR, ARG
+;ダンジョンごとのフロアデータを取りに行く
+CALLFORM MAKE_FLOOR_{ARG}
+;フロアの基本データをチェックし、なければセット
+;CALL SET_FLOOR_ANALYZE_DEFAULT, ARG, FLAG:現M
+;現在のダンジョンの現在のフロアのアナライズ情報を取得する
+;CALL SET_FLOOR_ANALYZE_T, ARG, FLAG:現M
+;=====================================================================
+;FLOOR_ANALYZE
+;フロア全体や部屋をまとめてアナライズする
+;ボス部屋などを使う際にどうぞ
+;ARG M　ARG:1 X始点 ARG:2 X終点 Y始点 Y終点
+;=====================================================================
+@FLOOR_ANALYZE, ARG = -1, ARG:1 = -1, ARG:2 = -1, ARG:3 = -1, ARG:4 = -1
+#LOCALSIZE 2
+ARG = ARG == -1 ? FLAG:現M # ARG
+ARG:1 = ARG:1 == -1 ? 0 # ARG:1
+ARG:2 = ARG:2 == -1 ? FLAG:最大X # ARG:2
+ARG:3 = ARG:3 == -1 ? 0 # ARG:3
+ARG:4 = ARG:4 == -1 ? FLAG:最大Y # ARG:4
+FOR LOCAL:1, ARG:3, ARG:4
+	FOR LOCAL, ARG:1, ARG:2
+		CALL SET_FLOOR_ANALYZE, 2, FLAG:現ダンジョン, ARG, LOCAL, LOCAL:1
+	NEXT
+NEXT
+;=====================================================================
+;現在のフロアを描画
+;=====================================================================
+@SHOW_FLOOR
+#LOCALSIZE 2
+#LOCALSSIZE 1
+#DIM 改行フラグ, 1
+CUSTOMDRAWLINE =
+CALLFORM FLOORNAME_{FLAG:現ダンジョン}
+;ALIGNMENT RIGHT
+IF FLAG:カスタムゲーム画面
+	PRINTFORML   ￥{MONEY,9}    ＣＯＭＰ space： {NUM_NAKAMA() + ソフト容量()}/{FLAG:ＣＯＭＰ容量} Used
+	PRINTFORM MAG:{BASE:MASTER:ＭＡＧ,9}    
+ELSE
+	PRINTFORML   ￥{MONEY,8}    ＣＯＭＰ space： {NUM_NAKAMA() + ソフト容量()}/{FLAG:ＣＯＭＰ容量} Used
+	PRINTFORM MAG:{BASE:MASTER:ＭＡＧ,8}    
+ENDIF
+IF FLAG:月齢 != 0 && FLAG:月齢 != 8
+	PRINTFORML {FLAG:月齢}/8 \@ FLAG:月齢ベクトル == 0 ? ＹＯＵＮＧ # ＯＬＤ \@ ＭＯＯＮ
+ELSE
+	PRINTFORML \@ FLAG:月齢 == 8 ? ＦＵＬＬ ＭＯＯＮ # ＮＥＷ ＭＯＯＮ\@
+ENDIF
+ALIGNMENT CENTER
+IF FLAG:最大Y < 18
+	FOR LOCAL , 0 , (18 - FLAG:最大Y)/2
+		PRINTL
+	NEXT
+ENDIF
+
+;CALLFORM GET_DUNGEON_NAME_{FLAG:現ダンジョン}
+CALLF DPOINT( , , 0 , 0 , FLAG:現M , @"ダンジョン%TOSTR(FLAG:現ダンジョン,"00")%")
+FOR LOCAL:1, MAX(0, FLAG:現Y - 9 - MAX(0, ((FLAG:現Y+9)-FLAG:最大Y))), MIN(FLAG:現Y+9+MAX(0, 9-FLAG:現Y), FLAG:最大Y)
+;FOR LOCAL:1, MAX(0, FLAG:現Y-20), MIN(FLAG:現Y+20, FLAG:最大Y)
+	FOR LOCAL, MAX(0, FLAG:現X - 15 - MAX(0, ((FLAG:現X+15)-FLAG:最大X))), MIN(FLAG:現X+15+MAX(0, 15-FLAG:現X), FLAG:最大X)
+		IF FLAG:現X == LOCAL && FLAG:現Y == LOCAL:1
+			SETCOLOR 0x33ffcc
+			PRINT ＠
+			RESETCOLOR
+			CONTINUE
+		ENDIF
+		IF DA:(FLAG:現X):(FLAG:現Y) % 10 == -1 && !((EQUIP:MASTER:DarkScanner || EQUIP:MASTER:HoneyBee) && NUM_SUMMONER() ) && FLAG:ライトマ == 0
+			SETCOLOR 0x333344
+			IF ABS(LOCAL-FLAG:現X)+ABS(LOCAL:1-FLAG:現Y) > 1
+				PRINT ？
+				RESETCOLOR
+				CONTINUE
+			ENDIF
+		ENDIF
+		IF DPOINT( , , LOCAL , LOCAL:1) > 0
+			CALL DG_GET_TILE(LOCAL, LOCAL:1, FLAG:現M, FLAG:現ダンジョン)
+			PRINTFORM %RESULTS%
+		ELSE
+			PRINT 　
+		ENDIF
+		RESETCOLOR
+	NEXT
+	PRINTL
+NEXT
+ALIGNMENT LEFT
+
+IF FLAG:最大Y < 18
+	FOR LOCAL , 0 , (18 - FLAG:最大Y+1)/2
+		PRINTL
+	NEXT
+ENDIF
+
+;---- EDIT 004 DEL START -------------------------
+;IF EQUIP:MASTER:エネミーソナー  && NUM_SUMMONER()
+;;	IF FLAG:エンカウント変動 == 1
+;;		PRINTFORML 遭遇率：{(FLAG:エンカウント率)/2}％   
+;;	ELSEIF FLAG:エンカウント変動 == 2
+;;		PRINTFORML 遭遇率：{(FLAG:エンカウント率)*2}％   
+;;	ELSE
+;		PRINTFORML 遭遇率：{FLAG:エンカウント率}％   
+;;	ENDIF
+;ENDIF
+;---- EDIT 004 DEL END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+;改行 ;改行フラグ
+改行フラグ = 0
+LOCALS = 
+
+IF EQUIP:MASTER:EnemySonar  && NUM_SUMMONER()
+	PRINTFORM Encounter rate：{FLAG:エンカウント率, 3}％   
+	;遭遇率：{FLAG:エンカウント率, 3}％   
+	改行フラグ = 1
+ENDIF
+IF EQUIP:MASTER:CAPSLOCK  && NUM_SUMMONER()
+	PRINT CAPS-LOCK:ON   
+	改行フラグ = 1
+ENDIF
+IF FLAG:エストマ || FLAG:ライトマ || FLAG:リフトマ
+	SIF FLAG:エストマ
+		PRINT Esta 
+		;エストマ 
+	SIF FLAG:ライトマ
+		PRINT Lightma 
+		;ライトマ
+	SIF FLAG:リフトマ
+		PRINT Liftma 
+		;リフトマ 
+	PRINT in effect
+	;効果中 
+	改行フラグ = 1
+ENDIF
+;CHK:改行
+SIF 改行フラグ
+	PRINTL 
+;---- EDIT 004 ADD END ---------------------------
+
+;=====================================================================
+;ダンジョンでのコマンドを表示して設定
+;=====================================================================
+@SHOW_DUNGEON_COMMAND
+;PRINTL ＣＯＭＭＡＮＤ                [10]ＩＴＥＭ     [14]ＣＯＭＰ    　[l]ＬＯＧ
+;PRINTL         [8]↑                 [11]ＭＡＧＩＣ   [15]ＦＯＲＭ    　[*]%ハート%
+;PRINTL [4]← [5]調べる [6]→         [12]ＥＸＴＲＡ   [16]ＳＴＡＴＵＳ  [r]ＲＵＮ
+;PRINTL         [2]↓                 [13]ＥＱＵＩＰ   [17]ＭＡＧ
+SELECTCASE FLAG:ダンジョン内操作設定
+	CASE 0
+		PRINT ＣＯＭＭＡＮＤ                
+		PRINTBUTTON "[i]ＩＴＥＭ" , "i"
+		PRINT       
+		IF NUM_SUMMONER(1)
+			PRINTBUTTON "[c]ＣＯＭＰ　　　" , "c"
+		ELSE
+			PRINTBUTTON "[c]ＭＥＮＵ　　　" , "c"
+		ENDIF
+		PRINTBUTTON "[L]ＬＯＧ" , "L"
+		PRINTL
+		PRINT         
+		PRINTBUTTON "[8]↑","8"
+		PRINT                  
+		PRINTBUTTON "[m]ＭＡＧＩＣ","m"
+		PRINT     
+		PRINTBUTTON "[f]ＦＯＲＭ　　　","f"
+		SIF FLAG:ムフフ展開
+			PRINTBUTTON "[*]" + ハート() , "*"
+		PRINTL
+		PRINTBUTTON "[4]←","4"
+		PRINT  
+		PRINTBUTTON "[5]Check","5"
+		PRINT  
+		PRINTBUTTON "[6]→","6"
+		PRINT          
+		PRINTBUTTON "[e]ＥＸＴＲＡ","e"
+		PRINT     
+		PRINTBUTTON "[s]ＳＴＡＴＵＳ　","s"
+		IF EQUIP:MASTER:RanRanDungeon == 1 && !FLAG:COMP使用不能
+			IF GETBIT(FLAG:232,0)
+				PRINTBUTTON "[r]ＲＵＮ ＯＮ","r"
+			ELSE
+				PRINTBUTTON "[r]ＲＵＮ ＯＦＦ","r"
+			ENDIF
+		ENDIF
+		PRINTL
+		PRINT         
+		PRINTBUTTON "[2]↓","2"
+		PRINT                  
+		PRINTBUTTON "[E]ＥＱＵＩＰ","E"
+		PRINT     
+		PRINTBUTTON "[M]ＭＡＧ","M"
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL
+	CASE 1
+		PRINT ＣＯＭＭＡＮＤ                
+		PRINTBUTTON "[1]ＩＴＥＭ" , "1"
+		PRINT       
+		IF NUM_SUMMONER(1)
+			PRINTBUTTON "[5]ＣＯＭＰ　　　" , "5"
+		ELSE
+			PRINTBUTTON "[5]ＭＥＮＵ　　　" , "5"
+		ENDIF
+		PRINTBUTTON "[+]ＬＯＧ" , "+"
+		PRINTL
+		PRINT         
+		PRINTBUTTON "[w]↑","w"
+		PRINT                  
+		PRINTBUTTON "[2]ＭＡＧＩＣ","2"
+		PRINT     
+		PRINTBUTTON "[6]ＦＯＲＭ　　　","6"
+		SIF FLAG:ムフフ展開
+			PRINTBUTTON "[9]" + ハート() , "9"
+		PRINTL
+		PRINTBUTTON "[a]←","a"
+		PRINT  
+		PRINTBUTTON "[f]Check","f"
+		PRINT  
+		PRINTBUTTON "[d]→","d"
+		PRINT          
+		PRINTBUTTON "[3]ＥＸＴＲＡ","3"
+		PRINT     
+		PRINTBUTTON "[7]ＳＴＡＴＵＳ　","7"
+		IF EQUIP:MASTER:RanRanDungeon == 1 && !FLAG:COMP使用不能
+			IF GETBIT(FLAG:232,0)
+				PRINTBUTTON "[r]ＲＵＮ ＯＮ","r"
+			ELSE
+				PRINTBUTTON "[r]ＲＵＮ ＯＦＦ","r"
+			ENDIF
+		ENDIF
+		PRINTL
+		PRINT         
+		PRINTBUTTON "[s]↓","s"
+		PRINT                  
+		PRINTBUTTON "[4]ＥＱＵＩＰ","4"
+		PRINT     
+		PRINTBUTTON "[8]ＭＡＧ","8"
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL
+		CASEELSE
+		FLAG:ダンジョン内操作設定 = 0
+		CALL SHOW_DUNGEON_COMMAND
+ENDSELECT
+;=====================================================================
+;ダンジョン攻略のメイン処理
+;=====================================================================
+@DUNGEON_ATTACK
+#LOCALSIZE 1
+
+;終了条件が満たされるまで処理を繰り返す
+
+WHILE 1 == 1
+	FLAG:ウィンドウメッセージスキップ = 0
+	CALL REFRESH_FORMATION
+	$PRINT
+	SIF FLAG:ダンジョン内調教 == 1
+		BREAK
+	;脱出フラグ立ってたら終わり
+	IF FLAG:脱出
+		TRYCALLFORM EVENT_DUNGEON_END_{FLAG:現ダンジョン}
+		FLAG:脱出スキル禁止 = 0
+		BREAK
+	ENDIF
+	REDRAW 0
+	;遭遇率を読みこみ
+	CALLFORM ENCOUNT_RATE_{FLAG:現ダンジョン}
+	;FLAG:エンカウント率 = FLAG:エンカウント率 * (100 + FLAG:エンカウント率補正) / 100
+	;ダンジョンを描画
+	CALL SHOW_FLOOR
+	;現パーティ描画
+	CALL SHOW_NOW_FORMATION_P,0,2,,2
+	FLAG:コマンド表示行数 = LINECOUNT
+	;コマンド表示
+	CALL SHOW_DUNGEON_COMMAND
+	
+	;入力待ち
+	$INPUT_LOOP
+	ONEINPUTS
+	REDRAW 1
+	SELECTCASE FLAG:ダンジョン内操作設定
+		CASE 0
+			SELECTCASE RESULTS
+				CASE "5"
+					SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+						CASE -9
+							CALL DUNGEON_TERMINAL
+						CASE -19
+							CALL FOUNTAIN_OF_TRISH
+						CASE -29
+							CALL DUNGEON_ELEVATOR
+						CASEELSE
+							CALLFORM EVENT_CHECK_DUNGEON_{FLAG:現ダンジョン}
+					ENDSELECT
+				CASE "8"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現Y-1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y-1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,8
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現Y-1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y-1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始						
+						IF !RANGE(FLAG:現Y-2, 0, FLAG:最大Y-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,8
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y-2
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,8
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,8
+							IF RESULT == 0
+							CALL WALK_DUNGEON,8
+							ELSE
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-2)
+							;それ以外の時に初めて走る
+							CALL RUN_DUNGEON,8
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "4"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現X-1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X-1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X-1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,4
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現X-1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X-1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X-1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始
+						IF !RANGE(FLAG:現X-2, 0, FLAG:最大X-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,4
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X-2,FLAG:現Y
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,4
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,4
+							IF RESULT == 0
+							CALL WALK_DUNGEON,4
+							ELSE
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X-2, FLAG:現Y)
+							;それ以外の時に初めて走る
+							CALL RUN_DUNGEON,4
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "6"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現X+1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X+1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,6
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現X+1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X+1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始
+						IF !RANGE(FLAG:現X+2, 0, FLAG:最大X-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,6
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X+2,FLAG:現Y
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,6
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,6
+							IF RESULT == 0
+							CALL WALK_DUNGEON,6
+							ELSE
+							;それ以外の時に初めて走る
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+2, FLAG:現Y)
+							CALL RUN_DUNGEON,6
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "2"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現Y+1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y+1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,2
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現Y+1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y+1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始
+						IF !RANGE(FLAG:現Y+2, 0, FLAG:最大Y-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,2
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y+2
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,2
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,2
+							IF RESULT == 0
+							CALL WALK_DUNGEON,2
+							ELSE
+							;それ以外の時に初めて走る
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+2)
+							CALL RUN_DUNGEON,2
+							ENDIF
+						ENDIF
+					ENDIF
+					CASE "c"
+					;IF NUM_SUMMONER(1) == 0
+					;	PRINTW 誰もＣＯＭＰを使えない
+					;	CLEARLINE 2
+					;	GOTO INPUT_LOOP
+					;ENDIF
+					CALL COMMAND_COMP_FIELD
+				CASE "i"
+					CALL COMMAND_ITEM_FIELD
+				CASE "m"
+					CALL COMMAND_MAGIC_FIELD_LIST,2
+				CASE "e"
+					CALL COMMAND_MAGIC_FIELD_LIST,1
+				CASE "0", "U", "V", "W", "X", "Y", "Z"
+					IF RESULTS == "0"
+						ONEINPUTS
+						LOCAL = TOINT(RESULTS)
+					ELSE
+						SELECTCASE RESULTS
+							CASE "U"
+								LOCAL = 1
+							CASE "V"
+								LOCAL = 2
+							CASE "W"
+								LOCAL = 3
+							CASE "X"
+								LOCAL = 4
+							CASE "Y"
+								LOCAL = 5
+							CASE "Z"
+								LOCAL = 6
+						ENDSELECT
+					ENDIF
+					IF RANGE(LOCAL, 1, 6) && POS(LOCAL) >= 0
+						CALL COMMAND_MAGIC_FIELD, 2, POS(LOCAL), 1
+					ELSE
+						CLEARLINE 2
+					ENDIF
+				CASE "E"
+					CALL EQUIPMENT
+				CASE "f"
+					CALL FORM_INPUT
+				CASE "s"
+					CALL SHOP_COM_110
+				CASE "M"
+					CALL SWITCH_MAG
+				CASE "*"
+					CALL DUNGEON_MUFUFU
+				CASE "r"
+					CALL DUNGEON_RUNRUN
+				CASE "L"
+					CALL MESSAGE_WINDOW_LOG(, , , , , 1)
+				CASEELSE
+					GOTO INPUT_LOOP
+			ENDSELECT
+		CASE 1
+			SELECTCASE RESULTS
+				CASE "f"
+					SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+						CASE -9
+							CALL DUNGEON_TERMINAL
+						CASE -19
+							CALL FOUNTAIN_OF_TRISH
+						CASE -29
+							CALL DUNGEON_ELEVATOR
+						CASEELSE
+							CALLFORM EVENT_CHECK_DUNGEON_{FLAG:現ダンジョン}
+					ENDSELECT
+				CASE "w"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現Y-1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y-1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,8
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現Y-1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y-1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始						
+						IF !RANGE(FLAG:現Y-2, 0, FLAG:最大Y-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,8
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y-2
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,8
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,8
+							IF RESULT == 0
+							CALL WALK_DUNGEON,8
+							ELSE
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-2)
+							;それ以外の時に初めて走る
+							CALL RUN_DUNGEON,8
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "a"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現X-1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X-1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X-1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,4
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現X-1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X-1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X-1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始
+						IF !RANGE(FLAG:現X-2, 0, FLAG:最大X-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,4
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X-2,FLAG:現Y
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,4
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,4
+							IF RESULT == 0
+							CALL WALK_DUNGEON,4
+							ELSE
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X-2, FLAG:現Y)
+							;それ以外の時に初めて走る
+							CALL RUN_DUNGEON,4
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "d"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現X+1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X+1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,6
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現X+1, 0, FLAG:最大X-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+1, FLAG:現Y)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X+1,FLAG:現Y
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始
+						IF !RANGE(FLAG:現X+2, 0, FLAG:最大X-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,6
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X+2,FLAG:現Y
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,6
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,6
+							IF RESULT == 0
+							CALL WALK_DUNGEON,6
+							ELSE
+							;それ以外の時に初めて走る
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+2, FLAG:現Y)
+							CALL RUN_DUNGEON,6
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "s"
+					;RanRanDungeonの判定
+					IF GETBIT(FLAG:232,0) == 0
+						;歩いて探索
+						IF !RANGE(FLAG:現Y+1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y+1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						CALL WALK_DUNGEON,2
+					ELSE
+						;走って探索
+						;１マス目の侵入可能判定開始
+						;マップ端っこなら進めない
+						IF !RANGE(FLAG:現Y+1, 0, FLAG:最大Y-1)
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;壁とかだったら進めない
+						CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+1)
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y+1
+						IF RESULT == 0
+							CLEARLINE 1
+							GOTO PRINT
+						ENDIF
+						;1マス目は侵入可能
+						;ついで2マス目の侵入可能判定開始
+						IF !RANGE(FLAG:現Y+2, 0, FLAG:最大Y-1)
+							;2マス目がマップ端っこなら歩く
+							CALL WALK_DUNGEON,2
+							RESTART
+						ENDIF
+						CALLFORM CAN_ENTER_{FLAG:現ダンジョン},FLAG:現X,FLAG:現Y+2
+						IF RESULT == 0
+							;2マス目が壁とかだったら歩く
+							CALL WALK_DUNGEON,2
+						ELSE
+							CALL DUNGEON_RUNRUN_CHECK,2
+							IF RESULT == 0
+							CALL WALK_DUNGEON,2
+							ELSE
+							;それ以外の時に初めて走る
+							CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+2)
+							CALL RUN_DUNGEON,2
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE "5"
+					;IF NUM_SUMMONER(1) == 0
+					;	PRINTW 誰もＣＯＭＰを使えない
+					;	CLEARLINE 2
+					;	GOTO INPUT_LOOP
+					;ENDIF
+					CALL COMMAND_COMP_FIELD
+				CASE "0"
+					IF RESULTS == "0"
+						ONEINPUTS
+						LOCAL = TOINT(RESULTS)
+					ELSE
+						SELECTCASE RESULTS
+							CASE "U"
+								LOCAL = 1
+							CASE "V"
+								LOCAL = 2
+							CASE "W"
+								LOCAL = 3
+							CASE "X"
+								LOCAL = 4
+							CASE "Y"
+								LOCAL = 5
+							CASE "Z"
+								LOCAL = 6
+						ENDSELECT
+					ENDIF
+					IF RANGE(LOCAL, 1, 6) && POS(LOCAL) >= 0
+						CALL COMMAND_MAGIC_FIELD, 2, POS(LOCAL), 1
+					ELSE
+						CLEARLINE 2
+					ENDIF
+				CASE "1"
+					CALL COMMAND_ITEM_FIELD
+				CASE "2"
+					CALL COMMAND_MAGIC_FIELD_LIST,2
+				CASE "3"
+					CALL COMMAND_MAGIC_FIELD_LIST,1
+				CASE "4"
+					CALL EQUIPMENT
+				CASE "6"
+					CALL FORM_INPUT
+				CASE "7"
+					CALL SHOP_COM_110
+				CASE "8"
+					CALL SWITCH_MAG
+				CASE "9"
+					CALL DUNGEON_MUFUFU
+				CASE "r"
+					CALL DUNGEON_RUNRUN
+				CASE "+"
+					CALL MESSAGE_WINDOW_LOG(, , , , , 1)
+				CASEELSE
+					GOTO INPUT_LOOP
+			ENDSELECT
+		CASEELSE
+		FLAG:ダンジョン内操作設定 = 0
+		GOTO PRINT
+	ENDSELECT
+WEND
+
+;=====================================================================
+;隊列変更入力
+;=====================================================================
+
+@FORM_INPUT
+PRINTL Change formation
+DRAWLINE
+PRINTL [0] Switch front and back [1] Position change [1000] Return
+$INPUT_LOOP_FORM
+INPUT
+IF RESULT == 0
+	CALL CHANGE_POS,1,6
+	CALL CHANGE_POS,2,5
+	CALL CHANGE_POS,3,4
+ELSEIF RESULT == 1
+	CALL SETUP_FORMATION
+ELSEIF RESULT == 1000
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP_FORM
+ENDIF
+
+RETURN 1
+
+;=====================================================================
+;歩いて移動
+;=====================================================================
+@WALK_DUNGEON,ARG
+LOCAL = 0
+SELECTCASE ARG
+	CASE 8
+		FLAG:現Y -= 1
+	CASE 4
+		FLAG:現X -= 1
+	CASE 6
+		FLAG:現X += 1
+	CASE 2
+		FLAG:現Y += 1
+ENDSELECT
+
+;ＭＡＧ消費
+CALL CONSUME_MAG
+
+;ガリバーマジック
+IF EQUIP:MASTER:GulliverMagic == 1 && !FLAG:COMP使用不能
+	FOR LOCAL,1,7
+		LOCALS = ポジション{LOCAL}
+		IF FLAG:LOCALS > -1 && TALENT:(FLAG:LOCALS):サマナー && (TALENT:(FLAG:LOCALS):異能者 == 0 && TALENT:(FLAG:LOCALS):ペルソナ使い == 0 && CFLAG:(FLAG:LOCALS):悪魔変身 == 0 && TALENT:(FLAG:LOCALS):達人 == 0)
+			SELECTCASE GET_STATE(CFLAG:(FLAG:LOCALS):ステート)
+				CASE "DYING","STONE","FLY","PALYZE","BIND","CHARM","SLEEP","PANIC"
+					CONTINUE
+				CASEELSE
+					CALL VAR_HP,FLAG:LOCALS,1,3
+			ENDSELECT
+		ENDIF
+	NEXT
+ENDIF
+
+CALL AUTOMAP
+;毒などのチェック
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	IF FLAG:LOCALS > -1
+		LOCAL:1 = FLAG:LOCALS
+		IF FLAG:ムフフ展開
+	
+			;一歩ごとに体力が5回復する（最大値は気力の現在値）
+			SIF BASE:(LOCAL:1):体力 < BASE:(LOCAL:1):気力
+				BASE:(LOCAL:1):体力 += 5
+			
+			;CFLAG:ダンジョン内発情用欲情値が15000以下の場合
+			IF CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 < 15000
+				;精液の箇所ひとつに付き欲情が精液中毒ＬＶ分増える
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("膣内" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("ヴァギナ" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("口" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("手" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("胸" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("アナル" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("髪" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+
+				;アソコと乳首が露出していると露出癖ＬＶ分欲情が増える
+				SIF TEQUIP:(LOCAL:1):乳首露出 == -1
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += ABL:(LOCAL:1):露出癖
+				SIF TEQUIP:(LOCAL:1):陰唇露出 == -1
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += ABL:(LOCAL:1):露出癖
+
+				SIF 危険日(LOCAL:1) == 2
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += 2 * ABL:(LOCAL:1):欲望
+				;CFLAG:ダンジョン内発情用欲情値の上限は15000
+				SIF CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 > 15000
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 = 15000
+			ENDIF
+			
+			;膣内が精液で汚れている場合は10％の確率でヴァギナに汚れが付く
+			IF GET_STAIN("膣内" , "精液" , LOCAL:1) && GET_STAIN("ヴァギナ" , "精液" , LOCAL:1) == 0 && RAND:100 < 10
+				SETCOLOR COLOR("pink")
+				PRINTFORMW Semen dripped from %CALLNAME:(LOCAL:1)%...
+				RESETCOLOR
+				CALL SET_STAIN("ヴァギナ" , "精液" , LOCAL:1)
+				;三分の一の確立で膣内の汚れ消去
+				SIF RAND:3 == 0
+					STAIN:(LOCAL:1):膣内 = 0
+			ENDIF
+		
+			;欲情一定値以下で発情終了
+			IF  CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 < 2000 && CFLAG:(LOCAL:1):ダンジョン内発情
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 0
+				PRINTFORMW %CALLNAME:(LOCAL:1)% calmed down.
+			ENDIF
+	
+			;欲情が10000以上になると発情
+			IF (!TALENT:(LOCAL:1):オトコ || TALENT:(LOCAL:1):男の娘) && !CFLAG:(LOCAL:1):ダンジョン内発情 && CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 >= 10000
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 1
+				CALL SET_STAIN("膣内" , "愛液" , LOCAL:1)
+				CALL SET_STAIN("ヴァギナ" , "愛液" , LOCAL:1)
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s vision was tinted pink.
+				RESETCOLOR
+			;発情状態の時に30％の確率でHAPPYになる
+			ELSEIF RAND:100 < 30 && CFLAG:(LOCAL:1):ダンジョン内発情 && CFLAG:(LOCAL:1):ステート != GET_STATE_NUM("HAPPY")
+				CFLAG:(LOCAL:1):ステート = GET_STATE_NUM("HAPPY")
+			ENDIF
+			;素質『発情可』を持っていると魅了状態時に10％の確率で発情する
+			IF TALENT:(LOCAL:1):オトコ == 0 && CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("CHARM") && TALENT:(LOCAL:1):発情可 && CFLAG:(LOCAL:1):ダンジョン内発情 == 0 && RAND:100 < 10
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 1
+				CALL SET_STAIN("膣内" , "愛液" , LOCAL:1)
+				CALL SET_STAIN("ヴァギナ" , "愛液" , LOCAL:1)
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s vision was tinted pink.
+				RESETCOLOR
+			ENDIF
+
+			;あなた押し倒されイベント　仲魔が発情状態の時に指定確率であなたを押し倒す
+			;設定と条件に該当したら FLAG:押し倒されイベント, 40 を立てて本処理を実行
+			;↓はテスト用、これにすると押し倒し祭り
+			;IF GETBIT(FLAG:押し倒されイベント,0) && RAND:100 < FLAG:押し倒されイベント発生率 && CFLAG:(LOCAL:1):ダンジョン内発情 == 0
+			IF GETBIT(FLAG:押し倒されイベント,0) && RAND:100 < FLAG:押し倒されイベント発生率 && CFLAG:(LOCAL:1):ダンジョン内発情
+				CLEARBIT FLAG:押し倒されイベント, 40
+				;女 → 男
+				IF     GETBIT(FLAG:押し倒されイベント,1)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 &&TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→ 男
+				ELSEIF GETBIT(FLAG:押し倒されイベント,2)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 → 男
+				ELSEIF GETBIT(FLAG:押し倒されイベント,3)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→ 男 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,4)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 → 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,5)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→ 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,6)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 → 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,7)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→ 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,8)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 →男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,9)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,10) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 →男娘 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,11) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,12) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 →双女 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,13) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→双女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,14) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 →双女 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,15) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→双女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,16) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				ELSE
+					CLEARBIT FLAG:押し倒されイベント, 40
+				ENDIF
+				IF GETBIT(FLAG:押し倒されイベント, 40)
+					SETCOLOR COLOR("pink")
+					PRINTFORMW %CALLNAME:(LOCAL:1)% felt overwhelming desire and pushed down %CALLNAME:MASTER%!
+					RESETCOLOR
+					PRINTL 
+					PRINTFORMW %CALLNAME:MASTER% helped %CALLNAME:(LOCAL:1)% deal with the growing desire,
+					PRINTFORMW %CALLNAME:MASTER% softly crying in pleasure with every thrust...
+					CALL 性欲処理, LOCAL:1 , MASTER ,  1
+				ENDIF
+			ENDIF
+
+		ENDIF
+
+		IF CFLAG:(LOCAL:1):ステート > 0
+			;気力0と発情しているときは、ステート経過ターンが増えない
+			SIF !(FLAG:ムフフ展開 && (BASE:(ARG:1):気力 == 0 || 危険日(LOCAL:1) >= 2))
+				CFLAG:(LOCAL:1):ステート経過ターン += FLAG:未遭遇歩数/2
+			;バッドステータス・セービング
+			CALL BADSTATUS_SAVING,LOCAL:1
+			;毒ならダメージ
+			SIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("POISON") && FLAG:未遭遇歩数 % 4 == 0
+				CALL VAR_HP,LOCAL:1,-MAX(MAXBASE:(LOCAL:1):ＭＰ/16,1),3
+			;麻痺ならMP減少
+			SIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("PALYZE") && FLAG:未遭遇歩数 % 4 == 0
+				CALL VAR_MP,LOCAL:1,-MAX(MAXBASE:(LOCAL:1):ＭＰ/16,1),3
+			CFLAG:(LOCAL:1):ステート経過ターン -= FLAG:未遭遇歩数/2
+		ENDIF
+	ENDIF
+NEXT
+
+LOCAL = 0
+;移動後のダンジョンイベント呼び出し
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+	CASE -9
+		CALL DUNGEON_TERMINAL
+	CASE -19
+		CALL FOUNTAIN_OF_TRISH
+	CASE -29
+		CALL DUNGEON_ELEVATOR
+	CASEELSE
+		CALLFORM EVENT_ENTER_DUNGEON_{FLAG:現ダンジョン},ARG
+ENDSELECT
+SIF RESULT || FLAG:エンカウントしない || FLAG:脱出
+	LOCAL = 1
+
+;遭遇チェック
+IF LOCAL == 0
+	LOCAL:3 = FLAG:エンカウント率補正 + 100
+	SIF EQUIP:MASTER:EnemyWelcome && NUM_SUMMONER()
+		LOCAL:3 *= 2
+	SIF EQUIP:MASTER:EnemyBegone && NUM_SUMMONER()
+		LOCAL:3 /= 2
+	$ENCOUNT_START
+	SIF RAND:100 <= LOCAL:3
+		CALLFORM CHECK_ENCOUNT_{FLAG:現ダンジョン}
+	IF RESULT == 1
+		LOCAL:1 = 1
+;---- EDIT 004 MOD START -------------------------
+;		IF FLAG:エストマ
+		IF FLAG:エストマ || ( EQUIP:MASTER:CAPSLOCK && NUM_SUMMONER() )
+			LOCAL:30 = 0
+;---- EDIT 004 MOD END ---------------------------
+			LOCAL:1 = 0
+			LOCAL:2 = 0
+			FOR LOCAL, 1, 7
+;---- EDIT 004 MOD START -------------------------
+;				SIF POS(LOCAL) >= 0
+				IF POS(LOCAL) >= 0
+					LOCAL:2 += BASE:POS(LOCAL):LV
+					LOCAL:30 += 1
+				ENDIF
+;---- EDIT 004 MOD END ---------------------------
+			NEXT
+			FOR LOCAL, 7, 17
+				IF POS(LOCAL) >= 0
+;---- EDIT 004 ADD START -------------------------
+					;CHK:エストマ (式: 敵LV < 味方合計LV / 6)
+					IF FLAG:エストマ && ( BASE:POS(LOCAL):LV < LOCAL:2 / 6 )
+						CALL キャラ削除(POS(LOCAL))
+					;CHK:CAPSLOCK (式: 敵LV < 主人LV - 12)
+					ELSEIF ( EQUIP:MASTER:CAPSLOCK && NUM_SUMMONER() ) && ( BASE:POS(LOCAL):LV <= BASE:MASTER:LV - 12 )
+						CALL キャラ削除(POS(LOCAL))
+					;その他
+					ELSE
+						LOCAL:1 = 1
+					ENDIF
+;---- EDIT 004 ADD END ---------------------------
+				ENDIF
+			NEXT
+		ENDIF
+		FLAG:未遭遇歩数 = 0
+		IF LOCAL:1 > 0
+			PRINTW Demons encountered!
+			CALL BATTLE_START
+		ENDIF
+	ENDIF
+	LOCAL:3 -= 100
+	SIF LOCAL:3 > 0
+		GOTO ENCOUNT_START
+ENDIF
+CALL MOVE_MOON
+CALL AUTOMAP
+
+RETURN 1
+
+;=====================================================================
+;RanRanDungeon
+;=====================================================================
+
+@DUNGEON_RUNRUN
+INVERTBIT FLAG:232,0
+RETURN 1
+
+;=====================================================================
+;RanRanDungeon チェック用変数
+;=====================================================================
+
+@DUNGEON_RUNRUN_CHECK,ARG
+#LOCALSIZE 3
+LOCAL:1 = 2
+LOCAL:2 = 2
+
+;向きによる移動方向の判定
+SELECTCASE ARG
+	CASE 8
+		;8はy-1
+		LOCAL:2 = 1
+	CASE 4
+		;4はx-1
+		LOCAL:1 = 1
+	CASE 6
+		;6はx+1
+		LOCAL:1 = 3
+	CASE 2
+		;2はy+1
+		LOCAL:2 = 3
+ENDSELECT
+
+
+;通路のチェック
+;
+;進行方向がy+1とすると、x-1とx+1のどちらかが
+;yとy+2が侵入不可かつy+1が「侵入不可でないでない」←変な表現だけどこれが正直正しい　なら横に通路があると見なしてとまる
+;
+;x  -=+
+;y  222
+;y  111
+;y  000
+;
+;こういうことですね我ながら分かりやすいです
+
+;y軸移動 2,8の時の通路チェック
+IF ARG == 2 || ARG == 8
+	;x-1側のチェック !DA DA !DAでAND
+	SIF DA:(FLAG:現X-1):(FLAG:現Y) % 10 == 0 && DA:(FLAG:現X-1):(FLAG:現Y+LOCAL:2-2) % 10 != 0 && DA:(FLAG:現X-1):(FLAG:現Y+LOCAL:2+LOCAL:2-4) % 10 == 0
+		RETURN 0
+	;x+1側のチェック
+	SIF DA:(FLAG:現X+1):(FLAG:現Y) % 10 == 0 && DA:(FLAG:現X+1):(FLAG:現Y+LOCAL:2-2) % 10 != 0 && DA:(FLAG:現X+1):(FLAG:現Y+LOCAL:2+LOCAL:2-4) % 10 == 0
+		RETURN 0		
+ENDIF
+
+;x軸移動 4,6の時の通路チェック
+IF ARG == 4 || ARG == 6
+	;y-1側のチェック !DA DA !DAでAND
+	SIF DA:(FLAG:現X):(FLAG:現Y-1) % 10 == 0 && DA:(FLAG:現X+LOCAL:1-2):(FLAG:現Y-1) % 10 != 0 && DA:(FLAG:現X+LOCAL:1+LOCAL:1-4):(FLAG:現Y-1) % 10 == 0
+		RETURN 0
+	;y+1側のチェック
+	SIF DA:(FLAG:現X):(FLAG:現Y+1) % 10 == 0 && DA:(FLAG:現X+LOCAL:1-2):(FLAG:現Y+1) % 10 != 0 && DA:(FLAG:現X+LOCAL:1+LOCAL:1-4):(FLAG:現Y+1) % 10 == 0
+		RETURN 0		
+ENDIF
+
+;移動先のマスが両方とも1であれば1を返す
+SIF DA:(FLAG:現X+LOCAL:1-2):(FLAG:現Y+LOCAL:2-2) % 10 == 1 && DA:(FLAG:現X+LOCAL:1+LOCAL:1-4):(FLAG:現Y+LOCAL:2+LOCAL:2-4) % 10 == 1 
+	RETURN 1
+RETURN 0
+
+;=====================================================================
+;走って移動
+;=====================================================================
+
+@RUN_DUNGEON,ARG
+;歩いて移動を２回……しているだけではないのです
+
+;もしラン中断フラグが既に立っている場合、一歩目に入る前に消す
+SIF GETBIT(FLAG:233,0) == 1
+	CLEARBIT FLAG:233,0
+
+;１回目の移動
+LOCAL = 0
+LOCAL:99 = 0
+SELECTCASE ARG
+	CASE 8
+		FLAG:現Y -= 1
+	CASE 4
+		FLAG:現X -= 1
+	CASE 6
+		FLAG:現X += 1
+	CASE 2
+		FLAG:現Y += 1
+ENDSELECT
+
+;ＭＡＧ消費
+CALL CONSUME_MAG
+
+;ガリバーマジック
+IF EQUIP:MASTER:GulliverMagic == 1 && !FLAG:COMP使用不能
+	FOR LOCAL,1,7
+		LOCALS = ポジション{LOCAL}
+		IF FLAG:LOCALS > -1 && TALENT:(FLAG:LOCALS):サマナー && (TALENT:(FLAG:LOCALS):異能者 == 0 && TALENT:(FLAG:LOCALS):ペルソナ使い == 0 && CFLAG:(FLAG:LOCALS):悪魔変身 == 0 && TALENT:(FLAG:LOCALS):達人 == 0)
+			SELECTCASE GET_STATE(CFLAG:(FLAG:LOCALS):ステート)
+				CASE "DYING","STONE","FLY","PALYZE","BIND","CHARM","SLEEP","PANIC"
+					CONTINUE
+				CASEELSE
+					CALL VAR_HP,FLAG:LOCALS,1,3
+			ENDSELECT
+		ENDIF
+	NEXT
+ENDIF
+
+;なんでここでAUTOMAP読んでるんだろ？
+CALL AUTOMAP
+;毒などのチェック
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	IF FLAG:LOCALS > -1
+		LOCAL:1 = FLAG:LOCALS
+		IF FLAG:ムフフ展開
+	
+			;一歩ごとに体力が5回復する（最大値は気力の現在値）
+			SIF BASE:(LOCAL:1):体力 < BASE:(LOCAL:1):気力
+				BASE:(LOCAL:1):体力 += 5
+			
+			;CFLAG:ダンジョン内発情用欲情値が15000以下の場合
+			IF CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 < 15000
+				;精液の箇所ひとつに付き欲情が精液中毒ＬＶ分増える
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("膣内" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("ヴァギナ" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("口" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("手" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("胸" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("アナル" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("髪" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+
+				;アソコと乳首が露出していると露出癖ＬＶ分欲情が増える
+				SIF TEQUIP:(LOCAL:1):乳首露出 == -1
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += ABL:(LOCAL:1):露出癖
+				SIF TEQUIP:(LOCAL:1):陰唇露出 == -1
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += ABL:(LOCAL:1):露出癖
+
+				SIF 危険日(LOCAL:1) == 2
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += 2 * ABL:(LOCAL:1):欲望
+				;CFLAG:ダンジョン内発情用欲情値の上限は15000
+				SIF CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 > 15000
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 = 15000
+			ENDIF
+			
+			;膣内が精液で汚れている場合は10％の確率でヴァギナに汚れが付く
+			IF GET_STAIN("膣内" , "精液" , LOCAL:1) && GET_STAIN("ヴァギナ" , "精液" , LOCAL:1) == 0 && RAND:100 < 10
+				SETCOLOR COLOR("pink")
+				PRINTFORMW Semen dripped from %CALLNAME:(LOCAL:1)%…
+				RESETCOLOR
+				CALL SET_STAIN("ヴァギナ" , "精液" , LOCAL:1)
+				;三分の一の確立で膣内の汚れ消去
+				SIF RAND:3 == 0
+					STAIN:(LOCAL:1):膣内 = 0
+			ENDIF
+		
+			;欲情一定値以下で発情終了
+			IF  CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 < 2000 && CFLAG:(LOCAL:1):ダンジョン内発情
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 0
+				PRINTFORMW %CALLNAME:(LOCAL:1)% calmed down.
+			ENDIF
+	
+			;欲情が10000以上になると発情
+			IF (!TALENT:(LOCAL:1):オトコ || TALENT:(LOCAL:1):男の娘) && !CFLAG:(LOCAL:1):ダンジョン内発情 && CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 >= 10000
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 1
+				CALL SET_STAIN("膣内" , "愛液" , LOCAL:1)
+				CALL SET_STAIN("ヴァギナ" , "愛液" , LOCAL:1)
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s vision was tinted pink.
+				RESETCOLOR
+			;発情状態の時に30％の確率でHAPPYになる
+			ELSEIF RAND:100 < 30 && CFLAG:(LOCAL:1):ダンジョン内発情 && CFLAG:(LOCAL:1):ステート != GET_STATE_NUM("HAPPY")
+				CFLAG:(LOCAL:1):ステート = GET_STATE_NUM("HAPPY")
+			ENDIF
+			;素質『発情可』を持っていると魅了状態時に10％の確率で発情する
+			IF TALENT:(LOCAL:1):オトコ == 0 && CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("CHARM") && TALENT:(LOCAL:1):発情可 && CFLAG:(LOCAL:1):ダンジョン内発情 == 0 && RAND:100 < 10
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 1
+				CALL SET_STAIN("膣内" , "愛液" , LOCAL:1)
+				CALL SET_STAIN("ヴァギナ" , "愛液" , LOCAL:1)
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s vision was tinted pink.
+				RESETCOLOR
+			ENDIF
+
+			;あなた押し倒されイベント　仲魔が発情状態の時に指定確率であなたを押し倒す
+			;設定と条件に該当したら FLAG:押し倒されイベント, 40 を立てて本処理を実行
+			;↓はテスト用、これにすると押し倒し祭り
+			;IF GETBIT(FLAG:押し倒されイベント,0) && RAND:100 < FLAG:押し倒されイベント発生率 && CFLAG:(LOCAL:1):ダンジョン内発情 == 0
+			IF GETBIT(FLAG:押し倒されイベント,0) && RAND:100 < FLAG:押し倒されイベント発生率 && CFLAG:(LOCAL:1):ダンジョン内発情
+				CLEARBIT FLAG:押し倒されイベント, 40
+				;女 → 男
+				IF     GETBIT(FLAG:押し倒されイベント,1)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 &&TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→ 男
+				ELSEIF GETBIT(FLAG:押し倒されイベント,2)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 → 男
+				ELSEIF GETBIT(FLAG:押し倒されイベント,3)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→ 男 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,4)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 → 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,5)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→ 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,6)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 → 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,7)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→ 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,8)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 →男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,9)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,10) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 →男娘 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,11) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,12) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 →双女 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,13) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→双女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,14) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 →双女 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,15) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→双女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,16) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				ELSE
+					CLEARBIT FLAG:押し倒されイベント, 40
+				ENDIF
+				IF GETBIT(FLAG:押し倒されイベント, 40)
+					SETCOLOR COLOR("pink")
+					PRINTFORMW %CALLNAME:(LOCAL:1)% felt overwhelming desire and pushed down %CALLNAME:MASTER%！
+					RESETCOLOR
+					PRINTL 
+					PRINTFORMW %CALLNAME:MASTER% helped %CALLNAME:(LOCAL:1)% deal with lust while crying out in pleasure,
+					PRINTFORMW %CALLNAME:MASTER% gasping with each thrust...
+					CALL 性欲処理, LOCAL:1 , MASTER ,  1
+				ENDIF
+			ENDIF
+
+		ENDIF
+
+		IF CFLAG:(LOCAL:1):ステート > 0
+			;気力0と発情しているときは、ステート経過ターンが増えない
+			SIF !(FLAG:ムフフ展開 && (BASE:(ARG:1):気力 == 0 || 危険日(LOCAL:1) >= 2))
+				CFLAG:(LOCAL:1):ステート経過ターン += FLAG:未遭遇歩数/2
+			;バッドステータス・セービング
+			CALL BADSTATUS_SAVING,LOCAL:1
+			;毒ならダメージ
+			SIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("POISON") && FLAG:未遭遇歩数 % 4 == 0
+				CALL VAR_HP,LOCAL:1,-MAX(MAXBASE:(LOCAL:1):ＭＰ/16,1),3
+			;麻痺ならMP減少
+			SIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("PALYZE") && FLAG:未遭遇歩数 % 4 == 0
+				CALL VAR_MP,LOCAL:1,-MAX(MAXBASE:(LOCAL:1):ＭＰ/16,1),3
+			CFLAG:(LOCAL:1):ステート経過ターン -= FLAG:未遭遇歩数/2
+		ENDIF
+	ENDIF
+NEXT
+
+
+;移動後のダンジョンイベント呼び出し
+LOCAL = 0
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+	CASE -9
+		CALL DUNGEON_TERMINAL
+	CASE -19
+		CALL FOUNTAIN_OF_TRISH
+	CASE -29
+		CALL DUNGEON_ELEVATOR
+	CASEELSE
+		CALLFORM EVENT_ENTER_DUNGEON_{FLAG:現ダンジョン},ARG
+ENDSELECT
+
+;遭遇チェックを行うかどうか
+LOCAL = 0
+SIF RESULT || FLAG:エンカウントしない || FLAG:脱出
+	LOCAL = 1
+
+;遭遇チェック
+;遭遇したら２マス目の移動はキャンセル
+IF LOCAL == 0
+	LOCAL:3 = FLAG:エンカウント率補正 + 100
+	SIF EQUIP:MASTER:EnemyWelcome && NUM_SUMMONER()
+		LOCAL:3 *= 2
+	SIF EQUIP:MASTER:EnemyBegone && NUM_SUMMONER()
+		LOCAL:3 /= 2
+	$ENCOUNT_START1
+	SIF RAND:100 <= LOCAL:3
+		CALLFORM CHECK_ENCOUNT_{FLAG:現ダンジョン}
+	IF RESULT == 1
+		LOCAL:1 = 1
+;---- EDIT 004 MOD START -------------------------
+;		IF FLAG:エストマ
+		IF FLAG:エストマ || ( EQUIP:MASTER:CAPSLOCK && NUM_SUMMONER() )
+			LOCAL:30 = 0
+;---- EDIT 004 MOD END ---------------------------
+			LOCAL:1 = 0
+			LOCAL:2 = 0
+			FOR LOCAL, 1, 7
+;---- EDIT 004 MOD START -------------------------
+;				SIF POS(LOCAL) >= 0
+				IF POS(LOCAL) >= 0
+					LOCAL:2 += BASE:POS(LOCAL):LV
+					LOCAL:30 += 1
+				ENDIF
+;---- EDIT 004 MOD END ---------------------------
+			NEXT
+			FOR LOCAL, 7, 17
+				IF POS(LOCAL) >= 0
+;---- EDIT 004 ADD START -------------------------
+					;CHK:エストマ (式: 敵LV < 味方合計LV / 6)
+					IF FLAG:エストマ && ( BASE:POS(LOCAL):LV < LOCAL:2 / 6 )
+						CALL キャラ削除(POS(LOCAL))
+					;CHK:CAPSLOCK (式: 敵LV < 主人LV - 12)
+					ELSEIF ( EQUIP:MASTER:CAPSLOCK && NUM_SUMMONER() ) && ( BASE:POS(LOCAL):LV <= BASE:MASTER:LV - 12 )
+						CALL キャラ削除(POS(LOCAL))
+					;その他
+					ELSE
+						LOCAL:1 = 1
+					ENDIF
+;---- EDIT 004 ADD END ---------------------------
+				ENDIF
+			NEXT
+		ENDIF
+		FLAG:未遭遇歩数 = 0
+		IF LOCAL:1 > 0
+			LOCAL:99 = 1
+			PRINTW Enemy encountered!
+			CALL BATTLE_START
+		ENDIF
+	ENDIF
+	LOCAL:3 -= 100
+	SIF LOCAL:3 > 0
+		GOTO ENCOUNT_START1
+ENDIF
+
+;月齢の変化とオートマップ
+CALL MOVE_MOON
+CALL AUTOMAP
+
+;２回目の移動
+;１回目の移動時に遭遇していたら２回目の移動はしない
+SIF LOCAL:99 == 1
+	RETURN 1
+
+;FORCEMOVEを呼び出した場合はRUN中断フラグがオンになっているので、その場合は0に戻して２回目の移動はしない
+IF GETBIT(FLAG:233,0) == 1
+	CLEARBIT FLAG:233,0
+	RETURN 1
+ENDIF
+
+SELECTCASE ARG
+	CASE 8
+		FLAG:現Y -= 1
+	CASE 4
+		FLAG:現X -= 1
+	CASE 6
+		FLAG:現X += 1
+	CASE 2
+		FLAG:現Y += 1
+ENDSELECT
+
+;ＭＡＧ消費
+CALL CONSUME_MAG
+
+;ガリバーマジック
+IF EQUIP:MASTER:GulliverMagic == 1 && !FLAG:COMP使用不能
+	FOR LOCAL,1,7
+		LOCALS = ポジション{LOCAL}
+		IF FLAG:LOCALS > -1 && TALENT:(FLAG:LOCALS):サマナー && (TALENT:(FLAG:LOCALS):異能者 == 0 && TALENT:(FLAG:LOCALS):ペルソナ使い == 0 && CFLAG:(FLAG:LOCALS):悪魔変身 == 0 && TALENT:(FLAG:LOCALS):達人 == 0)
+			SELECTCASE GET_STATE(CFLAG:(FLAG:LOCALS):ステート)
+				CASE "DYING","STONE","FLY","PALYZE","BIND","CHARM","SLEEP","PANIC"
+					CONTINUE
+				CASEELSE
+					CALL VAR_HP,FLAG:LOCALS,1,3
+			ENDSELECT
+		ENDIF
+	NEXT
+ENDIF
+
+;なんでここでAUTOMAP読んでるんだろ？
+CALL AUTOMAP
+;毒などのチェック
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	IF FLAG:LOCALS > -1
+		LOCAL:1 = FLAG:LOCALS
+		IF FLAG:ムフフ展開
+	
+			;一歩ごとに体力が5回復する（最大値は気力の現在値）
+			SIF BASE:(LOCAL:1):体力 < BASE:(LOCAL:1):気力
+				BASE:(LOCAL:1):体力 += 5
+			
+			;CFLAG:ダンジョン内発情用欲情値が15000以下の場合
+			IF CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 < 15000
+				;精液の箇所ひとつに付き欲情が精液中毒ＬＶ分増える
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("膣内" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("ヴァギナ" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("口" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("手" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("胸" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("アナル" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += GET_STAIN("髪" , "精液" , LOCAL:1) * ABL:(LOCAL:1):精液中毒
+
+				;アソコと乳首が露出していると露出癖ＬＶ分欲情が増える
+				SIF TEQUIP:(LOCAL:1):乳首露出 == -1
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += ABL:(LOCAL:1):露出癖
+				SIF TEQUIP:(LOCAL:1):陰唇露出 == -1
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += ABL:(LOCAL:1):露出癖
+
+				SIF 危険日(LOCAL:1) == 2
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 += 2 * ABL:(LOCAL:1):欲望
+				;CFLAG:ダンジョン内発情用欲情値の上限は15000
+				SIF CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 > 15000
+					CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 = 15000
+			ENDIF
+			
+			;膣内が精液で汚れている場合は10％の確率でヴァギナに汚れが付く
+			IF GET_STAIN("膣内" , "精液" , LOCAL:1) && GET_STAIN("ヴァギナ" , "精液" , LOCAL:1) == 0 && RAND:100 < 10
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%の中に注がれた精液が垂れてきた…
+				RESETCOLOR
+				CALL SET_STAIN("ヴァギナ" , "精液" , LOCAL:1)
+				;三分の一の確立で膣内の汚れ消去
+				SIF RAND:3 == 0
+					STAIN:(LOCAL:1):膣内 = 0
+			ENDIF
+		
+			;欲情一定値以下で発情終了
+			IF  CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 < 2000 && CFLAG:(LOCAL:1):ダンジョン内発情
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 0
+				PRINTFORMW %CALLNAME:(LOCAL:1)% calmed down.
+			ENDIF
+	
+			;欲情が10000以上になると発情
+			IF (!TALENT:(LOCAL:1):オトコ || TALENT:(LOCAL:1):男の娘) && !CFLAG:(LOCAL:1):ダンジョン内発情 && CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 >= 10000
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 1
+				CALL SET_STAIN("膣内" , "愛液" , LOCAL:1)
+				CALL SET_STAIN("ヴァギナ" , "愛液" , LOCAL:1)
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s vision was tinted pink.
+				RESETCOLOR
+			;発情状態の時に30％の確率でHAPPYになる
+			ELSEIF RAND:100 < 30 && CFLAG:(LOCAL:1):ダンジョン内発情 && CFLAG:(LOCAL:1):ステート != GET_STATE_NUM("HAPPY")
+				CFLAG:(LOCAL:1):ステート = GET_STATE_NUM("HAPPY")
+			ENDIF
+			;素質『発情可』を持っていると魅了状態時に10％の確率で発情する
+			IF TALENT:(LOCAL:1):オトコ == 0 && CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("CHARM") && TALENT:(LOCAL:1):発情可 && CFLAG:(LOCAL:1):ダンジョン内発情 == 0 && RAND:100 < 10
+				CFLAG:(LOCAL:1):ダンジョン内発情 = 1
+				CALL SET_STAIN("膣内" , "愛液" , LOCAL:1)
+				CALL SET_STAIN("ヴァギナ" , "愛液" , LOCAL:1)
+				SETCOLOR COLOR("pink")
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s vision was tinted pink.
+				RESETCOLOR
+			ENDIF
+
+			;あなた押し倒されイベント　仲魔が発情状態の時に指定確率であなたを押し倒す
+			;設定と条件に該当したら FLAG:押し倒されイベント, 40 を立てて本処理を実行
+			;↓はテスト用、これにすると押し倒し祭り
+			;IF GETBIT(FLAG:押し倒されイベント,0) && RAND:100 < FLAG:押し倒されイベント発生率 && CFLAG:(LOCAL:1):ダンジョン内発情 == 0
+			IF GETBIT(FLAG:押し倒されイベント,0) && RAND:100 < FLAG:押し倒されイベント発生率 && CFLAG:(LOCAL:1):ダンジョン内発情
+				CLEARBIT FLAG:押し倒されイベント, 40
+				;女 → 男
+				IF     GETBIT(FLAG:押し倒されイベント,1)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 &&TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→ 男
+				ELSEIF GETBIT(FLAG:押し倒されイベント,2)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 → 男
+				ELSEIF GETBIT(FLAG:押し倒されイベント,3)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→ 男 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,4)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 → 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,5)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→ 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,6)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 → 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,7)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→ 女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,8)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 0 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 →男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,9)  && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,10) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 →男娘 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,11) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→男娘
+				ELSEIF GETBIT(FLAG:押し倒されイベント,12) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 1 && TALENT:(MASTER):男の娘 == 1
+					SETBIT FLAG:押し倒されイベント, 40
+				;女 →双女 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,13) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 0 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;双女→双女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,14) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 0 && TALENT:(LOCAL:1):ふたなり == 1 && TALENT:(LOCAL:1):処女 == 0 && TALENT:(LOCAL:1):再生処女 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男 →双女 
+				ELSEIF GETBIT(FLAG:押し倒されイベント,15) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 0 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				;男娘→双女
+				ELSEIF GETBIT(FLAG:押し倒されイベント,16) && LOCAL:1 != MASTER && TALENT:(LOCAL:1):オトコ == 1 && TALENT:(LOCAL:1):男の娘 == 1 && TALENT:(MASTER):オトコ == 0 && TALENT:(MASTER):ふたなり == 1 &&TALENT:(MASTER):処女 == 0 && TALENT:(MASTER):再生処女 == 0
+					SETBIT FLAG:押し倒されイベント, 40
+				ELSE
+					CLEARBIT FLAG:押し倒されイベント, 40
+				ENDIF
+				IF GETBIT(FLAG:押し倒されイベント, 40)
+					SETCOLOR COLOR("pink")
+					PRINTFORMW %CALLNAME:(LOCAL:1)% felt overwhelming desire and pushed down %CALLNAME:MASTER%!
+					RESETCOLOR
+					PRINTL 
+					PRINTFORMW %CALLNAME:MASTER% helped %CALLNAME:(LOCAL:1)% deal with lust while crying out in pleasure,
+					PRINTFORMW %CALLNAME:MASTER% gasping with each thrust...
+					CALL 性欲処理, LOCAL:1 , MASTER ,  1
+				ENDIF
+			ENDIF
+
+		ENDIF
+
+		IF CFLAG:(LOCAL:1):ステート > 0
+			;気力0と発情しているときは、ステート経過ターンが増えない
+			SIF !(FLAG:ムフフ展開 && (BASE:(ARG:1):気力 == 0 || 危険日(LOCAL:1) >= 2))
+				CFLAG:(LOCAL:1):ステート経過ターン += FLAG:未遭遇歩数/2
+			;バッドステータス・セービング
+			CALL BADSTATUS_SAVING,LOCAL:1
+			;毒ならダメージ
+			SIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("POISON") && FLAG:未遭遇歩数 % 4 == 0
+				CALL VAR_HP,LOCAL:1,-MAX(MAXBASE:(LOCAL:1):ＭＰ/16,1),3
+			;麻痺ならMP減少
+			SIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("PALYZE") && FLAG:未遭遇歩数 % 4 == 0
+				CALL VAR_MP,LOCAL:1,-MAX(MAXBASE:(LOCAL:1):ＭＰ/16,1),3
+			CFLAG:(LOCAL:1):ステート経過ターン -= FLAG:未遭遇歩数/2
+		ENDIF
+	ENDIF
+NEXT
+
+LOCAL = 0
+;移動後のダンジョンイベント呼び出し
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+	CASE -9
+		CALL DUNGEON_TERMINAL
+	CASE -19
+		CALL FOUNTAIN_OF_TRISH
+	CASE -29
+		CALL DUNGEON_ELEVATOR
+	CASEELSE
+		CALLFORM EVENT_ENTER_DUNGEON_{FLAG:現ダンジョン},ARG
+ENDSELECT
+
+;遭遇チェックを行うかどうか
+SIF RESULT || FLAG:エンカウントしない || FLAG:脱出
+	LOCAL = 1
+
+;遭遇チェック
+IF LOCAL == 0
+	LOCAL:3 = FLAG:エンカウント率補正 + 100
+	SIF EQUIP:MASTER:EnemyWelcome && NUM_SUMMONER()
+		LOCAL:3 *= 2
+	SIF EQUIP:MASTER:EnemyBegone && NUM_SUMMONER()
+		LOCAL:3 /= 2
+	$ENCOUNT_START2
+	SIF RAND:100 <= LOCAL:3
+		CALLFORM CHECK_ENCOUNT_{FLAG:現ダンジョン}
+	IF RESULT == 1
+		LOCAL:1 = 1
+;---- EDIT 004 MOD START -------------------------
+;		IF FLAG:エストマ
+		IF FLAG:エストマ || ( EQUIP:MASTER:CAPSLOCK && NUM_SUMMONER() )
+			LOCAL:30 = 0
+;---- EDIT 004 MOD END ---------------------------
+			LOCAL:1 = 0
+			LOCAL:2 = 0
+			FOR LOCAL, 1, 7
+;---- EDIT 004 MOD START -------------------------
+;				SIF POS(LOCAL) >= 0
+				IF POS(LOCAL) >= 0
+					LOCAL:2 += BASE:POS(LOCAL):LV
+					LOCAL:30 += 1
+				ENDIF
+;---- EDIT 004 MOD END ---------------------------
+			NEXT
+			FOR LOCAL, 7, 17
+				IF POS(LOCAL) >= 0
+;---- EDIT 004 ADD START -------------------------
+					;CHK:エストマ (式: 敵LV < 味方合計LV / 6)
+					IF FLAG:エストマ && ( BASE:POS(LOCAL):LV < LOCAL:2 / 6 )
+						CALL キャラ削除(POS(LOCAL))
+					;CHK:CAPSLOCK (式: 敵LV < 主人LV - 12)
+					ELSEIF ( EQUIP:MASTER:CAPSLOCK && NUM_SUMMONER() ) && ( BASE:POS(LOCAL):LV <= BASE:MASTER:LV - 12 )
+						CALL キャラ削除(POS(LOCAL))
+					;その他
+					ELSE
+						LOCAL:1 = 1
+					ENDIF
+;---- EDIT 004 ADD END ---------------------------
+				ENDIF
+			NEXT
+		ENDIF
+		FLAG:未遭遇歩数 = 0
+		IF LOCAL:1 > 0
+			PRINTW Enemy encountered!
+			CALL BATTLE_START
+		ENDIF
+	ENDIF
+	LOCAL:3 -= 100
+	SIF LOCAL:3 > 0
+		GOTO ENCOUNT_START2
+ENDIF
+
+;月齢の変化とオートマップ
+CALL MOVE_MOON
+CALL AUTOMAP
+
+RETURN 1
+
+
+;=====================================================================
+;オートマッピング登録処理
+;=====================================================================
+@AUTOMAP
+IF DA:(FLAG:現X):(FLAG:現Y) == -1 && (EQUIP:MASTER:DarkScanner == 0 || NUM_SUMMONER() == 0) && FLAG:ライトマ == 0
+	;CALL SET_FLOOR_ANALYZE(MAX(GET_FLOOR_ANALYZE_T(FLAG:現X+1, FLAG:現Y) ,1), FLAG:現ダンジョン, FLAG:現M, FLAG:現X+1, FLAG:現Y)
+	;CALL SET_FLOOR_ANALYZE(MAX(GET_FLOOR_ANALYZE_T(FLAG:現X-1, FLAG:現Y) ,1), FLAG:現ダンジョン, FLAG:現M, FLAG:現X-1, FLAG:現Y)
+	;CALL SET_FLOOR_ANALYZE(MAX(GET_FLOOR_ANALYZE_T(FLAG:現X, FLAG:現Y+1) ,1), FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y+1)
+	;CALL SET_FLOOR_ANALYZE(MAX(GET_FLOOR_ANALYZE_T(FLAG:現X, FLAG:現Y-1) ,1), FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y-1)
+	;TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X+1):(FLAG:現Y) = MAX(TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X+1):(FLAG:現Y), 1)
+	;TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X-1):(FLAG:現Y) = MAX(TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X-1):(FLAG:現Y), 1)
+	;TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X):(FLAG:現Y+1) = MAX(TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X):(FLAG:現Y+1), 1)
+	;TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X):(FLAG:現Y-1) = MAX(TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X):(FLAG:現Y-1), 1)
+	GOTO Dark
+ENDIF
+;CALLFORM GET_DUNGEON_NAME_{FLAG:現ダンジョン}
+;CALLF DPOINT( , , 0 , 0 , FLAG:現M , RESULTS)
+CALLF DPOINT( , , 0 , 0 , FLAG:現M , @"ダンジョン%TOSTR(FLAG:現ダンジョン,"00")%")
+
+FOR LOCAL,0,5
+	SIF (FLAG:現X+LOCAL-2) < 0 || (FLAG:現X+LOCAL-2) >= FLAG:最大X
+		CONTINUE
+	FOR LOCAL:1,0,5
+		SIF (FLAG:現Y+LOCAL:1-2) < 0 || (FLAG:現Y+LOCAL:1-2) >= FLAG:最大Y
+			CONTINUE
+		;IF TA:((FLAG:現M*100+FLAG:現ダンジョン)):(FLAG:現X+LOCAL-2):(FLAG:現Y+LOCAL:1-2) == 0
+		;IF GET_FLOOR_ANALYZE_T(FLAG:現X+LOCAL-2, FLAG:現Y+LOCAL:1-2) == 0
+		IF DPOINT( , , (FLAG:現X+LOCAL-2) , (FLAG:現Y+LOCAL:1-2)) == 0
+			SELECTCASE LOCAL
+				CASE 0
+					SELECTCASE LOCAL:1
+						CASE 0
+							CALL CAN_SEE_THROUGH,(FLAG:現X-1),(FLAG:現Y-1)
+							SIF RESULT == 0
+								CONTINUE
+							;SIF DA:(FLAG:現X-1):(FLAG:現Y-1) % 10 == 0 || DA:(FLAG:現X-1):(FLAG:現Y-1) % 10 == 2
+								;CONTINUE
+;						CASE 1
+;							SIF (DA:(FLAG:現X-1):(FLAG:現Y-1) % 10 == 0 || DA:(FLAG:現X-1):(FLAG:現Y-1) % 10 == 2) && (DA:(FLAG:現X-1):(FLAG:現Y) == 0 || DA:(FLAG:現X-1):(FLAG:現Y) == 2)
+;								CONTINUE
+						CASE 1,2,3
+							CALL CAN_SEE_THROUGH,(FLAG:現X-1),(FLAG:現Y)
+							SIF RESULT == 0
+								CONTINUE
+						;	SIF (DA:(FLAG:現X-1):(FLAG:現Y) % 10 == 0 || DA:(FLAG:現X-1):(FLAG:現Y) % 10 == 2)
+						;		CONTINUE
+;						CASE 3
+;							SIF (DA:(FLAG:現X-1):(FLAG:現Y+1) == 0 || DA:(FLAG:現X-1):(FLAG:現Y+1) == 2) && (DA:(FLAG:現X-1):(FLAG:現Y) == 0 || DA:(FLAG:現X-1):(FLAG:現Y) == 2)
+;								CONTINUE
+						CASE 4
+							CALL CAN_SEE_THROUGH,(FLAG:現X-1),(FLAG:現Y+1)
+							SIF RESULT == 0
+								CONTINUE
+;							SIF DA:(FLAG:現X-1):(FLAG:現Y+1) % 10 == 0 || DA:(FLAG:現X-1):(FLAG:現Y+1) % 10 == 2
+;								CONTINUE
+						
+					ENDSELECT
+				CASE 1,2,3
+					SELECTCASE LOCAL:1
+						CASE 0
+							CALL CAN_SEE_THROUGH,(FLAG:現X),(FLAG:現Y-1)
+							SIF RESULT == 0
+								CONTINUE
+;							SIF (DA:(FLAG:現X-1):(FLAG:現Y-1) == 0 || DA:(FLAG:現X-1):(FLAG:現Y-1) == 2) && (DA:(FLAG:現X):(FLAG:現Y-1) == 0 || DA:(FLAG:現X):(FLAG:現Y-1) == 2)
+						;	SIF (DA:(FLAG:現X):(FLAG:現Y-1) % 10 == 0 || DA:(FLAG:現X):(FLAG:現Y-1) % 10 == 2)
+						;		CONTINUE
+						CASE 4
+;							SIF (DA:(FLAG:現X-1):(FLAG:現Y+1) == 0 || DA:(FLAG:現X-1):(FLAG:現Y+1) == 2) && (DA:(FLAG:現X):(FLAG:現Y+1) == 0 || DA:(FLAG:現X):(FLAG:現Y+1) == 2)
+							CALL CAN_SEE_THROUGH,(FLAG:現X),(FLAG:現Y+1)
+							SIF RESULT == 0
+								CONTINUE
+;							SIF (DA:(FLAG:現X):(FLAG:現Y+1) % 10 == 0 || DA:(FLAG:現X):(FLAG:現Y+1) % 10 == 2)
+;								CONTINUE
+					ENDSELECT
+;				CASE 2
+;					SELECTCASE LOCAL:1
+;						CASE 0
+;							SIF (DA:(FLAG:現X):(FLAG:現Y-1) == 0 || DA:(FLAG:現X):(FLAG:現Y-1) == 2)
+;								CONTINUE
+;						CASE 4
+;							SIF (DA:(FLAG:現X):(FLAG:現Y+1) == 0 || DA:(FLAG:現X):(FLAG:現Y+1) == 2)
+;								CONTINUE
+;					ENDSELECT
+;				CASE 3
+;					SELECTCASE LOCAL:1
+;						CASE 0
+;							SIF (DA:(FLAG:現X+1):(FLAG:現Y-1) == 0 || DA:(FLAG:現X+1):(FLAG:現Y-1) == 2) && (DA:(FLAG:現X):(FLAG:現Y-1) == 0 || DA:(FLAG:現X):(FLAG:現Y-1) == 2)
+;								CONTINUE
+;						CASE 4
+;							SIF (DA:(FLAG:現X+1):(FLAG:現Y+1) == 0 || DA:(FLAG:現X+1):(FLAG:現Y+1) == 2) && (DA:(FLAG:現X):(FLAG:現Y+1) == 0 || DA:(FLAG:現X):(FLAG:現Y+1) == 2)
+;								CONTINUE
+;					ENDSELECT
+				CASE 4
+					SELECTCASE LOCAL:1
+						CASE 0
+							CALL CAN_SEE_THROUGH,(FLAG:現X+1),(FLAG:現Y-1)
+							SIF RESULT == 0
+								CONTINUE
+							;SIF DA:(FLAG:現X+1):(FLAG:現Y-1) % 10 == 0 || DA:(FLAG:現X+1):(FLAG:現Y-1) % 10 == 2
+							;	CONTINUE
+;						CASE 1
+;							SIF (DA:(FLAG:現X+1):(FLAG:現Y-1) == 0 || DA:(FLAG:現X+1):(FLAG:現Y-1) == 2) && (DA:(FLAG:現X+1):(FLAG:現Y) == 0 || DA:(FLAG:現X+1):(FLAG:現Y) == 2)
+;								CONTINUE
+						CASE 1,2,3
+							CALL CAN_SEE_THROUGH,(FLAG:現X+1),(FLAG:現Y)
+							SIF RESULT == 0
+								CONTINUE
+							;SIF (DA:(FLAG:現X+1):(FLAG:現Y) % 10 == 0 || DA:(FLAG:現X+1):(FLAG:現Y) % 10 == 2)
+							;	CONTINUE
+;						CASE 3
+;							SIF (DA:(FLAG:現X+1):(FLAG:現Y+1) == 0 || DA:(FLAG:現X+1):(FLAG:現Y+1) == 2) && (DA:(FLAG:現X+1):(FLAG:現Y) == 0 || DA:(FLAG:現X+1):(FLAG:現Y) == 2)
+;								CONTINUE
+						CASE 4
+							CALL CAN_SEE_THROUGH,(FLAG:現X+1),(FLAG:現Y+1)
+							SIF RESULT == 0
+								CONTINUE
+						;	SIF DA:(FLAG:現X+1):(FLAG:現Y+1) % 10 == 0 || DA:(FLAG:現X+1):(FLAG:現Y+1) % 10 == 2
+						;		CONTINUE
+						
+					ENDSELECT
+				
+			ENDSELECT
+			;TA:(FLAG:現M*100+FLAG:現ダンジョン):(FLAG:現X+LOCAL-2):(FLAG:現Y+LOCAL:1-2) = 1
+			
+			;CALL SET_FLOOR_ANALYZE(1, FLAG:現ダンジョン, FLAG:現M, FLAG:現X+LOCAL-2, FLAG:現Y+LOCAL:1-2)
+			CALLF DPOINT( "=" , 1)
+			;SIF DPOINT( "=" , 1)
+			;	CONTINUE
+		ENDIF
+			
+	NEXT
+NEXT
+$Dark
+;CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y)
+CALLF DPOINT( "=" , 2 , FLAG:現X , FLAG:現Y)
+
+;=====================================================================
+;タイルの向こう側を透過出来るかの処理
+;=====================================================================
+@CAN_SEE_THROUGH,ARG,ARG:1
+TRYCCALLFORM CAN_SEE_THROUGH_{FLAG:現ダンジョン}_{DA:ARG:(ARG:1)%10},DA:ARG:(ARG:1),ARG,ARG:1
+	RETURN RESULT
+CATCH
+	SIF DA:ARG:(ARG:1) % 10 == 0 || DA:ARG:(ARG:1) % 10 == 2
+		RETURN 0
+	SIF DA:ARG:(ARG:1) == -1 && (EQUIP:MASTER:DarkScanner == 0 || NUM_SUMMONER() == 0) && FLAG:ライトマ == 0
+		RETURN 0
+ENDCATCH
+RETURN 1
+
+;=====================================================================
+;COMP起動
+;=====================================================================
+@COMMAND_COMP_FIELD
+SIF NUM_SUMMONER(1)
+	PRINTL [0] Summon
+PRINTL [1] Recall
+PRINTL [2] Delete demon
+SIF NUM_SUMMONER()
+	PRINTL [3] ２ demon fusion
+IF FLAG:DEBUG
+	SIF FLAG:現ダンジョン != [[ダンジョン:Tartarus]]
+		PRINTL [4] Map Navigation
+ELSE
+	SIF EQUIP:MASTER:HoneyBee && NUM_SUMMONER() && FLAG:現ダンジョン != [[ダンジョン:Tartarus]]
+		PRINTL [4] Map Display
+ENDIF
+SIF SOFT_ON("ＤＤＭ")
+	PRINTL [7] ＤＤＭ
+PRINTL [8] Stat reinforcement
+SIF SOFT_ON("Samhita")
+	PRINTL [9] Download Mantras
+PRINTFORML \@(EQUIP:MASTER:BackUpper && NUM_SUMMONER()) || FLAG:DEBUG ? [10] Save # [10] Interruption Save\@
+PRINTL [11] Load
+PRINTL [12] Auto-recover
+
+;ゴリ押しでマガタマチェック
+LOCAL:1 = 0
+FOR LOCAL, 1, 7
+	SIF POS(LOCAL) < 0
+		CONTINUE
+	SIF !TALENT:POS(LOCAL):人修羅
+		CONTINUE
+	;行動可能なキャラでないとダメ
+	CALL INPUTABLE_CHARA, POS(LOCAL)
+	SIF !RESULT
+		CONTINUE
+	LOCAL:1 = 1
+	BREAK
+NEXT
+SIF LOCAL:1
+	PRINTL [13] Magatama(Plug-in) Change
+PRINTL [99] Option
+PRINTL [100] Return
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 0 && NUM_SUMMONER(1)
+
+	$CHOOSE_COMPANION_LOOP
+	CALL CHOOSE_COMPANION,1
+	IF RESULT == 1000
+		RESTART
+	ELSE
+		LOCAL = RESULT
+		CALL SHOW_NOW_FORMATION_P,0,2, 3
+		PRINTL [0] ＣＡＮＣＥＬ [2000]ＡＬＬ ＣＡＮＣＥＬ
+		PRINTL Where to summon to?
+		$INPUT_SUMMON_POSITION_LOOP
+		INPUT
+		LOCAL:1 = RESULT
+		IF RESULT == 0
+			GOTO CHOOSE_COMPANION_LOOP
+		ELSEIF RESULT == 2000
+			RETURN 0
+		ELSEIF RESULT > 0 && RESULT < 7
+			;---- EDIT 013 ADD START -------------------------
+			IF POS(LOCAL:1) > 0 && CFLAG:POS(LOCAL:1):所属ＣＯＭＰ == -1 && FLAG:ショップコマンド == [[ショップ:探索]] && !(LOCAL:1 < 4 && POS(LOCAL:1+3) == -1)
+				PRINTFORML %CALLNAME:POS(LOCAL:1)% is a demon registered on the home server.
+				PRINTL Demons registered on the home server can't be removed in dungeons.
+				PRINTW Please select another position to summon to.
+				CLEARLINE 3
+				GOTO INPUT_SUMMON_POSITION_LOOP
+			ENDIF
+			;---- EDIT 013 ADD END   -------------------------
+			CALL INSERT_POSITION,LOCAL:1,LOCAL
+			IF RESULT > -1
+				SELECTCASE FLAG:ショップコマンド
+					CASE [[ショップ:探索]],[[ショップ:コロシアム参加]],[[ショップ:イベント]],[[ショップ:依頼請負]]
+						IF CFLAG:(LOCAL):PTフラグ > 0 && ABL:(LOCAL):種族 != 0
+							BASE:MASTER:ＭＡＧ -= MAXBASE:LOCAL:￥
+						ENDIF
+				ENDSELECT
+			ENDIF
+			
+			
+			GOTO CHOOSE_COMPANION_LOOP
+		ELSE
+			GOTO INPUT_SUMMON_POSITION_LOOP
+		ENDIF
+	ENDIF
+ELSEIF RESULT == 1
+	CALL SETUP_REMOVE
+ELSEIF RESULT == 2
+	CALL SETUP_PARTING
+ELSEIF RESULT == 3 && NUM_SUMMONER()
+	CALL FUSION_DOUBLE,2,1
+	;末尾キャラがフィルタリングフラグを持っていない場合（新キャラを作った場合）ソート実行
+	;IF !CFLAG:(CHARANUM-1):フィルタリングフラグ
+	;	FOR LOCAL:4, 0, CHARANUM - 1
+	;		IF CFLAG:(LOCAL:4):フィルタリングフラグ
+	;			FOR LOCAL:5, LOCAL:4, CHARANUM
+	;				SIF CFLAG:(LOCAL:5):フィルタリングフラグ
+	;					CONTINUE
+	;				SIF TARGET == LOCAL:5
+	;					TARGET = LOCAL:4
+	;				SWAPCHARA LOCAL:4, LOCAL:5
+	;				BREAK
+	;			NEXT
+	;		ENDIF
+	;	NEXT
+	;	;一応ポジション復帰
+	;	CALL REFRESH_POS
+	;ENDIF
+	
+ELSEIF RESULT == 4 && ((EQUIP:MASTER:HoneyBee && NUM_SUMMONER()) || FLAG:DEBUG) && FLAG:現ダンジョン != [[ダンジョン:Tartarus]]
+	CALL HONEY_BEE
+ELSEIF RESULT == 7 && SOFT_ON("ＤＤＭ")
+	CALL COMP_DDM
+ELSEIF RESULT == 8
+	$MAG_LOOP
+	PRINTL Who shall be strengthed with ＭＡＧ?
+	CALL SHOW_NOW_FORMATION_P,0,2
+	PRINTL [0] ＣＡＮＣＥＬ [2000]ＡＬＬ ＣＡＮＣＥＬ
+	$INPUT_MAG_LOOP
+	INPUT
+	IF RESULT == 0
+		RESTART
+	ELSEIF RESULT == 2000
+		RETURN 0
+	ELSEIF RESULT < 1 || RESULT > 6 || POS(RESULT) < 1
+		GOTO INPUT_MAG_LOOP
+	ENDIF
+	LOCAL:1 = CFLAG:POS(RESULT):能力強化回数/3 + 1
+	SELECTCASE FLAG:戦闘難易度
+		CASE 1 TO 3
+			LOCAL:10 = 250
+		CASE 4,5,6
+			LOCAL:10 = 100
+	ENDSELECT
+	IF BASE:POS(RESULT):ＭＡＧ < LOCAL:10*LOCAL:1*(LOCAL:1+1)
+		PRINTW Not enough MAG.
+		CLEARLINE 2
+		GOTO INPUT_MAG_LOOP
+	ENDIF
+	
+	CALL ENHANCE_BASE,POS(RESULT)
+	GOTO MAG_LOOP
+	
+ELSEIF RESULT == 9 && SOFT_ON("Samhita")
+	CALL KARMAN
+ELSEIF RESULT == 10
+	IF (EQUIP:MASTER:BackUpper && NUM_SUMMONER()) || FLAG:DEBUG
+		CALL TITLE_SAVEGAME
+	ELSE
+		PRINTFORML Record an interruption save and end the game?
+		CALL INPUT_YN, "Yes", "No"
+		IF !RESULT
+			LOADGLOBAL
+			;GLOBALが0のとき、ここで初生成を行い
+			;以降はデータ呼び出し時に生成をする
+			SIF GLOBAL == 0
+				GLOBAL = RAND:10000 + 1
+			FLAG:一時セーブ管理 = GLOBAL
+			GLOBAL:1 = GLOBAL:1 % 10 + 10
+			SAVEGLOBAL
+			SAVEDATA 400, SAVETEXT()
+			PRINTW Thank you. Emuera will now close.
+			PRINTW Still, take note that this save will be erased when you load it.
+			;PRINTW Be careful to not get possessed in your sleep...
+			QUIT
+		ELSE
+			PRINTW Then, play is resumed.
+		ENDIF
+	ENDIF
+ELSEIF RESULT == 11
+	CALL TITLE_LOADGAME
+ELSEIF RESULT == 12
+	CALL AUTO_RECOVER
+ELSEIF RESULT == 13
+	LOCAL:1 = 0
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF !TALENT:POS(LOCAL):人修羅
+			CONTINUE
+		;行動可能なキャラでないとダメ
+		CALL INPUTABLE_CHARA, POS(LOCAL)
+		SIF !RESULT
+			CONTINUE
+		LOCAL:1 = 1
+		BREAK
+	NEXT
+	IF !LOCAL:1
+		PRINTFORMW There are no characters that can change plug-in.
+		RESTART
+	ENDIF
+	LOCAL:2 = LINECOUNT
+	$MAGATAMA_LOOP
+	CLEARLINE LINECOUNT - LOCAL:2
+	CALL SHOW_NOW_FORMATION_P,0,2
+	PRINTL [0] ＣＡＮＣＥＬ [2000]ＡＬＬ ＣＡＮＣＥＬ
+	PRINTL Whose plugin-shall be changed?
+	CALL INPUTINT(0,1,2,3,4,5,6,2000)
+	IF RESULT == 0
+		RESTART
+	ELSEIF RESULT == 2000
+		RETURN 0
+	ELSE
+		LOCAL = POS(RESULT)
+		SIF LOCAL < 0
+			GOTO MAGATAMA_LOOP
+		IF !TALENT:LOCAL:人修羅
+			GOTO MAGATAMA_LOOP
+		ENDIF
+		CALL INPUTABLE_CHARA, LOCAL
+		IF !RESULT
+			PRINTFORMW %CALLNAME:LOCAL%'s plug-in can't be changed now.
+			GOTO MAGATAMA_LOOP
+		ENDIF
+		CALL CHANGE_PLUGIN_SOFT, LOCAL
+		GOTO MAGATAMA_LOOP
+	ENDIF
+ELSEIF RESULT == 99
+	CALL SHOP_COM_400
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+CALL REFRESH_FORMATION
+RESTART
+
+;=====================================================================
+;アイテム使用
+;=====================================================================
+@COMMAND_ITEM_FIELD
+DRAWLINE
+PRINTL [1]Use item
+PRINTL [2]Check inventory
+PRINTL
+PRINTL [0]Return
+
+CALL INPUTINT(0,1,2)
+SELECTCASE RESULT
+	CASE 0
+		RETURN 0
+	CASE 2
+		CALL SHOP_COM_149
+		RESTART
+ENDSELECT
+
+$ITEM_LIST
+FOR LOCAL,1001,2000
+	TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{LOCAL+2000}
+		SIF RESULT == 0 || ITEM:LOCAL < 1
+		;非戦闘時に使えないor一個も持っていない場合無視
+			CONTINUE
+	CATCH
+		;未実装アイテムは無視
+		CONTINUE
+	ENDCATCH
+			TRYCCALLFORM 最大所持数_{LOCAL+2000}
+				;PRINTFORMC [{LOCAL}] %ITEMNAME_E(LOCAL),20,LEFT% \@(ITEM:LOCAL < 10) ? " " # \@{ITEM:LOCAL}/{RESULT,2}個　
+				;PRINTFORMC [{LOCAL}] %ITEMNAME_E(LOCAL),20,LEFT% {ITEM:LOCAL}/{RESULT,2}個　
+				PRINTFORMC [{LOCAL}] %ITEMNAME_E(LOCAL),(ITEM:LOCAL < 10) ? 21 # 20,LEFT% {ITEM:LOCAL}/{RESULT,2}　
+			CATCH
+				PRINTFORMC [{LOCAL}] %ITEMNAME_E(LOCAL),20,LEFT% {ITEM:LOCAL}/99　
+			ENDCATCH
+NEXT
+PRINTL
+DRAWLINE
+PRINTL [0] Return    [2000]Leave the menu
+
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0 || RESULT == 2000
+	;連続使用に関わるので寝かせとく
+	LOCAL:3 = 0
+	LOCAL:2 = 0
+	IF RESULT == 0
+		RESTART
+	ELSE
+		RETURN 0
+	ENDIF
+ELSEIF RESULT >= 2000
+	GOTO INPUT_LOOP
+ELSE
+	;1~6を選ぶことで単体アイテムは連続使用できる
+	IF RESULT > 0 && RESULT < 7 && LOCAL:3 >= 3000 && (LOCAL:2 < 7 && LOCAL:2 > 0)
+		SIF POS(RESULT) == -1
+			GOTO INPUT_LOOP
+		LOCAL:2 = RESULT
+		TRYCALLFORM SKILL_ACTIONABLE_FIELD_{LOCAL:3}
+		SIF RESULT == 0 || ITEM:(LOCAL:3-2000) < 1
+			GOTO INPUT_LOOP
+		LOCAL = LOCAL:3
+	ELSE
+		LOCAL = RESULT+2000
+		LOCAL:3 = LOCAL
+		TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{RESULT+2000}
+			SIF RESULT == 0 || ITEM:(LOCAL-2000) < 1
+				GOTO INPUT_LOOP
+		CATCH
+			GOTO INPUT_LOOP
+		ENDCATCH
+		SIF FLAG:スキル属性表示設定 == 1
+			CALL SKILL_EXPLAIN_PERFORMANCE, LOCAL, MASTER
+		TRYCALLFORM SKILL_EXPLAIN_{LOCAL}
+	;	CALLFORM SKILL_SPHERE_{LOCAL}
+
+		CALL SELECT_SKILL_TARGET,LOCAL,MASTER
+		SIF RESULT == -1
+			RESTART
+		
+		LOCAL:2 = RESULT
+		IF RESULT == 19
+			PRINTL [1] Use [0] Quit
+			$INPUT_LOOP1
+			INPUT
+			IF RESULT == 1
+			ELSEIF RESULT == 0
+				RESTART
+			ELSE
+				GOTO INPUT_LOOP1
+			ENDIF
+			
+		ENDIF
+	ENDIF
+	CALLFORM ACTION_FIELD_{LOCAL},0,LOCAL:2
+	;回復アイテムを使うことが多いだろうのでここでステ確認できるように
+	CALL SHOW_NOW_FORMATION_P, 0, 2
+	GOTO ITEM_LIST
+;	IF RESULT == 1
+	;単体目標のアイテム
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [0]やめる
+;		$INPUT_LOOP2
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT < 1 || RESULT > 6
+;			GOTO INPUT_LOOP2
+;		ELSE
+;			LOCALS = ポジション{RESULT}
+;			SIF FLAG:LOCALS == -1
+;				GOTO INPUT_LOOP2
+;			CALLFORM ACTION_FIELD_{LOCAL},0,FLAG:LOCALS
+;		ENDIF
+;		RESTART
+;	ELSEIF RESULT == 2
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [17] 前列 [18] 後列
+;		PRINTL [0] やめる
+;		$INPUT_LOOP3
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT != 17 && RESULT != 18
+;			GOTO INPUT_LOOP3
+;		ELSE
+;			CALLFORM ACTION_FIELD_{LOCAL},0,RESULT
+;		ENDIF
+;		RESTART
+;	ELSE
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [1] 使う [0] やめる
+;		$INPUT_LOOP4
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT != 1 && RESULT != 0
+;			GOTO INPUT_LOOP4
+;		ELSE
+;			CALLFORM ACTION_FIELD_{LOCAL},0,19
+;		ENDIF
+;		RESTART
+;	ENDIF
+	
+ENDIF
+
+CALL FIGHT_IT_OUT
+SIF FLAG:敗北フラグ == 1
+	CALL DEADEND
+SIF FLAG:脱出
+	RETURN 1
+
+
+;=====================================================================
+;魔法・特技使用
+;=====================================================================
+@COMMAND_MAGIC_FIELD_LIST,ARG
+IF ARG == 2
+	CALL INPUT_CHARA_LIST("Whoose magic do you want to use?", "CASTING_COMMAND_MAGIC_FIELD_LIST")
+ELSE
+	CALL INPUT_CHARA_LIST("Whoose skill do you want to use?", "CASTING_COMMAND_MAGIC_FIELD_LIST")
+ENDIF
+IF RESULT == 1000
+	RETURN 0
+ENDIF
+CALL COMMAND_MAGIC_FIELD, ARG, RESULT
+IF RESULT == 0
+	RESTART
+ELSEIF RESULT == -1
+	RESTART
+ELSE
+	RETURN 1
+ENDIF
+
+@CASTING_COMMAND_MAGIC_FIELD_LIST
+;PTに居ない人間は無理
+SIF CFLAG:COUNT:PTフラグ == 1 && (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 45)
+	RETURN 0
+;PTに居ない悪魔もCOMP使える人間が居ないと無理
+SIF (CFLAG:COUNT:PTフラグ == 1 && NUM_SUMMONER(1) == 0) || CFLAG:COUNT:戦闘参加不可能 > 0
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF TALENT:COUNT:非戦闘員
+	RETURN 0
+SIF CFLAG:COUNT:所属ＣＯＭＰ == -1 && CFLAG:COUNT:PTフラグ != 2
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+
+@COMMAND_MAGIC_FIELD, ARG, CHARA, ARG:2
+#DIM CHARA
+#DIM LINE, 2
+#DIM SKILL, 42
+#DIM USE_CONTINUE
+VARSET SKILL
+CALL INPUTABLE_CHARA, CHARA
+IF !RESULT
+	PRINTFORMW %NAME:CHARA% can't use \@ ARG == 1 ? skills # magic \@ in %HIS_HER(CHARA)% current state.
+	CLEARLINE 2
+	RETURN -1
+ENDIF
+
+LOCAL:1 = 0
+IF (TALENT:CHARA:デビルシフター !& TALENT:CHARA:喰奴) || CFLAG:CHARA:悪魔変身
+	FOR LOCAL, 1, 42
+		LOCAL = LOCAL == FLAG:異能者スキル数 + 1 ? 21 # LOCAL
+		;スキル番号
+		LOCAL:1 = ABL:CHARA:@"\@ LOCAL > 20 ? 装備 # \@スキル{LOCAL > 20 ? LOCAL - 20 # LOCAL}"
+		SIF !LOCAL:1 && LOCAL > 20
+			BREAK
+		SIF !LOCAL:1
+			CONTINUE
+		RESULT = 0
+		TRYCALLFORM SKILL_ACTIONABLE_FIELD_{LOCAL:1}
+		SIF !RESULT	;非戦闘時に使えない場合無視
+			CONTINUE
+		CALLFORM SKILL_DECIDE_TYPE_{LOCAL:1}
+		SIF RESULT != ARG	;特技の場合無視
+			CONTINUE
+		SKILL:LOCAL = LOCAL:1
+	NEXT
+ENDIF
+
+SIF TALENT:CHARA:デビルシフター || TALENT:CHARA:喰奴 || TALENT:CHARA:悪魔憑き > 1
+	SKILL:0 = 1
+SIF TALENT:CHARA:ペルソナ使い && EQUIP:CHARA:所持ペルソナ1
+	SKILL:0 = 1
+IF MATCH(SKILL, 0) == VARSIZE("SKILL")
+	PRINTFORMW %NAME:CHARA% doesn't have any \@ ARG == 1 ? skills # magic \@ useable outside of combat.
+	CLEARLINE 2
+	RETURN -1
+ENDIF
+LINE = LINECOUNT
+
+$PRINT_SKILLLIST
+CLEARLINE LINECOUNT - LINE
+CALL SHOW_NOW_FORMATION_P, 0, 2, , 1
+PRINTFORML %CALLNAME:CHARA%
+IF FLAG:カスタムゲーム画面
+	PRINTFORML ＨＰ[{BASE:CHARA:ＨＰ,5}/{MAXBASE:CHARA:ＨＰ,5}]
+	PRINTFORML ＭＰ[{BASE:CHARA:ＭＰ,5}/{MAXBASE:CHARA:ＭＰ,5}]
+ELSE
+	PRINTFORML ＨＰ[{BASE:CHARA:ＨＰ,4}/{MAXBASE:CHARA:ＨＰ,4}]
+	PRINTFORML ＭＰ[{BASE:CHARA:ＭＰ,4}/{MAXBASE:CHARA:ＭＰ,4}]
+ENDIF
+DRAWLINE
+LOCAL:2 = 0	;スキル数カウント用
+FOR LOCAL, 1, 42
+	SIF !SKILL:LOCAL
+		CONTINUE
+	CALLFORM SKILL_NAME_{SKILL:LOCAL}, CHARA
+	CALLFORM SKILL_COSTTYPE_{SKILL:LOCAL}, CHARA
+	LOCAL:1 = RESULT	;コストタイプ
+	CALLFORM SKILL_COST_{SKILL:LOCAL}, CHARA
+	IF GETBIT (FLAG:カスタムゲーム画面,1)
+		PRINTFORM [{LOCAL, 2}] %RESULTS, 38, LEFT%{LOCAL:1 == 2 ? RESULT * MAXBASE:ARG:ＨＰ / 100 # RESULT, 3} \@ LOCAL:1 == 2 ? Ｈ # Ｍ \@Ｐ　　\@ LOCAL:2++ & 1 ? \n # \@
+	ELSE
+		PRINTFORM [{LOCAL, 2}] %RESULTS, 20, LEFT%{LOCAL:1 == 2 ? RESULT * MAXBASE:ARG:ＨＰ / 100 # RESULT, 3}\@ LOCAL:1 == 2 ? Ｈ # Ｍ \@Ｐ　　\@ LOCAL:2++ & 1 ? \n # \@
+	ENDIF
+NEXT
+PRINTL
+IF TALENT:CHARA:デビルシフター || TALENT:CHARA:喰奴 || TALENT:CHARA:悪魔憑き > 1
+	DRAWLINE
+	CALL SKILL_NAME_2310, CHARA
+	PRINTFORM [{FLAG:スキル数 + 1, 2}] %RESULTS,20,LEFT%
+	SIF TALENT:CHARA:デビルシフター
+		PRINTFORM     　　　　[{FLAG:スキル数 + 2, 2}] Change Demon Form　　Current:\@ FINDCHARA_ID(CFLAG:CHARA:リンク悪魔) > 0 ? %CALLNAME:FINDCHARA_ID(CFLAG:CHARA:リンク悪魔)% # %CSVCALLNAME((CFLAG:CHARA:初期リンク悪魔),0)%（Default） \@
+	PRINTL 
+ENDIF
+IF TALENT:CHARA:ペルソナ使い && EQUIP:CHARA:所持ペルソナ1
+	LOCAL:1 = GETCOLOR()
+	DRAWLINE
+	PRINTL Ｐ-ＣＨＡＮＧＥ
+	FOR LOCAL, 0, 4
+		LOCALS = 所持ペルソナ{LOCAL}
+		SIF (LOCAL == 0 && !EQUIP:CHARA:装備ペルソナ) || (LOCAL > 0 && EQUIP:CHARA:装備ペルソナ == EQUIP:CHARA:LOCALS)
+			SETCOLOR 0x66FFFF
+		IF LOCAL == 0
+			IF ABL:CHARA:初期ペルソナ
+				PRINTFORMD [{FLAG:スキル数 + 1, 2}] 
+				PRINTFORM %CSVCALLNAME(ABL:CHARA:初期ペルソナ, 0)%　
+			ENDIF
+		ELSE
+			IF EQUIP:CHARA:LOCALS
+				PRINTFORMD [{FLAG:スキル数+1 + LOCAL, 2}] 
+				PRINTFORM %CSVCALLNAME(DITEMTYPE:(EQUIP:CHARA:LOCALS):ペルソナ("NO"), 0)%　
+			ENDIF
+		ENDIF
+		SETCOLOR LOCAL:1
+	NEXT
+	PRINTL 
+ENDIF
+DRAWLINE
+PRINTFORML [0] Return\@ ARG:2 == 1? # %" " * 18%[2000] Leave the menu \@
+
+LINE:1 = LINECOUNT
+$INPUT_LOOP
+CLEARLINE LINECOUNT - LINE:1
+INPUT
+IF !RESULT
+	RETURN ARG:2 != 0
+ELSEIF RESULT == 2000 && !ARG:2
+	RETURN 1
+ELSEIF RESULT == FLAG:スキル数 + 1 && (TALENT:CHARA:デビルシフター ||  TALENT:CHARA:喰奴 || TALENT:CHARA:悪魔憑き > 1)
+	CALL ACTION_2310, CHARA
+	RESTART
+ELSEIF RESULT == FLAG:スキル数 + 2 && TALENT:CHARA:デビルシフター
+	CALL ACTION_2311, CHARA
+	RESTART
+ELSEIF INRANGE(RESULT, FLAG:スキル数 + 1, FLAG:スキル数 + 4) && TALENT:CHARA:ペルソナ使い
+	IF RESULT == FLAG:スキル数 + 1
+		SIF !ABL:CHARA:初期ペルソナ
+			GOTO INPUT_LOOP
+		EQUIP:CHARA:装備ペルソナ = 0
+	ELSE
+		LOCALS = 所持ペルソナ{RESULT - FLAG:スキル数 - 1}
+		SIF !EQUIP:CHARA:LOCALS
+			GOTO INPUT_LOOP
+		EQUIP:CHARA:装備ペルソナ = EQUIP:CHARA:LOCALS
+	ENDIF
+	CALL SYNC_STATUS(CHARA)
+	RESTART
+ELSEIF INRANGE(RESULT, 1, 42) && SKILL:RESULT
+;ここはあまり自信が無いのでアレしてたらごめんなさい
+	LOCAL = SKILL:RESULT	;選択スキル
+	LOCAL:1 = 0				;GOTOフラグ
+	RESULT = 0
+	TRYCALLFORM SKILL_ACTIONABLE_FIELD_{LOCAL}
+	LOCAL:1 |= !RESULT			;非戦闘時に使えない場合無視
+	CALLFORM SKILL_DECIDE_TYPE_{LOCAL}
+	LOCAL:1 |=  RESULT != ARG	;特技の場合無視
+	CALL CHECK_ACTIONABLE, CHARA, LOCAL
+	SIF LOCAL:1 || !RESULT		;使用不能なら無視
+		GOTO INPUT_LOOP
+	
+	SIF FLAG:スキル属性表示設定
+		CALL SKILL_EXPLAIN_PERFORMANCE, LOCAL, CHARA
+	TRYCALLFORM SKILL_EXPLAIN_{LOCAL}
+	CALL SELECT_SKILL_TARGET, LOCAL, CHARA
+	SIF RESULT < 0
+		RESTART
+	LOCAL:1 = RESULT	;ターゲット
+	IF RESULT == 19
+		CALL INPUT_YN, "Use", "Quit"
+		SIF RESULT
+			RESTART
+	ENDIF
+	
+	CALL PAY_COST, CHARA, LOCAL
+	CALLFORM ACTION_FIELD_{LOCAL}, CHARA, LOCAL:1
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+CALL FIGHT_IT_OUT
+SIF FLAG:敗北フラグ == 1
+	CALL DEADEND
+SIF FLAG:脱出
+	RETURN 1
+;リカームドラなどで行動不能になった場合、終了
+CALL INPUTABLE_CHARA, CHARA
+SIF !RESULT
+	RETURN 1
+DRAWLINE
+GOTO PRINT_SKILLLIST
+
+;=====================================================================
+;ムフフ展開時用コマンド
+;=====================================================================
+@DUNGEON_MUFUFU,ARG
+DRAWLINE
+PRINTL [1]Dress/Undress
+PRINTL [2]Lust processing
+PRINTL [3]Rest（Require:Border Stone）
+PRINTL [100]Return
+CALL INPUTINT , 1, 2, 3, 100
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 1
+	CALL SHOW_NOW_FORMATION_P, 0 , 2
+	PRINTL [9] Return
+	$LOOP_KIGAE
+	CALL INPUTINT , 1 , 2 , 3 , 4 , 5 , 6, 9
+	LOCAL = POS(RESULT)
+	IF RESULT == 9
+		RETURN 0
+	ELSEIF LOCAL == -1
+		CLEARLINE 1
+		GOTO LOOP_KIGAE
+	ELSEIF CFLAG:LOCAL:戦闘参加不可能 == -1
+		PRINTW 断られた
+		CLEARLINE 1
+		GOTO LOOP_KIGAE
+	ENDIF
+	CALL ACTIONABLE_CHARA,LOCAL
+	IF RESULT == 0
+		PRINTW 着替えられる状態ではない
+		CLEARLINE 1
+		GOTO LOOP_KIGAE
+	ENDIF
+	CALL CLOTHES_CHANGE,LOCAL , 1
+	
+	RESTART
+ELSEIF RESULT == 2
+	CALL SHOW_NOW_FORMATION_P, 0 , 2
+	PRINTL [9] Return
+	$LOOP_SELECT
+	CALL INPUTINT , 1 , 2 , 3 , 4 , 5 , 6, 9
+	LOCAL = POS(RESULT)
+	IF RESULT == 9
+		RETURN 0
+	ELSEIF LOCAL == -1
+		CLEARLINE 1
+		GOTO LOOP_SELECT
+	ELSE
+		CALL ACTIONABLE_CHARA,LOCAL
+		IF RESULT == 0
+			PRINTW そんな事の出来る状態ではない
+			CLEARLINE 2
+			GOTO LOOP_SELECT
+		ENDIF
+		IF CFLAG:LOCAL:戦闘参加不可能 == -1 && LOCAL != MASTER
+			IF 危険日(LOCAL) == 2
+				PRINTW 我慢しようとしているようだ…
+			ELSE
+				PRINTW 拒否された
+			ENDIF
+			CLEARLINE 2
+			GOTO LOOP_SELECT
+		;体力が最低でも100ないとダメ
+		ELSEIF BASE:LOCAL:体力 < 100
+			PRINTW 疲労している
+			CLEARLINE 2
+			GOTO LOOP_SELECT
+		ENDIF
+	ENDIF
+	;プレイ選択
+	PRINTL What do you do?
+	PRINTL 
+	PRINTFORM %CALLNAME:LOCAL%　　
+	SELECTCASE 危険日(LOCAL)
+	CASE 1
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM Danger Day
+			CALL HEARTB
+		RESETCOLOR
+	CASE 2
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM In Heat
+			CALL HEARTB
+		RESETCOLOR
+	CASE 3,-2
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM F-Moon Heat
+		;満月発情中
+			CALL HEARTB
+		RESETCOLOR
+	ENDSELECT
+	PRINTL 
+	$LOOP_SEIYOKUSYORI
+	CALL INPUT_SELECT,1,"Have sex with",2,"Be serviced by",3,"Masturbate",4,"Masturbate in private",5,"Clean Up",6,"Quit"
+	
+	
+	RESULT:1 = RESULT
+	LOCAL:1 = -1
+	SELECTCASE RESULT
+		CASE 1 , 2
+			
+			CALL SHOW_NOW_FORMATION_P, 0 , 2
+			$LOOP_SELECT_2
+			CALL INPUTINT , 1 , 2 , 3 , 4 , 5 , 6
+			LOCAL:1 = POS(RESULT)
+			IF GROUPMATCH(LOCAL:1 , -1 , LOCAL)
+				CLEARLINE 1
+				GOTO LOOP_SELECT
+			ELSE
+				;女は売却出来ないと無理だが、男だと誘う側が見た目女なら飛びつく
+				IF CFLAG:(LOCAL:1):売却可能 == 0 && !(!IS_LOOKSLIKE_MALE(LOCAL) && IS_MALE(LOCAL:1)) && LOCAL:1 != MASTER
+					IF 危険日(LOCAL:1) == 2
+						PRINTW 我慢しようとしているようだ…
+					ELSE
+						PRINTW 拒否された
+					ENDIF
+					CLEARLINE 2
+					GOTO LOOP_SELECT_2
+				;二人とも見た目男の場合、抱く側にＢＬ耐性無いと駄目
+				ELSEIF GROUPMATCH ( 1 , IS_LOOKSLIKE_MALE(LOCAL) , IS_LOOKSLIKE_MALE(LOCAL:1) ) == 2 && ABL:LOCAL:ＢＬっ気 == 0
+					PRINTW 男同志の趣味は無いようだ…
+					CLEARLINE 2
+					GOTO LOOP_SELECT_2
+					
+				;体力が最低でも100ないとダメ
+				ELSEIF BASE:(LOCAL:1):体力 < 100
+					PRINTW 疲労している
+					CLEARLINE 2
+					GOTO LOOP_SELECT_2
+				ENDIF
+			ENDIF
+			IF RESULT:1 == 1
+				PRINTFORML %CALLNAME:LOCAL%は%CALLNAME:(LOCAL:1)%を抱き寄せた
+			ELSE
+				PRINTFORML %CALLNAME:(LOCAL:1)%は%CALLNAME:LOCAL%に奉仕を始めた…
+			ENDIF
+		CASE 3
+			;PRINTFORML %CALLNAME:LOCAL%はその場で自分の体をまさぐり始めた…
+		CASE 4
+			PRINTFORML %CALLNAME:LOCAL%はソワソワしながらその場を離れた
+		CASE 5
+			PRINTFORML %CALLNAME:LOCAL%は身体の汚れを落とした
+		CASE 6
+			RETURN 0
+	ENDSELECT
+	CALL 性欲処理, LOCAL , LOCAL:1 ,  RESULT:1
+	
+	RESTART
+;休憩
+;アイテム:結界石を一つ消費して体力･気力を回復する
+ELSEIF RESULT == 3
+	PRINTFORML 「Use a Border stone and rest?　You have:{ITEM:結界石}
+	CALL INPUT_YN, "Yes", "No"
+	SELECTCASE RESULT
+		CASE 0
+			IF ITEM:結界石 == 0
+				PRINTFORMW You don't have a Border stone.
+				RESTART
+			ENDIF
+			PRINTFORMW %CALLNAME:MASTER% set up the barrier and rested.
+			FOR LOCAL,1,7
+				LOCALS = ポジション{LOCAL}
+				IF FLAG:LOCALS > -1
+					LOCAL:1 = FLAG:LOCALS
+					BASE:(LOCAL:1):体力 = MAXBASE:(LOCAL:1):体力
+					BASE:(LOCAL:1):気力 = MAXBASE:(LOCAL:1):気力
+				ENDIF
+				SIF LOCAL:1 < 0
+					LOCAL:1 = 0
+				;汚れも落す
+				CALL 性欲処理, LOCAL:1 , -1 , 5
+				STAIN:(LOCAL:1):膣内 = 0
+				;欲情をに
+				CFLAG:(LOCAL:1):ダンジョン内発情用欲情値 = 0
+			NEXT
+			ITEM:結界石 -= 1
+		CASE 1
+			RESTART
+	ENDSELECT
+ENDIF
+
+
+;---- EDIT 016 ADD START -------------------------
+;=====================================================================
+;汎用敵配置処理
+;	#ダンジョン毎に定義が必要な関数(実際動かしてるところはエコービルなどをみてください)
+;		@CLASS_NUM_X 			敵の出てくる種族数。1~3くらいを推奨す
+;		@CLASS_NUM_COMMON,ARG	敵の種類数の基本的な数値を返す
+;		@ENEMY_NUM_X,ARG		敵の総数。種族数も送るので1~10の間で設定を
+;						 	 	なお、1~10の間に自動的に丸めるので設定段階では10超えてもいいです
+;		@ENEMY_NUM_COMMON,ARG	敵の総数の基本的な数値を返す
+;		@ENEMY_X				敵の内容、RESULTが敵のキャラ番号、RESULT:1が敵のLVとなります
+;		@ENEMYSET_X				上記のセット版、RESULT:偶数、RESULT:奇数が番号/LVとなります。組み合わせを固定で組みたい場合はこちら
+;		@SET_ENEMY_STATUS_X		敵ステータスの特別変化。ダンジョン毎に能力をある程度変える場合はここでどうぞ
+;=====================================================================
+@ENEMY_TABLE
+#DIM CLASS_NUM, 1
+#DIM ENEMY_NUM, 1
+#DIM MAXENEMY, 1
+#DIM MINENEMY, 1
+#DIM ENEMY, 10
+#DIM ENEMYLV, 10
+VARSET RESULT
+VARSET ENEMY, -1
+;最初に種族数を取得
+TRYCCALLFORM CLASS_NUM_{FLAG:現ダンジョン}
+	CLASS_NUM = RESULT
+CATCH
+	;一応、定義ファイルがない場合、デフォルトの数値を代入
+	SELECTCASE RAND:100
+		CASE IS < 40
+			CLASS_NUM = 1
+		CASE IS < 80
+			CLASS_NUM = 2
+		CASEELSE
+			CLASS_NUM = 3
+	ENDSELECT
+ENDCATCH
+;敵の総数を取得
+TRYCCALLFORM ENEMY_NUM_{FLAG:現ダンジョン}, CLASS_NUM
+	ENEMY_NUM = LIMIT(RESULT, CLASS_NUM, 10)
+CATCH
+	ENEMY_NUM = LIMIT(RESULT, CLASS_NUM*2, CLASS_NUM*4)
+ENDCATCH
+LOCAL = 0
+;組み合わせ配置なら、それに
+TRYCCALLFORM CALLFORM ENEMYSET_{FLAG:現ダンジョン}, CLASS_NUM
+	FOR LOCAL, 0, CLASS_NUM+1
+		ENEMY:LOCAL = RESULT:(LOCAL*2)
+		ENEMYLV:LOCAL = RESULT:(LOCAL*2+1)
+	NEXT
+CATCH
+	;組み合わせがランダムならこっち
+	WHILE LOCAL < CLASS_NUM
+		CALLFORM ENEMY_{FLAG:現ダンジョン}, CLASS_NUM
+		;同一の敵が来ないようにする
+		SIF MATCH(ENEMY, RESULT)
+			CONTINUE
+		ENEMY:LOCAL = RESULT
+		ENEMYLV:LOCAL = RESULT:1
+		LOCAL += 1
+	WEND
+ENDCATCH
+LOCAL = 0
+;LOCAL:7~16に7~16を入れる
+FOR LOCAL, 7, 17
+	LOCAL:LOCAL = LOCAL
+NEXT
+;LOCAL:7~16をシャッフル
+FOR LOCAL, 7, 17
+	SWAP LOCAL:LOCAL, LOCAL:RAND(7, 17)
+NEXT
+
+;実際の配置
+FOR LOCAL, 0, ENEMY_NUM
+	LOCAL:1 = LOCAL:(LOCAL + 7)
+	SIF POS(LOCAL:1) >= 0
+		CONTINUE
+	LOCAL:2 = LOCAL < CLASS_NUM ? LOCAL # RAND:CLASS_NUM
+	CALL SET_ENEMY, LOCAL:1, ENEMY:(LOCAL:2), ENEMYLV:(LOCAL:2)
+	;ここでステータス変化させる場合の関数を呼ぶ
+	TRYCALLFORM SET_ENEMY_STATUS_{FLAG:現ダンジョン}, CHARANUM - 1
+NEXT
+;---- EDIT 016 ADD END   -------------------------
+;---- EDIT 017 ADD START -------------------------
+@CLASS_NUM_COMMON, ARGS
+#FUNCTION
+SELECTCASE ARGS
+	CASE "初級"
+		SELECTCASE RAND:100
+			CASE IS < 40
+				RETURNF 1
+			CASE IS < 95
+				RETURNF 2
+			CASEELSE
+				RETURNF 3
+		ENDSELECT
+	CASE "中級"
+		SELECTCASE RAND:100
+			CASE IS < 40
+				RETURNF 1
+			CASE IS < 90
+				RETURNF 2
+			CASEELSE
+				RETURNF 3
+		ENDSELECT
+	CASE "上級"
+		SELECTCASE RAND:100
+			CASE IS < 35
+				RETURNF 1
+			CASE IS < 90
+				RETURNF 2
+			CASEELSE
+				RETURNF 3
+		ENDSELECT
+	CASE "最上級"
+		SELECTCASE RAND:100
+			CASE IS < 30
+				RETURNF 1
+			CASE IS < 90
+				RETURNF 2
+			CASEELSE
+				RETURNF 3
+		ENDSELECT
+ENDSELECT
+@ENEMY_NUM_COMMON, ARGS, ARG
+#FUNCTION
+SELECTCASE ARGS
+	CASE "初級"
+		RETURNF RAND(ARG, ARG*2+1)
+	CASE "中級"
+		RETURNF RAND(ARG, ARG*3+1)
+	CASE "上級"
+		RETURNF RAND(ARG, ARG*4+1)
+	CASE "最上級"
+		RETURNF RAND(ARG*2, ARG*4+1)
+ENDSELECT
+;---- EDIT 017 ADD END   -------------------------
+;=====================================================================
+;宝箱発見処理
+;=====================================================================
+@GET_TREASURE,ARG,ARG:1,ARG:2,ARG:3,ARG:4 = -1
+PRINTL There's a box 
+CALL INPUT_YN,"Open","Don't open"
+
+IF RESULT == 0
+	CALL CHECK_ITEMMAX,ARG
+	IF RESULT == 0
+		;This is a work-around, since the skillcard-names are not hard-translated
+		IF ARG > 10000
+			CALLFORM SKILL_NAME_{(ARG - 10000)}
+			PRINTFORMW Got {ARG:1} Skillcard【%RESULTS%】
+		ELSE
+			PRINTFORMW Got {ARG:1} %ITEMNAME_E(ARG)% 
+		ENDIF
+		CALL GET_ITEM,ARG,ARG:1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		IF ARG:4 >= 0
+			SETBIT ダンジョンフラグ:(ARG:2):(ARG:3), ARG:4
+		ELSE
+			ダンジョンフラグ:(ARG:2):(ARG:3) = 1
+		ENDIF
+		RETURN 1
+	ELSE
+		PRINTFORMW Found {ARG:1} %ITEMNAME_E(ARG)% but you can't carry more.
+		RETURN 0
+	ENDIF
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;お金発見処理
+;=====================================================================
+@GET_TREASURE_MONEY,ARG,ARG:1,ARG:2,ARG:3,ARG:4 = -1
+PRINTL There's a box 
+CALL INPUT_YN,"Open","Don't open"
+
+IF RESULT == 0
+	IF ARG == 0
+		PRINTFORMW Got ￥{ARG:1}
+		MONEY += ARG:1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		IF ARG:4 >= 0
+			SETBIT ダンジョンフラグ:(ARG:2):(ARG:3), ARG:4
+		ELSE
+			ダンジョンフラグ:(ARG:2):(ARG:3) = 1
+		ENDIF
+		RETURN 1
+	ELSE
+		PRINTFORMW Got {ARG:1} Macca
+		MONEY:1 += ARG:1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		IF ARG:4 >= 0
+			SETBIT ダンジョンフラグ:(ARG:2):(ARG:3), ARG:4
+		ELSE
+			ダンジョンフラグ:(ARG:2):(ARG:3) = 1
+		ENDIF
+		RETURN 1
+	ENDIF
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+
+;=====================================================================
+;魔法の箱
+;=====================================================================
+@MAGIC_BOX, 月齢条件 , 当たりアイテム, 外れアイテム, ARG:1 , ARG:2, ARG:3, ARG:4 = -1
+#DIM 月齢条件
+#DIM 当たりアイテム
+#DIM 外れアイテム
+#LOCALSIZE 1
+PRINTL There's a magic box 
+CALL INPUT_YN,"Open","Don't open"
+IF FLAG:月齢 != 月齢条件
+	SWAP 当たりアイテム , 外れアイテム
+ENDIF
+IF RESULT == 0
+	CALL CHECK_ITEMMAX, 当たりアイテム
+	IF RESULT == 0
+		PRINTFORMW %ITEMNAME_E(当たりアイテム)%を{ARG:1}個手に入れた
+		CALL GET_ITEM, 当たりアイテム, ARG:1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		IF ARG:4 >= 0
+			SETBIT ダンジョンフラグ:(ARG:2):(ARG:3), ARG:4
+		ELSE
+			ダンジョンフラグ:(ARG:2):(ARG:3) = 1
+		ENDIF
+		RETURN 1
+	ELSE
+		PRINTFORMW {ARG:1} %ITEMNAME_E(当たりアイテム)% found but you can't carry more.
+		RETURN 0
+	ENDIF
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;ＭＡＧ発見処理
+;=====================================================================
+@GET_TREASURE_MAG,ARG,ARG:1,ARG:2,ARG:3,ARG:4 = -1
+PRINTL There's a box 
+CALL INPUT_YN,"Open","Don't open"
+
+IF RESULT == 0
+	PRINTFORMW Got {ARG:1}ＭＡＧ
+	CALL CONTROL_MAG,MASTER,ARG:1
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	IF ARG:4 >= 0
+		SETBIT ダンジョンフラグ:(ARG:2):(ARG:3), ARG:4
+	ELSE
+		ダンジョンフラグ:(ARG:2):(ARG:3) = 1
+	ENDIF
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+
+;=====================================================================
+;罠箱発見処理
+;=====================================================================
+@GET_TREASURE_TRAP,ARGS,ARG,ARG:1 = 0,ARG:2,ARG:3,ARG:4 = -1
+;ARGS = 罠の種類
+;ARG ダメージ量or確率
+;ARG:1 バッドステータスの相性
+
+PRINTL There's a box
+CALL INPUT_YN,"Open","Don't open"
+
+IF RESULT == 0
+	PRINTFORMW It's a trap!
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	IF ARG:4 >= 0
+		SETBIT ダンジョンフラグ:(ARG:2):(ARG:3), ARG:4
+	ELSE
+		ダンジョンフラグ:(ARG:2):(ARG:3) = 1
+	ENDIF
+	SELECTCASE ARGS
+		CASE "ＨＰ"
+			FOR LOCAL,1,7
+				IF POS(LOCAL) > -1 && GET_STATE(CFLAG:(POS(LOCAL)):ステート) != "DYING"
+					PRINTFORML [{LOCAL}] %CALLNAME:POS(LOCAL)%　>>>>>>　{MAXBASE:(POS(LOCAL)):ＨＰ*ARG/100} DAMAGE
+					CALL VAR_HP,POS(LOCAL),-MAXBASE:(POS(LOCAL)):ＨＰ*ARG/100
+				ENDIF
+			NEXT
+			PRINTFORMW %CALLNAME:MASTER%s party received damage from the trap!
+		CASE "ＭＰ"
+			FOR LOCAL,1,7
+				IF POS(LOCAL) > -1 && GET_STATE(CFLAG:(POS(LOCAL)):ステート) != "DYING"
+					PRINTFORML [{LOCAL}] %CALLNAME:POS(LOCAL)%　>>>>>>　{MAXBASE:(POS(LOCAL)):ＭＰ*ARG/100}ＭＰ lost
+					;ダメージ
+					CALL VAR_MP,POS(LOCAL),-MAXBASE:(POS(LOCAL)):ＭＰ*ARG/100
+				ENDIF
+			NEXT
+			PRINTFORMW %CALLNAME:MASTER%s party lost some ＭＰ to the trap!
+		CASEELSE
+			SIF GETNUM(BASE,ARGS) == -1 || GET_STATE_NUM(ARGS) < 0 || GET_STATE_NUM(ARGS) > FLAG:ステート数
+				RETURN 1
+			FOR LOCAL,1,7
+				IF POS(LOCAL) > -1 && CFLAG:(POS(LOCAL)):ステート < GET_STATE_NUM(ARGS)
+					PRINTFORM [{LOCAL}] %CALLNAME:POS(LOCAL)%　>>>>>>　
+					IF MAXBASE:POS(LOCAL):GET_TYPE(ARG:1) <= 0 || MAXBASE:POS(LOCAL):GET_TYPE(ARG:1) == 999 || MAXBASE:(POS(LOCAL)):ARGS == -100
+						PRINTFORML BLOCK
+					ELSEIF RAND:100 < ARG * MAXBASE:(POS(LOCAL)):GET_TYPE(ARG:1) * (100 + MAXBASE:(POS(LOCAL)):ARGS) / 100
+						CFLAG:(POS(LOCAL)):ステート = GET_STATE_NUM(ARGS)
+						PRINTFORML %ARGS%
+					ELSE
+						PRINTFORML MISS
+					ENDIF
+				ENDIF
+			NEXT
+			
+	ENDSELECT
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;出口処理
+;=====================================================================
+@DUNGEON_EXIT
+PRINTL There's an exit. Get out? 
+CALL INPUT_YN,"Yes","No"
+
+IF RESULT == 0
+	FLAG:脱出 = 1
+	RETURN 999
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;昇り階段処理
+;=====================================================================
+@DUNGEON_UPSTAIRS,ARG,ARG:1,ARG:2
+PRINTL There's a staircase leading up, go up? 
+CALL INPUT_YN,"Yes","No"
+
+IF RESULT == 0
+	FLAG:現M = ARG
+	FLAG:現X = ARG:1
+	FLAG:現Y = ARG:2
+	;エストマの効果リセット挟みませてもらいます
+	;CALL ENCOUNTER_CHANGER
+	;現在のフロアデータを読み込み
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	CALL AUTOMAP
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;昇り階段処理ID版
+;=====================================================================
+@DUNGEON_UPSTAIRS_ID,ARG,ARG:1
+PRINTL There's a staircase leading up, go up?  
+CALL INPUT_YN,"Yes","No"
+
+IF RESULT == 0
+	FLAG:現M = ARG
+	;エストマの効果リセット挟みませてもらいます
+	;CALL ENCOUNTER_CHANGER
+	;現在のフロアデータを読み込み
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	;座標移動
+	FLAG:現X = SEARCH_ID(ARG:1) /100
+	FLAG:現Y = SEARCH_ID(ARG:1) %100
+	CALL AUTOMAP
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;下り階段処理
+;=====================================================================
+@DUNGEON_DOWNSTAIRS,ARG,ARG:1,ARG:2
+PRINTL There's a staircase leading down, go down?  
+CALL INPUT_YN,"Yes","No"
+
+IF RESULT == 0
+	FLAG:現M = ARG
+	FLAG:現X = ARG:1
+	FLAG:現Y = ARG:2
+	;エストマの効果リセット挟みませてもらいます
+	;CALL ENCOUNTER_CHANGER
+	;現在のフロアデータを読み込み
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	CALL AUTOMAP
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;下り階段処理ID版
+;=====================================================================
+@DUNGEON_DOWNSTAIRS_ID,ARG,ARG:1
+PRINTL There's a staircase leading down, go down?  
+CALL INPUT_YN,"Yes","No"
+
+IF RESULT == 0
+	FLAG:現M = ARG
+	;エストマの効果リセット挟みませてもらいます
+	;CALL ENCOUNTER_CHANGER
+	;現在のフロアデータを読み込み
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	;座標移動
+	FLAG:現X = SEARCH_ID(ARG:1) /100
+	FLAG:現Y = SEARCH_ID(ARG:1) %100
+	CALL AUTOMAP
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ENDIF
+
+;=====================================================================
+;特定のマップの特定の座標へ移動
+;=====================================================================
+@DUNGEON_WORP,ARG,ARG:1,ARG:2
+FLAG:現M = ARG
+FLAG:現X = ARG:1
+FLAG:現Y = ARG:2
+;現在のフロアデータを読み込み
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+CALL AUTOMAP
+;RanRanDungeon用のRUN中断フラグ立て
+SIF GETBIT(FLAG:232,0) == 1
+	SETBIT FLAG:233,0
+;移動後のダンジョンイベント呼び出し
+CALLFORM EVENT_ENTER_DUNGEON_{FLAG:現ダンジョン},0
+
+;=====================================================================
+;特定のマップの特定の座標へ移動_ID
+;=====================================================================
+@DUNGEON_WORP_ID,ARG,ARG:1,ARG:2 = 0
+FLAG:現M = ARG
+;RanRanDungeon用のRUN中断フラグ立て
+SIF GETBIT(FLAG:232,0) == 1
+	SETBIT FLAG:233,0
+;現在のフロアデータを読み込み
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+	;座標移動
+	FLAG:現X = SEARCH_ID(ARG:1) /100
+	FLAG:現Y = SEARCH_ID(ARG:1) %100
+	CALL AUTOMAP
+;ARG:2 == 1 でなければ移動後のダンジョンイベント呼び出し
+SIF ARG:2 == 0
+	CALLFORM EVENT_ENTER_DUNGEON_{FLAG:現ダンジョン},0
+	RETURN 1
+
+;=====================================================================
+;@DUNGEON_TERMINAL
+;ダンジョン内ターミナル処理
+;　LOCAL:0 = 繰り返し用変数
+;　LOCAL:1 = 実行可否真偽値　[3]自室に戻る 
+;　LOCAL:2 = 実行可否真偽値　[4]仲間入れ替え
+;　LOCAL:3 = 実行可否真偽値　[5]ベルベットルーム
+;　LOCAL:4 = 実行可否真偽値　[6]Download Mantras
+;=====================================================================
+@DUNGEON_TERMINAL
+	CUSTOMDRAWLINE =
+	PRINTL ＞There's a Terminal.
+	CALLFORM GET_DUNGEON_NAME_{FLAG:現ダンジョン}
+	PRINTFORMW Voice： This is the %RESULTS% Terminal
+	PRINTFORML What would you like to do?
+	PRINTL [1]Save
+	PRINTL [2]Change Installed Software
+	IF !FLAG:脱出スキル禁止
+		PRINTL [3]Return to Base
+		LOCAL:1 = 1
+	ENDIF
+	IF TALENT:MASTER:サマナー > 1
+		PRINTL [4]Swap Allies
+		LOCAL:2 = 1
+	ENDIF
+	FOR LOCAL, 1 , 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		;SIF STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]]) && TALENT:LOCAL:ペルソナ使い > 2 || ITEM:契約者の鍵 || イベントフラグ:9:0  || イベントフラグ:12:0
+		SIF TALENT:POS(LOCAL):ペルソナ使い && ( STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]]) || ITEM:契約者の鍵 || イベントフラグ:9:0  || イベントフラグ:12:0 )
+			LOCAL:3 = 1
+		SIF TALENT:POS(LOCAL):喰奴 == 1
+			LOCAL:4 = 1
+	NEXT
+	SIF LOCAL:3 == 1
+		PRINTL [5]Blue Butterfly
+	SIF LOCAL:4 == 1
+		PRINTL [6]Download Mantra
+
+	DRAWLINE
+	PRINTL [0]Nothing
+
+	CALL INPUTINT,0,1,2,(3*LOCAL:1),(4*LOCAL:2),(5*LOCAL:3),(6*LOCAL:4)
+
+	SELECTCASE RESULT
+		CASE 0
+			RETURN 1
+		CASE 1
+			CALL TITLE_SAVEGAME
+		CASE 2
+			CALL SETUP_SOFT
+		CASE 3 
+			PRINTW Voice： Transfer start
+			PRINTFORMW %CALLNAME:MASTER% returned to base.
+			FLAG:脱出 = 1
+			RETURN 1
+		CASE 4 
+			CALL RECONSTRUCTION
+		CASE 5
+			CALL VELVET_ROOM
+		CASE 6
+			CALL KARMAN
+	ENDSELECT
+	RESTART
+
+;=====================================================================
+;エレベーター
+;=====================================================================
+@DUNGEON_ELEVATOR, ARG = -29
+CUSTOMDRAWLINE =
+PRINTL ＞There's an elevator
+VARSET RESULT, -1
+VARSET RESULTS
+LOCAL:1 = FLAG:現M
+CALLFORM DUNGEON_ELEVATOR_{FLAG:現ダンジョン}, ARG
+LOCAL:2 = RESULT
+FOR LOCAL, 0, 25
+	IF RESULT:LOCAL >= 0 && RESULT:LOCAL != LOCAL:1
+		PRINTFORM [{LOCAL}] 
+		IF !STRLENS(RESULTS:LOCAL)
+			FLAG:現M = RESULT:LOCAL
+			CALLFORM FLOORNAME_{FLAG:現ダンジョン}
+			RESULT = LOCAL:2
+		ELSE
+			PRINTFORML %RESULTS:LOCAL%
+		ENDIF
+	ENDIF
+NEXT
+FLAG:現M = LOCAL:1
+ARRAYSHIFT RESULT, 1, 0
+PRINTL [100] Don't enter
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 1
+ELSEIF RESULT < 0 || RESULT >= VARSIZE("RESULT")
+	GOTO INPUT_LOOP
+ELSEIF RESULT:(RESULT+1) >= 0 && RESULT:LOCAL != LOCAL:1
+	CALL DUNGEON_WORP_ID, RESULT:(RESULT+1), ARG, 1
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+;=====================================================================
+;トリッシュの泉
+;メインはアガスティアの木サービスのほう
+;セーブポイント欲しいって意見があったけど、デザイン上、基本的にはD内セーブもできないほうがいいよなぁとおもうので
+;折衷案として有料セーブポイントをつくることに
+;価格はARGが初回で、セーブした回数だけARG:1が加算されていく
+;1回目だけは安くつかえるけど、次からすげーぼったくられるとかそういうのをできるように
+;
+;新版
+;価格は主人のレベルと同じレベルのフラットステータスの悪魔を基準とし
+;その悪魔の最大ＨＰ分回復で,売却基本額の1/12,最大ＭＰ分回復で、1/2,ステータスはそれに＋α
+;セーブは基本金額の1/2
+;これに調教補正をかけていく
+;ただし、両方共、一回のダンジョンアタック内で複数回利用する場合、価格が上昇していく
+;
+;回復の泉サービスはどーかなーとおもったけど、ぼったくっとけばいいかなぁと
+;記憶の泉の妖精にしてもよかったんだけど、うーん
+;価格はHP5、MP1につき1魔貨、状態異常は死亡が20、毒なんかが5
+;それにレベル補正が主人のレベル/4+1だけかかる
+;また、状態異常はさらに対象自身のレベル/8+1の補正がかかる
+;主人のレベル5で、MP100回復なら、200魔貨
+;主人のレベル20で、MP300回復なら、1800魔貨
+;主人のレベル40で、MP600回復なら、6600魔貨
+;ダンジョン内収入減ってるし、これ使って黒字でメリットってのは考えにくいというか、普通利用したくない金額にはなってるとは思う
+;ただ、長いダンジョン突貫とか、ボス戦強行突破する際においてあると金で色々解決できる的なそういう手段にしたい感じ
+;
+;性的なサービスはトリッシュを金で買う
+;不在フラグたてて、ダンジョン内でトリッシュ調教
+;陥落度に応じて、値引きが発生する…みたいなのを考えてるけど
+;トリッシュに払う礼金と、割引率で悩む。あと、奴隷として獲得できちゃうかどうか
+;てか、トリッシュの衣装ってそういうお店って感じだよねあれ
+;=====================================================================
+@FOUNTAIN_OF_TRISH
+#DIM 基本価格, 1
+#DIM 価格補正, 1
+#DIM トリッシュ, 1
+#LOCALSIZE 10
+;基本価格は悪魔の基礎売却額と同じ
+基本価格 = BASE:MASTER:LV * (5 + BASE:MASTER:LV / 2) * 5 / 4
+;利用回数に応じて増加
+FOR LOCAL, 1, FLAG:トリッシュの泉利用回数
+	基本価格 = 基本価格 * 150 / 100
+NEXT
+CUSTOMDRAWLINE = 
+IF FLAG:トリッシュ調教 == -1
+	PRINTW ＞回復の泉だ
+	PRINTW ＞泉には誰もおらず、看板が立ててある
+	PRINTW ＞「一身上の都合により、休業中」
+	PRINTW ＞「後任が来るまでwait!」
+	RETURN 0
+ELSEIF FLAG:トリッシュ調教 == -2
+	PRINTW ＞回復の泉だ
+	PRINTL 
+	PRINTL 回復エルフ:
+	PRINTW 「こちら、回復の泉でーす」
+ELSEIF FLAG:トリッシュの泉利用回数
+	PRINTW ＞回復の泉だ
+	PRINTL 
+	PRINTL トリッシュ:
+	PRINTW 「扉の外はDangerous！ 注意一秒怪我一生！」
+	PRINTW 「だから、ボクがここにいる」
+	PRINTW 「ケチケチしないで、どんどんRecover and Save！」
+ELSE
+	PRINTW ＞泉があり、そこに妖精らしきものがいる…
+	PRINTL 
+	PRINTL Fairy:
+	PRINTW 「渡る世間はGive and take！」
+	PRINTW 「ってOh！　もしかして初めての人？」
+	PRINTW 「だったら、自己紹介。僕はトリッシュ」
+	PRINTW 「この回復の泉を守る妖精」
+	PRINTW 「君達の傷付いた体を治してあげるよ」
+	PRINTW 「あ、このアガスティアの木で副業もはじめてね」
+	PRINTW 「君達の大事なMemoryのSaveもしてあげるよ」
+	PRINTW 「もちろんタダじゃないよ。渡る世間はGive and take！」
+	PRINTW 「お金次第で何でもRecover and Save！」
+	FLAG:トリッシュの泉利用回数 = 1
+ENDIF
+IF FLAG:トリッシュ調教 == -2
+	PRINTL 「なにをしますかー？」
+ELSE
+	PRINTL 「それで、ご用はなぁに？」
+ENDIF
+$START
+PRINTL [0] 回復する
+PRINTL [1] セーブする
+PRINTL [2] 性的なサービス
+トリッシュ = GETCHARA([[キャラ:トリッシュ(泉)]])
+SIF トリッシュ > -1 && 陥落(トリッシュ) >= 2
+	PRINTL [3] トリッシュをテイクアウトする
+PRINTL [9] とくにない
+IF FLAG:トリッシュ調教 != -2
+	;---- EDIT 003 ADD START -------------------------
+	;価格を大幅改訂
+	;トリッシュの状態による補正
+	価格補正 = 10000
+	IF トリッシュ >= 0
+		価格補正 -= 陥落(トリッシュ) * 1000
+		価格補正 -= MARK:トリッシュ:屈服刻印 * 500
+		価格補正 -= MARK:トリッシュ:苦痛刻印 * 250
+		価格補正 -= MARK:トリッシュ:快楽刻印 * 250
+		価格補正 -= MIN(2000, TALENT:MASTER:謎の魅力 * 500 + ABL:トリッシュ:従順 * 30, ABL:トリッシュ:欲望 * 30, ABL:トリッシュ:奉仕精神 * 50, ABL:トリッシュ:露出癖 * 30, ABL:トリッシュ:マゾっ気 * 50, ABL:トリッシュ:精液中毒 * 50, ABL:トリッシュ:セックス中毒 * 50)
+		LOCAL:4 = (EXP:トリッシュ:絶頂経験 + EXP:トリッシュ:苦痛快楽経験 * 5 + EXP:トリッシュ:嗜虐快楽経験 * 5 + EXP:トリッシュ:愛情経験 * 10 + EXP:トリッシュ:奉仕快楽経験 * 5 + EXP:トリッシュ:精液経験 * 3) / 500
+		WHILE LOCAL:4 > 0
+			TIMES 価格補正,0.99
+			LOCAL:4--
+		WEND
+		価格補正 = MAX(2500, 価格補正) * MAX(MARK:トリッシュ:反発刻印 * 3, 1)
+	ELSE
+		CALL ADD_NEW_COMPANION, [[キャラ:トリッシュ(泉)]], 200
+		トリッシュ = GETCHARA([[キャラ:トリッシュ(泉)]])
+		SIF BASE:トリッシュ:LV < 15
+			BASE:トリッシュ:LV = 15
+		CFLAG:トリッシュ:この場に居ないフラグ = 1
+	ENDIF
+	;---- EDIT 003 ADD END   -------------------------
+ELSE
+	価格補正 = 5000
+ENDIF
+CALL INPUTINT(0, 1, 2, (トリッシュ > -1 && 陥落(トリッシュ) >= 2) * 3, 9)
+IF RESULT == 0
+	;ＨＰ/ＭＰの価格決定 
+	;ＭＰの価格決定 
+	VARSET LOCAL
+	FOR LOCAL, 0, CHARANUM
+		;HPの合計量を記録
+		LOCAL:1 += MAXBASE:LOCAL:ＨＰ - BASE:LOCAL:ＨＰ
+		;MPの合計量を記録
+		LOCAL:2 += MAXBASE:LOCAL:ＭＰ - BASE:LOCAL:ＭＰ
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+			LOCAL:3 += 50 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "STONE"
+			LOCAL:3 += 25 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "FLY"
+			LOCAL:3 += 15 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "CURSE"
+			LOCAL:3 += 15 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "CHARM"
+			LOCAL:3 += 10 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "POISON"
+			LOCAL:3 += 10 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "PALYZE"
+			LOCAL:3 += 10 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "SLEEP"
+			LOCAL:3 += 5 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "PANIC"
+			LOCAL:3 += 5 * BASE:LOCAL:LV / 8 + 1
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "HAPPY"
+			LOCAL:3 += 5 * BASE:LOCAL:LV / 8 + 1
+	NEXT
+	LOCAL:4 = 0
+	;フラットの場合のステ
+	LOCAL:5 = (18 + BASE:MASTER:LV * 3 / 2) / 6
+	;HPはフラットステ悪魔全快で基準値の1/12
+	LOCAL:4 += LOCAL:1 * 100 / ((BASE:MASTER:LV + LOCAL:5*9 + 5) * (100+BASE:MASTER:LV*3) / 100) / 12
+	;MPはフラットステ悪魔全快で基準値の1/2
+	LOCAL:4 += LOCAL:2 * 100 / (((BASE:MASTER:LV+LOCAL:5/2+LOCAL:5*3/2)*2 + 5) * (100+BASE:MASTER:LV) /100) / 2
+	;状態異常は100%で基準値の1倍
+	LOCAL:4 += LOCAL:3
+	LOCAL:5 = 基本価格 * LOCAL:4 * 価格補正 / 10000 / 100
+	IF LOCAL:1 + LOCAL:2 + LOCAL:3 == 0
+		IF FLAG:トリッシュ調教 == -2
+			PRINTL 回復エルフ
+			PRINTW 「皆さん元気でーす」
+		ELSE
+			PRINTL トリッシュ:
+			PRINTW 「よ～し、じゃあ痛いの痛いのォ～♪」
+			PRINTW 「…って、みんな元気じゃん！」
+			PRINTW 「これじゃ、回復できないよォ～！！」
+		ENDIF
+	ELSE
+		IF FLAG:トリッシュ調教 == -2
+			PRINTL 回復エルフ:
+			PRINTW 「今の回復相場ですとー…えーと…」
+			PRINTFORML 「{LOCAL:5}魔貨かかりますけど、お入りになりますかー？」
+		ELSE
+			PRINTL トリッシュ:
+			PRINTW 「OK！　じゃあ、今の回復相場だと…ふむふむ…」
+			PRINTFORML 「{LOCAL:5}魔貨かかるけど回復する？」
+		ENDIF
+		CALL INPUT_YN
+		IF RESULT == 0
+			IF MONEY:1 >= LOCAL:5
+				IF FLAG:トリッシュ調教 == -2
+					PRINTL 回復エルフ:
+					PRINTW 「はーい、それじゃあごゆっくりどうぞー」
+				ELSE
+					PRINTL トリッシュ:
+					PRINTW 「じゃあ、いくよォ～♪」
+					PRINTW 「痛いの痛いの飛んでけェ～！」
+					PRINTW 「ピロロロ～♪」
+				ENDIF
+				PRINTL 
+				PRINTFORMW %CALLNAME:MASTER%達は回復した
+				MONEY:1 -= LOCAL:5
+				FOR LOCAL, 0, CHARANUM
+					CALL HEALTH_CHARA, LOCAL
+				NEXT
+				FLAG:トリッシュの泉利用回数 += 1
+			ELSE
+				IF FLAG:トリッシュ調教 == -2
+					PRINTL 回復エルフ:
+					PRINTW 「あらー。お金が足りないみたいですねー」
+				ELSE
+					PRINTL トリッシュ:
+					PRINTW 「よ～し、じゃあ痛いの痛いのォ～♪」
+					PRINTW 「…って、お金足りないじゃん！」
+					PRINTW 「出直してきな！！」
+				ENDIF
+			ENDIF
+		ELSE
+			IF FLAG:トリッシュ調教 == -2
+				PRINTL 回復エルフ:
+				PRINTW 「そーですかー」
+				PRINTW 「入りたくなったらいつでもどうぞー」	
+			ELSE
+				PRINTL トリッシュ:
+				PRINTW 「チェッ、やせ我慢しちゃって。死んじゃってもしらないよ」
+				PRINTW 「っていうか、死んじゃえケチ！」
+			ENDIF
+		ENDIF
+	ENDIF
+ELSEIF RESULT == 1
+	;---- EDIT 003 ADD START -------------------------
+	;式変更
+	LOCAL:1 = MAX(基本価格 * 価格補正 / 10000 / 2, 100)
+	IF FLAG:トリッシュ調教 == -2
+		PRINTL 回復エルフ:
+		PRINTW 「今のセーブ相場ですとー…えーと…」
+		PRINTFORML 「{LOCAL:1}魔貨かかりますけど、セーブしますかー？」
+	ELSE
+		PRINTL トリッシュ:
+		PRINTW 「OK！　じゃあ、今のセーブ相場だと…ふむふむ…」
+		PRINTFORML 「{LOCAL:1}魔貨かかるけどセーブする？」
+	ENDIF
+	;---- EDIT 003 ADD END   -------------------------
+	CALL INPUT_YN
+	IF RESULT == 0
+		IF MONEY:1 >= LOCAL:1
+			IF FLAG:トリッシュ調教 == -2
+				PRINTL 回復エルフ:
+				PRINTW 「それじゃあ、この木に話しかけてくださいー」
+				PRINTW 「大丈夫です。誰も見てないですし、恥ずかしくなんかないですよー」
+			ELSE
+				PRINTL トリッシュ:
+				PRINTW 「OK、じゃあ、このアガスティアの木に話しかけるんだ」
+				PRINTW 「そして MemoryをSave！」
+			ENDIF
+			MONEY:1 -= LOCAL:1
+			FLAG:トリッシュの泉利用回数 += 1
+			CALL TITLE_SAVEGAME
+		ELSE
+			IF FLAG:トリッシュ調教 == -2
+				PRINTL 回復エルフ:
+				PRINTW 「あらー。お金が足りないみたいですねー」
+			ELSE
+				PRINTL トリッシュ:
+				PRINTW 「よ～し、じゃあこのアガスティアの木にィ～」
+				PRINTW 「…って、お金足りないじゃん！」
+				PRINTW 「出直してきな！！」
+			ENDIF
+		ENDIF
+	ELSE
+		IF FLAG:トリッシュ調教 == -2
+			PRINTL 回復エルフ:
+			PRINTW 「そーですかー」
+			PRINTW 「入りたくなったらいつでもどうぞー」	
+		ELSE
+			PRINTL トリッシュ:
+			PRINTW 「チェッ、やせ我慢しちゃって。死んじゃってもしらないよ」
+			PRINTW 「っていうか、死んじゃえケチ！」
+		ENDIF
+	ENDIF
+ELSEIF RESULT == 2
+	IF FLAG:トリッシュ調教 == -2
+		PRINTL 回復エルフ:
+		PRINTW 「えーと、うちはそういうことやってないんですよー」
+		PRINTW 「というか、これってセクハラじゃないですかー？」
+		PRINTW 「訴えちゃいますよー？」	
+		GOTO START
+	ENDIF
+	IF FLAG:トリッシュ調教
+		PRINTL トリッシュ:
+		PRINTW 「Powerfulだね」
+		PRINTW 「でも、僕はTired!」
+		PRINTW 「また、こんど、サービスしてあげるよ」
+		PRINTL 「それで、ほかにご用はあるかい？」
+		GOTO START
+	ENDIF
+	PRINTL トリッシュ:
+	PRINTW 「僕といいことしたいの？」
+	IF FLAG:トリッシュ調教 == -3
+		PRINTW 「それならお代はLOVEでけっこう！」
+		BASE:トリッシュ:ＭＡＧ = MAXBASE:MASTER:ＭＡＧ / 50
+	ELSE
+		PRINTW 「この世は全て、Give and take！」
+		PRINTW 「君が僕からなにかもらいたいなら、どうすればいいかわかるよね？」
+		$HOW_MUCH
+		PRINTW 「それじゃあ、How much?」
+		CALL INPUT_MANY(0, MONEY:1)
+		LOCAL:1 = RESULT
+		;---- EDIT 003 ADD START -------------------------
+		;忠誠度を記録する形に変更と式変更
+		SELECTCASE LOCAL:1 * 10000 / 価格補正
+			CASE IS < 100
+				PRINTL トリッシュ:
+				PRINTW 「Really！？　それっぽっち！？」
+				PRINTW 「ケチケチしちゃって！　それで僕に相手してももらえるなんて思ったの！？」
+				PRINTW 「いっぺん死んで、出直してきな！」
+				GOTO START
+			CASE IS < 500
+				PRINTW 「うーん、まぁぎりぎり合格かなぁ」
+				PRINTW 「でも、もっといっぱい出したほうがきっとHappyになれるよ」
+				PRINTL 「どーせ、金は世間のまわりもの、ケチケチせずにいい思いしようよ！」
+				CALL INPUT_YN("構わず払う", "金額を変える")
+				IF RESULT == 0
+					PRINTL トリッシュ:
+					PRINTW 「チェッ、わかったよ」
+					PRINTW 「それじゃあ、ちょっとだけtakeしてあげるよ」
+					PRINTW 「せいぜい、楽しみなよ」
+				ELSE
+					PRINTL トリッシュ:
+					GOTO HOW_MUCH
+				ENDIF
+				BASE:トリッシュ:ＭＡＧ = MAXBASE:MASTER:ＭＡＧ / 200
+				TALENT:トリッシュ:反抗的 = 1
+				TALENT:トリッシュ:素直 = 0
+				TALENT:トリッシュ:生意気 = 1 
+				TALENT:トリッシュ:プライド低い = 0
+				TALENT:トリッシュ:一線越えない = 1
+				TALENT:トリッシュ:無関心 = 1
+				TALENT:トリッシュ:好奇心 = 0
+				TALENT:トリッシュ:男嫌い = 1
+				TALENT:トリッシュ:女嫌い = 1
+				TALENT:トリッシュ:抑圧 = 1
+				TALENT:トリッシュ:解放 = 0
+				TALENT:トリッシュ:弱味 = 0
+				TALENT:トリッシュ:妄信 = 0
+				TALENT:トリッシュ:献身的 = 0
+				TALENT:トリッシュ:汚れ無視 = 0
+				TALENT:トリッシュ:快感に素直 = 0
+			CASE  IS < 1000
+				PRINTL トリッシュ:
+				PRINTW 「ね、もう一声」
+				PRINTW 「そうしたら、僕もいっぱいもらってHappy!」
+				PRINTW 「そして、僕が頑張るから、君もHappy！」
+				PRINTW 「つまり、二人ともHappy！」
+				PRINTW 「あと少し足すだけで、こんなにいいことってないと思うよ」
+				CALL INPUT_YN("構わず払う", "金額を変える")
+				IF RESULT == 0
+					PRINTL トリッシュ:
+					PRINTW 「うーん、わかったよ」
+					PRINTL 「ちゃんとGiveしてもらったけだから
+					PRINTW 　責任もって、僕がHappyにしてあげるよ」
+				ELSE
+					PRINTL トリッシュ:
+					GOTO HOW_MUCH
+				ENDIF
+				BASE:トリッシュ:ＭＡＧ = MAXBASE:MASTER:ＭＡＧ / 100
+				BASE:トリッシュ:忠誠度 = MIN(500, BASE:トリッシュ:忠誠度)
+				TALENT:トリッシュ:反抗的 = 0
+				TALENT:トリッシュ:素直 = 0
+				TALENT:トリッシュ:生意気 = 1 
+				TALENT:トリッシュ:プライド低い = 0
+				TALENT:トリッシュ:一線越えない = 0
+				TALENT:トリッシュ:無関心 = 1
+				TALENT:トリッシュ:好奇心 = 0
+				TALENT:トリッシュ:男嫌い = 0
+				TALENT:トリッシュ:女嫌い = 0
+				TALENT:トリッシュ:抑圧 = 0
+				TALENT:トリッシュ:解放 = 0
+				TALENT:トリッシュ:弱味 = 0
+				TALENT:トリッシュ:妄信 = 0
+				TALENT:トリッシュ:献身的 = 0
+				TALENT:トリッシュ:汚れ無視 = 0
+				TALENT:トリッシュ:快感に素直 = 0
+			CASE  IS < 3000
+				PRINTL トリッシュ:
+				PRINTW 「こんなにくれるなんてExcellent！」
+				PRINTW 「僕も君のために頑張らなくちゃね」
+				PRINTW 「ささっ、はやく支払いをおわらせちゃおうよ！」
+				CALL INPUT_YN("支払う", "やっぱりやめる")
+				IF RESULT == 0
+					PRINTL トリッシュ:
+					PRINTW 「じゃあ、僕が君をParadiceに連れて行ってあげるよ！」
+				ELSE
+					PRINTL トリッシュ:
+					PRINTW 「Oh…、値切ろうなんてやめようよ」
+					PRINTW 「いくら払っても後悔しないくらいよくしてあげるからさ」
+					GOTO HOW_MUCH
+				ENDIF
+				TALENT:トリッシュ:反抗的 = 0
+				TALENT:トリッシュ:素直 = 1
+				TALENT:トリッシュ:生意気 = 0 
+				TALENT:トリッシュ:プライド低い = 0
+				TALENT:トリッシュ:一線越えない = 0
+				TALENT:トリッシュ:無関心 = 0
+				TALENT:トリッシュ:好奇心 = 0
+				TALENT:トリッシュ:男嫌い = 0
+				TALENT:トリッシュ:女嫌い = 0
+				TALENT:トリッシュ:抑圧 = 0
+				TALENT:トリッシュ:解放 = 0
+				TALENT:トリッシュ:弱味 = 0
+				TALENT:トリッシュ:妄信 = 0
+				TALENT:トリッシュ:献身的 = 1
+				TALENT:トリッシュ:汚れ無視 = 0
+				TALENT:トリッシュ:快感に素直 = 0
+			CASE  IS < 10000
+				PRINTL トリッシュ:
+				PRINTW 「Oh…愛してるよ…」
+				PRINTW 「だからさぁはやくこのまま僕のことを滅茶苦茶にして？」
+				PRINTL 
+				PRINTFORMW ＞トリッシュは瞳を潤ませて%CALLNAME:MASTER%をみつめている
+				CALL INPUT_YN("滅茶苦茶にする", "考え直す")
+				IF RESULT == 0
+					PRINTL トリッシュ:
+					PRINTW 「あぁ…、このまま二人でParadiceに行こう…」
+				ELSE
+					PRINTL トリッシュ:
+					PRINTW 「え…、僕を弄んだの？」
+					PRINTW 「冗談だよね？　君がそんなふうに僕を裏切ったりしないって信じてるよ」
+					GOTO HOW_MUCH
+				ENDIF
+				BASE:トリッシュ:ＭＡＧ = MAXBASE:MASTER:ＭＡＧ / 50
+				BASE:トリッシュ:忠誠度 = MIN(2000, BASE:トリッシュ:忠誠度)
+				TALENT:トリッシュ:反抗的 = 0
+				TALENT:トリッシュ:素直 = 1
+				TALENT:トリッシュ:生意気 = 0 
+				TALENT:トリッシュ:プライド低い = 1
+				TALENT:トリッシュ:一線越えない = 0
+				TALENT:トリッシュ:無関心 = 0
+				TALENT:トリッシュ:好奇心 = 0
+				TALENT:トリッシュ:男嫌い = 0
+				TALENT:トリッシュ:女嫌い = 0
+				TALENT:トリッシュ:抑圧 = 0
+				TALENT:トリッシュ:解放 = 1
+				TALENT:トリッシュ:弱味 = 0
+				TALENT:トリッシュ:妄信 = 0
+				TALENT:トリッシュ:献身的 = 1
+				TALENT:トリッシュ:汚れ無視 = 1
+				TALENT:トリッシュ:快感に素直 = 1
+			CASEELSE
+				PRINTL トリッシュ:
+				PRINTW 「……！」
+				PRINTW 「ああ、もう我慢できない！」
+				PRINTW 「君のLoveに負けない、僕のLoveを見せてあげるよ！」
+				PRINTL 
+				PRINTW ＞トリッシュに押し倒された！
+				PRINTL 
+				BASE:トリッシュ:ＭＡＧ = MAXBASE:MASTER:ＭＡＧ / 25
+				BASE:トリッシュ:忠誠度 = MIN(5000, BASE:トリッシュ:忠誠度)
+				CFLAG:トリッシュ:相性値1 = 200
+				TALENT:トリッシュ:反抗的 = 0
+				TALENT:トリッシュ:素直 = 1
+				TALENT:トリッシュ:生意気 = 0 
+				TALENT:トリッシュ:プライド低い = 1
+				TALENT:トリッシュ:一線越えない = 0
+				TALENT:トリッシュ:無関心 = 0
+				TALENT:トリッシュ:好奇心 = 1
+				TALENT:トリッシュ:男嫌い = 0
+				TALENT:トリッシュ:女嫌い = 0
+				TALENT:トリッシュ:抑圧 = 0
+				TALENT:トリッシュ:解放 = 1
+				TALENT:トリッシュ:弱味 = 1
+				TALENT:トリッシュ:妄信 = 1
+				TALENT:トリッシュ:献身的 = 1
+				TALENT:トリッシュ:汚れ無視 = 1
+				TALENT:トリッシュ:快感に素直 = 1
+		ENDSELECT
+		;---- EDIT 003 ADD END   -------------------------
+		MONEY:1 -= LOCAL:1
+	ENDIF
+	;助手は使えない
+	ASSI = -1
+	TARGET = トリッシュ
+	BASE:トリッシュ:体力 = MAXBASE:トリッシュ:体力
+	BASE:トリッシュ:気力 = MAXBASE:トリッシュ:気力
+	CFLAG:トリッシュ:ストレス値 = 0
+	CFLAG:トリッシュ:"Contraceptive barrier" = 1
+	CFLAG:トリッシュ:この場に居ないフラグ = 1
+	FLAG:トリッシュ調教 = 1
+	FLAG:ダンジョン内調教 = 1
+	RETURN 1
+;---- EDIT 003 ADD START -------------------------
+;take outの位置を変更
+ELSEIF RESULT == 3 && トリッシュ > -1 && 陥落(トリッシュ) >= 2
+	PRINTL トリッシュ:
+	PRINTW 「え、僕をtake outしたい？」
+	PRINTW 「僕はこの泉の妖精で、ちゃんと妖精界に帰るんだよ」
+	PRINTW 「……本気なのかい？」
+	PRINTW 「それなら……僕も正直にいってもう妖精界なんかどうでもよかったんだ」
+	PRINTW 「そんなのより、なにより、君の傍で、君とenjoyするほうが大切さ！」
+	PRINTW 「だから、謹んで僕を君にgive!」
+	PRINTW 「今後とともヨロシクね！」
+	TALENT:トリッシュ:反抗的 = 1
+	TALENT:トリッシュ:素直 = 0
+	TALENT:トリッシュ:生意気 = 1 
+	TALENT:トリッシュ:プライド低い = 0
+	TALENT:トリッシュ:一線越えない = 0
+	TALENT:トリッシュ:無関心 = 0
+	TALENT:トリッシュ:好奇心 = 0
+	TALENT:トリッシュ:男嫌い = 0
+	TALENT:トリッシュ:女嫌い = 0
+	TALENT:トリッシュ:抑圧 = 0
+	TALENT:トリッシュ:解放 = 0
+	TALENT:トリッシュ:弱味 = 0
+	TALENT:トリッシュ:妄信 = 0
+	TALENT:トリッシュ:献身的 = 0
+	TALENT:トリッシュ:汚れ無視 = 0
+	TALENT:トリッシュ:快感に素直 = 0
+	PRINTL 
+	PRINTW ＞Got Trish
+	IF GETCHARA(4568) == -1
+		NO:(トリッシュ) = 4568
+		CFLAG:トリッシュ:この場に居ないフラグ = 0
+	ELSE
+		CALL キャラ削除((トリッシュ))
+	ENDIF
+	FLAG:トリッシュ調教 = -1
+	RETURN 0
+;---- EDIT 003 ADD END   -------------------------
+ELSEIF RESULT == 9
+	IF FLAG:トリッシュ調教 == -2
+		PRINTL 回復エルフ:
+		PRINTW 「またいらしてくださいねー」	
+	ELSE
+		PRINTL トリッシュ:
+		PRINTW 「じゃあ、また来てね！」
+		PRINTW 「待ってるから。Bye-bye！」
+	ENDIF
+	RETURN 1
+ENDIF
+PRINTL 
+IF FLAG:トリッシュ調教 == -2
+	PRINTL 回復エルフ:
+	PRINTL 「なにをしますかー？」
+ELSE
+	PRINTL トリッシュ:
+	PRINTL 「それで、ほかにご用はあるかい？」
+ENDIF
+GOTO START
+;=====================================================================
+;ショップ
+;書式はARGが1の時は魔貨払い、0の時は\払いで
+;以降はアイテム名・価格の順番で書いていく
+;CALL DUNGEON_SHOP(1, "Life stone", 500)
+;これなら、魔石を500魔貨で売ってる店になります
+;価格が0の時はITEM.CSVの値段にします
+;=====================================================================
+@DUNGEON_SHOP(ARG, ARGS:1 = "", ARG:1 = 0, ARGS:2 = "", ARG:2 = 0, ARGS:3 = "", ARG:3 = 0, ARGS:4 = "", ARG:4 = 0, ARGS:5 = "", ARG:5 = 0, ARGS:6 = "", ARG:6 = 0, ARGS:7 = "", ARG:7 = 0, ARGS:8 = "", ARG:8 = 0, ARGS:9 = "", ARG:9 = 0, ARGS:10 = "", ARG:10 = 0, ARGS:11 = "", ARG:11 = 0, ARGS:12 = "", ARG:12 = 0, ARGS:13 = "", ARG:13 = 0, ARGS:14 = "", ARG:14 = 0, ARGS:15 = "", ARG:15 = 0, ARGS:16 = "", ARG:16 = 0, ARGS:17 = "", ARG:17 = 0, ARGS:18 = "", ARG:18 = 0, ARGS:19 = "", ARG:19 = 0)
+#DIM PRICE, 20
+#DIMS BUYITEM, 1
+#DIMS BUYITEMNAME, 1
+#LOCALSIZE 1
+#LOCALSSIZE 5
+IF ARG == 3
+	LOCALS = coins
+	;コイン
+ELSEIF ARG == 1
+	LOCALS = Macca
+	;魔貨
+ELSE
+	LOCALS = ￥
+ENDIF
+DRAWLINE
+PRINTFORML What would you like to purchase? Owned%LOCALS%: {MONEY:ARG}
+DRAWLINE
+LOCAL = 0
+WHILE 1
+	PRICE:(LOCAL+1) = ARG:(LOCAL+1) ? ARG:(LOCAL+1) # ITEMPRICE:(GETNUM(ITEM, ARGS:(LOCAL+1)))
+	LOCALS:1 = {PRICE:(LOCAL+1),5}%LOCALS%
+	IF GETNUM(ITEM, ARGS:(LOCAL+1)) >= 10000 && GETNUM(ITEM, ARGS:(LOCAL+1)) <= 15000
+		CALLFORM SKILL_NAME_{GETNUM(ITEM, ARGS:(LOCAL+1)) - 10000}
+		BUYITEMNAME = 【%RESULTS%】
+	ELSE
+		BUYITEMNAME = %ARGS:(LOCAL+1)%
+	ENDIF
+	PRINTFORM [{LOCAL,2}] %BUYITEMNAME, 24, LEFT% %@"{PRICE:(LOCAL+1),5}%LOCALS%", 9%　　
+	LOCAL += 1
+	SIF !(LOCAL & 1)
+		PRINTL 
+	SIF STRLENS(ARGS:(LOCAL+1)) == 0
+		BREAK
+WEND
+SIF LOCAL & 1
+	PRINTL 
+$INPUT_LOOP
+DRAWLINE
+PRINTFORML [100] Return
+INPUT
+IF RESULT == 100
+	RETURN -1
+ELSEIF RESULT < 0 || RESULT > 19 || PRICE:(RESULT+1) == 0
+	GOTO INPUT_LOOP
+ELSE
+	CALL DUNGEON_BUY, GETNUM(ITEM, ARGS:(RESULT+1)), PRICE:(RESULT + 1), ARG
+	RESTART
+ENDIF
+
+
+;ARGはアイテム番号、ARG:1は価格、ARG:2は1で魔貨払い
+@DUNGEON_BUY, ARG, ARG:1, ARG:2
+IF ARG >= 2000 && ARG < 5500
+	CALL 装備説明, ARG
+	LOCAL = 999
+ELSEIF ARG >= 5500 && ARG < 6000
+	CALLFORM 装備解説_{ARG}
+	LOCAL = 999
+ELSE
+	RESULT = 999
+	TRYCALLFORM 最大所持数_{ARG+2000}
+	LOCAL = RESULT
+	PRINTFORML %ITEMNAME_E(ARG),20,LEFT%   Owned:{ITEM:ARG}/{LOCAL}
+	SIF FLAG:スキル属性表示設定 == 1
+		CALL SKILL_EXPLAIN_PERFORMANCE, ARG + 2000, -1
+	TRYCALLFORM SKILL_EXPLAIN_{ARG+2000}
+	DRAWLINE
+ENDIF
+IF ITEM:ARG >= LOCAL
+	PRINTW You can't carry more of this item.
+ELSE
+	IF MONEY:(ARG:2) < ARG:1
+		PRINTW You don't have enought money.
+	ELSE
+		PRINTFORML How many of this do you want to buy? (Currently owned: {ITEM:ARG})
+		CALL INPUT_MANY(0, MIN(MONEY:(ARG:2)/ARG:1, LOCAL - ITEM:ARG))
+		IF RESULT
+			MONEY:(ARG:2) -= (RESULT * ARG:1)
+			IF RESULT == 1
+				PRINTFORMW ＜%ITEMNAME_E(ARG)% was bought＞
+			ELSE
+				PRINTFORMW ＜{RESULT} %ITEMNAME_E(ARG)% were bought＞
+			ENDIF
+			CALL GET_ITEM, ARG, RESULT
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+;文字列版
+@DUNGEON_SHOPS(ARG, ARGS)
+#DIM PRICE, 20
+#DIMS BUYITEM, 1
+#DIMS BUYITEMNAME, 1
+#DIMS ITEMLIST , 20
+#DIMS PRELIST , 40
+#LOCALSIZE 1
+#LOCALSSIZE 5
+VARSET PRICE , 0
+VARSET ITEMLIST , ""
+SPLIT ARGS , "," , PRELIST
+FOR LOCAL , 0 , 20
+	SIF PRELIST:(LOCAL*2) == ""
+		BREAK
+	ITEMLIST:LOCAL = %PRELIST:(LOCAL*2)%
+	PRICE:LOCAL = TOINT(PRELIST:(LOCAL*2+1)) != 0 ? TOINT(PRELIST:(LOCAL*2+1)) # ITEMPRICE:(ITEMLIST:LOCAL)
+NEXT
+IF ARG == 3
+	LOCALS = coins
+	;コイン
+ELSEIF ARG == 1
+	LOCALS = Macca
+	;魔貨
+ELSE
+	LOCALS = ￥
+ENDIF
+DRAWLINE
+PRINTFORML What would you like to purchase?  Owned%LOCALS%: {MONEY:ARG}
+DRAWLINE
+LOCAL = 0
+WHILE 1
+	LOCALS:1 = {PRICE:LOCAL,5}%LOCALS%
+	IF GETNUM(ITEM, ARGS:(LOCAL+1)) >= 10000 && GETNUM(ITEM, ITEMLIST:LOCAL) <= 15000
+		CALLFORM SKILL_NAME_{GETNUM(ITEM,  ITEMLIST:LOCAL) - 10000}
+		BUYITEMNAME = 【%RESULTS%】
+	ELSE
+		BUYITEMNAME = %ITEMLIST:LOCAL%
+	ENDIF
+	PRINTFORM [{LOCAL,2}] %BUYITEMNAME, 24, LEFT% %@"{PRICE:LOCAL,5}%LOCALS%", 9%　　
+	LOCAL += 1
+	SIF LOCAL % 2 == 0
+		PRINTL 
+	SIF ITEMLIST:LOCAL == ""
+		BREAK
+WEND
+SIF LOCAL & 1
+	PRINTL 
+$INPUT_LOOP
+DRAWLINE
+PRINTFORML [100] Return
+INPUT
+IF RESULT == 100
+	RETURN -1
+ELSEIF RESULT < 0 || RESULT > 19 || PRICE:RESULT == 0
+	GOTO INPUT_LOOP
+ELSE
+	CALL DUNGEON_BUY, GETNUM(ITEM, ITEMLIST:RESULT), PRICE:RESULT, ARG
+	RESTART
+ENDIF
+
+;=====================================================================
+;扉への進入
+;=====================================================================
+@DUNGEON_DOOR,ARG
+IF ARG > 0
+	;TA:(FLAG:現M*100+FLAG:現ダンジョン):(FLAG:現X):(FLAG:現Y) = 2
+	CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, FLAG:現X, FLAG:現Y)
+	CALL WALK_DUNGEON,ARG
+ENDIF
+
+;=====================================================================
+;トラップ：ＨＰダメージ
+;=====================================================================
+@DUNGEON_TRAP_HP,ARG
+SIF FLAG:リフトマ
+	RETURN 1
+FOR LOCAL,1,7
+	SIF POS(LOCAL) > -1 && GET_STATE(CFLAG:(POS(LOCAL)):ステート) != "DYING"
+		CALL VAR_HP,POS(LOCAL),-MAXBASE:(POS(LOCAL)):ＨＰ*ARG/100
+NEXT
+PRINTFORMW %CALLNAME:MASTER%s group triggerd a trap! Lost some ＨＰ!
+RETURN 1
+
+;=====================================================================
+;トラップ：ＭＰダメージ
+;=====================================================================
+@DUNGEON_TRAP_MP,ARG
+SIF FLAG:リフトマ
+	RETURN 1
+FOR LOCAL,1,7
+	SIF POS(LOCAL) > -1 && GET_STATE(CFLAG:(POS(LOCAL)):ステート) != "DYING"
+		CALL VAR_MP,POS(LOCAL),-MAXBASE:(POS(LOCAL)):ＭＰ*ARG/100
+NEXT
+PRINTFORMW %CALLNAME:MASTER%s group triggered a ＭＰ drain trap! Lost some ＭＰ!
+RETURN 1
+
+;=====================================================================
+;トラップ：毒
+;=====================================================================
+@DUNGEON_TRAP_POISON,ARG,ARG:1 = 8
+SIF FLAG:リフトマ
+	RETURN 1
+FOR LOCAL,1,7
+	
+	IF POS(LOCAL) > -1 && CFLAG:(POS(LOCAL)):ステート < GET_STATE_NUM("POISON")
+		SIF MAXBASE:POS(LOCAL):GET_TYPE(ARG:1) == 999
+			CONTINUE
+		SIF RAND:100 < ARG * MAXBASE:(POS(LOCAL)):GET_TYPE(ARG:1)
+			CFLAG:(POS(LOCAL)):ステート = GET_STATE_NUM("POISON")
+	ENDIF
+NEXT
+PRINTFORMW %CALLNAME:MASTER%s group triggered a poison trap! Got poisoned!
+RETURN 1
+
+
+;=======================================================================
+;指定したマスに進入可能か・基本
+;=======================================================================
+@CAN_ENTER,ARG,ARG:1
+;マップの最小・最大範囲超えてたら無理
+SIF ARG < 0 || ARG > FLAG:最大X || ARG:1 < 0 || ARG:1 > FLAG:最大Y
+	RETURN 0
+;とりあえず壁は無理
+SIF DA:ARG:(ARG:1) % 10 == 0
+	RETURN 0
+RETURN 1
+
+;===================================================================
+;ＭＡＧ消費処理
+;===================================================================
+@CONSUME_MAG
+FOR LOCAL:1,1,7
+	LOCALS = ポジション{LOCAL:1}
+	IF FLAG:LOCALS > -1
+		;LOCALに消費する人の番号を突っ込む
+		LOCAL = FLAG:LOCALS
+		;CPが0なら飛ばす
+		SIF BASE:LOCAL:CP == 0
+			CONTINUE
+		;種族が人間でも飛ばす
+		SIF ABL:LOCAL:種族 == 0
+			CONTINUE
+		IF CFLAG:LOCAL:ＭＡＧ自己消費 == 1
+			;自己消費がＯＮなら自分のＭＡＧを見る
+			IF BASE:LOCAL:ＭＡＧ == 0
+				;ＭＡＧが空の場合主人を見る
+				IF BASE:MASTER:ＭＡＧ == 0
+					;主人のも空ならダメージ処理
+					CALL VAR_HP,LOCAL,-(MAXBASE:LOCAL:ＨＰ/10),0
+					CALL VAR_MP,LOCAL,-(MAXBASE:LOCAL:ＭＰ/10),0
+				ELSE
+					CALL CONTROL_MAG, MASTER, -MAXBASE:LOCAL:CP * FLAG:MAG消費率 / 100
+				ENDIF
+			ELSE
+				;空でなければ自分で消費
+				CALL CONTROL_MAG,LOCAL, -MAXBASE:LOCAL:CP * FLAG:MAG消費率 / 100
+			ENDIF
+		ELSE
+			;自己消費がＯＦＦなら主人のＭＡＧを見る
+			IF BASE:MASTER:ＭＡＧ == 0
+				;主人のＭＡＧが空の場合自分のＭＡＧを見る
+				IF BASE:LOCAL:ＭＡＧ == 0
+					;主人のも空ならダメージ処理
+					CALL VAR_HP,LOCAL,-(MAXBASE:LOCAL:ＨＰ/10),0
+					CALL VAR_MP,LOCAL,-(MAXBASE:LOCAL:ＭＰ/10),0
+				ELSE
+					CALL CONTROL_MAG, LOCAL,-MAXBASE:LOCAL:CP * FLAG:MAG消費率 / 100
+				ENDIF
+			ELSE
+				;空でなければ主人で消費
+				CALL CONTROL_MAG,MASTER,-MAXBASE:LOCAL:CP  * FLAG:MAG消費率 / 100
+			ENDIF
+		ENDIF
+	ENDIF
+NEXT
+
+;===================================================================
+;ＭＡＧ消費切り替え
+;===================================================================
+@SWITCH_MAG
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML Here you can specify if demons should use their own ＭＡＧ to maintain their form or if the masters ＭＡＧ should be used.
+PRINTFORML Select any character to toggle this option for them.
+DRAWLINE
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS < 1
+		CONTINUE
+	PRINTFORM [{LOCAL}]　
+	CALL ARRANGE_CHARALIST_2,FLAG:LOCALS
+	CALL ARRANGE_CHARALIFE, FLAG:LOCALS
+	PRINTFORM 　MAG:[{BASE:(FLAG:LOCALS):ＭＡＧ,8}/{MAXBASE:(FLAG:LOCALS):ＭＡＧ,8}] \@ CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 ? Use own ＭＡＧ # Use masters ＭＡＧ \@
+NEXT
+PRINTL
+
+DRAWLINE
+
+PRINTLC [1000]Return
+
+$INPUT_LOOP_1
+INPUT
+LOCALS = ポジション{RESULT}
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT < 1 || RESULT > 6 || FLAG:LOCALS < 1
+	GOTO INPUT_LOOP_1
+ELSE
+	IF CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 == 0
+		CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 = 1
+	ELSE
+		CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 = 0
+	ENDIF
+ENDIF
+RESTART
+
+
+;===================================================================
+;ID捜査
+;===================================================================
+@SEARCH_ID(ARG)
+#FUNCTION
+FOR LOCAL,0,FLAG:最大X
+	FOR LOCAL:1,0,FLAG:最大Y
+		IF DA:(LOCAL):(LOCAL:1) == ARG
+			RETURNF LOCAL*100+LOCAL:1
+		ENDIF
+	NEXT
+NEXT
+RETURNF LOCAL*100+LOCAL:1
+
+
+;===================================================================
+;エストマ・リベラマ等の効力
+;　COMPの機能でデフォでエンカウント率変動とかあるといいかも
+;===================================================================
+@ENCOUNTER_CHANGER
+	FLAG:エンカウント率補正 = 0
+	FLAG:エストマ = 0
+	FLAG:ライトマ = 0
+	FLAG:リフトマ = 0
+RETURN 1
+
+
+;===================================================================
+;月齢変化
+;===================================================================
+@MOON
+IF FLAG:月齢ベクトル == 0
+	FLAG:月齢 ++
+ELSE
+	FLAG:月齢 --
+ENDIF
+SIF FLAG:月齢 > 8
+	FLAG:月齢 = 8
+SIF FLAG:月齢 < 0
+	FLAG:月齢 = 0
+SIF FLAG:月齢 == 8
+	FLAG:月齢ベクトル = 1
+SIF FLAG:月齢 == 0
+	FLAG:月齢ベクトル = 0
+
+IF FLAG:月齢 == 0 && FLAG:ショップコマンド == 101
+	SIF FLAG:エンカウント率補正 || FLAG:エストマ
+		PRINTW Enemy encounter rate returned to normal.
+		;敵の気配が元に戻った。
+	FLAG:エンカウント率補正 = 0
+	FLAG:エストマ = 0
+	FLAG:ライトマ = 0
+	FLAG:リフトマ = 0
+	CALL 酔い覚まし()
+	TRYCALLFORM EVENT_NEWMOON_DUNGEON{FLAG:現ダンジョン}
+ENDIF
+
+;===================================================================
+;月齢歩き
+;===================================================================
+@MOVE_MOON,ARG
+LOCAL += 1
+IF LOCAL >= 16 * FLAG:月齢進行率 / 100
+	LOCAL = 0
+	CALL MOON
+ENDIF
+
+;===================================================================
+;ＤＤＭ
+;自宅のサーバーに悪魔を転送する
+;===================================================================
+@COMP_DDM
+CALL INPUT_CHARA_LIST("Please select a demon to transfer to the home server", "CASTING_COMP_DDM", "UP_PRINT_COMP_DDM")
+IF RESULT == 1000
+	RETURN 0
+ELSE
+	;---- EDIT 013 ADD START -------------------------
+	IF CFLAG:RESULT:PTフラグ == 2
+		PRINTFORML %CALLNAME:RESULT% is currently in the battle party.
+		PRINTFORML Even if it's storage-space is moved to your home server, it can remain in the battle group.
+		PRINTFORML Please decide if you want to send them home completely.
+		LOCAL = RESULT
+		CALL INPUT_SELECT(1, "Remain in battle group", 2, "Send home", 9, "Cancel transfer")
+		IF RESULT == 9
+			RESTART
+		ELSEIF RESULT == 2
+			CALL REMOVE_POSITION, CPOS(LOCAL)
+			PRINTFORMW %CALLNAME:LOCAL% has left the group and was transferred to the home server.
+		ENDIF
+		RESULT = LOCAL
+	ENDIF
+	;---- EDIT 013 ADD END -------------------------
+	CFLAG:RESULT:所属ＣＯＭＰ = -1
+	;---- EDIT 012 MOD START ------------------------
+	;送った悪魔がリストから消えるようにリスト構築からやり直させる
+	RESTART
+	;GOTO PRINT_LIST
+	;---- EDIT 012 MOD END   ------------------------
+ENDIF
+
+@CASTING_COMP_DDM
+SIF COUNT == MASTER
+	RETURN 0
+SIF (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 45)
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+;---- EDIT 012 MOD START ------------------------
+;第一引数がLOCALだったのをCOUNTに修正
+SIF CFLAG:COUNT:容量未使用
+	RETURN 0
+SIF CFLAG:COUNT:所属ＣＯＭＰ == -1
+	RETURN 0
+;---- EDIT 012 MOD END   ------------------------
+RETURN 1
+
+@UP_PRINT_COMP_DDM
+PRINTFORML 自宅サーバに転送させる悪魔を選んでください　\@ A > リスト表示数() ? ＜page.{P + 1}/{A / リスト表示数() + 1}＞ # \@　ＣＯＭＰ：{NUM_NAKAMA()+ソフト容量()}/{FLAG:ＣＯＭＰ容量}
+
+
+;---- EDIT 021 ADD START -------------------------
+
+;=================================================
+;   sub DG_GET_TILE
+;=================================================
+;   タイル文字取得
+;-------------------------------------------------
+; Input:
+;  ARG:0				X座標
+;  ARG:1				Y座標
+;  ARG:2				M番号
+;  ARG:3				ダンジョン番号
+; Output:
+;  RESULTS				タイル文字
+;-------------------------------------------------
+@DG_GET_TILE(ARG:0, ARG:1, ARG:2, ARG:3)
+#DIM LX
+#DIM LY
+#DIM LM
+#DIM LD
+#DIM TILE_VAL
+#DIMS KEY
+#LOCALSSIZE 1
+
+LX = ARG:0
+LY = ARG:1
+LM = ARG:2
+LD = ARG:3
+LOCALS =
+KEY =
+TILE_VAL = DA:LX:LY
+
+
+IF (TILE_VAL % 10) == -1
+	KEY = D
+ELSE
+	KEY = {TILE_VAL % 10}
+ENDIF
+TRYCCALLFORM TILE_MARK_COMMON_{LD}_%KEY%, TILE_VAL, LX, LY
+	SIF RESULT == 1
+		GOTO NO_COMMON
+	LOCALS = %RESULTS%
+CATCH
+	$NO_COMMON
+	TRYCCALLFORM TILE_MARK_ID_{LD}_{LM}_% \@TILE_VAL < 0 ? m # \@%{ABS(TILE_VAL)}
+		LOCALS = %RESULTS%
+	CATCH
+		;- DG:タイル標準文字
+		CALL DG_BASE_TILE(LX, LY, LM, LD)
+		LOCALS = %RESULTS%
+	ENDCATCH
+ENDCATCH
+
+SELECTCASE LOCALS
+	CASE "■"
+		TRYCALLFORM DUNGEON_WALL_COLOR_{LD},LX, LY
+	CASE "□"
+		IF DA:LX:LY < 0
+			SETCOLOR 0x333344
+		ELSE
+			SETCOLOR 0x777766
+		ENDIF
+	CASE "扉"
+		SETCOLOR 0x8888aa
+	CASE "宝"
+		SETCOLOR 0xffdd99
+	CASE "罠"
+		SETCOLOR 0xbb0033
+	CASE "昇", "降"
+		SETCOLOR 0x44aa00
+	CASE "Ｔ", "ｔ", "！"
+		SETCOLOR 0xaa44ff
+	CASE "Ｒ", "Ｃ"
+		SETCOLOR 0x77bbff
+	CASE "↑", "→", "↓", "←", "Ｅ", "出"
+		SETCOLOR 0xff7700
+CASEELSE
+
+ENDSELECT
+
+RESULTS = %LOCALS%
+
+
+;=================================================
+;   sub DG_BASE_TILE
+;=================================================
+;   タイル標準文字
+;-------------------------------------------------
+; Input:
+;  ARG:0				X座標
+;  ARG:1				Y座標
+;  ARG:2				M番号
+;  ARG:3				ダンジョン番号
+; Output:
+;  RESULTS				タイル標準文字
+;-------------------------------------------------
+@DG_BASE_TILE(ARG:0, ARG:1, ARG:2, ARG:3)
+#DIM LX
+#DIM LY
+#DIM LM
+#DIM LD
+#DIM TILE_VAL
+#LOCALSSIZE 1
+
+LX = ARG:0
+LY = ARG:1
+LM = ARG:2
+LD = ARG:3
+LOCALS=
+TILE_VAL = DA:LX:LY
+
+SELECTCASE TILE_VAL % 10
+	CASE 0
+		LOCALS = ■
+	CASE 1
+		LOCALS = □
+	CASE 2
+		LOCALS = 扉
+	CASE 3
+		LOCALS = 宝
+	CASE 4
+		LOCALS = ！
+	CASE 5
+		IF GET_FLOOR_ANALYZE_T(LX, LY) == 2
+			LOCALS = 罠
+		ELSE
+			LOCALS = □
+		ENDIF
+	CASE 6
+		LOCALS = 昇
+	CASE 7
+		LOCALS = 降
+	CASE 8
+		LOCALS = 出
+	CASE -1 
+		LOCALS = □
+	CASE -9
+		SELECTCASE -TILE_VAL / 10
+			CASE 0
+				LOCALS = Ｔ
+			CASE 1
+				LOCALS = Ｒ
+			CASE 2
+				LOCALS = Ｅ
+		ENDSELECT
+	CASEELSE
+		TRYCCALLFORM TILE_MARK_{LD}_{LM}_{LX}_{LY}
+			LOCALS = %RESULTS%
+		CATCH
+			LOCALS = ■
+		ENDCATCH
+ENDSELECT
+
+RESULTS = %LOCALS%
+
+;---- EDIT 021 ADD END   -------------------------
+
+;---- EDIT 029 ADD START -------------------------
+@KARMAN
+	LOCAL:1 = 0
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF !TALENT:POS(LOCAL):喰奴
+			CONTINUE
+		;行動可能なキャラでないとダメ
+		CALL INPUTABLE_CHARA, POS(LOCAL)
+		SIF !RESULT
+			CONTINUE
+		LOCAL:1 = 1
+		BREAK
+	NEXT
+	IF !LOCAL:1
+		PRINTW There is no character that can use mantras in your party.
+		RETURN 0
+	ENDIF
+	LOCAL:2 = LINECOUNT
+	$MANTRA_LOOP
+	CLEARLINE LINECOUNT - LOCAL:2
+	CALL SHOW_NOW_FORMATION_P,0,2
+	PRINTL [0] ＣＡＮＣＥＬ [2000]ＡＬＬ ＣＡＮＣＥＬ
+	PRINTL Who will manage their mantras?
+	CALL INPUTINT(0,1,2,3,4,5,6,2000)
+	IF RESULT == 0
+		RESTART
+	ELSEIF RESULT == 2000
+		RETURN 0
+	ELSE
+		LOCAL = POS(RESULT)
+		SIF LOCAL < 0
+			GOTO MANTRA_LOOP
+		IF !TALENT:LOCAL:喰奴
+			PRINTFORMW %CALLNAME:LOCAL% is no mantra-user.
+			GOTO MANTRA_LOOP
+		ENDIF
+		CALL INPUTABLE_CHARA, LOCAL
+		IF !RESULT
+			PRINTFORMW %CALLNAME:LOCAL% is in no condition to manage mantras at this time.
+			GOTO MANTRA_LOOP
+		ENDIF
+		CALL DOWNLOAD_MANTRA, 7, 7, LOCAL
+		GOTO MANTRA_LOOP
+	ENDIF
+;---- EDIT 029 ADD END   -------------------------

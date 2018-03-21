@@ -1,0 +1,189 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:EVENT_90.ERB
+;	Facility	:直哉ルートの大魔宮関連のイベント群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2011/02/11			P					新規作成
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_90
+SIF !FLAG:直哉ルート
+	RETURN 0
+SIF GETCHARA([[キャラ:朱実]]) < 0 || CFLAG:GETCHARA([[キャラ:朱実]]):戦闘参加不可能 == 1
+	RETURN 0
+IF STRFLAG_D("ミノタウロス撃破", , [[ダンジョン:大魔宮]]) && !STRFLAG_EV("朱実の助言", 0, 90)
+	IF !STRFLAG_D("メデューサ撃破", , [[ダンジョン:大魔宮]]) && !STRFLAG_D("ロキ撃破", , [[ダンジョン:大魔宮]])
+		RESULTS = 朱実の助言1
+		イベントフラグ:90:0 = 1
+		RETURN 1
+	ENDIF
+ENDIF
+IF ITEM:ロルの魔除け && !STRFLAG_EV("ロルの魔除け", 0, 90)
+	IF !STRFLAG_D("ロキ撃破", , [[ダンジョン:大魔宮]]) && !STRFLAG_D("ロルの魔除け完成", , [[ダンジョン:大魔宮]])
+		RESULTS = ロルの魔除け
+		イベントフラグ:90:0 = 2
+		RETURN 1
+	ENDIF
+ENDIF
+IF STRFLAG_EV("ロルの魔除け", 0, 90) && !STRFLAG_D("魔除け完成", , [[ダンジョン:大魔宮]])
+	IF !STRFLAG_D("ロキ撃破", , [[ダンジョン:大魔宮]])
+		IF GETCHARA([[キャラ:ヘル]]) >= 0 && 陥落(GETCHARA([[キャラ:ヘル]]))
+			RESULTS = 魔除け作成
+			 イベントフラグ:90:0 = 3
+			RETURN 1
+		ENDIF
+		IF GETCHARA([[キャラ:フェンリル]]) >= 0 && 陥落(GETCHARA([[キャラ:フェンリル]]))
+			RESULTS = 魔除け作成
+			イベントフラグ:90:0 = 4
+			RETURN 1
+		ENDIF
+	ENDIF
+ENDIF
+IF STRFLAG_D("Y子", , [[ダンジョン:大魔宮]]) && !STRFLAG_EV("弓子の決心", 0, 90)
+	RESULTS = 弓子の決心
+	イベントフラグ:90:0 = 5
+	RETURN 1
+ENDIF
+RETURN 0
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_90
+SELECTCASE イベントフラグ:90:0
+	CASE 1
+		PRINTFORMW ＞朱実が話したいことがあると言ってきた
+		PRINTFORMW ＞%CALLNAME:MASTER%は朱実を部屋に通し、話を聞くことにした
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「大魔宮について色々調べてみたのですが…」
+		PRINTL 「【ダイダロスの塔】を抜けた先の、【ヴァルハラの回廊】を
+		PRINTW 「支配しているのがどうやら魔王 ロキであるようです」
+		PRINTW 「僕としては一刻も早くロキと戦いたいところですが…」
+		PRINTW 「ロキは強力な魔力の持ち主で、しかも回廊に自分を強めるための魔術を施しているようで、
+		PRINTW 　まともに勝負を挑んでも勝つのは難しいでしょう」
+		PRINTL 「しかし、かつて、ロキに戦いを挑む、その魔術をあと一歩で破るところまでいった大魔導師が
+		PRINTW 　【天空の街 ビエン】にいたそうです」
+		PRINTW 「【ビエン】には【ヴァルハラの回廊】からいけます」
+		PRINTW 「まずは【ビエン】に赴き、その大魔導師について調べるのがいいと思います」
+		PRINTW 「もちろん、正面からロキに勝てる自信があればいいのですが……」
+		PRINTW 「どうするかはあなたにお任せします」
+		PRINTW 「それと…、ロキと戦うときは僕も連れて行ってください」
+		PRINTW 「奴とは直接、決着をつけなければならないのです」
+		PRINTL 
+		PRINTW ＞そう言うと朱実は頭をさげ、部屋から出て行った
+		CALLF STRFLAG_EV("朱実の助言", 1)
+	CASE 2
+		PRINTFORMW ＞朱実が話したいことがあると言ってきた
+		PRINTFORMW ＞%CALLNAME:MASTER%は朱実を部屋に通し、話を聞くことにした
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「【ロルの魔除け】を完成させるのに、ロキに近しい悪魔の力が必要だということですが…」
+		PRINTW 「おそらく、奴の子供であるヘルかフェンリルの力を借りられれば、魔除けは完成させられるでしょう」
+		PRINTW 「もちろん、彼らも親を売るような真似はそうそうしないでしょうが…」
+		PRINTW 「もしも、彼らの協力を得られそうなら、連れてきてください」
+		PRINTW 「僕が彼らの力を借りて、魔除けを完成させます」
+		CALLF STRFLAG_EV("ロルの魔除け", 1)
+	CASE 3
+		PRINTW ＞朱実の元にヘルを連れてきた
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「ヘルを説得できたんですね？」
+		PRINTL ヘル:
+		PRINTW 「まぁ…あんな、親、ちょっとはひどい目にあったほうがいいのよ」
+		PRINTW 「あいつのせいで、私がどんなに苦労したことか…」
+		PRINTW 「ああ、本当に私って不幸…！」
+		PRINTL 朱実:
+		PRINTW 「では、魔除けに力を……」
+		PRINTL 
+		PRINTW ＞朱実がＣＯＭＰを起動すると、魔除けが輝き、ヘルから力を吸い取っていく…
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「これで大丈夫なはずです」
+		PRINTW 「ロキの魔法を完全にとは言えないでしょうが、かなり抑えられるはずです」
+		PRINTL 
+		PRINTW ＞完成した【ロルの魔除け】を手に入れた！
+		PRINTL 
+		PRINTL ヘル:
+		PRINTW 「はぁ、疲れた…」
+		PRINTW 「頑張ったんだから、ご褒美はあるわよね？」
+		PRINTL 
+		PRINTFORMW ＞%CALLNAME:MASTER%はヘルを連れて、朱実の元を後にした
+		CALLF STRFLAG_D("魔除け完成", 1, [[ダンジョン:大魔宮]])
+	CASE 4
+		PRINTW ＞朱実の元にフェンリルを連れてきた
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「フェンリルを説得できたんですね？」
+		PRINTL フェンリル:
+		PRINTW 「アオーン、アイツ、父オヤダケドアイツヒドイヤツ」
+		PRINTW 「ゴシュジンサマガ オシオキ シテクレルナラチョウドイイ！」
+		PRINTL 朱実:
+		PRINTW 「では、魔除けに力を……」
+		PRINTL 
+		PRINTW ＞朱実がＣＯＭＰを起動すると、魔除けが輝き、フェンリルから力を吸い取っていく…
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「これで大丈夫なはずです」
+		PRINTW 「ロキの魔法を完全にとは言えないでしょうが、かなり抑えられるはずです」
+		PRINTL 
+		PRINTW ＞完成した【ロルの魔除け】を手に入れた！
+		PRINTL 
+		PRINTL フェンリル:
+		PRINTW 「オレサマ、ナンダカ オナカガスイタ！」
+		PRINTW 「ゴハン ハ マダカ？」
+		PRINTL 
+		PRINTFORMW ＞%CALLNAME:MASTER%はフェンリルを連れて、朱実の元を後にした
+		CALLF STRFLAG_D("魔除け完成", 1, [[ダンジョン:大魔宮]])
+	CASE 5
+		PRINTW ＞冥界から連れて帰った白鷺 弓子は朱実の手に預けられ、
+		PRINTW ＞すっかり元気を取り戻したということだ…
+		PRINTW ＞今日はその弓子について、朱実が話したいことがあるそうだ。
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「今日は白鷺 弓子について話したいことがあります…」
+		PRINTW 「単刀直入に言いますが、彼女を解放し、普通の生活を送れるようにしてください」
+		PRINTW 「もちろん、僕はあなたにこれからも協力します」
+		PRINTL 
+		PRINTL 声:
+		PRINTW 「ダメよ。中島くん！」
+		PRINTL 
+		PRINTFORMW ＞%CALLNAME:MASTER%が返答しようとすると、部屋の中に弓子が入ってきた
+		PRINTL 
+		PRINTL 朱実:
+		PRINTW 「白鷺！　どうしてここに」
+		PRINTL 弓子:
+		PRINTW 「中島くんの考えていることなんて、わかるもの」
+		PRINTW 「私は一人で平和に暮らすのなんて嫌よ」
+		PRINTW 「中島くんと一緒にいるんだから」
+		PRINTL 朱実:
+		PRINTW 「しかし、ここがどういうところか
+		PRINTW 　ここにいたらどうなるか…君もわかるだろう？」
+		PRINTL 弓子:
+		PRINTW 「……わかるわ。でもそんなこと関係ない」
+		PRINTW 「中島くんがなんていおうと私はここに残るんだから」
+		PRINTW 「中島くんがこの人の手伝いをするって言うんなら、私はその手伝いをするわ」
+		PRINTL 朱実:
+		PRINTW 「白鷺……」
+		PRINTL 弓子:
+		PRINTW 「私にはイザナミの力があります。だからきっとお役に立てるはずです」
+		PRINTW 「ですから、私にもお手伝いさせてください」
+		PRINTL 
+		PRINTW ＞弓子には何を言っても聞かなさそうだ
+		PRINTFORMW ＞%CALLNAME:MASTER%は弓子の申し出を受けることにした…
+		PRINTL 
+		PRINTW ＞白鷺 弓子を手に入れた
+		CALL ADD_NEW_COMPANION, [[キャラ:弓子]], 1000
+		SIF RESULT == 1
+			CFLAG:(RESULT:1):戦闘参加不可能 = 0
+		CALLF STRFLAG_EV("弓子の決心", 1)
+	CASEELSE
+ENDSELECT
+CLEARBIT FLAG:イベント出現2, 90 - 63

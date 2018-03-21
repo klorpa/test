@@ -1,0 +1,589 @@
+;-------------------------------------------------
+;騎乗乳房自慰
+;セックス・愛撫系派生コマンド
+;騎乗位→胸自慰
+;なお、ほとんど同処理となるＡ騎乗乳房自慰もこのACTを用いる
+;その際の両者の判別はSELECTCOMの番号を使用
+;-------------------------------------------------
+@ACT_COM505
+;アナル騎乗乳房自慰の場合
+SIF SELECTCOM == 512
+	PRINT Anal 
+PRINTL Cowgirl Breast Masturbation
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+IF SELECTCOM == 505
+	TSTR:0 = 騎乗乳房自慰
+ELSE
+	TSTR:0 = アナル騎乗乳房自慰
+ENDIF
+;SELECTCOM = 505
+;CALL KOJO_MESSAGE_COM
+
+;派生元を見る
+;騎乗位からの派生の場合
+IF SELECTCOM == 505
+;	TFLAG:40 = 1
+	;V経験を伴うコマンドのフラグ(処女膜再生対応)
+	TFLAG:19 = 1
+	SIF (TALENT:3 || TALENT:6) && ASSIPLAY == 0 && EXP:0 == 0
+		TFLAG:20 = 1
+;騎乗位アナルからの派生の場合
+;ELSEIF PREVCOM == 67 || SELECTCOM == 67
+;	TFLAG:40 = 2
+ENDIF
+
+;実行者が奴隷であるフラグ
+TFLAG:28 = 1
+IF SELECTCOM == 505
+	TEQUIP:TARGET:Ｖ挿入者 = PLAYER
+ELSE
+	TEQUIP:TARGET:Ａ挿入者 = PLAYER
+ENDIF
+TFLAG:挿入続行 = 1
+
+;処女喪失時のテキスト用処理
+SIF TFLAG:60 && PREVCOM == 66 && (TFLAG:前回の調教者 == PLAYER) && TFLAG:31
+	TFLAG:31 = 2
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 2000
+
+;ABL:技巧をみる
+IF ABL:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:2 == 1
+	TIMES B , 1.10
+ELSEIF ABL:2 == 2
+	TIMES B , 1.20
+ELSEIF ABL:2 == 3
+	TIMES B , 1.30
+ELSEIF ABL:2 == 4
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.50
+ENDIF
+
+;PALAM:潤滑
+IF PALAM:4 < PALAMLV:1
+	TIMES B , 0.20
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES B , 0.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES B , 1.00
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES B , 1.20
+ELSEIF PALAM:4 < PALAMLV:5
+	TIMES B , 1.50
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;PALAM:欲情
+IF PALAM:5 < PALAMLV:1
+	TIMES B , 0.60
+ELSEIF PALAM:5 < PALAMLV:2
+	TIMES B , 0.80
+ELSEIF PALAM:5 < PALAMLV:3
+	TIMES B , 1.00
+ELSEIF PALAM:5 < PALAMLV:4
+	TIMES B , 1.20
+ELSEIF PALAM:5 < PALAMLV:5
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.70
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:欲望をみる
+IF ABL:1 == 0
+	TIMES B , 1.00
+ELSEIF ABL:1 == 1
+	TIMES B , 1.10
+ELSEIF ABL:1 == 2
+	TIMES B , 1.20
+ELSEIF ABL:1 == 3
+	TIMES B , 1.30
+ELSEIF ABL:1 == 4
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.50
+ENDIF
+
+;ABL:奉仕精神をみる
+IF ABL:7 == 0
+	TIMES B , 0.50
+ELSEIF ABL:7 == 1
+	TIMES B , 0.80
+ELSEIF ABL:7 == 2
+	TIMES B , 1.20
+ELSEIF ABL:7 == 3
+	TIMES B , 1.50
+ELSEIF ABL:7 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.40
+ENDIF
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:PLAYER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+;騎乗位からの派生の場合
+IF SELECTCOM == 505
+	;EXP:Ｖ経験をみる
+	;処女だと増える
+	SIF EXP:0 < EXPLV:1
+		TIMES B , 1.50
+ENDIF
+
+;再装填処理中は射精ゲージは20分の1に
+SIF CFLAG:PLAYER:9 > 0
+	B /= 20
+
+
+SIF HAVE_PENIS(PLAYER)
+	BASE:PLAYER:2 += B
+
+;調教者←→調教対象→調教対象
+TFLAG:28 = 7
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 80
+DOWNBASE:TARGET:気力 += 180
+
+SOURCE:TARGET:快Ｂ = 100
+SOURCE:TARGET:情愛 = 300
+SOURCE:TARGET:性行動 = 300
+SOURCE:TARGET:達成 = 300
+SOURCE:TARGET:中毒充足 = 400
+SOURCE:TARGET:露出 = 200
+SOURCE:TARGET:逸脱 = 700
+SOURCE:TARGET:反感 = 900
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*10 + 60
+;騎乗位からの派生の場合
+IF SELECTCOM == 505
+	SOURCE:1 = 250
+	SOURCE:TARGET:痛み = 500
+ENDIF
+;騎乗位アナルからの派生の場合
+IF SELECTCOM == 512
+	SOURCE:TARGET:快Ａ = 250
+	SOURCE:TARGET:痛み = 800
+	SOURCE:TARGET:逸脱 += 100
+ENDIF
+
+;調教者にFEELＣ
+SOURCE:PLAYER:0 = 450
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 900
+
+;貞操観念持ちで恋慕、親愛持ち以外には常に反発のソースを追加する（セックス系のみ）
+SIF TALENT:30 && !IS_LOVER(TARGET) && SELECTCOM == 505
+	SOURCE:TARGET:反感 += 1000
+
+;処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:0 == 1 && SELECTCOM == 505
+	SOURCE:TARGET:痛み += 2000
+	SOURCE:TARGET:反感 += 3000
+ENDIF
+
+;再生処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:1 == 1 && SELECTCOM == 505
+	SOURCE:TARGET:痛み += 500
+	SOURCE:TARGET:反感 += 1000
+ENDIF
+
+;騎乗位からの派生の場合
+IF SELECTCOM == 505
+	;Vへの苦痛は先に処理しておく
+	;EXP:Ｖ経験をみる（処女の反感は別途処理済みなので省略）
+	IF EXP:0 < EXPLV:1
+		TIMES SOURCE:TARGET:痛み , 2.50
+	ELSEIF EXP:0 < EXPLV:2
+		TIMES SOURCE:TARGET:痛み , 0.80
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF EXP:0 < EXPLV:3
+		TIMES SOURCE:TARGET:痛み , 0.40
+	ELSEIF EXP:0 < EXPLV:4
+		TIMES SOURCE:TARGET:痛み , 0.10
+	ELSEIF EXP:0 < EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.00
+	ELSEIF EXP:0 >= EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.00
+	ENDIF
+
+	;PALAM:潤滑をみる
+	IF PALAM:4 < PALAMLV:1
+		TIMES SOURCE:TARGET:痛み , 1.20
+		TIMES SOURCE:TARGET:反感 , 1.50
+	ELSEIF PALAM:4 < PALAMLV:2
+		TIMES SOURCE:TARGET:痛み , 0.70
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF PALAM:4 < PALAMLV:3
+		TIMES SOURCE:TARGET:痛み , 0.40
+	ELSEIF PALAM:4 < PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.10
+	ELSEIF PALAM:4 >= PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.10
+	ENDIF
+ENDIF
+
+;騎乗位アナルからの派生の場合
+IF SELECTCOM == 512
+	;Aへの苦痛は先に処理しておく
+	;EXP:Ａ経験をみる
+	IF EXP:1 < EXPLV:1
+		TIMES SOURCE:TARGET:痛み , 3.00
+		TIMES SOURCE:TARGET:反感 , 3.00
+	ELSEIF EXP:1 < EXPLV:2
+		TIMES SOURCE:TARGET:痛み , 1.20
+		TIMES SOURCE:TARGET:反感 , 2.00
+	ELSEIF EXP:1 < EXPLV:3
+		TIMES SOURCE:TARGET:痛み , 0.80
+		TIMES SOURCE:TARGET:反感 , 1.50
+	ELSEIF EXP:1 < EXPLV:4
+		TIMES SOURCE:TARGET:痛み , 0.60
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF EXP:1 < EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.40
+	ELSEIF EXP:1 >= EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.20
+	ENDIF
+
+	;PALAM:潤滑をみる
+	IF PALAM:4 < PALAMLV:1
+		TIMES SOURCE:TARGET:痛み , 1.20
+		TIMES SOURCE:TARGET:反感 , 2.00
+	ELSEIF PALAM:4 < PALAMLV:2
+		TIMES SOURCE:TARGET:痛み , 1.00
+		TIMES SOURCE:TARGET:反感 , 1.50
+	ELSEIF PALAM:4 < PALAMLV:3
+		TIMES SOURCE:TARGET:痛み , 0.60
+	ELSEIF PALAM:4 < PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.30
+	ELSEIF PALAM:4 >= PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.20
+	ENDIF
+ENDIF
+
+;中毒による中毒充足のソースは先に処理しておく
+;セックス中毒を見る
+IF ABL:18 == 0
+	TIMES SOURCE:TARGET:中毒充足 , 0.00
+ELSEIF ABL:18 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.30
+ELSEIF ABL:18 == 2
+	TIMES SOURCE:TARGET:中毒充足 , 0.60
+ELSEIF ABL:18 == 3
+	TIMES SOURCE:TARGET:中毒充足 , 0.90
+ELSEIF ABL:18 == 4
+	TIMES SOURCE:TARGET:中毒充足 , 1.20
+ELSEIF ABL:18 == 5
+	TIMES SOURCE:TARGET:中毒充足 , 1.50
+ELSEIF ABL:18 == 6
+	TIMES SOURCE:TARGET:中毒充足 , 1.80
+ELSEIF ABL:18 == 7
+	TIMES SOURCE:TARGET:中毒充足 , 2.10
+ELSEIF ABL:18 == 8
+	TIMES SOURCE:TARGET:中毒充足 , 2.40
+ELSEIF ABL:18 == 9
+	TIMES SOURCE:TARGET:中毒充足 , 3.00
+ELSEIF ABL:18 >= 10
+	TIMES SOURCE:TARGET:中毒充足 , 5.00
+ENDIF
+
+;自慰中毒を見る
+IF ABL:15 == 0
+	TIMES SOURCE:TARGET:中毒充足 , 0.00
+ELSEIF ABL:15 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.30
+ELSEIF ABL:15 == 2
+	TIMES SOURCE:TARGET:中毒充足 , 0.60
+ELSEIF ABL:15 == 3
+	TIMES SOURCE:TARGET:中毒充足 , 0.90
+ELSEIF ABL:15 == 4
+	TIMES SOURCE:TARGET:中毒充足 , 1.20
+ELSEIF ABL:15 == 5
+	TIMES SOURCE:TARGET:中毒充足 , 1.50
+ELSEIF ABL:15 == 6
+	TIMES SOURCE:TARGET:中毒充足 , 1.80
+ELSEIF ABL:15 == 7
+	TIMES SOURCE:TARGET:中毒充足 , 2.10
+ELSEIF ABL:15 == 8
+	TIMES SOURCE:TARGET:中毒充足 , 2.40
+ELSEIF ABL:15 == 9
+	TIMES SOURCE:TARGET:中毒充足 , 3.00
+ELSEIF ABL:15 >= 10
+	TIMES SOURCE:TARGET:中毒充足 , 5.00
+ENDIF
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+IF SELECTCOM == 512
+	TCVAR:PLAYER:射精箇所 = 2
+ELSE
+	TCVAR:PLAYER:射精箇所 = 1
+ENDIF
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;騎乗位からの派生の場合
+IF SELECTCOM == 505
+	;膣内に破瓜の血の汚れを付加
+	SIF TALENT:0 == 1 || TALENT:1 == 1
+		CALL SET_STAIN("膣内", "破瓜の血", TARGET)
+	;奴隷の膣内⇔調教者のＰの汚れが移動
+	CALL MOVE_STAIN("膣内", TARGET, "ペニス", PLAYER)
+ENDIF
+
+;騎乗位アナルからの派生の場合
+IF SELECTCOM == 512
+	;奴隷のＡ⇔調教者のＰの汚れが移動
+	CALL MOVE_STAIN("アナル", TARGET, "ペニス", PLAYER)
+ENDIF
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;MasturbEXP
+;ビデオ撮影時は経験にプラス
+IF TEQUIP:28
+	CALL ADDS_EXP("自慰経験", 2, TARGET)
+	;PRINTL MasturbEXP＋２
+	CALL ADDS_EXP("調教自慰経験", 2, TARGET)
+	;PRINTL FrcMasturEXP＋２
+ELSE
+	CALL ADDS_EXP("自慰経験", 1, TARGET)
+	;PRINTL MasturbEXP＋１
+	CALL ADDS_EXP("調教自慰経験", 1, TARGET)
+	;PRINTL FrcMasturEXP＋１
+ENDIF
+;騎乗位からの派生で処女の場合は、後で一括処理する
+;IF TEQUIP:28 && CFLAG:3 == 0 && TALENT:0 == 0 && TFLAG:40 != 1
+;	CALL ADDS_ABNORMAL_EXP("Public masturbation", TARGET)
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+;ENDIF
+
+SIF TEQUIP:28
+	CALL ADDS_ABNORMAL_EXP("Public masturbation", TARGET)
+;騎乗位からの派生の場合
+IF SELECTCOM == 505
+	;AbnormalEXP
+	SIF TALENT:0 == 1 && !IS_MALE(PLAYER)
+		CALL ADDS_ABNORMAL_EXP("Lost virginity（Same sex）", TARGET)
+	SIF TALENT:0 == 1
+		CALL ADDS_ABNORMAL_EXP("Lost virginity（Cowgirl）", TARGET)
+	
+	;近親相姦の場合AbnormalEXP付与
+	IF 近親チェック(TARGET , PLAYER)
+		CALL ADDS_ABNORMAL_EXP( @"Incest（%RESULTS:0%）", TARGET)
+		CALL ADDS_ABNORMAL_EXP( @"Incest（%RESULTS:1%）", PLAYER)
+	ENDIF
+	;公開によるAbnormalEXPと合わせて処理する
+;	IF TEQUIP:28 && CFLAG:3 == 0
+;		IF TALENT:0 == 1 && ASSIPLAY && !IS_MALE(PLAYER)
+;			EXP:50 += 4
+;			PRINTFORML %EXPNAME:50%＋４
+;		ELSEIF TALENT:0 == 1
+;			EXP:50 += 3
+;			PRINTFORML %EXPNAME:50%＋３
+;		ENDIF
+;		CFLAG:3 += 1
+;	ELSE
+;		IF TALENT:0 == 1 && ASSIPLAY && !IS_MALE(PLAYER)
+;			EXP:50 += 3
+;			PRINTFORML %EXPNAME:50%＋３
+;;		ELSEIF TALENT:0 == 1
+;			EXP:50 += 2
+;			PRINTFORML %EXPNAME:50%＋２
+;		ENDIF
+;	ENDIF
+	;V経験
+	CALL ADDS_EXP("Ｖ経験", 1, TARGET)
+ENDIF
+
+;騎乗位アナルからの派生の場合
+IF SELECTCOM == 512
+	;A経験
+	CALL ADDS_EXP("Ａ経験", 3, TARGET)
+	;PRINTL ＡEXP＋３
+ENDIF
+
+;SexEXP
+CALL ADDS_EXP("性交経験", 1, TARGET)
+;PRINTS EXPNAME:4;
+;PRINTL +1
+;BestialEXP
+IF (TALENT:PLAYER:獣 || TALENT:PLAYER:鳥) && !(TALENT:TARGET:獣 || TALENT:TARGET:鳥)
+	CALL ADDS_EXP("獣姦経験", 1, TARGET)
+ENDIF
+
+;LesbianEXP
+A = 10
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+
+;LoveEXP
+IF TALENT:3 == 1 && ASSIPLAY == 0
+	;PRINTS EXPNAME:23
+	;PRINTL +2
+	CALL ADDS_EXP("愛情経験", 2, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ELSEIF TALENT:6 == 1 && ASSIPLAY == 0
+;	PRINTS EXPNAME:23
+;	PRINTL +4
+	CALL ADDS_EXP("愛情経験", 4, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+;依存度ベクトル
+;騎乗位派生の場合
+IF SELECTCOM == 505
+	TFLAG:33 = 2
+;騎乗位アナル派生の場合
+ELSEIF SELECTCOM == 512
+	TFLAG:33 = 3
+ENDIF
+
+;依存度補正値(恋慕で2、親愛で4）
+IF TALENT:3 && ASSIPLAY == 0 && TFLAG:33 == 2
+	TFLAG:30 += 2
+ELSEIF TALENT:6 && ASSIPLAY == 0 && TFLAG:33 == 2
+	TFLAG:30 += 4
+ENDIF
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0 && TFLAG:33 == 3
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0 && TFLAG:33 == 3
+	TFLAG:30 += 2
+ENDIF
+
+;奉仕快楽フラグ
+TFLAG:100 = 1
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+@COM_ORDER_505, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "欲望", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", \@SELECTCOM == 505 ? Ｖ感覚 # Ａ感覚\@, 2, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "奉仕精神", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "セックス中毒", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "露出癖", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "自慰中毒", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "MARK", "快楽刻印", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "PALAM", "欲情", 3, ARG, ARG:1
+SIF PALAM:ARG:4 < PALAMLV:3
+	CALL ADD_COM_ORDER, "EXTRA", "潤滑不足", -5, ARG, ARG:1
+
+
+CALL ADD_COM_ORDER, "TALENT", "自制心", -5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥じらい", -5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥薄い", 2, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "自慰しやすい", 5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "快感に素直", 5, ARG, ARG:1
+
+SIF !TALENT:ARG:淫乱 && !TALENT:ARG:娼婦
+	CALL ADD_COM_ORDER, "TALENT", "快感の否定", -5, ARG, ARG:1
+;男嫌い（恋慕、親愛で無効）
+SIF HATE(ARG, ARG:1)
+	CALL ADD_COM_ORDER, "TALENT", \@IS_MALE(PLAYER) ? 男嫌い # 女嫌い \@, -12, ARG, ARG:1
+IF SELECTCOM == 505
+	CALL ADD_COM_ORDER, "TALENT", "恋慕", 15, ARG, ARG:1
+	CALL ADD_COM_ORDER, "TALENT", "親愛", 20, ARG, ARG:1
+	CALL ADD_COM_ORDER, "TALENT", "処女", -40, ARG, ARG:1
+	SIF !TALENT:ARG:処女 && EXP:ARG:Ｖ経験 < EXPLV:2
+		CALL ADD_COM_ORDER, "EXTRA", "ＶEXP不足", -15, ARG, ARG:1
+ELSE
+	CALL ADD_COM_ORDER, "TALENT", "淫乱", 15, ARG, ARG:1
+	CALL ADD_COM_ORDER, "TALENT", "娼婦", 20, ARG, ARG:1
+	SIF EXP:ARG:Ａ経験 < EXPLV:2
+		CALL ADD_COM_ORDER, "EXTRA", "ＡEXP不足", -30, ARG, ARG:1
+ENDIF
+
+CALL ADD_COM_ORDER, "TALENT", "ふたなり", 4, ARG:1, ARG
+CALL ADD_COM_ORDER, "STAIN", "ペニス", 33, ARG, ARG:1
+CALL ADD_COM_ORDER, "EXTRA", "Aphrodisiac", 6, ARG, ARG:1
+CALL ADD_COM_ORDER, "RELATION", , , ARG, ARG:1
+SIF TEQUIP:ARG:ビデオカメラ
+	CALL ADD_COM_ORDER, "EXTRA", "Video camera", -10, ARG, ARG:1
+SIF TEQUIP:ARG:搾乳機
+	CALL ADD_COM_ORDER, "EXTRA", "搾乳", -5, ARG, ARG:1
+
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_505
+RETURN 50
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_505
+RETURN COMTYPE("派生系")
+
+

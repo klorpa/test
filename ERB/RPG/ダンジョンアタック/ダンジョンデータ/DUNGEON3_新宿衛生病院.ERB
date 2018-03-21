@@ -1,0 +1,1260 @@
+;=======================================================================
+;新宿衛生病院
+;ボス・ユキジョロウ
+;追加ボス・フォルネウス
+;ダンジョンナンバー3　ＭＡＰ0~5
+;=======================================================================
+;
+;フラグ
+;ダンジョンフラグ:3:0 = Ｂ１Ｆのショートカット扉
+;ダンジョンフラグ:3:1 = クリアフラグ(-1.ユキジョロウに止めを刺した -2.許して仲魔になった 1.止めを刺して報酬を受け取った 2.仲魔にして報酬を受け取った)
+;ダンジョンフラグ:3:11-23 = 宝箱
+;
+;フォルネウス出現後
+;ダンジョンフラグ:3:30 = B1F扉　二度目
+;ダンジョンフラグ:3:31 = 1.フォルネウス登場, 2.撃破
+;ダンジョンフラグ:3:32-37 = 新宝箱
+;ダンジョンフラグ:3:38 = フォルネウス残HPフラグ(1.HP半分削った 2.HP75%削った)
+;
+;新宿フラグ
+;ダンジョンフラグ:42:31 = フォルネウスフラグ(bit1.病院クリアして新宿入った bit2.デカラビアの独り言聞いた 3.見逃した 4.刺身にした)
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_3
+;エコービルクリア
+SIF ダンジョンフラグ:1:1 == 0
+	RETURN 0
+RETURN 1
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_3
+RESULTS = Shinjuku Hygienic Hospital
+
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_3
+;フォルネウス出現フラグ立てた(デカラビアの独り言でフォルネウスの事を聞いていて病院クリア済みで新宿で悪魔の薬クリア済み)後の初回進入
+IF (ダンジョンフラグ:42:31 & 2) != 0 && ダンジョンフラグ:3:1 >= 1 && ダンジョンフラグ:42:0 >= 1 && ダンジョンフラグ:3:31 == 0
+	CALL MESSAGE_WINDOW_D, "", "＞It seems that the Forneus the Decarabia in Shinjuku mentioned is here."
+	ダンジョンフラグ:3:31 = 1
+	
+	ダンジョンフラグ:3:32 = 1
+	ダンジョンフラグ:3:33 = 1
+	ダンジョンフラグ:3:34 = 1
+	ダンジョンフラグ:3:35 = 1
+	ダンジョンフラグ:3:36 = 1
+	ダンジョンフラグ:3:37 = 1
+ENDIF
+FLAG:MAG消費率 = 75
+
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_3
+IF ダンジョンフラグ:3:1 == -1
+	CALL MESSAGE_WINDOW_D, "", "＞As a reward for subduing Yuki Jyorou,/＞you received ￥37500 and got 45 fame./＞Because you opened the Shinjuku Hygienic Hospital, you can now go to the Shinjuku outskirts!"
+	MONEY += 37500
+	FLAG:名声 += 45
+	ダンジョンフラグ:3:1 = 1
+;倒してはない
+ELSEIF ダンジョンフラグ:3:1 == -2
+	CALL MESSAGE_WINDOW_D, "", "＞For pacifying Brute Yuki Jyorou,/＞you received ￥37500 and got 45 fame./＞Because you opened the Shinjuku Hygienic Hospital, you can now go to the Shinjuku outskirts!"
+	MONEY += 37500
+	FLAG:名声 += 45
+	ダンジョンフラグ:3:1 = 2
+
+ENDIF
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_3
+PRINT Shinjuku Hygienic Hospital 
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Hospital Ｂ１Ｆ
+	CASE 1
+		PRINTL Hospital １Ｆ
+	CASE 2
+		PRINTL Hospital ２Ｆ
+	CASE 3
+		PRINTL Branch Ｂ１Ｆ
+	CASE 4
+		PRINTL Branch １Ｆ
+	CASE 5
+		PRINTL Branch ２Ｆ
+		
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_3_0_1_12
+RESULTS = ←
+;@TILE_MARK_3_0_6_9
+;RESULTS = Ｔ
+@TILE_MARK_3_2_2_14
+RESULTS = ←
+@TILE_MARK_3_3_16_8
+RESULTS = →
+@TILE_MARK_3_5_15_14
+RESULTS = →
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_3,ARG
+FLAG:現M = 0
+FLAG:現X = 6
+FLAG:現Y = 11
+;CALL AUTOMAP
+
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_3,ARG,ARG:1
+IF FLAG:現M == 0 && ARG == 2 && ARG:1 == 12 && ダンジョンフラグ:3:0 == 0
+	CALL MESSAGE_WINDOW_D, "", "＞It seems the door was locked from the other side."
+	RETURN 0
+ENDIF
+
+IF FLAG:現M == 0 && ARG == 2 && ARG:1 == 12 && ダンジョンフラグ:3:0 == 1 && ダンジョンフラグ:3:30 == 0 && ダンジョンフラグ:42:0 >= 1
+	CALL MESSAGE_WINDOW_D, "", "＞It seems this door was locked from the other side as well."
+	RETURN 0
+ENDIF
+	
+IF FLAG:現M == 1 && ARG == 7 && ARG:1 == 14 && ダンジョンフラグ:3:1 == 0
+	CALL MESSAGE_WINDOW_D, "", "＞The door is frozen solid./＞To leave the hospital, you should look for another exit,/＞or remove the cause for the ice."
+	RETURN 0
+ENDIF
+
+IF FLAG:現M == 1 && ARG == 7 && ARG:1 == 14 && ダンジョンフラグ:3:1 == 1 && ダンジョンフラグ:3:31 == 1 && ダンジョンフラグ:42:0 >= 1
+	CALL MESSAGE_WINDOW_D, "", "＞The door that was unfrozen by defeating Brute Yuki Jyorou is frozen again./＞You should investigate the cause of this to open the entrance."
+	RETURN 0
+ELSEIF FLAG:現M == 1 && ARG == 7 && ARG:1 == 14 && ダンジョンフラグ:3:1 == 2 && ダンジョンフラグ:3:31 == 1 && ダンジョンフラグ:42:0 >= 1
+	CALL MESSAGE_WINDOW_D, "", "＞This door which should have been unfrozen by defeating Brute Yuki Jyorou is frozen solid again./＞You should investigate the cause of this to open the entrance."
+	RETURN 0
+ENDIF
+
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_3
+SELECTCASE FLAG:現M
+	CASE 0
+	;Ｂ１階
+		FLAG:最大X = 13
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0         6 0"
+		CALL MAKE_FLOOR_LINE, 2,"0         2 0"
+		CALL MAKE_FLOOR_LINE, 3,"0        1110"
+		CALL MAKE_FLOOR_LINE, 4,"0        1110"
+		CALL MAKE_FLOOR_LINE, 5,"0         1 0"
+		CALL MAKE_FLOOR_LINE, 6,"0         1 0"
+		CALL MAKE_FLOOR_LINE, 7,"0         1 0"
+		CALL MAKE_FLOOR_LINE, 8,"0         1 0"
+		CALL MAKE_FLOOR_LINE, 9,"0     T   1 0"
+		CALL MAKE_FLOOR_LINE,10,"0     2   1 0"
+		CALL MAKE_FLOOR_LINE,11,"0     1   1 0"
+		CALL MAKE_FLOOR_LINE,12,"09211111111 0"
+		CALL MAKE_FLOOR_LINE,13,"0   1   1   0"
+		CALL MAKE_FLOOR_LINE,14,"0   2   2   0"
+		CALL MAKE_FLOOR_LINE,15,"0   1   1   0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000000"
+		
+		;宝箱の設置
+		CALL SET_TILE,4,15,ダンジョンフラグ:3:11,0,3
+		CALL SET_TILE,8,15,ダンジョンフラグ:3:12,0,3
+		
+	CASE 1
+	;１階
+		FLAG:最大X = 13
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0           0"
+		CALL MAKE_FLOOR_LINE, 2,"0           0"
+		CALL MAKE_FLOOR_LINE, 3,"0 126   621 0"
+		CALL MAKE_FLOOR_LINE, 4,"0 1       1 0"
+		CALL MAKE_FLOOR_LINE, 5,"0 1       1 0"
+		CALL MAKE_FLOOR_LINE, 6,"0 1       1 0"
+		CALL MAKE_FLOOR_LINE, 7,"0 1       1 0"
+		CALL MAKE_FLOOR_LINE, 8,"0 1       1 0"
+		CALL MAKE_FLOOR_LINE, 9,"0 1   7   1 0"
+		CALL MAKE_FLOOR_LINE,10,"0 1   2   1 0"
+		CALL MAKE_FLOOR_LINE,11,"0 111111111 0"
+		CALL MAKE_FLOOR_LINE,12,"0    111    0"
+		CALL MAKE_FLOOR_LINE,13,"0    111    0"
+		CALL MAKE_FLOOR_LINE,14,"0      2    0"
+		CALL MAKE_FLOOR_LINE,15,"0      8    0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000000"
+		
+		
+	CASE 2
+	;２階
+		FLAG:最大X = 16
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0              0"
+		CALL MAKE_FLOOR_LINE, 2,"0              0"
+		CALL MAKE_FLOOR_LINE, 3,"0   127   721  0"
+		CALL MAKE_FLOOR_LINE, 4,"0   1       1  0"
+		CALL MAKE_FLOOR_LINE, 5,"0 121       1210"
+		CALL MAKE_FLOOR_LINE, 6,"0   1       1  0"
+		CALL MAKE_FLOOR_LINE, 7,"0   1       1  0"
+		CALL MAKE_FLOOR_LINE, 8,"0   1       1  0"
+		CALL MAKE_FLOOR_LINE, 9,"0 121       1210"
+		CALL MAKE_FLOOR_LINE,10,"0   1  111  1  0"
+		CALL MAKE_FLOOR_LINE,11,"0   111111111  0"
+		CALL MAKE_FLOOR_LINE,12,"0      111     0"
+		CALL MAKE_FLOOR_LINE,13,"0      2       0"
+		CALL MAKE_FLOOR_LINE,14,"0 921111       0"
+		CALL MAKE_FLOOR_LINE,15,"0      1       0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000000000"
+		
+		CALL SET_TILE,2,5,ダンジョンフラグ:3:13,0,3
+		CALL SET_TILE,14,9,ダンジョンフラグ:3:14,0,3
+		
+	CASE 3
+	;分Ｂ１階
+		FLAG:最大X = 19
+		FLAG:最大Y = 11
+								;0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"       6           "
+		CALL MAKE_FLOOR_LINE, 2,"621    2           "
+		CALL MAKE_FLOOR_LINE, 3,"  1    1     111126"
+		CALL MAKE_FLOOR_LINE, 4,"  1    121   1     "
+		CALL MAKE_FLOOR_LINE, 5,"  1    1     1     "
+		CALL MAKE_FLOOR_LINE, 6,"121    121   121   "
+		CALL MAKE_FLOOR_LINE, 7,"  1    2     1     "
+		CALL MAKE_FLOOR_LINE, 8,"  111211111111129  "
+		CALL MAKE_FLOOR_LINE, 9,"      1111         "
+		CALL MAKE_FLOOR_LINE,10,"0000000000000000000"
+		
+		;宝箱の設置
+		CALL SET_TILE,0,6,ダンジョンフラグ:3:15,0,3
+		CALL SET_TILE,9,6,ダンジョンフラグ:3:16,0,3
+		
+	CASE 4
+	;分１階
+		FLAG:最大X = 19
+		FLAG:最大Y = 17
+								;0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"      111          "
+		CALL MAKE_FLOOR_LINE, 2,"       1     6     "
+		CALL MAKE_FLOOR_LINE, 3,"      1111   2     "
+		CALL MAKE_FLOOR_LINE, 4,"  1   1111   1     "
+		CALL MAKE_FLOOR_LINE, 5,"  2   1711   1     "
+		CALL MAKE_FLOOR_LINE, 6,"121          1     "
+		CALL MAKE_FLOOR_LINE, 7,"  1          1     "
+		CALL MAKE_FLOOR_LINE, 8,"  1          1     "
+		CALL MAKE_FLOOR_LINE, 9,"  1          1     "
+		CALL MAKE_FLOOR_LINE,10,"121          121   "
+		CALL MAKE_FLOOR_LINE,11,"  1          1     "
+		CALL MAKE_FLOOR_LINE,12,"72111211111 1111127"
+		CALL MAKE_FLOOR_LINE,13,"      1111         "
+		CALL MAKE_FLOOR_LINE,14,"      1111         "
+		CALL MAKE_FLOOR_LINE,15,"         8         "
+		CALL MAKE_FLOOR_LINE,16,"0000000000000000000"
+		
+		
+		;宝箱の設置
+		CALL SET_TILE,9,4,ダンジョンフラグ:3:17,0,3
+		CALL SET_TILE,9,5,ダンジョンフラグ:3:18,0,3
+		CALL SET_TILE,7, 1,ダンジョンフラグ:3:19,0,3
+		CALL SET_TILE,7,14,ダンジョンフラグ:3:20,0,3
+		CALL SET_TILE,8,14,ダンジョンフラグ:3:21,0,3
+
+		CALL SET_TILE,6,3,ダンジョンフラグ:3:32,1,3
+		CALL SET_TILE,6,4,ダンジョンフラグ:3:33,1,3
+		CALL SET_TILE,6, 1,ダンジョンフラグ:3:34,1,3
+		CALL SET_TILE,8, 1,ダンジョンフラグ:3:35,1,3
+		CALL SET_TILE,9,12,ダンジョンフラグ:3:36,1,3
+		CALL SET_TILE,10,12,ダンジョンフラグ:3:37,1,3
+		
+		
+		;イベントの設置
+		CALL SET_TILE,6,12,ダンジョンフラグ:3:1,0,4
+		CALL SET_TILE,6,12,ダンジョンフラグ:3:31,1,4
+
+	CASE 5
+	;分２階
+		FLAG:最大X = 19
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"                   "
+		CALL MAKE_FLOOR_LINE, 2,"             7     "
+		CALL MAKE_FLOOR_LINE, 3,"             2     "
+		CALL MAKE_FLOOR_LINE, 4,"  1          1     "
+		CALL MAKE_FLOOR_LINE, 5,"  1          1     "
+		CALL MAKE_FLOOR_LINE, 6,"121          121   "
+		CALL MAKE_FLOOR_LINE, 7,"  1          1     "
+		CALL MAKE_FLOOR_LINE, 8,"  1          1     "
+		CALL MAKE_FLOOR_LINE, 9,"  1          1     "
+		CALL MAKE_FLOOR_LINE,10,"121   1111   121   "
+		CALL MAKE_FLOOR_LINE,11,"  111211111111     "
+		CALL MAKE_FLOOR_LINE,12,"      1111         "
+		CALL MAKE_FLOOR_LINE,13,"      2  2         "
+		CALL MAKE_FLOOR_LINE,14,"      1  1111129   "
+		CALL MAKE_FLOOR_LINE,15,"      1  1         "
+		CALL MAKE_FLOOR_LINE,16,"0000000000000000000"
+		
+		;宝箱の設置
+		CALL SET_TILE,0,6,ダンジョンフラグ:3:22,0,3
+		CALL SET_TILE,15,6,ダンジョンフラグ:3:23,0,3
+		
+	CASEELSE
+
+
+
+
+
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_3
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 4 && FLAG:現Y == 15
+				CALL GET_TREASURE,1008,1,FLAG:現ダンジョン,11
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 15
+				CALL GET_TREASURE,1101,3,FLAG:現ダンジョン,12
+			ENDIF
+		CASE 2
+			IF FLAG:現X == 2 && FLAG:現Y == 5
+				CALL GET_TREASURE,1002,2,FLAG:現ダンジョン,13
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 9
+				CALL GET_TREASURE,1105,1,FLAG:現ダンジョン,14
+			ENDIF
+		CASE 3
+			IF FLAG:現X == 0 && FLAG:現Y == 6
+				CALL GET_TREASURE,1004,1,FLAG:現ダンジョン,15
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 6
+				CALL GET_TREASURE,1005,1,FLAG:現ダンジョン,16
+			ENDIF
+		CASE 4
+			IF FLAG:現X == 9 && FLAG:現Y == 4
+				CALL GET_TREASURE,1014,1,FLAG:現ダンジョン,17
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 5
+				CALL GET_TREASURE_MONEY,1,60,FLAG:現ダンジョン,18
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 1
+				CALL GET_TREASURE,1015,1,FLAG:現ダンジョン,19
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 14
+				CALL GET_TREASURE,1008,1,FLAG:現ダンジョン,20
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 14
+				CALL GET_TREASURE_MONEY,0,3000,FLAG:現ダンジョン,21
+
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 3 && ダンジョンフラグ:3:32 == 1 
+				CALL GET_TREASURE,1031,2,FLAG:現ダンジョン,32
+				ダンジョンフラグ:3:32 = 2
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 4 && ダンジョンフラグ:3:33 == 1
+				CALL GET_TREASURE_MONEY,1,50,FLAG:現ダンジョン,33
+				ダンジョンフラグ:3:33 = 2
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 1 && ダンジョンフラグ:3:34 == 1
+				CALL GET_TREASURE,1006,2,FLAG:現ダンジョン,34
+				ダンジョンフラグ:3:34 = 2
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 1 && ダンジョンフラグ:3:35 == 1
+				CALL GET_TREASURE,6806,1,FLAG:現ダンジョン,35
+				ダンジョンフラグ:3:35 = 2
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 12 && ダンジョンフラグ:3:36 == 1
+				CALL GET_TREASURE,6002,1,FLAG:現ダンジョン,36
+				ダンジョンフラグ:3:36 = 2
+			ELSEIF FLAG:現X == 10 && FLAG:現Y == 12 && ダンジョンフラグ:3:37 == 1
+				CALL GET_TREASURE,6105,1,FLAG:現ダンジョン,37
+				ダンジョンフラグ:3:37 = 2
+			ENDIF
+		CASE 5
+			IF FLAG:現X == 0 && FLAG:現Y == 6
+				CALL GET_TREASURE,1103,1,FLAG:現ダンジョン,22
+			ELSEIF FLAG:現X == 15 && FLAG:現Y == 6
+				CALL GET_TREASURE,1102,1,FLAG:現ダンジョン,23
+			ENDIF
+	ENDSELECT
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	SELECTCASE FLAG:現M
+		CASE 0
+			SIF FLAG:現X == 10 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,1,6,9
+		CASE 1
+			SIF FLAG:現X == 4 && FLAG:現Y == 3
+				CALL DUNGEON_UPSTAIRS,2,6,3
+			SIF FLAG:現X == 8 && FLAG:現Y == 3
+				CALL DUNGEON_UPSTAIRS,2,10,3
+		CASE 3
+			SIF FLAG:現X == 18 && FLAG:現Y == 3
+				CALL DUNGEON_UPSTAIRS,4,18,12
+			SIF FLAG:現X == 7 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,4,7,5
+			SIF FLAG:現X == 0 && FLAG:現Y == 2
+				CALL DUNGEON_UPSTAIRS,4,0,12
+		CASE 4
+			SIF FLAG:現X == 13 && FLAG:現Y == 2
+				CALL DUNGEON_UPSTAIRS,5,13,2
+		CASEELSE
+	ENDSELECT
+RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	SELECTCASE FLAG:現M
+		CASE 1
+			SIF FLAG:現X == 6 && FLAG:現Y == 9
+				CALL DUNGEON_DOWNSTAIRS,0,10,1
+		CASE 2
+			SIF FLAG:現X == 6 && FLAG:現Y == 3
+				CALL DUNGEON_DOWNSTAIRS,1,4,3
+			SIF FLAG:現X == 10 && FLAG:現Y == 3
+				CALL DUNGEON_DOWNSTAIRS,1,8,3
+		CASE 4
+			SIF FLAG:現X == 18 && FLAG:現Y == 12
+				CALL DUNGEON_DOWNSTAIRS,3,18,3
+			SIF FLAG:現X == 7 && FLAG:現Y == 5
+				CALL DUNGEON_DOWNSTAIRS,3,7,1
+			SIF FLAG:現X == 0 && FLAG:現Y == 12
+				CALL DUNGEON_DOWNSTAIRS,3,0,2
+		CASE 5
+			SIF FLAG:現X == 13 && FLAG:現Y == 2
+				CALL DUNGEON_DOWNSTAIRS,4,13,2
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+;ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+;	CALL DUNGEON_TERMINAL
+;	RETURN 1
+RETURN 1
+
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_3,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 4 && FLAG:現Y == 15
+				CALL GET_TREASURE,1008,1,FLAG:現ダンジョン,11
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 15
+				CALL GET_TREASURE,1101,3,FLAG:現ダンジョン,12
+			ENDIF
+		CASE 2
+			IF FLAG:現X == 2 && FLAG:現Y == 5
+				CALL GET_TREASURE,1002,2,FLAG:現ダンジョン,13
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 9
+				CALL GET_TREASURE,1105,1,FLAG:現ダンジョン,14
+			ENDIF
+		CASE 3
+			IF FLAG:現X == 0 && FLAG:現Y == 6
+				CALL GET_TREASURE,1004,1,FLAG:現ダンジョン,15
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 6
+				CALL GET_TREASURE,1005,1,FLAG:現ダンジョン,16
+			ENDIF
+		CASE 4
+			IF FLAG:現X == 9 && FLAG:現Y == 4
+				CALL GET_TREASURE,1014,1,FLAG:現ダンジョン,17
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 5
+				CALL GET_TREASURE_MONEY,1,60,FLAG:現ダンジョン,18
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 1
+				CALL GET_TREASURE,1015,1,FLAG:現ダンジョン,19
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 14
+				CALL GET_TREASURE,1008,1,FLAG:現ダンジョン,20
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 14
+				CALL GET_TREASURE_MONEY,0,3000,FLAG:現ダンジョン,21
+
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 3 && ダンジョンフラグ:3:32 == 1 
+				CALL GET_TREASURE,1031,2,FLAG:現ダンジョン,32
+				ダンジョンフラグ:3:32 = 2
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 4 && ダンジョンフラグ:3:33 == 1
+				CALL GET_TREASURE_MONEY,1,50,FLAG:現ダンジョン,33
+				ダンジョンフラグ:3:33 = 2
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 1 && ダンジョンフラグ:3:34 == 1
+				CALL GET_TREASURE,1006,2,FLAG:現ダンジョン,34
+				ダンジョンフラグ:3:34 = 2
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 1 && ダンジョンフラグ:3:35 == 1
+				CALL GET_TREASURE,6806,1,FLAG:現ダンジョン,35
+				ダンジョンフラグ:3:35 = 2
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 12 && ダンジョンフラグ:3:36 == 1
+				CALL GET_TREASURE,6002,1,FLAG:現ダンジョン,36
+				ダンジョンフラグ:3:36 = 2
+			ELSEIF FLAG:現X == 10 && FLAG:現Y == 12 && ダンジョンフラグ:3:37 == 1
+				CALL GET_TREASURE,6105,1,FLAG:現ダンジョン,37
+				ダンジョンフラグ:3:37 = 2
+			ENDIF
+
+		CASE 5
+			IF FLAG:現X == 0 && FLAG:現Y == 6
+				CALL GET_TREASURE,1103,1,FLAG:現ダンジョン,22
+			ELSEIF FLAG:現X == 15 && FLAG:現Y == 6
+				CALL GET_TREASURE,1102,1,FLAG:現ダンジョン,23
+			ENDIF
+	ENDSELECT
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	SELECTCASE FLAG:現M
+		CASE 0
+			SIF FLAG:現X == 10 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,1,6,9
+		CASE 1
+			SIF FLAG:現X == 4 && FLAG:現Y == 3
+				CALL DUNGEON_UPSTAIRS,2,6,3
+			SIF FLAG:現X == 8 && FLAG:現Y == 3
+				CALL DUNGEON_UPSTAIRS,2,10,3
+		CASE 3
+			SIF FLAG:現X == 18 && FLAG:現Y == 3
+				CALL DUNGEON_UPSTAIRS,4,18,12
+			SIF FLAG:現X == 7 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,4,7,5
+			SIF FLAG:現X == 0 && FLAG:現Y == 2
+				CALL DUNGEON_UPSTAIRS,4,0,12
+		CASE 4
+			SIF FLAG:現X == 13 && FLAG:現Y == 2
+				CALL DUNGEON_UPSTAIRS,5,13,2
+		CASEELSE
+	ENDSELECT
+RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	SELECTCASE FLAG:現M
+		CASE 1
+			SIF FLAG:現X == 6 && FLAG:現Y == 9
+				CALL DUNGEON_DOWNSTAIRS,0,10,1
+		CASE 2
+			SIF FLAG:現X == 6 && FLAG:現Y == 3
+				CALL DUNGEON_DOWNSTAIRS,1,4,3
+			SIF FLAG:現X == 10 && FLAG:現Y == 3
+				CALL DUNGEON_DOWNSTAIRS,1,8,3
+		CASE 4
+			SIF FLAG:現X == 18 && FLAG:現Y == 12
+				CALL DUNGEON_DOWNSTAIRS,3,18,3
+			SIF FLAG:現X == 7 && FLAG:現Y == 5
+				CALL DUNGEON_DOWNSTAIRS,3,7,1
+			SIF FLAG:現X == 0 && FLAG:現Y == 12
+				CALL DUNGEON_DOWNSTAIRS,3,0,2
+		CASE 5
+			SIF FLAG:現X == 13 && FLAG:現Y == 2
+				CALL DUNGEON_DOWNSTAIRS,4,13,2
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	SELECTCASE FLAG:現M
+		CASE 0
+;			IF FLAG:現X == 6 && FLAG:現Y == 9
+;				CALL DUNGEON_TERMINAL
+;				RETURN 1
+;			ELSE
+				CALL DUNGEON_WORP,3,14,8
+;			ENDIF
+		CASE 2
+				CALL DUNGEON_WORP,5,13,14
+		CASE 3
+				CALL DUNGEON_WORP,0,3,12
+		CASE 5
+				CALL DUNGEON_WORP,2,4,14
+		CASEELSE
+	ENDSELECT
+RETURN 1
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	IF FLAG:現M == 3 && FLAG:現X == 15 && FLAG:現Y == 8 && ダンジョンフラグ:3:0 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞You unlocked the door."
+		ダンジョンフラグ:3:0 = 1
+	ENDIF
+	
+	IF FLAG:現M == 3 && FLAG:現X == 15 && FLAG:現Y == 8 && ダンジョンフラグ:3:30 == 0 && ダンジョンフラグ:42:0 >= 1
+		CALL MESSAGE_WINDOW_D, "", "＞You unlocked the door."
+		ダンジョンフラグ:3:30 = 1
+	ENDIF
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	IF ダンジョンフラグ:3:1 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞The entrance was covered by thick ice, too cold to touch."
+		CALL MESSAGE_WINDOW_D, "Voice", "Ara, a human survived/...and such a lovely one too."
+		CALL MESSAGE_WINDOW_D, "", "＞When you turned around, you saw a white-skinned woman standing there./＞The woman wore a kimono that was also white and had an ecstatic expression."
+		CALL MESSAGE_WINDOW_D, "Woman", "Oh, the more I look the more I like you./What passion, strength, boiling heat──/──Certainly, you'd be wonderful to freeze."
+		CALL MESSAGE_WINDOW_D, "", "＞Brute Yuki Jyorou appeared!"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9,603,16,0,1
+		ABL:(CHARANUM-1):スキル3 = 805
+		ABL:(CHARANUM-1):スキル4 = 1223
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		TALENT:(CHARANUM-1):処女 = 1
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		;謎の魅力持ちなら仲魔に誘える
+		IF  TALENT:MASTER:謎の魅力 == 1
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "Brute Yuki Jyorou", "...really, what a passionate person.../Would you allow me to stay at your side?"
+			CALL INPUT_SELECT_D("[1] Recruit/[2] Kill")
+			IF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "Brute Yuki Jyorou", "...Thank you very much./Then it is...cough...please take care of me, Master."
+				CALL MESSAGE_WINDOW_D, "", "＞Brute Yuki Jyorou joined."
+				CALL ADD_NEW_COMPANION,603,15000
+				;加入成功の場合, 初期からラブラブに
+				IF RESULT
+					LOCAL = RESULT:1
+					TALENT:LOCAL:処女 = 1
+					ABL:LOCAL:スキル3 = 805
+					ABL:LOCAL:スキル4 = 1223
+					CSTR:LOCAL:二人称 = 旦那様
+					BASE:LOCAL:LV   = 16
+					BASE:LOCAL:力   = 3
+					BASE:LOCAL:知恵 = 8 
+					BASE:LOCAL:魔力 = 12
+					BASE:LOCAL:耐力 = 7
+					BASE:LOCAL:速さ = 7
+					BASE:LOCAL:運   = 6
+				ENDIF
+				ダンジョンフラグ:3:1 = -2
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞Brute Yuki Jyorou was defeated."
+				ダンジョンフラグ:3:1 = -1
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞Brute Yuki was Jyorou defeated."
+			ダンジョンフラグ:3:1 = -1
+		ENDIF
+		CALL SHOW_PICTURE, "D"
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+
+	ELSEIF (ダンジョンフラグ:3:1 == 1||ダンジョンフラグ:3:1 == 2) && ダンジョンフラグ:3:31 == 1 && ダンジョンフラグ:42:0 >= 1
+		CUSTOMDRAWLINE =
+		CALL MESSAGE_WINDOW_D, "", "＞A demon shaped like a huge A blocked the entrance."
+		CALL MESSAGE_WINDOW_D, "Demon", "...Hey, you./Are you the one who defeated the Yuki Jyorou that was here?/But, even demons have attachments./The Marquis of Hell Fallen Forneus shall not forgive you!!"
+		CALL MESSAGE_WINDOW_D, "", "＞Fallen Forneus appeared!"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9,1709,24,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 3000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+		ABL:(CHARANUM-1):スキル1 = 203
+		ABL:(CHARANUM-1):スキル2 = 802
+		ABL:(CHARANUM-1):スキル3 = 804
+		ABL:(CHARANUM-1):スキル4 = 805
+		ABL:(CHARANUM-1):スキル5 = 807
+		ABL:(CHARANUM-1):スキル6 = 805
+		ABL:(CHARANUM-1):スキル7 = 503
+		ABL:(CHARANUM-1):スキル8 = 520
+		
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "Fallen Forneus", "Wait...My friend, Decarabia, is waiting for me in Shinjuku./For the sake of those who would miss me, won't you have mercy?"
+		CALL INPUT_SELECT_D("[1] Let him go/[2]Make sashimi")
+		IF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "Fallen Forneus", "Thank you.../This Fallen Forneus will not forget your kindness."
+			ダンジョンフラグ:42:31 = 3
+		ELSE
+			CALL MESSAGE_WINDOW_D, "Fallen Forneus", "Wh-what are you doooooiiiing!!"
+			ダンジョンフラグ:42:31 = 4
+		ENDIF
+		ダンジョンフラグ:3:31 = 2
+	ENDIF
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_3
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+	CASE 1
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+	CASE 2
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 6
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_3
+RETURN 8, 5, 21, 21
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_3
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_3
+;フォルネウス出現後
+IF ダンジョンフラグ:3:31 >= 1
+	SELECTCASE RAND:100
+		CASE IS < 40
+			RETURN 1
+		CASE IS < 90
+			RETURN 2
+		CASEELSE
+			RETURN 3
+	ENDSELECT
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 40
+			RETURN 1
+		CASE IS < 95
+			RETURN 2
+		CASEELSE
+			RETURN 3
+	ENDSELECT
+ENDIF
+;=======================================================================
+;敵の総数
+;=======================================================================
+@ENEMY_NUM_3, ARG
+;フォルネウス出現後
+IF ダンジョンフラグ:3:31 >= 1
+	SELECTCASE ARG
+		CASE 1
+			RETURN RAND(2, 6)
+		CASE 2
+			RETURN RAND(4, 9)
+		CASE 3
+			RETURN RAND(6, 11)
+	ENDSELECT
+ELSE
+	SELECTCASE ARG
+		CASE 1
+			RETURN RAND(1, 3)
+		CASE 2
+			RETURN RAND(2, 5)
+		CASE 3
+			RETURN RAND(3, 6)
+	ENDSELECT
+ENDIF
+;=======================================================================
+;敵
+;=======================================================================
+@ENEMY_3, ARG
+;フォルネウス出現後
+IF ダンジョンフラグ:3:31 >= 1
+	SELECTCASE FLAG:現M
+		;本院Ｂ１Ｆでの遭遇
+		CASE 0
+			SELECTCASE RAND:100
+				;Lv14-18程度
+				CASE IS < 25
+					;25%でゾンビナースLv9 ランク3
+					RETURN 1002, 17
+				CASE IS < 50
+					;25%でパリカーLv14
+					RETURN 411, 14
+				CASE IS < 75
+					;25%でヨモツシコメ　Lv14
+					RETURN 602, 14
+				CASE IS < 90
+					;15%でドリアードLv12　ランク1
+					RETURN 502, 15
+				CASE IS < 95
+					;5%でモー・ショボーLv15
+					RETURN 902, 15
+				CASE IS < 100
+					;5%でゾンビちゃんLv4　ランク4
+					RETURN 1001, 16
+			ENDSELECT
+		;１Ｆでの遭遇
+		CASE 1
+			SELECTCASE RAND:100
+				;Lv14-18程度
+				CASE IS < 25
+					;25%でゾンビナースLv9　ランク3
+					RETURN 1002, 17
+				CASE IS < 40
+					;15%でパリカーLv14
+					RETURN 411, 14
+				CASE IS < 60
+					;20%でヨモツシコメ　Lv14
+					RETURN 602, 14
+				CASE IS < 90
+					;30%でドリアードLv12　ランク1
+					RETURN 502, 15
+				CASE IS < 95
+					;5%でモー・ショボーLv15
+					RETURN 902, 15
+				CASE IS < 100
+					;5%でゾンビちゃんLv4　ランク4
+					RETURN 1001, 12
+			ENDSELECT
+		;２Ｆでの遭遇
+		CASE 2
+			SELECTCASE RAND:100
+				;Lv14-20程度
+				CASE IS < 25
+					;20%でゾンビナースLv9　ランク3
+					RETURN 1002, 17
+				CASE IS < 40
+					;15%でリャナンシーーLv18
+					RETURN 403, 18
+				CASE IS < 60
+					;20%でヨモツシコメ　Lv14
+					RETURN 602, 14
+				CASE IS < 90
+					;30%でニケーLv17
+					RETURN 302, 17
+				CASE IS < 95
+					;5%でニケーLv17　ランク1
+					RETURN 302, 20
+				CASE IS < 100
+					;5%でゾンビちゃんLv4　ランク4
+					RETURN 1001, 16
+			ENDSELECT
+		;分院Ｂ１Ｆでの遭遇
+		CASE 3
+			SELECTCASE RAND:100
+				;Lv17-21程度
+				CASE IS < 25
+					;25%でゾンビナースLv9　ランク4
+					RETURN 1002, 21
+				CASE IS < 50
+					;25%でパリカーLv14
+					RETURN 411, 17
+				CASE IS < 75
+					;25%でヨモツシコメ　Lv14
+					RETURN 602, 17
+				CASE IS < 100
+					;25%でニケーLv17　ランク1
+					RETURN 302, 20
+			ENDSELECT
+		;１Ｆでの遭遇
+		CASE 4
+			SELECTCASE RAND:100
+				;Lv17-21程度
+				CASE IS < 25
+					;25%でゾンビナースLv9　ランク4
+					RETURN 1002, 20
+				CASE IS < 50
+					;25%でリャナンシーLv18
+					RETURN 403, 18
+				CASE IS < 75
+					;25%ではなこLv13　ランク1
+					RETURN 1003, 16
+				CASE IS < 90
+					;15%でニケーLv17　ランク1
+					RETURN 302, 20
+				CASE IS < 100
+					;10%でキヨヒメLv17
+					RETURN 703, 17
+			ENDSELECT
+		;２Ｆでの遭遇
+		CASE 5
+			SELECTCASE RAND:100
+				;Lv17-21程度
+				CASE IS < 25
+					;25%でゾンビナースLv9　ランク4
+					RETURN 1002, 20
+				CASE IS < 50
+					;25%でリャナンシーLv18
+					RETURN 403, 18
+				CASE IS < 75
+					;25%ではなこLv13　ランク1
+					RETURN 1003, 16
+				CASE IS < 90
+					;15%でニケーLv17　ランク1
+					RETURN 301, 20
+				CASE IS < 100
+					;10%でキヨヒメLv17　ランク1
+					RETURN 703, 20
+			ENDSELECT
+	ENDSELECT
+;通常
+ELSE
+	SELECTCASE FLAG:現M
+		;本院Ｂ１Ｆでの遭遇
+		CASE 0
+			SELECTCASE RAND:100
+				CASE IS < 25
+					;25%でゾンビナース
+					RETURN 1002, 8
+				CASE IS < 40
+					;25%でアプサラス
+					RETURN 401, 5
+				CASE IS < 60
+					;25%でカハク
+					RETURN 601, 7
+				CASE IS < 90
+					;15%でピク１
+					RETURN 501, 6
+				CASE IS < 95
+					;5%でハーピーランク１
+					RETURN 901, 7
+				CASE IS < 100
+					;5%でゾンビちゃんランク１
+					RETURN 1001, 7
+			ENDSELECT
+		;１Ｆでの遭遇
+		CASE 1
+			SELECTCASE RAND:100
+				CASE IS < 25
+					;25%でゾンビナース
+					RETURN 1002, 8
+				CASE IS < 40
+					;15%でリリム
+					RETURN 401, 9
+				CASE IS < 60
+					;20%でカハク
+					RETURN 601, 7
+				CASE IS < 90
+					;30%でピク１
+					RETURN 501, 6
+				CASE IS < 95
+					;5%でハーピーランク１
+					RETURN 901, 7
+				CASE IS < 100
+					;5%でゾンビちゃんランク１
+					RETURN 1001, 7
+			ENDSELECT
+		;２Ｆでの遭遇
+		CASE 2
+			SELECTCASE RAND:100
+				CASE IS < 20
+					;20%でゾンビナース
+					RETURN 1002, 8
+				CASE IS < 40
+					;20%でリリム
+					RETURN 402, 9
+				CASE IS < 60
+					;20%でカハク
+					RETURN 601, 7
+				CASE IS < 90
+					;30%でエンジェル
+					RETURN 301, 5
+				CASE IS < 95
+					;5%でエンジェル１
+					RETURN 301, 8
+				CASE IS < 100
+					;5%でゾンビちゃんランク１
+					RETURN 1001, 7
+			ENDSELECT
+		;分院Ｂ１Ｆでの遭遇
+		CASE 3
+			SELECTCASE RAND:100
+				CASE IS < 25
+					;25%でゾンビナース　ランク1
+					RETURN 1002, 11
+				CASE IS < 50
+					;25%でアプサラス　ランク1
+					RETURN 401, 8
+				CASE IS < 75
+					;25%でカハク　ランク1
+					RETURN 601, 10
+				CASE IS < 100
+					;25%でエンジェル　ランク1
+					RETURN 301, 8
+			ENDSELECT
+		;１Ｆでの遭遇
+		CASE 4
+			SELECTCASE RAND:100
+				CASE IS < 25
+					;25%でゾンビナース
+					RETURN 1002, 11
+				CASE IS < 50
+					;25%でリリム
+					RETURN 402, 11
+				CASE IS < 75
+					;25%ではなこ
+					RETURN 1003, 13
+				CASE IS < 90
+					;15%でエンジェル　ランク2
+					RETURN 301, 12
+				CASE IS < 100
+					;10%でラミア
+					RETURN 702, 10
+			ENDSELECT
+		;２Ｆでの遭遇
+		CASE 5
+			SELECTCASE RAND:100
+				CASE IS < 25
+					;25%でゾンビナース
+					RETURN 1002, 11
+				CASE IS < 50
+					;25%でリリム
+					RETURN 402, 12
+				CASE IS < 75
+					;25%ではなこ
+					RETURN 1003, 13
+				CASE IS < 90
+					;15%でエンジェル　ランク2
+					RETURN 301, 11
+				CASE IS < 100
+					;10%でラミア
+					RETURN 702, 10
+			ENDSELECT
+	ENDSELECT
+ENDIF
+;=================================
+;思考パターン
+;=================================
+@ENEMY_BATTLE_MESSAGE_WINDOW_K1709, ARG
+IF 現HP割合(ARG) < 50 && ダンジョンフラグ:3:38 == 0
+	PRINTFORML ┏>MESSAGE_WINDOW━━━━━━━━━━━━━━┓
+	PRINTFORML ┃Ugaaaaaa…　　　　　　　　　　　　　┃
+	PRINTFORML ┃To corner me like this              ┃
+	PRINTFORML ┃I'll have to be serious!!　　　　 　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━┛
+	ダンジョンフラグ:3:38 = 1
+ELSEIF 現HP割合(ARG) < 25 && ダンジョンフラグ:3:38 ==1
+	PRINTFORML ┏>MESSAGE_WINDOW━━━━━━━━━┓
+	PRINTFORML ┃Gaah…　　    　　　　　　┃
+	PRINTFORML ┃Your too strong           ┃
+	PRINTFORML ┃Are you a Kuzunoha!?　  ┃
+	PRINTFORMW ┗━━━━━━━━━━━━━┛
+	ダンジョンフラグ:3:38 = 2
+ENDIF
+;フォルネウスの思考パターン
+@SET_ACTION_1709,ARG
+;1more
+IF CFLAG:ARG:１moreフラグ == 2
+	IF CFLAG:ARG:火炎無効化回数 == 0
+		CALL CHECK_ACTIONABLE,ARG,807
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 807
+		CALL RANDOM_TARGET,ARG,807
+		RETURN 1
+	ELSE
+		IF RAND:2 == 0
+			;ブフーラ
+			CALL CHECK_ACTIONABLE,ARG,802
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 802
+			CALL RANDOM_TARGET,ARG,802
+			RETURN 1
+		ELSEIF RAND:2 == 0
+			;マハ・ブフーラ
+			CALL CHECK_ACTIONABLE,ARG,805
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 805
+			CALL RANDOM_TARGET,ARG,805
+			RETURN 1
+		ENDIF
+	ENDIF
+;初回ターン
+ELSEIF (ダンジョンフラグ:42:31 & 1) != 0
+	;フォッグブレス
+	CALL CHECK_ACTIONABLE,ARG,520
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = 520
+	CALL RANDOM_TARGET,ARG,520
+	ダンジョンフラグ:42:31 &= 16777214
+	ダンジョンフラグ:42:31 |= 2
+	RETURN 1
+
+;三ターンに一回
+ELSEIF FLAG:経過ターン数 % 3 == 1
+	;フォッグブレス
+	CALL CHECK_ACTIONABLE,ARG,520
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = 520
+	CALL RANDOM_TARGET,ARG,520
+	RETURN 1
+
+ELSEIF 現HP割合(ARG) < 50
+	;水の壁
+	IF CFLAG:ARG:火炎無効化回数 == 0
+		CALL CHECK_ACTIONABLE,ARG,807
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 807
+		CALL RANDOM_TARGET,ARG,807
+		RETURN 1
+	ELSE
+		SELECTCASE RAND:100
+			;30％でブフーラ
+			CASE IS < 30
+				CALL CHECK_ACTIONABLE,ARG,802
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 802
+				CALL RANDOM_TARGET,ARG,802
+				RETURN 1
+			;30％でマハ・ブフ
+			CASE IS < 60
+				CALL CHECK_ACTIONABLE,ARG,804
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 804
+				CALL RANDOM_TARGET,ARG,804
+				RETURN 1
+			;20％でマハ･ブフーラ
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,805
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 805
+				CALL RANDOM_TARGET,ARG,805
+				RETURN 1
+			;20％でマカカジャ
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,503
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 503
+				CALL RANDOM_TARGET,ARG,503
+				RETURN 1
+		ENDSELECT
+	ENDIF
+			
+ELSEIF 現HP割合(ARG) > 50
+	;水の壁
+	IF CFLAG:ARG:火炎無効化回数 == 0
+		CALL CHECK_ACTIONABLE,ARG,807
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 807
+		CALL RANDOM_TARGET,ARG,807
+		RETURN 1
+	ELSE
+		SELECTCASE RAND:100
+			;30％でブフーラ
+			CASE IS < 30
+				CALL CHECK_ACTIONABLE,ARG,802
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 802
+				CALL RANDOM_TARGET,ARG,802
+				RETURN 1
+			;30％でマハ・ブフ
+			CASE IS < 60
+				CALL CHECK_ACTIONABLE,ARG,804
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 804
+				CALL RANDOM_TARGET,ARG,804
+				RETURN 1
+			;10％で暴れまくり
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,203
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 203
+				CALL RANDOM_TARGET,ARG,203
+				RETURN 1
+			;15％でマカカジャ
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,503
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 503
+				CALL RANDOM_TARGET,ARG,503
+				RETURN 1
+			;15％で通常攻撃
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,0
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 0
+				CALL RANDOM_TARGET,ARG,0
+				RETURN 1
+		ENDSELECT
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF

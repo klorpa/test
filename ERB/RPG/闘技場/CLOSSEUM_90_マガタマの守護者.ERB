@@ -1,0 +1,1905 @@
+
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_90
+SIF 闘技場フラグ:90:0 == 0
+	RETURN 0
+IF FIND_MAGATAMA_MOTTENAI(0) && (FLAG:闘技場ランク >= 2 || FLAG:DEBUG)
+	RESULTS = Rank Ｃ　ＶＳ　Business ogre
+	RETURN 1
+ELSEIF FIND_MAGATAMA_MOTTENAI(1) && (FLAG:闘技場ランク >= 3 || FLAG:DEBUG)
+	RESULTS = Rank Ｂ　ＶＳ　Demon Admiral
+	RETURN 1
+ELSEIF FIND_MAGATAMA_MOTTENAI(2) && (FLAG:闘技場ランク >= 4 || FLAG:DEBUG)
+	RESULTS = Rank Ａ　ＶＳ　Demon Emperor
+	RETURN 1
+ELSEIF ITEM:8224 < 1 && ((FLAG:闘技場ランク >= 5 && GETBIT(FLAG:発見ED,55)) || FLAG:DEBUG)
+	;混沌王　DDS人修羅を緩く再現
+	RESULTS = 試合ランクＳ　ＶＳ混沌王
+	RETURN 1
+ELSEIF 闘技場フラグ:90:1 == 0 && ((FLAG:闘技場ランク >= 5 && ITEM:8224 && GETBIT(FLAG:発見ED,55)) || FLAG:DEBUG)
+	;混沌王×２
+	RESULTS = 試合ランクＳ　ＶＳ混沌王たち
+	RETURN 1
+ENDIF
+RETURN 0
+
+;====================
+;内容
+;====================
+@COLOSSEUM_90
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+
+	PRINTFORML 　Moderator
+	PRINTFORML 「Ladiiiies！And！Gentlemen！
+	PRINTFORMW 　Sorry to keep you waiting！Today's featured match is now！」
+	PRINTFORML 
+	PRINTFORMW ＞On screen、%CALLNAME:MASTER% and the opposing team were shown…"
+	PRINTFORML 
+
+	PRINTFORML 　Moderator
+	PRINTFORML 「What kind of match will they show us today？
+	PRINTFORMW 　Let's begin at once！
+	PRINTFORMW 　Ready～………」
+	PRINTFORML 
+	PRINTFORMW 「　　　　　　　Fight！！　　　　　　　」
+
+IF FIND_MAGATAMA_MOTTENAI(0)
+	CALL COLOSSEUM_MAGATAMA_BATTLE,0
+ELSEIF FIND_MAGATAMA_MOTTENAI(1)
+	CALL COLOSSEUM_MAGATAMA_BATTLE,1
+ELSEIF FIND_MAGATAMA_MOTTENAI(2)
+	CALL COLOSSEUM_MAGATAMA_BATTLE,2
+ELSE
+	CALL COLOSSEUM_MAGATAMA_BATTLE,3
+ENDIF
+
+;報酬はここに代入
+LOCAL = RESULT
+LOCAL:1 = RESULT:1
+;CUSTOMDRAWLINE =
+;WAIT
+
+CALL BATTLE_START
+;CUSTOMDRAWLINE =
+;WAIT
+
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+IF LOCAL:1 > 0 && LOCAL:1 != 9999
+SIF LOCAL == 0
+	LOCAL = 1
+
+	PRINTFORML 
+	PRINTFORMW %ITEMNAME_E(LOCAL:1)% obtained
+	ITEM:(LOCAL:1) = 1
+ELSEIF LOCAL:1 == 9999
+	闘技場フラグ:90:1 = 1
+ENDIF
+PRINTFORMW ￥{(LOCAL*1000)} obtained
+PRINTFORMW %CALLNAME:MASTER% got {LOCAL} fame
+MONEY += LOCAL*1000
+FLAG:名声 += LOCAL
+FLAG:闘技場名声 += LOCAL
+;闘技場フラグ:90:0 = 1
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+
+CUSTOMDRAWLINE =
+
+;=======================================================================
+;持ってないマガタマサーチ( ARG = (0,初級)　(1,中級)　(2,上級) )
+;持ってないのがあるなら１を返す、全部取ってるなら０
+;=======================================================================
+@FIND_MAGATAMA_MOTTENAI,ARG
+#FUNCTION
+#LOCALSIZE 2
+IF ARG == 0
+	FOR LOCAL,8200,8208
+		SIF ITEM:LOCAL < 1
+			RETURNF 1
+	NEXT
+ELSEIF ARG == 1
+	FOR LOCAL,8208,8215
+		SIF ITEM:LOCAL < 1
+			RETURNF 1
+	NEXT
+ELSEIF ARG == 2
+	;上級、マサカド様は除く
+	FOR LOCAL,8215,8224
+		SIF ITEM:LOCAL < 1
+			RETURNF 1
+	NEXT
+ENDIF
+RETURNF 0
+;=======================================================================
+;マガタマチーム決定( ARG = (0,初級)　(1,中級)　(2,上級) )
+;=======================================================================
+@COLOSSEUM_MAGATAMA_BATTLE,ARG
+IF ARG == 0
+	LOCAL=RAND:8+8200
+	$SYOKYU_CLSM90
+	FOR LOCAL,LOCAL,8208
+		IF ITEM:(LOCAL) < 1
+			CALL COLOSSEUM_MAGATAMA_TEAMDA(LOCAL)
+			;PRINTFORML ￥{RESULT}、{RESULT:1}＠
+			RETURN RESULT,RESULT:1
+		ENDIF
+	NEXT
+	LOCAL-=8
+	GOTO SYOKYU_CLSM90
+ELSEIF ARG == 1
+	LOCAL=RAND:7+8208
+	$CHUKYU_CLSM90
+	FOR LOCAL,LOCAL,8215
+		IF ITEM:(LOCAL) < 1
+			CALL COLOSSEUM_MAGATAMA_TEAMDA(LOCAL)
+			RETURN RESULT,RESULT:1
+		ENDIF
+	NEXT
+	LOCAL-=7
+	GOTO CHUKYU_CLSM90
+ELSEIF ARG == 2
+	LOCAL=RAND:9+8215
+	$JOKYU_CLSM90
+	FOR LOCAL,LOCAL,8224
+		IF ITEM:(LOCAL) < 1
+			CALL COLOSSEUM_MAGATAMA_TEAMDA(LOCAL)
+			RETURN RESULT,RESULT:1
+		ENDIF
+	NEXT
+	LOCAL-=9
+	GOTO JOKYU_CLSM90
+ELSEIF ARG == 3
+	IF ITEM:8224 < 1
+		CALL COLOSSEUM_MAGATAMA_TEAMDA(8224)
+		RETURN 100,8224
+	ELSE
+		CALL COLOSSEUM_MAGATAMA_TEAMDA(8225)
+		RETURN 100,9999
+	ENDIF
+ENDIF
+RETURN 0,0
+;=======================================================================
+;チーム面子召喚( ARG = 番号 )
+;=======================================================================
+@COLOSSEUM_MAGATAMA_TEAMDA,ARG
+;PRINTFORML ￥{ARG}￥
+;原作でボス戦の無い、一部のマガタマなどはTRPG版を参考にしますた
+IF ARG == 8200
+	;マロガレ、初級
+	CALL SET_ENEMY,9,[[キャラ:ドッペルゲンガー]],35,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,14,[[キャラ:シャドウ]],35,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル1 = 1213
+	ABL:(CHARANUM-1):スキル2 = 1002
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8200
+ELSEIF ARG == 8201
+	;ワダツミ
+	CALL SET_ENEMY,8,[[キャラ:フォルネウス]],35,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,10,[[キャラ:ユキジョロウ]],34,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8201
+ELSEIF ARG == 8202
+	;アンク
+	FOR LOCAL,7,12
+		CALL SET_ENEMY,LOCAL,[[キャラ:ピクシー]],25,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+		CFLAG:(CHARANUM-1):ＭＰ補正 += 200
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	NEXT
+	CALL SET_ENEMY,LOCAL,[[キャラ:ピクシー]],30,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,LOCAL,[[キャラ:ピクシー]],30,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,9,[[キャラ:ハイピクシー]],35,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8202
+ELSEIF ARG == 8203
+	;イヨマンテ
+	CALL SET_ENEMY,9,[[キャラ:アルケニー]],38,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8203
+ELSEIF ARG == 8204
+	;シラヌイ
+	CALL SET_ENEMY,8,[[キャラ:メズキ]],33,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,10,[[キャラ:ゴズキ]],33,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8204
+ELSEIF ARG == 8205
+	;ヒフミ
+	CALL SET_ENEMY,9,[[キャラ:オキュペテー]],34,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 900
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 900
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,8,[[キャラ:ケライノー]],32,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 900
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 900
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,10,[[キャラ:アエロー]],32,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 900
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 900
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	FOR LOCAL,13,16
+		CALL SET_ENEMY,LOCAL,[[キャラ:ハーピー]],28,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+		CFLAG:(CHARANUM-1):ＭＰ補正 += 200
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	NEXT
+	RETURN 60,8205
+ELSEIF ARG == 8206
+	;カムド
+	CALL SET_ENEMY,9,[[キャラ:アレス]],40,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1200
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1200
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8206
+ELSEIF ARG == 8207
+	;ナルカミ
+	CALL SET_ENEMY,9,[[キャラ:トール]],36,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル2 = 905
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 60,8207
+ELSEIF ARG == 8208
+	;アナテマ、中級
+	CALL SET_ENEMY,9,[[キャラ:オセ]],45,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1500
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	MAXBASE:(CHARANUM-1):速さ += 5
+	BASE:(CHARANUM-1):速さ += 5
+	ABL:(CHARANUM-1):スキル7 = 602
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 80,8208
+ELSEIF ARG == 8209
+	;ミアズマ
+	FOR LOCAL,8,11
+		CALL SET_ENEMY,LOCAL,[[キャラ:ナーガ]],41,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 400
+		CFLAG:(CHARANUM-1):ＭＰ補正 += 400
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	NEXT
+	CALL SET_ENEMY,14,[[キャラ:ミズチ]],45,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1500
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル3 = 1226
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 80,8209
+ELSEIF ARG == 8210
+	;ニルヴァーナ
+	;TRPGよりアヌビス神。「覚えたぞッ」・・・え、違う？
+	;弱点消えてます。
+	CALL SET_ENEMY,9,[[キャラ:アヌビス]],44,0,1
+	MAXBASE:(CHARANUM-1):剣撃 = 999
+	BASE:(CHARANUM-1):剣撃 = 999
+	MAXBASE:(CHARANUM-1):打撃 = 999
+	BASE:(CHARANUM-1):打撃 = 999
+	MAXBASE:(CHARANUM-1):戦技 = 999
+	BASE:(CHARANUM-1):戦技 = 999
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1500
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル3 = 2416
+	ABL:(CHARANUM-1):スキル4 = 11
+	ABL:(CHARANUM-1):スキル5 = 108
+	ABL:(CHARANUM-1):スキル6 = 1316
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 80,8210
+ELSEIF ARG == 8211
+	;ムラクモ
+	CALL SET_ENEMY,9,[[キャラ:オンギョウキ]],45,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1400
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1400
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル5 = 2001
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 80,8211
+ELSEIF ARG == 8212
+	;ゲッシュ
+	;パズルゲームってことで・・・嫌がらせを
+	CALL SET_ENEMY,9,[[キャラ:ラビ]],45,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1500
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル4 = 403
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 80,8212
+ELSEIF ARG == 8213
+	;ジェド
+	CALL SET_ENEMY,10,[[キャラ:クロト]],42,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1200
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	ABL:(CHARANUM-1):スキル1 = 402
+	ABL:(CHARANUM-1):スキル2 = 405
+	ABL:(CHARANUM-1):スキル3 = 1211
+	ABL:(CHARANUM-1):スキル4 = 503
+	ABL:(CHARANUM-1):スキル5 = 0
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,9,[[キャラ:ラケシス]],42,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 800
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	MAXBASE:(CHARANUM-1):速さ += 10
+	BASE:(CHARANUM-1):速さ += 10
+	ABL:(CHARANUM-1):スキル1 = 507
+	ABL:(CHARANUM-1):スキル2 = 504
+	ABL:(CHARANUM-1):スキル3 = 501
+	ABL:(CHARANUM-1):スキル4 = 602
+	ABL:(CHARANUM-1):スキル5 = 603
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,8,[[キャラ:アトロポス]],42,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1200
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	ABL:(CHARANUM-1):スキル1 = 705
+	ABL:(CHARANUM-1):スキル2 = 805
+	ABL:(CHARANUM-1):スキル3 = 905
+	ABL:(CHARANUM-1):スキル4 = 1005
+	ABL:(CHARANUM-1):スキル5 = 2002
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 80,8213
+ELSEIF ARG == 8214
+	;ムスペル
+	CALL SET_ENEMY,9,[[キャラ:スライムマーラ様]],48,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 100
+	;冥界波無いので、突撃系・・は弱いからシモネタ方面に特化、ディアラハンは原作仕様
+	ABL:(CHARANUM-1):スキル1 = 229
+	ABL:(CHARANUM-1):スキル2 = 230
+	ABL:(CHARANUM-1):スキル3 = 403
+	ABL:(CHARANUM-1):スキル4 = 1132
+	ABL:(CHARANUM-1):スキル5 = 0
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 100,8214
+ELSEIF ARG == 8215
+	;ゲヘナ、上級
+	CALL SET_ENEMY,9,[[キャラ:スルト]],60,0,1
+	ABL:(CHARANUM-1):スキル1 = 51
+	ABL:(CHARANUM-1):スキル2 = 748
+	ABL:(CHARANUM-1):スキル3 = 733
+	ABL:(CHARANUM-1):スキル4 = 2034
+	ABL:(CHARANUM-1):スキル5 = 2413
+	ABL:(CHARANUM-1):スキル6 = 2410
+	ABL:(CHARANUM-1):スキル7 = 713
+	ABL:(CHARANUM-1):スキル8 = 711
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	FLAG:(10000+[[キャラ:スルト]]) = 1
+	RETURN 100,8215
+ELSEIF ARG == 8216
+	;カムロギ
+	CALL SET_ENEMY,9,[[キャラ:ジャックランタン]],60,0,1
+	ABL:(CHARANUM-1):スキル1 = 706
+	ABL:(CHARANUM-1):スキル2 = 741
+	ABL:(CHARANUM-1):スキル3 = 2003
+	ABL:(CHARANUM-1):スキル4 = 2034
+	ABL:(CHARANUM-1):スキル5 = 2405
+	ABL:(CHARANUM-1):スキル6 = 2410
+	ABL:(CHARANUM-1):スキル7 = 713
+	ABL:(CHARANUM-1):スキル8 = 1903
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 100,8216
+ELSEIF ARG == 8217
+	;サタン
+	CALL SET_ENEMY,9,[[キャラ:ジャアクフロスト]],65,0,1
+	ABL:(CHARANUM-1):スキル1 = 706
+	ABL:(CHARANUM-1):スキル2 = 810
+	ABL:(CHARANUM-1):スキル3 = 1413
+	ABL:(CHARANUM-1):スキル4 = 1418
+	ABL:(CHARANUM-1):スキル5 = 218
+	ABL:(CHARANUM-1):スキル6 = 2003
+	ABL:(CHARANUM-1):スキル7 = 2040
+	ABL:(CHARANUM-1):スキル8 = 239
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 120,8217
+ELSEIF ARG == 8218
+	;アダマ
+	;グラ繋がりでゴグマゴグ
+	CALL SET_ENEMY,9,[[キャラ:ゴグマゴグ]],60,1,1
+	;原作所持スキル……不動剣、ギロチンカット、ヒートウェイブ、冥界破、霊魂流出
+	;＋era版アダマのスキル……雷の洗礼、三分の魔脈、ダークブレス
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 0
+	CSTR:(CHARANUM-1):増援パターン = アルビオンもどきの
+	CALLNAME:(CHARANUM-1) = ｱﾙﾋﾞｵﾝ
+	MAXBASE:(CHARANUM-1):電撃 = 999
+	BASE:(CHARANUM-1):電撃 = 999
+	ABL:(CHARANUM-1):スキル1 = [[スキル:ツインスラッシュ]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:ヒートウェイブ]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:アカシャアーツ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:召し寄せ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:剣撃ガードブレイク]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:雷の洗礼]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:三分の魔脈]]
+	ABL:(CHARANUM-1):スキル8 = [[スキル:ダークブレス]]
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 120,8218
+ELSEIF ARG == 8219
+	;ヴィマーナ
+	;TRPG版ではヴィシュヌ。シヴァ繋がりで素材のランダ・バロンのセット
+	;＋era版ヴィマーナのスキル……食いしばり、マモリクズシ、三分の活泉、アカシャアーツ
+	CALL SET_ENEMY,8,[[キャラ:ランダ]],60,1,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+	MAXBASE:(CHARANUM-1):神経 = 0
+	BASE:(CHARANUM-1):神経 = 0
+	ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:セクシーダンス]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:刹那五月雨撃]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:マモリクズシ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:メギドラオン]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:食いしばり]]
+	ABL:(CHARANUM-1):スキル8 = [[スキル:三分の活泉]]
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,10,[[キャラ:バロン]],60,1,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+	MAXBASE:(CHARANUM-1):神経 = 0
+	BASE:(CHARANUM-1):神経 = 0
+	ABL:(CHARANUM-1):スキル1 = [[スキル:アイアンクロウ]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:バインドボイス]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:食いしばり]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:アカシャアーツ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:放電]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:三分の活泉]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:治癒促進(大)]]
+	ABL:(CHARANUM-1):スキル8 = [[スキル:貫通の一撃]]
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 100,8219
+ELSEIF ARG == 8220
+	;グンダリ
+	;みんなだいすきビシャモンテン。一人でも剣撃と火炎が通らないと全力でころがします。
+	CALL SET_ENEMY,9,[[キャラ:ビシャモンテン]],60,0,1
+	CFLAG:(CHARANUM-1):ＭＰ補正 = 10000
+	CSTR:(CHARANUM-1):思考パターン = 11922960
+	ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:虚空斬波]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:タル・カジャ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ラク・カジャ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:デ・カジャ]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:メギドラオン]]
+	ABL:(CHARANUM-1):スキル8 = [[スキル:気功(大)]]
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 150,8220
+ELSEIF ARG == 8221
+	;ソフィア
+	;原作は購入。TRPG版よりガブリエル……は合体条件悪魔なので気軽に出せず、エンジェルで。
+	CALL SET_ENEMY,9,[[キャラ:エンジェル]],65,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+	MAXBASE:(CHARANUM-1):神経 = 0
+	BASE:(CHARANUM-1):神経 = 0
+	ABL:(CHARANUM-1):スキル1 = [[スキル:破魔の雷光]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:ツインスラッシュ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:メギドラ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:リリーズジェイル]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:氷結ガードブレイク]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:治癒促進(大)]]
+	ABL:(CHARANUM-1):スキル8 = [[スキル:気功(大)]]
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 100,8221
+ELSEIF ARG == 8222
+	;ガイア
+	;原作は宝箱産。元レベルがかなり高いけど、丁度良いのでガイアママン＋トール＋オルトロス＋ヤクシニー
+		CALL SET_ENEMY,9,[[キャラ:トール]],60,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+		CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		ABL:(CHARANUM-1):スキル1 = [[スキル:ハイパーカウンタ]]
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,10,[[キャラ:オルトロス]],60,0,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+			ABL:(CHARANUM-1):スキル1 = [[スキル:石化かみつき]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:ファイアブレス]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:アギダイン]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:雄叫び]]
+			ABL:(CHARANUM-1):スキル5 = [[スキル:ハイパーカウンタ]]
+			ABL:(CHARANUM-1):スキル6 = [[スキル:三分の活泉]]
+			ABL:(CHARANUM-1):アイテム1 = 1002
+			ABL:(CHARANUM-1):入手確率1 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL SET_ENEMY,8,[[キャラ:ヤクシニー]],60,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+		CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		ABL:(CHARANUM-1):スキル1 = [[スキル:ブフダイン]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:デスバウンド]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:ハイパーカウンタ]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:三分の活泉]]
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL SET_ENEMY,14,[[キャラ:ガイア]],65,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 0
+	MAXBASE:(CHARANUM-1):打撃 = 50
+	BASE:(CHARANUM-1):打撃 = 50
+	MAXBASE:(CHARANUM-1):戦技 = 50
+	BASE:(CHARANUM-1):戦技 = 50
+	MAXBASE:(CHARANUM-1):衝撃 = 200
+	BASE:(CHARANUM-1):衝撃 = 200
+	BASE:(CHARANUM-1):力 += 30
+	ABL:(CHARANUM-1):スキル1 = [[スキル:デスバウンド]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:ガイアブレイク]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:ハイパーカウンタ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ダークブレス]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:フレイダイン]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:ダムドラオン]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:大地の怒り]]
+	ABL:(CHARANUM-1):スキル8 = [[スキル:地母の晩餐]]
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 100,8222
+ELSEIF ARG == 8223
+	;カイラース
+	;原作だと購入、TRPGだとティアマット。
+	;代わりに懐かしのガキ３体。カイラーススキル＋マッカビーム搭載。
+	FOR LOCAL, 8, 11
+		CALL SET_ENEMY,LOCAL,[[キャラ:ガキ]],70,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 10000
+		BASE:(CHARANUM-1):力 += 10
+		BASE:(CHARANUM-1):知恵 += 10
+		BASE:(CHARANUM-1):魔力 += 10
+		BASE:(CHARANUM-1):耐力 += 10
+		BASE:(CHARANUM-1):速さ += 10
+		BASE:(CHARANUM-1):運 += 10
+		ABL:(CHARANUM-1):スキル1 = [[スキル:マッカビーム]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:メギドラ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:至高の魔弾・人修羅]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:テトラカーン]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:マカラカーン]]
+		ABL:(CHARANUM-1):スキル6 = [[スキル:アドバイス]]
+		ABL:(CHARANUM-1):スキル7 = [[スキル:スクカジャオート]]
+		ABL:(CHARANUM-1):スキル8 = [[スキル:ラクカジャオート]]
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	NEXT
+	RETURN 1,8223
+ELSEIF ARG == 8224
+	;マサカドゥス、最上級
+	;DDS人修羅じゃないかな
+		CALL SET_ENEMY,9,[[キャラ:ヒトシュラ]],80,0,1
+		CSTR:(CHARANUM-1):思考パターン = 41992017
+		CSTR:(CHARANUM-1):増援パターン = ヒトシュラの
+		CFLAG:(CHARANUM-1):601 = 0
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 10000
+		EQUIP:(CHARANUM-1):アクセサリ = 8224
+		BASE:(CHARANUM-1):剣撃 = 0
+		BASE:(CHARANUM-1):火炎 = 0
+		BASE:(CHARANUM-1):氷結 = 0
+		BASE:(CHARANUM-1):電撃 = 0
+		BASE:(CHARANUM-1):衝撃 = 0
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):破魔 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		BASE:(CHARANUM-1):打撃 = 200
+		BASE:(CHARANUM-1):戦技 = 200
+		BASE:(CHARANUM-1):飛具 = 200
+		BASE:(CHARANUM-1):地変 = 200
+		BASE:(CHARANUM-1):水撃 = 200
+		BASE:(CHARANUM-1):疾風 = 200
+		BASE:(CHARANUM-1):核熱 = 200
+		BASE:(CHARANUM-1):重力 = 200
+		BASE:(CHARANUM-1):万能 = 100
+		BASE:(CHARANUM-1):力 += 10
+		BASE:(CHARANUM-1):知恵 += 10
+		BASE:(CHARANUM-1):魔力 += 10
+		BASE:(CHARANUM-1):耐力 += 10
+		BASE:(CHARANUM-1):速さ += 10
+		BASE:(CHARANUM-1):運 += 10
+		ABL:(CHARANUM-1):スキル1 = [[スキル:地母の晩餐]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:奥義マモリヤブリ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:アカシャアーツ]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:ヒートウェイブ]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:気功(大)]]
+		ABL:(CHARANUM-1):スキル6 = [[スキル:アドバイス]]
+		ABL:(CHARANUM-1):スキル7 = [[スキル:コーチング]]
+		ABL:(CHARANUM-1):スキル8 = 0
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			;初期取り巻きクー･フーリン
+			CALL SET_ENEMY,8,[[キャラ:クー･フーリン]],40,0,1
+			;お遊び
+			SIF RAND:100 == 0
+				CALLNAME:(CHARANUM-1) = クーフー･リン
+			CSTR:(CHARANUM-1):思考パターン = 41996666
+			BASE:(CHARANUM-1):力 += 20
+			BASE:(CHARANUM-1):知恵 += 20
+			BASE:(CHARANUM-1):魔力 += 20
+			BASE:(CHARANUM-1):耐力 += 20
+			BASE:(CHARANUM-1):速さ += 20
+			BASE:(CHARANUM-1):運 += 20
+			ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:桜花閃乱]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:アクセルクロー]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:脳天割り]]
+			ABL:(CHARANUM-1):スキル5 = [[スキル:黙示録]]
+			ABL:(CHARANUM-1):スキル6 = [[スキル:挑発]]
+			ABL:(CHARANUM-1):スキル7 = [[スキル:アドバイス]]
+			ABL:(CHARANUM-1):スキル8 = 0
+			CFLAG:(CHARANUM-1):行動回数 = 1
+			ABL:(CHARANUM-1):アイテム1 = 1002
+			ABL:(CHARANUM-1):入手確率1 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+				;初期取り巻きギリメカラ
+				CALL SET_ENEMY,10,[[キャラ:ギリメカラ]],40,0,1
+				;お遊び
+				SIF RAND:100 == 0
+					CALLNAME:(CHARANUM-1) = ギリメカテ
+				CSTR:(CHARANUM-1):思考パターン = 41996666
+				BASE:(CHARANUM-1):力 += 20
+				BASE:(CHARANUM-1):知恵 += 20
+				BASE:(CHARANUM-1):魔力 += 20
+				BASE:(CHARANUM-1):耐力 += 20
+				BASE:(CHARANUM-1):速さ += 20
+				BASE:(CHARANUM-1):運 += 20
+				ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:アギダイン]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:マハムドオン]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:アドバイス]]
+				ABL:(CHARANUM-1):スキル6 = 0
+				ABL:(CHARANUM-1):スキル7 = 0
+				ABL:(CHARANUM-1):スキル8 = 0
+				CFLAG:(CHARANUM-1):行動回数 = 1
+				ABL:(CHARANUM-1):アイテム1 = 1002
+				ABL:(CHARANUM-1):入手確率1 = 0
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+	RETURN 200,8224
+ELSE
+	;混沌王たち
+	;おまけの二枚耐性。
+		CALL SET_ENEMY,8,[[キャラ:ヒトシュラ]],99,0,1
+		CSTR:(CHARANUM-1):思考パターン = 41992017
+		CSTR:(CHARANUM-1):増援パターン = ひとしゅらの
+		CFLAG:(CHARANUM-1):601 = 0
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 10000
+		EQUIP:(CHARANUM-1):アクセサリ = 8224
+		BASE:(CHARANUM-1):剣撃 = 0
+		BASE:(CHARANUM-1):火炎 = 0
+		BASE:(CHARANUM-1):氷結 = 0
+		BASE:(CHARANUM-1):電撃 = 0
+		BASE:(CHARANUM-1):衝撃 = 0
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):破魔 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		BASE:(CHARANUM-1):打撃 = 200
+		BASE:(CHARANUM-1):戦技 = 200
+		BASE:(CHARANUM-1):飛具 = 200
+		BASE:(CHARANUM-1):地変 = 200
+		BASE:(CHARANUM-1):水撃 = 200
+		BASE:(CHARANUM-1):疾風 = 200
+		BASE:(CHARANUM-1):核熱 = 200
+		BASE:(CHARANUM-1):重力 = 200
+		BASE:(CHARANUM-1):万能 = 75
+		BASE:(CHARANUM-1):力 += 10
+		BASE:(CHARANUM-1):知恵 += 10
+		BASE:(CHARANUM-1):魔力 += 10
+		BASE:(CHARANUM-1):耐力 += 10
+		BASE:(CHARANUM-1):速さ += 10
+		BASE:(CHARANUM-1):運 += 10
+		ABL:(CHARANUM-1):スキル1 = [[スキル:地母の晩餐]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:奥義マモリヤブリ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:アカシャアーツ]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:ヒートウェイブ]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:気功(大)]]
+		ABL:(CHARANUM-1):スキル6 = [[スキル:貫通]]
+		ABL:(CHARANUM-1):スキル7 = [[スキル:アドバイス]]
+		ABL:(CHARANUM-1):スキル8 = [[スキル:コーチング]]
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):アイテム1 = 1002
+		ABL:(CHARANUM-1):入手確率1 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,10,[[キャラ:ひとしゅら]],99,0,1
+			CSTR:(CHARANUM-1):思考パターン = 41982017
+			CSTR:(CHARANUM-1):増援パターン = ヒトシュラの
+			CFLAG:(CHARANUM-1):601 = 0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 10000
+			EQUIP:(CHARANUM-1):アクセサリ = 8224
+			BASE:(CHARANUM-1):剣撃 = 200
+			BASE:(CHARANUM-1):火炎 = 200
+			BASE:(CHARANUM-1):氷結 = 200
+			BASE:(CHARANUM-1):電撃 = 200
+			BASE:(CHARANUM-1):衝撃 = 200
+			BASE:(CHARANUM-1):神経 = 200
+			BASE:(CHARANUM-1):精神 = 200
+			BASE:(CHARANUM-1):破魔 = 200
+			BASE:(CHARANUM-1):呪殺 = 200
+			BASE:(CHARANUM-1):打撃 = 0
+			BASE:(CHARANUM-1):戦技 = 0
+			BASE:(CHARANUM-1):飛具 = 0
+			BASE:(CHARANUM-1):地変 = 0
+			BASE:(CHARANUM-1):水撃 = 0
+			BASE:(CHARANUM-1):疾風 = 0
+			BASE:(CHARANUM-1):核熱 = 0
+			BASE:(CHARANUM-1):重力 = 0
+			BASE:(CHARANUM-1):万能 = 75
+			BASE:(CHARANUM-1):力 += 10
+			BASE:(CHARANUM-1):知恵 += 10
+			BASE:(CHARANUM-1):魔力 += 10
+			BASE:(CHARANUM-1):耐力 += 10
+			BASE:(CHARANUM-1):速さ += 10
+			BASE:(CHARANUM-1):運 += 10
+			ABL:(CHARANUM-1):スキル1 = [[スキル:地母の晩餐]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:奥義マモリヤブリ]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:アカシャアーツ]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:ヒートウェイブ]]
+			ABL:(CHARANUM-1):スキル5 = [[スキル:気功(大)]]
+			ABL:(CHARANUM-1):スキル6 = [[スキル:召し寄せ]]
+			ABL:(CHARANUM-1):スキル7 = [[スキル:アドバイス]]
+			ABL:(CHARANUM-1):スキル8 = [[スキル:コーチング]]
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			ABL:(CHARANUM-1):アイテム1 = 1002
+			ABL:(CHARANUM-1):入手確率1 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			;初期取り巻きクー･フーリン
+			CALL SET_ENEMY,7,[[キャラ:クー･フーリン]],50,0,1
+			;お遊び
+			SIF RAND:100 == 0
+				CALLNAME:(CHARANUM-1) = クーフー･リン
+			CSTR:(CHARANUM-1):思考パターン = 41996666
+			BASE:(CHARANUM-1):力 += 25
+			BASE:(CHARANUM-1):知恵 += 25
+			BASE:(CHARANUM-1):魔力 += 25
+			BASE:(CHARANUM-1):耐力 += 25
+			BASE:(CHARANUM-1):速さ += 25
+			BASE:(CHARANUM-1):運 += 25
+			ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:桜花閃乱]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:アクセルクロー]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:脳天割り]]
+			ABL:(CHARANUM-1):スキル5 = [[スキル:黙示録]]
+			ABL:(CHARANUM-1):スキル6 = [[スキル:挑発]]
+			ABL:(CHARANUM-1):スキル7 = [[スキル:アドバイス]]
+			ABL:(CHARANUM-1):スキル8 = 0
+			CFLAG:(CHARANUM-1):行動回数 = 1
+			ABL:(CHARANUM-1):アイテム1 = 1002
+			ABL:(CHARANUM-1):入手確率1 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+				;初期取り巻きギリメカラ
+				CALL SET_ENEMY,11,[[キャラ:ギリメカラ]],50,0,1
+				;お遊び
+				SIF RAND:100 == 0
+					CALLNAME:(CHARANUM-1) = ギリメカテ
+				CSTR:(CHARANUM-1):思考パターン = 41996666
+				BASE:(CHARANUM-1):力 += 25
+				BASE:(CHARANUM-1):知恵 += 25
+				BASE:(CHARANUM-1):魔力 += 25
+				BASE:(CHARANUM-1):耐力 += 25
+				BASE:(CHARANUM-1):速さ += 25
+				BASE:(CHARANUM-1):運 += 25
+				ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:アギダイン]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:マハムドオン]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:アドバイス]]
+				ABL:(CHARANUM-1):スキル6 = 0
+				ABL:(CHARANUM-1):スキル7 = 0
+				ABL:(CHARANUM-1):スキル8 = 0
+				CFLAG:(CHARANUM-1):行動回数 = 1
+				ABL:(CHARANUM-1):アイテム1 = 1002
+				ABL:(CHARANUM-1):入手確率1 = 0
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+	RETURN 200,9999
+ENDIF
+RETURN 60
+
+;=======
+@増援パターン_アルビオンもどきの, ARG, ARG:1, ARG:2
+IF ARG:2 == 1
+	;黒ビオンことウンディーネ
+	CALL SET_ENEMY, ARG:1, [[キャラ:ウンディーネ]],55,0,0
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+	ABL:(CHARANUM-1):スキル1 = [[スキル:ブフダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:サマリカーム]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:リカームドラ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:マカ・カジャ]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+ELSEIF ARG:2 == 2
+	;緑ビオンことシルフ
+	CALL SET_ENEMY, ARG:1, [[キャラ:シルフ]],55,0,0
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+	ABL:(CHARANUM-1):スキル1 = [[スキル:ザンダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ザンダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:サマリカーム]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:リカームドラ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:スク・カジャ]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+ELSEIF ARG:2 == 3
+	;赤ビオンことサラマンダー
+	CALL SET_ENEMY, ARG:1, [[キャラ:サラマンダー]],55,0,0
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+	ABL:(CHARANUM-1):スキル1 = [[スキル:アギダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ラギダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:サマリカーム]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:リカームドラ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:タル・カジャ]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+ELSE
+	;黄ビオンことノーム
+	CALL SET_ENEMY, ARG:1, [[キャラ:ノーム]],55,0,0
+	CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+	ABL:(CHARANUM-1):スキル1 = [[スキル:ジオダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ジオダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:サマリカーム]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:リカームドラ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:ラク・カジャ]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+ENDIF
+CALL HEALTH_CHARA,(CHARANUM-1)
+CALL SYNC_STATUS,(CHARANUM-1)
+SIF ARG:2 == 3
+	RETURN 1
+RETURN 0
+
+;=======================================================================
+;ビシャモンテンパターン
+;=======================================================================
+@SET_ACTION_11922960,ARG
+#LOCALSIZE 3
+#LOCALSSIZE 1
+LOCAL=0
+LOCAL:2=0
+FOR LOCAL:1,1,7
+	LOCALS = ポジション{LOCAL:1}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+		CONTINUE
+	FOR LOCAL:2,0,6
+		IF CFLAG:(LOCAL:2):物理反射フラグ || MAXBASE:(LOCAL:2):剣撃 == 999 || MAXBASE:(LOCAL:2):剣撃 <= 0
+			LOCAL += 1
+		ELSEIF CFLAG:(LOCAL:2):魔法反射フラグ || MAXBASE:(LOCAL:2):火炎 == 999 || MAXBASE:(LOCAL:2):火炎 <= 0
+			LOCAL:2 += 1
+		ENDIF
+	NEXT
+NEXT
+IF LOCAL == 0 && LOCAL:2 == 0
+	$DECIDE_ACTION_BISHAMONSM3_0
+	LOCAL = RAND:10
+	;HP半減近かったら眼光＆メギドラオン率上がります
+	SIF ((BASE:ARG:ＨＰ)*100)/(MAXBASE:ARG:ＨＰ) < 66
+		LOCAL += 1
+	;マハ・ラギダイン
+	IF LOCAL <= 1
+		CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+	;虚空斬波
+	ELSEIF LOCAL <= 3
+		CFLAG:ARG:入力行動 = [[スキル:虚空斬波]]
+	;タル・カジャ
+	ELSEIF LOCAL <= 4
+		CFLAG:ARG:入力行動 = [[スキル:タル・カジャ]]
+	;マカ・カジャ
+	ELSEIF LOCAL <= 5
+		CFLAG:ARG:入力行動 = [[スキル:マカ・カジャ]]
+	;強化済みならデカジャ、でなければランダマイザ
+	ELSEIF LOCAL <= 7
+		FOR LOCAL:1,1,7
+			LOCALS = ポジション{LOCAL:1}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			FOR LOCAL:2,0,6
+				IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(LOCAL:2) + "強化") > 8
+					;デカジャ
+					CFLAG:ARG:入力行動 = [[スキル:デ・カジャ]]
+					CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+					RETURN 0
+				ENDIF
+			NEXT
+		NEXT
+		CFLAG:ARG:入力行動 = [[スキル:ランダマイザ]]
+	;通常攻撃
+	ELSEIF LOCAL <= 8
+		CFLAG:ARG:入力行動 = 0
+	;行動済みなら獣の眼光、でなければメギドラオン
+	ELSE
+		IF CFLAG:ARG:行動した回数 > 0
+			PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+			PRINTFORM ┃[{CFLAG:ARG:ポジション,2}] %CALLNAME:ARG,21,LEFT%┃　┃
+			RESULTS = 獣の眼光
+			PRINTFORML %RESULTS,40,LEFT%┃
+			PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+			CFLAG:ARG:行動した回数 = 0
+			GOTO DECIDE_ACTION_BISHAMONSM3_0
+		ELSE
+			CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		ENDIF
+	ENDIF
+;剣戟無効がいるパターン
+ELSEIF LOCAL > 0 && LOCAL:2 == 0
+	$DECIDE_ACTION_BISHAMONSM3_1
+	LOCAL = RAND:10
+	;HP半減近かったら眼光＆メギドラオン率上がります
+	SIF ((BASE:ARG:ＨＰ)*100)/(MAXBASE:ARG:ＨＰ) < 66
+		LOCAL += 1
+	;マハ・ラギダイン
+	IF LOCAL <= 1
+		CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+	;メギドラオン
+	ELSEIF LOCAL <= 3
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	;タル・カジャ
+	ELSEIF LOCAL <= 4
+		CFLAG:ARG:入力行動 = [[スキル:タル・カジャ]]
+	;マカ・カジャ
+	ELSEIF LOCAL <= 5
+		CFLAG:ARG:入力行動 = [[スキル:マカ・カジャ]]
+	;強化済みならデカジャ、でなければランダマイザ
+	ELSEIF LOCAL <= 7
+		FOR LOCAL:1,1,7
+			LOCALS = ポジション{LOCAL:1}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			FOR LOCAL:2,0,6
+				IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(LOCAL:2) + "強化") > 8
+					;デカジャ
+					CFLAG:ARG:入力行動 = [[スキル:デ・カジャ]]
+					CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+					RETURN 0
+				ENDIF
+			NEXT
+		NEXT
+		CFLAG:ARG:入力行動 = [[スキル:ランダマイザ]]
+	;メギドラオン
+	ELSEIF LOCAL <= 8
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	;行動済みなら獣の眼光、でなければメギドラオン
+	ELSE
+		IF CFLAG:ARG:行動した回数 > 0
+			PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+			PRINTFORM ┃[{CFLAG:ARG:ポジション,2}] %CALLNAME:ARG,21,LEFT%┃　┃
+			RESULTS = 獣の眼光
+			PRINTFORML %RESULTS,40,LEFT%┃
+			PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+			CFLAG:ARG:行動した回数 = 0
+			GOTO DECIDE_ACTION_BISHAMONSM3_1
+		ELSE
+			CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		ENDIF
+	ENDIF
+;火炎だけダメなパターン
+ELSEIF LOCAL == 0 && LOCAL:2 > 0
+	$DECIDE_ACTION_BISHAMONSM3_2
+	LOCAL = RAND:10
+	;HP半減近かったら眼光＆メギドラオン率上がります
+	SIF ((BASE:ARG:ＨＰ)*100)/(MAXBASE:ARG:ＨＰ) < 66
+		LOCAL += 1
+	;メギドラオン
+	IF LOCAL <= 1
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	;虚空斬波
+	ELSEIF LOCAL <= 3
+		CFLAG:ARG:入力行動 = [[スキル:虚空斬波]]
+	;タル・カジャ
+	ELSEIF LOCAL <= 4
+		CFLAG:ARG:入力行動 = [[スキル:タル・カジャ]]
+	;マカ・カジャ
+	ELSEIF LOCAL <= 5
+		CFLAG:ARG:入力行動 = [[スキル:マカ・カジャ]]
+	;強化済みならデカジャ、でなければランダマイザ
+	ELSEIF LOCAL <= 7
+		FOR LOCAL:1,1,7
+			LOCALS = ポジション{LOCAL:1}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			FOR LOCAL:2,0,6
+				IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(LOCAL:2) + "強化") > 8
+					;デカジャ
+					CFLAG:ARG:入力行動 = [[スキル:デ・カジャ]]
+					CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+					RETURN 0
+				ENDIF
+			NEXT
+		NEXT
+		CFLAG:ARG:入力行動 = [[スキル:ランダマイザ]]
+	;通常攻撃
+	ELSEIF LOCAL <= 8
+		CFLAG:ARG:入力行動 = 0
+	;行動済みなら獣の眼光、でなければメギドラオン
+	ELSE
+		IF CFLAG:ARG:行動した回数 > 0
+			PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+			PRINTFORM ┃[{CFLAG:ARG:ポジション,2}] %CALLNAME:ARG,21,LEFT%┃　┃
+			RESULTS = 獣の眼光
+			PRINTFORML %RESULTS,40,LEFT%┃
+			PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+			CFLAG:ARG:行動した回数 = 0
+			GOTO DECIDE_ACTION_BISHAMONSM3_2
+		ELSE
+			CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		ENDIF
+	ENDIF
+;火炎・剣撃両方反射パターン（メギドラオン魔）
+ELSE
+	$DECIDE_ACTION_BISHAMONSM3_3
+	LOCAL = RAND:10
+	;HP半減近かったら眼光＆メギドラオン率上がります
+	SIF ((BASE:ARG:ＨＰ)*100)/(MAXBASE:ARG:ＨＰ) < 66
+		LOCAL += 1
+	;メギドラオン
+	IF LOCAL <= 1
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	;メギドラオン
+	ELSEIF LOCAL <= 3
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	;ヒートライザ
+	ELSEIF LOCAL <= 5
+		CFLAG:ARG:入力行動 = [[スキル:ヒートライザ]]
+	;強化済みならデカジャ、でなければランダマイザ
+	ELSEIF LOCAL <= 7
+		FOR LOCAL:1,1,7
+			LOCALS = ポジション{LOCAL:1}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			FOR LOCAL:2,0,6
+				IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(LOCAL:2) + "強化") > 8
+					;デカジャ
+					CFLAG:ARG:入力行動 = [[スキル:デ・カジャ]]
+					CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+					RETURN 0
+				ENDIF
+			NEXT
+		NEXT
+		CFLAG:ARG:入力行動 = [[スキル:ランダマイザ]]
+	;メギドラオン
+	ELSEIF LOCAL <= 8
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	;行動済みなら獣の眼光、でなければメギドラオン
+	ELSE
+		IF CFLAG:ARG:行動した回数 > 0
+			PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+			PRINTFORM ┃[{CFLAG:ARG:ポジション,2}] %CALLNAME:ARG,21,LEFT%┃　┃
+			RESULTS = 獣の眼光
+			PRINTFORML %RESULTS,40,LEFT%┃
+			PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+			CFLAG:ARG:行動した回数 = 0
+			GOTO DECIDE_ACTION_BISHAMONSM3_3
+		ELSE
+			CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		ENDIF
+	ENDIF
+ENDIF
+
+CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+IF RESULT == 1
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ELSE
+	;なんかエラーあれば通常攻撃に
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ENDIF
+RETURN 0
+
+;========================================================
+@増援パターン_ヒトシュラの, ARG, ARG:1, ARG:2
+IF CFLAG:ARG:601 == 0
+	;追加の１番目取り巻きピクシー
+	CALL SET_ENEMY,ARG:1,[[キャラ:ピクシー]],40,0,1
+	;特に名前ネタはない
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 20
+	BASE:(CHARANUM-1):知恵 += 20
+	BASE:(CHARANUM-1):魔力 += 20
+	BASE:(CHARANUM-1):耐力 += 20
+	BASE:(CHARANUM-1):速さ += 20
+	BASE:(CHARANUM-1):運 += 20
+	ABL:(CHARANUM-1):スキル1 = [[スキル:催眠波]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:メギドラオン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ジオダイン]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:色即是空]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:ディアラマ]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 1
+	;追加の２番目取り巻きアラハバキ
+	CALL SET_ENEMY,ARG:1,[[キャラ:アラハバキ]],40,0,1
+	;お遊び
+	SIF RAND:100 == 0
+		CALLNAME:(CHARANUM-1) = アキハバラ
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 20
+	BASE:(CHARANUM-1):知恵 += 20
+	BASE:(CHARANUM-1):魔力 += 20
+	BASE:(CHARANUM-1):耐力 += 20
+	BASE:(CHARANUM-1):速さ += 20
+	BASE:(CHARANUM-1):運 += 20
+	ABL:(CHARANUM-1):スキル1 = [[スキル:終わる世界]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:冥界の門]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:ペトラアイ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 2
+	;追加の３番目取り巻きティターニア
+	CALL SET_ENEMY,ARG:1,[[キャラ:ティターニア]],40,0,1
+	;特に名前変更ネタはない
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 20
+	BASE:(CHARANUM-1):知恵 += 20
+	BASE:(CHARANUM-1):魔力 += 20
+	BASE:(CHARANUM-1):耐力 += 20
+	BASE:(CHARANUM-1):速さ += 20
+	BASE:(CHARANUM-1):運 += 20
+	ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ジオダイン]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:コーチング]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 3
+	;追加の４番目取り巻きパールヴァティ……はcsvないのでサラスヴァティ
+	CALL SET_ENEMY,ARG:1,[[キャラ:サラスヴァティ]],40,0,1
+	;パールヴァティの振りをする。稀に名前がそのまま
+	SIF RAND:100
+		CALLNAME:(CHARANUM-1) = パールヴァティ
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 20
+	BASE:(CHARANUM-1):知恵 += 20
+	BASE:(CHARANUM-1):魔力 += 20
+	BASE:(CHARANUM-1):耐力 += 20
+	BASE:(CHARANUM-1):速さ += 20
+	BASE:(CHARANUM-1):運 += 20
+	ABL:(CHARANUM-1):スキル1 = [[スキル:催眠波]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハンマオン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:メ・ディアラマ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ラスタキャンディ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:コーチング]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 4
+	;５番目取り巻きクー･フーリン（または初期）
+	CALL SET_ENEMY,ARG:1,[[キャラ:クー･フーリン]],40,0,1
+	;お遊び
+	SIF RAND:100 == 0
+		CALLNAME:(CHARANUM-1) = クーフー･リン
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 20
+	BASE:(CHARANUM-1):知恵 += 20
+	BASE:(CHARANUM-1):魔力 += 20
+	BASE:(CHARANUM-1):耐力 += 20
+	BASE:(CHARANUM-1):速さ += 20
+	BASE:(CHARANUM-1):運 += 20
+	ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:桜花閃乱]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:アクセルクロー]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:脳天割り]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:黙示録]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:挑発]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 5
+	;６番目取り巻きギリメカラ（または初期）
+	CALL SET_ENEMY,ARG:1,[[キャラ:ギリメカラ]],40,0,1
+	;お遊び
+	SIF RAND:100 == 0
+		CALLNAME:(CHARANUM-1) = ギリメカテ
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 20
+	BASE:(CHARANUM-1):知恵 += 20
+	BASE:(CHARANUM-1):魔力 += 20
+	BASE:(CHARANUM-1):耐力 += 20
+	BASE:(CHARANUM-1):速さ += 20
+	BASE:(CHARANUM-1):運 += 20
+	ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:アギダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:マハムドオン]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ENDIF
+
+CFLAG:ARG:601 += 1
+SIF CFLAG:ARG:601 >= 6
+	CFLAG:ARG:601 = 0
+RETURN 1
+
+;=======================================================================
+;ヒトシュラパターン
+;=======================================================================
+@SET_ACTION_41992017,ARG
+#LOCALSIZE 3
+#LOCALSSIZE 1
+LOCAL=0
+LOCAL:2=0
+FOR LOCAL:1,1,7
+	LOCALS = ポジション{LOCAL:1}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+		CONTINUE
+	FOR LOCAL:2,1,7
+		IF CFLAG:(FLAG:LOCALS):物理反射フラグ || MAXBASE:(FLAG:LOCALS):剣撃 == 999 || MAXBASE:(FLAG:LOCALS):剣撃 <= 0 || MAXBASE:(FLAG:LOCALS):打撃 == 999 || MAXBASE:(FLAG:LOCALS):打撃 <= 0
+			IF CFLAG:(FLAG:LOCALS):打撃ガードキル > 0
+				LOCAL = 1
+			ELSE
+				LOCAL = 101
+			ENDIF
+			BREAK
+		ELSEIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("SLEEP")
+			LOCAL = 99
+			SIF BASE:(FLAG:LOCALS):DYING > 10
+				LOCAL = 1
+			BREAK
+		ENDIF
+	NEXT
+NEXT
+IF (CFLAG:ARG:602 == 0) && (((BASE:ARG:ＨＰ)*100)/(MAXBASE:ARG:ＨＰ) < 51)
+	;HP半減で一度メ・ディアラハン
+	IF CFLAG:ARG:603 > 0 && CFLAG:ARG:604 > 0
+		BASE:ARG:力 -= 500
+		MAXBASE:ARG:力 -= 500
+		CFLAG:ARG:ＨＰ補正 *= 100
+		BASE:ARG:ＨＰ *= 100
+		BASE:ARG:速さ = CFLAG:ARG:603
+		MAXBASE:ARG:速さ = CFLAG:ARG:603
+		CFLAG:ARG:603 = 0
+		BASE:ARG:運 = CFLAG:ARG:604
+		MAXBASE:ARG:運 = CFLAG:ARG:604
+		CFLAG:ARG:604 = 0
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:入力行動 = [[スキル:メ・ディアラハン]]
+	CFLAG:ARG:602 = 1
+ELSEIF LOCAL == 101
+	;剣撃・打撃に耐性あってガードキルまだならガードブレイクる
+	IF CFLAG:ARG:603 == 0 || CFLAG:ARG:604 == 0
+		BASE:ARG:力 += 500
+		MAXBASE:ARG:力 += 500
+		CFLAG:ARG:ＨＰ補正 *= 100
+		BASE:ARG:ＨＰ *= 100
+		CFLAG:ARG:603 = BASE:ARG:速さ
+		BASE:ARG:速さ = 500
+		MAXBASE:ARG:速さ = 500
+		CFLAG:ARG:604 = BASE:ARG:運
+		BASE:ARG:運 = 500
+		MAXBASE:ARG:運 = 500
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:入力行動 = [[スキル:打撃ガードブレイク]]
+ELSEIF LOCAL == 1
+	;剣撃・打撃に耐性あるなら地母の晩餐で突然の死
+	IF CFLAG:ARG:603 == 0 || CFLAG:ARG:604 == 0
+		BASE:ARG:力 += 500
+		MAXBASE:ARG:力 += 500
+		CFLAG:ARG:ＨＰ補正 *= 100
+		BASE:ARG:ＨＰ *= 100
+		CFLAG:ARG:603 = BASE:ARG:速さ
+		BASE:ARG:速さ = 500
+		MAXBASE:ARG:速さ = 500
+		CFLAG:ARG:604 = BASE:ARG:運
+		BASE:ARG:運 = 500
+		MAXBASE:ARG:運 = 500
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:クリティカル強化 = 8
+	CFLAG:ARG:気合フラグ = 1
+	CFLAG:ARG:入力行動 = [[スキル:地母の晩餐]]
+ELSEIF LOCAL == 99
+	;寝てる奴いれば永眠の誘い
+	IF CFLAG:ARG:603 > 0 && CFLAG:ARG:604 > 0
+		BASE:ARG:力 -= 500
+		MAXBASE:ARG:力 -= 500
+		CFLAG:ARG:ＨＰ補正 /= 100
+		BASE:ARG:ＨＰ /= 100
+		BASE:ARG:速さ = CFLAG:ARG:603
+		MAXBASE:ARG:速さ = CFLAG:ARG:603
+		CFLAG:ARG:603 = 0
+		BASE:ARG:運 = CFLAG:ARG:604
+		MAXBASE:ARG:運 = CFLAG:ARG:604
+		CFLAG:ARG:604 = 0
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:入力行動 = [[スキル:永眠の誘い]]
+ELSE
+	IF CFLAG:ARG:603 > 0 && CFLAG:ARG:604 > 0
+		BASE:ARG:力 -= 500
+		MAXBASE:ARG:力 -= 500
+		CFLAG:ARG:ＨＰ補正 /= 100
+		BASE:ARG:ＨＰ /= 100
+		BASE:ARG:速さ = CFLAG:ARG:603
+		MAXBASE:ARG:速さ = CFLAG:ARG:603
+		CFLAG:ARG:603 = 0
+		BASE:ARG:運 = CFLAG:ARG:604
+		MAXBASE:ARG:運 = CFLAG:ARG:604
+		CFLAG:ARG:604 = 0
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	LOCAL:2 = 0
+	FOR LOCAL:1,7,17
+		LOCALS = ポジション{LOCAL:1}
+		SIF FLAG:LOCALS == -1
+			CONTINUE
+		SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+			CONTINUE
+		SIF NO:(FLAG:LOCALS) == 4199 || NO:(FLAG:LOCALS) == 4198
+			CONTINUE
+		LOCAL:2 += 1
+	NEXT
+	IF LOCAL:2 < 2
+		CFLAG:ARG:入力行動 = [[スキル:召し寄せ]]
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+		RETURN 0
+	ENDIF
+	;特に何もなければランダム行動に。
+	CALL ランダム行動,ARG
+ENDIF
+
+SIF !(CFLAG:ARG:入力行動)
+	RETURN 0
+CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+IF RESULT == 1
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ELSE
+	;なんかエラーあれば通常攻撃に
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ENDIF
+RETURN 0
+
+;=======================================================================
+;あの仲魔の行動パターン
+;=======================================================================
+@SET_ACTION_41996666,ARG
+#LOCALSIZE 1
+#LOCALSSIZE 1
+LOCAL=ARG
+IF (CFLAG:LOCAL:601 % 31 ) == 30
+	;およそ３０回行動でリカームドラ
+	CFLAG:LOCAL:入力行動 = [[スキル:リカームドラ]]
+ELSE
+	CFLAG:LOCAL:601 += 1
+	;特に何もなければランダム行動。
+	CFLAG:LOCAL:入力行動 = 0
+	CALL ランダム行動,LOCAL
+ENDIF
+SIF !(CFLAG:LOCAL:入力行動)
+	RETURN 0
+CALL CHECK_ACTIONABLE,LOCAL,CFLAG:LOCAL:入力行動
+IF RESULT == 1
+	CALL RANDOM_TARGET,LOCAL,CFLAG:LOCAL:入力行動
+ELSE
+	;なんかエラーあれば通常攻撃に
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:LOCAL:入力行動
+ENDIF
+RETURN 0
+
+;========================================================
+@増援パターン_ひとしゅらの, ARG, ARG:1, ARG:2
+IF CFLAG:ARG:601 == 0
+	;追加の１番目取り巻きピクシー
+	CALL SET_ENEMY,ARG:1,[[キャラ:ピクシー]],50,0,1
+	;特に名前ネタはない
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 25
+	BASE:(CHARANUM-1):知恵 += 25
+	BASE:(CHARANUM-1):魔力 += 25
+	BASE:(CHARANUM-1):耐力 += 25
+	BASE:(CHARANUM-1):速さ += 25
+	BASE:(CHARANUM-1):運 += 25
+	ABL:(CHARANUM-1):スキル1 = [[スキル:催眠波]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:メギドラオン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ジオダイン]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:色即是空]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:ディアラマ]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 1
+	;追加の２番目取り巻きアラハバキ
+	CALL SET_ENEMY,ARG:1,[[キャラ:アラハバキ]],50,0,1
+	;お遊び
+	SIF RAND:100 == 0
+		CALLNAME:(CHARANUM-1) = アキハバラ
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 25
+	BASE:(CHARANUM-1):知恵 += 25
+	BASE:(CHARANUM-1):魔力 += 25
+	BASE:(CHARANUM-1):耐力 += 25
+	BASE:(CHARANUM-1):速さ += 25
+	BASE:(CHARANUM-1):運 += 25
+	ABL:(CHARANUM-1):スキル1 = [[スキル:終わる世界]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:冥界の門]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:ペトラアイ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 2
+	;追加の３番目取り巻きティターニア
+	CALL SET_ENEMY,ARG:1,[[キャラ:ティターニア]],50,0,1
+	;特に名前変更ネタはない
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 25
+	BASE:(CHARANUM-1):知恵 += 25
+	BASE:(CHARANUM-1):魔力 += 25
+	BASE:(CHARANUM-1):耐力 += 25
+	BASE:(CHARANUM-1):速さ += 25
+	BASE:(CHARANUM-1):運 += 25
+	ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ジオダイン]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:コーチング]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 3
+	;追加の４番目取り巻きパールヴァティ……はcsvないのでサラスヴァティ
+	CALL SET_ENEMY,ARG:1,[[キャラ:サラスヴァティ]],50,0,1
+	;パールヴァティの振りをする。稀に名前がそのまま
+	SIF RAND:100
+		CALLNAME:(CHARANUM-1) = パールヴァティ
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 25
+	BASE:(CHARANUM-1):知恵 += 25
+	BASE:(CHARANUM-1):魔力 += 25
+	BASE:(CHARANUM-1):耐力 += 25
+	BASE:(CHARANUM-1):速さ += 25
+	BASE:(CHARANUM-1):運 += 25
+	ABL:(CHARANUM-1):スキル1 = [[スキル:催眠波]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:マハンマオン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:メ・ディアラマ]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ラスタキャンディ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:コーチング]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 4
+	;５番目取り巻きクー･フーリン（または初期）
+	CALL SET_ENEMY,ARG:1,[[キャラ:クー･フーリン]],50,0,1
+	;お遊び
+	SIF RAND:100 == 0
+		CALLNAME:(CHARANUM-1) = クーフー･リン
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 25
+	BASE:(CHARANUM-1):知恵 += 25
+	BASE:(CHARANUM-1):魔力 += 25
+	BASE:(CHARANUM-1):耐力 += 25
+	BASE:(CHARANUM-1):速さ += 25
+	BASE:(CHARANUM-1):運 += 25
+	ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:桜花閃乱]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:アクセルクロー]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:脳天割り]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:黙示録]]
+	ABL:(CHARANUM-1):スキル6 = [[スキル:挑発]]
+	ABL:(CHARANUM-1):スキル7 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ELSEIF CFLAG:ARG:601 == 5
+	;６番目取り巻きギリメカラ（または初期）
+	CALL SET_ENEMY,ARG:1,[[キャラ:ギリメカラ]],50,0,1
+	;お遊び
+	SIF RAND:100 == 0
+		CALLNAME:(CHARANUM-1) = ギリメカテ
+	CSTR:(CHARANUM-1):思考パターン = 41996666
+	BASE:(CHARANUM-1):力 += 25
+	BASE:(CHARANUM-1):知恵 += 25
+	BASE:(CHARANUM-1):魔力 += 25
+	BASE:(CHARANUM-1):耐力 += 25
+	BASE:(CHARANUM-1):速さ += 25
+	BASE:(CHARANUM-1):運 += 25
+	ABL:(CHARANUM-1):スキル1 = [[スキル:アカシャアーツ]]
+	ABL:(CHARANUM-1):スキル2 = [[スキル:アギダイン]]
+	ABL:(CHARANUM-1):スキル3 = [[スキル:マハムドオン]]
+	ABL:(CHARANUM-1):スキル4 = [[スキル:ランダマイザ]]
+	ABL:(CHARANUM-1):スキル5 = [[スキル:アドバイス]]
+	ABL:(CHARANUM-1):スキル6 = 0
+	ABL:(CHARANUM-1):スキル7 = 0
+	ABL:(CHARANUM-1):スキル8 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+ENDIF
+
+CFLAG:ARG:601 += 1
+SIF CFLAG:ARG:601 >= 6
+	CFLAG:ARG:601 = 0
+RETURN 1
+
+;=======================================================================
+;ひとしゅらパターン
+;=======================================================================
+@SET_ACTION_41982017,ARG
+#LOCALSIZE 3
+#LOCALSSIZE 1
+LOCAL=0
+LOCAL:2=0
+FOR LOCAL:1,1,7
+	LOCALS = ポジション{LOCAL:1}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+		CONTINUE
+	FOR LOCAL:2,1,7
+		IF CFLAG:(FLAG:LOCALS):物理反射フラグ || MAXBASE:(FLAG:LOCALS):剣撃 == 999 || MAXBASE:(FLAG:LOCALS):剣撃 <= 0 || MAXBASE:(FLAG:LOCALS):打撃 == 999 || MAXBASE:(FLAG:LOCALS):打撃 <= 0
+			IF CFLAG:(FLAG:LOCALS):打撃ガードキル > 0
+				LOCAL = 1
+			ELSE
+				LOCAL = 101
+			ENDIF
+			BREAK
+		ELSEIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("SLEEP")
+			LOCAL = 99
+			SIF BASE:(FLAG:LOCALS):DYING > 10
+				LOCAL = 1
+			BREAK
+		ENDIF
+	NEXT
+NEXT
+IF (CFLAG:ARG:602 == 0) && (((BASE:ARG:ＨＰ)*100)/(MAXBASE:ARG:ＨＰ) < 51)
+	;HP半減で一度メ・ディアラハン
+	IF CFLAG:ARG:603 > 0 && CFLAG:ARG:604 > 0
+		BASE:ARG:力 -= 500
+		MAXBASE:ARG:力 -= 500
+		CFLAG:ARG:ＨＰ補正 /= 100
+		BASE:ARG:ＨＰ /= 100
+		BASE:ARG:速さ = CFLAG:ARG:603
+		MAXBASE:ARG:速さ = CFLAG:ARG:603
+		CFLAG:ARG:603 = 0
+		BASE:ARG:運 = CFLAG:ARG:604
+		MAXBASE:ARG:運 = CFLAG:ARG:604
+		CFLAG:ARG:604 = 0
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:入力行動 = [[スキル:メ・ディアラハン]]
+	CFLAG:ARG:602 = 1
+ELSEIF LOCAL == 101
+	;剣撃・打撃に耐性あってガードキルまだならガードブレイクる
+	IF CFLAG:ARG:603 == 0 || CFLAG:ARG:604 == 0
+		BASE:ARG:力 += 500
+		MAXBASE:ARG:力 += 500
+		CFLAG:ARG:ＨＰ補正 *= 100
+		BASE:ARG:ＨＰ *= 100
+		CFLAG:ARG:603 = BASE:ARG:速さ
+		BASE:ARG:速さ = 500
+		MAXBASE:ARG:速さ = 500
+		CFLAG:ARG:604 = BASE:ARG:運
+		BASE:ARG:運 = 500
+		MAXBASE:ARG:運 = 500
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:入力行動 = [[スキル:打撃ガードブレイク]]
+ELSEIF LOCAL == 1
+	;剣撃・打撃に耐性あるなら地母の晩餐で突然の死
+	IF CFLAG:ARG:603 == 0 || CFLAG:ARG:604 == 0
+		BASE:ARG:力 += 500
+		MAXBASE:ARG:力 += 500
+		CFLAG:ARG:ＨＰ補正 *= 100
+		BASE:ARG:ＨＰ *= 100
+		CFLAG:ARG:603 = BASE:ARG:速さ
+		BASE:ARG:速さ = 500
+		MAXBASE:ARG:速さ = 500
+		CFLAG:ARG:604 = BASE:ARG:運
+		BASE:ARG:運 = 500
+		MAXBASE:ARG:運 = 500
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:クリティカル強化 = 8
+	CFLAG:ARG:気合フラグ = 1
+	CFLAG:ARG:入力行動 = [[スキル:地母の晩餐]]
+ELSEIF LOCAL == 99
+	;寝てる奴いれば永眠の誘い
+	IF CFLAG:ARG:603 > 0 && CFLAG:ARG:604 > 0
+		BASE:ARG:力 -= 500
+		MAXBASE:ARG:力 -= 500
+		CFLAG:ARG:ＨＰ補正 /= 100
+		BASE:ARG:ＨＰ /= 100
+		BASE:ARG:速さ = CFLAG:ARG:603
+		MAXBASE:ARG:速さ = CFLAG:ARG:603
+		CFLAG:ARG:603 = 0
+		BASE:ARG:運 = CFLAG:ARG:604
+		MAXBASE:ARG:運 = CFLAG:ARG:604
+		CFLAG:ARG:604 = 0
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	CFLAG:ARG:入力行動 = [[スキル:永眠の誘い]]
+ELSE
+	IF CFLAG:ARG:603 > 0 && CFLAG:ARG:604 > 0
+		BASE:ARG:力 -= 500
+		MAXBASE:ARG:力 -= 500
+		CFLAG:ARG:ＨＰ補正 /= 100
+		BASE:ARG:ＨＰ /= 100
+		BASE:ARG:速さ = CFLAG:ARG:603
+		MAXBASE:ARG:速さ = CFLAG:ARG:603
+		CFLAG:ARG:603 = 0
+		BASE:ARG:運 = CFLAG:ARG:604
+		MAXBASE:ARG:運 = CFLAG:ARG:604
+		CFLAG:ARG:604 = 0
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	;特に何もなければランダム行動に。
+	CALL ランダム行動,ARG
+ENDIF
+
+SIF !(CFLAG:ARG:入力行動)
+	RETURN 0
+CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+IF RESULT == 1
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ELSE
+	;なんかエラーあれば通常攻撃に
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ENDIF
+RETURN 0
+

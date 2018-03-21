@@ -1,0 +1,117 @@
+;-------------------------------------------------
+;乳房電極
+;ハードな調教コマンド、レベル4
+;-------------------------------------------------
+@COMNAME150
+RESULTS = Breast Electrodes
+SIF TEQUIP:24
+	RESULTS = Breast Electrode Removal
+@ACT_COM150
+PRINTL Breast Electrode
+TSTR:0 = 乳房電極
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:24 == 0
+	TEQUIP:24 = 1
+ELSE
+	TEQUIP:24 = 0
+ENDIF
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 300
+DOWNBASE:TARGET:気力 += 450
+
+SOURCE:TARGET:道具快Ｂ = 500
+SOURCE:TARGET:痛み = 1500
+SOURCE:TARGET:露出 = 300
+SOURCE:TARGET:屈従 = 800
+SOURCE:TARGET:逸脱 = 1200
+SOURCE:TARGET:反感 = 1200
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 1200
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;AbnormalEXPが5未満のとき、AbnormalEXP追加
+IF EXP:50 < 5
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+	CALL ADDS_ABNORMAL_EXP("Electrode", TARGET)
+ENDIF
+
+;LesbianEXP
+A = 1
+B = NO:PLAYER + 899
+IF IS_LESBIAN(TARGET,PLAYER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM150
+;乳房電極
+
+PRINTL ＜Wearing 乳房電極s＞
+
+DOWNBASE:TARGET:体力 += 150
+DOWNBASE:TARGET:気力 += 250
+
+SOURCE:TARGET:道具快Ｂ += 250
+SOURCE:TARGET:痛み += 750
+SOURCE:TARGET:屈従 += 400
+SOURCE:TARGET:逸脱 += 600
+SOURCE:TARGET:反感 += 600
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 600
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_150
+RETURN COMTYPE("ハード系")
+
+
+
+

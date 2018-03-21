@@ -1,0 +1,23 @@
+;===============================
+;戦闘行動に応じて素質ごとの忠誠度上昇量を算出
+;ARG      対象キャラクタ
+;ARG:1    入力行動
+;RESULT   忠誠度上昇量
+;===============================
+;[虚心]は性格(素質)ごとに基準が変動する
+@COMBAT_HIGH_虚心(ARG,ARG:1)
+#DIMS CONST COLOUR = "友愛","獰猛"  ,"愚鈍","高慢"        ,"狡猾"        ,"冷静","残虐"    ,"賢い"  ,"ゾンビ"
+#DIMS CONST Mind   = "臆病","反抗的","素直","プライド高い","プライド低い","気丈","ツンデレ","生意気","臆病"
+#DIM LOYALTY,1
+;LOYALTY      獲得忠誠度
+LOYALTY = 0
+;対応素質ごとの判定
+FOR LOCAL,0,VARSIZE("COLOUR")
+	SIF !TALENT:ARG:(Mind:LOCAL)
+		CONTINUE
+	CALLFORM COMBAT_HIGH_%COLOUR:LOCAL%,ARG,CFLAG:ARG:入力行動
+	IF RESULT > LOYALTY || (RESULT <= 0 && LOYALTY <= 0)
+		LOYALTY = RESULT
+	ENDIF
+NEXT
+RETURN LOYALTY

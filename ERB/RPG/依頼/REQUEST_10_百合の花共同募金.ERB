@@ -1,0 +1,125 @@
+
+;====================
+;条件
+;====================
+@PLAYABLE_REQUEST_10
+IF ダンジョンフラグ:1:1 > 0 && MONEY >= 5000
+	RESULTS = Community Chest Information
+	RETURN 1
+ENDIF
+RETURN 0
+;====================
+;説明
+;====================
+@EXPLAIN_REQUEST_10
+
+PRINTL 
+PRINTFORML A letter arrived from a charity
+PRINTFORML Two charities
+PRINTFORML One is Lily Community Chest
+PRINTFORML The other is Black Lily Community Chest
+PRINTFORML Do you want to donate?
+
+;====================
+;内容
+;====================
+@REQUEST_10
+PRINTFORML Which will you donate to?
+PRINTFORML [0] Lily Community Chest
+PRINTFORML [1] Black Lily Community Chest
+PRINTFORML [2] Neither
+ONEINPUT
+
+IF RESULT == 0
+	PRINTL
+	PRINTFORML The Lily Community Chest thanks you for your cooperation.
+	PRINTFORML We are a disaster relief and regional welfare group 
+	PRINTFORML We fundraise for children's medical expenses both reginal and overseas.
+	PRINTFORML Those whose suffering is not heard about, you can save them.
+	PRINTFORML We ask for your aid.
+	PRINTL
+	
+	PRINTFORML One donation is ￥5000
+	
+	IF MONEY >= 5000
+		PRINTFORML How many donations do you make?(0 cancels the donation)
+		PRINTFORML [0] [1] \@ MONEY >= 25000 ? [5]#\@ \@ MONEY >= 50000 ? [10] #\@ [{MONEY/5000}]
+			$INPUT_LOOP
+			INPUT
+			IF RESULT == 0
+				RETURN 0
+			ELSEIF RESULT < 0 || MONEY < RESULT * 5000
+				GOTO INPUT_LOOP
+			ENDIF
+			PRINTFORMW {RESULT} donations, meaning ￥{RESULT * 5000} were sent to the Lily Community Chest.
+			MONEY -= RESULT * 5000
+			依頼フラグ:10:0 += RESULT
+			依頼フラグ:10:1 -= RESULT
+			CALL INCREASE_LD,RESULT
+		ELSE
+			PRINTFORMW You don't have enough money to make a donation.
+			RETURN 0
+	ENDIF
+	
+ELSEIF RESULT == 1
+	PRINTL
+	PRINTFORML Welcome to the reception of the Black Lily Community Chest.
+	PRINTFORML We aid those who are actively working to make the world a better place.
+	PRINTFORML Giving them better supplies, we raise funds to cause more chaos.
+	PRINTFORML Your "good will", in this chaotic world, full of fear, will help support the spread of chaose.
+	PRINTFORML To correct the world, we ask for your cooperation.
+	PRINTL
+	
+	PRINTFORML One donation is ￥5000
+	
+	IF MONEY >= 5000
+		PRINTFORML How many donations do you make?(0 cancels the donation)
+		PRINTFORML [0] [1] \@ MONEY >= 25000 ? [5]#\@ \@ MONEY >= 50000 ? [10] #\@ [{MONEY/5000}]
+		$INPUT_LOOP2
+		INPUT
+		IF RESULT == 0
+			RETURN 0
+		ELSEIF RESULT < 0 || MONEY < RESULT * 5000
+			GOTO INPUT_LOOP2
+		ENDIF
+		PRINTFORMW {RESULT} donations,  meaning ￥{RESULT * 5000} were sent to the Black Lily Community Chest.
+		MONEY -= RESULT * 5000
+		依頼フラグ:10:0 -= RESULT
+		依頼フラグ:10:1 += RESULT
+		CALL INCREASE_LD,-RESULT
+	ELSE
+		PRINTFORML You don't have enough money to make a donation.
+		RETURN 0
+	ENDIF
+ELSEIF RESULT == 2
+	PRINTFORMW You decided to not donate...
+	RETURN 0
+ENDIF
+;10万送金する
+IF 依頼フラグ:10:0 >= 20 && ITEM:HappyBirthday == 0
+	WAIT
+	PRINTL A letter arrived
+	PRINTW ...As it turns out, it was a letter of thanks from the children.
+	PRINTW While the writing is clumsy, their earnest feelings are conveyed.
+	PRINTW When you finished and put down the letter, you noticed a slightly dirty disk on the table.
+	PRINTW Software 「Happy Birthday」 obtained
+	ITEM:HappyBirthday = 1
+ENDIF
+;50万以上送金する＆属性がLight/Lawだとガブリエル解禁
+IF 依頼フラグ:10:0 >= 100 && ABL:MASTER:属性LD != 3 && FLAG:10303 == 0
+	WAIT
+	PRINTL A corsage of white lilies was sent to your office.
+	PRINTW ...Who could have send them?
+	FLAG:10303 = 1
+ENDIF
+;100万以上送金する＆属性がLight以外でルキフグス解禁
+IF 依頼フラグ:10:1 >= 200 && ABL:MASTER:属性LD != 1 && FLAG:10244 == 0
+	WAIT
+	PRINTL 
+	PRINTW You hear a sound of a coin falling...did you imagine it？
+	PRINTL 
+	FLAG:10244 = 1
+ENDIF
+
+
+RETURN 0

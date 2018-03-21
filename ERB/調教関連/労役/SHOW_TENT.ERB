@@ -1,0 +1,703 @@
+
+;仲魔同士、もしくはレンタルした悪魔・Tentacles・バイブと交わらせて魔貨を得る
+;仲間同士でＮＴＲなんてのもいいよね
+
+;Ｐ：消費増加小、必ず使用
+;Ｖ：消費増加中、ペニスがある場合必ず使う
+;Ａ：消費増加大、Ｐの数がＶの数を越える多い場合(女性・男の娘のみ)、あるいはＡ感覚が高い場合(性別不問)。
+
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SHOW_TENT.ERB
+;	Facility	:見世物小屋での労役に関する関数群です。
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2013/01/11		TR						新規作成
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;==========================================================
+;@MANAGEMENT_SHOW_TENT
+; 見世物小屋の一日の活動報告処理
+;<引数>
+;	ARG - 店舗番号
+;<戻り値>
+;	なし
+;==========================================================
+@MANAGEMENT_SHOW_TENT,ARG
+#LOCALSIZE 2
+#DIM C_ACT, 20			; 見世物番号リスト
+#DIM RES_ACT, 10		; 見世物番号リスト(リザルト表示用)
+#DIM COUNT_ACT,2		; 参加人数( 0:全員 1:仲魔のみ )
+#DIM COUNT_PENIS,1		; 竿の数
+#DIM COUNT_VAGINA,6,12	; Ｖレベル
+#DIM COUNT_ANUS,6,12	; Ａレベル
+#DIM COUNT_MOUSE,6,12	; 奉仕レベル
+#DIM ACT,2				; 0:乱交コマンド実行者 1:対象
+#DIM ACTCOM,1			; 乱交コマンド番号
+#DIM ACTLIMIT,1			; 乱交コマンド周回回数
+#DIM HEAT,2				; 0:盛り上がり 1:発生イベントビット( 0:撮影開始 1:悪魔乱入 )
+#DIM LINE,1				; 
+#DIM LEVEL,1			; 
+#DIM STRESS,1			; ストレス増加値(リザルト表示用)
+#DIM CEXP,1				; EXP増加値(同上)
+#DIM CMAG,1				; MAG増加値(同上)
+#DIM COST,1				; レンタルコスト
+#DIM 入手￥,1			; おひねり
+#DIM 入手魔貨,1			; 同上
+;参加者のリスト作成 及び　基本の観客数の設定
+VARSET LOCAL
+VARSET C_ACT,-1
+VARSET RES_ACT,-1
+VARSET HEAT
+VARSET COUNT_ACT
+HEAT = 店舗("宣伝効果")
+VARSET COUNT_PENIS,0
+FOR LOCAL,0,5
+	FOR LOCAL:1,0,12
+		COUNT_VAGINA:LOCAL:(LOCAL:1) = 0
+		COUNT_ANUS:LOCAL:(LOCAL:1)   = 0
+		COUNT_MOUSE:LOCAL:(LOCAL:1)  = 0
+	NEXT
+NEXT
+LINE = LINECOUNT
+FOR ACT, 0 , CHARANUM
+	SIF CFLAG:ACT:労役フラグ != 10+ARG
+		CONTINUE
+	IF BASE:ACT:0 < 500
+		PRINTFORML 体力不足の為%CALLNAME:ACT%の労役を中止しました
+		CONTINUE
+	ENDIF
+	;#;PRINTFORM \@ GETBIT(VAR_店舗リザルト,ARG+10) ? %CALLNAME:ACT% IS ENTRY\n # \@
+	VARSET TCVAR:ACT:0,0
+	VARSET EX:ACT:0,0
+	VARSET NOWEX:ACT:0,0
+	VARSET SOURCE:ACT:0,0
+	C_ACT:(COUNT_ACT) = ACT
+	RES_ACT:(COUNT_ACT) = ACT
+	DOWNBASE:ACT:耐力 = 0
+	DOWNBASE:ACT:ＭＡＧ = 0
+	TCVAR:ACT:獲得ＭＡＧ = 0
+	SIF HAVE_PENIS(ACT)
+		COUNT_PENIS++
+	;獲得経験と絶頂回数のリセット
+	CFLAG:ACT:労役中の中出氏による暫定父親 = -1
+
+	LEVEL = SHOW_TENT_VAGINA(ACT)
+	;COUNT_VAGINA:(Ｖレベル):(そのレベルの人数)にACTを入れる
+	SIF INRANGE(LEVEL,0,4)
+		COUNT_VAGINA:LEVEL:(COUNT_VAGINA:LEVEL:10++) = ACT
+
+	LEVEL = SHOW_TENT_MOUSE(ACT)
+	SIF INRANGE(LEVEL,0,4)
+		COUNT_MOUSE:LEVEL:(COUNT_MOUSE:LEVEL:10++) = ACT
+
+	LEVEL = SHOW_TENT_ANUS(ACT)
+	SIF INRANGE(LEVEL,0,4)
+		COUNT_ANUS:LEVEL:(COUNT_ANUS:LEVEL:10++) = ACT
+	
+	;基本観客数
+	COUNT_ACT++
+	COUNT_ACT:1++
+NEXT
+
+IF COUNT_ACT:1 < 1
+	PRINTFORMW 参加者がいない為開園を中止しました
+	RETURN
+ENDIF
+
+SIF LINE != LINECOUNT
+	WAIT
+
+COST = 0
+LINE = LINECOUNT
+;安い悪魔から順繰りにレンタルしていく
+FOR LOCAL,0,5
+	SIF !レンタル悪魔:ARG:LOCAL
+		CONTINUE
+	IF MONEY:1 < COST + SHOW_TENT_RENTAL_COST(VAR_店舗番号,LOCAL)
+		PRINTFORML	 資金が不足している為、%SHOW_TENT_ACTNAME(-2-LOCAL)%をレンタル出来ませんでした
+	ELSE
+		FOR LOCAL:1,0,レンタル悪魔:ARG:LOCAL
+			C_ACT:(COUNT_ACT++) = -2 - LOCAL
+		NEXT
+		COST += SHOW_TENT_RENTAL_COST(VAR_店舗番号,LOCAL)
+	ENDIF
+NEXT
+SIF LINE != LINECOUNT
+	WAIT
+
+;デバック用だけどなんかエラー落ちするのでコメントアウト
+;;PRINTFORML 参加者の数:仲魔{COUNT_ACT:1}＋レンタル{COUNT_ACT-COUNT:ACT:1}
+;;PRINTFORML ペニスの数:{COUNT_PENIS}
+;;PRINTFORML Ｖのレベル:{COUNT_VAGINA:0:10}/{COUNT_VAGINA:1:10}/{COUNT_VAGINA:2:10}/{COUNT_VAGINA:3:10}/{COUNT_VAGINA:4:10}
+;;PRINTFORML Ａのレベル:{COUNT_ANUS:0:10}/{COUNT_ANUS:1:10}/{COUNT_ANUS:2:10}/{COUNT_ANUS:3:10}/{COUNT_ANUS:4:10}
+;;PRINTFORML 口のレベル:{COUNT_MOUSE:0:10}/{COUNT_MOUSE:1:10}/{COUNT_MOUSE:2:10}/{COUNT_MOUSE:3:10}/{COUNT_MOUSE:4:10}
+
+;開園メッセージ
+CALL EVENT_MESSAGE_SHOW_TENT , -10 , HEAT
+
+LOCAL = 0
+ACTLIMIT = 5
+DO
+	;#;PRINTFORM \@ GETBIT(VAR_店舗リザルト,ARG+10) ? 【SHENE{LOCAL+1}】\n # \@
+	;人気が一定以上で撮影開始
+	IF HEAT >= 1000 && !GETBIT(HEAT:1,0)
+		CALL EVENT_MESSAGE_SHOW_TENT , -12 , HEAT
+		SETBIT HEAT:1,0
+	ENDIF
+	;人気が一定以上で延長
+	IF HEAT >= 3500 && !GETBIT(HEAT:1,1)
+		CALL EVENT_MESSAGE_SHOW_TENT , -13 , HEAT
+		SETBIT HEAT:1,1
+		ACTLIMIT = 10
+	ENDIF
+	;行動順をランダムに並び替える
+	FOR LOCAL:1,0,COUNT_ACT
+		SWAP C_ACT:0,C_ACT:(RAND:COUNT_ACT)
+	NEXT
+	;仲魔の行動
+	FOR LOCAL:1,0,COUNT_ACT
+		ACT = C_ACT:(LOCAL:1)
+		SIF ACT == -1
+			CONTINUE
+		;#;IF GETBIT(VAR_店舗リザルト,ARG+10)
+			;#;SETCOLOR 0xFF8080
+			;#;PRINTFORM TURN{LOCAL:1,2} %@"%SHOW_TENT_ACTNAME(ACT)%\@ ACT < 0 ? (レンタル) # \@",24,LEFT%
+		;#;ENDIF
+		IF GETBIT(HEAT:1,0) && ACT >= 0
+			TCVAR:ACT:獲得被写経験 += 4
+		ENDIF
+		IF ACT >= 0 
+			;消耗が気力を上回ったなら何もしない
+			IF DOWNBASE:ACT:0 > MAXBASE:ACT:1
+				;#;IF GETBIT(VAR_店舗リザルト,ARG+10)
+					;#;PRINTFORML 気力0で行動不能
+					;#;RESETCOLOR
+				;#;ENDIF
+				CONTINUE
+			ELSEIF !陥落(ACT)
+				;#;IF GETBIT(VAR_店舗リザルト,ARG+10)
+					;#;PRINTFORML 自主的行動を拒否(未陥落)
+					;#;RESETCOLOR
+				;#;ENDIF
+				CONTINUE
+			ENDIF
+		ENDIF
+		LEVEL = 0
+		DO
+			;Ｖを犯す、Ｃ愛撫、フェラチオ
+			ACT:1 = COUNT_VAGINA:LEVEL:(COUNT_VAGINA:LEVEL:11)
+			IF COUNT_VAGINA:LEVEL:11 < COUNT_VAGINA:LEVEL:10 && ACT != ACT:1
+				IF SHOW_TENT_HAVE_PENIS(ACT)
+					ACTCOM = 1
+					COUNT_VAGINA:LEVEL:11++
+				ELSE
+					ACTCOM = SHOW_TENT_HAVE_PENIS(ACT:1) ? 5 # 4
+				ENDIF
+				BREAK
+			ENDIF
+			;Ａを犯す、Ａ愛撫
+			ACT:1 = COUNT_ANUS:LEVEL:(COUNT_ANUS:LEVEL:11)
+			IF  COUNT_ANUS:LEVEL:11 < COUNT_ANUS:LEVEL:10 && ACT!= ACT:1
+				IF SHOW_TENT_HAVE_PENIS(ACT)
+					ACTCOM = 2
+					COUNT_ANUS:LEVEL:11++
+				ELSE
+					ACTCOM = 6
+				ENDIF
+				BREAK
+			ENDIF
+			;喉を犯す、キス
+			ACT:1 = COUNT_MOUSE:LEVEL:(COUNT_MOUSE:LEVEL:11)
+			IF COUNT_MOUSE:LEVEL:11 < COUNT_MOUSE:LEVEL:10 && ACT != ACT:1
+				IF SHOW_TENT_HAVE_PENIS(ACT)
+					ACTCOM = 3
+					COUNT_MOUSE:LEVEL:11++
+				ELSE
+					ACTCOM = 7
+				ENDIF
+				BREAK
+			ENDIF
+			ACTCOM = 0
+			ACT:1 = -1
+			LEVEL++
+		LOOP ( ACTCOM == 0 && LEVEL < 5 )
+		$ACT_SET
+		;コマンド実行に飛ぶ(内容はSHOW_TENT_FUNC.ERB参照)
+		CALLFORM SHOW_TENT_COM{ACTCOM} , ACT , ACT:1
+		;月齢に応じてHEATにボーナス
+		SELECTCASE FLAG:月齢
+		CASE 8
+			RESULT += ABS(RESULT)/2
+		CASE 0
+			RESULT -= ABS(RESULT)/2
+		ENDSELECT
+		;#;IF GETBIT(VAR_店舗リザルト,ARG+10)
+			;#;PRINTFORML  HEAT:{HEAT}+{RESULT}
+			;#;RESETCOLOR
+		;#;ENDIF
+		HEAT += RESULT
+	NEXT
+	;使用履歴を綺麗にしておく
+	FOR LOCAL:1,0,5
+		COUNT_VAGINA:(LOCAL:1):11 = 0
+		COUNT_ANUS:(LOCAL:1):11 = 0
+		COUNT_MOUSE:(LOCAL:1):11 = 0
+	NEXT
+LOCAL++
+LOOP ( LOCAL < ACTLIMIT )
+
+;経験補正と増加
+FOR LOCAL:1,0,COUNT_ACT:1
+	ACT = RES_ACT:(LOCAL:1)
+	SIF ACT < 0
+		BREAK
+	DRAWLINE
+	
+	PRINTFORML 結果：%CALLNAME:ACT%
+
+	SIF !GETBIT(VAR_店舗リザルト,ARG)
+		CALL EVENT_MESSAGE_SHOW_TENT_RESULT , ACT
+
+	;各絶頂回数にかける補正
+	SIF TALENT:ACT:Ｃ鈍感
+		TIMES EX:ACT:0 , 0.66
+	SIF TALENT:ACT:Ｃ敏感
+		TIMES EX:ACT:0 , 1.50
+	SIF TALENT:ACT:自慰狂い
+		TIMES EX:ACT:0 , 2.00
+	SIF TALENT:ACT:Ｖ鈍感
+		TIMES EX:ACT:1 , 0.66
+	SIF 危険日(ACT)
+		TIMES EX:ACT:1 , 1.50
+	SIF TALENT:ACT:Ｖ敏感
+		TIMES EX:ACT:1 , 1.50
+	SIF TALENT:ACT:セックス狂
+		TIMES EX:ACT:1 , 2.00
+	SIF TALENT:ACT:Ａ鈍感
+		TIMES EX:ACT:2 , 0.66
+	SIF TALENT:ACT:Ａ敏感
+		TIMES EX:ACT:2 , 1.50
+	SIF TALENT:ACT:尻穴狂い
+		TIMES EX:ACT:2 , 2.00
+	SIF TALENT:ACT:Ｂ鈍感
+		TIMES EX:ACT:3 , 0.66
+	SIF TALENT:ACT:Ｂ敏感
+		TIMES EX:ACT:3 , 1.50
+	SIF TALENT:ACT:淫乳
+		TIMES EX:ACT:3,2.00
+	TCVAR:ACT:獲得絶頂経験 = SUMARRAY(EX:ACT:0,0,4)
+	;総絶頂回数にかける補正
+	SIF TALENT:ACT:快感に素直
+		TIMES TCVAR:ACT:獲得絶頂経験,1.50
+	SIF 危険日(ACT) > 1
+		TIMES EX:ACT:3,2.00
+	SIF TALENT:ACT:即落ち
+		TIMES TCVAR:ACT:獲得絶頂経験,2.00
+	IF IS_BITCHY(ACT)
+		TCVAR:ACT:獲得絶頂経験 = TCVAR:ACT:獲得絶頂経験 * ( 10 + 陥落(ACT)*5 ) / 10
+	ELSEIF !陥落(ACT)
+		SIF TALENT:ACT:快感の否定
+			TIMES TCVAR:ACT:獲得絶頂経験,0.50
+		SIF TALENT:ACT:自制心
+			TIMES TCVAR:ACT:獲得絶頂経験,0.75
+	ENDIF
+	;ＶEXPかつ
+	IF TCVAR:ACT:獲得Ｖ経験
+		;処女
+		IF TALENT:ACT:0 || TALENT:ACT:1
+			TALENT:ACT:0 = 0
+			TALENT:ACT:1 = 0
+			;竿役が複数居た場合
+			IF COUNT_PENIS > 1
+				CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）" , ACT
+			ENDIF
+			IF TCVAR:ACT:獲得Ｖ拡張経験 && TALENT:ACT:小人体型
+				CALL ADDS_ABNORMAL_EXP, "Lost virginity（Fairy onahole）" , ACT
+			ENDIF
+			;Ｖを使ったキャラに同性が含まれる場合(未実装)
+			;Ｖを使ったキャラに触手が含まれる場合(未実装)
+			;客により撮影されてた場合
+			SIF TCVAR:ACT:獲得被写経験
+				CALL ADDS_ABNORMAL_EXP, "Lost virginity（Filming）" , ACT
+		ENDIF
+	ENDIF
+	;Ｖ絶頂が加算されていて元が男だった場合
+	SIF EXP:ACT:ＴＳ経験 % 2 == 1 && EX:ACT:1
+		CALL ADDS_ABNORMAL_EXP, "ＴＳ ＶCum" , ACT
+	;IF TCVAR:ACT:獲得性交経験
+		;近親相姦でAbnormalEXP(未実装)
+		;女性でＶ挿入した相手が処女だった場合(未実装)
+	;ENDIF
+	SIF TCVAR:ACT:獲得自慰経験
+		CALL ADDS_ABNORMAL_EXP, "Public masturbation" , ACT
+
+	;TentacleEXPを得た場合(未実装)
+	SIF TCVAR:ACT:獲得触手経験 && !TALENT:ACT:触手
+		CALL ADDS_ABNORMAL_EXP, "Tentacle first experience" , ACT
+	
+	;STRESSの増加(基本値)
+	IF ACT != MASTER
+		STRESS = (SUMARRAY(TCVAR:ACT:0,0,70)-TCVAR:ACT:獲得異常経験) * (TCVAR:ACT:獲得異常経験+1)
+		SIF TALENT:ACT:貞操観念
+			STRESS += TCVAR:ACT:獲得膣射経験*5 + TCVAR:ACT:獲得射精経験*2
+	ENDIF	
+
+	CALL SHOW_ADD_EXP, ACT
+	CALL SHOW_ABNORMAL_EXP, ACT
+	
+	;MAG変化
+	SIF TALENT:ACT:霊媒体質
+		TCVAR:ACT:獲得ＭＡＧ *= 5
+	CMAG = TCVAR:ACT:獲得ＭＡＧ - DOWNBASE:ACT:ＭＡＧ
+	SIF !TALENT:ACT:非戦闘員
+		CMAG /= 2
+	SIF CMAG != 0
+		PRINTFORML ＭＡＧ \@ CMAG > 0 ? + # - \@{ABS(CMAG),7}
+	BASE:ACT:ＭＡＧ = LIMIT(BASE:ACT:ＭＡＧ+CMAG,0,MAXBASE:ACT:ＭＡＧ)
+	
+	IF ACT != MASTER
+		SIF DOWNBASE:ACT:0 > BASE:ACT:1
+			TIMES STRESS,1.50
+		STRESS *= MAX(0,3-陥落(ACT) *2)
+		STRESS /= 1+ABL:ACT:従順+ABL:ACT:欲望+ABL:ACT:奉仕精神+ABL:ACT:マゾっ気
+		PRINTFORML Stress + {STRESS}
+		CFLAG:ACT:ストレス値 += STRESS
+	ENDIF
+	
+	;非戦闘員のEXP入手
+	IF TALENT:ACT:非戦闘員 || TALENT:ACT:ペルソナ使い
+		;基本値=入手全経験の(5+Obedience+Technique+Desire*2)%*レベル補正
+		CEXP = ( SUMARRAY(TCVAR:ACT:0,0,70) * (5+ABL:ACT:従順+ABL:ACT:技巧+ABL:ACT:欲望*2) / 100 )
+		IF TALENT:ACT:非戦闘員
+			PRINTFORML EXP： +{CEXP*(1+BASE:ACT:LV/5)}
+			BASE:ACT:ＥＸＰ += CEXP*(1+BASE:ACT:LV/5)
+			;レベルアップ判定
+			CALL CHECK_LEVEL_UP,ACT
+		ENDIF
+		IF TALENT:ACT:ペルソナ使い
+			CALL INCREASE_PERSONA_EXP, ACT, CEXP/10, -1 ,1
+			SIF RESULT > 0
+				PRINTFORML ペルソナ【\@EQUIP:ACT:装備ペルソナ ? %CSVNAME(DITEMTYPE:(EQUIP:ACT:装備ペルソナ):ペルソナ("NO"), 0)% # %CSVNAME(ABL:ACT:初期ペルソナ, 0)%\@】　EXP：+{RESULT}
+		ENDIF
+	ENDIF
+
+	;主人の属性値変動
+	CALL INCREASE_LD,-3
+	CALL SYNC_STATUS,MASTER
+
+	;体力の減少
+	PRINTFORM Stamina(%CALLNAME:ACT%) -{DOWNBASE:ACT:0}　
+	BASE:ACT:0 -= DOWNBASE:ACT:0
+
+	CALL 気絶処理,ACT
+
+	WAIT
+NEXT
+
+
+;閉演メッセージ
+DRAWLINE
+SIF !GETBIT(VAR_店舗リザルト,ARG)
+	CALL EVENT_MESSAGE_SHOW_TENT , -11 , COUNT_ACT
+
+LOCAL = (HEAT + 店舗("人気",ARG)) / 10
+入手￥ = MAX(0, LOCAL * RAND(70,90)/100)
+入手魔貨 = (LOCAL - 入手￥) / 10 + RAND:10
+MONEY += 入手￥ - SHOW_TENT_維持費(ARG)
+MONEY:1 += 入手魔貨 - COST
+;人気の情報
+HEAT = HEAT / 80
+CALL 店舗演算("人気",ARG,HEAT,"+")
+
+PRINTL 
+PRINTL 【収支報告】
+;魔貨
+
+PRINTFORML ￥   おひねり +{入手￥,6}
+PRINTFORML    店舗維持費 -{SHOW_TENT_維持費(ARG),6}
+LOCAL = 入手￥ - SHOW_TENT_維持費(ARG)
+PRINTFORML          合計 \@ LOCAL > 0 ? + # - \@{ABS(LOCAL),6}
+PRINTL 
+PRINTFORML 魔貨 おひねり +{入手魔貨,6}
+IF COST
+	PRINTFORML    レンタル料 -{ABS(COST),6}
+	LOCAL = 入手魔貨 - COST
+	PRINTFORML          合計 \@ LOCAL > 0 ? + # - \@{ABS(LOCAL),6}
+ENDIF
+PRINTL 
+PRINTFORML      店舗人気 \@ HEAT > 0 ? + # - \@{ABS(HEAT),6}
+
+WAIT
+
+;==========================================================
+@EXTEND_MANAGEMENT_SHOW_TENT
+PRINTFORML 現在、この店舗のＬＶは{店舗("規模",VAR_店舗番号)}です。
+IF 店舗("規模",VAR_店舗番号) >= 10
+	PRINTFORMW これ以上拡張できません
+	RETURN
+ENDIF
+
+FOR LOCAL,店舗("規模",VAR_店舗番号)+1,11
+	LOCAL:LOCAL = 1000 * LOCAL
+	LOCAL:12 = SUMARRAY(LOCAL,店舗("規模",VAR_店舗番号)+1,LOCAL+1)
+	PRINTFORML [{LOCAL,2}] 規模を{LOCAL-店舗("規模",VAR_店舗番号)}段階拡張 ￥{LOCAL:12}
+NEXT
+
+PRINTL [ 0]Cancel
+INPUT
+LOCAL:11 = RESULT
+IF RESULT == 0
+	RETURN
+ELSEIF INRANGE(LOCAL:10,店舗("規模",VAR_店舗番号),10)
+	LOCAL:12 = SUMARRAY(LOCAL,店舗("規模",VAR_店舗番号)+1,LOCAL:11+1)
+	PRINTFORML 拡張には￥{LOCAL:12}必要です。拡張しますか？
+	CALL INPUT_YN("YES","NO")
+	SIF RESULT == 1
+		RETURN
+ENDIF
+CALL 店舗演算("規模",VAR_店舗番号,LOCAL:11,"=")
+CALL 店舗演算("接客雇用",VAR_店舗番号,LOCAL:11,"=")
+MONEY -= LOCAL:12
+
+;==========================================================
+;@SHOW_TENT_RENTALDEVIL
+;悪魔レンタルを設定する
+;==========================================================
+@SHOW_TENT_RENTALDEVIL
+#DIM LINE,1
+LINE = LINECOUNT
+DRAWLINE
+REDRAW 0
+$TOP
+LOCAL = 0
+FOR LOCAL:1,0,5
+	LOCAL += レンタル悪魔:VAR_店舗番号:(LOCAL:1)
+NEXT
+CUSTOMDRAWLINE =
+IF SUMARRAY(レンタル悪魔:VAR_店舗番号:0,0,5)
+	PRINT 現在
+	SIF レンタル悪魔:VAR_店舗番号:0
+		PRINTFORM 、%SHOW_TENT_ACTNAME(-2)%×{レンタル悪魔:VAR_店舗番号:0}
+	SIF レンタル悪魔:VAR_店舗番号:1
+		PRINTFORM 、%SHOW_TENT_ACTNAME(-3)%×{レンタル悪魔:VAR_店舗番号:1}
+	SIF レンタル悪魔:VAR_店舗番号:2
+		PRINTFORM 、%SHOW_TENT_ACTNAME(-4)%×{レンタル悪魔:VAR_店舗番号:2}
+	SIF レンタル悪魔:VAR_店舗番号:3
+		PRINTFORM 、%SHOW_TENT_ACTNAME(-5)%×{レンタル悪魔:VAR_店舗番号:3}
+	SIF レンタル悪魔:VAR_店舗番号:4
+		PRINTFORM 、%SHOW_TENT_ACTNAME(-6)%×{レンタル悪魔:VAR_店舗番号:4}
+	PRINTL をレンタルしています
+	PRINTFORML 現在の総レンタル費用：{SHOW_TENT_RENTAL_COST(VAR_店舗番号)}魔貨
+ELSE
+	PRINTL 悪魔をレンタルしていません
+ENDIF
+DRAWLINE
+IF LOCAL < 10
+	PRINTFORML どの悪魔をレンタルしますか？(あと{10-LOCAL}体まで)
+ELSE
+	PRINTL これ以上レンタルできません
+ENDIF
+DRAWLINE
+CALL SHOW_TENT_RENTAL_LIST(SHOW_TENT_ACTNAME(-2),1,10,LOCAL)
+CALL SHOW_TENT_RENTAL_LIST(SHOW_TENT_ACTNAME(-3),5,20,LOCAL)
+SIF 店舗("規模",VAR_店舗番号) >= 2
+	CALL SHOW_TENT_RENTAL_LIST(SHOW_TENT_ACTNAME(-4),20,30,LOCAL)
+SIF 店舗("規模",VAR_店舗番号) >= 4
+	CALL SHOW_TENT_RENTAL_LIST(SHOW_TENT_ACTNAME(-5),50,40,LOCAL)
+SIF 店舗("規模",VAR_店舗番号) >= 6
+	CALL SHOW_TENT_RENTAL_LIST(SHOW_TENT_ACTNAME(-6),100,50,LOCAL)
+PRINTL [ 9] 全て解雇する
+PRINTL [ 0] Return
+INPUT
+LOCAL:1 = RESULT
+IF RESULT == 0
+	REDRAW 1
+	RETURN
+ELSEIF RESULT == 9
+	FOR LOCAL,0,5
+		レンタル悪魔:VAR_店舗番号:LOCAL = 0
+	NEXT
+ELSEIF INRANGE(LOCAL:1/10-1,0,4) && INRANGE(LOCAL:1%10,0,3)
+	LOCAL:2 = LOCAL:1 / 10 - 1
+	SELECTCASE LOCAL:2
+	CASE 2 ; イヌガミの制限
+		SIF 店舗("規模",VAR_店舗番号) < 2
+			GOTO RETRY
+	CASE 3 ; バフォメットの制限
+		SIF 店舗("規模",VAR_店舗番号) < 4
+			GOTO RETRY
+	CASE 4 ; ケルベロスの制限
+		SIF 店舗("規模",VAR_店舗番号) < 6
+			GOTO RETRY
+	ENDSELECT
+	SELECTCASE LOCAL:1 % 10
+	CASE 0
+		LOCAL:3 = -5
+	CASE 1
+		LOCAL:3 = -1
+	CASE 2
+		LOCAL:3 = 1
+	CASE 3
+		LOCAL:3 = 5
+	ENDSELECT
+	レンタル悪魔:VAR_店舗番号:(LOCAL:2) = LIMIT(レンタル悪魔:VAR_店舗番号:(LOCAL:2)+LOCAL:3,0,10-(LOCAL-レンタル悪魔:VAR_店舗番号:(LOCAL:2)))
+ENDIF
+$RETRY
+CLEARLINE LINECOUNT-LINE
+GOTO TOP
+
+@SHOW_TENT_RENTAL_LIST(ARGS,ARG,ARG:1,ARG:2)
+IF ARG:2
+	PRINTBUTTON @"[{ARG:1,2}]-5 " , ARG:1
+	PRINTBUTTON @"[{ARG:1+1,2}]-1 " , ARG:1 + 1
+ELSE
+	SETCOLOR 0x808080
+	PRINTPLAINFORM [{ARG:1,2}]-5 
+	PRINTPLAINFORM [{ARG:1+1,2}]-1 
+	RESETCOLOR
+ENDIF
+IF ARG:2 < 10
+	PRINTBUTTON @"[{ARG:1+2,2}]+1 " , ARG:1+2
+	PRINTBUTTON @"[{ARG:1+3,2}]+5 " , ARG:1+3
+ELSE
+	SETCOLOR 0x808080
+	PRINTPLAINFORM [{ARG:1+2,2}]+1
+	PRINTPLAINFORM [{ARG:1+3,2}]+{ARG:2} 
+	RESETCOLOR
+ENDIF
+PRINTFORML %ARGS,14,LEFT%(\@ ARG ? 1体{ARG,3}魔貨 # %"      タダ"% \@) 
+
+;==========================================================
+;悪魔レンタルのコスト
+;ARG = 店舗番号
+;ARG:1 = 参照キャラ( -1全員 0スライム 1オーク 2イヌガミ 3バフォメット 4ケルベロス )
+;スライム     (1魔貨)        -- 譲渡MAG係数4
+;オーク       (5魔貨)        -- 安い、譲渡MAG係数25(の2乗*4)
+;イヌガミ     (20魔貨)       -- BestialEXPが入る、譲与MAG係数1000
+;バフォメット (50魔貨)       -- 譲渡MAG係数10000
+;ケルベロス   (100魔貨)      -- BestialEXPが入る、譲与MAG係数40000
+;==========================================================
+@SHOW_TENT_RENTAL_COST(ARG,ARG:1=-1,ARG:2=-1)
+#FUNCTION
+LOCAL:0 = レンタル悪魔:ARG:0
+LOCAL:1 = レンタル悪魔:ARG:1*5
+LOCAL:2 = レンタル悪魔:ARG:2*20
+LOCAL:3 = レンタル悪魔:ARG:3*50
+LOCAL:4 = レンタル悪魔:ARG:4*100
+RETURNF (ARG:1==-1) ? SUMARRAY(LOCAL,0,5) # LOCAL:(ARG:1)
+
+;==========================================================
+;見世物小屋におけるMAG譲渡係数(一度に渡せるMAGの限界値)
+;ARG = 参照キャラ( 0～仲魔 -2スライム -3オーク -4イヌガミ -5バフォメット -6ケルベロス )
+;==========================================================
+@SHOW_TENT_MAG_RATE(ARG,ARG:1)
+#FUNCTION
+SELECTCASE ARG
+CASE -2
+	RETURNF 4 * ARG:1 / 8
+CASE -3
+	RETURNF 100 * ARG:1 / 8
+CASE -4
+	RETURNF 1000 * ARG:1 / 8
+CASE -5
+	RETURNF 10000 * ARG:1 / 8
+CASE -6
+	RETURNF 40000 * ARG:1 / 8
+CASE IS >= 0
+	RETURNF MIN( BASE:ARG:ＭＡＧ+TCVAR:ARG:獲得ＭＡＧ-DOWNBASE:ARG:ＭＡＧ , BASE:ARG:LV * (BASE:ARG:LV+20) * ARG:1 / 8)
+ENDSELECT
+
+;==========================================================
+;見世物小屋におけるMAG吸収係数(一度に吸収するMAGの限界値)
+;ARG = 参照キャラ
+;==========================================================
+@SHOW_TENT_MAG_DRAIN_RATE(ARG,ARG:1)
+#FUNCTION
+;レンタルは吸収しない
+SIF ARG < 0
+	RETURNF 0
+LOCAL = MAXBASE:ARG:ＭＡＧ - ( BASE:ARG:ＭＡＧ + TCVAR:ARG:獲得ＭＡＧ - DOWNBASE:ARG:ＭＡＧ )
+LOCAL:1 = MAXBASE:ARG:LV * (20+MAXBASE:ARG:LV) * (5+MAX(ABL:ARG:従順,ABL:ARG:欲望,ABL:ARG:技巧))* ARG:1 /5 
+RETURNF MIN(LOCAL,LOCAL:1)
+
+;==========================================================
+;見世物小屋におけるMAGのやりとり
+;ARG = 渡す側
+;ARG:1 = 渡される側
+;ARG:2 = 渡す回数
+;ARG:3 = 譲渡係数( キス1、愛撫3、フェラ7、アナル8、ヴァギナ10 )
+;==========================================================
+@SHOW_TENT_MAG_EXCHANGE(ARG,ARG:1,ARG:2,ARG:3=10)
+LOCAL = POWER(ARG:3,2) * 100 * ARG:2
+LOCAL:1 = SHOW_TENT_MAG_RATE(ARG,ARG:2)
+LOCAL:2 = SHOW_TENT_MAG_DRAIN_RATE(ARG:1,ARG:2)
+LOCAL:3 = MIN( LOCAL , LOCAL:1 , LOCAL:2 ) * ARG:3 / 10
+;#;SIF !LINEISEMPTY()
+;#; PRINTL
+;#;PRINTFORML MAG譲渡 %SHOW_TENT_ACTNAME(ARG)%から%SHOW_TENT_ACTNAME(ARG:1)%にMIN({LOCAL * ARG:3 / 10},{LOCAL:1 * ARG:3 / 10},{LOCAL:2 * ARG:3 / 10})
+SIF ARG >= 0
+	DOWNBASE:ARG:ＭＡＧ -= LOCAL:3
+SIF ARG:1 >= 0
+	TCVAR:(ARG:1):獲得ＭＡＧ += LOCAL:3
+
+;========================================================
+;参加者の番号に対応した名前
+;========================================================
+@SHOW_TENT_ACTNAME(ARG)
+#FUNCTIONS
+IF LOCAL == 0
+	LOCAL = 1
+	LOCALS:2 = %CSVCALLNAME(SHOW_TENT_ACTNO(-2),0)%
+	LOCALS:3 = %CSVCALLNAME(SHOW_TENT_ACTNO(-3),0)%
+	LOCALS:4 = %CSVCALLNAME(SHOW_TENT_ACTNO(-4),0)%
+	LOCALS:5 = %CSVCALLNAME(SHOW_TENT_ACTNO(-5),0)%
+	LOCALS:6 = %CSVCALLNAME(SHOW_TENT_ACTNO(-6),0)%
+ENDIF
+SELECTCASE ARG
+CASE IS < 0
+	RETURNF LOCALS:(ABS(ARG))
+CASEELSE
+	RETURNF CALLNAME:ARG
+ENDSELECT
+
+;========================================================
+;参加者の獣姦チェック
+;========================================================
+@SHOW_TENT_獣姦(ARG)
+#FUNCTION
+SIF SHOW_TENT_TALENT(ARG,"獣") || SHOW_TENT_TALENT(ARG,"鳥")
+	RETURNF 1
+RETURNF 0
+
+;========================================================
+;参加者の番号に対応したNO
+;========================================================
+@SHOW_TENT_ACTNO(ARG)
+#FUNCTION
+SELECTCASE ARG
+CASE -2
+	RETURNF [[キャラ:スライム]]
+CASE -3
+	RETURNF [[キャラ:オーク]]
+CASE -4
+	RETURNF [[キャラ:イヌガミ]]
+CASE -5
+	RETURNF [[キャラ:バフォメット]]
+CASE -6
+	RETURNF [[キャラ:ケルベロス]]
+CASEELSE
+	RETURNF -1
+ENDSELECT
+
+@SHOW_TENT_HAVE_PENIS(ARG)
+#FUNCTION
+RETURNF ( SHOW_TENT_TALENT(ARG,"オトコ") || SHOW_TENT_TALENT(ARG,"ふたなり") )
+
+@SHOW_TENT_維持費(ARG)
+#FUNCTION
+RETURNF 店舗("規模",ARG) * 100

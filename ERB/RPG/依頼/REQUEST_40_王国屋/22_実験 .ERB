@@ -1,0 +1,58 @@
+@PLAYABLE_OUKOKUYA_REQ_22
+RESULTS = Experiment
+;実験
+SIF GETBIT(依頼フラグ:40:0, 22)
+	RETURN 0
+;ある程度調教師名声が必要
+SIF FLAG:調教師名声 < 400
+	RETURN 0
+RETURN 1
+@EXPLAIN_OUKOKUYA_REQ_22
+RESULTS = 
+RESULTS += "/Experiment(client: Mrs. Ryoko)/"
+;実験(依頼者:ミセス・リョーコ)
+RESULTS += "Difficulty: ☆☆☆☆☆/"
+RESULTS += "Reward: Macca depending on the value of the request fullfilling demon./"
+RESULTS += "     Software [Copernicus]/"
+RESULTS += "/Conditions:/"
+RESULTS += "Talent [Treatment] required,　Ability [Sadism] at Lv5 or higher/"
+RESULTS += "Male　or　(Lesbianism Lv3 or higher and LesbianAddict Lv1 or higher)/"
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+
+@CHARASELLABLE_OUKOKUYA_REQ_22
+SIF !(IS_MALE(COUNT) || (ABL:COUNT:レズっ気 >= 3 && ABL:COUNT:レズ中毒 >= 1))
+	RETURN 0
+SIF !TALENT:COUNT:治療
+	RETURN 0
+SIF ABL:COUNT:サドっ気 < 5
+	RETURN 0
+RETURN 1
+
+;--------------------------------------------------------
+;報酬処理
+;ただし、売却人数・属性変動などは共通で処理済み
+;調教師名声の処理はされてないので適宜処理してください
+;
+;ARGはキャラクター
+;--------------------------------------------------------
+@TAKE_REWARD_OUKOKUYA_REQ_22, ARG
+#LOCALSIZE 1
+CALL CHARA_SELL, ARG, 1
+LOCAL = RESULT
+LOCAL = LOCAL * 125 / 100
+CALL MESSAGE_WINDOW, "", @"＞For fullfilling the request, /＞you got {LOCAL}Macca\@!ITEM:Copernicus ? %" and the Copernicus software"%#\@.", , , , , 4
+SIF !ITEM:Copernicus
+	CALL GET_ITEMS, "Copernicus", 1
+MONEY:1 += LOCAL
+FLAG:調教師名声 += LOCAL / 100
+
+;帳簿閲覧用処理
+CALL 帳簿閲覧, ARG, LOCAL

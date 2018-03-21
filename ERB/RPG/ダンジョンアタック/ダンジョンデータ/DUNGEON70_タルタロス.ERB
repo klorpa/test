@@ -1,0 +1,6309 @@
+;=======================================================================
+;　Tartarus
+;試作型ランダムダンジョンです
+;
+;
+;力=7戦車 11剛毅
+;知=5法皇 9隠者
+;魔=3女帝 チドリ
+;耐=4皇帝 12刑死者
+;速=2女教皇 8正義
+;運=6恋愛 10運命
+;ダンジョンナンバー70
+;=======================================================================
+
+;=======================================================================
+;メモ
+;ダンジョンフラグ:70:(0)=初見さん
+;ダンジョンフラグ:70:(1)= 0:未撃破
+;	    1:5Fボス撃破, プリーステス(肉彦出撃)風花噂
+;	    2:10Fボス撃破, 皇帝女帝(美鶴出撃, 風花出現)
+;	    3:15Fボス撃破, 法王＆ラブホ()アイギス依頼
+;	    4:20Fボス撃破, アイギス(アイギス・コロマル出現)
+;	    5:25Fボス撃破, 正義戦車(天田・新垣出現)
+;	    6:30Fボス撃破, 隠者()
+;	    7:35Fボス撃破, 運命剛毅(新垣離脱)
+;	    8:40Fボス撃破, チドリ(新垣死亡or生還)
+;	    9:45Fボス撃破, 刑死者()
+;	   10:49Fボス撃破, ニュクス()
+
+;35Fから戻らずに行かないとチドリ＆新垣いなくなる(40Fのボスいなくなる)
+;30F時点ですでに新垣がいない場合もチドリはいない
+
+;ダンジョンフラグ:70:(10)=鬼太郎(-1いない,0未出現,1~いる)
+;ダンジョンフラグ:70:(11)=ハム子
+;ダンジョンフラグ:70:(12)=ゆかり
+;ダンジョンフラグ:70:(13)=テレッテ
+;ダンジョンフラグ:70:(14)=肉
+;ダンジョンフラグ:70:(15)=ブリリアント
+;ダンジョンフラグ:70:(16)=ロボ
+;ダンジョンフラグ:70:(17)=今日のわんこ
+;ダンジョンフラグ:70:(18)=ショタ
+;ダンジョンフラグ:70:(19)=料理上手
+;ダンジョンフラグ:70:(20)=チドリん
+;ダンジョンフラグ:70:(21)=メティス
+;ダンジョンフラグ:70:(22)=風花
+;ダンジョンフラグ:70:(23)=エリザベス
+;ダンジョンフラグ:70:(50)=現在階層
+;ダンジョンフラグ:70:(51)=5F宝
+;ダンジョンフラグ:70:(52)=10F宝
+;ダンジョンフラグ:70:(53)=15F宝
+;ダンジョンフラグ:70:(54)=20F宝
+;ダンジョンフラグ:70:(55)=25F宝
+;ダンジョンフラグ:70:(56)=30F宝
+;ダンジョンフラグ:70:(57)=35F宝
+;ダンジョンフラグ:70:(58)=40F宝
+;ダンジョンフラグ:70:(59)=45F宝
+
+;ダンジョンフラグ:70:(63)=B5F宝
+;ダンジョンフラグ:70:(64)=B10F宝
+
+;ダンジョンフラグ:70:(68)=モナド中間ボス(エレボス)撃破フラグ
+;ダンジョンフラグ:70:(69)=モナド中間, ついた？
+;ダンジョンフラグ:70:(70)=アイギス処置 (1返却2お持ち帰り)
+;ダンジョンフラグ:70:(71)=チドリ処置 (1返却2お持ち帰り)
+;ダンジョンフラグ:70:(87)=ザベス戦闘中用フラグ
+;ダンジョンフラグ:70:(88)=探索打ち切りフラグ(1打ち切り)
+;ダンジョンフラグ:70:(89)=風花の噂(1話聞く2風花助けられた3風花お持ち帰り)
+;ダンジョンフラグ:70:(90)=エリザベス現在のペルソナ, チドリのセリフ操作
+;ダンジョンフラグ:70:(91)=エリザベスブチ切れフラグ
+;ダンジョンフラグ:70:(92)=死神コンバータ貰ったフラグ
+;ダンジョンフラグ:70:(93)=その階にいる人番号
+;ダンジョンフラグ:70:(94)=貰った主人公キャラ(1男2女)
+;ダンジョンフラグ:70:(95)=特別ryの探索可能メンバー数
+;ダンジョンフラグ:70:(96)=モナド奥ボス撃破フラグ
+;ダンジョンフラグ:70:(97)=到達階層
+;ダンジョンフラグ:70:(98)=Tartarus発見フラグ
+;ダンジョンフラグ:70:(99)=(宝箱用使い捨てフラグ)
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_70
+;今が「夜」
+IF TIME == 3
+;	SIF ダンジョンフラグ:70:98 == 1
+	;踏破指令を受けている
+	SIF [[イベントフラグ:Tartarus踏破指令]]
+		RETURN 1
+ENDIF
+
+RETURN 0
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_70
+RESULTS = Tartarus
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_70
+PRINT Tartarus 
+IF FLAG:現M == 0
+	PRINTFORML    1F　Entrance
+ELSEIF ダンジョンフラグ:70:(50) >= 0
+	PRINTFORML    {(ダンジョンフラグ:70:50)+1}F
+ELSE
+	PRINTFORML    B{(-(ダンジョンフラグ:70:50))}F
+ENDIF
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_70_0_6_5
+RESULTS = Ｔ
+@TILE_MARK_70_0_13_9
+RESULTS = Ｅ
+@TILE_MARK_70_2_6_2
+RESULTS = Ｅ
+@TILE_MARK_70_3_2_6
+RESULTS = Ｅ
+@TILE_MARK_70_4_2_6
+RESULTS = Ｅ
+@TILE_MARK_70_5_14_2
+RESULTS = Ｅ
+@TILE_MARK_70_6_10_10
+RESULTS = Ｅ
+@TILE_MARK_70_7_2_6
+RESULTS = Ｅ
+@TILE_MARK_70_8_2_6
+RESULTS = Ｅ
+@TILE_MARK_70_9_5_6
+RESULTS = Ｅ
+@TILE_MARK_70_10_14_10
+RESULTS = Ｅ
+@TILE_MARK_70_11_6_10
+RESULTS = Ｅ
+@TILE_MARK_70_20_4_8
+RESULTS = Ｅ
+
+
+
+@TILE_MARK_COMMON_70_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+;鬼太郎・ハム子
+CASE 22
+	IF ( ダンジョンフラグ:70:(10) >= 1 || ダンジョンフラグ:70:(11) >=1 ) && ダンジョンフラグ:70:(94) != 0
+		RESULTS = 主
+	ELSE
+		RESULTS = □
+	ENDIF
+;ゆかり
+CASE 23 
+	IF ダンジョンフラグ:70:(12)>=1
+		RESULTS = ゆ
+	ELSE
+		RESULTS = □
+	ENDIF
+;順平
+CASE 24
+	IF ダンジョンフラグ:70:(13)>=1
+		RESULTS = 順
+	ELSE
+		RESULTS = □
+	ENDIF
+;明彦
+CASE 25
+	IF ダンジョンフラグ:70:(14)>=1
+		RESULTS = 明
+	ELSE
+		RESULTS = □
+	ENDIF
+;美鶴
+CASE 26
+	IF ダンジョンフラグ:70:(15)>=1
+		RESULTS = 美
+	ELSE
+		RESULTS = □
+	ENDIF
+;風花
+CASE 27 
+	IF ダンジョンフラグ:70:(22)>=1
+		RESULTS = 風
+	ELSE
+		RESULTS = □
+	ENDIF
+;アイギス
+CASE 28
+	IF ダンジョンフラグ:70:(16)>=1
+		RESULTS = ア
+	ELSE
+		RESULTS = □
+	ENDIF
+;コロ丸
+CASE 29
+	IF ダンジョンフラグ:70:(17)>=1
+		RESULTS = 犬
+	ELSE
+		RESULTS = □
+	ENDIF
+;ショタ
+CASE 30
+	IF ダンジョンフラグ:70:(18)>=1
+		RESULTS = 天
+	ELSE
+		RESULTS = □
+	ENDIF
+;料理上手
+CASE 31
+	IF ダンジョンフラグ:70:(19)>=1 && ダンジョンフラグ:70:1 != 7
+		RESULTS = 荒
+	ELSE
+		RESULTS = □
+	ENDIF
+CASEELSE
+	RETURN 1
+ENDSELECT
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_70, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "s"
+		RETURN 224
+	CASE "y"
+		RETURN 234
+	CASE "t"
+		RETURN 244
+	CASE "n"
+		RETURN 254
+	CASE "m"
+		RETURN 264
+	CASE "f"
+		RETURN 274
+	CASE "i"
+		RETURN 284
+	CASE "k"
+		RETURN 294
+	CASE "a"
+		RETURN 304
+	CASE "g"
+		RETURN 314
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_70, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:70~99
+;LOCAL:4 イベント
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 4
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+		LOCAL:4++
+ENDSELECT
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_70,ARG
+FLAG:現M = 0
+FLAG:現X = 8
+FLAG:現Y = 10
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_70
+#LOCALSIZE 2
+IF ダンジョンフラグ:70:96 == 1
+	ダンジョンフラグ:70:96 = 2
+	PRINTFORMW ....In the depths below Tartarus, someone is waiting for %CALLNAME:MASTER%...
+ENDIF
+IF FLAG:DEBUG == 1
+	SETCOLOR 0x00ffff
+	PRINTFORMW Debug mode shortcut stairs appeared
+	RESETCOLOR
+ENDIF
+;階層リセット
+ダンジョンフラグ:70:(50)=0
+;探索できるメンバー計算
+IF ダンジョンフラグ:70:(88) == 0 && ダンジョンフラグ:70:0 > 0
+	CALL TARTAR_MEMBERNUM
+ELSE
+	ダンジョンフラグ:70:(95) = 99
+ENDIF
+IF ダンジョンフラグ:70:0 == 0
+	ダンジョンフラグ:70:(10) = 1
+	ダンジョンフラグ:70:(11) = 1
+	ダンジョンフラグ:70:(12) = 1
+	ダンジョンフラグ:70:(13) = 1
+	ダンジョンフラグ:70:(14) = 1
+	ダンジョンフラグ:70:(15) = 1
+	ダンジョンフラグ:70:(16) = 0
+	ダンジョンフラグ:70:(17) = 0
+	ダンジョンフラグ:70:(18) = 0
+	ダンジョンフラグ:70:(19) = 0
+	ダンジョンフラグ:70:(20) = 0
+	ダンジョンフラグ:70:(21) = 1
+	ダンジョンフラグ:70:(22) = 0
+	ダンジョンフラグ:70:(23) = 0
+	;鬼太郎貰ってたらいない
+	SIF ダンジョンフラグ:70:(94) != 2
+		ダンジョンフラグ:70:(10) = (-1)
+	;ハム子貰ってたらいない
+	SIF ダンジョンフラグ:70:(94) != 1
+		ダンジョンフラグ:70:(11) = (-1)
+	PRINTL 
+	PRINTL 
+	PRINTL The Dark Hour.
+	PRINTL The mysterious time between one day and the next.
+	PRINTL During which a huge tower named Tartarus appears.
+	PRINTFORML %CALLNAME:MASTER% entered.
+	PRINTW .......
+	PRINTW .....
+	PRINTW ...
+	PRINTFORMW Upon entering, %CALLNAME:MASTER% saw several young boys and girls.
+	PRINTW Noticing you, an especially attractive woman amongst them nodded at you.
+	PRINTFORMW 「Are you %CALLNAME:MASTER%?」
+	PRINTW 「I heard from the Director.」
+	PRINTW 「I am Mitsuru Kirijo.」
+	PRINTW 「We are the Specialized Extracurricular Execution Squad of Gekkoukan High School.」
+	PRINTW 「We exterminate the shadows that harm people and explore Tartarus.」
+	PRINTW 「Just the other day, we finally got enough people.」
+	PRINTW 「Our personnel and abilities are still unripe however.」
+	PRINTW 「Therefore, we appreaciate any aid you can give us.」
+	PRINTW 「As people with the same purpose, we thank you in advance.」
+	ダンジョンフラグ:70:0 = 1
+	;=======================================================================
+	;１階を自動マッピング
+	;=======================================================================
+	;SAVESTR:GET_FLOOR_ANALYZE_NUM(FLAG:現ダンジョン, 0) = %"2"* 13 * 17%
+	FOR LOCAL:1, 0, FLAG:最大Y
+		FOR LOCAL, 0, FLAG:最大X
+			CALLF DPOINT("SET" , 2 , LOCAL , LOCAL:1 , 0 , @"ダンジョン%TOSTR(FLAG:現ダンジョン , "00")%" )
+		NEXT
+	NEXT
+	ダンジョンフラグ:(FLAG:現ダンジョン):100 = ダンジョンフラグ:(FLAG:現ダンジョン):100 % 10000 * 10000 + 1317
+	;CALL TARTAR_MAPDEL
+	;C:0 = COUNT
+	;REPEAT FLAG:最大X
+	;	C:1 = COUNT
+	;	FOR A,0,FLAG:最大Y,1
+	;		TA:(FLAG:現ダンジョン):(C:1):COUNT = 0
+	;	NEXT
+	;	COUNT = C:1
+	;REND
+	;COUNT = C:0
+	;=======================================================================
+ELSEIF ダンジョンフラグ:70:(95) < 3 && ダンジョンフラグ:70:(88) == 0
+	PRINTFORMW When %CALLNAME:MASTER% entered Tartarus, Ikutsuki appeared.
+	PRINTFORMW 「Hi, %CALLNAME:MASTER%. It's been a long time, huh?」
+	PRINTW 「As you may have guessed, the reason I'm meeting you today is because of SEES.」
+	PRINTW ....Thinking on it, that group that always enters, can't be seen today.
+	PRINTW 「No, even I was leaving the search to them.」
+	PRINTW 「Though, was there an accident? There are no longer enough members for a search.」
+	PRINTW 「Sorry but, we will break off the search.」
+	PRINTW 「But, please continue yourself, since my request hasn't been completed.」
+	PRINTW Saying that, Ikutsuki left...
+	PRINTW ......
+	PRINTW ....
+	PRINTW ...
+	PRINTL 
+	ダンジョンフラグ:70:(88) = 1
+ELSEIF ダンジョンフラグ:70:(1) >= 2 && ダンジョンフラグ:70:(89) == 2 && ダンジョンフラグ:70:(22) == 0
+	ダンジョンフラグ:70:(22) = 1
+	PRINTW It seems SEES has more members now.
+ELSEIF ダンジョンフラグ:70:(1) >= 4 && ダンジョンフラグ:70:(17) == 0
+	ダンジョンフラグ:70:(17) = 1
+	SIF ダンジョンフラグ:70:(70) == 1
+		ダンジョンフラグ:70:(16) = 1
+	PRINTW It seems SEES has more members now.
+ELSEIF ダンジョンフラグ:70:(1) >= 5 && ダンジョンフラグ:70:(18) == 0
+	ダンジョンフラグ:70:(18) = 1
+	ダンジョンフラグ:70:(19) = 1
+	PRINTW It seems SEES has more members now.
+	ダンジョンフラグ:70:(20) = 1
+ELSEIF ダンジョンフラグ:70:(1) >= 7 && ダンジョンフラグ:70:(19) >= 1 && ダンジョンフラグ:70:(20) >= 1
+	ダンジョンフラグ:70:(19) = (-1)
+	ダンジョンフラグ:70:(20) = (-1)
+	PRINTW ....it seems SEES somehow lost members.
+ENDIF
+
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_70,ARG,ARG:1
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_70
+SELECTCASE FLAG:現M
+	CASE 0
+		CALL TARTAR_MEMBERNUM
+		;１階エントランス
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		;                        01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000106660100000"
+		CALL MAKE_FLOOR_LINE, 2,"00011101110111000"
+		CALL MAKE_FLOOR_LINE, 3,"00111101110111i00"
+		CALL MAKE_FLOOR_LINE, 4,"0111110111011k110"
+		CALL MAKE_FLOOR_LINE, 5,"011111T1111y11110"
+		CALL MAKE_FLOOR_LINE, 6,"01111m11111111110"
+		CALL MAKE_FLOOR_LINE, 7,"0111n111111111110"
+		CALL MAKE_FLOOR_LINE, 8,"011111111s1111g10"
+		CALL MAKE_FLOOR_LINE, 9,"00111f11111119100"
+		CALL MAKE_FLOOR_LINE,10,"0001a111111t11000"
+		CALL MAKE_FLOOR_LINE,11,"00000110801100000"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;モナド入り口の設置, ２週目かクリア済み, あるいは屋上到達が条件
+		SIF FLAG:5 == 9 || ダンジョンフラグ:70:(97) > 9 || FLAG:DEBUG == 1
+			CALL SET_TILE,12,2,0,0,7
+	CASE 2
+		;５階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000111000000000"
+		CALL MAKE_FLOOR_LINE, 2,"00000191000000000"
+		CALL MAKE_FLOOR_LINE, 3,"00000111000000000"
+		CALL MAKE_FLOOR_LINE, 4,"00000010000000000"
+		CALL MAKE_FLOOR_LINE, 5,"01110010001001110"
+		CALL MAKE_FLOOR_LINE, 6,"01111111111111610"
+		CALL MAKE_FLOOR_LINE, 7,"01110010001001110"
+		CALL MAKE_FLOOR_LINE, 8,"00000000001000000"
+		CALL MAKE_FLOOR_LINE, 9,"00000000011100000"
+		CALL MAKE_FLOOR_LINE,10,"00000000011100000"
+		CALL MAKE_FLOOR_LINE,11,"00000000011100000"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,10,10,ダンジョンフラグ:70:51,0,3
+		;イベント(女教皇)の設置
+		CALL SET_TILE,10,6,ダンジョンフラグ:70:1,0,4
+	CASE 3
+		;１０階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000111011101110"
+		CALL MAKE_FLOOR_LINE, 2,"00000161111111110"
+		CALL MAKE_FLOOR_LINE, 3,"00000111011101110"
+		CALL MAKE_FLOOR_LINE, 4,"00000000000000100"
+		CALL MAKE_FLOOR_LINE, 5,"01110000011101110"
+		CALL MAKE_FLOOR_LINE, 6,"01911111111101110"
+		CALL MAKE_FLOOR_LINE, 7,"01110010011101110"
+		CALL MAKE_FLOOR_LINE, 8,"00000010000000100"
+		CALL MAKE_FLOOR_LINE, 9,"00000111000001110"
+		CALL MAKE_FLOOR_LINE,10,"00000111111111110"
+		CALL MAKE_FLOOR_LINE,11,"00000111000001110"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,10,2,ダンジョンフラグ:70:52,0,3
+		;イベント(女帝・皇帝)の設置
+		CALL SET_TILE,10,10,ダンジョンフラグ:70:1,1,4
+	CASE 4
+		;１５階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000111000001110"
+		CALL MAKE_FLOOR_LINE, 2,"00111111111001110"
+		CALL MAKE_FLOOR_LINE, 3,"00100111001001110"
+		CALL MAKE_FLOOR_LINE, 4,"00100010001000100"
+		CALL MAKE_FLOOR_LINE, 5,"01110111001001110"
+		CALL MAKE_FLOOR_LINE, 6,"01911111111111110"
+		CALL MAKE_FLOOR_LINE, 7,"01110111001001110"
+		CALL MAKE_FLOOR_LINE, 8,"00100000001000100"
+		CALL MAKE_FLOOR_LINE, 9,"00100111001001110"
+		CALL MAKE_FLOOR_LINE,10,"00111111111001610"
+		CALL MAKE_FLOOR_LINE,11,"00000111000001110"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,14,2,ダンジョンフラグ:70:53,0,3
+		;イベント(法皇・恋愛)の設置
+		CALL SET_TILE,10,6,ダンジョンフラグ:70:1,2,4
+	CASE 5
+		;２０階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01110111011101110"
+		CALL MAKE_FLOOR_LINE, 2,"01111111111111910"
+		CALL MAKE_FLOOR_LINE, 3,"01110111011101110"
+		CALL MAKE_FLOOR_LINE, 4,"00000000001000000"
+		CALL MAKE_FLOOR_LINE, 5,"01110011011001110"
+		CALL MAKE_FLOOR_LINE, 6,"01111111111111110"
+		CALL MAKE_FLOOR_LINE, 7,"01110110001101110"
+		CALL MAKE_FLOOR_LINE, 8,"00000010000000000"
+		CALL MAKE_FLOOR_LINE, 9,"01110111011101110"
+		CALL MAKE_FLOOR_LINE,10,"01111111111111610"
+		CALL MAKE_FLOOR_LINE,11,"01110111011101110"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,2,10,ダンジョンフラグ:70:54,0,3
+		;イベント(アイギス)の設置
+		CALL SET_TILE,6,6,ダンジョンフラグ:70:1,3,4
+	CASE 6
+		;２５階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000111011101110"
+		CALL MAKE_FLOOR_LINE, 2,"00000111111111610"
+		CALL MAKE_FLOOR_LINE, 3,"00000111011101110"
+		CALL MAKE_FLOOR_LINE, 4,"00000010000000000"
+		CALL MAKE_FLOOR_LINE, 5,"01110010000000000"
+		CALL MAKE_FLOOR_LINE, 6,"01111111000000000"
+		CALL MAKE_FLOOR_LINE, 7,"01110010000000000"
+		CALL MAKE_FLOOR_LINE, 8,"00000010000000000"
+		CALL MAKE_FLOOR_LINE, 9,"01110111011100000"
+		CALL MAKE_FLOOR_LINE,10,"01111111119100000"
+		CALL MAKE_FLOOR_LINE,11,"01110111011100000"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,2,6,ダンジョンフラグ:70:55,0,3
+		;イベント(戦車・正義)の設置
+		CALL SET_TILE,6,6,ダンジョンフラグ:70:1,4,4
+	CASE 7
+		;３０階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000111011100000"
+		CALL MAKE_FLOOR_LINE, 2,"00000111016100000"
+		CALL MAKE_FLOOR_LINE, 3,"00000111011100000"
+		CALL MAKE_FLOOR_LINE, 4,"00000010001000000"
+		CALL MAKE_FLOOR_LINE, 5,"01110111011101110"
+		CALL MAKE_FLOOR_LINE, 6,"01911111011111110"
+		CALL MAKE_FLOOR_LINE, 7,"01110111011101110"
+		CALL MAKE_FLOOR_LINE, 8,"00000010001000000"
+		CALL MAKE_FLOOR_LINE, 9,"00000110001100000"
+		CALL MAKE_FLOOR_LINE,10,"00000111111100000"
+		CALL MAKE_FLOOR_LINE,11,"00000011011000000"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,14,6,ダンジョンフラグ:70:56,0,3
+		;イベント(隠者)の設置
+		CALL SET_TILE,10,10,ダンジョンフラグ:70:1,5,4
+	CASE 8
+		;３５階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01110111000000000"
+		CALL MAKE_FLOOR_LINE, 2,"01111111000000000"
+		CALL MAKE_FLOOR_LINE, 3,"01110111000000000"
+		CALL MAKE_FLOOR_LINE, 4,"00000010000000000"
+		CALL MAKE_FLOOR_LINE, 5,"01110110011001110"
+		CALL MAKE_FLOOR_LINE, 6,"01911111111111110"
+		CALL MAKE_FLOOR_LINE, 7,"01110011001101110"
+		CALL MAKE_FLOOR_LINE, 8,"00000010001000000"
+		CALL MAKE_FLOOR_LINE, 9,"00000111011101110"
+		CALL MAKE_FLOOR_LINE,10,"00000111011111610"
+		CALL MAKE_FLOOR_LINE,11,"00000111011101110"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,10,10,ダンジョンフラグ:70:57,0,3
+		;イベント(剛毅・運命)の設置
+		CALL SET_TILE,10,6,ダンジョンフラグ:70:1,6,4
+	CASE 9
+		;４０階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000011111000000"
+		CALL MAKE_FLOOR_LINE, 2,"00000011111000000"
+		CALL MAKE_FLOOR_LINE, 3,"00000011111000000"
+		CALL MAKE_FLOOR_LINE, 4,"00000000100000000"
+		CALL MAKE_FLOOR_LINE, 5,"00000110101100000"
+		CALL MAKE_FLOOR_LINE, 6,"00001911111110000"
+		CALL MAKE_FLOOR_LINE, 7,"00000110101100000"
+		CALL MAKE_FLOOR_LINE, 8,"00000000100000000"
+		CALL MAKE_FLOOR_LINE, 9,"00000011111000000"
+		CALL MAKE_FLOOR_LINE,10,"00000011111000000"
+		CALL MAKE_FLOOR_LINE,11,"00000011111000000"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,11,6,ダンジョンフラグ:70:58,0,3
+		;イベント(チドリ)の設置
+		CALL SET_TILE,8,4,ダンジョンフラグ:70:1,7,4
+
+		;階段の設置
+		SIF イベントフラグ:9:0>=3
+			CALL SET_TILE,8,2,1,1,6
+	CASE 10
+		;４５階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01110111011100000"
+		CALL MAKE_FLOOR_LINE, 2,"01111161111100000"
+		CALL MAKE_FLOOR_LINE, 3,"01110111011100000"
+		CALL MAKE_FLOOR_LINE, 4,"00000000001000000"
+		CALL MAKE_FLOOR_LINE, 5,"00000111011100000"
+		CALL MAKE_FLOOR_LINE, 6,"00000111111100000"
+		CALL MAKE_FLOOR_LINE, 7,"00000111011100000"
+		CALL MAKE_FLOOR_LINE, 8,"00000010000000000"
+		CALL MAKE_FLOOR_LINE, 9,"00000111011101110"
+		CALL MAKE_FLOOR_LINE,10,"00000111111111910"
+		CALL MAKE_FLOOR_LINE,11,"00000111011101110"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,2,2,ダンジョンフラグ:70:59,0,3
+		;イベント(刑死者)の設置
+		CALL SET_TILE,8,6,ダンジョンフラグ:70:1,8,4
+	CASE 11
+		;４９階
+		FLAG:最大X = 17
+		FLAG:最大Y = 13
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 2,"00000111111100000"
+		CALL MAKE_FLOOR_LINE, 3,"00000111111100000"
+		CALL MAKE_FLOOR_LINE, 4,"00000111111100000"
+		CALL MAKE_FLOOR_LINE, 5,"00000000100000000"
+		CALL MAKE_FLOOR_LINE, 6,"00000001110000000"
+		CALL MAKE_FLOOR_LINE, 7,"00000001110000000"
+		CALL MAKE_FLOOR_LINE, 8,"00000001110000000"
+		CALL MAKE_FLOOR_LINE, 9,"00000111111100000"
+		CALL MAKE_FLOOR_LINE,10,"00000191111100000"
+		CALL MAKE_FLOOR_LINE,11,"00000111111100000"
+		CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+		;宝箱の設置
+		CALL SET_TILE,2,2,ダンジョンフラグ:70:59,0,3
+		;イベント(ニュクス)の設置
+		CALL SET_TILE,8,3,ダンジョンフラグ:70:1,9,4
+	CASE 20
+		;Ｂ５階
+		FLAG:最大X = 10
+		FLAG:最大Y = 11
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0000111100"
+		CALL MAKE_FLOOR_LINE, 2,"0000111100"
+		CALL MAKE_FLOOR_LINE, 3,"0000001000"
+		CALL MAKE_FLOOR_LINE, 4,"0111001110"
+		CALL MAKE_FLOOR_LINE, 5,"0111111170"
+		CALL MAKE_FLOOR_LINE, 6,"0111001110"
+		CALL MAKE_FLOOR_LINE, 7,"0001000000"
+		CALL MAKE_FLOOR_LINE, 8,"0011910000"
+		CALL MAKE_FLOOR_LINE, 9,"0011110000"
+		CALL MAKE_FLOOR_LINE,10,"0000000000"
+		;宝箱の設置　中身が定義されていないのでとりあえずコメントアウト
+		;CALL SET_TILE,5,2,ダンジョンフラグ:70:63,0,3
+		;イベント(エレボス)の設置
+		CALL SET_TILE,6,5,ダンジョンフラグ:70:68,0,4
+	CASE 21
+		;Ｂ１０階
+		FLAG:最大X = 10
+		FLAG:最大Y = 11
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0001111000"
+		CALL MAKE_FLOOR_LINE, 2,"0001111000"
+		CALL MAKE_FLOOR_LINE, 3,"0001111000"
+		CALL MAKE_FLOOR_LINE, 4,"0110110110"
+		CALL MAKE_FLOOR_LINE, 5,"0811111110"
+		CALL MAKE_FLOOR_LINE, 6,"0110110110"
+		CALL MAKE_FLOOR_LINE, 7,"0001111000"
+		CALL MAKE_FLOOR_LINE, 8,"0001111000"
+		CALL MAKE_FLOOR_LINE, 9,"0001111000"
+		CALL MAKE_FLOOR_LINE,10,"0000000000"
+		;宝箱の設置
+		CALL SET_TILE,8,5,ダンジョンフラグ:70:64,0,3
+		;イベント(刈り取る者)の設置
+		CALL SET_TILE,4,2,ダンジョンフラグ:70:96,0,4
+		;イベント(エリザベス)の設置
+		SIF ダンジョンフラグ:70:96 >= 2 && ダンジョンフラグ:70:96 <= 3
+			CALL SET_TILE,4,2,1,1,4
+	CASEELSE
+		CALL RANDOM_DONGEON_1
+
+
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_70
+CALL EVENT_DUNGEON_70
+RETURN RESULT
+
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_70,ARG
+;ARG == 進入時の向き　0の場合ワープなど
+CALL EVENT_DUNGEON_70, ARG , 0
+RETURN RESULT
+
+@EVENT_DUNGEON_70, ARG, ARG:1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+;==========
+;出口の処理
+;==========
+CASE 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+CASE 3
+	CALL TARTAROS_70_TREASUREBOXS
+	RETURN 1
+;========
+;eventの処理
+;========
+CASE 4
+	SELECTCASE FLAG:現M
+		CASE 0
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		CASE 22
+		IF ダンジョンフラグ:70:(94) == 1
+			;女主人公
+			IF ダンジョンフラグ:70:(11) == 1
+				PRINTW The girl nodded lightly....
+				ダンジョンフラグ:70:(11) = 2
+			ELSEIF ダンジョンフラグ:70:(70) == 11 && ダンジョンフラグ:70:92 == 0 && ITEM:Tartarus == 0 && ダンジョンフラグ:70:(16) > 0
+				PRINTW ....?
+				PRINTW The girl gave you some kind of software.
+				PRINTW Apparently it's 「Thanks for helping Aegis」.
+				PRINTL 
+				PRINTW [Tartarus] obtained.
+				ITEM:Tartarus += 1
+				ダンジョンフラグ:70:92 = 1
+			ELSEIF ダンジョンフラグ:70:(11) >= 2
+				PRINTW The girl is absent-minded...
+			ENDIF
+		ELSE
+			;男主人公
+			IF ダンジョンフラグ:70:(10) == 1
+				PRINTW The boy nodded lightly...
+				ダンジョンフラグ:70:(10) = 2
+			ELSEIF ダンジョンフラグ:70:(70) == 1 && ダンジョンフラグ:70:92 == 0 && ITEM:Tartarus == 0 && ダンジョンフラグ:70:(16) > 0
+				PRINTW ……？
+				PRINTW The boy gave you some kind of software.
+				PRINTW Apparently it's 「Thanks for helping Aegis」.
+				PRINTL 
+				PRINTW [Tartarus] obtained.
+				ITEM:Tartarus += 1
+				ダンジョンフラグ:70:92 = 1
+			ELSEIF ダンジョンフラグ:70:(10) >= 2
+				PRINTW The boy is absent minded...
+			ENDIF
+		ENDIF
+		CASE 23
+		;ゆかり
+		IF ダンジョンフラグ:70:(12) == 1
+			PRINTW 「Th-then, nice to meet you.」
+			PRINTW 「I am Yukari Takeba, thank you in advance.」
+			PRINTFORMW The girl named Yukari Takeba awkwardly introduced herself to %CALLNAME:MASTER%...
+			ダンジョンフラグ:70:(12) = 2
+		ELSEIF ダンジョンフラグ:70:(12) >= 2
+			PRINTW Yukari Takeba is here.
+			IF ダンジョンフラグ:70:(89) == 0 && ダンジョンフラグ:70:(1) == 1
+				PRINTFORMW 「Ah, %CALLNAME:MASTER%.」
+				PRINTW 「I have something to talk to you about, so...」
+				PRINTW 「Recently, a student from our school seems to have gotten lost in Tartarus...」
+				PRINTW 「Th-thus!」
+				PRINTW 「Because we haven't found her yet, will you bring us to her if you find her?」
+				PRINTL 
+				PRINTW You learned of the 「Missing Girl」
+				ダンジョンフラグ:70:(89) = 1
+				RETURN 0
+			ELSEIF ダンジョンフラグ:70:(1) == 0
+				PRINTW 「I saw these awfully strong shadows that look like insects.」
+				PRINTW 「Called 『Grave Beetle』s, they are strong against zan and Elect attacks」
+				PRINTW 「Try not to use those on them.」
+			ELSEIF ダンジョンフラグ:70:(1) == 1
+				PRINTW 「You might sometimes come across us in the dungeon.」
+				PRINTW 「If we're in a pinch, then could you please help us?」
+				PRINTW 「For now, I thank you for the assistance...」
+			ELSEIF ダンジョンフラグ:70:(1) == 2
+				PRINTW 「Tartarus, the shadows seem to get stronger as you ascend...」
+				PRINTW 「If you feel they are too tough, you can train on a lower floor. It might be better to get prepared on the lower floors.」
+			ELSE
+				PRINTW 「Tartarus, the shadows seem to get stronger as you ascend...」
+				PRINTW 「If you feel they are too tough, you can train on a lower floor. It might be better to get prepared on the lower floors.」
+			ENDIF
+		ENDIF
+		CASE 24
+		;テレッテ
+		IF ダンジョンフラグ:70:(13) == 1
+			PRINTFORMW 「Are you %CALLNAME:MASTER%?」
+			PRINTW 「I am Junpei Iori, best regards!」
+			PRINTFORMW The boy named Junpei Iori casually introduced himself to %CALLNAME:MASTER%...
+			ダンジョンフラグ:70:(13) = 2
+		ELSEIF ダンジョンフラグ:70:(13) >= 2
+			PRINTW Junpei is here.
+			IF ダンジョンフラグ:70:(89) == 0 && ダンジョンフラグ:70:(1) == 1
+				PRINTFORMW 「Ah, %CALLNAME:MASTER%.」
+				PRINTW 「I have something to talk to you about by the way.」
+				PRINTW 「One of our students went missing in Tartarus.」
+				PRINTW 「May I ask you to rescue her if you find her?」
+				PRINTL 
+				PRINTW You learned of the 「Missing Girl」
+				ダンジョンフラグ:70:(89) = 1
+				RETURN 0
+			ELSEIF ダンジョンフラグ:70:(1) == 0
+				PRINTW 「Hey, you are a demon user?」
+				PRINTW 「Aren't they scary?」
+			ELSEIF ダンジョンフラグ:70:(1) == 1
+				PRINTW 「From Floor ６ onward a bird called Venus Eagle appears.」
+				PRINTW 「Be careful as they are fast and strong against Wind attacks.」
+			ELSEIF ダンジョンフラグ:70:(1) == 2
+				PRINTW 「Ah damn.」
+				PRINTW 「There was a shadow phantom witch that looked like a cute girl.」
+				PRINTW 「Though it seems easy if you can resist Fire, its hits hurt...」
+			ELSEIF ダンジョンフラグ:70:(1) == 3
+				PRINTW 「There are treasure chests lying around Tartarus.」
+				PRINTW 「If you can find expensive items, they are quite lucrative to sell.」
+			ELSEIF ダンジョンフラグ:70:(1) == 4
+				PRINTW 「On machine-like enemies, water and Elect attacks work well.」
+				PRINTW 「And using Gun and Grav attacks on flying enemies can shake their nerves.」
+			ELSEIF ダンジョンフラグ:70:(1) == 5
+				PRINTW 「The other day, my attack was reflected when I slashed at a shadow!」
+				PRINTW 「Be warned about a shadow that looks like a fox!」
+			ELSE
+				PRINTW 「If you have demons, then you might have one that looks like an attractive lady...」
+				PRINTW 「Ah, no! Don't think I'm strange! I'm just thinking aloud!」
+			ENDIF
+		ENDIF
+		CASE 25
+		;肉
+		IF ダンジョンフラグ:70:(14) == 1
+				PRINTW 「I am Akihiko Sanada.」
+				PRINTW 「My best regards.」
+				PRINTW The smart and manly boy said hello...
+				ダンジョンフラグ:70:(14) = 2
+		ELSEIF ダンジョンフラグ:70:(14) >= 2
+			PRINTW Akihiko is here.
+			IF ダンジョンフラグ:70:(1) == 0
+				PRINTW 「I was injured a short while ago by a shadow attack.」
+				PRINTW 「Mitsuru benched me until my injuries healed.」
+			ELSEIF ダンジョンフラグ:70:(1) == 1
+				PRINTW 「As my injuries have healed, I can finally participate in the search.」
+				PRINTW 「If we meet during the search, I give my regards.」
+			ELSEIF ダンジョンフラグ:70:(1) == 2
+				PRINTW 「The Steel Gigas is pretty tough and hits hard.」
+				PRINTW 「Knock it down with an Elect attack, and hope you defeat it quickly.」
+			ELSEIF ダンジョンフラグ:70:(1) == 3
+				PRINTW 「Don't you think the number of enemies in a group is getting bigger?」
+				PRINTW 「If that is the case, perhaps the enemies get stronger as we ascend, and we should too.」
+			ELSEIF ダンジョンフラグ:70:(1) == 4
+				PRINTW 「Tough ordinary humans don't have to worry, there are enemies that use light element instant death attacks around.」
+				PRINTW 「If you're accompanied by demons weak to light, defeating those enemies should be top priority.」
+			ELSEIF ダンジョンフラグ:70:(1) == 5
+				PRINTW 「While it seems obvious, shadows may have powers unrelated to their looks.」
+				PRINTW 「Minotaur Four for example.」
+				PRINTW 「While it looks like a physical type, it has considerable magic power.」
+			ELSEIF ダンジョンフラグ:70:(1) == 6
+				PRINTW 「The enemies are weak on this floor....」
+				PRINTW 「Something might be up, you better be careful.」
+			ELSE
+				PRINTW 「Demons...If I get the chance, I'd like to try fighting them once.」
+			ENDIF
+		ENDIF
+		CASE 26
+		SIF ダンジョンフラグ:70:(15) >= 2
+		PRINTW Mitsuru is here.
+		;ブリリアント
+		IF ダンジョンフラグ:70:(15) == 1
+			PRINTW 「I heard from the Director.」
+			PRINTW 「Though...it is a minor issue, please understand that we are low on staff.」
+			PRINTW The girl that leads SEES seemed depressed...
+			ダンジョンフラグ:70:(15) = 2
+		ELSEIF ダンジョンフラグ:70:(15) >= 2
+			IF ダンジョンフラグ:70:(22) >= 1
+				IF ダンジョンフラグ:70:(1) == 2
+					PRINTW 「Because a replacement was found, I shall now participate in the searching.」
+					PRINTW 「As soon as more information is available, I'll let you know.」
+				ELSEIF ダンジョンフラグ:70:(1) == 3
+					PRINTW 「On this level, electric attacks seem more effective or are completely nulled.」
+					PRINTW 「If you take care against enemy electric attacks, your search should go well.」
+				ELSEIF ダンジョンフラグ:70:(1) == 4
+					PRINTW 「As this level has a wide variety of enemies, there are no special measures.」
+					PRINTW 「But, there is an enemy with strong fire magic.」
+				ELSEIF ダンジョンフラグ:70:(1) == 5
+					PRINTW 「This level has a shadows with terrible power.」
+					PRINTW 「Also as there is one that reflects physical attacks, be prepared for physical attacks.」
+				ELSEIF ダンジョンフラグ:70:(1) == 6
+					PRINTW 「The enemies on this level are strangely weak.」
+					PRINTW 「Everybody, if you let down your guard here...It will be a total embarrassment.」
+				ELSE
+					PRINTW 「Though Fuuka is a great support, she has a limit.」
+					PRINTW 「You are unfortunately not likely to receive support.」
+					PRINTW 「Sorry, but please search independently.」
+				ENDIF
+			ELSE
+				IF ダンジョンフラグ:70:(1) < 2
+					PRINTW 「While they are going in with little experience, they seem to have great potential.」
+					PRINTW 「This should end well...」
+				ELSE
+					PRINTW 「I also want to participate in the search.」
+					PRINTW 「But since no one else is suitable as backup, I must give support from here.」
+				ENDIF
+			ENDIF
+		ENDIF
+		CASE 27
+		;風花
+		IF ダンジョンフラグ:70:(22)>=1
+			PRINTW Fuuka is here.
+			IF ダンジョンフラグ:70:(22) == 1
+				PRINTW 「Thank you for helping me...」
+				PRINTW 「I am Fuuka Yamagishi...」
+				ダンジョンフラグ:70:(22) = 2
+			ELSEIF ダンジョンフラグ:70:(22)>=2
+				SELECTCASE RAND:2
+					CASE IS == 0
+						PRINTW 「Fighting and using ＣＯＯＰ can advance analysis...」
+						PRINTW 「But the Ｈｉ‐ＤＡＳ you can buy with macca can also advance it...」
+					CASE IS == 1
+						PRINTW 「I think there are a lot of enemies with light and curse attacks so you should prepare accordingly...」
+				ENDSELECT
+			ENDIF
+		ENDIF
+		CASE 28
+		;ロボ
+		SIF ダンジョンフラグ:70:(16)>=1
+			PRINTW Aegis is here.
+		IF ダンジョンフラグ:70:(16)==1
+			PRINTW 「I am the anti-shadow suppression weapon Aegis.」
+			PRINTW 「Thank you for your aid.」
+			ダンジョンフラグ:70:(16) = 2
+		ELSEIF ダンジョンフラグ:70:(22)>=2
+			SELECTCASE RAND:2
+				CASE IS == 0
+					PRINTW 「Assistance is important in battle.」
+					PRINTW 「You need not fear if you are well prepared.」
+				CASE IS == 1
+					PRINTL 「Good evening.」
+			ENDSELECT
+;		PRINTL 「そーなのかー」
+		ENDIF
+		CASE 29
+		;わんこ
+		IF ダンジョンフラグ:70:(17)>=1
+			IF ダンジョンフラグ:70:(17) == 1
+				PRINTW There is a dog here. It seems to be an albio Shiba Inu.
+				PRINTW 'Koromaru' is what's written on the nameplate of his collar.
+				PRINTW 「...woof.」
+				ダンジョンフラグ:70:(17) = 2
+			ELSE
+				PRINTW Koromaru is here.
+				PRINTW 「Bark bark!」
+			ENDIF
+		ENDIF
+		CASE 30
+		;ショタ
+		IF ダンジョンフラグ:70:(18)>=1
+			IF ダンジョンフラグ:70:(18) == 1
+				PRINTW There is a boy.
+				PRINTW 「Nice to meet you, I am Ken Amada.」
+				ダンジョンフラグ:70:(18) = 2
+			ELSE
+				PRINTW Ken Amada is here.
+				PRINTW 「Do you have medicines to cure ailments?」
+				PRINTW 「There are many shadows that attack with them.」
+			ENDIF
+		ENDIF
+		CASE 31
+		;料理上手
+		IF ダンジョンフラグ:70:(19)>=1 && ダンジョンフラグ:70:1 != 7
+			IF ダンジョンフラグ:70:(19) == 1
+				PRINTW There is a young man in a peacoat here.
+				PRINTW 「...name's Shinjiro Aragaki.」
+				PRINTW 「...you want to know more than that?...tch.」
+				ダンジョンフラグ:70:(19) = 2
+			ELSE
+				PRINTW Shinjiro is here.
+				PRINTW 「...do you have business with me?」
+				PRINTW 「Didn't think so...」
+			ENDIF
+		
+		ENDIF
+RETURN 0
+	ENDSELECT
+		CASE 1
+			CALL TARTAR_DGEVENT
+		CASE 2
+			IF ダンジョンフラグ:70:1 < 1 && FLAG:現X == 10 && FLAG:現Y == 6
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTW It seems this shadow is guarding this floor.
+				PRINTL 
+				PRINTL Priestess appeared!
+				PRINTW 
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,3210,10,0,1
+				ABL:(CHARANUM-1):スキル4 = 802
+				ABL:(CHARANUM-1):スキル5 = 2416
+				ABL:(CHARANUM-1):スキル6 = 2415
+				ABL:(CHARANUM-1):スキル7 = 2413
+				ABL:(CHARANUM-1):スキル8 = 2402
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CSTR:(CHARANUM-1):思考パターン = 3210
+				ABL:(CHARANUM-1):アイテム1 = 1014
+				ABL:(CHARANUM-1):入手確率1 = 100
+				CALL SET_ENEMY,8,3203,8,1,0
+				ABL:(CHARANUM-1):スキル8 = 2400
+				ABL:(CHARANUM-1):入手確率3 = 0
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL SET_ENEMY,10,3203,8,1,0
+				ABL:(CHARANUM-1):スキル8 = 2400
+				ABL:(CHARANUM-1):入手確率3 = 0
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:70:1 = 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 3
+			IF ダンジョンフラグ:70:1 < 2 && FLAG:現X == 10 && FLAG:現Y == 10
+				IF ダンジョンフラグ:70:89 == 1 || FLAG:DEBUG == 1
+					CUSTOMDRAWLINE =
+					PRINTL 
+					PRINTFORMW %CALLNAME:MASTER% arrived at a conspicuously open space.
+					PRINTW Then, two shadows attacked, and there was a weakly breathing girl!
+					PRINTFORMW Incidentally, %CALLNAME:MASTER% remembered hearing about this from SEES.
+					PRINTW Could she be the 「Missing Girl」 they were talking about?
+					PRINTFORMW As %CALLNAME:MASTER% thought that, the two shadows scowled.
+					PRINTW Their eyes lit up.
+					PRINTL 
+					PRINTL Empress and Emperor attacked!
+					PRINTW 
+					WAIT
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,8,3211,16,0,1
+					ABL:(CHARANUM-1):アイテム1 = 1012
+					ABL:(CHARANUM-1):入手確率1 = 100
+					ABL:(CHARANUM-1):スキル3 = 604
+					ABL:(CHARANUM-1):スキル4 = 602
+					ABL:(CHARANUM-1):スキル5 = 603
+					ABL:(CHARANUM-1):スキル6 = 1131
+					ABL:(CHARANUM-1):スキル7 = 2413
+					ABL:(CHARANUM-1):スキル8 = 2404
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL SET_ENEMY,10,3255,16,0,1
+					ABL:(CHARANUM-1):アイテム1 = 1013
+					ABL:(CHARANUM-1):入手確率1 = 100
+					ABL:(CHARANUM-1):スキル2 = 208
+					ABL:(CHARANUM-1):スキル3 = 604
+					ABL:(CHARANUM-1):スキル4 = 511
+					ABL:(CHARANUM-1):スキル6 = 2418
+					ABL:(CHARANUM-1):スキル6 = 2410
+					ABL:(CHARANUM-1):スキル7 = 2400
+					ABL:(CHARANUM-1):スキル8 = 2403
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTL 
+					PRINTFORMW %CALLNAME:MASTER% defeated the shadows and saved the girl.
+					PRINTW Now, what will you do with this girl?
+					PRINTL [0]Leave her with SEES
+					PRINTL [1]Take her away
+					$INPUT_LOOP_FU
+					INPUT
+					IF RESULT == 0
+						PRINTW You decided to leave her with SEES.
+						PRINTW You got ￥50000 as thanks.
+						MONEY += 50000
+						ダンジョンフラグ:70:(89)=2
+					ELSEIF RESULT == 1
+						PRINTW Fuuka obtained.
+						CALL ADD_NEW_COMPANION,4550,200
+						CALL SYNC_STATUS,(GETCHARA(4550))
+						CALL HEALTH_CHARA,(GETCHARA(4550))
+						ダンジョンフラグ:70:(89)=3
+					ELSE
+						GOTO INPUT_LOOP_FU
+					ENDIF
+					ダンジョンフラグ:70:1 = 2
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ELSE
+					PRINTL 
+					PRINTL A barrier of innumerable swords blocks the way...
+					PRINTL You cannot explore further right now.
+					PRINTW 
+					FLAG:現X -= 1
+				ENDIF
+			ENDIF
+		CASE 4
+			IF ダンジョンフラグ:70:1 < 3 && FLAG:現X == 10 && FLAG:現Y == 6
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTL It seems to be the shadow guarding this floor.
+				PRINTW Unlike the previcous floors, there seems to only １ enemy, is it that confident...?
+				PRINTL 
+				PRINTL Hierophant appeared!
+				PRINTW 
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,3256,24,0,1
+				CSTR:(CHARANUM-1):思考パターン = 3256
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル8 = 2413
+				ABL:(CHARANUM-1):アイテム1 = 1011
+				ABL:(CHARANUM-1):入手確率1 = 100
+				CALL BATTLE_START
+				PRINTL 
+				PRINTL 
+				PRINTFORML %CALLNAME:MASTER% defeated the shadow that looked like a pope.
+				PRINTL But, in the next breath, a new foe appeared from above!
+				PRINTL 
+				PRINTL Lovers appeared!
+				PRINTW 
+				FLAG:不意打ちフラグ = 1
+				CALL SET_ENEMY,9,3212,25,0,1
+				CSTR:(CHARANUM-1):思考パターン = 3212
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル6 = 2402
+				ABL:(CHARANUM-1):スキル7 = 2405
+				ABL:(CHARANUM-1):スキル8 = 2413
+				ABL:(CHARANUM-1):アイテム1 = 1015
+				ABL:(CHARANUM-1):入手確率1 = 100
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:70:1 = 3
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 5
+			IF ダンジョンフラグ:70:1 < 4 && FLAG:現X == 6 && FLAG:現Y == 6
+				IF イベントフラグ:9:0 > 1 && ダンジョンフラグ:70:(16) >= 0
+					CUSTOMDRAWLINE =
+					PRINTL ...?
+					PRINTL There is a girl blocking the way.
+					PRINTL But the joints of her limbs look like from an artificial prosthesis or a doll.
+					PRINTL Perhaps, she is the 「Aegis」 that Ikutsuki spoke of?
+					PRINTL 
+					PRINTL Aegis appeared!
+					PRINTW 
+					WAIT
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4522,30,0,1
+					EQUIP:(CHARANUM-1):剣 = 2015
+					EQUIP:(CHARANUM-1):銃 = 2509
+					CFLAG:(CHARANUM-1):速度補正 = 10
+					CSTR:(CHARANUM-1):思考パターン = 4522
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					BASE:(CHARANUM-1):剣撃 = 50
+					BASE:(CHARANUM-1):飛具 = 50
+					BASE:(CHARANUM-1):電撃 = 200
+					BASE:(CHARANUM-1):神経 = 100
+					BASE:(CHARANUM-1):精神 = 100
+					BASE:(CHARANUM-1):破魔 = 0
+					BASE:(CHARANUM-1):呪殺 = 0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTL 
+					PRINTL The girl collapsed like a puppet whose threads were cut.
+					PRINTL What do you do?
+					PRINTL [0]Return her to Ikutsuki
+					PRINTL [1]Take her for yourself
+					$INPUT_LOOP_AI
+					INPUT
+					IF RESULT == 0
+						ダンジョンフラグ:70:70 = 1
+						PRINTW You returned her to Ikutsuki.
+						PRINTW You received ￥100000 as thanks.
+						MONEY += 100000
+					ELSEIF RESULT == 1
+						ダンジョンフラグ:70:70 = 2
+						PRINTW Aegis obtained.
+						CALL ADD_NEW_COMPANION,4522,200
+						CALL SYNC_STATUS,(GETCHARA(4522))
+						CALL HEALTH_CHARA,(GETCHARA(4522))
+						PRINTW You received ￥50000 as a reward.
+						MONEY += 50000
+						ダンジョンフラグ:70:(16) = (-1)
+					ELSE
+						GOTO INPUT_LOOP_AI
+					ENDIF
+					ダンジョンフラグ:70:1 = 4
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ELSEIF ダンジョンフラグ:70:(16) == (-1)
+					PRINTL It seems there is no guard on this floor...
+					PRINTW 
+					ダンジョンフラグ:70:1 = 4
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ELSE
+					PRINTL 
+					PRINTL A barrier of innumerable swords blocks the way...
+					PRINTL You cannot explore further right now.
+					PRINTW 
+					FLAG:現X += 1
+				ENDIF
+			ENDIF
+		CASE 6
+			IF ダンジョンフラグ:70:1 < 5 && FLAG:現X == 6 && FLAG:現Y == 6
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTW There's two strong shadows that guard this floor.
+				PRINTL 
+				PRINTL Chariot and Justice appeared!
+				PRINTW 
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,3261,32,0,1
+				ABL:(CHARANUM-1):アイテム1 = 1010
+				ABL:(CHARANUM-1):入手確率1 = 100
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL SET_ENEMY,14,3262,32,0,1
+				ABL:(CHARANUM-1):アイテム1 = 1014
+				ABL:(CHARANUM-1):入手確率1 = 100
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:70:1 = 5
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 7
+			IF ダンジョンフラグ:70:1 < 6 && FLAG:現X == 10 && FLAG:現Y == 10
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTW This seems to be the shadow that guards this floor.
+				PRINTL 
+				PRINTL Hermit appeared!
+				PRINTW 
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,3219,40,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):アイテム1 = 1011
+				ABL:(CHARANUM-1):入手確率1 = 100
+				ABL:(CHARANUM-1):スキル1 = 906
+				ABL:(CHARANUM-1):スキル2 = 1805
+				ABL:(CHARANUM-1):スキル3 = 1112
+				ABL:(CHARANUM-1):スキル4 = 1008
+				ABL:(CHARANUM-1):スキル5 = 1403
+				ABL:(CHARANUM-1):スキル6 = 2402
+				ABL:(CHARANUM-1):スキル7 = 2417
+				ABL:(CHARANUM-1):スキル8 = 2418
+				ABL:(CHARANUM-1):攻撃相性 = 1
+				ABL:(CHARANUM-1):最低攻撃回数 = 1
+				ABL:(CHARANUM-1):最大攻撃回数 = 1
+				ABL:(CHARANUM-1):射程 = 3
+				ABL:(CHARANUM-1):攻撃範囲 = 3
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:70:1 = 6
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 8
+			IF ダンジョンフラグ:70:1 < 7 && FLAG:現X == 10 && FLAG:現Y == 6
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTW These seem to be the shadows that guard this floor.
+				PRINTL 
+				PRINTL Fortune and Strength appeared!
+				PRINTW 
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,3221,47,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):アイテム1 = 1010
+				ABL:(CHARANUM-1):入手確率1 = 100
+				ABL:(CHARANUM-1):スキル1 = 304
+				ABL:(CHARANUM-1):スキル2 = 11
+				ABL:(CHARANUM-1):スキル3 = 1101
+				ABL:(CHARANUM-1):スキル4 = 2423
+				ABL:(CHARANUM-1):スキル5 = 2424
+				ABL:(CHARANUM-1):スキル6 = 2419
+				ABL:(CHARANUM-1):スキル7 = 2409
+				ABL:(CHARANUM-1):スキル8 = 2402
+				BASE:(CHARANUM-1):剣撃 = -50
+				BASE:(CHARANUM-1):打撃 = -50
+				BASE:(CHARANUM-1):戦技 = -50
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL SET_ENEMY,14,3220,47,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):アイテム1 = 1015
+				ABL:(CHARANUM-1):入手確率1 = 100
+				ABL:(CHARANUM-1):スキル1 = 1008
+				ABL:(CHARANUM-1):スキル2 = 105
+				ABL:(CHARANUM-1):スキル3 = 1706
+				ABL:(CHARANUM-1):スキル4 = 512
+				ABL:(CHARANUM-1):スキル5 = 2001
+				ABL:(CHARANUM-1):スキル6 = 2406
+				ABL:(CHARANUM-1):スキル7 = 2413
+				ABL:(CHARANUM-1):スキル8 = 2418
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+
+				IF ダンジョンフラグ:70:(19) >= 1 && ダンジョンフラグ:70:(20) >= 1
+					PRINTFORMW %CALLNAME:MASTER% defeated the guardian shadows.
+					PRINTW Looking at their corpses...
+					PRINTW ...when you examine closer, there seems to be blood that doesn't come from your battle.
+					PRINTW There is a trail of blood leading upstairs...
+				ENDIF
+
+				ダンジョンフラグ:70:1 = 7
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 9
+			IF ダンジョンフラグ:70:1 < 8 && FLAG:現X == 8 && FLAG:現Y == 4
+				IF ダンジョンフラグ:70:(19) < 1
+					CUSTOMDRAWLINE =
+					PRINTL ...There is a blood stain on the floor.
+					PRINTW 
+					ダンジョンフラグ:70:(19) = (-1)
+					ダンジョンフラグ:70:(20) = (-1)
+					ダンジョンフラグ:70:1 = 8
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ELSE
+					CUSTOMDRAWLINE =
+					PRINTL 
+					PRINTFORML %CALLNAME:MASTER% advanced further through Tartarus.
+					PRINTL Looking ahead on this floor, you saw someone who might be from SEES.
+					PRINTW There was a boy lying on the ground and bleeding.
+					PRINTFORML But, standing between him and %CALLNAME:MASTER%,
+					PRINTW a girl in gothic lolita clothes blocked the way.
+					PRINTW 「I will not let you go any further...!!」
+					PRINTL Holding a bloody ax, the girl summoned a persona with a gun―――
+					PRINTW 
+					PRINTL 
+					PRINTL Chidori appeared!
+					PRINTW 
+					WAIT
+					ダンジョンフラグ:70:90 = 0
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4554,57,0,1
+					BASE:(CHARANUM-1):力   += 2
+					BASE:(CHARANUM-1):知恵 += 8
+					BASE:(CHARANUM-1):魔力 += 2
+					BASE:(CHARANUM-1):耐力 += 1
+					BASE:(CHARANUM-1):速さ += 11
+					BASE:(CHARANUM-1):運   += 2
+					EQUIP:(CHARANUM-1):剣 = 2018
+					EQUIP:(CHARANUM-1):胴 = 3530
+					EQUIP:(CHARANUM-1):アクセサリ = 5007
+					BASE:(CHARANUM-1):火炎 = -100
+					BASE:(CHARANUM-1):破魔 = 0
+					BASE:(CHARANUM-1):呪殺 = 0
+					BASE:(CHARANUM-1):核熱 = 0
+					BASE:(CHARANUM-1):水撃 = 200
+					CSTR:(CHARANUM-1):思考パターン = 4554
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					ABL:(CHARANUM-1):スキル1 = 2402
+					ABL:(CHARANUM-1):スキル2 = 2405
+					ABL:(CHARANUM-1):スキル3 = 2406
+					ABL:(CHARANUM-1):スキル4 = 2410
+					ABL:(CHARANUM-1):スキル5 = 2413
+					ABL:(CHARANUM-1):スキル6 = 2415
+					ABL:(CHARANUM-1):スキル7 = 2416
+					ABL:(CHARANUM-1):スキル8 = 2418
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					BASE:(CHARANUM-1):剣撃 = 150
+					BASE:(CHARANUM-1):飛具 = 150
+					BASE:(CHARANUM-1):火炎 = -100
+					BASE:(CHARANUM-1):氷結 = 50
+					BASE:(CHARANUM-1):電撃 = 50
+					BASE:(CHARANUM-1):衝撃 = 50
+					BASE:(CHARANUM-1):神経 = 200
+					BASE:(CHARANUM-1):精神 = 0
+					BASE:(CHARANUM-1):破魔 = 0
+					BASE:(CHARANUM-1):呪殺 = 0
+					BASE:(CHARANUM-1):水撃 = 200
+					BASE:(CHARANUM-1):疾風 = 50
+					BASE:(CHARANUM-1):重力 = 0
+					BASE:(CHARANUM-1):核熱 = -50
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					ダンジョンフラグ:70:90 = 0
+					PRINTL 
+					PRINTW Chidori collapsed.
+					PRINTL What do you do with her?
+					PRINTL [0]Leave her with Ikutsuki
+					PRINTL [1]Take her away
+					$INPUT_LOOP_CHIDORI
+					INPUT
+					IF RESULT == 0
+						ダンジョンフラグ:70:71 = 1
+						PRINTW You left Chidori with Ikutsuki.
+						PRINTW You got ￥100000.
+						MONEY += 100000
+					ELSEIF RESULT == 1
+						ダンジョンフラグ:70:71 = 2
+						PRINTW Chidori obtained.
+						CALL ADD_NEW_COMPANION,4554,200
+						CALL SYNC_STATUS,(GETCHARA(4554))
+						CALL HEALTH_CHARA,(GETCHARA(4554))
+					ELSE
+						GOTO INPUT_LOOP_CHIDORI
+					ENDIF
+					ダンジョンフラグ:70:(20) = (-1)
+					PRINTL 
+					PRINTW Also, the wounded boy is still there.
+					SIF ダンジョンフラグ:70:(19) >= 2
+						PRINTW It is Shinjiro Aragaki, that guy in the peacoat.
+					PRINTL What do you do with him?
+					PRINTL [0]Leave him with SEES
+					PRINTL [1]Take him away
+					$INPUT_LOOP_SHINJI
+					INPUT
+					IF RESULT == 0
+						ダンジョンフラグ:70:72 = 1
+						PRINTW You left the boy with SEES.
+						PRINTW You got ￥100000
+						MONEY += 100000
+					ELSEIF RESULT == 1
+						ダンジョンフラグ:70:72 = 2
+						PRINTW Shinjiro Aragaki obtained.
+						CALL ADD_NEW_COMPANION,4553,200
+						CALL SYNC_STATUS,(GETCHARA(4553))
+						CALL HEALTH_CHARA,(GETCHARA(4553))
+						ダンジョンフラグ:70:(19) = (-1)
+					ELSE
+						GOTO INPUT_LOOP_SHINJI
+					ENDIF
+					ダンジョンフラグ:70:1 = 8
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ENDIF
+			ENDIF
+		CASE 10
+			IF ダンジョンフラグ:70:1 < 9
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTL 
+				PRINTL Hanged Man appeared!
+				PRINTW 
+				WAIT
+				ダンジョンフラグ:70:90 = 0
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,7,3229,50,1,0
+				CALL SET_ENEMY,8,3230,50,0,0
+				ABL:(CHARANUM-1):スキル1=703
+				CALL SET_ENEMY,9,3230,50,0,0
+				ABL:(CHARANUM-1):スキル1=903
+				BASE:(CHARANUM-1):耐力 += 5
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL SET_ENEMY,10,3230,50,0,0
+				ABL:(CHARANUM-1):スキル1=803
+				CALL SET_ENEMY,11,3229,50,1,0
+				CALL SET_ENEMY,12,3229,50,1,0
+				CALL SET_ENEMY,13,3229,50,1,0
+				CALL SET_ENEMY,15,3229,50,1,0
+				CALL SET_ENEMY,16,3229,50,1,0
+				CALL SET_ENEMY,14,3277,64,0,1
+				CSTR:(CHARANUM-1):思考パターン = 3277
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = 2402
+				ABL:(CHARANUM-1):スキル2 = 2406
+				ABL:(CHARANUM-1):スキル3 = 2413
+				ABL:(CHARANUM-1):スキル4 = 2423
+				ABL:(CHARANUM-1):スキル5 = 2424
+				ABL:(CHARANUM-1):スキル6 = 2425
+				ABL:(CHARANUM-1):スキル7 = 2414
+				ABL:(CHARANUM-1):スキル8 = 2416
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:70:90 = 0
+				PRINTL 
+				ダンジョンフラグ:70:1 = 9
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 11
+			IF ダンジョンフラグ:70:1 < 10
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTW You arrived at the top of Tartarus.
+				PRINTW ...The distorted moon of the dark hour is clearly visible.
+				PRINTL 
+				PRINTFORMW And, while %CALLNAME:MASTER% looked at the sky, 
+				PRINTW something swooped down from on high...!
+				PRINTL 
+				PRINTL 
+				PRINTL 
+				PRINTL 
+				PRINTL 
+				PRINTL 　Incarnation　Nyx Avatar　appeared!
+				PRINTW 
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,14,3299,77,0,1
+				CSTR:(CHARANUM-1):思考パターン = 3299
+				CFLAG:(CHARANUM-1):不死身フラグ = 1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):攻撃相性 = 17
+				ABL:(CHARANUM-1):スキル1 = 2434
+				ABL:(CHARANUM-1):スキル2 = 2405
+				ABL:(CHARANUM-1):スキル3 = 2413
+				ABL:(CHARANUM-1):スキル4 = 0
+				ABL:(CHARANUM-1):スキル5 = 0
+				ABL:(CHARANUM-1):スキル6 = 0
+				ABL:(CHARANUM-1):スキル7 = 0
+				ABL:(CHARANUM-1):スキル8 = 0
+				BASE:(CHARANUM-1):力   += 3
+				BASE:(CHARANUM-1):知恵 += 3
+				BASE:(CHARANUM-1):魔力 += 3
+				BASE:(CHARANUM-1):耐力 -= 7
+				BASE:(CHARANUM-1):速さ += 3
+				BASE:(CHARANUM-1):運   += 3
+				REPEAT 14
+					BASE:(CHARANUM-1):(61+COUNT) = 10
+				REND
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTL 
+				PRINTW ...
+				PRINTW ....
+				PRINTW .....
+				PRINTL 
+				PRINTW 「Oh, it's you. What's up?」
+				PRINTW 「Oh, you made it to the top!」
+				PRINTW 「...Yeah, yeah...huh!?」
+				PRINTW 「You defeated a powerful shadow up there?」
+				PRINTW 「Y-you really defeated it...Ah, no, it's nothing」
+				PRINTL 「The numbers don't match what I said earlier?
+				PRINTL 　Hah, I probably made a mistake, 
+				PRINTW 　I guess that was definitely one too many.」
+				PRINTL 「Even though you defeated that strong shadow,
+				PRINTW 　the dark hour is still here. Something else must be causing it.」
+				PRINTL 「It seems it's still nessecary to continue research and investigation for a while...」
+				PRINTL 「Anyway, you fullfilled my request, 
+				PRINTW 　so I have to pay out your reward.」
+				PRINTW 「Wait a moment, I'll get it ready....」
+				PRINTL 
+				PRINTW ......
+				PRINTW ....
+				PRINTW ...
+				PRINTL 
+				PRINTW You got ￥500000 as reward for completing the request.
+				PRINTL 
+				MONEY+=500000
+				ダンジョンフラグ:70:1 = 10
+				FLAG:脱出=1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 20
+			IF ダンジョンフラグ:70:68 == 0
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTL 
+				PRINTL 　Erebus　appeared!
+				PRINTW 
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,14,3298,90,0,1
+				CSTR:(CHARANUM-1):思考パターン = 3298
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル5 = 2402
+				ABL:(CHARANUM-1):スキル6 = 2405
+				ABL:(CHARANUM-1):スキル7 = 2419
+				ABL:(CHARANUM-1):スキル8 = 2413
+				ABL:(CHARANUM-1):攻撃相性 = 17
+				ABL:(CHARANUM-1):最低攻撃回数 = 1
+				BASE:(CHARANUM-1):耐力 += 10
+				REPEAT 14
+					BASE:(CHARANUM-1):(61+COUNT) = 10
+				REND
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTL 
+				ダンジョンフラグ:70:68 = 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ENDIF
+		CASE 21
+			IF ダンジョンフラグ:70:96 == 0
+				CUSTOMDRAWLINE =
+				PRINTL 
+				PRINTW This seems to be the shadow who guards this floor.
+				PRINTL 
+				PRINTL Reaper appeared!
+				PRINTW 
+				;Lv77
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,3201,77,0,1
+				BASE:(CHARANUM-1):万能 = 100
+				ABL:(CHARANUM-1):スキル1 = 706
+				ABL:(CHARANUM-1):スキル2 = 1606
+				ABL:(CHARANUM-1):スキル3 = 1704
+				ABL:(CHARANUM-1):スキル4 = 1506
+				ABL:(CHARANUM-1):スキル5 = 1403
+				ABL:(CHARANUM-1):スキル6 = 1302
+				ABL:(CHARANUM-1):スキル7 = 108
+				ABL:(CHARANUM-1):スキル8 = 2003
+				REPEAT 14
+					BASE:(CHARANUM-1):(61+COUNT) = 0
+				REND
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:70:96 = 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ELSEIF ダンジョンフラグ:70:96 >= 2 && ダンジョンフラグ:70:96 <= 3
+				;メギドラオンでございます, の用意
+				CUSTOMDRAWLINE =
+				PRINTL 
+				IF ダンジョンフラグ:70:96 == 2
+					PRINTW There is an elevator girl here...
+					PRINTL 
+					PRINTFORMW 「I've been waiting, %CALLNAME:MASTER%様.」
+					PRINTW 「I am Elizabeth.」
+					PRINTW 「I have been looking for someone here in Monad.」
+					PRINTW 「You are surely the same.」
+					PRINTW 「Though you are in Phantom Society, somethimes you obey, sometimes you resist.」
+					PRINTW 「Now I am here, but I will not always be here.」
+					PRINTL 
+					PRINTW 「I am the one who manages『power』.」
+					PRINTW 「So if I meet someone who exceeds me in power, I could get an answer...」
+					PRINTW 「I can know someone's answer.」
+					PRINTW 「If it's you.」
+					PRINTW 「You could give me an answer.」
+					ダンジョンフラグ:70:96 = 3
+				ELSE
+					PRINTW Elizabeth is here...
+					PRINTL 
+				ENDIF
+				PRINTL 
+				PRINTW 「Will you accept my request?」
+				PRINTL 
+				PRINTL [0]Yes
+				PRINTL [1]No
+				$INPUT_LOOP_ELIZA
+				INPUT
+				IF RESULT == 0
+					PRINTL 
+					PRINTW 「Thank you very much.」
+					PRINTW 「Then...」
+					PRINTW 「Here I come!」
+					PRINTL 
+					PRINTL 
+					PRINTL Elizabeth appeared!
+					PRINTW 
+					WAIT
+					ダンジョンフラグ:70:90 = 0
+					ダンジョンフラグ:70:91 = 0
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					;みんな大好きエリザベス.万能がすごく効きにくい
+					;仲間の中で一番高いレベル + 10で出てくる
+					LOCAL:1 = 0
+					FOR LOCAL , 0 , CHARANUM
+						SIF CFLAG:LOCAL:PTフラグ == 0 || TALENT:LOCAL:非戦闘員
+							CONTINUE
+						LOCAL:1 = MAX(LOCAL:1 , BASE:LOCAL:LV)
+					NEXT
+					LOCAL:1 += 10
+					CALL SET_ENEMY,9, 4555, LOCAL:1, 0, 1
+					CFLAG:(CHARANUM-1):602 = LOCAL:1
+					SELECTCASE FLAG:戦闘難易度
+						CASE 4
+							CFLAG:(CHARANUM-1):602 *= 4
+						CASE 5
+							CFLAG:(CHARANUM-1):602 *= 8
+						CASE IS >= 6
+							CFLAG:(CHARANUM-1):602 *= 12
+						CASEELSE
+							CFLAG:(CHARANUM-1):602 *= 3
+					ENDSELECT
+					CFLAG:(CHARANUM-1):602 /= 8
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CSTR:(CHARANUM-1):思考パターン = 4555
+					BASE:(CHARANUM-1):万能 = 25
+;売値0のアイテムは設定してもドロップされない
+;					IF ITEM:無色の仮面 == 0
+;						ABL:(CHARANUM-1):アイテム1 = GETNUM(ITEM, "無色の仮面")
+;						ABL:(CHARANUM-1):入手確率1 = 100
+;					ENDIF
+					REPEAT 14
+						BASE:(CHARANUM-1):(61+COUNT) = 0
+					REND
+					ABL:(CHARANUM-1):種族 = 33
+					BASE:(CHARANUM-1):力   = CFLAG:(CHARANUM-1):602+15
+					BASE:(CHARANUM-1):知恵 = CFLAG:(CHARANUM-1):602+15
+					BASE:(CHARANUM-1):魔力 = CFLAG:(CHARANUM-1):602+15
+					BASE:(CHARANUM-1):耐力 = CFLAG:(CHARANUM-1):602+15
+					BASE:(CHARANUM-1):速さ = CFLAG:(CHARANUM-1):602+15
+					BASE:(CHARANUM-1):運   = CFLAG:(CHARANUM-1):602+15
+					ABL:(CHARANUM-1):スキル1 = 2418
+					ABL:(CHARANUM-1):スキル2 = 2408
+					ABL:(CHARANUM-1):スキル3 = 2405
+					ABL:(CHARANUM-1):スキル4 = 2407
+					ABL:(CHARANUM-1):スキル5 = 2414
+					ABL:(CHARANUM-1):スキル6 = 2415
+					ABL:(CHARANUM-1):スキル7 = 2416
+					ABL:(CHARANUM-1):スキル8 = 2417
+					EQUIP:(CHARANUM-1):剣 = 2062
+					EQUIP:(CHARANUM-1):銃 = 2516
+					EQUIP:(CHARANUM-1):頭 = 3014
+					EQUIP:(CHARANUM-1):胴 = 3514
+					EQUIP:(CHARANUM-1):腕 = 4014
+					EQUIP:(CHARANUM-1):足 = 4514
+					CFLAG:(CHARANUM-1):速度補正 += 5
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					ダンジョンフラグ:70:90 = 0
+					ダンジョンフラグ:70:91 = 0
+					IF ITEM:無色の仮面 == 0
+						PRINTW ＞You got the material card 【colorless mask】.
+						;マテリアルカード【無色の仮面】を手に入れた
+						PRINTL  
+						ITEM:無色の仮面 = 1
+					ENDIF
+					PRINTL 
+					PRINTW Elizabeth obtained.
+					CALL ADD_NEW_COMPANION,4555,200
+					IF RESULT == 1 
+						LOCAL = (GETCHARA([[キャラ:エリザベス]]))
+						CFLAG:LOCAL:戦闘参加不可能 = -1
+						LOCAL:1 = CFLAG:LOCAL:初期ペルソナナンバー
+						DITEMTYPE:(LOCAL:1):ペルソナ("LV") = 50
+						DITEMTYPE:(LOCAL:1):ペルソナ("力") = 16
+						DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 16
+						DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 16
+						DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 16
+						DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 16
+						DITEMTYPE:(LOCAL:1):ペルソナ("運") = 16
+						DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ディアラマ]]
+						DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:放電]]
+						DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:ハッピーステップ]]
+						DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:メ・ディアラマ]]
+						DITEMTYPE:(LOCAL:1):ペルソナ("スキル5") = [[スキル:アムリタ]]
+						DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1") = [[スキル:メギドラオン]]
+						DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1") = 60
+						CALL SYNC_STATUS, LOCAL
+						CALL HEALTH_CHARA, LOCAL
+					ENDIF
+					ダンジョンフラグ:70:96 = 4
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ELSEIF RESULT == 1
+					FLAG:現Y += 1
+				ELSE
+					GOTO INPUT_LOOP_ELIZA
+				ENDIF
+			ENDIF
+	ENDSELECT
+	RETURN 1
+
+;=======
+;階段
+;=======
+CASE 6
+	CALL TARTAR_UPSTAIRS
+	RETURN 1
+CASE 7
+	CALL TARTAR_DOWNSTAIRS
+	RETURN 1
+;==========
+;扉の処理
+;==========
+CASE 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+;========
+;エレベーター開始event ＆ ターミナル　＆　会話
+;========
+CASE 9
+		CALL TARTAR_ELEVETOR
+RETURN 0
+ENDSELECT
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_70
+	IF FLAG:現M == 1
+		FLAG:MAG消費率 = 100
+		FLAG:エンカウント率 = 2+FLAG:未遭遇歩数*2
+		SIF FLAG:未遭遇歩数 > 14 && FLAG:エンカウント率 > 0
+			FLAG:エンカウント率 = 30
+	ELSE
+		FLAG:MAG消費率 = 0
+		FLAG:エンカウント率 = 0
+		FLAG:未遭遇歩数 = 0
+	ENDIF
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_70
+#LOCALSIZE 5
+IF RAND:100 < FLAG:エンカウント率
+	;赤悪魔
+	IF RAND:100 < 3
+		PRINTW ＞You feel a powerful shadow...
+		CALL INPUT_YN("Fight", "Let it past")
+		IF RESULT == 0
+			SELECTCASE ダンジョンフラグ:70:(50)
+				CASE IS < -5
+					;無の巨人
+					CALL SET_ENEMY,14, 3239,110,0,1
+					IF ITEM:魂砕きの鋼 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "魂砕きの鋼")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:終わる世界]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:気合]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:タルカジャオート]]
+					ABL:(CHARANUM-1):スキル4 = [[スキル:三分の活泉]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;天神の女武者
+					LOCAL:1 = 3236
+					;洗礼の砲座
+					LOCAL:2 = 3285
+					;Fクイーン
+					LOCAL:3 = 3237
+					LOCAL:4 = 100
+				CASE IS  < 0
+					;キングキャッスル
+					CALL SET_ENEMY,14, 3284,100,0,1
+					IF ITEM:白雪の石 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "白雪の石")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:神等去出八百万撃]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:ナルカミ]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:電撃ガードブレイク]]
+					ABL:(CHARANUM-1):スキル4 = [[スキル:一分の活泉]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;白のシジル
+					LOCAL:1 = 3234
+					;狂乱のマリア
+					LOCAL:2 = 3232
+					;ディバインマザー
+					LOCAL:3 = 3233
+					LOCAL:4 = 95
+
+				CASE IS < 4
+					CALL SET_ENEMY, 14,3251,13,0,1
+					IF ITEM:甲虫の外殻 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "甲虫の外殻")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:暴れまくり]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:ジオンガ]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;トランスツインズ
+					LOCAL:1 = 3207
+					;臆病のマーヤ
+					LOCAL:2 = 3202
+					;囁きのティアラ
+					LOCAL:3 = 3203
+					LOCAL:4 = 9
+				CASE IS < 9
+					;情欲の蛇
+					CALL SET_ENEMY,14, 3216,20,0,1
+					IF ITEM:黒蛇の鱗 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "黒蛇の鱗")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:メ・ディアラマ]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:マハンマ]]
+					ABL:(CHARANUM-1):スキル4 = [[スキル:魔界の調べ]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;トランスツインズ
+					LOCAL:1 = 3207
+					;死甲蟲
+					LOCAL:2 = 3251
+					;狂愛のクピド
+					LOCAL:3 = 3204
+					LOCAL:4 = 15
+				CASE IS < 15
+					;鋼鉄のギガス
+					CALL SET_ENEMY,14, 3253,25,0,1
+					IF ITEM:虹色の髪 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "虹色の髪")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル4 = [[スキル:メテオフィスト]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;ファントムウィッチ
+					LOCAL:1 = 3205
+					;ヴィーナスイーグル
+					LOCAL:2 = 3206
+					;リングフォート
+					LOCAL:3 = 3254
+					LOCAL:4 = 20
+				CASE IS < 19
+					;凱旋の騎士
+					CALL SET_ENEMY,14, 3280,33,0,1
+					IF ITEM:騎士の手綱 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "騎士の手綱")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル4 = [[スキル:回転斬り]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;ブロンズダイス
+					LOCAL:1 = 3213
+					;風雷バランサー
+					LOCAL:2 = 3257
+					;狂気の聖典
+					LOCAL:3 = 3209
+					LOCAL:4 = 28
+				CASE IS < 24
+					;ファントムマダム
+					CALL SET_ENEMY,14, 3215,42,0,1
+					IF ITEM:女帝の手鏡 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "女帝の手鏡")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:アギダイン]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ラギダイン]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:デッドリーバーン]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;泣くテーブル
+					LOCAL:1 = 3214
+					;教条の塔
+					LOCAL:2 = 3258
+					;生成の彫像
+					LOCAL:3 = 3217
+					LOCAL:4 = 36
+				CASE IS < 29
+					;魔弾の砲座
+					CALL SET_ENEMY,14, 3265,52,0,1
+					IF ITEM:真紅の装甲板 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "真紅の装甲板")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:連続撃ち]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:散弾撃ち]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;正義の剣
+					LOCAL:1 = 3260
+					;ミノタウロス4号
+					LOCAL:2 = 3264
+					;精神のダイス
+					LOCAL:3 = 3218
+					LOCAL:4 = 45
+				CASE IS < 34
+					;解放のマリア
+					CALL SET_ENEMY,14, 3223,56,0,1
+					IF ITEM:月の石版 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "月の石版")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ガルダイン]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+					ABL:(CHARANUM-1):スキル4 = [[スキル:メ・ディアラハン]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;デスツインズ
+					LOCAL:1 = 3222
+					;ミノタウロス4号
+					LOCAL:2 = 3264
+					;凱旋の騎士
+					LOCAL:3 = 3280
+					LOCAL:4 = 50
+				CASE IS < 39
+					;博愛のクピド
+					CALL SET_ENEMY,14, 3224,64,0,1
+					IF ITEM:ピンクの羽 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "ピンクの羽")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル3 = [[スキル:アナザディメンション]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;デスツインズ
+					LOCAL:1 = 3222
+					;ミノタウロス4号
+					LOCAL:2 = 3264
+					;凱旋の騎士
+					LOCAL:3 = 3280
+					LOCAL:4 = 60
+				CASE IS < 44
+					;恒久の砂時計
+					CALL SET_ENEMY,14, 3226,70,0,1
+					IF ITEM:時の砂 == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "時の砂")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+					ABL:(CHARANUM-1):スキル5 = [[スキル:竜巻]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;白狼の女武者
+					LOCAL:1 = 3227
+					;真紅の砲座
+					LOCAL:2 = 3279
+					;審判の剣
+					LOCAL:3 = 3278
+					LOCAL:4 = 65
+				CASE IS < 48
+					;インテリマグス
+					CALL SET_ENEMY,14, 3228,75,0,1
+					IF ITEM:"Golden Ring" == 0
+						ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "Golden Ring")
+						ABL:(CHARANUM-1):入手確率3 = 100
+					ENDIF
+					ABL:(CHARANUM-1):スキル1 = [[スキル:メギドラオン]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:絶対零度]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:マカカジャオート]]
+					ABL:(CHARANUM-1):スキル4 = [[スキル:一分の活泉]]
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					;貪欲のマーヤ
+					LOCAL:1 = 3225
+					;血のヘカトンケイル
+					LOCAL:2 = 3283
+					;博愛のクピド
+					LOCAL:3 = 3224
+					LOCAL:4 = 70
+			ENDSELECT
+			FOR LOCAL,7,17,1
+				SIF LOCAL != 14
+					CALL SET_ENEMY,LOCAL, LOCAL:(RAND:3+1),LOCAL:4,0,0
+			NEXT
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL BATTLE_START
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+		ELSE
+			PRINTW ＞You let the shadow past...
+		ENDIF
+		FLAG:未遭遇歩数 = 0
+		RETURN 0
+	ELSE
+		CALL ENEMY_TABLE
+		RETURN 1
+	ENDIF
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_70
+SELECTCASE ダンジョンフラグ:70:(50)
+	CASE IS < 0
+		RETURN CLASS_NUM_COMMON("最上級")
+	CASE IS < 10
+		RETURN CLASS_NUM_COMMON("初級")
+	CASE IS < 24
+		RETURN CLASS_NUM_COMMON("中級")
+	CASEELSE
+		RETURN CLASS_NUM_COMMON("上級")
+ENDSELECT
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_70, ARG
+SELECTCASE ダンジョンフラグ:70:(50)
+	CASE IS < 0
+		RETURN ENEMY_NUM_COMMON("上級", ARG)
+	CASE IS < 10
+		RETURN ENEMY_NUM_COMMON("初級", ARG)
+	CASE IS < 24
+		RETURN ENEMY_NUM_COMMON("中級", ARG)
+	CASEELSE
+		RETURN ENEMY_NUM_COMMON("上級", ARG)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_70, ARG
+IF ダンジョンフラグ:70:(50) > 0 && ダンジョンフラグ:70:(50) < 4
+	;１～４Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 30
+			;30%で臆病のマーヤ
+			RETURN 3202, 4
+		CASE IS < 55
+			;25%で囁きのティアラ
+			RETURN 3203, 5
+		CASE IS < 70
+			;15%でトランスツインズ
+			RETURN 3207, 6
+		;CASE IS < 80
+		CASE IS < 85
+			;10%でゾンビちゃん
+			RETURN 1001, 8
+		;CASE IS < 90
+		CASEELSE
+			;10%でラタトスク
+			RETURN 813, 8
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 4 && ダンジョンフラグ:70:(50) < 9
+	;６～９Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 25
+			;25%でトランスツインズ
+			RETURN 3207, 6
+		CASE IS < 48
+			;23%で死甲蟲
+			RETURN 3251, 7
+		CASE IS < 70
+			;22%で狂愛のクピド
+			RETURN 3204, 9
+		CASE IS < 85
+			;10%で天使エンジェル
+			RETURN 301, 9
+		CASE IS < 100
+			;10%で妖精シルキー
+			RETURN 802, 10
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 9 &&ダンジョンフラグ:70:(50) < 14
+	;１１～１４Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 17
+			;17%でファントムウィッチ
+			RETURN 3205, 12
+		CASE IS < 34
+			;17%でハンドルアニマル
+			RETURN 3252, 10
+		CASE IS < 51
+			;17%でソウルダンサー
+			RETURN 3208, 11
+		CASE IS < 66
+			;15%でヴィーナスイーグル
+			RETURN 3206, 14
+		CASE IS < 83
+			;17%でリングフォート
+			RETURN 3254, 15
+		CASE IS < 100
+			;9%で悪霊はなこ
+			RETURN 1003, 16
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 14 &&ダンジョンフラグ:70:(50) < 19
+	;１６～１９Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 22
+			;22%でブロンズダイス
+			RETURN 3213, 18
+		CASE IS < 44
+			;22%で鋼鉄のギガス
+			RETURN 3253, 19
+		CASE IS < 64
+			;20%で風と雷のバランサー
+			RETURN 3257, 17
+		CASE IS < 75
+			;11%で狂気の聖典
+			RETURN 3209, 21
+		CASE IS < 83
+			;8%で妖魔リャナンシー
+			RETURN 403, 21
+		CASE IS < 91
+			;8%で地母神フレイア
+			RETURN 2, 29
+		CASE IS < 100
+			;9%で天使アークエンジェル
+			RETURN 359, 27
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 19 &&ダンジョンフラグ:70:(50) < 24
+	;２１～２４Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 19
+			;19%で泣くテーブル
+			RETURN 3214, 26
+		CASE IS < 35
+			;16%で情欲の蛇
+			RETURN 3216, 27
+		CASE IS < 51
+			;16%で教条の塔
+			RETURN 3258, 27
+		CASE IS < 66
+			;15%で黄金蟲
+			RETURN 3259, 29
+		CASE IS < 85
+			;19%で生成の彫像
+			RETURN 3217, 26
+		CASE IS < 93
+			;8%で妖鬼ハンニャ
+			RETURN 604, 28
+		CASE IS < 100
+			;7%で妖魔フーリー
+			RETURN 410, 30
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 24 &&ダンジョンフラグ:70:(50) < 29
+	;２６～２９Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 24
+			;24%で正義の剣
+			RETURN 3260, 32
+		CASE IS < 47
+			;23%でファントムマダム
+			RETURN 3215, 36
+		CASE IS < 70
+			;23%でミノタウロス四号
+			RETURN 3264, 37
+		CASE IS < 95
+			;15%で精神のダイス
+			RETURN 3218, 33
+		CASE IS < 100
+			;15%で魔獣タマモ
+			RETURN 807, 41
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 29 &&ダンジョンフラグ:70:(50) < 34
+	;３１～３４Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 20
+			;20%で凱旋の騎士
+			RETURN 3280, 42
+		CASE IS < 40
+			;20%でデスツインズ
+			RETURN 3222, 44
+		CASE IS < 61
+			;21%でミノタウロス四号
+			RETURN 3264, 39
+		CASE IS < 78
+			;17%で妖鬼イバラキドウジ
+			RETURN 612, 41
+		CASE IS < 95
+			;17%で天使ライラ
+			RETURN 310, 44
+		CASE IS < 100
+			;5%で聖獣ビャッコ
+			RETURN 873, 44
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 34 &&ダンジョンフラグ:70:(50) < 39
+	;３６～３９Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 20
+			;20%で魔弾の砲座
+			RETURN 3265, 47
+		CASE IS < 40
+			;20%で解放のマリア
+			RETURN 3223, 47
+		CASE IS < 55
+			;15%でデスツインズ
+			RETURN 3222, 43
+		CASE IS < 65
+			;10%で堕天使？デカラビア
+			RETURN 1705, 48
+		CASE IS < 88
+			;13%で妖魔サキュバス
+			RETURN 407, 48
+			ABL:(CHARANUM-1):スキル1 = 905
+		CASE IS < 100
+			;18%で悪霊くちさけ
+			RETURN 1009, 46
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 39 &&ダンジョンフラグ:70:(50) < 44
+	;４１～４４Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 10
+			;10%で愛欲の蛇,
+			RETURN 3245, 59
+		CASE IS < 20
+			;10%で白狼の女武者
+			RETURN 3227, 56
+		CASE IS < 35
+			;15%で犠牲のマーヤ
+			RETURN 3229, 53
+		CASE IS < 50
+			;15%で審判の剣
+			RETURN 3278, 55
+		CASE IS < 60
+			;10%で真紅の砲座
+			RETURN 3279, 59
+		CASE IS < 70
+			;10%で妖魔ペリ
+			RETURN 422, 56
+		CASE IS < 80
+			;10%で外道シャドウ
+			RETURN 1010, 54
+		CASE IS < 90
+			;10%で天使ソロネ
+			RETURN 1009, 57
+		CASE IS < 100
+			;10%で龍神ケツアルカトル
+			RETURN 758, 59
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) > 44 &&ダンジョンフラグ:70:(50) < 48
+	;４６～４８Ｆでの遭遇
+	SELECTCASE RAND:100
+		CASE IS < 10
+			;10%でピスティルマザー
+			RETURN 3244, 63
+		CASE IS < 20
+			;10%で血のヘカトンケイル
+			RETURN 3283, 62
+		CASE IS < 30
+			;10%で恒久の砂時計
+			RETURN 3226, 61
+		CASE IS < 40
+			;10%で貪欲のマーヤ
+			RETURN 3278, 60
+		CASE IS < 55
+			;15%で博愛のクピド
+			RETURN 3224, 60
+		CASE IS < 60
+			;5%でインテリマグス
+			RETURN 3228, 63
+		CASE IS < 70
+			;10%で堕天使ゴモリー
+			RETURN 217, 65
+		CASE IS < 80
+			;10%でRaptorカウ
+			RETURN 914, 64
+		CASE IS < 90
+			;10%で霊鳥ジャターユ
+			RETURN 254, 65
+		CASE IS < 95
+			;5%で地母神ドゥルガー
+			RETURN 1009, 65
+		CASE IS < 100
+			;5%で魔王ネルガル
+			RETURN 254, 65
+	ENDSELECT
+;地下は実際の遭遇レベル＋20にしておき, 登場時にレベルだけ‐20し
+;戦闘ステータスを据え置きにする特殊補正がかかる
+ELSEIF ダンジョンフラグ:70:(50) < 0 && ダンジョンフラグ:70:(50) > (-5)
+	;Ｂ１Ｆ～Ｂ４Ｆでの遭遇, 深層モナドの上層.
+	SELECTCASE RAND:100
+		CASE IS < 10
+			;10%でグランドマグス
+			RETURN 3231,88
+		CASE IS < 20
+			;10%で狂乱のマリア
+			RETURN 3232,89
+		CASE IS < 30
+			;10%でディバインマザー
+			RETURN 3233,90
+		CASE IS < 40
+			;10%でキングキャッスル
+			RETURN 3284,91
+		CASE IS < 50
+			;10%で白のシジル
+			RETURN 3234,92
+		CASE IS < 60
+			;10%で淫欲の蛇
+			RETURN 3235,93
+		CASE IS < 70
+			;10%で妖獣フェンリル
+			RETURN 871,90
+		CASE IS < 80
+			;10%で邪神シュブ=ニグラス
+			RETURN 218,92
+		CASE IS < 90
+			;10%で秘神ヤリーロ
+			RETURN 213,95
+		CASE IS < 100
+			;10%で龍王ウロボロス
+			RETURN 711,95
+	ENDSELECT
+ELSEIF ダンジョンフラグ:70:(50) < (-4) && ダンジョンフラグ:70:(50) > (-10)
+	;Ｂ５Ｆ～Ｂ９Ｆでの遭遇, 深層モナドの下層.
+	SELECTCASE RAND:100
+		CASE IS < 11
+			;11%で洗礼の砲座
+			RETURN 3285,94
+		CASE IS < 22
+			;11%で天神の女武者
+			RETURN 3236,95
+		CASE IS < 33
+			;11%でFクイーン
+			RETURN 3237,96
+		CASE IS < 44
+			;11%で永遠の砂時計
+			RETURN 3238,97
+		CASE IS < 55
+			;11%で無の巨人
+			RETURN 3239,98
+		CASE IS < 60
+			;5%で刈り取る者(手加減)
+			RETURN 3201,44
+		CASE IS < 70
+			;10%でRaptorフレスベルグ
+			RETURN 913,96
+		CASE IS < 80
+			;10%で地母神カーリー
+			RETURN 218,98
+		CASE IS < 90
+			;10%で霊鳥ガルーダ
+			RETURN 960,97
+		CASE IS < 100
+			;10%で神獣バロン
+			RETURN 860,95
+	ENDSELECT
+ENDIF
+
+;=======================================================================
+;特殊調整
+;=======================================================================
+@SET_ENEMY_STATUS_70, ARG
+#LOCALSIZE 10
+IF ABL:ARG:種族 == 32
+	SELECTCASE ダンジョンフラグ:70:(50)
+		CASE 1 TO 3
+			ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 5 TO 8
+			SELECTCASE RAND:100
+				CASE IS < 80
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 10 TO 13
+			SELECTCASE RAND:100
+				CASE IS < 70
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 90
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 15 TO 18
+			SELECTCASE RAND:100
+				CASE IS < 60
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 80
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 20 TO 23
+			SELECTCASE RAND:100
+				CASE IS < 60
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 80
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASE IS < 95
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 25 TO 28
+			SELECTCASE RAND:100
+				CASE IS < 50
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 75
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASE IS < 95
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 30 TO 33
+			SELECTCASE RAND:100
+				CASE IS < 50
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 70
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASE IS < 90
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE 35 TO 38
+			SELECTCASE RAND:100
+				CASE IS < 45
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 65
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASE IS < 85
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+				CASE IS < 95
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Platinum Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+		CASE -9 TO -1
+			ABL:ARG:会話タイプ = 331
+			SELECTCASE RAND:100
+				CASE IS < 30
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 50
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASE IS < 70
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+				CASE IS < 85
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Platinum Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 5
+		CASEELSE
+			SELECTCASE RAND:100
+				CASE IS < 40
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+				CASE IS < 60
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+				CASE IS < 80
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+				CASE IS < 90
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+				CASEELSE
+					ABL:ARG:アイテム3 = GETNUM(ITEM, "Platinum Medal")
+			ENDSELECT
+			ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+	ENDSELECT
+ENDIF
+IF RANGE(ダンジョンフラグ:70:(50), -1, -9)
+	IF NO:ARG == 3264
+		;死神　刈り取る者(手加減)
+		ABL:(CHARANUM-1):会話タイプ = 331
+		BASE:ARG:LV += 35
+		ABL:ARG:スキル1 = 211
+		ABL:ARG:スキル2 = 403
+		ABL:ARG:スキル3 = 806
+		ABL:ARG:スキル4 = 2414
+		ABL:ARG:スキル5 = 2415
+		ABL:ARG:スキル6 = 2416
+		ABL:ARG:スキル7 = 2417
+		ABL:ARG:スキル8 = 2406
+	ELSE
+		FOR LOCAL, 0, 6
+			LOCAL:(1+LOCAL) = MAXBASE:ARG:(GET_BATTLESTATUS(LOCAL))
+			BASE:ARG:(GET_BASESTATUS(LOCAL+1)) -= 4
+		NEXT
+		BASE:ARG:LV -= 20
+		FOR LOCAL, 0, 6
+			CALL SET_BATTLE_STATUS(ARG, LOCAL:(1+LOCAL), GET_BATTLESTATUS(LOCAL))
+		NEXT
+	ENDIF
+	CALL SYNC_STATUS,ARG
+	CALL HEALTH_CHARA,ARG
+ENDIF
+
+;=======================================================================
+;ランダン処理前半
+;=======================================================================
+@RANDOM_DONGEON_1
+	FLAG:最大X = 17
+	FLAG:最大Y = 13
+	PRINTFORML 
+	PRINTFORML Dungeon under construction.
+
+	CALL TARTAR_MEMBERNUM
+
+	E = 1
+	SIF DAY:1 == DAY-1
+		E = (DAY)/5
+
+	IF FLAG:DEBUG <= 0
+		CALL TARTAR_MAPDEL
+	ENDIF
+
+	A:2 = RAND:12
+	A:3 = RAND:11
+	A:4 = (-1)
+	A:5 = RAND:5
+	SIF A:5 == 1
+		A:4 = RAND:10
+	SIF A:3 >= A:2
+		A:3 += 1
+	IF A:3 < A:2
+		SIF A:4 >= A:2
+			A:4 += 1
+		SIF A:4 >= A:3
+			A:4 += 1
+	ELSE
+		SIF A:4 >= A:2
+			A:4 += 1
+		SIF A:4 >= A:3
+			A:4 += 1
+	ENDIF
+	C:0 = COUNT
+	G = RAND:5
+	F = 0
+	ダンジョンフラグ:70:93 = 0
+	;B=部屋に突っ込むイベントのリストを初期化
+	VARSET B
+	REPEAT 12
+		IF COUNT == (A:2)
+			B:COUNT = 1
+			SIF FLAG:DEBUG == 1
+				B:COUNT = 6
+			CONTINUE
+		ELSEIF COUNT == (A:3)
+			B:COUNT = 6
+			CONTINUE
+		ELSEIF COUNT == (A:4)
+			B:COUNT = 8
+			CONTINUE
+		ELSE
+			IF E > 1
+				B:COUNT = RAND:4
+			ELSEIF G == 1
+				B:COUNT = RAND:4
+			ELSE
+				B:COUNT = RAND:3
+			ENDIF
+			IF B:COUNT >= 2 && ダンジョンフラグ:70:50 >= 0
+				B:COUNT = 3+(RAND:2)
+				SIF ダンジョンフラグ:70:(88) == 1
+					B:COUNT = 3
+				;既にBのCOUNT番目以外のいずれかに4＝P3キャラとの遭遇が入っているなら代わりに宝箱を設置する
+				SIF B:COUNT == 4 && MATCH(B,4) > 1
+					B:COUNT = 3
+				IF B:COUNT == 4
+					B:COUNT = (RAND:11)
+					IF B:COUNT == 1 && ダンジョンフラグ:70:(10) >= 1
+						ダンジョンフラグ:70:93 = 1
+						B:COUNT = 4
+					ELSEIF B:COUNT == 2 && ダンジョンフラグ:70:(11) >= 1
+						ダンジョンフラグ:70:93 = 2
+						B:COUNT = 4
+					ELSEIF B:COUNT == 3 && ダンジョンフラグ:70:(12) >= 1
+						ダンジョンフラグ:70:93 = 3
+						B:COUNT = 4
+					ELSEIF B:COUNT == 4 && ダンジョンフラグ:70:(13) >= 1
+						ダンジョンフラグ:70:93 = 4
+						B:COUNT = 4
+					ELSEIF B:COUNT == 5 && ダンジョンフラグ:70:(14) >= 1
+						ダンジョンフラグ:70:93 = 5
+						B:COUNT = 4
+					ELSEIF B:COUNT == 6 && ダンジョンフラグ:70:(15) >= 1 && ダンジョンフラグ:70:(22) >= 1
+						ダンジョンフラグ:70:93 = 6
+						B:COUNT = 4
+					ELSEIF B:COUNT == 7 && ダンジョンフラグ:70:(16) >= 1
+						ダンジョンフラグ:70:93 = 7
+						B:COUNT = 4
+					ELSEIF B:COUNT == 8 && ダンジョンフラグ:70:(17) >= 1
+						ダンジョンフラグ:70:93 = 8
+						B:COUNT = 4
+					ELSEIF B:COUNT == 9 && ダンジョンフラグ:70:(18) >= 1
+						ダンジョンフラグ:70:93 = 9
+						B:COUNT = 4
+					ELSEIF B:COUNT == 10 && ダンジョンフラグ:70:(19) >= 1 && ダンジョンフラグ:70:1 != 7
+						ダンジョンフラグ:70:93 = 10
+						B:COUNT = 4
+					ELSE
+						B:COUNT = 3
+					ENDIF
+				ENDIF
+			ELSEIF B:COUNT >= 2 && ダンジョンフラグ:70:50 < 0
+				B:COUNT = 3+(RAND:2)
+				SIF B:COUNT == 4 && MATCH(B,4) > 1
+					B:COUNT = 3
+				IF B:COUNT == 4
+					IF ダンジョンフラグ:70:(21) >= 1
+						ダンジョンフラグ:70:93 = 11
+						B:COUNT = 4
+					ELSE
+						B:COUNT = 3
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	REND
+
+	IF A:2 < 4
+		FLAG:現X = ((A:2)*4)+2
+		FLAG:現Y = 2
+	ELSEIF A:2 < 8
+		FLAG:現X = ((A:2)*4)-14
+		FLAG:現Y = 6
+	ELSEIF A:2 < 12
+		FLAG:現X = ((A:2)*4)-30
+		FLAG:現Y = 10
+	ENDIF
+
+	CLEARLINE 1
+	PRINTFORML Dungeon under construction..
+
+	C:1 = RAND:4
+	C:2 = RAND:4
+	C:3 = RAND:4
+	C:4 = RAND:4
+	C:5 = RAND:4
+	C:6 = RAND:4
+
+	;0U 1L 2D 3R
+
+	C:0 = COUNT
+	REPEAT 10
+		CALL RANDOM_DONGEON_2
+		SIF C:7 == 0
+			BREAK
+	REND
+	COUNT = C:0
+
+	CLEARLINE 1
+	PRINTFORML Dungeon under construction...
+
+	C:0 = COUNT
+	REPEAT 12
+		D:COUNT = (RAND:2)*(RAND:5)
+	REND
+	COUNT = C:0
+
+	CLEARLINE 2
+
+
+	CALL RANDOM_DONGEON_3
+
+	SIF G == 1
+		PRINTFORMW Something is unusual!
+
+RETURN 1
+
+
+;=======================================================================
+;ランダン処理中半
+;=======================================================================
+@RANDOM_DONGEON_2
+	C:7 = 0
+
+	IF C:1 == 3 && C:2 == 2 && C:5 == 1 && C:4 == 0
+		C:(3*(RAND:2)+(RAND:2)+1) += (RAND:3)+1
+		C:7 = 1
+	ELSEIF C:1 == 2 && C:2 == 1 && C:5 == 0 && C:4 == 3
+		C:(3*(RAND:2)+(RAND:2)+1) += (RAND:3)+1
+		C:7 = 1
+	ELSEIF C:2 == 2 && C:3 == 1 && C:6 == 0 && C:5 == 3
+		C:(3*(RAND:2)+(RAND:2)+2) += (RAND:3)+1
+		C:7 = 1
+	ELSEIF C:2 == 3 && C:3 == 2 && C:6 == 1 && C:5 == 0
+		C:(3*(RAND:2)+(RAND:2)+2) += (RAND:3)+1
+		C:7 = 1
+	ELSEIF C:1 == 3 && C:2 == 3 && C:3 == 2 && C:6 == 1 && C:5 == 1 && C:4 == 0
+		C:(RAND:6) += (RAND:3)+1
+		C:7 = 1
+	ELSEIF C:1 == 2 && C:2 == 1 && C:3 == 1 && C:6 == 0 && C:5 == 3 && C:4 == 3
+		C:(RAND:6) += (RAND:3)+1
+		C:7 = 1
+	ENDIF
+
+	SIF C:1 > 3
+		C:1 -=4
+	SIF C:2 > 3
+		C:2 -=4
+	SIF C:3 > 3
+		C:3 -=4
+	SIF C:4 > 3
+		C:4 -=4
+	SIF C:5 > 3
+		C:5 -=4
+	SIF C:6 > 3
+		C:6 -=4
+RETURN 0
+
+;=======================================================================
+;ランダン処理後半
+;=======================================================================
+@RANDOM_DONGEON_3
+	CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+	CALL MAKE_FLOOR_LINE, 1,"01110111011101110"
+	CALL MAKE_FLOOR_LINE, 2,"01112111211121110"
+	CALL MAKE_FLOOR_LINE, 3,"01110111011101110"
+	CALL MAKE_FLOOR_LINE, 4,"00200020002000200"
+	CALL MAKE_FLOOR_LINE, 5,"01110111011101110"
+	CALL MAKE_FLOOR_LINE, 6,"01112111211121110"
+	CALL MAKE_FLOOR_LINE, 7,"01110111011101110"
+	CALL MAKE_FLOOR_LINE, 8,"00200020002000200"
+	CALL MAKE_FLOOR_LINE, 9,"01110111011101110"
+	CALL MAKE_FLOOR_LINE,10,"01112111211121110"
+	CALL MAKE_FLOOR_LINE,11,"01110111011101110"
+	CALL MAKE_FLOOR_LINE,12,"00000000000000000"
+	C:0 = COUNT
+	;宝箱の設置
+	FOR COUNT, 0, 13
+		CALL TARTAROS_70_TREASUREBOX, COUNT
+	NEXT
+	REPEAT 4
+		;CALL SET_TILE,4*(COUNT)+2,2,B:COUNT,3,3
+		CALL SET_TILE,4*(COUNT)+2,2,B:COUNT,4,4
+		IF ダンジョンフラグ:70:(50) > 0
+			CALL SET_TILE,4*(COUNT)+2,2,B:COUNT,6,6
+		ELSE
+			CALL SET_TILE,4*(COUNT)+2,2,B:COUNT,6,7
+		ENDIF
+		CALL SET_TILE,4*(COUNT)+2,2,B:COUNT,8,8
+		IF B:(COUNT) == 1
+			SIF D:(COUNT) == 0
+				CALL SET_TILE,4*(COUNT)+1,1,0,0,0
+			SIF D:(COUNT) == 1
+				CALL SET_TILE,4*(COUNT)+3,1,0,0,0
+			SIF D:(COUNT) == 2
+				CALL SET_TILE,4*(COUNT)+1,3,0,0,0
+			SIF D:(COUNT) == 3
+				CALL SET_TILE,4*(COUNT)+3,3,0,0,0
+			SIF D:(COUNT) == 4
+				CALL SET_TILE,4*(COUNT)+2,2,0,0,0
+		ENDIF
+	REND
+
+	REPEAT 4
+		;CALL SET_TILE,4*(COUNT)+2,6,B:(COUNT+4),3,3
+		IF ダンジョンフラグ:70:(50) > 0
+			CALL SET_TILE,4*(COUNT)+2,6,B:(COUNT+4),6,6
+		ELSE
+			CALL SET_TILE,4*(COUNT)+2,6,B:(COUNT+4),6,7
+		ENDIF
+		CALL SET_TILE,4*(COUNT)+2,6,B:(COUNT+4),8,8
+		IF B:(COUNT+4) == 1
+			SIF D:(COUNT+4) == 0
+				CALL SET_TILE,4*(COUNT)+1,5,0,0,0
+			SIF D:(COUNT+4) == 1
+				CALL SET_TILE,4*(COUNT)+3,5,0,0,0
+			SIF D:(COUNT+4) == 2
+				CALL SET_TILE,4*(COUNT)+1,7,0,0,0
+			SIF D:(COUNT+4) == 3
+				CALL SET_TILE,4*(COUNT)+3,7,0,0,0
+			SIF D:(COUNT+4) == 4
+				CALL SET_TILE,4*(COUNT)+2,6,0,0,0
+		ENDIF
+	REND
+
+	REPEAT 4
+		;CALL SET_TILE,4*(COUNT)+2,10,B:(COUNT+8),3,3
+		IF ダンジョンフラグ:70:(50) > 0
+			CALL SET_TILE,4*(COUNT)+2,10,B:(COUNT+8),6,6
+		ELSE
+			CALL SET_TILE,4*(COUNT)+2,10,B:(COUNT+8),6,7
+		ENDIF
+		CALL SET_TILE,4*(COUNT)+2,10,B:(COUNT+8),8,8
+		IF B:(COUNT+8) == 1
+			SIF D:(COUNT+8) == 0
+				CALL SET_TILE,4*(COUNT)+1,9,0,0,0
+			SIF D:(COUNT+8) == 1
+				CALL SET_TILE,4*(COUNT)+3,9,0,0,0
+			SIF D:(COUNT+8) == 2
+				CALL SET_TILE,4*(COUNT)+1,11,0,0,0
+			SIF D:(COUNT+8) == 3
+				CALL SET_TILE,4*(COUNT)+3,11,0,0,0
+			SIF D:(COUNT+8) == 4
+				CALL SET_TILE,4*(COUNT)+2,10,0,0,0
+		ENDIF
+	REND
+
+	COUNT = C:0
+
+	CALL SET_TILE,4,2,C:1,0,0
+	CALL SET_TILE,6,4,C:1,3,0
+	CALL SET_TILE,4,6,C:1,2,0
+	CALL SET_TILE,2,4,C:1,1,0
+	CALL SET_TILE,8,2,C:2,0,0
+	CALL SET_TILE,10,4,C:2,3,0
+	CALL SET_TILE,8,6,C:2,2,0
+	CALL SET_TILE,6,4,C:2,1,0
+	CALL SET_TILE,12,2,C:3,0,0
+	CALL SET_TILE,14,4,C:3,3,0
+	CALL SET_TILE,12,6,C:3,2,0
+	CALL SET_TILE,10,4,C:3,1,0
+	CALL SET_TILE,4,6,C:4,0,0
+	CALL SET_TILE,6,8,C:4,3,0
+	CALL SET_TILE,4,10,C:4,2,0
+	CALL SET_TILE,2,8,C:4,1,0
+	CALL SET_TILE,8,6,C:5,0,0
+	CALL SET_TILE,10,8,C:5,3,0
+	CALL SET_TILE,8,10,C:5,2,0
+	CALL SET_TILE,6,8,C:5,1,0
+	CALL SET_TILE,12,6,C:6,0,0
+	CALL SET_TILE,14,8,C:6,3,0
+	CALL SET_TILE,12,10,C:6,2,0
+	CALL SET_TILE,10,8,C:6,1,0
+RETURN 0
+
+;=======================================================================
+;宝の箱, アイテム
+;ARGはX座標, ARG:1はY座標, 引数は-1で中身ゲット, 0で中身リセット, 1~9で該当宝箱を設置
+;=======================================================================
+@TARTAROS_70_TREASUREBOX, ARG = -1
+#LOCALSIZE 1
+#LOCALSSIZE 1
+;　１％　(  1)：刈り取る者
+;１０％　( 11)：武器
+;１０％　( 21)：防具・アクセ
+;３０％　( 51)：特殊アイテム
+;４９％　(100)：回復アイテム
+;※消費アイテムに限りたまに２～３個貰える
+
+;フラグ初期化
+IF ARG == 0
+	VARSET LOCALS
+	RETURN 0
+;中身ゲット
+ELSEIF ARG == -1
+	LOCAL = FLAG:現X/4 + FLAG:現Y/4 * 4
+	SPLIT LOCALS, "/", RESULTS
+	SPLIT RESULTS:LOCAL, "_", RESULTS
+	IF RESULTS == "MONEY" || RESULTS == "EMPTY"
+		IF ダンジョンフラグ:70:(50) > 0
+			CALL GET_TREASURE_MONEY,0,RAND:(ダンジョンフラグ:70:50*ダンジョンフラグ:70:50)+(ダンジョンフラグ:70:50*10),70,99
+		ELSEIF ダンジョンフラグ:70:(50) == 0
+			CALL GET_TREASURE_MONEY,0,1,70,99
+		ELSE
+			CALL GET_TREASURE_MONEY,0,RAND:((ダンジョンフラグ:70:50-100)*(ダンジョンフラグ:70:50-100))-(ダンジョンフラグ:70:50*10),70,99
+		ENDIF
+	ELSEIF RESULTS == "刈り取る者"
+		CALL GET_TREASUREHUNT
+	ELSE
+		IF GETNUM(ITEM, RESULTS) == -1
+			PRINTFORML %RESULTS%という名前でアイテムが指定されています
+			PRINTFORMW これはミスなので, 該当ダンジョンと, %RESULTS%を報告してください
+			RETURN 0
+		ENDIF
+		CALL GET_TREASURE,GETNUM(ITEM, RESULTS),TOINT(RESULTS:1),70,99
+	ENDIF
+ELSE
+	;PRINTFORML DA:{(2 + (ARG-1)%4 * 4)}:{(2 + (ARG-1)/4 * 4)} = 3
+	IF B:(ARG) != 3
+		LOCALS += "EMPTY_0/"
+		RETURN 0
+	ENDIF
+	;宝箱を設置
+	DA:(2 + (ARG-1)%4 * 4):(2 + (ARG-1)/4 * 4) = 3
+	;中身の選定
+	;50%で金
+	IF RAND:2
+		LOCALS += "MONEY_1/"
+	ENDIF
+	SELECTCASE RAND:100
+		CASE 99
+			LOCALS += "刈り取る者_1/"
+		;武器
+		CASE IS < 15
+			IF ダンジョンフラグ:70:50 >= 0 && ダンジョンフラグ:70:50 < 5
+				IF RAND:8 == 0
+					LOCALS += "骨_1/"
+				ELSEIF RAND:7 == 0
+					LOCALS += "Rocket Arm_1/"
+				ELSEIF RAND:6 == 0
+					LOCALS += "Iron Pipe_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "Nailed Bat_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "Toy Bow_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Jack Gloves_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Deck Brush_1/"
+				ELSE
+					LOCALS += "Bus Stop Sign_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 5 && ダンジョンフラグ:70:50 < 15
+				IF RAND:6 == 0
+					LOCALS += "Gladius_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "Kishido Blade_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "Short Bow_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Brass Knuckle_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Wood Stick_1/"
+				ELSE
+					LOCALS += "Heavy Axe_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 15 && ダンジョンフラグ:70:50 < 25
+				IF RAND:6 == 0
+					LOCALS += "Elegant Fleuret_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "Raikou_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "Shigetou-yumi_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Sonic Fist_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Cross Spear_1/"
+				ELSE
+					LOCALS += "Megaton Rod_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 25 && ダンジョンフラグ:70:50 < 35
+				IF RAND:7 == 0
+					LOCALS += "Sky Piercer_1/"
+				ELSEIF RAND:6 == 0
+					LOCALS += "Silver Saber_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "Scrap_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "ウタ_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Kaiser Knuckle_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Lancarl_1/"
+				ELSE
+					LOCALS += "Ogre Hammer_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 35 && ダンジョンフラグ:70:50 < 50
+				IF RAND:7 == 0
+					LOCALS += "Caladbolg_1/"
+				ELSEIF RAND:6 == 0
+					LOCALS += "Scrap_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "Tsubakimaru_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "Composite Bow_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Gigant Knuckle_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Crescent Blade_1/"
+				ELSE
+					LOCALS += "Gaia Presser_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 < 0 && ダンジョンフラグ:70:50 > -5
+				IF RAND:8 == 0
+					LOCALS += "Gaia Presser_1/"
+				ELSEIF RAND:7 == 0
+					LOCALS += "Caladbolg_1/"
+				ELSEIF RAND:6 == 0
+					LOCALS += "Scrap_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "Tsubakimaru_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "Composite Bow_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Gigant Knuckle_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Crescent Blade_1/"
+				ELSE
+				SELECTCASE RAND:6
+					CASE 0
+						LOCALS += "Seven Star Sword_1/"
+					CASE 1
+						LOCALS += "Tonbogiri_1/"
+					CASE 2
+						LOCALS += "Charun's Hammer_1/"
+					CASE 3
+						LOCALS += "Railgun_1/"
+					CASE 4
+						LOCALS += "Brionac_1/"
+					CASEELSE
+						LOCALS += "Almighty Shell_2/"
+				ENDSELECT
+			ENDIF
+			ELSE
+			SELECTCASE RAND:7
+				CASE 0
+						LOCALS += "Seven Star Sword_1/"
+				CASE 1
+						LOCALS += "Tonbogiri_1/"
+				CASE 2
+						LOCALS += "Charun's Hammer_1/"
+				CASE 3
+					LOCALS += "Railgun_1/"
+				CASE 4
+					LOCALS += "Brionac_1/"
+				CASEELSE
+					LOCALS += "Almighty Shell_2/"
+			ENDSELECT
+			ENDIF
+		CASE IS < 30
+			;防具
+			IF ダンジョンフラグ:70:50 >= 0 && ダンジョンフラグ:70:50 < 5
+				IF RAND:5 == 0
+					LOCALS += "Nap Guard_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "Uniform_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "Rivet Knuckle_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "Titanium Boots_1/"
+				ELSE
+					LOCALS += "Kaiser Armor_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 5 && ダンジョンフラグ:70:50 < 15
+				IF RAND:5 == 0
+					IF RAND:2 == 0
+						LOCALS += "Sun Armor_1/"
+					ELSE
+						LOCALS += "Ageha Dress_1/"
+					ENDIF
+				ELSEIF RAND:4 == 0
+					IF RAND:2 == 0
+						LOCALS += "Feather Trim_1/"
+					ELSE
+						LOCALS += "Iron Pumpkin_1/"
+					ENDIF
+				ELSEIF RAND:3 == 0
+					IF RAND:2 == 0
+						LOCALS += "Hyper Gloves_1/"
+					ELSE
+						LOCALS += "Cyber Arm_1/"
+					ENDIF
+				ELSEIF RAND:2 == 0
+					IF RAND:2 == 0
+						LOCALS += "Dancing Heel_1/"
+					ELSE
+						LOCALS += "Aerojet_1/"
+					ENDIF
+				ELSE
+					IF RAND:6 == 0
+						LOCALS += "Power Band_1/"
+					ELSEIF RAND:5 == 0
+						LOCALS += "Intel Glasses_1/"
+					ELSEIF RAND:4 == 0
+						LOCALS += "Magic Ring_1/"
+					ELSEIF RAND:3 == 0
+						LOCALS += "Stamina Belt_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Speed Ankh_1/"
+					ELSE
+						LOCALS += "Luck Piercings_1/"
+					ENDIF
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 15 && ダンジョンフラグ:70:50 < 25
+				IF RAND:5 == 0
+					IF RAND:3 == 0
+						LOCALS += "Tang Lion Happi_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Palace Armor_1/"
+					ELSE
+						LOCALS += "All-purpose Apron_1/"
+					ENDIF
+				ELSEIF RAND:4 == 0
+					IF RAND:2 == 0
+						LOCALS += "Frog Helm_1/"
+					ELSE
+						LOCALS += "Triangle Hat_1/"
+					ENDIF
+				ELSEIF RAND:3 == 0
+					IF RAND:3 == 0
+						LOCALS += "G-Radazu_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Arm Bridge_1/"
+					ELSE
+						LOCALS += "Whirlwind Gauntlet_1/"
+					ENDIF
+				ELSEIF RAND:2 == 0
+					IF RAND:2 == 0
+						LOCALS += "CrscntMoon Greaves_1/"
+					ELSE
+						LOCALS += "Climbing Shoes_1/"
+					ENDIF
+				ELSE
+					IF RAND:4 == 0
+						LOCALS += "Ring of Secrets_1/"
+					ELSEIF RAND:3 == 0
+						LOCALS += "Rosary_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Prayer Beads_1/"
+					ELSE
+						LOCALS += "Amethyst Amulet_1/"
+					ENDIF
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 25 && ダンジョンフラグ:70:50 < 40
+				IF RAND:5 == 0
+					IF RAND:3 == 0
+						LOCALS += "Spike Bra_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Tetrajammer_1/"
+					ELSE
+						LOCALS += "Skull Keikogi_1/"
+					ENDIF
+				ELSEIF RAND:4 == 0
+					IF RAND:2 == 0
+						LOCALS += "Dolphin Helm_1/"
+					ELSE
+						LOCALS += "Iron Facemask_1/"
+					ENDIF
+				ELSEIF RAND:3 == 0
+					IF RAND:2 == 0
+						LOCALS += "Tachiwari Gauntlet_1/"
+					ELSE
+						LOCALS += "Revenge Gauntlet_1/"
+					ENDIF
+				ELSEIF RAND:2 == 0
+					LOCALS += "Bell Toll Greaves_1/"
+				ELSE
+					IF RAND:7 == 0
+						LOCALS += "Earth Seal_1/"
+					ELSEIF RAND:6 == 0
+						LOCALS += "Mega Power Band_1/"
+					ELSEIF RAND:5 == 0
+						LOCALS += "Mega Intel Glasses_1/"
+					ELSEIF RAND:4 == 0
+						LOCALS += "Mega Magic Ring_1/"
+					ELSEIF RAND:3 == 0
+						LOCALS += "Mega Stamina Belt_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Mega Speed Ankh_1/"
+					ELSE
+						LOCALS += "Mega Luck Earrings_1/"
+					ENDIF
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 40 && ダンジョンフラグ:70:50 < 50
+				IF RAND:5 == 0
+					IF RAND:3 == 0
+						LOCALS += "Fifth Number_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Parade Armor_1/"
+					ELSE
+						LOCALS += "Daybreak Armor_1/"
+					ENDIF
+				ELSEIF RAND:4 == 0
+					IF RAND:2 == 0
+						LOCALS += "Parade Helm_1/"
+					ELSE
+						LOCALS += "Daybreak Helm_1/"
+					ENDIF
+				ELSEIF RAND:3 == 0
+					IF RAND:2 == 0
+						LOCALS += "Parade Gloves_1/"
+					ELSE
+						LOCALS += "Daybreak Gauntlet_1/"
+					ENDIF
+				ELSEIF RAND:2 == 0
+					IF RAND:2 == 0
+						LOCALS += "Parade Boots_1/"
+					ELSE
+						LOCALS += "Daybreak Greaves_1/"
+					ENDIF
+				ELSE
+					IF RAND:5 == 0
+						LOCALS += "Earth Seal_1/"
+					ELSEIF RAND:4 == 0
+						LOCALS += "Earth Sticker_1/"
+					ELSEIF RAND:3 == 0
+						LOCALS += "Mage Badge_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "Sigma Drive_1/"
+					ELSE
+						LOCALS += "Omega Tribe_1/"
+					ENDIF
+				ENDIF
+			ELSE
+				IF RAND:5 == 0
+					IF RAND:2 == 0
+						LOCALS += "A-MAX Suit_1/"
+					ELSE
+						LOCALS += "Eternal Plate_1/"
+					ENDIF
+				ELSEIF RAND:4 == 0
+					IF RAND:2 == 0
+						LOCALS += "A-MAX Helm_1/"
+					ELSE
+						LOCALS += "Calamity Helm_1/"
+					ENDIF
+				ELSEIF RAND:3 == 0
+					IF RAND:2 == 0
+						LOCALS += "A-Max Arm_1/"
+					ELSE
+						LOCALS += "Calamity Crow_1/"
+					ENDIF
+				ELSEIF RAND:2 == 0
+					IF RAND:2 == 0
+						LOCALS += "A-MAX Leg_1/"
+					ELSE
+						LOCALS += "Calamity Boots_1/"
+					ENDIF
+				ELSE
+					IF ダンジョンフラグ:70:50 < 0 && ダンジョンフラグ:70:50 > -5
+						IF RAND:7 == 0
+							LOCALS += "Earth Seal_1/"
+						ELSEIF RAND:6 == 0
+							LOCALS += "Space Sticker_1/"
+						ELSEIF RAND:5 == 0
+							LOCALS += "Sorcerer Badge_1/"
+						ELSEIF RAND:4 == 0
+							LOCALS += "Earth Sticker_1/"
+						ELSEIF RAND:3 == 0
+							LOCALS += "Mage Badge_1/"
+						ELSEIF RAND:2 == 0
+							LOCALS += "Sigma Drive_1/"
+						ELSE
+							LOCALS += "Omega Tribe_1/"
+						ENDIF
+					ELSE
+						IF RAND:8 == 0
+							LOCALS += "Wizard Badge_1/"
+						ELSEIF RAND:7 == 0
+							LOCALS += "Earth Seal_1/"
+						ELSEIF RAND:6 == 0
+							LOCALS += "Space Sticker_1/"
+						ELSEIF RAND:5 == 0
+							LOCALS += "Sorcerer Badge_1/"
+						ELSEIF RAND:4 == 0
+							LOCALS += "Earth Sticker_1/"
+						ELSEIF RAND:3 == 0
+							LOCALS += "Mage Badge_1/"
+						ELSEIF RAND:2 == 0
+							LOCALS += "Sigma Drive_1/"
+						ELSE
+							LOCALS += "Omega Tribe_1/"
+						ENDIF
+					ENDIF
+				ENDIF
+			ENDIF
+		CASE IS < 40
+			;カード
+			IF ダンジョンフラグ:70:50 >= 0 && ダンジョンフラグ:70:50 < 5
+				IF RAND:5 == 0
+					LOCALS += "スキルカード【アギ】_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "スキルカード【ブフ】_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "スキルカード【ザン】_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "スキルカード【ジオ】_1/"
+				ELSE
+					LOCALS += "スキルカード【ディア】_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 5 && ダンジョンフラグ:70:50 < 15
+				IF RAND:5 == 0
+					LOCALS += "スキルカード【アクア】_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "スキルカード【ガル】_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "スキルカード【マグナ】_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "スキルカード【グライ】_1/"
+				ELSE
+					LOCALS += "スキルカード【フレイ】_1/"
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 15 && ダンジョンフラグ:70:50 < 25
+				IF RAND:5 == 0
+					LOCALS += "スキルカード【ハンマ】_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "スキルカード【ムド】_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "スキルカード【メギド】_1/"
+				ELSEIF RAND:2 == 0
+					IF RAND:3 == 0
+						LOCALS += "スキルカード【Rebellion】_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "スキルカード【アドバイス】_1/"
+					ELSE
+						LOCALS += "スキルカード【コーチング】_1/"
+					ENDIF
+				ELSE
+					IF RAND:4 == 0
+						LOCALS += "スキルカード【タル・カジャ】_1/"
+					ELSEIF RAND:3 == 0
+						LOCALS += "スキルカード【ラク・カジャ】_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "スキルカード【マカ・カジャ】_1/"
+					ELSE
+						LOCALS += "スキルカード【スク・カジャ】_1/"
+					ENDIF
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 25 && ダンジョンフラグ:70:50 < 35
+				IF RAND:10 == 0
+					LOCALS += "スキルカード【メ・ディア】_1/"
+				ELSEIF RAND:9 == 0
+					LOCALS += "スキルカード【マハ・ラギ】_1/"
+				ELSEIF RAND:8 == 0
+					LOCALS += "スキルカード【マハ・ブフ】_1/"
+				ELSEIF RAND:7 == 0
+					LOCALS += "スキルカード【マハ・ザン】_1/"
+				ELSEIF RAND:6 == 0
+					LOCALS += "スキルカード【マハ・ジオ】_1/"
+				ELSEIF RAND:5 == 0
+					LOCALS += "スキルカード【マハ・ガル】_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "スキルカード【マハ・マグナ】_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "スキルカード【マハ・アクア】_1/"
+				ELSEIF RAND:2 == 0
+					IF RAND:2 == 0
+						LOCALS += "スキルカード【一分の活泉】_1/"
+					ELSE
+						LOCALS += "スキルカード【一分の魔脈】_1/"
+					ENDIF
+				ELSE
+					IF RAND:3 == 0
+						LOCALS += "スキルカード【タル・ンダ】_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "スキルカード【ラク・ンダ】_1/"
+					ELSE
+						LOCALS += "スキルカード【スク・ンダ】_1/"
+					ENDIF
+				ENDIF
+			ELSEIF ダンジョンフラグ:70:50 >= 35 && ダンジョンフラグ:70:50 < 50
+				IF RAND:4 == 0
+					IF RAND:4 == 0
+						LOCALS += "スキルカード【マハンマ】_1/"
+					ELSE
+						LOCALS += "スキルカード【マハムド】_1/"
+					ENDIF
+				ELSEIF RAND:3 == 0
+					LOCALS += "スキルカード【デ・クンダ】_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "スキルカード【デ・カジャ】_1/"
+				ELSE
+					IF RAND:4 == 0
+						LOCALS += "スキルカード【トラフーリ】_1/"
+					ELSEIF RAND:3 == 0
+						LOCALS += "スキルカード【トラエスト】_1/"
+					ELSEIF RAND:2 == 0
+						LOCALS += "スキルカード【気合】_1/"
+					ELSE
+						LOCALS += "スキルカード【コンセントレイト】_1/"
+					ENDIF
+				ENDIF
+			ELSE
+				IF RAND:5 == 0
+					LOCALS += "スキルカード【ツインスラッシュ】_1/"
+				ELSEIF RAND:4 == 0
+					LOCALS += "スキルカード【ひっかき】_1/"
+				ELSEIF RAND:3 == 0
+					LOCALS += "スキルカード【九十九針】_1/"
+				ELSEIF RAND:2 == 0
+					LOCALS += "スキルカード【ショートジャブ】_1/"
+				ELSE
+					LOCALS += "スキルカード【メギド】_1/"
+				ENDIF
+			ENDIF
+		CASE IS < 55
+		;攻撃アイテム
+			SELECTCASE RAND:6
+				CASE 0
+					LOCALS += "NapalmBomb_1/"
+				CASE 1
+					LOCALS += "NitrogenCylinder_1/"
+				CASE 2
+					LOCALS += "RiotBomb_1/"
+				CASE 3
+					LOCALS += "PoisonArrow_1/"
+				CASE 4
+					LOCALS += "施餓鬼米_1/"
+				CASEELSE
+					LOCALS += "蠱毒皿_1/"
+			ENDSELECT
+		CASEELSE
+			IF ダンジョンフラグ:70:50 >= 0 && ダンジョンフラグ:70:50 < 35
+			SELECTCASE RAND:4
+				CASE 0
+					LOCALS += "Medicine_"
+				CASE 1
+					LOCALS += "Bead_"
+				CASE 2
+					LOCALS += "RevivalBead_"
+				CASE 3
+					LOCALS += "Life stone_"
+			ENDSELECT
+			ELSE
+			SELECTCASE RAND:4
+				CASE 0
+					LOCALS += "BalmOfLife_"
+				CASE 1
+					LOCALS += "Bead_"
+				CASE 2
+					LOCALS += "OxBezoar_"
+				CASE 3
+					LOCALS += "Life stone_"
+			ENDSELECT
+			ENDIF
+			LOCALS += @"{1+(RAND:2)*(RAND:2)*((RAND:2)*(RAND:2)+1)}/"
+	ENDSELECT
+ENDIF
+
+
+RETURN 0
+
+
+;=======================================================================
+;宝箱, 処理
+;=======================================================================
+@TARTAROS_70_TREASUREBOXS
+	IF FLAG:現M == 2
+		CALL GET_TREASURE,1025,1,70,51
+		;チャクラドロップ1個
+	ELSEIF FLAG:現M == 3
+		CALL GET_TREASURE,1004,2,70,52
+		;宝玉２個
+	ELSEIF FLAG:現M == 4
+		CALL GET_TREASURE,1005,3,70,53
+		;メディカルパウダー３個
+	ELSEIF FLAG:現M == 5
+		CALL GET_TREASURE,1016,4,70,54
+		;崖っぷち粉末４個
+	ELSEIF FLAG:現M == 6
+		CALL GET_TREASURE,1110,5,70,55
+		;MegidoStone５個
+	ELSEIF FLAG:現M == 7
+		CALL GET_TREASURE,1025,1,70,56
+		;チャクラドロップ１個
+	ELSEIF FLAG:現M == 8
+		CALL GET_TREASURE,1009,2,70,57
+		;反魂香２個
+	ELSEIF FLAG:現M == 9
+		CALL GET_TREASURE,1111,3,70,58
+		;MegidolaStone３個
+	ELSEIF FLAG:現M == 10
+		CALL GET_TREASURE,1006,1,70,59
+		;BeadChain１個
+	ELSEIF FLAG:現M == 21
+		CALL GET_TREASURE_MONEY,0,1000000,70,64
+		;\1000000
+	ELSEIF FLAG:現M == 1
+		CALL TARTAROS_70_TREASUREBOX
+	ENDIF
+RETURN 0
+
+;=======================================================================
+;みみっく
+;=======================================================================
+@GET_TREASUREHUNT
+	PRINT A box is here. 
+	PRINTBUTTON "[0]Open it",0
+	PRINT  
+	PRINTBUTTON "[1]Don't open it",1
+	PRINTL
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 0
+		PRINTFORMW ＊Whoops＊
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9,3201,ダンジョンフラグ:70:(50)/5+60,0,0
+		BASE:(CHARANUM-1):万能 = 100
+		ABL:(CHARANUM-1):スキル1 = 706
+		ABL:(CHARANUM-1):スキル2 = 1606
+		ABL:(CHARANUM-1):スキル3 = 1704
+		ABL:(CHARANUM-1):スキル4 = 1506
+		ABL:(CHARANUM-1):スキル5 = 1403
+		ABL:(CHARANUM-1):スキル6 = 1302
+		ABL:(CHARANUM-1):スキル7 = 108
+		ABL:(CHARANUM-1):スキル8 = 2002
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		ABL:(CHARANUM-1):アイテム3 = GETNUM(ITEM, "血塗れたボタン")
+		ABL:(CHARANUM-1):入手確率3 = 100
+		CALL BATTLE_START
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		RETURN 1
+	ELSEIF RESULT == 1
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+
+;=======================================================================
+;タルタルのマップデータ消去
+;M0のMAPデータを廃棄する
+;=======================================================================
+@TARTAR_MAPDEL
+#LOCALSIZE 2
+;SAVESTR:GET_FLOOR_ANALYZE_NUM(FLAG:現ダンジョン, 1) = %"0"* FLAG:最大X * FLAG:最大Y%
+FOR LOCAL:1, 0 , FLAG:最大Y
+	FOR LOCAL, 0, FLAG:最大X
+		CALLF DPOINT("SET" , 0 , LOCAL , LOCAL:1 , 1 , @"ダンジョン%TOSTR(FLAG:現ダンジョン , "00")%")
+	NEXT
+NEXT
+;C:0 = COUNT
+;REPEAT FLAG:最大X
+;	CALL TARTAR_MAPDEL2
+;REND
+;COUNT = C:0
+;RETURN 0
+;=======================================================================
+;@TARTAR_MAPDEL2
+;	C:1 = COUNT
+;	REPEAT FLAG:最大Y
+;		TA:(100+FLAG:現ダンジョン):(C:1):COUNT = 0
+;	REND
+;	COUNT = C:1
+;RETURN 0
+;=======================================================================
+
+@TARTAR_UPSTAIRS
+	ダンジョンフラグ:70:(50) += 1
+	IF (ダンジョンフラグ:70:(50)) == 0
+		CALL DUNGEON_UPSTAIRS,0,12,3
+	ELSEIF (ダンジョンフラグ:70:(50)) == 4
+		SIF ダンジョンフラグ:70:97 < 1
+			ダンジョンフラグ:70:97 = 1
+		CALL DUNGEON_UPSTAIRS,2,2,6
+	ELSEIF (ダンジョンフラグ:70:(50)) == 9
+		SIF ダンジョンフラグ:70:97 < 2
+			ダンジョンフラグ:70:97 = 2
+		CALL DUNGEON_UPSTAIRS,3,10,6
+	ELSEIF (ダンジョンフラグ:70:(50)) == 14
+		SIF ダンジョンフラグ:70:97 < 3
+			ダンジョンフラグ:70:97 = 3
+		CALL DUNGEON_UPSTAIRS,4,6,6
+	ELSEIF (ダンジョンフラグ:70:(50)) == 19
+		SIF ダンジョンフラグ:70:97 < 4
+			ダンジョンフラグ:70:97 = 4
+		CALL DUNGEON_UPSTAIRS,5,2,2
+	ELSEIF (ダンジョンフラグ:70:(50)) == 24
+		SIF ダンジョンフラグ:70:97 < 5
+			ダンジョンフラグ:70:97 = 5
+		CALL DUNGEON_UPSTAIRS,6,2,10
+	ELSEIF (ダンジョンフラグ:70:(50)) == 29
+		SIF ダンジョンフラグ:70:97 < 6
+			ダンジョンフラグ:70:97 = 6
+		CALL DUNGEON_UPSTAIRS,7,6,2
+	ELSEIF (ダンジョンフラグ:70:(50)) == 34
+		SIF ダンジョンフラグ:70:97 < 7
+			ダンジョンフラグ:70:97 = 7
+		CALL DUNGEON_UPSTAIRS,8,2,2
+	ELSEIF (ダンジョンフラグ:70:(50)) == 39
+		SIF ダンジョンフラグ:70:97 < 8
+			ダンジョンフラグ:70:97 = 8
+		CALL DUNGEON_UPSTAIRS,9,8,10
+	ELSEIF (ダンジョンフラグ:70:(50)) == 44
+		SIF ダンジョンフラグ:70:97 < 9
+			ダンジョンフラグ:70:97 = 9
+		CALL DUNGEON_UPSTAIRS,10,10,10
+	ELSEIF (ダンジョンフラグ:70:(50)) == 48
+		SIF ダンジョンフラグ:70:97 < 10
+			ダンジョンフラグ:70:97 = 10
+		CALL DUNGEON_UPSTAIRS,11,10,10
+	ELSE
+		CALL DUNGEON_UPSTAIRS,1,1,1
+	ENDIF
+	SIF RESULT == 0
+		ダンジョンフラグ:70:(50) -= 1
+	RETURN 0
+
+@TARTAR_DOWNSTAIRS
+	ダンジョンフラグ:70:(50) -= 1
+	IF (ダンジョンフラグ:70:(50)) == 0
+		CALL DUNGEON_DOWNSTAIRS,0,8,2
+	ELSEIF (ダンジョンフラグ:70:(50)) == (-5)
+		SIF ダンジョンフラグ:70:69 == 0
+			ダンジョンフラグ:70:69 = 1
+		CALL DUNGEON_DOWNSTAIRS,20,2,5
+	ELSEIF (ダンジョンフラグ:70:(50)) == (-10)
+		SIF ダンジョンフラグ:70:97 < 5
+			ダンジョンフラグ:70:97 = 5
+		CALL DUNGEON_DOWNSTAIRS,21,5,8
+	ELSE
+		CALL DUNGEON_DOWNSTAIRS,1,1,1
+	ENDIF
+	SIF RESULT == 0
+		ダンジョンフラグ:70:(50) += 1
+	RETURN 0
+;=======================================================================
+
+@TARTAR_ELEVETOR
+	PRINTL There is an elevator here.
+	PRINTW -Please decide where you want to go-
+	PRINTL [0] 1F
+	SIF ダンジョンフラグ:70:97 > 0 && FLAG:現M != 2
+		PRINTL [1] 5F
+	SIF ダンジョンフラグ:70:97 > 1 && FLAG:現M != 3
+		PRINTL [2] 10F
+	SIF ダンジョンフラグ:70:97 > 2 && FLAG:現M != 4
+		PRINTL [3] 15F
+	SIF ダンジョンフラグ:70:97 > 3 && FLAG:現M != 5
+		PRINTL [4] 20F
+	SIF ダンジョンフラグ:70:97 > 4 && FLAG:現M != 6
+		PRINTL [5] 25F
+	SIF ダンジョンフラグ:70:97 > 5 && FLAG:現M != 7
+		PRINTL [6] 30F
+	SIF ダンジョンフラグ:70:97 > 6 && FLAG:現M != 8
+		PRINTL [7] 35F
+	SIF ダンジョンフラグ:70:97 > 7 && FLAG:現M != 9
+		PRINTL [8] 40F
+	SIF ダンジョンフラグ:70:97 > 8 && FLAG:現M != 10
+		PRINTL [9] 45F
+	SIF ダンジョンフラグ:70:69 > 0 && FLAG:現M != 20
+		PRINTL [21] B5F
+	PRINTL [99]Cancel
+	$INPUT_LOOP_E
+	INPUT
+	IF RESULT == 99
+		RETURN 1
+	ELSEIF RESULT == 0
+		IF FLAG:現M != RESULT
+			ダンジョンフラグ:70:(50) = 0
+			FLAG:現M = 0
+			FLAG:現X = 12
+			FLAG:現Y = 9
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 1
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 4
+			FLAG:現M = 2
+			FLAG:現X = 6
+			FLAG:現Y = 6
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 2
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 9
+			FLAG:現M = 3
+			FLAG:現X = 3
+			FLAG:現Y = 6
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 3
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 14
+			FLAG:現M = 4
+			FLAG:現X = 3
+			FLAG:現Y = 6
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 4
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 19
+			FLAG:現M = 5
+			FLAG:現X = 13
+			FLAG:現Y = 2
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 5
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 24
+			FLAG:現M = 6
+			FLAG:現X = 9
+			FLAG:現Y = 10
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 6
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 29
+			FLAG:現M = 7
+			FLAG:現X = 3
+			FLAG:現Y = 6
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 7
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 34
+			FLAG:現M = 8
+			FLAG:現X = 2
+			FLAG:現Y = 6
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 8
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 39
+			FLAG:現M = 9
+			FLAG:現X = 5
+			FLAG:現Y = 6
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 9
+		IF ダンジョンフラグ:70:97 >= RESULT && FLAG:現M != RESULT+1
+			ダンジョンフラグ:70:(50) = 44
+			FLAG:現M = 10
+			FLAG:現X = 13
+			FLAG:現Y = 10
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSEIF RESULT == 21
+		IF ダンジョンフラグ:70:69 > 0 && FLAG:現M != 20
+			ダンジョンフラグ:70:(50) = -5
+			FLAG:現M = 20
+			FLAG:現X = 3
+			FLAG:現Y = 8
+		ELSE
+			GOTO INPUT_LOOP_E
+		ENDIF
+	ELSE
+		GOTO INPUT_LOOP_E
+	ENDIF
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	CALL AUTOMAP
+RETURN 0
+
+
+;=======================================================================
+;思考パターン
+;=======================================================================
+;アイギスパターン
+;=======================================================================
+@SET_ACTION_4522,ARG
+#LOCALSIZE 2
+IF FLAG:経過ターン数 == 0 && CFLAG:ARG:行動した回数 == 0
+	CALL CHECK_ACTIONABLE,ARG,501
+	IF RESULT == 1
+		CFLAG:ARG:入力行動 = 501
+		CALL RANDOM_TARGET,ARG,501
+	ELSE
+		GOTO DECIDE_ACTION
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	LOCAL = RAND:7
+	IF LOCAL == 0
+		CFLAG:ARG:入力行動 = 2101
+		CFLAG:ARG:ターゲット = -1
+		CALL RANDOM_TARGET,ARG,2101
+		RETURN 0
+	ELSEIF LOCAL == 1
+		CALL CHECK_ACTIONABLE,ARG,2
+		IF RESULT == 1
+			CFLAG:ARG:入力行動 = 2
+			CALL RANDOM_TARGET,ARG,2
+			RETURN 0
+		ELSE
+			CFLAG:ARG:入力行動 = 0
+			CFLAG:ARG:ターゲット = -1
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+			RETURN 0
+		ENDIF
+	ELSEIF LOCAL == 2
+		CALL CHECK_ACTIONABLE,ARG,201
+		IF RESULT == 1
+			CFLAG:ARG:入力行動 = 201
+			CALL RANDOM_TARGET,ARG,201
+			RETURN 0
+		ELSE
+			CFLAG:ARG:入力行動 = 0
+			CFLAG:ARG:ターゲット = -1
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+			RETURN 0
+		ENDIF
+	ELSEIF LOCAL == 3
+		CALL CHECK_ACTIONABLE,ARG,501
+		IF RESULT == 1 && CFLAG:ARG:攻撃強化 < 8
+			CFLAG:ARG:入力行動 = 501
+			CALL RANDOM_TARGET,ARG,501
+			RETURN 0
+		ELSE
+			CFLAG:ARG:入力行動 = 2101
+			CFLAG:ARG:ターゲット = -1
+			CALL RANDOM_TARGET,ARG,2101
+			RETURN 0
+		ENDIF
+	ELSEIF LOCAL == 4
+		CALL CHECK_ACTIONABLE,ARG,502
+		IF RESULT == 1 && (CFLAG:ARG:命中強化 < 8 || CFLAG:ARG:回避強化 < 8)
+			CFLAG:ARG:入力行動 = 502
+			CALL RANDOM_TARGET,ARG,502
+			RETURN 0
+		ELSE
+			CFLAG:ARG:入力行動 = 2101
+			CFLAG:ARG:ターゲット = -1
+			CALL RANDOM_TARGET,ARG,2101
+			RETURN 0
+		ENDIF
+	ELSEIF LOCAL == 5
+		IF (BASE:ARG:ＨＰ)*100/(MAXBASE:ARG:ＨＰ) >= 50
+			CALL CHECK_ACTIONABLE,ARG,2115
+			IF RESULT == 1
+				CFLAG:ARG:入力行動 = 2115
+				CALL RANDOM_TARGET,ARG,2115
+				RETURN 0
+			ELSE
+				CFLAG:ARG:入力行動 = 2101
+				CFLAG:ARG:ターゲット = -1
+				CALL RANDOM_TARGET,ARG,2101
+				RETURN 0
+			ENDIF
+		ELSE
+			CALL CHECK_ACTIONABLE,ARG,2111
+			IF RESULT == 1
+				CFLAG:ARG:入力行動 = 2111
+				CALL RANDOM_TARGET,ARG,2111
+				RETURN 0
+			ELSE
+				CFLAG:ARG:入力行動 = 2101
+				CFLAG:ARG:ターゲット = -1
+				CALL RANDOM_TARGET,ARG,2101
+				RETURN 0
+			ENDIF
+		ENDIF
+	ELSEIF LOCAL == 6
+		IF (BASE:ARG:ＨＰ)*100/(MAXBASE:ARG:ＨＰ) >= 50
+			CALL CHECK_ACTIONABLE,ARG,2113
+			IF RESULT == 1
+				CFLAG:ARG:入力行動 = 2113
+				CALL RANDOM_TARGET,ARG,2113
+				RETURN 0
+			ELSE
+				CFLAG:ARG:入力行動 = 2101
+				CFLAG:ARG:ターゲット = -1
+				CALL RANDOM_TARGET,ARG,2101
+				RETURN 0
+			ENDIF
+		ELSE
+			CALL CHECK_ACTIONABLE,ARG,2109
+			IF RESULT == 1
+				CFLAG:ARG:入力行動 = 2109
+				CALL RANDOM_TARGET,ARG,2109
+				RETURN 0
+			ELSE
+				CFLAG:ARG:入力行動 = 2101
+				CFLAG:ARG:ターゲット = -1
+				CALL RANDOM_TARGET,ARG,2101
+				RETURN 0
+			ENDIF
+		ENDIF
+	ENDIF
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	CFLAG:ARG:入力行動 = LOCAL:1
+	RETURN 0
+ENDIF
+
+
+;=======================================================================
+;プリーステスパターン
+;=======================================================================
+@SET_ACTION_3210,ARG
+#LOCALSIZE 1
+IF CFLAG:ARG:行動した回数 > 0
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 801
+	ELSEIF 3 <= LOCAL && LOCAL <= 5
+		CFLAG:ARG:入力行動 = 804
+	ELSEIF 6 <= LOCAL && LOCAL <= 7
+		CFLAG:ARG:入力行動 = 1221
+	ELSE
+		CFLAG:ARG:入力行動 = 802
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT == 1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSE
+	IF (POS(8) > -1 && CFLAG:POS(8):ステート == GET_STATE_NUM("DYING")) || (POS(10) > -1 && CFLAG:POS(10):ステート == GET_STATE_NUM("DYING")) && (BASE:ARG:ＭＰ > 34)
+		CFLAG:ARG:入力行動 = 418
+	ELSE
+		LOCAL = RAND:10
+		IF 0 <= LOCAL && LOCAL <= 3
+			CFLAG:ARG:入力行動 = 801
+		ELSEIF 4 <= LOCAL && LOCAL <= 6
+			CFLAG:ARG:入力行動 = 804
+		ELSEIF 7 <= LOCAL && LOCAL <= 7
+			CFLAG:ARG:入力行動 = 1221
+		ELSE
+			CFLAG:ARG:入力行動 = 802
+		ENDIF
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT == 1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+
+
+;=======================================================================
+;ハイエロファントパターン
+;=======================================================================
+@SET_ACTION_3256,ARG
+#LOCALSIZE 1
+IF CFLAG:ARG:行動した回数 > 0
+	IF (BASE:ARG:ＨＰ)*100/(MAXBASE:ARG:ＨＰ) <= 25
+		LOCAL = RAND:10
+		IF 0 <= LOCAL && LOCAL <= 3
+			CFLAG:ARG:入力行動 = 905
+		ELSEIF 4 <= LOCAL && LOCAL <= 5
+			CFLAG:ARG:入力行動 = 1221
+		ELSEIF 6 <= LOCAL && LOCAL <= 8
+			CFLAG:ARG:入力行動 = 204
+		ELSE
+			CFLAG:ARG:入力行動 = 912
+		ENDIF
+		CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+		IF RESULT == 1
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+		ELSE
+			GOTO DECIDE_ACTION
+		ENDIF
+		RETURN 0
+	ELSE
+		LOCAL = RAND:10
+		IF 0 <= LOCAL && LOCAL <= 2
+			CFLAG:ARG:入力行動 = 0
+		ELSEIF 3 <= LOCAL && LOCAL <= 5
+			CFLAG:ARG:入力行動 = 905
+		ELSEIF 6 <= LOCAL && LOCAL <= 7
+			CFLAG:ARG:入力行動 = 1221
+		ELSE
+			CFLAG:ARG:入力行動 = 902
+		ENDIF
+		CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+		IF RESULT == 1
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+		ELSE
+			GOTO DECIDE_ACTION
+		ENDIF
+		RETURN 0
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 204
+	ELSEIF 3 <= LOCAL && LOCAL <= 5
+		CFLAG:ARG:入力行動 = 902
+	ELSEIF 7 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 1221
+	ELSE
+		CFLAG:ARG:入力行動 = 912
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT == 1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+
+
+;=======================================================================
+;ラヴァーズパターン
+;=======================================================================
+@SET_ACTION_3212,ARG
+#LOCALSIZE 1
+IF FLAG:経過ターン数 == 0
+	CALL CHECK_ACTIONABLE,ARG,1213
+	IF RESULT == 1
+		CFLAG:ARG:入力行動 = 1213
+		CALL RANDOM_TARGET,ARG,1213
+	ELSE
+		GOTO DECIDE_ACTION2
+	ENDIF
+ELSE
+	$DECIDE_ACTION2
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 114
+	ELSEIF 3 <= LOCAL && LOCAL <= 4
+		CFLAG:ARG:入力行動 = 705
+	ELSEIF 5 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 1705
+	ELSEIF 7 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 1211
+	ELSEIF 9 <= LOCAL && LOCAL <= 9
+		CFLAG:ARG:入力行動 = 1213
+	ELSE
+		CFLAG:ARG:入力行動 = 106
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+RETURN 0
+
+;=======================================================================
+;ハングドマンパターン
+;=======================================================================
+@SET_ACTION_3277,ARG
+#LOCALSIZE 1
+IF CPOS(ARG) > 11
+	;後衛
+	$DECIDE_ACTION
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 3
+		CFLAG:ARG:入力行動 = 404
+	ELSEIF 4 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 417
+	ELSE
+		CFLAG:ARG:入力行動 = 1402
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = -1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSE
+	$DECIDE_ACTION2
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 215
+	ELSEIF 3 <= LOCAL && LOCAL <= 5
+		CFLAG:ARG:入力行動 = 305
+	ELSEIF 6 <= LOCAL && LOCAL <= 7
+		CFLAG:ARG:入力行動 = 1511
+	ELSE
+		CFLAG:ARG:入力行動 = 1403
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = -1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+RETURN 0
+
+;=======================================================================
+;ニュクスアバター.
+;=======================================================================
+;CFLAG:ARG:600 = ニュクス状態（数値=アルカナ）
+;CFLAG:ARG:601 = 闇夜コンボのたまり具合.
+;CFLAG:ARG:602 = 夜の女王, 予約
+;CFLAG:ARG:603 = 闇夜コンボ, 解禁してる？
+;CFLAG:ARG:604
+;
+@EVENT_BATTLE_ACTEND_DUNGEON70
+#DIM CHARA
+IF NO:(CHARANUM-1) == [[キャラ:ニュクスアバター]]
+	CHARA = CHARANUM - 1
+	IF CFLAG:CHARA:食いしばりフラグ
+		FOR LOCAL,0,17
+			BASE:CHARA:GET_TYPE(LOCAL) = 100
+		NEXT
+		CUSTOMDRAWLINE =
+		SETCOLOR 0xff0033
+		PRINTL 
+		CUSTOMDRAWLINE =
+		PRINTL 
+		IF CFLAG:CHARA:600 == 0
+			;愚者→魔術師
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The moment man ate the fruit of knowledge,",64,LEFT%┃
+			PRINTFORML ┃%"he sealed his fate...,",64,LEFT%┃
+			PRINTFORML ┃%"",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			PRINTL
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"Entrusting his future to the cards,",64,LEFT%┃
+			PRINTFORML ┃%"man clings to a dim hope.",64,LEFT%┃
+			PRINTFORML ┃%"",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			PRINTL 
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"Yes...the arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"Attaining one's dream,",64,LEFT%┃
+			PRINTFORML ┃%"requires strong will and determination...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:火炎 = 0
+			BASE:CHARA:氷結 = 150
+			LOCALS = Arcana Shift “Magican”
+			;アルカナシフト“魔術師”
+		ELSEIF CFLAG:CHARA:600 == 1
+			;→女教皇
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"The silent voice within one's heart...",64,LEFT%┃
+			PRINTFORML ┃%"Whispers the most profound wisdom...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:火炎 = 150
+			BASE:CHARA:氷結 = 0
+			LOCALS = Arcana Shift“Priestress”
+			;女教皇
+		ELSEIF CFLAG:CHARA:600 == 2
+			;→女帝
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"Celebrate life's grandeur...its brilliance...",64,LEFT%┃
+			PRINTFORML ┃%"its magnificence...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:電撃 = 150
+			BASE:CHARA:疾風 = 0
+			LOCALS = Arcana Shift“Empress”
+			;女帝
+		ELSEIF CFLAG:CHARA:600 == 3
+			;→皇帝
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"Only courage in the face of doubt,",64,LEFT%┃
+			PRINTFORML ┃%"can lead one to the answer...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:電撃 = 0
+			BASE:CHARA:疾風 = 150
+			LOCALS = Arcana Shift“Emperor”
+			;皇帝
+		ELSEIF CFLAG:CHARA:600 == 4
+			;→法王
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"It is indeed a precious gift,",64,LEFT%┃
+			PRINTFORML ┃%"to understand the forces that guide oneself...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:剣撃 = 0
+			BASE:CHARA:打撃 = 0
+			BASE:CHARA:戦技 = 150
+			BASE:CHARA:精神 = 150
+			LOCALS = Arcana Shift“Hierophant”
+			;法王
+		ELSEIF CFLAG:CHARA:600 == 5
+			;→恋愛
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"There is both joy and wonder...",64,LEFT%┃
+			PRINTFORML ┃%"In coming to understand another...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:衝撃 = 0
+			BASE:CHARA:精神 = 0
+			BASE:CHARA:飛具 = 150
+			BASE:CHARA:地変 = 150
+			LOCALS = Arcana Shift“Lovers”
+			;恋愛
+		ELSEIF CFLAG:CHARA:600 == 6
+			;→戦車
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"One of life's greatest blessings",64,LEFT%┃
+			PRINTFORML ┃%"is the freedom to pursue one's own goal...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:飛具 = 0
+			BASE:CHARA:戦技 = 0
+			BASE:CHARA:神経 = 150
+			BASE:CHARA:水撃 = 150
+			LOCALS = Arcana Shift“Chariot”
+			;戦車
+		ELSEIF CFLAG:CHARA:600 == 7
+			;→正義
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"To find the one true path,",64,LEFT%┃
+			PRINTFORML ┃%"one must seek guidance amidst uncertainty...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:破魔 = 0
+			BASE:CHARA:呪殺 = 150
+			LOCALS = Arcana Shift“Justice”
+			;正義
+		ELSEIF CFLAG:CHARA:600 == 8
+			;→隠者
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"It requires great courage to look at oneself honestly,",64,LEFT%┃
+			PRINTFORML ┃%"and forge one's own path...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:神経 = 0
+			BASE:CHARA:剣撃 = 150
+			LOCALS = Arcana Shift“Hermit”
+			;隠者
+		ELSEIF CFLAG:CHARA:600 == 9
+			;→運命
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"Alongside time exists fate,",64,LEFT%┃
+			PRINTFORML ┃%"the bearer of cruelty...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:水撃 = 0
+			BASE:CHARA:重力 = 0
+			BASE:CHARA:衝撃 = 150
+			BASE:CHARA:核熱 = 150
+			LOCALS = Arcana Shift“Fortune”
+			;運命
+		ELSEIF CFLAG:CHARA:600 == 10
+			;→剛毅
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"Only with strength,",64,LEFT%┃
+			PRINTFORML ┃%"can one endure suffering and torment...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:地変 = 0
+			BASE:CHARA:核熱 = 0
+			BASE:CHARA:重力 = 150
+			BASE:CHARA:打撃 = 150
+			LOCALS = Arcana Shift“Strength”
+			;剛毅
+		ELSEIF CFLAG:CHARA:600 == 11
+			;→刑死者
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"In the face of disaster,",64,LEFT%┃
+			PRINTFORML ┃%"lies the opportunity for renewal...",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			BASE:CHARA:呪殺 = 0
+			BASE:CHARA:破魔 = 150
+			LOCALS = Arcana Shift“Hanged Man”
+			;刑死者
+		ELSE
+			;→死神
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"The moment man devoured the fruit of knowledge,",64,LEFT%┃
+			PRINTFORML ┃%"he sealed his fate...",64,LEFT%┃
+			PRINTFORML ┃%"",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			PRINTFORML 
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"Entrusting his future to the cards,",64,LEFT%┃
+			PRINTFORML ┃%"man clings to a dim hope...",64,LEFT%┃
+			PRINTFORML ┃%"",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			PRINTFORML 
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"Yet, the arcana is the means by which all is revealed...",64,LEFT%┃
+			PRINTFORML ┃%"Beyond the beaten path",64,LEFT%┃
+			PRINTFORML ┃%"lies the “absolute end”.",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			PRINTFORML 
+			PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃%"It matters not who you are...",64,LEFT%┃
+			PRINTFORM ┃
+				SETCOLOR 0xffff33
+			PRINTFORM %"　　 “Death”awaits you!",64,LEFT%
+				SETCOLOR 0xff0033
+			PRINTFORML ┃
+			PRINTFORML ┃%"",64,LEFT%┃
+			PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+			FOR LOCAL,0,17
+				BASE:CHARA:(LOCAL+40) = 50
+			NEXT
+			BASE:CHARA:万能 = 125
+			ABL:CHARA:スキル1 = 2402
+			BASE:CHARA:力   += 3
+			BASE:CHARA:知恵 += 3
+			BASE:CHARA:魔力 += 3
+			BASE:CHARA:耐力 += 10
+			BASE:CHARA:速さ += 3
+			BASE:CHARA:運   += 3
+			CFLAG:CHARA:ＨＰ補正 += 1000
+			CFLAG:CHARA:不死身フラグ = 0
+			CALL SYNC_STATUS,CHARA
+			LOCALS = Arcana Shift“Death”
+			;死神
+		ENDIF
+		PRINTL 
+		PRINTL 
+		CUSTOMDRAWLINE =
+		PRINTL 
+		PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃[{CFLAG:CHARA:ポジション,2}] %CALLNAME:CHARA,21,LEFT%┃　┃%LOCALS,40,LEFT%┃
+		PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+		PRINTL 
+		CUSTOMDRAWLINE =
+		PRINTL 
+		RESETCOLOR
+		PRINTL 
+		CALL HEALTH_CHARA , CHARA
+		CALL SYNC_STATUS , CHARA
+		CFLAG:CHARA:600 += 1
+		CFLAG:CHARA:食いしばりフラグ = 0
+	ENDIF
+ENDIF
+
+@SET_ACTION_3299,ARG
+#LOCALSIZE 1
+
+IF CFLAG:ARG:600 == 13 && MAXBASE:ARG:ＨＰ <= BASE:ARG:ＨＰ*2 && CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ <= 1
+	SETCOLOR 0xff0033
+	PRINTL ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃%"Fighting against death.",64,LEFT%┃
+	PRINTFORML ┃%"Living and dying are the same...",64,LEFT%┃
+	PRINTFORML ┃%"",64,LEFT%┃
+	PRINTW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+	RESETCOLOR
+	CFLAG:ARG:603 = 1
+	CFLAG:ARG:601 = 99
+	PRINTL 
+ENDIF
+IF CFLAG:ARG:602 > 0
+	;夜の女王
+	CFLAG:ARG:601 = 0
+	CFLAG:ARG:602 = 0
+	CFLAG:ARG:入力行動 = 2051
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	RETURN 0
+ENDIF
+
+FOR LOCAL,0,6
+	IF CFLAG:ARG:(GET_BATTLESTATUS(LOCAL) + "強化") < -8
+		;デクンダ
+		CFLAG:ARG:入力行動 = 505
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+		RETURN 0
+	ENDIF
+NEXT
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+		CONTINUE
+	FOR B,0,6
+		IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(B) + "強化") > 8
+			;デカジャ
+			CFLAG:ARG:入力行動 = 509
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+			RETURN 0
+		ENDIF
+	NEXT
+NEXT
+
+IF CFLAG:ARG:600 == 0
+	;愚者
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ELSEIF CFLAG:ARG:600 == 1
+	;魔術師
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 3 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 703
+	ELSE
+		CFLAG:ARG:入力行動 = 706
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 2
+	;女教皇
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 3 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 803
+	ELSE
+		CFLAG:ARG:入力行動 = 806
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 3
+	;女帝
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 3 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 1703
+	ELSE
+		CFLAG:ARG:入力行動 = 1706
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 4
+	;皇帝
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 3 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 903
+	ELSE
+		CFLAG:ARG:入力行動 = 906
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 5
+	;法王
+	FOR LOCAL,1,4
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS == -1
+			CONTINUE
+		SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+			CONTINUE
+		IF CFLAG:(FLAG:LOCALS):ステート != GET_STATE_NUM("GOOD")
+			IF (BASE:(FLAG:LOCALS):打撃 > 0 && BASE:(FLAG:LOCALS):打撃 < 999) || CFLAG:LOCAL:打撃ガードキル > 0
+				;弱者必滅拳
+				CFLAG:ARG:入力行動 = 214
+				CFLAG:ARG:ターゲット = LOCAL
+				RETURN 0
+			ELSE
+				;Strkeガードキル
+				CFLAG:ARG:入力行動 = 227
+				CFLAG:ARG:ターゲット = LOCAL
+				RETURN 0
+			ENDIF
+		ENDIF
+	NEXT
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 906
+	ELSEIF 3 <= LOCAL && LOCAL <= 5
+		CFLAG:ARG:入力行動 = 8
+	ELSEIF 6 <= LOCAL && LOCAL <= 7 && CFLAG:ARG:クリティカル強化 < 4
+		CFLAG:ARG:入力行動 = 517
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 6
+	;恋愛
+	FOR LOCAL,1,7
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS == -1
+			CONTINUE
+		SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+			CONTINUE
+		SIF (BASE:(FLAG:LOCALS):精神 > 0 && BASE:(FLAG:LOCALS):精神 < 999) || CFLAG:LOCAL:精神ガードキル > 0
+			CONTINUE
+		;精神ガードブレイク
+		CFLAG:ARG:入力行動 = 1232
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+		RETURN 0
+	NEXT
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 3 <= LOCAL && LOCAL <= 4
+		CFLAG:ARG:入力行動 = 1227
+	ELSEIF 5 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 1226
+	ELSE
+		CFLAG:ARG:入力行動 = 114
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 7
+	;戦車
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2 && CFLAG:ARG:気合フラグ == 0
+		CFLAG:ARG:入力行動 = 511
+	ELSE
+		IF 3 <= LOCAL && LOCAL <= 5
+			CFLAG:ARG:入力行動 = 215
+		ELSEIF 6 <= LOCAL && LOCAL <= 8
+			CFLAG:ARG:入力行動 = 112
+		ELSE
+			CFLAG:ARG:入力行動 = 0
+		ENDIF
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 8
+	;正義
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 1 && CFLAG:ARG:魔法威力強化 <= 28
+		CFLAG:ARG:入力行動 = 503
+	ELSEIF 2 <= LOCAL && LOCAL <= 3 && CFLAG:ARG:攻撃強化 <= 28
+		CFLAG:ARG:入力行動 = 501
+	ELSEIF 4 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 7 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 1308
+	ELSE
+		CFLAG:ARG:入力行動 = 1309
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 9
+	;隠者
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2 && CFLAG:ARG:BS付着率強化 < 4
+		CFLAG:ARG:入力行動 = 519
+	ELSEIF 3 <= LOCAL && LOCAL <= 4
+		CFLAG:ARG:入力行動 = 106
+	ELSEIF 5 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 1112
+	ELSEIF 7 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 1226
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 10
+	;運命
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 1
+		CFLAG:ARG:入力行動 = 709
+	ELSEIF 2 <= LOCAL && LOCAL <= 3
+		CFLAG:ARG:入力行動 = 1008
+	ELSEIF 4 <= LOCAL && LOCAL <= 5
+		CFLAG:ARG:入力行動 = 911
+	ELSEIF 6 <= LOCAL && LOCAL <= 7
+		CFLAG:ARG:入力行動 = 2034
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 == 11
+	;剛毅
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= RAND:2
+		CFLAG:ARG:入力行動 = 525
+	ELSEIF LOCAL <= 2
+		CFLAG:ARG:入力行動 = 523
+	ELSEIF 3 <= LOCAL && LOCAL <= 5 && CFLAG:ARG:気合フラグ == 0
+		CFLAG:ARG:入力行動 = 511
+	ELSEIF 6 <= LOCAL && LOCAL <= 8
+		FOR LOCAL,1,7
+			LOCALS = ポジション{LOCAL}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			SIF (BASE:(FLAG:LOCALS):打撃 > 0 && BASE:(FLAG:LOCALS):打撃 < 999) || CFLAG:LOCAL:打撃ガードキル > 0
+				CONTINUE
+			;打撃ガードブレイク
+			CFLAG:ARG:入力行動 = 1232
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+			RETURN 0
+		NEXT
+		CFLAG:ARG:入力行動 = 209
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSE
+	;死神
+	CFLAG:ARG:601 += 1+RAND:2
+	$DECIDE_ACTION2
+	LOCAL = RAND:10
+	IF CFLAG:ARG:601 > 20 && CFLAG:ARG:603 > 0
+		CFLAG:ARG:入力行動 = 605
+		CFLAG:ARG:602=1
+	ELSEIF LOCAL == 0
+		CFLAG:ARG:入力行動 = 525
+	ELSEIF LOCAL == 1
+		CFLAG:ARG:入力行動 = 523
+	ELSEIF LOCAL == 2
+		CFLAG:ARG:入力行動 = 706
+	ELSEIF LOCAL == 3
+		CFLAG:ARG:入力行動 = 806
+	ELSEIF LOCAL == 4
+		CFLAG:ARG:入力行動 = 906
+	ELSEIF LOCAL == 5
+		CFLAG:ARG:入力行動 = 1006
+	ELSEIF LOCAL == 6
+		CFLAG:ARG:入力行動 = 3
+	ELSEIF LOCAL == 7
+		CFLAG:ARG:入力行動 = 1132
+	ELSEIF LOCAL == 8
+		CFLAG:ARG:入力行動 = 1132
+	ELSE
+		IF CFLAG:ARG:601 > 10 && CFLAG:ARG:603 >0
+			CFLAG:ARG:入力行動 = 605
+			CFLAG:ARG:602=1
+		ELSE
+			CFLAG:ARG:入力行動 = 0
+		ENDIF
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+RETURN 0
+
+;=======================================================================
+;エレボス
+;=======================================================================
+;CFLAG:ARG:600 = 闇の抱擁貯め度合い
+;CFLAG:ARG:601 = 闇の抱擁状態
+@SET_ACTION_3298,ARG
+#LOCALSIZE 1
+
+IF CFLAG:ARG:600 > 20 && CFLAG:ARG:601 == 0 && CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ <= 1
+	;闇の抱擁
+	CFLAG:ARG:入力行動 = 535
+	CFLAG:ARG:601 = 1
+	BASE:ARG:ＭＰ += (MAXBASE:ARG:ＭＰ-BASE:ARG:ＭＰ)/4
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	RETURN 0
+ELSEIF CFLAG:ARG:600 > 30 && CFLAG:ARG:601 > 0 && CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ <= 1
+	;原初の暗黒
+	CFLAG:ARG:入力行動 = 2052
+	CFLAG:ARG:600 = -10
+	CFLAG:ARG:601 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	RETURN 0
+ENDIF
+
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+		CONTINUE
+	FOR B,0,6
+		IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(B) + "強化") > 8
+			;デカジャ
+			CFLAG:ARG:入力行動 = 509
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+			CFLAG:ARG:600 += 1+RAND:2
+			RETURN 0
+		ENDIF
+	NEXT
+NEXT
+
+IF CFLAG:ARG:601 > 0
+	CFLAG:ARG:600 += 1+RAND:2
+	;原初貯め中
+	$DECIDE_ACTION1
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2
+		;メギドラ
+		CFLAG:ARG:入力行動 = 2002
+	ELSEIF 3 <= LOCAL && LOCAL <= 5
+		;パニックボイス
+		CFLAG:ARG:入力行動 = 1224
+	ELSEIF 6 <= LOCAL && LOCAL <= 7
+		CFLAG:ARG:入力行動 = 0
+		FOR LOCAL,1,7
+			LOCALS = ポジション{LOCAL}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			FOR B,0,6
+				IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(B) + "強化") > -16
+					;ランダマイザ
+					CFLAG:ARG:入力行動 = 523
+				ENDIF
+			NEXT
+		NEXT
+		;もし敵全員が能力最大まで下がってたら使わない
+		SIF CFLAG:ARG:入力行動 == 0
+			GOTO DECIDE_ACTION1
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		FOR LOCAL,0,6
+			IF CFLAG:ARG:(GET_BATTLESTATUS(LOCAL) + "強化") < 32
+				;ヒートライザ
+				CFLAG:ARG:入力行動 = 525
+			ENDIF
+		NEXT
+		;もし自分が能力最大まで上がってたら使わない
+		SIF CFLAG:ARG:入力行動 == 0
+			GOTO DECIDE_ACTION1
+	ENDIF
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = -1
+	ENDIF
+	RETURN 0
+ELSEIF CFLAG:ARG:600 >= 0
+	CFLAG:ARG:600 += 1+RAND:2
+	;通常時
+	$DECIDE_ACTION2
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 1
+		;通常万能攻撃
+		CFLAG:ARG:入力行動 = 0
+	ELSEIF 2 <= LOCAL && LOCAL <= 3
+		;アイアンクロー
+		CFLAG:ARG:入力行動 = 305
+	ELSEIF LOCAL == 4
+		;雷の洗礼
+		CFLAG:ARG:入力行動 = 912
+	ELSEIF LOCAL == 5
+		;マハグラダイン
+		CFLAG:ARG:入力行動 = 1806
+	ELSEIF LOCAL == 6
+		;リムドーラ
+		CFLAG:ARG:入力行動 = 1007
+	ELSEIF LOCAL == 7
+		CFLAG:ARG:入力行動 = 0
+		FOR LOCAL,1,7
+			LOCALS = ポジション{LOCAL}
+			SIF FLAG:LOCALS == -1
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			FOR B,0,6
+				IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(B) + "強化") > -16
+					;ランダマイザ
+					CFLAG:ARG:入力行動 = 523
+				ENDIF
+			NEXT
+		NEXT
+		;もし敵全員が能力最大まで下がってたら使わない
+		SIF CFLAG:ARG:入力行動 == 0
+			GOTO DECIDE_ACTION2
+	ELSEIF LOCAL == 8
+		;神経ガス
+		CFLAG:ARG:入力行動 = 1123
+	ELSE
+		;万魔の乱舞
+		CFLAG:ARG:入力行動 = 2034
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+ELSE
+	CFLAG:ARG:600 += 1+RAND:3
+	;全然ためてない
+	LOCAL = RAND:10
+	IF 0 <= LOCAL && LOCAL <= 2 && CFLAG:ARG:クリティカル強化 <= 4
+		;レボリューション
+		CFLAG:ARG:入力行動 = 517
+	ELSEIF 3 <= LOCAL && LOCAL <= 4 && CFLAG:ARG:防御強化 < 32
+		;ラクカジャ
+		CFLAG:ARG:入力行動 = 504
+	ELSEIF 5 <= LOCAL && LOCAL <= 6
+		;ディアラマ
+		CFLAG:ARG:入力行動 = 402
+	ELSEIF 7 <= LOCAL && LOCAL <= 8
+		;マハムド
+		CFLAG:ARG:入力行動 = 1402
+	ELSE
+		;通常万能攻撃
+		CFLAG:ARG:入力行動 = 0
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+RETURN 0
+
+;=======================================================================
+;チドリパターン
+;=======================================================================
+;まず開幕誘惑の霧からメギド
+;行動１回目：ンダ・テトラカーンなど補助メイン, 集中してる時メギド
+;　　その他：攻撃ばかり
+@SET_ACTION_4554,ARG
+#LOCALSIZE 1
+IF CFLAG:ARG:600 < 1
+	SETCOLOR 0xff0033
+	PRINTL 
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃I'm different from them...　　　　　　　  　┃
+	PRINTFORML ┃I have nowhere to go...　　　　　           ┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTL 
+	CUSTOMDRAWLINE =
+	PRINTL 
+	RESETCOLOR
+	CFLAG:ARG:600 = 1
+ELSEIF CFLAG:ARG:600 < 2 && BASE:ARG:ＨＰ <= (MAXBASE:ARG:ＨＰ*3)/4
+	SETCOLOR 0xff0033
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃Takaya was right...　　　　　　　　       　┃
+	PRINTFORML ┃All obstacles...should disappear...!!       ┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTL 
+	CUSTOMDRAWLINE =
+	PRINTL 
+	RESETCOLOR
+
+	;こっそりMP回復
+	BASE:ARG:ＭＰ += (MAXBASE:ARG:ＭＰ-BASE:ARG:ＭＰ)/2
+
+	CFLAG:ARG:600 = 2
+ELSEIF CFLAG:ARG:600 < 3 && BASE:ARG:ＨＰ <= (MAXBASE:ARG:ＨＰ)/2
+	SETCOLOR 0xff0033
+	PRINTL 
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃Disapper...disappear...!!　　　　　    　　 ┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTL 
+	CUSTOMDRAWLINE =
+	PRINTL 
+	RESETCOLOR
+
+	;こっそりMP回復
+	BASE:ARG:ＭＰ += (MAXBASE:ARG:ＭＰ-BASE:ARG:ＭＰ)/2
+
+	CFLAG:ARG:600 = 3
+ENDIF
+IF FLAG:経過ターン数 == 0
+	IF CFLAG:ARG:行動した回数 == 0
+		CALL CHECK_ACTIONABLE,ARG,1227
+		IF RESULT == 1
+			CFLAG:ARG:入力行動 = 1227
+			CALL RANDOM_TARGET,ARG,1227
+		ELSE
+			GOTO DECIDE_ACTION2
+		ENDIF
+	ELSE
+		CALL CHECK_ACTIONABLE,ARG,2001
+		IF RESULT == 1
+			CFLAG:ARG:入力行動 = 2001
+			CALL RANDOM_TARGET,ARG,2001
+		ELSE
+			GOTO DECIDE_ACTION2
+		ENDIF
+	ENDIF
+ELSEIF CFLAG:ARG:行動した回数 == 0
+	LOCAL = RAND:10
+	IF CFLAG:ARG:集中フラグ == 1
+		CFLAG:ARG:入力行動 = 2001
+	ELSEIF 0 <= LOCAL && LOCAL <= 1
+		CFLAG:ARG:入力行動 = 506+(RAND:3)
+	ELSEIF 2 <= LOCAL && LOCAL <= 3 && BASE:ARG:5 <= (MAXBASE:ARG:5)-100
+		CFLAG:ARG:入力行動 = 402
+	ELSEIF LOCAL == 4 && CFLAG:ARG:物理反射フラグ < 1
+		CFLAG:ARG:入力行動 = 602
+	ELSEIF 5 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 703
+	ELSEIF LOCAL == 9
+		CFLAG:ARG:入力行動 = 511+(RAND:2)
+	ELSE
+		CFLAG:ARG:入力行動 = 2001
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ELSE
+	$DECIDE_ACTION2
+	LOCAL = RAND:10
+	IF CFLAG:ARG:気合フラグ == 1
+		CFLAG:ARG:入力行動 = (RAND:2)*2
+	ELSEIF CFLAG:ARG:集中フラグ == 1
+		CFLAG:ARG:入力行動 = 2001
+	ELSEIF 0 <= LOCAL && LOCAL <= 1
+		CFLAG:ARG:入力行動 = 706
+	ELSEIF 2 <= LOCAL && LOCAL <= 3
+		CFLAG:ARG:入力行動 = 1902
+	ELSEIF 5 <= LOCAL && LOCAL <= 6
+		CFLAG:ARG:入力行動 = 1412
+	ELSEIF 7 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 1211
+	ELSE
+		CFLAG:ARG:入力行動 = 512
+	ENDIF
+	CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+	IF RESULT ==  1
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+	RETURN 0
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;エリザベスパターン
+;=======================================================================
+;１ターン目はアリアンロッドからスタート.１ターンごとに変更.
+;1, 支援物理→102, 女神アリアンフロッド
+;　通常：Rebellion→回転斬り
+;　発狂：ヒートライザ→デスバウンド
+;2, 火炎核熱→601, 妖鬼カハク
+;　通常：アギダイン→マハラギダイン
+;　発狂：核熱ガードブレイク→フレイダイン
+;3, 氷結防御→505, 妖精シルキー
+;　通常：コンセントレイト→ブフダイン
+;　発狂：ランダマイザ→マハブフダイン
+;4, 電撃支援→402, 妖魔リリム
+;　通常：ランダマイザ→マハジオダイン
+;　発狂：雷の洗礼→ナイスショート
+;5, 疾風物理→901, 妖鳥ハーピー
+;　通常：ガルダイン→アクセルクロー
+;　発狂：マハザンダイン→高天烈風弾
+;6, 破魔衝撃→302, 天使ニケー
+;　通常：ハマオン→マハザンダイン
+;　発狂：破魔の雷光→竜巻
+;7, 呪殺ＢＳ→201, 魔王ヘカテ
+;　通常：ムドオン→魔界の調べ
+;　発狂：闇の審判→万魔の乱舞
+;8, 万能回復→501, 妖精ピクシー
+;　常時：メギドラオン→ディアラマ
+
+@SET_ACTION_4555,ARG
+
+IF FLAG:経過ターン数>=50
+	;超激怒モード
+	;時間切れ
+	IF CFLAG:ARG:601 != (-9999)
+		SETCOLOR 0xff0033
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃Guest, I am very sorry　　　　　　　        ┃
+		PRINTFORML ┃It's time for the shop to close.　　 　　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+		PRINTL 
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃We look forward to your next visit.　　　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+		RESETCOLOR
+		PRINTL 
+		CUSTOMDRAWLINE =
+		CFLAG:ARG:601 = (-9999)
+	ENDIF
+	BASE:ARG:力 = CFLAG:ARG:602+15+FLAG:123
+	BASE:ARG:知恵 = CFLAG:ARG:602+15+FLAG:123
+	BASE:ARG:魔力 = CFLAG:ARG:602+15+FLAG:123
+	BASE:ARG:耐力 = CFLAG:ARG:602+15+FLAG:123
+	BASE:ARG:速さ = CFLAG:ARG:602+15+FLAG:123
+	BASE:ARG:運 = CFLAG:ARG:602+15+FLAG:123
+	CFLAG:ARG:命中強化 = 32
+	CFLAG:ARG:魔法威力強化 = 32
+	CFLAG:ARG:魔法効果強化 = 32
+	CALL SYNC_STATUS,ARG
+	BASE:ARG:ＭＰ = MAXBASE:ARG:ＭＰ
+	CFLAG:ARG:集中フラグ = 1
+	CFLAG:ARG:入力行動 = 2003
+	CALL CHECK_ACTIONABLE,ARG,2003
+	CALL RANDOM_TARGET,ARG,2003
+ELSEIF CFLAG:ARG:601 > 6
+	;激怒モード
+	BASE:ARG:ＭＰ += 100
+	CALL CHECK_ACTIONABLE,ARG,2003
+	IF RESULT == 1
+		CFLAG:ARG:入力行動 = 2003
+		CALL RANDOM_TARGET,ARG,2003
+		CFLAG:ARG:601 = 0
+	ELSE
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+	ENDIF
+ELSEIF CFLAG:ARG:行動した回数 > 0
+	IF CFLAG:ARG:600 == 1
+		;女神アリアンフロッド
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 10
+		ELSE
+			CFLAG:ARG:入力行動 = 3
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 2
+		;妖鬼カハク
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 1903
+		ELSE
+			CFLAG:ARG:入力行動 = 706
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 3
+		;妖精シルキー
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 806
+		ELSE
+			CFLAG:ARG:入力行動 = 803
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 4
+		;妖魔リリム
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 907
+		ELSE
+			CFLAG:ARG:入力行動 = 906
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 5
+		;妖鳥ハーピー
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 107
+		ELSE
+			CFLAG:ARG:入力行動 = 306
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 6
+		;天使ニケー
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 1008
+		ELSE
+			CFLAG:ARG:入力行動 = 1006
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 7
+		;魔王ヘカテ
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 2034
+		ELSE
+			CFLAG:ARG:入力行動 = 1132
+		ENDIF
+	ELSE
+		;妖精ピクシー(魔改造)
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:集中フラグ = 1
+			CFLAG:ARG:入力行動 = 2003
+		ELSE
+			CFLAG:ARG:入力行動 = 402
+		ENDIF
+	ENDIF
+ELSE
+	IF CFLAG:ARG:600 == 0
+		SETCOLOR 0xff0033
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃I act in the role of　　　　　　　    　　　┃
+		PRINTFORML ┃an elevator girl…　　　　　　        　　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+		PRINTL 
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃I have a little knowledge of fighting. 　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+		PRINTL 
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃Please do not hold back, 　　　　　　　　 　┃
+		PRINTFORML ┃If you do, I will kill you.　　　　    　　┃
+		PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+		RESETCOLOR
+		PRINTL 
+		CUSTOMDRAWLINE =
+		PRINTL 
+	ENDIF
+	IF CFLAG:ARG:600 != (FLAG:123)%8+1
+		CFLAG:ARG:600 = (FLAG:123)%8+1
+		CUSTOMDRAWLINE =
+		SETCOLOR 0xff0033
+		PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+		PRINTFORM ┃[{CFLAG:ARG:ポジション,2}] %CALLNAME:ARG,21,LEFT%┃　┃
+		RESULTS = P・チェンジ
+		PRINTFORML %RESULTS,40,LEFT%┃
+		PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+		RESETCOLOR
+		BASE:ARG:ＭＰ += 20
+		BASE:ARG:ＭＰ += 100
+	ENDIF
+	;発狂後は貫通持つよ!
+	IF ABL:ARG:スキル1 == 2418 && CFLAG:ARG:食いしばりフラグ == 1
+		ABL:ARG:スキル1 = 2420
+		CFLAG:ARG:602 *= 11
+		CFLAG:ARG:602 /= 10
+		CALL SYNC_STATUS,ARG
+	ENDIF
+	BASE:ARG:力 = CFLAG:ARG:602+15
+	BASE:ARG:知恵 = CFLAG:ARG:602+15
+	BASE:ARG:魔力 = CFLAG:ARG:602+15
+	BASE:ARG:耐力 = CFLAG:ARG:602+15
+	BASE:ARG:速さ = CFLAG:ARG:602+15
+	BASE:ARG:運 = CFLAG:ARG:602+15
+	IF CFLAG:ARG:600 == 1
+		;女神アリアンフロッド
+		BASE:ARG:剣撃 = 50
+		BASE:ARG:飛具 = 50
+		BASE:ARG:打撃 = 100
+		BASE:ARG:戦技 = 75
+		BASE:ARG:火炎 = 100
+		BASE:ARG:氷結 = 100
+		BASE:ARG:電撃 = 125
+		BASE:ARG:衝撃 = 125
+		BASE:ARG:神経 = 75
+		BASE:ARG:精神 = 75
+		BASE:ARG:破魔 = 0
+		BASE:ARG:呪殺 = 100
+		BASE:ARG:地変 = 125
+		BASE:ARG:水撃 = 100
+		BASE:ARG:疾風 = 100
+		BASE:ARG:重力 = 100
+		BASE:ARG:核熱 = 100
+
+		BASE:ARG:力 += 10
+		BASE:ARG:耐力 += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 525
+		ELSE
+			CFLAG:ARG:入力行動 = 516
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 2
+		;妖鬼カハク
+		BASE:ARG:剣撃 = 63
+		BASE:ARG:飛具 = 75
+		BASE:ARG:打撃 = 63
+		BASE:ARG:戦技 = 100
+		BASE:ARG:火炎 = 0
+		BASE:ARG:氷結 = 125
+		BASE:ARG:電撃 = 100
+		BASE:ARG:衝撃 = 100
+		BASE:ARG:神経 = 100
+		BASE:ARG:精神 = 100
+		BASE:ARG:破魔 = 100
+		BASE:ARG:呪殺 = 100
+		BASE:ARG:地変 = 100
+		BASE:ARG:水撃 = 125
+		BASE:ARG:疾風 = 100
+		BASE:ARG:重力 = 100
+		BASE:ARG:核熱 = 0
+
+		BASE:ARG:魔力 += 10
+		BASE:ARG:耐力 += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 1932
+		ELSE
+			CFLAG:ARG:入力行動 = 703
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 3
+		;妖精シルキー
+		BASE:ARG:剣撃 = 100
+		BASE:ARG:飛具 = 50
+		BASE:ARG:打撃 = 100
+		BASE:ARG:戦技 = 75
+		BASE:ARG:火炎 = 125
+		BASE:ARG:氷結 = 25
+		BASE:ARG:電撃 = 100
+		BASE:ARG:衝撃 = 100
+		BASE:ARG:神経 = 100
+		BASE:ARG:精神 = 100
+		BASE:ARG:破魔 = 100
+		BASE:ARG:呪殺 = 0
+		BASE:ARG:地変 = 100
+		BASE:ARG:水撃 = 25
+		BASE:ARG:疾風 = 100
+		BASE:ARG:重力 = 100
+		BASE:ARG:核熱 = 125
+
+		BASE:ARG:知恵 += 10
+		BASE:ARG:魔力 += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 523
+		ELSE
+			CFLAG:ARG:入力行動 = 512
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 4
+		;妖魔リリム
+		BASE:ARG:剣撃 = 75
+		BASE:ARG:飛具 = 125
+		BASE:ARG:打撃 = 75
+		BASE:ARG:戦技 = 100
+		BASE:ARG:火炎 = 100
+		BASE:ARG:氷結 = 100
+		BASE:ARG:電撃 = 50
+		BASE:ARG:衝撃 = 125
+		BASE:ARG:神経 = 100
+		BASE:ARG:精神 = 50
+		BASE:ARG:破魔 = 200
+		BASE:ARG:呪殺 = 0
+		BASE:ARG:地変 = 100
+		BASE:ARG:水撃 = 100
+		BASE:ARG:疾風 = 125
+		BASE:ARG:重力 = 100
+		BASE:ARG:核熱 = 100
+
+		BASE:ARG:魔力 += 10
+		BASE:ARG:運 += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 912
+		ELSE
+			CFLAG:ARG:入力行動 = 523
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 5
+		;妖鳥ハーピー
+		BASE:ARG:剣撃 = 50
+		BASE:ARG:飛具 = 125
+		BASE:ARG:打撃 = 50
+		BASE:ARG:戦技 = 125
+		BASE:ARG:火炎 = 100
+		BASE:ARG:氷結 = 100
+		BASE:ARG:電撃 = 125
+		BASE:ARG:衝撃 = 0
+		BASE:ARG:神経 = 100
+		BASE:ARG:精神 = 50
+		BASE:ARG:破魔 = 100
+		BASE:ARG:呪殺 = 100
+		BASE:ARG:地変 = 50
+		BASE:ARG:水撃 = 100
+		BASE:ARG:疾風 = 100
+		BASE:ARG:重力 = 100
+		BASE:ARG:核熱 = 100
+
+		BASE:ARG:力 += 10
+		BASE:ARG:速さ += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 1706
+		ELSE
+			CFLAG:ARG:入力行動 = 1703
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 6
+		;天使ニケー
+		BASE:ARG:剣撃 = 50
+		BASE:ARG:飛具 = 125
+		BASE:ARG:打撃 = 50
+		BASE:ARG:戦技 = 125
+		BASE:ARG:火炎 = 100
+		BASE:ARG:氷結 = 100
+		BASE:ARG:電撃 = 100
+		BASE:ARG:衝撃 = 125
+		BASE:ARG:神経 = 100
+		BASE:ARG:精神 = 100
+		BASE:ARG:破魔 = 0
+		BASE:ARG:呪殺 = 125
+		BASE:ARG:地変 = 0
+		BASE:ARG:水撃 = 100
+		BASE:ARG:疾風 = 999
+		BASE:ARG:重力 = 125
+		BASE:ARG:核熱 = 100
+
+		BASE:ARG:知恵 += 10
+		BASE:ARG:速さ += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 1303
+		ELSE
+			CFLAG:ARG:入力行動 = 1308
+		ENDIF
+	ELSEIF CFLAG:ARG:600 == 7
+		;魔王ヘカテ
+		BASE:ARG:剣撃 = 100
+		BASE:ARG:飛具 = 100
+		BASE:ARG:打撃 = 125
+		BASE:ARG:戦技 = 125
+		BASE:ARG:火炎 = 75
+		BASE:ARG:氷結 = 75
+		BASE:ARG:電撃 = 75
+		BASE:ARG:衝撃 = 75
+		BASE:ARG:神経 = 75
+		BASE:ARG:精神 = 75
+		BASE:ARG:破魔 = 0
+		BASE:ARG:呪殺 = 0
+		BASE:ARG:地変 = 25
+		BASE:ARG:水撃 = 75
+		BASE:ARG:疾風 = 75
+		BASE:ARG:重力 = 125
+		BASE:ARG:核熱 = 75
+
+		BASE:ARG:知恵 += 10
+		BASE:ARG:運 += 10
+
+		IF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:入力行動 = 1406
+		ELSE
+			CFLAG:ARG:入力行動 = 1412
+		ENDIF
+	ELSE
+		;妖精ピクシー(魔改造)
+		BASE:ARG:剣撃 = 90
+		BASE:ARG:飛具 = 90
+		BASE:ARG:打撃 = 90
+		BASE:ARG:戦技 = 90
+		BASE:ARG:火炎 = 75
+		BASE:ARG:氷結 = 75
+		BASE:ARG:電撃 = 75
+		BASE:ARG:衝撃 = 100
+		BASE:ARG:神経 = 0
+		BASE:ARG:精神 = 0
+		BASE:ARG:破魔 = 0
+		BASE:ARG:呪殺 = 0
+		BASE:ARG:地変 = 25
+		BASE:ARG:水撃 = 75
+		BASE:ARG:疾風 = 999
+		BASE:ARG:重力 = 125
+		BASE:ARG:核熱 = 100
+		SIF CFLAG:ARG:食いしばりフラグ == 1
+			CFLAG:ARG:集中フラグ = 1
+		CFLAG:ARG:入力行動 = 2003
+
+		BASE:ARG:力 += 10
+		BASE:ARG:知恵 += 10
+		BASE:ARG:魔力 += 10
+		BASE:ARG:耐力 += 10
+		BASE:ARG:速さ += 10
+		BASE:ARG:運 += 10
+
+	ENDIF
+	CALL SYNC_STATUS,ARG
+
+ENDIF
+
+CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+IF RESULT ==  1
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ELSE
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ENDIF
+
+;☆☆☆☆☆
+TRYCALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動},ダンジョンフラグ:70:87
+ダンジョンフラグ:70:87 = RESULT
+;☆☆☆☆☆
+IF CFLAG:ARG:601 == 0 && ダンジョンフラグ:70:87 != 13
+	IF CFLAG:ARG:ターゲット >= 1 && CFLAG:ARG:ターゲット <= 6
+		LOCAL:20 = CFLAG:ARG:ターゲット
+		LOCALS = ポジション{LOCAL:20}
+		IF (BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) <= 0 || BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) == 999)
+			CFLAG:ARG:601 += 1
+		ELSEIF (ダンジョンフラグ:70:87>=0 && ダンジョンフラグ:70:87<=3) && CFLAG:(FLAG:LOCALS):物理反射フラグ>0
+			CFLAG:ARG:601 += 1
+		ELSEIF (ダンジョンフラグ:70:87>=3 && ダンジョンフラグ:70:87<=16) && CFLAG:(FLAG:LOCALS):魔法反射フラグ>0
+			CFLAG:ARG:601 += 1
+		ENDIF
+	ELSEIF CFLAG:ARG:ターゲット == 20
+		;前列
+		FOR LOCAL:20,1,3
+			LOCALS = ポジション{LOCAL:20}
+			SIF FLAG:LOCALS < 0
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			IF (BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) <= 0 || BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) == 999)
+				CFLAG:ARG:601 += 1
+			ELSEIF (ダンジョンフラグ:70:87>=0 && ダンジョンフラグ:70:87<=3) && CFLAG:(FLAG:LOCALS):物理反射フラグ>0
+				CFLAG:ARG:601 += 1
+			ELSEIF (ダンジョンフラグ:70:87>=3 && ダンジョンフラグ:70:87<=16) && CFLAG:(FLAG:LOCALS):魔法反射フラグ>0
+				CFLAG:ARG:601 += 1
+			ENDIF
+		NEXT
+	ELSEIF CFLAG:ARG:ターゲット == 21
+		;後列
+		FOR LOCAL:20,4,6
+			LOCALS = ポジション{LOCAL:20}
+			SIF FLAG:LOCALS < 0
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			IF (BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) <= 0 || BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) == 999)
+				CFLAG:ARG:601 += 1
+			ELSEIF (ダンジョンフラグ:70:87>=0 && ダンジョンフラグ:70:87<=3) && CFLAG:(FLAG:LOCALS):物理反射フラグ>0
+				CFLAG:ARG:601 += 1
+			ELSEIF (ダンジョンフラグ:70:87>=3 && ダンジョンフラグ:70:87<=16) && CFLAG:(FLAG:LOCALS):魔法反射フラグ>0
+				CFLAG:ARG:601 += 1
+			ENDIF
+		NEXT
+	ELSEIF CFLAG:ARG:ターゲット == 22
+		;全体
+		FOR LOCAL:20,1,6
+			LOCALS = ポジション{LOCAL:20}
+			SIF FLAG:LOCALS < 0
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			IF (BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) <= 0 || BASE:(FLAG:LOCALS):(ダンジョンフラグ:70:87+40) == 999)
+				CFLAG:ARG:601 += 1
+			ELSEIF (ダンジョンフラグ:70:87>=0 && ダンジョンフラグ:70:87<=3) && CFLAG:(FLAG:LOCALS):物理反射フラグ>0
+				CFLAG:ARG:601 += 1
+			ELSEIF (ダンジョンフラグ:70:87>=3 && ダンジョンフラグ:70:87<=16) && CFLAG:(FLAG:LOCALS):魔法反射フラグ>0
+				CFLAG:ARG:601 += 1
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+;☆☆☆☆☆
+RETURN 0
+;=======================================================================
+;タルタルまだ活動可能？
+;=======================================================================
+@TARTAR_MEMBERNUM
+	ダンジョンフラグ:70:(95)=0
+	IF FLAG:DEBUG == 1
+		PRINTFORML {ダンジョンフラグ:70:(10)}=鬼太郎(-1いない,0未出現,1~いる)
+		PRINTFORML {ダンジョンフラグ:70:(11)}=ハム子
+		PRINTFORML {ダンジョンフラグ:70:(12)}=ゆかり
+		PRINTFORML {ダンジョンフラグ:70:(13)}=テレッテ
+		PRINTFORML {ダンジョンフラグ:70:(14)}=肉
+		PRINTFORML {ダンジョンフラグ:70:(15)}=ブリリアント
+		PRINTFORML {ダンジョンフラグ:70:(16)}=ロボ
+		PRINTFORML {ダンジョンフラグ:70:(17)}=今日のわんこ
+		PRINTFORML {ダンジョンフラグ:70:(18)}=ショタ
+		PRINTFORML {ダンジョンフラグ:70:(19)}=料理上手
+		PRINTFORML {ダンジョンフラグ:70:(20)}=チドリん
+		PRINTFORML {ダンジョンフラグ:70:(21)}=メティス
+		PRINTFORML {ダンジョンフラグ:70:(22)}=風花
+		PRINTFORML {ダンジョンフラグ:70:(23)}=エリザベス
+	ENDIF
+	;鬼太郎
+	SIF ダンジョンフラグ:70:(10) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;ハム子
+	SIF ダンジョンフラグ:70:(11) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;ゆかり
+	SIF ダンジョンフラグ:70:(12) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;テレッテ
+	SIF ダンジョンフラグ:70:(13) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;肉彦
+	SIF ダンジョンフラグ:70:(14) >= 1 && ダンジョンフラグ:70:(1) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;ブリリアント
+	SIF ダンジョンフラグ:70:(15) >= 1 && ダンジョンフラグ:70:(22) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;ロボ
+	SIF ダンジョンフラグ:70:(16) >= 1 && ダンジョンフラグ:70:(1) >= 1 && ダンジョンフラグ:70:(1) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;わんこ
+	SIF ダンジョンフラグ:70:(17) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;ショタ
+	SIF ダンジョンフラグ:70:(18) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	;料理上手
+	SIF ダンジョンフラグ:70:(19) >= 1
+		ダンジョンフラグ:70:(95)+=1
+	IF ダンジョンフラグ:70:(95) < 3
+		ダンジョンフラグ:70:(10) = (-1)
+		ダンジョンフラグ:70:(11) = (-1)
+		ダンジョンフラグ:70:(12) = (-1)
+		ダンジョンフラグ:70:(13) = (-1)
+		ダンジョンフラグ:70:(14) = (-1)
+		ダンジョンフラグ:70:(15) = (-1)
+		ダンジョンフラグ:70:(16) = (-1)
+		ダンジョンフラグ:70:(17) = (-1)
+		ダンジョンフラグ:70:(18) = (-1)
+		ダンジョンフラグ:70:(19) = (-1)
+		ダンジョンフラグ:70:(22) = (-1)
+	ELSEIF ダンジョンフラグ:70:(14) == -1 && ダンジョンフラグ:70:(15) == -1
+		ダンジョンフラグ:70:(10) = (-1)
+		ダンジョンフラグ:70:(11) = (-1)
+		ダンジョンフラグ:70:(12) = (-1)
+		ダンジョンフラグ:70:(13) = (-1)
+		ダンジョンフラグ:70:(14) = (-1)
+		ダンジョンフラグ:70:(15) = (-1)
+		ダンジョンフラグ:70:(16) = (-1)
+		ダンジョンフラグ:70:(17) = (-1)
+		ダンジョンフラグ:70:(18) = (-1)
+		ダンジョンフラグ:70:(19) = (-1)
+		ダンジョンフラグ:70:(22) = (-1)
+	ENDIF
+RETURN 0
+
+;=======================================================================
+;タルタル探索中の邂逅
+;=======================================================================
+@TARTAR_DGEVENT
+	IF RAND:6 == 1
+		$INPUT_LOOP_TARMEET1
+		CUSTOMDRAWLINE =
+		IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+		PRINT An unknown black gynoid
+		ELSE
+		;PRINTL
+		CALL TARTAR_NAMECALL
+		ENDIF
+		PRINTW  is in combat with a shadow here!
+		IF TARTAR_GENDER() == 2
+			PRINTL Help it?
+		ELSE
+			PRINTFORML Help \@ TARTAR_GENDER() == 1 ? him # her \@?
+		ENDIF
+		PRINTL [0]Help
+		PRINTL [1]Watch
+		PRINTL [2]Ignore and leave
+		$INPUT_LOOP_TARMEETSELECT1
+		INPUT
+		IF RESULT == 0
+			FLAG:エンカウント率 = 400
+			CALLFORM CHECK_ENCOUNT_70
+			IF RESULT == 1
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+			ENDIF
+			PRINTL
+			GOTO INPUT_LOOP_TARMEETTHX
+		ELSEIF RESULT == 1
+		CUSTOMDRAWLINE =
+			PRINT 『
+			IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+			PRINT The black gynoid 
+			ELSE
+			CALL TARTAR_NAMECALL
+			ENDIF
+			PRINTW  is fighting hard!』
+			PRINTW .....
+			PRINTW ....
+			PRINTW ...
+			IF RAND:3 == 1
+				IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+				PRINT The black gynoid 
+				ELSE
+				CALL TARTAR_NAMECALL
+				ENDIF
+				PRINTW  fought hard but was defeated.
+				PRINTW The attacking shadow left.
+				GOTO INPUT_LOOP_TARMEETDEAD
+			ELSE
+				IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+				PRINT The black gynoid 
+				ELSE
+				CALL TARTAR_NAMECALL
+				ENDIF
+				PRINTW  managed to defeat the shadow.
+				;They seem to have survived.
+				IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+				PRINTW The gynoid noticed you and introduced herself as Metis.
+				ダンジョンフラグ:70:(21) = 2
+				ENDIF
+				GOTO INPUT_LOOP_TARMEETBYE
+			ENDIF
+		ELSEIF RESULT == 2
+			GOTO INPUT_LOOP_TARMEETEND
+		ELSE
+			GOTO INPUT_LOOP_TARMEETSELECT1
+		ENDIF
+	ENDIF
+
+	$INPUT_LOOP_TARMEET3
+	PRINTL
+	IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+	PRINT An unknown black gynoid
+	ELSE
+	;PRINTL
+	CALL TARTAR_NAMECALL
+	ENDIF
+	PRINTW  is here.
+	PRINTL [0]Have a conversation
+	PRINTL [1]Attack
+	PRINTL [2]Farewell
+	$INPUT_LOOP_TARMEETSELECT2
+	INPUT
+	IF RESULT == 0
+		PRINTL
+		PRINTFORM %CALLNAME:MASTER% spoke to 
+		IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+		PRINT the black gynoid
+		ELSE
+		;PRINTL
+		CALL TARTAR_NAMECALL
+		ENDIF
+		PRINTL ...
+		CALL 戦闘参加可能ポイント
+		PRINTL
+		IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 2
+		PRINTW The black gynoid introduced herself as Metis.
+		;ダンジョンフラグ:70:(21) = 2
+		PRINTW 
+		ENDIF
+
+		GOTO INPUT_LOOP_TARMEETBYE
+	ELSEIF RESULT == 1
+	CUSTOMDRAWLINE =
+		PRINTL
+		PRINTFORM %CALLNAME:MASTER% attacked 
+		IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+		PRINT the black gynoid
+		ELSE
+		;PRINTL
+		CALL TARTAR_NAMECALL
+		ENDIF
+		PRINTL !!
+		PRINTL
+	CUSTOMDRAWLINE =
+		IF ダンジョンフラグ:70:93 == 1
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4532,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:アギ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:タル・ンダ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:高揚の歌]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:突撃]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:ディア]]
+					BASE:(CHARANUM-1):電撃 = 125
+					BASE:(CHARANUM-1):呪殺 = 125
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 2
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4533,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:アギ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:タル・ンダ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:高揚の歌]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:突撃]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:ディア]]
+					BASE:(CHARANUM-1):電撃 = 125
+					BASE:(CHARANUM-1):呪殺 = 125
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 3
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4557,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:ガル]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ディア]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:パトラ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:チャムディ]]
+					BASE:(CHARANUM-1):飛具 = 150
+					BASE:(CHARANUM-1):衝撃 = 50
+					BASE:(CHARANUM-1):疾風 = 50
+					BASE:(CHARANUM-1):電撃 = 150
+					BASE:(CHARANUM-1):地変 = 150
+					BASE:(CHARANUM-1):重力 = 150
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 4
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4547,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:アギ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ヤマオロシ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:パトラ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:突撃]]
+					BASE:(CHARANUM-1):火炎 = 0
+					BASE:(CHARANUM-1):衝撃 = 150
+					BASE:(CHARANUM-1):水撃 = 150
+					BASE:(CHARANUM-1):疾風 = 150
+					BASE:(CHARANUM-1):核熱 = 0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 5
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4548,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:ソニックパンチ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ディア]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:ジオ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:タル・ンダ]]
+					BASE:(CHARANUM-1):剣撃 = 75
+					BASE:(CHARANUM-1):飛具 = 75
+					BASE:(CHARANUM-1):打撃 = 75
+					BASE:(CHARANUM-1):戦技 = 75
+					BASE:(CHARANUM-1):電撃 = 50
+					BASE:(CHARANUM-1):氷結 = 150
+					BASE:(CHARANUM-1):水撃 = 150
+					BASE:(CHARANUM-1):神経 = 150
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 6
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4549,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:ブフ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:ディア]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:マリンカリン]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:ブフーラ]]
+					BASE:(CHARANUM-1):火炎 = 150
+					BASE:(CHARANUM-1):氷結 = 50
+					BASE:(CHARANUM-1):精神 = 50
+					BASE:(CHARANUM-1):核熱 = 150
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 7
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4522,30,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:電光石火]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:アサルトダイブ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:スク・カジャ]]
+					BASE:(CHARANUM-1):剣撃 = 50
+					BASE:(CHARANUM-1):飛具 = 50
+					BASE:(CHARANUM-1):電撃 = 200
+					BASE:(CHARANUM-1):水撃 = 200
+					BASE:(CHARANUM-1):核熱 = 150
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 8
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4552,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:アギ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ムド]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:かみつき]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:エイハ]]
+					BASE:(CHARANUM-1):剣撃 = 75
+					BASE:(CHARANUM-1):飛具 = 75
+					BASE:(CHARANUM-1):打撃 = 75
+					BASE:(CHARANUM-1):戦技 = 75
+					BASE:(CHARANUM-1):火炎 = -50
+					BASE:(CHARANUM-1):氷結 = 150
+					BASE:(CHARANUM-1):水撃 = 150
+					BASE:(CHARANUM-1):電撃 = 0
+					BASE:(CHARANUM-1):破魔 = 150
+					BASE:(CHARANUM-1):呪殺 = 0
+					BASE:(CHARANUM-1):核熱 = -50
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 9
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4551,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:ハンマ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ディア]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:ジオ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:コウハ]]
+					BASE:(CHARANUM-1):剣撃 = 200
+					BASE:(CHARANUM-1):打撃 = 200
+					BASE:(CHARANUM-1):電撃 = 50
+					BASE:(CHARANUM-1):破魔 = 50
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 10
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4553,12,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:治癒促進(小)]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:剛切断]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:電光石火]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:デスバウンド]]
+					BASE:(CHARANUM-1):剣撃 = 50
+					BASE:(CHARANUM-1):飛具 = 50
+					BASE:(CHARANUM-1):打撃 = 50
+					BASE:(CHARANUM-1):戦技 = 50
+					BASE:(CHARANUM-1):火炎 = 75
+					BASE:(CHARANUM-1):氷結 = 75
+					BASE:(CHARANUM-1):電撃 = 75
+					BASE:(CHARANUM-1):衝撃 = 75
+					BASE:(CHARANUM-1):神経 = 150
+					BASE:(CHARANUM-1):精神 = 150
+					BASE:(CHARANUM-1):破魔 = 150
+					BASE:(CHARANUM-1):呪殺 = 150
+					BASE:(CHARANUM-1):地変 = 75
+					BASE:(CHARANUM-1):水撃 = 75
+					BASE:(CHARANUM-1):疾風 = 75
+					BASE:(CHARANUM-1):重力 = 75
+					BASE:(CHARANUM-1):核熱 = 75
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ELSEIF ダンジョンフラグ:70:93 == 11
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9,4556,60,0,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+				ABL:(CHARANUM-1):スキル1 = [[スキル:木っ端微塵斬り]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:アカシャアーツ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:キャンディボイス]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:マリンカリン]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:ブフダイン]]
+				ABL:(CHARANUM-1):スキル6 = [[スキル:気合]]
+				ABL:(CHARANUM-1):スキル7 = [[スキル:ガルダイン]]
+				ABL:(CHARANUM-1):スキル8 = [[スキル:デ・カジャ]]
+					BASE:(CHARANUM-1):火炎 = 200
+					BASE:(CHARANUM-1):氷結 = 50
+					BASE:(CHARANUM-1):疾風 = 50
+					BASE:(CHARANUM-1):衝撃 = 200
+					BASE:(CHARANUM-1):地変 = 200
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+		ENDIF
+		PRINTW ・
+		PRINTW ・・
+		PRINTW ・・・
+		PRINTL
+		CALL TARTAR_NAMECALL
+		PRINTW  was captured.
+			GOTO TARGETSLAVE
+	ELSEIF RESULT == 2
+		GOTO INPUT_LOOP_TARMEETBYE
+	ELSE
+		GOTO INPUT_LOOP_TARMEETSELECT2
+	ENDIF
+
+	$INPUT_LOOP_TARMEETTHX
+	PRINTL
+	PRINTFORM %CALLNAME:MASTER% received 
+	;PRINT 
+		PRINTFORM ￥{(ダンジョンフラグ:70:50+5)*(ダンジョンフラグ:70:50+3)+RAND:((ダンジョンフラグ:70:50+100)*10/10+2)}
+		MONEY+=(ダンジョンフラグ:70:50+5)*(ダンジョンフラグ:70:50+3)+RAND:((ダンジョンフラグ:70:50+100)*10/10+2)
+	PRINTW  as thanks.
+;＋２ポイントしたいので２回
+	CALL 戦闘参加可能ポイント
+	CALL 戦闘参加可能ポイント
+	GOTO INPUT_LOOP_TARMEETBYE
+
+	$INPUT_LOOP_TARMEETDEAD
+	PRINTL 
+	IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+	PRINT A black gynoid 
+	ELSE
+	;PRINTL
+	CALL TARTAR_NAMECALL
+	ENDIF
+	PRINTW  collapsed here.
+	PRINTW What do you do?
+	PRINTL [0]Leave
+	PRINTL [1]Abduct and take home
+	$INPUT_LOOP_TARMEETSELECT3
+	INPUT
+	IF RESULT == 0
+		GOTO INPUT_LOOP_TARMEETEND
+	ELSEIF RESULT == 1
+		PRINTL
+		CALL TARTAR_NAMECALL
+		PRINTW  was captured.
+	$TARGETSLAVE
+		IF ダンジョンフラグ:70:93 == 1
+			CALL ADD_NEW_COMPANION,4532,200
+			SIF ダンジョンフラグ:70:10 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:10 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 2
+			CALL ADD_NEW_COMPANION,4533,200
+			SIF ダンジョンフラグ:70:11 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:11 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 3
+			CALL ADD_NEW_COMPANION,4557,200
+			SIF ダンジョンフラグ:70:12 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:12 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 4
+			CALL ADD_NEW_COMPANION,4547,200
+			SIF ダンジョンフラグ:70:13 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:13 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 5
+			CALL ADD_NEW_COMPANION,4548,200
+			SIF ダンジョンフラグ:70:14 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:14 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 6
+			CALL ADD_NEW_COMPANION,4549,200
+			SIF ダンジョンフラグ:70:15 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:15 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 7
+			CALL ADD_NEW_COMPANION,4522,200
+			SIF ダンジョンフラグ:70:16 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:16 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 8
+			CALL ADD_NEW_COMPANION,4552,200
+			SIF ダンジョンフラグ:70:17 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:17 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 9
+			CALL ADD_NEW_COMPANION,4551,200
+			SIF ダンジョンフラグ:70:18 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:18 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 10
+			CALL ADD_NEW_COMPANION,4553,200
+			SIF ダンジョンフラグ:70:19 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:19 = (-1)
+		ELSEIF ダンジョンフラグ:70:93 == 11
+			CALL ADD_NEW_COMPANION,4556,200
+			SIF ダンジョンフラグ:70:21 >= 8
+			CALL BATTLE_POSSIBLE
+			ダンジョンフラグ:70:21 = (-1)
+		ENDIF
+		GOTO INPUT_LOOP_TARMEETEND
+	ELSE
+		GOTO INPUT_LOOP_TARMEETSELECT3
+	ENDIF
+
+	$INPUT_LOOP_TARMEETBYE
+	IF ダンジョンフラグ:70:93 == 11
+		LOCAL = 21
+	ELSE
+		LOCAL = ダンジョンフラグ:70:93 + 9
+	ENDIF
+	IF ダンジョンフラグ:70:LOCAL >= 8
+		CALL TARTAR_NAMECALL
+		PRINTW  wanted to join you.
+		PRINTFORMW \@ TARTAR_GENDER() == 1 ? He # She \@ seems to trust you.
+		PRINTFORML Will you allow \@ TARTAR_GENDER() == 1 ? him # her \@ to join?
+		CALL INPUT_YN,"Yes","No"
+		IF RESULT == 1
+			CALL TARTAR_NAMECALL
+			PRINTW  left for the depths of Tartarus...
+			GOTO INPUT_LOOP_TARMEETEND
+		ENDIF
+		CALL TARTAR_NAMECALL
+		PRINTW  joined you.
+		GOTO TARGETSLAVE
+	ELSE
+		IF ダンジョンフラグ:70:93 == 11 && ダンジョンフラグ:70:(21) == 1
+		PRINT The black gynoid 
+		ELSE
+		CALL TARTAR_NAMECALL
+		ENDIF
+		PRINTW  left for the depths of Tartarus...
+	ENDIF
+
+	$INPUT_LOOP_TARMEETEND
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	CALL TARTAR_MEMBERNUM
+RETURN 0
+
+@戦闘参加可能ポイント
+		IF ダンジョンフラグ:70:93 == 1
+			ダンジョンフラグ:70:10 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 2
+			ダンジョンフラグ:70:11 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 3
+			ダンジョンフラグ:70:12 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 4
+			ダンジョンフラグ:70:13 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 5
+			ダンジョンフラグ:70:14 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 6
+			ダンジョンフラグ:70:15 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 7
+			ダンジョンフラグ:70:16 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 8
+			ダンジョンフラグ:70:17 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 9
+			ダンジョンフラグ:70:18 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 10
+			ダンジョンフラグ:70:19 += 1
+		ELSEIF ダンジョンフラグ:70:93 == 11
+			ダンジョンフラグ:70:21 += 1
+		ENDIF
+
+@BATTLE_POSSIBLE
+SIF RESULT
+	CFLAG:(RESULT:1):戦闘参加不可能 = -1
+
+@TARTAR_NAMECALL
+	IF ダンジョンフラグ:70:93 == 1
+		PRINT Male P3 protag
+	ELSEIF ダンジョンフラグ:70:93 == 2
+		PRINT Female P3 protag
+	ELSEIF ダンジョンフラグ:70:93 == 3
+		PRINT Yukari Takeba
+	ELSEIF ダンジョンフラグ:70:93 == 4
+		PRINT Junpei Iori
+	ELSEIF ダンジョンフラグ:70:93 == 5
+		PRINT Akihiko Sanada
+	ELSEIF ダンジョンフラグ:70:93 == 6
+		PRINT Mitsuru Kirijo
+	ELSEIF ダンジョンフラグ:70:93 == 7
+		PRINT Aigis
+	ELSEIF ダンジョンフラグ:70:93 == 8
+		PRINT Koromaru
+	ELSEIF ダンジョンフラグ:70:93 == 9
+		PRINT Ken Amada
+	ELSEIF ダンジョンフラグ:70:93 == 10
+		PRINT Shinjiro Aragaki
+	ELSEIF ダンジョンフラグ:70:93 == 11
+		PRINT Metis
+	ENDIF
+RETURN
+
+@TARTAR_GENDER
+#FUNCTION
+SELECTCASE ダンジョンフラグ:70:93
+	CASE 1,4,5,8,9,10
+		RETURNF 1
+	CASE 11 
+		IF ダンジョンフラグ:70:(21) == 1
+			RETURNF 2
+		ELSE
+			RETURNF 0
+		ENDIF
+	CASEELSE
+		RETURNF 0
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_70
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:21
+	CASE 0
+		SIF RAND:10 == 1
+			RETURN [[キャラ:刈り取る者]] , 3 + RAND:3 , CSVBASE([[キャラ:刈り取る者]] , GETNUM(BASE , "LV") , 0) + RAND:3
+		RETURN [[キャラ:インキュバス]] , 3 + RAND:10 , CSVBASE([[キャラ:インキュバス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:死甲蟲]] , 3 + RAND:10 , CSVBASE([[キャラ:死甲蟲]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:Hアニマル]] , 3 + RAND:10 , CSVBASE([[キャラ:Hアニマル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 3
+		RETURN [[キャラ:Rフォート]] , 3 + RAND:10 , CSVBASE([[キャラ:Rフォート]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 4
+		RETURN [[キャラ:鋼鉄のギガス]] , 3 + RAND:10 , CSVBASE([[キャラ:鋼鉄のギガス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 5
+		RETURN [[キャラ:風雷バランサ]] , 3 + RAND:10 , CSVBASE([[キャラ:風雷バランサ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 6
+		RETURN [[キャラ:アークエンジェル]] , 3 + RAND:10 , CSVBASE([[キャラ:アークエンジェル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 7
+		RETURN [[キャラ:教条の塔]] , 3 + RAND:10 , CSVBASE([[キャラ:教条の塔]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 8
+		RETURN [[キャラ:黄金蟲]] , 3 + RAND:10 , CSVBASE([[キャラ:黄金蟲]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 9
+		RETURN [[キャラ:正義の剣]] , 3 + RAND:10 , CSVBASE([[キャラ:正義の剣]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 10
+		RETURN [[キャラ:ミノタ四号]] , 3 + RAND:10 , CSVBASE([[キャラ:ミノタ四号]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 11
+		RETURN [[キャラ:魔弾の砲座]] , 3 + RAND:10 , CSVBASE([[キャラ:魔弾の砲座]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 12
+		RETURN [[キャラ:凱旋の騎士]] , 3 + RAND:10 , CSVBASE([[キャラ:凱旋の騎士]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 13
+		RETURN [[キャラ:ビャッコ]] , 3 + RAND:10 , CSVBASE([[キャラ:ビャッコ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 14
+		RETURN [[キャラ:真紅の砲座]] , 3 + RAND:10 , CSVBASE([[キャラ:真紅の砲座]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 15
+		RETURN [[キャラ:ソロネ]] , 3 + RAND:10 , CSVBASE([[キャラ:ソロネ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 16
+		RETURN [[キャラ:血のヘカトンケイル]] , 3 + RAND:10 , CSVBASE([[キャラ:血のヘカトンケイル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 17
+		RETURN [[キャラ:キングキャッスル]] , 3 + RAND:10 , CSVBASE([[キャラ:キングキャッスル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 18
+		RETURN [[キャラ:フェンリル]] , 3 + RAND:10 , CSVBASE([[キャラ:フェンリル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 19
+		RETURN [[キャラ:シュブ＝ニグラス]] , 3 + RAND:10 , CSVBASE([[キャラ:シュブ＝ニグラス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 20
+		RETURN [[キャラ:洗礼の砲座]] , 3 + RAND:10 , CSVBASE([[キャラ:洗礼の砲座]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT

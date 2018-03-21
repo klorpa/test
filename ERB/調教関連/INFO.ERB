@@ -1,0 +1,966 @@
+
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		基礎,InFO.ERB
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/03/02		迷走中の人				助手の快感が表示されていなかったのを修正
+;	003		2011/03/03		迷走中の人				FEELＣＶＡＢを表示させるように変更
+;	004		2011/03/03		迷走中の人				調教者が使っている道具も表示されるよう修正
+;	005		2011/04/22		黒天					調教者のパラメータ表示をPRINT_STATE関数で行うよう変更
+;	006		2011/04/24		Ｐ						パラメータ表示のバーを変更
+;	006		2011/04/25		Ｐ						バーの色を変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+@SHOW_INFO
+PRINTL ･･･････････････････････････････････････････････････････････････････････････････
+PRINTL □ 経験
+CALL SHOW_INFO_EXP
+PRINTL ･･･････････････････････････････････････････････････････････････････････････････
+PRINTL □ 能力
+CALL SHOW_INFO_ABL
+PRINTL ･･･････････････････････････････････････････････････････････････････････････････
+IF T != MASTER
+	PRINTL □ 刻印
+	CALL SHOW_INFO_MARK
+	PRINTL ･･･････････････････････････････････････････････････････････････････････････････
+ENDIF
+PRINTL □ 素質
+CALL SHOW_INFO_TALENT
+PRINTL ･･･････････････････････････････････････････････････････････････････････････････
+	PRINTL □ 服装
+	CALL SHOW_INFO_CLOTHES
+	PRINTL ･･･････････････････････････････････････････････････････････････････････････････
+WAIT
+
+@SHOW_STATUS
+#LOCALSIZE 1
+;SKIPDISP SELECTCOM:1 >= 0
+;SELECTCOM:1に中身が入ってる時は自動実行
+IF SELECTCOM:1 >= 0
+	SKIPDISP 0
+	PRINTL 
+	PRINTL 
+	DRAWLINE
+	LOCAL = ASSIPLAY
+	IF SELECTCOM:1 >= 20000
+		PLAYER = ASSI
+		ASSIPLAY = 1
+	ELSEIF SELECTCOM:1 >= 10000
+		PLAYER = MASTER
+		ASSIPLAY = 0
+	ENDIF
+	SELECTCOM:1 %= 10000
+	;ASSIPLAY不可能なのにASSIPLAYしようとした場合
+	IF !ASSIPLAY || ASSI >= 0
+		;COMABLEをチェック
+		CALL COM_ABLE_COMMON_D, SELECTCOM:1
+		IF RESULT == 1
+			;派生コマンドになるかどうかをチェック
+			RESULT = -1
+			TRYCALLFORM JUMP_COM{SELECTCOM:1}
+			SELECTCOM:1 = RESULT >= 0 ? RESULT # SELECTCOM:1
+			;実行確定
+			ARRAYREMOVE SELECTCOM, 0, 1,
+			SELECTCOM:99 = -1
+			DOTRAIN SELECTCOM
+			RETURN 1
+		ENDIF
+	ENDIF
+	ASSIPLAY = LOCAL
+	PLAYER = ASSIPLAY ? ASSI # MASTER
+	TWAIT 1, 1
+	PRINTFORML %TRAINNAME_E(SELECTCOM:1)% is not feasible.
+	;は実行不可能です
+	PRINTW Command execution interrupted.
+	;コマンドの実行を中断します
+	CLEARLINE 2
+	VARSET SELECTCOM, -1
+ENDIF
+DRAWLINE
+PRINT Day
+PRINTV DAY
+IF TIME == 0
+	PRINTFORML (Morning)  Money：￥{MONEY}
+ELSEIF TIME == 1
+	PRINTFORML (Noon)  Money：￥{MONEY}
+ELSEIF TIME == 2
+	PRINTFORML (Evening)  Money：￥{MONEY}
+ELSE
+	PRINTFORML (Night)  Money：￥{MONEY}
+ENDIF
+PRINTFORM %NAME:TARGET%'s Training 
+IF TALENT:PLAYER:156
+	PRINTFORM (Dependency:{CFLAG:2} Stress:{CFLAG:10})
+ENDIF
+PRINT   
+PRINTFORM Loyalty:{BASE:忠誠度}
+SELECTCASE 危険日()
+	CASE 1
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM Danger Day
+			CALL HEARTB
+		RESETCOLOR
+	CASE 2
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM In Heat
+			CALL HEARTB
+		RESETCOLOR
+	CASE 3,-2
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM F-Moon Heat
+		;満月発情中
+			CALL HEARTB
+		RESETCOLOR
+ENDSELECT
+PRINTL
+
+
+CALL SHOW_EQUIP_2
+CALL LIFE_BAR,0
+
+PRINT Willpower 
+A = BASE:1
+SIF BASE:1 < 0
+	A = 0
+CALL PRINT_COLORBAR, A, MAXBASE:TARGET:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
+;BAR A,MAXBASE:1,32
+PRINTFORML  ({A}/{MAXBASE:1})
+PRINT MAG  
+CALL PRINT_COLORBAR, BASE:ＭＡＧ, MAXBASE:ＭＡＧ, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("紫"), RESULT:1
+;BAR BASE:ＭＡＧ,MAXBASE:ＭＡＧ,32
+PRINTFORML  ({BASE:ＭＡＧ,5}/{MAXBASE:ＭＡＧ,5})
+
+IF HAVE_PENIS(TARGET)
+	PRINT Ejaculation 
+	;（
+	;PRINTS NAME:TARGET
+	;PRINT ） 
+	;BAR BASE:2,MAXBASE:2,32
+	CALL PRINT_COLORBAR, BASE:TARGET:射精, MAXBASE:TARGET:射精, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("黄"), RESULT:1
+	PRINTFORM  ({BASE:2,5}/{MAXBASE:2,5})
+	SIF CFLAG:9 > 0
+			PRINTFORM (Recovering. Remaining time:{CFLAG:9})
+			;再装填中 残り
+	PRINTL
+ENDIF
+IF TALENT:TARGET:149
+	B = 10000
+	SIF TALENT:TARGET:77
+		B /= 2
+	MAXBASE:3 = B
+	PRINT Breast milk 
+	;（
+	;PRINTS NAME:TARGET
+	;PRINT ）
+	CALL PRINT_COLORBAR, BASE:TARGET:母乳, MAXBASE:TARGET:母乳, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("白"), RESULT:1
+	;BAR BASE:3,MAXBASE:3,32
+	PRINTFORML  ({BASE:3}/{MAXBASE:3})
+ENDIF
+
+CALL SHOW_INFO_PALAM
+PRINTL
+PRINTFORML Trainer:%NAME:PLAYER%\@ ASSIPLAY == 1 ? (Assistant) # \@
+
+B = 10000
+SIF TALENT:MASTER:152
+	B /= 2
+MAXBASE:MASTER:2 = B
+MAXBASE:MASTER:99 = B
+
+SIF MAXBASE:2 == 0
+	MAXBASE:2 = 10000
+IF ASSI >= 0
+	SIF MAXBASE:ASSI:2 == 0
+		MAXBASE:ASSI:2 = 10000
+ENDIF
+
+;IF ASSIPLAY == 0
+	PRINT MAG  
+	;PRINT MAG (主人)
+	CALL PRINT_COLORBAR, BASE:PLAYER:ＭＡＧ, MAXBASE:PLAYER:ＭＡＧ, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("紫"), RESULT:1
+	;BAR BASE:MASTER:ＭＡＧ,MAXBASE:MASTER:ＭＡＧ,32
+	PRINTFORML  ({BASE:PLAYER:ＭＡＧ,6}/{MAXBASE:PLAYER:ＭＡＧ,6})
+	IF HAVE_PENIS(PLAYER)
+		PRINT Cum 
+		;PRINT Ejaculation(主人)
+		CALL PRINT_COLORBAR, BASE:PLAYER:射精, MAXBASE:PLAYER:射精, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("黄"), RESULT:1
+		;BAR BASE:MASTER:2,MAXBASE:PLAYER:2,32
+		PRINTFORM  ({BASE:PLAYER:2,5}/{MAXBASE:PLAYER:2,5})
+		SIF CFLAG:PLAYER:9 > 0
+			PRINTFORM (Recovering. Remaining time:{CFLAG:PLAYER:9})
+			;再装填中 残り
+		PRINTL
+	ENDIF
+;	PRINT 快感(主人)
+;	BAR BASE:MASTER:99,MAXBASE:MASTER:99,32
+;	PRINTFORML ({BASE:MASTER:99,5}/{MAXBASE:MASTER:99,5})
+	IF TALENT:PLAYER:母乳体質
+		;B = 10000
+		;SIF TALENT:PLAYER:淫乳
+		;	B /= 2
+		MAXBASE:PLAYER:母乳 = 10000 - TALENT:PLAYER:淫乳 * 5000
+		PRINT Milk 
+		;PRINT Breast milk(主人)
+		CALL PRINT_COLORBAR, BASE:PLAYER:母乳, MAXBASE:PLAYER:母乳, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("白"), RESULT:1
+		;BAR BASE:MASTER:3,MAXBASE:MASTER:3,32
+		PRINTFORML  ({BASE:PLAYER:3,5}/{MAXBASE:PLAYER:3,5})
+	ENDIF
+;ENDIF
+
+;IF ASSIPLAY
+;	PRINT MAG (助手)
+;	BAR BASE:ASSI:ＭＡＧ,MAXBASE:ASSI:ＭＡＧ,32
+;	PRINTFORML ({BASE:ASSI:ＭＡＧ,5}/{MAXBASE:ASSI:ＭＡＧ,5})
+;	IF HAVE_PENIS(ASSI)
+;		PRINT Ejaculation(助手)
+;		BAR BASE:ASSI:2,MAXBASE:ASSI:2,32
+;		PRINTFORML ({BASE:ASSI:2,5}/{MAXBASE:ASSI:2,5})
+;	ENDIF
+;	PRINT 快感(助手)
+;	BAR BASE:ASSI:99,MAXBASE:ASSI:99,32
+;	PRINTFORML ({BASE:ASSI:99,5}/{MAXBASE:ASSI:99,5})
+;	IF TALENT:ASSI:149
+;		B = 10000
+;		SIF TALENT:ASSI:77
+;			B /= 2
+;		MAXBASE:ASSI:3 = B
+;		PRINT Breast milk(助手)
+;		BAR BASE:ASSI:3,MAXBASE:ASSI:3,32
+;		PRINTFORML ({BASE:ASSI:3,5}/{MAXBASE:ASSI:3,5})
+;	ENDIF
+;ENDIF
+
+CALL SHOW_INFO_PALAM, PLAYER
+
+;REPEAT 6
+;
+;;パラメータを表示する順番を並べ替える
+;
+;IF COUNT == 0
+;;FEELＣ
+;	A = 0
+;ELSEIF COUNT == 1
+;;FEELＶ
+;	A = 1
+;ELSEIF COUNT == 2
+;;FEELＡ
+;	A = 2
+;ELSEIF COUNT == 3
+;;FEELＢ
+;	A = 3
+;ELSEIF COUNT == 4
+;;LUBRIC
+;	A = 4
+;ELSEIF COUNT == 5
+;;DESIRE
+;	A = 6
+;
+;ENDIF
+;
+;;現在のパラメータレベルをBに代入
+;IF PALAM:PLAYER:A < PALAMLV:1
+;	B = 0
+;ELSEIF PALAM:PLAYER:A < PALAMLV:2
+;	B = 1
+;ELSEIF PALAM:PLAYER:A < PALAMLV:3
+;	B = 2
+;ELSEIF PALAM:PLAYER:A < PALAMLV:4
+;	B = 3
+;ENDIF
+;
+;;パラメータの名前・パラメータレベル・ゲージを表示
+;	PRINTFORM 　%PALAMNAME_E(A)%Lv{B}
+;	C = PALAMLV:B
+;	D = PALAMLV:(B+1)
+;
+;;↓のコメントアウトした部分を戻すと、パラメータ表示のゲージが
+;;↓パラメータの総量を基準にしたものから、
+;;↓現在のレベル→次のレベルに必要な量を基準としたものになります。
+;;↓例えば、パラメータが5000（レベル３）のときはこんな感じに。
+;;↓　従来 [****>>>>] Now:5000 / Next:10000 （総量として必要な10000が基準）
+;;↓　これ [**>>>>>>] Now:2000 / Next: 7000 （LV3→LV4に必要な7000が基準）
+;
+;BAR PALAM:PLAYER:A-C,D-C,8
+;PRINTFORM {PALAM:PLAYER:A,6}
+;
+;$SHOW_INFO_PALAM_NUM_END_PLAYER
+;SIF COUNT == 2
+;PRINTL 
+;REND
+PRINTL 　
+
+IF TEQUIP:25
+	SIF MAXBASE:MASTER:4 == 0
+		MAXBASE:MASTER:4 = 10000
+	PRINT Tent 
+	;PRINT Ejaculation（触手）
+	CALL PRINT_COLORBAR, BASE:MASTER:4, MAXBASE:MASTER:4, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("黄"), RESULT:1
+	;BAR BASE:MASTER:4,MAXBASE:MASTER:4,32
+	PRINTFORML  ({BASE:MASTER:4}/{MAXBASE:MASTER:4})
+ENDIF
+
+
+;DRAWLINE
+
+CALL SHOW_EQUIP_1
+@LIFE_BAR, ARG
+PRINT Stamina   
+IF ARG == 0
+	A = BASE:0
+	SIF BASE:0 < 0
+		A = 0
+	;BAR A,MAXBASE:0,32
+	CALL PRINT_COLORBAR, A, MAXBASE:TARGET:体力, 32, UNICODE(0x2585), UNICODE(0x2585),  BARCOLORSET("赤"), RESULT:1
+	PRINTFORML  ({A}/{MAXBASE:0})
+ELSE
+	A = BASE:FINDCHARA_ID(TARGET:ARG):0
+	SIF BASE:FINDCHARA_ID(TARGET:ARG):0 < 0
+		A = 0
+	CALL PRINT_COLORBAR, A, MAXBASE:FINDCHARA_ID(TARGET:ARG):体力, 32, UNICODE(0x2585) , TOSTR(BARCOLORSET("赤")), RESULT:1
+	;BAR A,MAXBASE:FINDCHARA_ID(TARGET:ARG):0,32
+	PRINTFORML  ({A}/{MAXBASE:FINDCHARA_ID(TARGET:ARG):0})
+ENDIF
+@STAIN_INFO
+#DIM CHARA , 1
+#DIM 表示 , 3
+#LOCALSIZE 2
+REDRAW 0
+LOCAL:1 = LINECOUNT
+DRAWLINE
+
+FOR LOCAL , 0 , 2 + (ASSI>0)
+	IF LOCAL == 0
+		CHARA = MASTER
+	ELSEIF LOCAL == 1
+		CHARA = TARGET
+	ELSE
+		CHARA = ASSI
+	ENDIF
+	IF 表示:LOCAL == 1
+		PRINTFORML 【%CALLNAME:CHARA%s mess】[{LOCAL}] Hide
+		;【%CALLNAME:CHARA%の汚れ】[{LOCAL}]非表示
+		REPEAT 22
+			SIF COUNT == 2 && !HAVE_PENIS(CHARA)
+				CONTINUE
+			SIF COUNT == 3 && !HAVE_VAGINA(CHARA)
+				CONTINUE
+			SIF COUNT == 5 && !HAVE_TIT(CHARA)
+				CONTINUE
+			SIF COUNT == 6 && !HAVE_VAGINA(CHARA)
+				CONTINUE
+			SIF COUNT == 8
+				COUNT = 10
+			SIF RANGE(COUNT , 10 , 21) && !CFLAG:CHARA:GET_CLOTHESNAME(COUNT - 10)
+				CONTINUE
+			SELECTCASE COUNT
+				CASE 1
+					PRINT Mouth:
+				CASE 2
+					PRINT 　Ｐ：
+				CASE 3
+					PRINT 　Ｖ：
+				CASE 4
+					PRINT 　Ａ：
+				CASE 5
+					PRINT 　Ｂ：
+				CASE 6
+					PRINT 　Vagina：
+					;膣：
+				CASE 10 TO 21
+					CALLFORM CLOTHES_NAME_{CFLAG:CHARA:GET_CLOTHESNAME(COUNT - 10)}
+					PRINTFORM 　%RESULTS%：
+				CASEELSE
+					PRINTFORM 　%STAINNAME:COUNT%：
+			ENDSELECT
+			SIF STAIN:CHARA:COUNT & 1
+				PRINT <Love liquid>
+				;<愛液>
+			SIF STAIN:CHARA:COUNT & 2
+				PRINT <penis>
+				;<ペニス>
+			SIF STAIN:CHARA:COUNT & 4
+				PRINT <semen>
+				;<精液>
+			SIF STAIN:CHARA:COUNT & 8
+				PRINT <anal>
+				;<アナル>
+			SIF STAIN:CHARA:COUNT & 16
+				PRINT <Breast milk>
+			SIF STAIN:CHARA:COUNT & 32
+				PRINT <mucus>
+				;<粘液>
+			SIF STAIN:CHARA:COUNT & 64
+				PRINT <Blood of the destroyer>
+				;<破瓜の血>
+			PRINTL 
+		REND
+	ELSE
+		PRINTFORML 【%CALLNAME:CHARA%s mess】[{LOCAL}]Show
+	ENDIF
+	PRINTL
+NEXT
+PRINTL [100] Return
+CALL INPUTINT , 0 , 1 , 2*(ASSI>0) , 100
+IF RESULT == 100
+	REDRAW 1
+	RETURN 0
+ELSE
+	CLEARLINE LINECOUNT - LOCAL:1
+	INVERTBIT 表示:RESULT , 0
+	RESTART
+ENDIF
+
+@SHOW_EQUIP_2
+;状況の表示
+;調教対象には使わない、特殊な着脱式の道具を追加した場合はここに追加をしてください
+;（場所変更、マスターや助手が使用する道具等）
+;IF TEQUIP:10
+;	IF NO:TARGET == 26
+;		PRINTFORM  [ハクタク化]
+;	ELSEIF ASSIPLAY
+;		PRINTFORM  [ハクタク化](助手)
+;	ENDIF
+;ENDIF
+IF TEQUIP:28
+		V = 10 - TFLAG:70 + 1
+		PRINTFORM  [Filming(Remaining actions:{V}　Camera:
+		;[Shooting(Remaining:{V} pics　Photographer：
+		;[撮影中(残{V}回　撮影者：
+		IF FLAG:22 == 2
+			PRINTFORM %CALLNAME:ASSI%)]
+		ELSE
+			PRINTFORM %CALLNAME:MASTER%)]
+		ENDIF
+ENDIF
+SIF TEQUIP:25
+	PRINT  [Tentacle summoning] 
+	;[触手召喚中] 
+SIF TEQUIP:29 & 1
+	PRINT  [Old buildings]
+	;廃ビル
+SIF TEQUIP:29 & 2
+	PRINT  [Forest]
+	;[森林]
+SIF TEQUIP:29 & 4
+	PRINT  [Park]
+	;[公園]
+SIF TEQUIP:29 & 8
+	PRINT  [Riverside]
+	;[川辺]
+SIF TEQUIP:46 >= 1
+	PRINTFORML [野次馬{TEQUIP:46}人]
+SIF TEQUIP:30 == 1
+	PRINT  [羞恥プレイ中]
+SIF TEQUIP:31
+	PRINT  [Bathroom play]
+	;お風呂場プレイ中
+SIF TEQUIP:33
+	PRINT  [Bride play]
+	;新妻プレイ中
+
+;着せ替え表示
+;80,帽子
+;81,服
+;82,下衣
+;83,全身服
+;84,手
+;85,下着（上）
+;86,下着（下）
+;87,全身下着
+;88,靴下
+;89,靴
+;90,上着
+;91,その他
+
+FOR LOCAL,0,12
+	SIF TEQUIP:GET_CLOTHESNAME(LOCAL) > 0
+		PRINTFORM  [%ITEMNAME:(6000+TEQUIP:GET_CLOTHESNAME(LOCAL))%]
+NEXT
+
+;IF TEQUIP:80 == 1
+;	PRINT  [ホワイトブリム]
+;ELSEIF TEQUIP:80 == 2
+;	PRINT  [ナースキャップ]
+;ELSEIF TEQUIP:80 == 3
+;	PRINT  [警官帽]
+;ELSEIF TEQUIP:80 == 4
+;	PRINT  [ウサ耳バンド]
+;ELSEIF TEQUIP:80 == 5
+;	PRINT  [Ribbon]
+;ELSEIF TEQUIP:80 == 6
+;	PRINT  [フード]
+;ELSEIF TEQUIP:80 == 7
+;	PRINT  [兜]
+;ELSEIF TEQUIP:80 == 8
+;	PRINT  [帽子]
+;ELSEIF TEQUIP:80 == 9
+;	PRINT  [ヴェール]
+;ELSEIF TEQUIP:80 == 10
+;	PRINT  [ティアラ]
+;ELSEIF TEQUIP:80 == 11
+;	PRINT  [カチューシャ]
+;ELSEIF TEQUIP:80 == 12
+;	PRINT  [ヘアバンド]
+;ELSEIF TEQUIP:80 == 13
+;	PRINT  [バンダナ]
+;ELSEIF TEQUIP:80 == 14
+;	PRINT  [フロスト頭巾]
+;ELSEIF TEQUIP:80 == 15
+;	PRINT  [ランタンハット]
+;ELSEIF TEQUIP:80 == 16
+;	PRINT  [冠]
+;ENDIF
+;
+;IF TEQUIP:81 == 101
+;	PRINT  [上着]
+;ELSEIF TEQUIP:81 == 102
+;	PRINT  [セーラー服]
+;ELSEIF TEQUIP:81 == 103
+;	PRINT  [体操服]
+;ELSEIF TEQUIP:81 == 104
+;	PRINT  [ビキニトップ]
+;ELSEIF TEQUIP:81 == 105
+;	PRINT  [ナース服]
+;ELSEIF TEQUIP:81 == 106
+;	PRINT  [警官服]
+;ELSEIF TEQUIP:81 == 107
+;	PRINT  [ブラウス]
+;ELSEIF TEQUIP:81 == 108
+;	PRINT  [タンクトップ]
+;ELSEIF TEQUIP:81 == 109
+;	PRINT  [チューブトップ]
+;ELSEIF TEQUIP:81 == 110
+;	PRINT  [ランニングシャツ]
+;ELSEIF TEQUIP:81 == 111
+;	PRINT  [タートルネック]
+;ELSEIF TEQUIP:81 == 112
+;	PRINT  [スモックシャツ]
+;ELSEIF TEQUIP:81 == 113
+;	PRINT  [スウェットシャツ]
+;ELSEIF TEQUIP:81 == 114
+;	PRINT  [アンダーシャツ]
+;ELSEIF TEQUIP:81 == 115
+;	PRINT  [和服]
+;ELSEIF TEQUIP:81 == 116
+;	PRINT  [シースルーシャツ]
+;ELSEIF TEQUIP:81 == 117
+;	PRINT  [キャミソール]
+;ELSEIF TEQUIP:81 == 118
+;	PRINT  [浴衣]
+;ENDIF
+;
+;IF TEQUIP:82 == 201
+;	PRINT  [スカート]
+;ELSEIF TEQUIP:82 == 202
+;	PRINT  [キュロット]
+;ELSEIF TEQUIP:82 == 203
+;	PRINT  [もんぺ]
+;ELSEIF TEQUIP:82 == 204
+;	PRINT  [ズボン]
+;ELSEIF TEQUIP:82 == 205
+;	PRINT  [ロングスカート]
+;ELSEIF TEQUIP:82 == 206
+;	PRINT  [ホットパンツ]
+;ELSEIF TEQUIP:82 == 207
+;	PRINT  [ミニスカート]
+;ELSEIF TEQUIP:82 == 208
+;	PRINT  [タイトスカート]
+;ELSEIF TEQUIP:82 == 209
+;	PRINT  [タイトミニスカート]
+;ELSEIF TEQUIP:82 == 210
+;	PRINT  [オーバーオール]
+;ELSEIF TEQUIP:82 == 211
+;	PRINT  [ブルマ]
+;ELSEIF TEQUIP:82 == 213
+;	PRINT  [サスペンダースカートム]
+;ELSEIF TEQUIP:82 == 214
+;	PRINT  [ジャンパースカート]
+;ELSEIF TEQUIP:82 == 215
+;	PRINT  [袴]
+;ELSEIF TEQUIP:82 == 216
+;	PRINT  [ショートパンツ]
+;ELSEIF TEQUIP:82 == 217
+;	PRINT  [腰布]
+;ENDIF
+;
+;IF TEQUIP:83 == 301
+;	PRINT  [長着]
+;ELSEIF TEQUIP:83 == 302
+;	PRINT  [ローブ]
+;ELSEIF TEQUIP:83 == 303
+;	PRINT  [ワンピース]
+;ELSEIF TEQUIP:83 == 304
+;	PRINT  [ドレス]
+;ELSEIF TEQUIP:83 == 305
+;	PRINT  [イブニングドレス]
+;ELSEIF TEQUIP:83 == 306
+;	PRINT  [全身鎧]
+;ELSEIF TEQUIP:83 == 307
+;	PRINT  [エプロンドレス]
+;ELSEIF TEQUIP:83 == 308
+;	PRINT  [メイド服]
+;ELSEIF TEQUIP:83 == 309
+;	PRINT  [フレンチメイド服]
+;ELSEIF TEQUIP:83 == 310
+;	PRINT  [チャイナドレス]
+;ELSEIF TEQUIP:83 == 311
+;	PRINT  [バニースーツ]
+;ELSEIF TEQUIP:83 == 312
+;	PRINT  [ボンテージスーツ]
+;ELSEIF TEQUIP:83 == 313
+;	PRINT  [着ぐるみ]
+;ELSEIF TEQUIP:83 == 315
+;	PRINT  [千早]
+;ELSEIF TEQUIP:83 == 316
+;	PRINT  [軍服]
+;ELSEIF TEQUIP:83 == 317
+;	PRINT  [民族衣装]
+;ELSEIF TEQUIP:83 == 318
+;	PRINT  [法衣]
+;ENDIF
+;
+;IF TEQUIP:84 == 401
+;	PRINT  [手袋]
+;ELSEIF TEQUIP:84 == 402
+;	PRINT  [袖]
+;ELSEIF TEQUIP:84 == 403
+;	PRINT  [カフス]
+;ELSEIF TEQUIP:84 == 404
+;	PRINT  [エルボーグローブ]
+;ELSEIF TEQUIP:84 == 405
+;	PRINT  [レースの手袋]
+;ELSEIF TEQUIP:84 == 406
+;	PRINT  [篭手]
+;ENDIF
+;
+;IF TEQUIP:85 == 501
+;	PRINT  [ブラジャー]
+;ELSEIF TEQUIP:85 == 502
+;	PRINT  [スポーツブラ]
+;ELSEIF TEQUIP:85 == 503
+;	PRINT  [さらし]
+;ELSEIF TEQUIP:85 == 504
+;	PRINT  [オープンブラ]
+;ELSEIF TEQUIP:85 == 505
+;	PRINT  [マイクロブラ]
+;ELSEIF TEQUIP:85 == 506
+;	PRINT  [ネグリジェ]
+;ELSEIF TEQUIP:85 == 507
+;	PRINT  [ブラジャー(黒)]
+;ELSEIF TEQUIP:85 == 508
+;	PRINT  [ブラジャー(赤)]
+;ELSEIF TEQUIP:85 == 509
+;	PRINT  [レース付きブラジャー]
+;
+;ENDIF
+;
+;IF TEQUIP:86 == 601
+;	PRINT  [ドロワーズ]
+;ELSEIF TEQUIP:86 == 602
+;	PRINT  [パンティ]
+;ELSEIF TEQUIP:86 == 603
+;	PRINT  [オープンショーツ]
+;ELSEIF TEQUIP:86 == 604
+;	PRINT  [褌]
+;ELSEIF TEQUIP:86 == 605
+;	PRINT  [マイクロビキニ]
+;ELSEIF TEQUIP:86 == 606
+;	PRINT  [トランクス]
+;ELSEIF TEQUIP:86 == 607
+;	PRINT  [ブーメランパンツ]
+;ELSEIF TEQUIP:86 == 608
+;	PRINT  [巻布]
+;ELSEIF TEQUIP:86 == 609
+;	PRINT  [パンティー(黒)]
+;ELSEIF TEQUIP:86 == 610
+;	PRINT  [パンティー(赤)]
+;ELSEIF TEQUIP:86 == 611
+;	PRINT  [レース付きパンティー]
+;ENDIF
+;
+;IF TEQUIP:87 == 701
+;	PRINT  [タイツ]
+;ELSEIF TEQUIP:87 == 702
+;	PRINT  [タイツ（穴開き）]
+;ELSEIF TEQUIP:87 == 703
+;	PRINT  [Slingshot Bikini]
+;ELSEIF TEQUIP:87 == 704
+;	PRINT  [レオタード]
+;ELSEIF TEQUIP:87 == 705
+;	PRINT  [レオタード（穴開き）]
+;ELSEIF TEQUIP:87 == 710
+;	PRINT  [スクール水着]
+;ELSEIF TEQUIP:87 == 711
+;	PRINT  [スクール水着（穴開き）]
+;ELSEIF TEQUIP:87 == 712
+;	PRINT  [荒縄]
+;ELSEIF TEQUIP:87 == 713
+;	PRINT  [競泳水着]
+;ELSEIF TEQUIP:87 == 714
+;	PRINT  [競泳水着（穴開き）]
+;ENDIF
+;
+;IF TEQUIP:88 == 801
+;	PRINT  [靴下]
+;ELSEIF TEQUIP:88 == 802
+;	PRINT  [ハイソックス]
+;ELSEIF TEQUIP:88 == 803
+;	PRINT  [ニーソックス]
+;ELSEIF TEQUIP:88 == 804
+;	PRINT  [サイハイソックス]
+;ELSEIF TEQUIP:88 == 805
+;	PRINT  [ガーダーストッキング]
+;ELSEIF TEQUIP:88 == 806
+;	PRINT  [パンティストッキング]
+;ELSEIF TEQUIP:88 == 807
+;	PRINT  [網タイツ]
+;ELSEIF TEQUIP:88 == 808
+;	PRINT  [足袋]
+;ENDIF
+;
+;IF TEQUIP:89 == 901
+;	PRINT  [ブーツ]
+;ELSEIF TEQUIP:89 == 902
+;	PRINT  [ハイブーツ]
+;ELSEIF TEQUIP:89 == 903
+;	PRINT  [サンダル]
+;ELSEIF TEQUIP:89 == 904
+;	PRINT  [グリーブ]
+;ELSEIF TEQUIP:89 == 905
+;	PRINT  [下駄]
+;ELSEIF TEQUIP:89 == 906
+;	PRINT  [ピンヒール]
+;ELSEIF TEQUIP:89 == 907
+;	PRINT  [ハイヒール]
+;ELSEIF TEQUIP:89 == 908
+;	PRINT  [スニーカー]
+;ELSEIF TEQUIP:89 == 909
+;	PRINT  [革靴]
+;ELSEIF TEQUIP:89 == 910
+;	PRINT  [ミュール]
+;ELSEIF TEQUIP:89 == 911
+;	PRINT  [パンプス]
+;ELSEIF TEQUIP:89 == 912
+;	PRINT  [草履]
+;ELSEIF TEQUIP:89 == 913
+;	PRINT  [シューズ]
+;ENDIF
+;
+;IF TEQUIP:90 == 1001
+;	PRINT  [ボレロ]
+;ELSEIF TEQUIP:90 == 1002
+;	PRINT  [マント]
+;ELSEIF TEQUIP:90 == 1003
+;	PRINT  [ブレザー]
+;ELSEIF TEQUIP:90 == 1004
+;	PRINT  [コート]
+;ELSEIF TEQUIP:90 == 1005
+;	PRINT  [カーディガン]
+;ELSEIF TEQUIP:90 == 1006
+;	PRINT  [白衣]
+;ELSEIF TEQUIP:90 == 1010
+;	PRINT  [胸当て]
+;ELSEIF TEQUIP:90 == 1011
+;	PRINT  [餃子]
+;ELSEIF TEQUIP:90 == 1012
+;	PRINT  [Fur]
+;ELSEIF TEQUIP:90 == 1013
+;	PRINT  [パーカー]
+;ENDIF
+;
+;IF TEQUIP:91 == 1101
+;	PRINT  [羽衣]
+;ELSEIF TEQUIP:91 == 1103
+;	PRINT  [眼鏡]
+;ELSEIF TEQUIP:91 == 1104
+;	PRINT  [拘束具]
+;ELSEIF TEQUIP:91 == 1105
+;	PRINT  [マフラー]
+;ELSEIF TEQUIP:91 == 1106
+;	PRINT  [鞍]
+;ELSEIF TEQUIP:91 == 1107
+;	PRINT  [帯]
+;ELSEIF TEQUIP:91 == 1108
+;	PRINT  [ベルト]
+;ELSEIF TEQUIP:91 == 1109
+;	PRINT  [ヘッドホン]
+;ENDIF
+
+PRINTL  
+
+@SHOW_EQUIP_1
+;使用中の道具を表示する
+;一度使用したら解除するまで止まらない道具や調教を
+;追加した場合はここに追加をしてください
+
+IF TEQUIP:11 || TEQUIP:13 || TEQUIP:12 || TEQUIP:14 || TEQUIP:15 || TEQUIP:16 || TEQUIP:17 || TEQUIP:18 || TEQUIP:19 || TEQUIP:20 || TEQUIP:21 || TEQUIP:22 || TEQUIP:23 || TEQUIP:24 || TEQUIP:26 || TEQUIP:27 || TEQUIP:32 || TEQUIP:34 || TEQUIP:36 || TEQUIP:PLAYER:11 || TEQUIP:PLAYER:13 || TEQUIP:PLAYER:14 || TEQUIP:PLAYER:15 || TEQUIP:PLAYER:16 || TEQUIP:PLAYER:17
+	PRINTFORM Active effects:(%NAME:TARGET%) 
+	;使用中
+
+SIF TEQUIP:26
+	PRINT [Aphrodiasc]
+	;媚薬効果発揮中
+SIF TEQUIP:27
+	PRINT [Diuretic]
+	;[利尿剤効果発揮中]
+IF TEQUIP:34 == 1
+	PRINT [強精神薬反動中]
+ELSEIF TEQUIP:34 > 1
+	PRINT [強精神薬効果発揮中]
+ENDIF
+
+IF TEQUIP:11 && TEQUIP:25
+	PRINT [触手クリ責め]
+ELSEIF TEQUIP:11
+	PRINT [Clit cap]
+ENDIF
+IF TEQUIP:12 && TEQUIP:25
+	PRINT [触手ペニス責め]
+ELSEIF TEQUIP:12
+	PRINT [Onahole]
+ENDIF
+
+IF TEQUIP:13 || TEQUIP:14
+	IF TEQUIP:13 && TEQUIP:14 && TEQUIP:25 == 0
+		PRINT [Double insertion]
+		;両穴バイブ責め
+	ELSEIF TEQUIP:13 && TEQUIP:14 && TEQUIP:25
+		PRINT [Double tentacle insertion]
+		;両穴触手挿入
+	ELSEIF TEQUIP:13 && TEQUIP:25
+		PRINT [Tentacle insertion]
+		;触手挿入
+	ELSEIF TEQUIP:13
+		PRINT [Vibrator]
+	ELSEIF TEQUIP:14 && TEQUIP:25
+		PRINT [Tentacle anal insertion]
+		;触手アナル挿入
+	ELSEIF TEQUIP:14
+		PRINT [Anal vibrator]
+	ENDIF
+ENDIF
+
+SIF TEQUIP:15
+	PRINT [Anal beads]
+IF TEQUIP:16 && TEQUIP:25
+	PRINT [Tentacle nipple tease]
+	;触手乳首責め
+ELSEIF TEQUIP:16
+	PRINT [Nipple caps]
+ENDIF
+IF TEQUIP:17 && TEQUIP:25
+	PRINT [Tentacle milking]
+ELSEIF TEQUIP:17
+	PRINT [Milker]
+ENDIF
+
+SIF TEQUIP:18 && TEQUIP:73 == 0
+	PRINT [Blindfold]
+
+IF TEQUIP:19 && TEQUIP:72 == 0 && TEQUIP:73 == 0
+	IF TEQUIP:37 & 8
+		PRINT [吊り下げ]
+	ELSEIF TEQUIP:37 & 4
+		PRINT [亀甲縛り]
+	ELSEIF TEQUIP:37 & 2
+		PRINT [四肢緊縛]
+	ELSE
+		IF TEQUIP:25
+			PRINT [Bound(tentacles)]
+			;触手緊縛
+		ELSE
+			PRINT [Bound(rope)]
+			;縄で緊縛
+		ENDIF
+	ENDIF
+ENDIF
+
+SIF TEQUIP:20
+	PRINT [Ball gag]
+IF TEQUIP:21 && TEQUIP:25
+	PRINT [触手浣腸]
+ELSEIF TEQUIP:21
+	PRINT [浣腸＋アナルプラグ]
+ENDIF
+SIF TEQUIP:22
+	PRINT [Balloon dilator]
+SIF TEQUIP:23
+	PRINT [アナル電極]
+SIF TEQUIP:24
+	PRINT [乳房電極装着中]	
+SIF TEQUIP:32
+	PRINT [Shower]
+	;シャワー
+SIF TEQUIP:36
+	PRINT [触手口辱]
+SIF TEQUIP:41
+	PRINT [Wooden horse]
+SIF TEQUIP:42
+	PRINT [Ejacultation suppressed]
+	;射精抑制中
+SIF TEQUIP:胸前開き
+	PRINT [Chest exposed]
+	;胸開放中
+
+;ココより↑にTEQUIPに登録したものを書き込む
+PRINTL  
+ENDIF
+;調教者用
+IF TEQUIP:PLAYER:11 || TEQUIP:PLAYER:13 || TEQUIP:PLAYER:12 || TEQUIP:PLAYER:14 || TEQUIP:PLAYER:15 || TEQUIP:PLAYER:16 || TEQUIP:PLAYER:17 || TEQUIP:PLAYER:26
+	PRINTFORM Active effects:(%NAME:PLAYER%) 
+	
+SIF TEQUIP:PLAYER:26
+	PRINT [Aphrodiasc]
+
+IF TEQUIP:PLAYER:11 && TEQUIP:25
+	PRINT [触手クリ責め]
+ELSEIF TEQUIP:PLAYER:11
+	PRINT [Clit cap]
+ENDIF
+IF TEQUIP:PLAYER:12 && TEQUIP:25
+	PRINT [触手ペニス責め]
+ELSEIF TEQUIP:PLAYER:12
+	PRINT [Onahole]
+ENDIF
+
+IF TEQUIP:PLAYER:13 || TEQUIP:PLAYER:14
+	IF TEQUIP:PLAYER:13 && TEQUIP:PLAYER:14 && TEQUIP:25 == 0
+		PRINT [Double insertion]
+	ELSEIF TEQUIP:PLAYER:13 && TEQUIP:PLAYER:14 && TEQUIP:25
+		PRINT [Double tentacle insertion]
+	ELSEIF TEQUIP:PLAYER:13 && TEQUIP:25
+		PRINT [Tentacle insertion]
+	ELSEIF TEQUIP:PLAYER:13
+		PRINT [Vibrator]
+	ELSEIF TEQUIP:PLAYER:14 && TEQUIP:25
+		PRINT [Tentacle anal insertion]
+	ELSEIF TEQUIP:PLAYER:14
+		PRINT [Anal vibrator]
+	ENDIF
+ENDIF
+
+SIF TEQUIP:PLAYER:15
+	PRINT [Anal beads]
+IF TEQUIP:PLAYER:16 && TEQUIP:25
+	PRINT [Tentacle nipple tease]
+ELSEIF TEQUIP:PLAYER:16
+	PRINT [Nipple caps]
+ENDIF
+IF TEQUIP:PLAYER:17 && TEQUIP:25
+	PRINT [Tentacle milking]
+ELSEIF TEQUIP:PLAYER:17
+	PRINT [Milker]
+ENDIF
+
+;ココより↑にTEQUIPに登録したものを書き込む
+PRINTL  
+ENDIF
+

@@ -1,0 +1,1295 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20xx/xx/xx		----					新規作成
+;	002		2011/01/15		旅人					PARTY情報の味方表示部に色を付ける
+;	003		2011/01/25		旅人					PARTY情報の表示部に色を付ける
+;	004		2011/02/05		風花救済計画			特定スキルの条件チェック追加
+;	005		2011/02/15		黒天					仲魔にいる悪魔が敵にいる場合名前の色が変わるように
+;	006		2011/02/16		Ｎ鳥					悪魔ストレージ機能に対応
+;	007		2011/03/18		P						ストレージ機能に合わせて、若干処理を追加
+;	008		2011/03/23		UNP						セットアップ画面での誤爆クリックを予防・ポジションチェンジのキャンセルを実装
+;	009		2012/12/02		ネトリス				ムフフ展開のＧＯＯＤの色の変化を『CFLAG:ダンジョン内発情用欲情値』を参照にするように変更
+;	010		2012/12/02								招来の舞踏用に死者だけリスト化するのを追加(サバトマの逆)
+;	011		2013/03/05		GunＰ					召喚/編入のリストでＣＯＭＰにいるか表示、最初のページと最後のページを行き来できるように加筆
+;	012		2013/11/24		ひみつ					リスト表示数設定
+;	013		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+
+;==================================
+;召喚
+;==================================
+@SETUP_SUMON
+PRINTL
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+PRINTC [1000] - Return
+PRINTL
+DRAWLINE
+PRINTL Place where?
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT < 7 && 0 < RESULT
+	LOCAL = RESULT
+	$INPUT_LOOP2
+	CALL CHOOSE_COMPANION,2
+	LOCAL:1 = RESULT
+	IF RESULT == 1000
+		RESTART
+	ELSE
+		;---- EDIT 007 ADD START -------------------------
+		IF POS(LOCAL) > 0 && CFLAG:POS(LOCAL):所属ＣＯＭＰ == -1 && FLAG:ショップコマンド == [[ショップ:探索]] && !(LOCAL < 4 && POS(LOCAL+3) == -1)
+			PRINTFORML %CALLNAME:POS(LOCAL)% is a demon registered on the home server.
+			PRINTL Demons registered on the home server can't be removed in dungeons.
+			PRINTW Please select another position to summon to.
+			CLEARLINE 3
+			GOTO INPUT_LOOP2
+		ENDIF
+		;---- EDIT 007 ADD END   -------------------------
+		;LOCAL:2 = FLAG:ショップコマンド
+		;FLAG:ショップコマンド = 106
+		CALL INSERT_POSITION,LOCAL,LOCAL:1
+		;FLAG:ショップコマンド = LOCAL:2
+		IF RESULT > -1
+			SELECTCASE FLAG:ショップコマンド
+				CASE [[ショップ:探索]],[[ショップ:コロシアム参加]],[[ショップ:イベント]],[[ショップ:依頼請負]]
+					IF CFLAG:(LOCAL:1):PTフラグ > 0 && ABL:(LOCAL:1):種族 != 0
+						BASE:MASTER:ＭＡＧ -= MAXBASE:(LOCAL:1):￥
+					ENDIF
+			ENDSELECT
+		ENDIF
+	ENDIF
+
+	RESTART
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+CALL REFRESH_FORMATION
+
+;==================================
+;ポジション変更
+;==================================
+@SETUP_FORMATION
+#LOCALSIZE 2
+PRINTL
+DRAWLINE
+DRAWLINE
+LOCAL:1 = LINECOUNT
+PRINTL Position change
+$START
+CLEARLINE LOCAL:1 - LINECOUNT
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+DRAWLINE
+PRINT Please select the position to change from(
+PRINTBUTTON "[  0] - Return",0
+PRINT 　
+PRINTBUTTON "[  9] - Rebuild Formation",9
+PRINTL )
+CALL INPUTINT(0, 1, 2, 3, 4, 5 ,6, 9)
+SIF RESULT == 0
+	RETURN 0
+IF RESULT == 9
+	CALL SETUP_FORMATIONS
+	SIF RESULT
+		RETURN 0
+	GOTO START
+ENDIF
+LOCAL = RESULT
+CLEARLINE LOCAL:1 - LINECOUNT
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+DRAWLINE
+PRINTFORM [ {LOCAL}]Please select the position to change to (
+PRINTBUTTON "[  0] - Cancel",0
+PRINTL )
+CALL INPUTINT(0, 1, 2, 3, 4, 5 ,6)
+SIF RANGE(RESULT, 1, 6)
+	CALL CHANGE_POS,LOCAL ,RESULT
+GOTO START
+@SETUP_FORMATIONS
+#LOCALSIZE 3
+VARSET Q,-1
+;PRINTL
+;DRAWLINE
+;DRAWLINE
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+DRAWLINE
+;PRINTL ポジションを変更します
+VARSET Q,-1
+LOCAL = 0
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:PTフラグ != 2
+		CONTINUE
+	Q:LOCAL = COUNT
+	;元のポジションを保存
+	Q:(10+LOCAL) = CFLAG:COUNT:ポジション
+	LOCAL += 1
+REND
+
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	IF FLAG:LOCALS > -1
+		;各ポジションの数値を保存
+		Q:(20+COUNT) = FLAG:LOCALS
+		
+		CFLAG:(FLAG:LOCALS):ポジション = 0
+		FLAG:(LOCALS) = -1
+	ENDIF
+REND
+FOR LOCAL:2,0,LOCAL
+	CALL SHOW_NOW_FORMATION_P,0,2, 3
+	DRAWLINE
+	PRINTFORM Where is %CALLNAME:(Q:(LOCAL:2))%'s new formation position? (
+	PRINTBUTTON "[  0] - Cancel",0
+	PRINT 　
+	PRINTBUTTON "[  9] - Undo last placement",9
+	PRINTL )
+	$INPUT_LOOP
+	INPUT
+	LOCALS = ポジション{RESULT}
+	;Return
+	IF RESULT == 9 && LOCAL:2 > 0
+		LOCAL:2--
+		CALL REMOVE_POSITION, Q:(LOCAL:2+30)
+		FLAG:(LOCALS) = Q:(LOCAL:2 + 20)
+		CFLAG:(Q:(LOCAL:2)):ポジション = 0
+		LOCAL:2--
+	ELSEIF RESULT == 0
+		;キャンセル
+		REPEAT 6
+			IF Q:COUNT > -1
+				CFLAG:(Q:COUNT):ポジション = Q:(10+COUNT)
+			ENDIF
+			
+			LOCALS = ポジション{COUNT+1}
+			FLAG:(LOCALS) = Q:(20+COUNT)
+		REND
+		RETURN 0
+	ELSEIF RESULT < 1 || RESULT > 6 || FLAG:LOCALS > -1
+		GOTO INPUT_LOOP
+	ELSE
+		Q:(LOCAL:2+30) = RESULT
+		CALL INSERT_POSITION,RESULT,Q:(LOCAL:2)
+	ENDIF
+NEXT
+CALL REFRESH_FORMATION
+RETURN 1
+;$INPUT_LOOP
+;INPUT
+;IF RESULT == 1000
+;	RETURN 0
+;ELSEIF RESULT < 7 && 0 < RESULT
+;	LOCAL = RESULT
+;	CALL CHOOSE_COMPANION,(FLAG:(70+LOCAL))
+;	LOCAL:1 = RESULT
+;	IF RESULT == 1000
+;		RESTART
+;	ELSEIF RESULT == 1002
+;		CALL REMOVE_POSITION,LOCAL
+;		RESTART
+;	ELSEIF FLAG:(70+LOCAL) > -1 && CFLAG:(LOCAL:1):0 == 2
+;		FLAG:2 = 110
+;		CALL CHANGE_POSITION,FLAG:(70+LOCAL),LOCAL:1
+;		FLAG:2 = 0
+;	ELSE
+;		FLAG:2 = 110
+;		CALL INSERT_POSITION,LOCAL,LOCAL:1
+;		FLAG:2 = 0
+;	ENDIF
+;
+;	RESTART
+;ELSE
+;	GOTO INPUT_LOOP
+;ENDIF
+
+;==================================
+;メンバーを外す：選択
+;==================================
+@SETUP_REMOVE
+PRINTL
+DRAWLINE
+DRAWLINE
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+DRAWLINE
+PRINTC [0]Exit
+
+PRINTL
+DRAWLINE
+PRINTL Who will be removed from the formation?
+$INPUT_LOOP
+INPUT
+LOCALS = ポジション{RESULT}
+IF RESULT == 0
+	RETURN 0
+ELSEIF FLAG:LOCALS > -1 && FLAG:LOCALS == MASTER
+		PRINTFORMW %CALLNAME:(FLAG:LOCALS)% can't be removed from the formation.
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+ELSEIF RESULT < 1 || RESULT > 6 || FLAG:LOCALS == 0 || FLAG:LOCALS == -1
+	GOTO INPUT_LOOP
+ELSE
+	IF FLAG:ショップコマンド == 101 && (ABL:(FLAG:LOCALS):種族 > 45 || ABL:(FLAG:LOCALS):種族 == 0)
+		PRINTW Humans can't be removed from the party while inside a dungeon.
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ELSEIF FLAG:ショップコマンド == 101 && TALENT:(FLAG:LOCALS):人修羅
+		PRINTW You can't remove people from the party while inside a dungeon.
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ELSEIF FLAG:ショップコマンド == 101 && (CFLAG:(FLAG:LOCALS):所属ＣＯＭＰ == -1)
+		PRINTW You can't remove devils registerd on the home server while inside a dungeon.
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+	CALL REMOVE_POSITION,RESULT
+ENDIF
+RESTART
+
+;==================================
+;メンバーを外す実行処理
+;==================================
+@REMOVE_POSITION,ARG
+LOCALS = ポジション{ARG}
+IF FLAG:(LOCALS) > -1
+	CFLAG:(FLAG:LOCALS):ポジション = 0
+	CFLAG:(FLAG:LOCALS):入力行動 = -1
+	SIF CFLAG:(FLAG:LOCALS):PTフラグ > 0
+		CFLAG:(FLAG:LOCALS):PTフラグ = 1
+ENDIF
+FLAG:LOCALS = -1
+
+
+;==================================
+;味方パーティの描画
+;==================================
+;ARG:2 相性等表示してもよい状況か
+;1:色リスト表示 2:相性等表示枠 4:強化・弱体化表示（戦闘中）　してもよい
+;ARG:2がOK　かつ　FLAG:相性等表示ONがOK　の時表示する
+;ARG:3 通常は0か省略
+;セットアップのメイン画面 1を指定
+;探索中のメイン画面 2を指定
+@SHOW_NOW_FORMATION_P,ARG,ARG:1, ARG:2 = 0, ARG:3 = 0
+#LOCALSIZE 2
+CUSTOMDRAWLINE =
+PRINTL ＰＡＲＴＹ
+FOR COUNT:1,ARG,ARG:1
+	;色リスト表示１行目
+	IF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && COUNT:1 == 0
+		CALL SHOW_AISYOU_COLOR_LIST, 0
+		PRINTFORM %" " * 8%
+	;色リスト表示　相性非表示の時の６行目
+	ELSEIF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && GETBIT(ARG:2, 1) == 0 && COUNT:1 == 1
+		CALL SHOW_AISYOU_COLOR_LIST, 5
+		PRINTFORM %" " * 9%
+	;色リスト表示しないOR７行目以降
+	ELSE
+		PRINTFORM %" " * 17%
+	ENDIF
+	SIF FLAG:カスタムゲーム画面
+		PRINTFORM %" ",12%
+	REPEAT 3
+		LOCALS = ポジション{COUNT+COUNT:1*3+1}
+		LOCAL = FLAG:LOCALS
+		SIF LOCAL < 0
+			SETCOLOR 0x404040
+		IF ARG:3==2
+			IF FLAG:カスタムゲーム画面
+			PRINTBUTTON @"[0{COUNT+1+COUNT:1*3}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,19,LEFT% # %"EMPTY",19,LEFT%\@", AUTO_SPLIT("U/V/W/X/Y/Z", "/", COUNT+1+COUNT:1*3-1)
+			ELSE
+			PRINTBUTTON @"[0{COUNT+1+COUNT:1*3}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,15,LEFT% # %"EMPTY",15,LEFT%\@", AUTO_SPLIT("U/V/W/X/Y/Z", "/", COUNT+1+COUNT:1*3-1)
+			ENDIF
+		ELSEIF ARG:3==1
+			IF FLAG:カスタムゲーム画面
+			PRINTBUTTON @"[{20+COUNT+1+COUNT:1*3,2}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,19,LEFT% # %"EMPTY",19,LEFT%\@", 20 + COUNT+1+COUNT:1*3
+			ELSE
+			PRINTBUTTON @"[{20+COUNT+1+COUNT:1*3,2}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,15,LEFT% # %"EMPTY",15,LEFT%\@", 20 + COUNT+1+COUNT:1*3
+			ENDIF
+		ELSE
+			IF FLAG:カスタムゲーム画面
+			PRINTBUTTON @"[{COUNT+1+COUNT:1*3,2}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,19,LEFT% # %"EMPTY",19,LEFT%\@", COUNT+1+COUNT:1*3
+			ELSE
+			PRINTBUTTON @"[{COUNT+1+COUNT:1*3,2}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,15,LEFT% # %"EMPTY",15,LEFT%\@", COUNT+1+COUNT:1*3
+			ENDIF
+		ENDIF
+		PRINT 　
+		RESETCOLOR
+	REND
+	PRINTL
+	;色リスト表示２行目
+	IF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && COUNT:1 == 0
+		CALL SHOW_AISYOU_COLOR_LIST, 1
+		PRINTFORM %" " * 9%
+	ELSE
+		PRINTFORM %" " * 18%
+	ENDIF
+	SIF FLAG:カスタムゲーム画面
+		PRINTFORM %" ",7%
+	REPEAT 3
+		LOCALS = ポジション{COUNT+COUNT:1*3+1}
+		LOCAL = FLAG:LOCALS
+;---- EDIT 002 DEL START -------------------------
+;		SIF LOCAL < 0
+;			SETCOLOR 0x404040
+;		PRINTFORM 　　ＨＰ [\@(LOCAL > -1) ? {BASE:LOCAL:ＨＰ,4}/{MAXBASE:LOCAL:ＨＰ,4} # ----/---- \@]
+;---- EDIT 002 DEL END ---------------------------
+;---- EDIT 003 DEL START -------------------------
+;;---- EDIT 002 ADD START -------------------------
+;		;対象無し
+;		IF LOCAL < 0
+;			SETCOLOR 0x404040
+;			PRINT 　　ＨＰ [----/----]
+;		ELSE
+;		;対象有り
+;
+;			PRINT 　　ＨＰ [
+;
+;			;CHK:数値
+;			SELECTCASE BASE:LOCAL:ＨＰ
+;				;死亡
+;				CASE IS == 0
+;					;赤(暗い赤)
+;					SETCOLOR 0x990000
+;				;危険
+;				CASE IS <  (MAXBASE:LOCAL:ＨＰ * 25 / 100)
+;					;赤(朱色?)
+;					SETCOLOR 0xff6666
+;				;弱っている
+;				CASE IS <  (MAXBASE:LOCAL:ＨＰ * 50 / 100)
+;					;黄色(オレンジ)
+;					SETCOLOR 0xffcc66
+;			ENDSELECT
+;
+;			PRINTFORM {BASE:LOCAL:ＨＰ,4}
+;			RESETCOLOR
+;			PRINTFORM /{MAXBASE:LOCAL:ＨＰ,4}]
+;		ENDIF
+;;---- EDIT 002 ADD END ---------------------------
+;---- EDIT 003 DEL END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+		;表示:RPGパラメータ(色付き)
+		SIF FLAG:カスタムゲーム画面
+			PRINTFORM %" ",2%
+		CALL RPG_PRINT_PARAM_COLOR, 1, LOCAL
+;---- EDIT 003 ADD END ---------------------------
+		PRINT 　
+		RESETCOLOR
+	REND
+	PRINTL
+	;色リスト表示３行目
+	IF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && COUNT:1 == 0
+		CALL SHOW_AISYOU_COLOR_LIST, 2
+		PRINTFORM %" " * 9%
+	ELSE
+		PRINTFORM %" " * 18%
+	ENDIF
+	SIF FLAG:カスタムゲーム画面
+		PRINTFORM %" ",7%
+	REPEAT 3
+		LOCALS = ポジション{COUNT+COUNT:1*3+1}
+		LOCAL = FLAG:LOCALS
+;---- EDIT 003 DEL START -------------------------
+;		SIF LOCAL < 0
+;			SETCOLOR 0x404040
+;		PRINTFORM 　　ＭＰ [\@(LOCAL > -1 && MAXBASE:LOCAL:ＭＰ > 0) ? {BASE:LOCAL:ＭＰ,4}/{MAXBASE:LOCAL:ＭＰ,4} # ----/---- \@]
+;---- EDIT 003 DEL END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+		;表示:RPGパラメータ(色付き)
+		SIF FLAG:カスタムゲーム画面
+			PRINTFORM %" ",2%
+		CALL RPG_PRINT_PARAM_COLOR, 2, LOCAL
+;---- EDIT 003 ADD END ---------------------------
+		PRINT 　
+		RESETCOLOR
+	REND
+	PRINTL
+	;色リスト表示４行目
+	IF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && COUNT:1 == 0
+		CALL SHOW_AISYOU_COLOR_LIST, 3
+		PRINTFORM %" " * 9%
+	ELSE
+		PRINTFORM %" " * 18%
+	ENDIF
+	SIF FLAG:カスタムゲーム画面
+		PRINTFORM %" ",7%
+	REPEAT 3
+		LOCALS = ポジション{COUNT+COUNT:1*3+1}
+		LOCAL = FLAG:LOCALS
+		SIF FLAG:カスタムゲーム画面
+			PRINTFORM %" ",4%
+		IF LOCAL < 0
+			SETCOLOR 0x404040
+			PRINTFORM %" ",20%
+		ELSE
+			PRINTFORM 　　LV{BASE:LOCAL:LV,3} 
+			CALL PRINT_ALIGNMENT,LOCAL,1
+;---- EDIT 003 DEL START -------------------------
+;			IF CFLAG:LOCAL:ステート == 0
+;				;GOOD
+;				SETCOLOR 0x404040
+;			ELSE
+;				RESETCOLOR
+;;---- EDIT 002 ADD START -------------------------
+;				;CHK:ステート
+;				SELECTCASE GET_STATE(CFLAG:LOCAL:ステート)
+;					CASE "POISON"
+;						;紫
+;						SETCOLOR 0xcc00cc
+;					CASE "CHARM"
+;						;ピンク
+;						SETCOLOR 0xff00ff
+;					CASE "STONE"
+;						;灰色
+;						SETCOLOR 0x999999
+;					CASE "DYING"
+;						;赤(暗い赤)
+;						SETCOLOR 0x990000
+;				ENDSELECT
+;;---- EDIT 002 ADD END ---------------------------
+;			ENDIF
+;			PRINTFORM %GET_STATE(CFLAG:LOCAL:ステート),7,RIGHT%
+;			RESETCOLOR
+;---- EDIT 003 DEL END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+			;表示:RPG STATUS(色付き)
+			CALL RPG_PRINT_STATUS_COLOR, LOCAL
+;---- EDIT 003 ADD END ---------------------------
+		ENDIF
+		PRINT 　
+		RESETCOLOR
+	REND
+	PRINTL
+	;相性等表示枠
+	IF GETBIT(ARG:2, 1) == 1
+		;相性等表示
+		IF FLAG:相性等表示ON >= 1
+			FOR COUNT:3, 0, 2
+				;色リスト表示５～６行目
+				IF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && COUNT:1 == 0
+					CALL SHOW_AISYOU_COLOR_LIST, 4 + COUNT:3
+					PRINTFORM %" " * 7%
+				ELSE
+					PRINTFORM %" " * 16%
+				ENDIF
+				SIF FLAG:カスタムゲーム画面
+					PRINTFORM %" ",7%
+				REPEAT 3
+					LOCALS = ポジション{COUNT+COUNT:1*3+1}
+					LOCAL = FLAG:LOCALS
+							SIF FLAG:カスタムゲーム画面
+								PRINTFORM %" " * 4%
+					IF LOCAL < 0
+						;EMPTY
+						PRINT 　　　　　　　　　　　
+					ELSE
+						IF FLAG:相性等表示ON == 1 || (FLAG:相性等表示ON > 1 && GETBIT(ARG:2, 2) == 0)
+							;全ての相性を表示
+							PRINT 　　
+							FOR COUNT:2, 0, 9
+								CALL SET_AISYOU_COLOR, MAXBASE:LOCAL:(GET_TYPE(COUNT:2 + COUNT:3 * 9))
+								;属性名の先頭１文字で表す
+								PRINTFORM %SUBSTRING(GET_TYPE_E(COUNT:2 + COUNT:3 * 9), 0, 2)%
+							NEXT
+						ELSEIF FLAG:相性等表示ON == 2
+						;display of stats and how they got buffed
+						;maybe a legend for the short forms of stats would be useful?
+							IF GETBIT(ARG:2, 2) == 1
+								PRINT 　　
+								LOCAL:1 = GETCOLOR()
+								IF COUNT:3 == 0
+									CALL BUFFCOLORSET, CFLAG:LOCAL:攻撃強化
+									;攻
+									PRINTFORM At\@CFLAG:LOCAL:攻撃強化 < 0 ?  # + \@{CFLAG:LOCAL:攻撃強化 / 4}
+									CALL BUFFCOLORSET, CFLAG:LOCAL:命中強化
+									;命
+									PRINTFORM Hit\@CFLAG:LOCAL:命中強化 < 0 ?  # + \@{CFLAG:LOCAL:命中強化 / 4}
+									CALL BUFFCOLORSET, CFLAG:LOCAL:魔法威力強化
+									;威
+									PRINTFORM MP\@CFLAG:LOCAL:魔法威力強化 < 0 ?  # + \@{CFLAG:LOCAL:魔法威力強化 / 4}
+									CALL BUFFCOLORSET, CFLAG:LOCAL:クリティカル強化
+									;クリ
+									PRINTFORM Crt\@CFLAG:LOCAL:クリティカル強化 < 0 ?  # + \@{CFLAG:LOCAL:クリティカル強化}
+								ELSE
+									CALL BUFFCOLORSET, CFLAG:LOCAL:防御強化
+									;防
+									PRINTFORM Dev\@CFLAG:LOCAL:防御強化 < 0 ?  # + \@{CFLAG:LOCAL:防御強化 / 4}
+									CALL BUFFCOLORSET, CFLAG:LOCAL:回避強化
+									;回
+									PRINTFORM Ev\@CFLAG:LOCAL:回避強化 < 0 ?  # + \@{CFLAG:LOCAL:回避強化 / 4}
+									CALL BUFFCOLORSET, CFLAG:LOCAL:魔法効果強化
+									;効
+									PRINTFORM ME\@CFLAG:LOCAL:魔法効果強化 < 0 ?  # + \@{CFLAG:LOCAL:魔法効果強化 / 4}
+									CALL BUFFCOLORSET, CFLAG:LOCAL:BS付着率強化 * (-1)
+									;BS付
+									PRINTFORM BS\@CFLAG:LOCAL:BS付着率強化 < 0 ?  # + \@{CFLAG:LOCAL:BS付着率強化} 
+								ENDIF
+								SETCOLOR LOCAL:1
+							ENDIF
+						ENDIF
+					ENDIF
+					RESETCOLOR
+				REND
+				PRINTL
+			NEXT
+		ENDIF
+	ELSEIF FLAG:相性等表示ON == 1 && GETBIT(ARG:2, 0) == 1 && COUNT:1 == 0
+		;色リスト表示、相性等非表示の時の５行目
+		CALL SHOW_AISYOU_COLOR_LIST, 4
+		PRINTFORM %" " * 7%
+	ENDIF
+	PRINTL
+NEXT
+CUSTOMDRAWLINE =
+
+@BUFFCOLORSET, ARG
+IF ARG > 0
+	SETCOLOR 0x66FFFF
+ELSEIF ARG < 0
+	SETCOLOR 0x990000
+ELSE
+	SETCOLOR 0x404040
+ENDIF
+
+;==================================
+;敵パーティの描画
+;==================================
+;ARG:2 選択中のスキルの属性　＆　表示してもよい状況か
+;０～相性数：その属性に対する相性表示　例：Slash　75％
+;‐１：色分けで全部表示　例：剣飛打戦火氷電衝神
+;それ以外：表示しない
+;ARG:2がOK　かつ　FLAG:相性等表示ONがOK　の時表示する
+@SHOW_NOW_FORMATION_E,ARG,ARG:1,ARG:2
+CUSTOMDRAWLINE =
+PRINT ＥＮＥＭＹ
+PRINTFORM %@"現在の月齢：",90,RIGHT%
+IF FLAG:月齢 != 0 && FLAG:月齢 != 8
+	PRINTFORML {FLAG:月齢}/8 \@ FLAG:月齢ベクトル == 0 ? ＹＯＵＮＧ # ＯＬＤ \@ ＭＯＯＮ
+ELSE
+	PRINTFORML \@ FLAG:月齢 == 8 ? ＦＵＬＬ ＭＯＯＮ # ＮＥＷ ＭＯＯＮ\@
+ENDIF
+FOR COUNT:1,ARG:1-1,ARG-1,-1
+
+	REPEAT 5
+		LOCALS = ポジション{COUNT+COUNT:1*5+7}
+		LOCAL = FLAG:LOCALS
+;---- EDIT 005 MOD START -------------------------
+		IF LOCAL < 0
+			SETCOLOR 0x404040
+;---- EDIT 006 MOD START -------------------------
+;		ELSEIF CFLAG:(FINDCHARA(NO, NO:LOCAL)):PTフラグ > 0
+		ELSEIF FINDCHARA_B(NO:LOCAL) > 0
+			SETCOLOR 0xffbbbb
+;---- EDIT 006 MOD END -------------------------
+		ENDIF
+;---- EDIT 005 DEL END ---------------------------
+		SIF FLAG:カスタムゲーム画面
+			PRINTFORM %" " * 5%
+		PRINTFORM [{COUNT+COUNT:1*5+7,2}] \@(LOCAL > -1) ? %CALLNAME:LOCAL,15,LEFT% # %"EMPTY",15,LEFT%\@
+		RESETCOLOR
+	REND
+	PRINTL
+	REPEAT 5
+		LOCALS = ポジション{COUNT+COUNT:1*5+7}
+		LOCAL = FLAG:LOCALS
+;---- EDIT 003 DEL START -------------------------
+;		SIF LOCAL < 0
+;			SETCOLOR 0x404040
+;		IF LOCAL > -1 && (CFLAG:LOCAL:ボスフラグ || FLAG:(20000+NO:LOCAL) < 100)
+;			PRINTFORM 　　ＨＰ 
+;			BAR BASE:LOCAL:ＨＰ,MAXBASE:LOCAL:ＨＰ,9
+;		ELSE
+;			PRINTFORM 　　ＨＰ [\@(LOCAL > -1) ? {BASE:LOCAL:ＨＰ,4}/{MAXBASE:LOCAL:ＨＰ,4} # ----/---- \@]
+;		ENDIF
+;---- EDIT 003 DEL END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+			;表示:RPGパラメータ(色付き)
+			SIF FLAG:カスタムゲーム画面
+				PRINTFORM %" ",3%
+			CALL RPG_PRINT_PARAM_COLOR, 3, LOCAL
+;---- EDIT 003 ADD END ---------------------------
+		RESETCOLOR
+	REND
+	PRINTL
+	REPEAT 5
+		LOCALS = ポジション{COUNT+COUNT:1*5+7}
+		LOCAL = FLAG:LOCALS
+;---- EDIT 003 DEL START -------------------------
+;		SIF LOCAL < 0
+;			SETCOLOR 0x404040
+;		IF LOCAL > -1 && (CFLAG:LOCAL:ボスフラグ || FLAG:(20000+NO:LOCAL) < 100)
+;			PRINTFORM 　　ＭＰ 
+;			IF MAXBASE:LOCAL:ＭＰ > 0
+;				BAR BASE:LOCAL:ＭＰ,MAXBASE:LOCAL:ＭＰ,9
+;			ELSE
+;				PRINT [----/----]
+;			ENDIF
+;		ELSE
+;			PRINTFORM 　　ＭＰ [\@(LOCAL > -1 && ABL:LOCAL:種族 > 0) ? {BASE:LOCAL:6,4}/{MAXBASE:LOCAL:6,4} # ----/---- \@]
+;		ENDIF
+;---- EDIT 003 DEL END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+			;表示:RPGパラメータ(色付き)
+			SIF FLAG:カスタムゲーム画面
+				PRINTFORM %" ",3%
+			CALL RPG_PRINT_PARAM_COLOR, 4, LOCAL
+;---- EDIT 003 ADD END ---------------------------
+		RESETCOLOR
+	REND
+	PRINTL
+	REPEAT 5
+		LOCALS = ポジション{COUNT+COUNT:1*5+7}
+		SIF FLAG:カスタムゲーム画面
+			PRINTFORM %" " * 5%
+		LOCAL = FLAG:LOCALS
+		IF LOCAL < 0
+			SETCOLOR 0x404040
+			PRINTFORM %" ",20%
+		ELSE
+			IF CFLAG:LOCAL:アンノウンフラグ == 0
+				PRINTFORM 　　LV{BASE:LOCAL:LV,3}
+				SIF FINDCHARA_B(NO:LOCAL) == 0
+					SETCOLOR COLOR("gray")
+				PRINTFORM \@ CFLAG:(FINDCHARA(NO, NO:LOCAL)):PTフラグ > 0 ? 仲 # 　 \@
+				RESETCOLOR
+				PRINTFORM \@ TALENT:LOCAL:オトコ == 0 ? ♀ # ♂ \@
+			ELSE
+				PRINTFORM 　　?????????
+			ENDIF
+;---- EDIT 003 DEL START -------------------------
+;			SIF CFLAG:LOCAL:ステート == 0
+;				SETCOLOR 0x404040
+;			PRINTFORM %GET_STATE(CFLAG:LOCAL:ステート),7,RIGHT%
+;---- EDIT 003 DEL END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+			;表示:RPG STATUS(色付き)
+			CALL RPG_PRINT_STATUS_COLOR, LOCAL
+;---- EDIT 003 ADD END ---------------------------
+		ENDIF
+		RESETCOLOR
+	REND
+	PRINTL
+	;相性表示
+;---- EDIT 004 DEL START -------------------------
+;	IF (ARG:2 >= -1 && ARG:2 < FLAG:相性数 && FLAG:相性等表示ON != 0) || (ARG:2 >= 0 && ARG:2 < FLAG:相性数 && EQUIP:MASTER:GiboEyes == 1 && NUM_SUMMONER())
+;---- EDIT 004 DEL END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+	IF (ARG:2 >= -1 && ARG:2 < FLAG:相性数 && FLAG:相性等表示ON != 0) || (ARG:2 >= 0 && ARG:2 < FLAG:相性数 && EQUIP:MASTER:GiboEyes == 1 && (NUM_SUMMONER() || NUM_HAVESKILL([[スキル:ハイ・アナライズ]])))
+;---- EDIT 004 ADD END ---------------------------
+	;何か表示するときに実行。具体的には↓
+	;全部or特定の表示してよいタイミング　もしくは　特定の表示してよいタイミング＆GiboEyesONなら実行
+;	IF GETBIT(FLAG:相性等表示ON, 0) == 1 || ((ARG:2 >= 0 && ARG:2 < FLAG:相性数) && EQUIP:MASTER:GiboEyes == 1 && NUM_SUMMONER())
+;	コンフィグON　もしくは　ギボアイズ持ちで特定の相性表示　なら実行
+		FOR COUNT:3, 0, 2
+			REPEAT 5
+				SIF FLAG:カスタムゲーム画面
+					PRINTFORM %" " * 5%
+				LOCALS = ポジション{COUNT+COUNT:1*5+7}
+				LOCAL = FLAG:LOCALS
+				IF LOCAL < 0
+					;EMPTY
+					PRINT 　　　　　　　　　　
+				ELSEIF ARG:2 == -1
+					;全部表示タイミング
+					SELECTCASE FLAG:相性等表示ON
+						;CASE 0はありえない
+						CASE 1
+							;コンフィグONで
+;---- EDIT 004 DEL START -------------------------
+;							IF FLAG:(20000+NO:LOCAL) >= 100 && NUM_SUMMONER() != 0
+;								;解析度十分でCOMP持ち健在
+;---- EDIT 004 DEL END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+							IF FLAG:(20000+NO:LOCAL) >= 100 && (NUM_SUMMONER() != 0 || NUM_HAVESKILL([[スキル:ハイ・アナライズ]]))
+								;解析度十分でCOMP持ち、もしくはハイ・アナライズ持ち健在
+;---- EDIT 004 ADD END ---------------------------
+								;全ての相性を表示
+								PRINT 　
+								FOR COUNT:2, 0, 9
+									CALL SET_AISYOU_COLOR, MAXBASE:LOCAL:(GET_TYPE(COUNT:2 + COUNT:3 * 9))
+									;属性名の先頭１文字で表す
+									PRINTFORM %SUBSTRING(GET_TYPE_E(COUNT:2 + COUNT:3 * 9), 0, 2)%
+								NEXT
+							ELSE
+								SETCOLOR 0x808080
+								PRINT 　？？？？？？？？？
+							ENDIF
+						CASE 2
+							;強化弱体化表示
+							PRINT 　
+							IF COUNT:3 == 0
+								CALL BUFFCOLORSET, CFLAG:LOCAL:攻撃強化
+								PRINTFORM At\@CFLAG:LOCAL:攻撃強化 < 0 ?  # + \@{CFLAG:LOCAL:攻撃強化 / 4}
+								;攻
+								CALL BUFFCOLORSET, CFLAG:LOCAL:命中強化
+								PRINTFORM Hit\@CFLAG:LOCAL:命中強化 < 0 ?  # + \@{CFLAG:LOCAL:命中強化 / 4}
+								;命
+								CALL BUFFCOLORSET, CFLAG:LOCAL:魔法威力強化
+								PRINTFORM MP\@CFLAG:LOCAL:魔法威力強化 < 0 ?  # + \@{CFLAG:LOCAL:魔法威力強化 / 4}
+								;威
+								CALL BUFFCOLORSET, CFLAG:LOCAL:クリティカル強化
+								PRINTFORM Crt\@CFLAG:LOCAL:クリティカル強化 < 0 ?  # + \@{CFLAG:LOCAL:クリティカル強化}
+								;クリ
+							ELSE
+								CALL BUFFCOLORSET, CFLAG:LOCAL:防御強化
+								;防
+								PRINTFORM Dev\@CFLAG:LOCAL:防御強化 < 0 ?  # + \@{CFLAG:LOCAL:防御強化 / 4}
+								CALL BUFFCOLORSET, CFLAG:LOCAL:回避強化
+								;回
+								PRINTFORM Ev\@CFLAG:LOCAL:回避強化 < 0 ?  # + \@{CFLAG:LOCAL:回避強化 / 4}
+								CALL BUFFCOLORSET, CFLAG:LOCAL:魔法効果強化
+								;効
+								PRINTFORM ME\@CFLAG:LOCAL:魔法効果強化 < 0 ?  # + \@{CFLAG:LOCAL:魔法効果強化 / 4}
+								CALL BUFFCOLORSET, CFLAG:LOCAL:BS付着率強化 * (-1)
+								;BS付
+								PRINTFORM BS\@CFLAG:LOCAL:BS付着率強化 < 0 ?  # + \@{CFLAG:LOCAL:BS付着率強化} 
+							ENDIF
+					ENDSELECT
+				ELSEIF ARG:2 >= 0 && ARG:2 < FLAG:相性数
+					;特定の相性を表示タイミング
+;---- EDIT 004 DEL START -------------------------
+;					IF FLAG:(20000+NO:LOCAL) >= 100 && NUM_SUMMONER() != 0 && FLAG:相性等表示ON != 0
+;						;解析度十分でCOMP持ち健在でコンフィグOFFではない
+;---- EDIT 004 DEL END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+					IF FLAG:(20000+NO:LOCAL) >= 100 && (NUM_SUMMONER() != 0 || NUM_HAVESKILL([[スキル:ハイ・アナライズ]])) && FLAG:相性等表示ON != 0
+						;解析度十分でCOMP持ち、もしくはハイ・アナライズ持ち健在でコンフィグOFFではない
+;---- EDIT 004 ADD END ---------------------------
+						LOCAL:1 = MAXBASE:LOCAL:(GET_TYPE(ARG:2))
+						CALL SET_AISYOU_COLOR, LOCAL:1
+						PRINTFORM 　　　　%GET_TYPE_E(ARG:2)%
+						PRINTFORM \@ LOCAL:1 < 0 ? Dr # 　\@
+						PRINTFORM \@ LOCAL:1 != 999 ? {ABS(LOCAL:1), 4}％ # 　Refl\@
+;---- EDIT 004 DEL START -------------------------
+;					ELSEIF EQUIP:MASTER:GiboEyes == 1 && NUM_SUMMONER()
+;						;解析度が低い or 誰もＣＯＭＰを使えない（ANALYZEでステータス表示できない）状態でGiboEyes持っている
+;---- EDIT 004 DEL END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+					ELSEIF EQUIP:MASTER:GiboEyes == 1 && (NUM_SUMMONER() || NUM_HAVESKILL([[スキル:サードアイ]]))
+						;解析度が低い or 誰もＣＯＭＰを使えない（ANALYZEでステータス表示できない）状態でGiboEyes持っている
+;---- EDIT 004 ADD END ---------------------------
+						;GiboEyes効果表示
+						IF MAXBASE:LOCAL:(GET_TYPE(ARG:2)) == 999 || MAXBASE:LOCAL:(GET_TYPE(ARG:2)) <= 0
+							SETCOLOR 0xFF0000
+							PRINT 　 --- ALERT !! --- 
+						ELSEIF MAXBASE:LOCAL:(GET_TYPE(ARG:2)) > 199
+							SETCOLOR 0x00FFFF
+							PRINT 　 -- WEAKPOINT !! --
+						ELSE
+							PRINT 　　　　　　　　　　
+						ENDIF
+					ELSE
+						PRINT 　　　　　　　　　　
+					ENDIF
+				ELSE
+					;ここには来ないはず？
+					PRINT ERROR!
+				ENDIF
+				RESETCOLOR
+			REND
+			PRINTL
+			SIF ARG:2 >= 0 && ARG:2 < FLAG:相性数
+				BREAK
+			;特定の相性を表示の場合、表示は１行だけ
+		NEXT
+;	ENDIF
+	ENDIF
+	PRINTL
+NEXT
+RETURN 0
+CUSTOMDRAWLINE =
+
+
+
+;==================================
+;前詰めチェック
+;==================================
+@REFRESH_FORMATION
+;前衛が空いているのに後衛がいるポジションがないか調べる
+FOR LOCAL,1,4
+	LOCALS = ポジション{LOCAL}
+	LOCALS:1 = ポジション{LOCAL+3}
+	IF FLAG:LOCALS == -1
+		SIF FLAG:(LOCALS:1) > -1
+			CALL INSERT_POSITION,LOCAL,FLAG:(LOCALS:1)
+	ELSEIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+		SIF FLAG:(LOCALS:1) > -1 && GET_STATE(CFLAG:(FLAG:(LOCALS:1)):ステート) != "DYING"
+			CALL CHANGE_POSITION,FLAG:LOCALS,FLAG:(LOCALS:1)
+	ENDIF
+NEXT
+FOR LOCAL,7,12
+	LOCALS = ポジション{LOCAL}
+	LOCALS:1 = ポジション{LOCAL+5}
+	IF FLAG:LOCALS == -1
+		SIF FLAG:(LOCALS:1) > -1
+			CALL INSERT_POSITION,LOCAL,FLAG:(LOCALS:1)
+	ELSEIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+		SIF FLAG:(LOCALS:1) > -1 && GET_STATE(CFLAG:(FLAG:(LOCALS:1)):ステート) != "DYING"
+			CALL CHANGE_POSITION,FLAG:LOCALS,FLAG:(LOCALS:1)
+	ENDIF
+NEXT
+
+;==============================================
+;ポジション入れ替え
+;==============================================
+@CHANGE_POSITION,ARG,ARG:1
+	LOCALS = ポジション{CFLAG:(ARG:0):ポジション}
+	LOCALS:1 = ポジション{CFLAG:(ARG:1):ポジション}
+	SWAP FLAG:LOCALS,FLAG:(LOCALS:1)
+	SWAP CFLAG:(ARG:0):ポジション,CFLAG:(ARG:1):ポジション
+
+;==============================================
+;ポジション入れ替え2式
+;==============================================
+@CHANGE_POS,ARG,ARG:1
+	LOCALS = ポジション{ARG}
+	LOCALS:1 = ポジション{ARG:1}
+	SIF FLAG:LOCALS > -1
+		CFLAG:(FLAG:LOCALS):ポジション = ARG:1
+	SIF FLAG:(LOCALS:1) > -1
+		CFLAG:(FLAG:(LOCALS:1)):ポジション = ARG
+	CALL REFRESH_POS
+;		SWAP FLAG:LOCALS,FLAG:(LOCALS:1)
+
+;==================================
+;ポジションに挿入
+;==================================
+@INSERT_POSITION,ARG,ARG:1
+LOCALS = ポジション{ARG}
+IF CFLAG:(ARG:1):PTフラグ > 0
+	SIF ARG < 4
+		LOCALS:1 = ポジション{ARG+3}
+ELSE
+	SIF ARG < 12
+		LOCALS:1 = ポジション{ARG+5}
+ENDIF
+IF FLAG:LOCALS > -1
+	;後ろが空いてるならずれてもらう
+	IF ((CFLAG:(ARG:1):PTフラグ && ARG < 4) || (CFLAG:(ARG:1):PTフラグ == 0 && ARG < 12)) && FLAG:(LOCALS:1) == -1
+		CFLAG:(FLAG:LOCALS):ポジション = ARG+3+!CFLAG:(FLAG:LOCALS):PTフラグ*2
+		FLAG:(LOCALS:1) = FLAG:LOCALS
+		;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+		FLAG:LOCALS = ARG:1
+		;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+		CFLAG:(ARG:1):ポジション = ARG
+		SIF CFLAG:(ARG:1):PTフラグ
+			CFLAG:(ARG:1):PTフラグ = 2
+	;空いておらず、そこに居るのが主人なら交代不可
+	ELSEIF (FLAG:LOCALS) == MASTER
+		PRINTW This one can't be replaced.
+		RETURN -1
+	;空いておらず、そこに居るのが悪魔なら交代
+	ELSEIF ABL:(FLAG:LOCALS):種族 >0 && ABL:(FLAG:LOCALS):種族 <46
+		CALL REMOVE_POSITION,ARG
+		;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+		FLAG:LOCALS = ARG:1
+		;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+		CFLAG:(ARG:1):ポジション = ARG
+		SIF CFLAG:(ARG:1):PTフラグ
+			CFLAG:(ARG:1):PTフラグ = 2
+	;そこに居るのが主人以外かつ探索or戦闘中でなければ交代
+	ELSEIF (FLAG:LOCALS) != MASTER && FLAG:ショップコマンド == 106
+		CALL REMOVE_POSITION,ARG
+		;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+		FLAG:LOCALS = ARG:1
+		;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+		CFLAG:(ARG:1):ポジション = ARG
+		SIF CFLAG:(ARG:1):PTフラグ
+			CFLAG:(ARG:1):PTフラグ = 2
+	ELSE
+	;どれかに引っかからなかったら交代できない
+		PRINTW This one can't be replaced.
+		RETURN -1
+	ENDIF
+	
+ELSE
+	IF CFLAG:(ARG:1):ポジション
+		LOCALS:2 = ポジション{CFLAG:(ARG:1):ポジション}
+		FLAG:(LOCALS:2) = -1
+	ENDIF
+	;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+	FLAG:LOCALS = ARG:1
+	;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+	CFLAG:(ARG:1):ポジション = ARG
+	SIF CFLAG:(ARG:1):PTフラグ
+		CFLAG:(ARG:1):PTフラグ = 2
+ENDIF
+
+
+
+;==================================
+;仲間を表示
+;==================================
+@CHOOSE_COMPANION,ARG
+N = ARG
+
+IF FLAG:ショップコマンド == 106
+	CALL INPUT_CHARA_LIST("Who will you place?", "CASTING_CHOOSE_COMPANION", "", "", "", "Quit")
+ELSE
+	CALL INPUT_CHARA_LIST("Who will you summon?", "CASTING_CHOOSE_COMPANION", "", "", "", "Quit")
+ENDIF
+IF RESULT == 1000
+	RETURN 1000
+;ELSEIF RESULT == 1002 && ARG == 2 ;この1002がよく分からないからコメントアウト
+;	RETURN 1002
+ELSE
+	SELECTCASE FLAG:ショップコマンド
+		CASE [[ショップ:探索]],[[ショップ:コロシアム参加]],[[ショップ:イベント]],[[ショップ:依頼請負]]
+			IF ABL:RESULT:種族 != 0 && BASE:MASTER:ＭＡＧ < MAXBASE:RESULT:￥
+				PRINTW Not enough MAG.
+				CLEARLINE 2
+				RESTART
+			ENDIF
+	ENDSELECT
+	RETURN RESULT
+ENDIF
+
+@CASTING_CHOOSE_COMPANION
+SIF CFLAG:COUNT:PTフラグ != 1
+	RETURN 0
+SIF CFLAG:COUNT:戦闘参加不可能 > 0
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF N == 1 && GET_STATE(CFLAG:COUNT:ステート) == "DYING"
+	RETURN 0
+SIF TALENT:COUNT:非戦闘員
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF N == 1 && ABL:COUNT:種族 == 0
+	RETURN 0
+SIF N == 1 && CFLAG:COUNT:被変身フラグ
+	RETURN 0
+SIF N == 1 && CFLAG:COUNT:所属ＣＯＭＰ == -1
+	RETURN 0
+;フィルタリングされてるキャラは除外
+SIF CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+RETURN 1
+
+;========================================================================
+;ポジションキャラ側から読み込み
+;合体、売却等でキャラが消滅する際にポジションを読み込みし直す処理
+;========================================================================
+@REFRESH_POS
+	FOR LOCAL,1,17
+		LOCALS = ポジション{LOCAL}
+		FLAG:LOCALS = -1
+	NEXT
+	FOR LOCAL,0,CHARANUM
+		SIF CFLAG:LOCAL:PTフラグ == 2
+			CFLAG:LOCAL:PTフラグ = 1
+		IF CFLAG:LOCAL:ポジション > 0
+			CALL INSERT_POSITION,CFLAG:LOCAL:ポジション,LOCAL
+		ENDIF
+	NEXT
+
+
+
+;---- EDIT 003 ADD START -------------------------
+;=================================================
+;   sub RPG_PRINT_PARAM_COLOR
+;=================================================
+;   表示:RPGパラメータ(色付き)
+;-------------------------------------------------
+;  引数を元に着色したパラメータ情報をPRINTする
+;-------------------------------------------------
+; Input:
+;  ARG:0				処理タイプ(1:ＨＰ(味方) 2:ＭＰ(味方) 3:ＨＰ(敵) 4:ＭＰ(敵))
+;  ARG:1				ポジション
+;  ARG:2				着色拒否フラグ(0:着色 1:着色拒否 2:ボスのみ着色拒否)
+;-------------------------------------------------
+@RPG_PRINT_PARAM_COLOR, ARG:0, ARG:1, ARG:2 = 0
+;--初期化
+;LOCAL:0  ;ポジション
+;LOCAL:1  ;出力無しフラグ(0:出力 1:出力無し(着色) 2:出力無し(通常色))
+;LOCAL:2  ;ボスフラグ(0:通常 1:ボス)
+LOCAL:0  = ARG:1
+LOCAL:1 = 0
+LOCAL:2 = 0
+
+;--定数設定
+IF ARG:0 == 1 || ARG:0 == 3
+	LOCALS:10 = ＨＰ
+ELSE
+	LOCALS:10 = ＭＰ
+ENDIF
+
+;CHK:対象有無
+IF ARG:1 < 0
+;対象無し
+	LOCAL:1 = 1
+ELSE
+;対象有り
+
+	;--定数設定
+	LOCAL:10  = BASE:(ARG:1):(LOCALS:10)
+	LOCAL:11  = MAXBASE:(ARG:1):(LOCALS:10)
+
+	;CHK:処理タイプ
+	SELECTCASE ARG:0
+		;敵の場合
+		CASE 3,4
+			;CHK:ボス
+			IF (CFLAG:(LOCAL:0):ボスフラグ || FLAG:(20000+NO:(LOCAL:0)) < 100)
+			;ボスの場合
+				LOCAL:2 = 1
+
+				;処理タイプ:4(ＭＰ(敵))で最大値が0以下の場合
+				IF ARG:0 == 4 && !( LOCAL:11 > 0 )
+					;魔法使用不可のキャラは非表示
+					LOCAL:1 = 2
+				ENDIF
+
+			ELSE
+			;雑魚の場合
+				;処理タイプ:4(ＭＰ(敵))で種族が0以下の場合
+				IF ARG:0 == 4 && !( ABL:(ARG:1):種族 > 0 )
+					;魔法使用不可のキャラは非表示
+					LOCAL:1 = 2
+				ENDIF
+
+			ENDIF
+
+		;味方の場合
+		CASEELSE
+
+			;処理タイプ:2(ＭＰ(味方))で最大値が0以下の場合
+			IF ARG:0 == 2 && !( LOCAL:11 > 0 )
+				;魔法使用不可のキャラは非表示
+				LOCAL:1 = 2
+			ENDIF
+
+	ENDSELECT
+
+ENDIF
+
+
+;--出力開始
+
+;出力無し
+IF LOCAL:1 != 0
+	IF LOCAL:1 == 2
+		;通常色で表示
+	ELSE
+		;暗色で表示
+		SETCOLOR 0x404040
+	ENDIF
+	IF FLAG:カスタムゲーム画面
+	PRINTFORM 　　%LOCALS:10% [-----/-----]
+	ELSE
+	PRINTFORM 　　%LOCALS:10% [----/----]
+	ENDIF
+ELSE
+;出力有り
+
+	PRINTFORM 　　%LOCALS:10% [
+
+	;CHK:着色拒否フラグ
+	IF ARG:2 == 1
+	ELSEIF ARG:2 == 2 && (LOCAL:2)
+	ELSE
+		;CHK:数値
+		SELECTCASE LOCAL:10
+			;死亡
+			CASE IS == 0
+				;赤(暗い赤)
+				SETCOLOR 0x990000
+			;危険
+			CASE IS <  (LOCAL:11 * 25 / 100)
+				;赤(朱色?)
+				SETCOLOR 0xcc6666
+			;弱っている
+			CASE IS <  (LOCAL:11 * 50 / 100)
+				;黄色(オレンジ)
+				SETCOLOR 0xffcc66
+		ENDSELECT
+	ENDIF
+
+	;CHK:ボスフラグ
+	IF LOCAL:2
+		LOCALS:1 = 
+		LOCALS:2 = 
+		IF FLAG:カスタムゲーム画面
+			FOR LOCAL:20, 0, 11
+				IF LOCAL:10 >= ( (LOCAL:11/12) * (LOCAL:20 + 1))
+					LOCALS:1 += "*"
+				ELSE
+					LOCALS:2 += "."
+				ENDIF
+			NEXT
+		ELSE
+			FOR LOCAL:20, 0, 9
+				IF LOCAL:10 >= ( (LOCAL:11/10) * (LOCAL:20 + 1))
+					LOCALS:1 += "*"
+				ELSE
+					LOCALS:2 += "."
+				ENDIF
+			NEXT
+		ENDIF
+		PRINTFORM %LOCALS:1%
+		PRINTFORM %LOCALS:2%
+		RESETCOLOR
+	ELSE
+		IF FLAG:カスタムゲーム画面
+		PRINTFORM {LOCAL:10,5}
+		RESETCOLOR
+		PRINTFORM /{LOCAL:11,5}
+		ELSE
+		PRINTFORM {LOCAL:10,4}
+		RESETCOLOR
+		PRINTFORM /{LOCAL:11,4}
+		ENDIF
+	ENDIF
+
+	PRINT ]
+ENDIF
+
+;=================================================
+;   sub RPG_PRINT_STATUS_COLOR
+;=================================================
+;   表示:RPG STATUS(色付き)
+;-------------------------------------------------
+;  引数を元に着色した状態情報をPRINTする
+;-------------------------------------------------
+; Input:
+;  ARG:0				ポジション
+;-------------------------------------------------
+@RPG_PRINT_STATUS_COLOR, ARG:0
+#LOCALSIZE 1
+IF CFLAG:(ARG:0):ステート == 0
+	;GOOD
+	IF FLAG:ムフフ展開
+		IF CFLAG:(ARG:0):ダンジョン内発情
+			SETCOLOR 0xff00ff
+			PRINTFORM 　%ハート(3)%　
+			RESETCOLOR
+		ELSE
+			LOCAL = MIN(15000 , CFLAG:(ARG:0):ダンジョン内発情用欲情値)
+			;SETCOLOR 0x404040 + (0xff00ff - 0x404040) * MIN(15000 , PALAM:(ARG:0):欲情) / 15000
+			SETCOLOR 0x40 + (0xff - 0x40) * LOCAL / 15000 , 0x40 - (0x40 * LOCAL / 15000) , 0x40 + (0xff - 0x40) * LOCAL / 15000
+			PRINT 　GOOD
+			SETCOLOR 0xff * LOCAL / 15000 , 0 , 0xff * LOCAL / 15000
+			PRINTFORM %ハート()%
+			RESETCOLOR
+		ENDIF
+		RETURN 0
+	ELSE
+		SETCOLOR 0x404040
+	ENDIF
+ELSE
+	RESETCOLOR
+	;CHK:ステート
+	SELECTCASE GET_STATE(CFLAG:(ARG:0):ステート)
+		CASE "HAPPY"
+			;ピンク(薄い桃)
+			SETCOLOR 0xffcccc
+		CASE "SHOCK"
+			;黄(薄い黄)
+			SETCOLOR 0xffff99
+		CASE "PANIC"
+			;青(薄い蒼)
+			SETCOLOR 0x99ccff
+		CASE "SLEEP"
+			;青(暗い青)
+			SETCOLOR 0x009999
+		CASE "FREEZE"
+			;青(薄い蒼)
+			SETCOLOR 0x0099cc
+		CASE "BIND"
+			;黄(暗い黄)
+			SETCOLOR 0xcccc00
+		CASE "CLOSE"
+			;紫(薄い紫)
+			SETCOLOR 0xcc99ff
+		CASE "POISON"
+			;紫
+			SETCOLOR 0xcc00cc
+		CASE "CHARM"
+			;ピンク
+			SETCOLOR 0xff00ff
+		CASE "PALYZE"
+			;緑
+			SETCOLOR 0x66cc99
+		CASE "CURSE"
+			;
+
+		CASE "FLY"
+			;
+
+		CASE "STONE"
+			;灰色
+			SETCOLOR 0x999999
+		CASE "DYING"
+			;赤(暗い赤)
+			SETCOLOR 0x990000
+		CASE "ORGY"
+			;オレンジ
+			SETCOLOR 0xffaa11
+		CASE "HEAT"
+			;やや暗い赤
+			SETCOLOR 0xaa0000
+		CASE "FLAME"
+			;鮮やかな紫みの赤
+			SETCOLOR 0xff1e86
+		CASE "SLIP"
+			;明るい黄みの橙
+			SETCOLOR 0xffde86
+	ENDSELECT
+ENDIF
+PRINTFORM %GET_STATE(CFLAG:(ARG:0):ステート),7,RIGHT%
+RESETCOLOR
+;---- EDIT 003 ADD END ---------------------------
+;---- EDIT 009 ADD START ---------------------------
+@CHOOSE_DEAD_COMPANION,ARG
+N = ARG
+$INPUT_LOOP_2
+IF FLAG:ショップコマンド == 106
+	CALL INPUT_CHARA_LIST("Who will you place?", "CASTING_DEAD_COMPANION", "", "", "", "Quit")
+ELSE
+	CALL INPUT_CHARA_LIST("Who will you summon?", "CASTING_DEAD_COMPANION", "", "", "", "Quit")
+ENDIF
+IF RESULT == 1000
+	RETURN 1000
+;ELSEIF RESULT == 1002 && ARG == 2 ;この1002がよく分からないからコメントアウト
+;	RETURN 1002
+ELSE
+	SELECTCASE FLAG:ショップコマンド
+		CASE [[ショップ:探索]],[[ショップ:コロシアム参加]],[[ショップ:イベント]],[[ショップ:依頼請負]]
+			IF ABL:RESULT:種族 != 0 && BASE:MASTER:ＭＡＧ < MAXBASE:RESULT:￥
+				PRINTW Not enough MAG.
+				CLEARLINE 2
+				GOTO INPUT_LOOP_2
+			ENDIF
+	ENDSELECT
+	RETURN RESULT
+ENDIF
+
+@CASTING_DEAD_COMPANION
+SIF CFLAG:COUNT:PTフラグ != 1
+	RETURN 0
+SIF CFLAG:COUNT:戦闘参加不可能 > 0
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF N == 1 && GET_STATE(CFLAG:COUNT:ステート) != "DYING"
+	RETURN 0
+SIF TALENT:COUNT:非戦闘員
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF N == 1 && ABL:COUNT:種族 == 0
+	RETURN 0
+SIF N == 1 && CFLAG:COUNT:被変身フラグ
+	RETURN 0
+SIF N == 1 && CFLAG:COUNT:所属ＣＯＭＰ == -1
+	RETURN 0
+;フィルタリングされてるキャラは除外
+SIF CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+RETURN 1
+;---- EDIT 009 ADD END ---------------------------

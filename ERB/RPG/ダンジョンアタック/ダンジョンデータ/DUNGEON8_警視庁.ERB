@@ -1,0 +1,585 @@
+
+;=======================================================================
+;警視庁
+;真Iの旧警視庁イベントを再現するべく作成
+;フラグ1～6：宝箱
+;フラグ11:ボス戦フラグ
+;フラグ12:報酬フラグ
+;フラグ13:突入フラグ
+;2015/07/14 宮下さんの台詞追加
+;2015/07/21 再突入時に初回突入時の文章が出るミスを修正
+;作者：トドもどき
+;=======================================================================
+
+
+
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_8
+SIF BASE:MASTER:LV < 30
+	RETURN 0
+RETURN 1
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_8
+RESULTS = Metropolitan Police Department
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_8
+PRINT Metropolitan Police Department
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Ｂ１Ｆ
+	CASE 1
+		PRINTL １Ｆ
+	CASE 2
+		PRINTL ２Ｆ
+	CASE 3
+		PRINTL ３Ｆ
+	CASE 4
+		PRINTL ４Ｆ
+	CASEELSE
+		PRINTL ５Ｆ
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+
+@TILE_MARK_8_5_8_5
+RESULTS = □
+
+
+@TILE_MARK_8_5_3_1
+RESULTS = Ｔ
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_8,ARG
+FLAG:現M = 0
+FLAG:現X = 9
+FLAG:現Y = 15
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_8
+IF ダンジョンフラグ:8:13 == 0
+	CALL MESSAGE_WINDOW_D, , "＞" + CALLNAME:MASTER + " received a request from the Metropolitan Police./＞It seems the Metropolitan Police Department has become an other world./＞In addition, there are guard robots missing."
+	;は警視庁からの依頼を受けた/＞どうやら警視庁が突如異界化し、警備ロボットも暴走したらしい
+	CALL MESSAGE_WINDOW_D, , "＞Because of the security robots, they want this case to be handled secretly./Since " + CALLNAME:MASTER + " is said to be skilled in cases of national confidentiality,/you got this job."
+	;警備ロボットについては国家機密の為、腕利きと言われる" + CALLNAME:MASTER + "に秘密裏に解決してもらいたいようだ
+	IF FINDCHARA_B(4630,0) == 2
+		CALL MESSAGE_WINDOW_D, "Shingo Miyashita" , "If true, this is where the 0 department is in charge of the differentiation./It seems most police officers where killed./However..."
+		;宮下 将吾" , "本当なら、異界化なんてことは自分たち0課が担当するところなんです/しかも自分たち警視庁そのものがやられてますしね/ただ…
+		CALL MESSAGE_WINDOW_D, "Shingo Miyashita" , "There was also a report that human scientists are involved./捜査2課が横やりを入れてきたんです、人間はあくまでこっちがこっちのルールで裁くって/ええ、官僚組織の弱点、という奴です"
+		;如何やら本件については人間の科学者が絡んでいるのでは、なんて報告もありまして/捜査2課が横やりを入れてきたんです、人間はあくまでこっちがこっちのルールで裁くって/ええ、官僚組織の弱点、という奴です
+		CALL MESSAGE_WINDOW_D, , "＞それで揉めているうちに、宮下の父が鶴の一声でこちらに依頼をよこしたらしい"
+		CALL MESSAGE_WINDOW_D, "Shingo Miyashita" , "ええ、うちの親父が言うには、/「人間が絡んでいるかどうかにかかわらず異界化の解決が先決だ」/とのことで"
+		CALL MESSAGE_WINDOW_D, , "＞もっともな話である"
+		CALL MESSAGE_WINDOW_D, "Shingo Miyashita" , "以前の事件の事も親父は知ってますし、/まずは" + CALLNAME:MASTER + "さんが異界化の根源を潰したうえで/その報告から2課と0課どっちが担当するか決めさせる、ということです"
+		CALL MESSAGE_WINDOW_D, , "＞それで実力者としてフリーランスということになっている自分に白羽の矢が立った、というわけか/＞成程、宮下の父はかなりの切れ者の様である"
+	ENDIF
+	CALL MESSAGE_WINDOW_D, , "＞" + CALLNAME:MASTER + " entered the distorted police department./The reward for this should be good..."
+	;は高額の報酬を期待しつつ異界化した警視庁へと足を踏み入れた…
+	ダンジョンフラグ:8:13 = 1
+ENDIF
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_8
+IF ダンジョンフラグ:8:11 && !ダンジョンフラグ:8:12
+	CALL SHOW_PICTURE, "D"
+	CALL MESSAGE_WINDOW_D, "", "＞You received ￥100000 as reward for saving/the Metropolitant Police Department. Fame increased by 200."
+	;警視庁を救った報酬として100000円を手に入れた/＞また、200の名声を得た
+	MONEY += 100000
+	FLAG:名声 += 200
+	ダンジョンフラグ:8:12 = 1
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_8,ARG,ARG:1
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_8
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 10
+		FLAG:最大Y = 18
+		;			 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0DDDDDDDD0"
+		CALL MAKE_FLOOR_LINE, 2,"0D      D0"
+		CALL MAKE_FLOOR_LINE, 3,"0D 1DD  D0"
+		CALL MAKE_FLOOR_LINE, 4,"0D   D  D0"
+		CALL MAKE_FLOOR_LINE, 5,"0DDDDD  D0"
+		CALL MAKE_FLOOR_LINE, 6,"0D   1  D0"
+		CALL MAKE_FLOOR_LINE, 7,"01  11  D0"
+		CALL MAKE_FLOOR_LINE, 8,"0   1   D0"
+		CALL MAKE_FLOOR_LINE, 9,"0   16  D0"
+		CALL MAKE_FLOOR_LINE,10,"0E  1   D0"
+		CALL MAKE_FLOOR_LINE,11,"02  11  D0"
+		CALL MAKE_FLOOR_LINE,12,"01111   D0"
+		CALL MAKE_FLOOR_LINE,13,"0      DD0"
+		CALL MAKE_FLOOR_LINE,14,"0      D 0"
+		CALL MAKE_FLOOR_LINE,15,"0DDDDDDD28"
+		CALL MAKE_FLOOR_LINE,16,"0000000000"
+
+	CASE 1
+		FLAG:最大X = 10
+		FLAG:最大Y = 18
+		;			 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0DDDDDDDD0"
+		CALL MAKE_FLOOR_LINE, 2,"0D      D0"
+		CALL MAKE_FLOOR_LINE, 3,"0D21 111D0"
+		CALL MAKE_FLOOR_LINE, 4,"0D   1  D0"
+		CALL MAKE_FLOOR_LINE, 5,"0D   1  D0"
+		CALL MAKE_FLOOR_LINE, 6,"0D   1  D0"
+		CALL MAKE_FLOOR_LINE, 7,"0D   6  90"
+		CALL MAKE_FLOOR_LINE, 8,"0DDD     0"
+		CALL MAKE_FLOOR_LINE, 9,"0  D 7DDD0"
+		CALL MAKE_FLOOR_LINE,10,"0E D    D0"
+		CALL MAKE_FLOOR_LINE,11,"02 D    D0"
+		CALL MAKE_FLOOR_LINE,12,"01 DDDDDD0"
+		CALL MAKE_FLOOR_LINE,13,"01 D 2 DD0"
+		CALL MAKE_FLOOR_LINE,14,"01DD 8 DD0"
+		CALL MAKE_FLOOR_LINE,15,"0        0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000"
+
+		;宝箱の設置
+		CALL SET_TILE,3,3,ダンジョンフラグ:8:0,0,3
+
+	CASE 2
+		FLAG:最大X = 10
+		FLAG:最大Y = 18
+		;			 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0DD1111110"
+		CALL MAKE_FLOOR_LINE, 2,"09 D    10"
+		CALL MAKE_FLOOR_LINE, 3,"0D D  1210"
+		CALL MAKE_FLOOR_LINE, 4,"0DDD    10"
+		CALL MAKE_FLOOR_LINE, 5,"02 D    10"
+		CALL MAKE_FLOOR_LINE, 6,"01 D    10"
+		CALL MAKE_FLOOR_LINE, 7,"0  D 71110"
+		CALL MAKE_FLOOR_LINE, 8,"0DDD    10"
+		CALL MAKE_FLOOR_LINE, 9,"0  DD6  10"
+		CALL MAKE_FLOOR_LINE,10,"0E D    10"
+		CALL MAKE_FLOOR_LINE,11,"02 D    10"
+		CALL MAKE_FLOOR_LINE,12,"01   11110"
+		CALL MAKE_FLOOR_LINE,13,"01   1   0"
+		CALL MAKE_FLOOR_LINE,14,"0111111210"
+		CALL MAKE_FLOOR_LINE,15,"0        0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000"
+
+		;宝箱の設置
+		CALL SET_TILE,1,6,ダンジョンフラグ:8:1,0,3
+		CALL SET_TILE,8,14,ダンジョンフラグ:8:2,0,3
+
+	CASE 3
+		FLAG:最大X = 10
+		FLAG:最大Y = 18
+		;			 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0DD2111110"
+		CALL MAKE_FLOOR_LINE, 2,"0D    2 10"
+		CALL MAKE_FLOOR_LINE, 3,"0D    1 10"
+		CALL MAKE_FLOOR_LINE, 4,"0DD9    10"
+		CALL MAKE_FLOOR_LINE, 5,"0D   11110"
+		CALL MAKE_FLOOR_LINE, 6,"0D   2  20"
+		CALL MAKE_FLOOR_LINE, 7,"0D   6  10"
+		CALL MAKE_FLOOR_LINE, 8,"0DDD     0"
+		CALL MAKE_FLOOR_LINE, 9,"0  D 7DDD0"
+		CALL MAKE_FLOOR_LINE,10,"0E D    D0"
+		CALL MAKE_FLOOR_LINE,11,"02 DDD  D0"
+		CALL MAKE_FLOOR_LINE,12,"01 2 D  D0"
+		CALL MAKE_FLOOR_LINE,13,"0111 D  D0"
+		CALL MAKE_FLOOR_LINE,14,"0  1 DDDD0"
+		CALL MAKE_FLOOR_LINE,15,"0121     0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000"
+
+		;宝箱の設置
+		CALL SET_TILE,1,15,ダンジョンフラグ:8:3,0,3
+
+	CASE 4
+		FLAG:最大X = 10
+		FLAG:最大Y = 18
+		;			 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0DDDDDDDD0"
+		CALL MAKE_FLOOR_LINE, 2,"0D  2   D0"
+		CALL MAKE_FLOOR_LINE, 3,"0D  1 1 D0"
+		CALL MAKE_FLOOR_LINE, 4,"0D    2 D0"
+		CALL MAKE_FLOOR_LINE, 5,"0D DDDDDD0"
+		CALL MAKE_FLOOR_LINE, 6,"02 D    D0"
+		CALL MAKE_FLOOR_LINE, 7,"01   72DD0"
+		CALL MAKE_FLOOR_LINE, 8,"0111    D0"
+		CALL MAKE_FLOOR_LINE, 9,"0  116  D0"
+		CALL MAKE_FLOOR_LINE,10,"0E 1    D0"
+		CALL MAKE_FLOOR_LINE,11,"02 11   D0"
+		CALL MAKE_FLOOR_LINE,12,"01 1  12D0"
+		CALL MAKE_FLOOR_LINE,13,"01 1    D0"
+		CALL MAKE_FLOOR_LINE,14,"011111 9D0"
+		CALL MAKE_FLOOR_LINE,15,"0        0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000"
+
+		;宝箱の設置
+		CALL SET_TILE,6,3,ダンジョンフラグ:8:4,0,3
+		CALL SET_TILE,6,12,ダンジョンフラグ:8:5,0,3
+
+	CASE 5
+		FLAG:最大X = 10
+		FLAG:最大Y = 18
+		;			 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"0000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01 T 11110"
+		CALL MAKE_FLOOR_LINE, 2,"01 2 1  10"
+		CALL MAKE_FLOOR_LINE, 3,"011111  10"
+		CALL MAKE_FLOOR_LINE, 4,"0       20"
+		CALL MAKE_FLOOR_LINE, 5,"0D21111190"
+		CALL MAKE_FLOOR_LINE, 6,"0D       0"
+		CALL MAKE_FLOOR_LINE, 7,"0D   12DD0"
+		CALL MAKE_FLOOR_LINE, 8,"0D2D    D0"
+		CALL MAKE_FLOOR_LINE, 9,"0  D 7DDD0"
+		CALL MAKE_FLOOR_LINE,10,"0E D    D0"
+		CALL MAKE_FLOOR_LINE,11,"02 D 1  D0"
+		CALL MAKE_FLOOR_LINE,12,"01 D 2  D0"
+		CALL MAKE_FLOOR_LINE,13,"01 D DDDD0"
+		CALL MAKE_FLOOR_LINE,14,"01 D    D0"
+		CALL MAKE_FLOOR_LINE,15,"012DDDD2D0"
+		CALL MAKE_FLOOR_LINE,16,"0000000000"
+
+		CALL SET_TILE,5,7,ダンジョンフラグ:8:6,0,3
+		CALL SET_TILE,3,1,ダンジョンフラグ:8:11,1,9
+		CALL SET_TILE,3,1,ダンジョンフラグ:8:11,0,4
+	CASEELSE
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_8
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_8
+	RETURN RESULT
+	
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_8
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_8
+	RETURN RESULT
+
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+ELSE
+	CALL MESSAGE_WINDOW_D, , "＞Nothing seems to be here."
+	;何も無いようだ
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_8,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_8
+	RETURN RESULT
+	
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_8
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_8
+	RETURN RESULT
+
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+	
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	SELECTCASE FLAG:現M
+		CASE 1
+			CALL MESSAGE_WINDOW_D, , "＞It's a pitfall!"
+			;落とし穴だ！
+			CALL DUNGEON_WORP,0,8,7
+		CASE 2
+			CALL MESSAGE_WINDOW_D, , "＞It's a pitfall!"
+			CALL DUNGEON_WORP,1,1,2
+		CASE 3
+			CALL MESSAGE_WINDOW_D, , "＞It's a pitfall!"
+			CALL DUNGEON_WORP,2,3,4
+		CASE 4
+			CALL MESSAGE_WINDOW_D, , "＞It's a pitfall!"
+			CALL DUNGEON_WORP,3,7,14
+		CASE 5
+			IF FLAG:現X == 8
+				CALL MESSAGE_WINDOW_D, , "＞ＩＤcard...ＩＤcard.../＞ＩＤcard...ＩＤcard..."
+				;ＩＤカードを…ＩＤカードを…/＞ＩＤカードを…ＩＤカードを…
+				CALL MESSAGE_WINDOW_D, , "＞The door seems to be broken..."
+				;扉は壊れているようだ…"
+			ELSE
+				CALL DUNGEON_TERMINAL
+			ENDIF
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	CALL MESSAGE_WINDOW_D, , "＞And old man is operating a computer here..."
+	;一人の老人がコンピュータを操作している…
+	CALL MESSAGE_WINDOW_D, "Mad Scientist" , "Hehehe.　They move, they move./I'm in control of the police robots."	
+	;マッドサイエンティスト		ヒィーヒッヒッヒッ　動いたぞ　動いたぞ/ロボット警官のコントロール・システムが
+	CALL MESSAGE_WINDOW_D, "Mad Scientist" , "They will kill all demons and humans./Everyone will perish!/Hehehe.."
+	;これで人も悪魔も皆殺しだ/皆地獄へ行ってしまえ！/ヒィーヒッヒ
+	CALL MESSAGE_WINDOW_D, "Mad Scientist" , "...did you come to stop me?/You must have!/Go! Robot Army!"
+	;…まさか邪魔しに来たのか？/そうはいかんぞ！/行けぇ！　ロボット軍団！
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	CALL SET_ENEMY,7,1114,45,0,2	
+	CALL SET_ENEMY,8,1114,45,0,2
+	CALL SET_ENEMY,9,1114,45,0,2
+	CALL SET_ENEMY,10,1114,45,0,2
+	CALL SET_ENEMY,11,1114,45,0,2
+	CALL SET_ENEMY,13,1114,45,0,2
+	CALL SET_ENEMY,14,1114,45,0,2
+	CALL SET_ENEMY,15,1114,45,0,2
+	CALL BATTLE_START
+	CALL MESSAGE_WINDOW_D, "Security System" , "Alarm!　Emergency activation/Eliminate intruders in the control room"
+	;警備システム" , "緊急事態！　しすてむ作動開始/直チニ侵入者ヲ排除スル"
+	CALL SET_ENEMY,9,1108,50,0,5
+	CFLAG:(CHARANUM-1):行動回数 = 3
+	NAME:(CHARANUM-1) = Security System
+	CALLNAME:(CHARANUM-1) = Security System
+	BASE:(CHARANUM-1):力 += 6
+	BASE:(CHARANUM-1):知恵 += 6
+	BASE:(CHARANUM-1):魔力 += 6
+	BASE:(CHARANUM-1):耐力 += 5
+	BASE:(CHARANUM-1):速さ += 5
+	BASE:(CHARANUM-1):運 += 5
+	CALL BATTLE_START
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	CALL MESSAGE_WINDOW_D, "Mad Scientist" , "Ooh...my Mecha Robo Corp is..."
+	;おお…わしのメカロボ軍団が…
+	CALL MESSAGE_WINDOW_D, "" , "＞Next to the dissapointed old man, there are the remnants of a robot you didn't defeat./＞Inspecting it closer, ther seems to be several salvagable part you can use to improve your ＣＯＭＰ..."
+	;失意の老人の傍らに、警視庁謹製と思しきロボットたちの残骸が転がっている/＞よくよく見ればかなり使えそうだ、これでＣＯＭＰが強化できるだろう…
+	CALL MESSAGE_WINDOW_D, "" , "＞....../＞.../＞."
+	CALL MESSAGE_WINDOW_D, "" , "＞ＣＯＭＰ capacity has increased by 2"
+	;ＣＯＭＰの容量が2増えた
+	FLAG:ＣＯＭＰ容量 += 2	
+	ダンジョンフラグ:8:11 = 1
+	DA:(FLAG:現X):(FLAG:現Y) = -9
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_8
+SELECTCASE FLAG:現M
+	CASE 1
+		CALL GET_TREASURE_TRAP, "ＨＰ", 25 , GET_TYPE_NUM("万能") , FLAG:現ダンジョン, LOCAL , 0
+		ダンジョンフラグ:8:0 = 1
+	CASE 2
+		IF (FLAG:現X) == 1
+			CALL GET_TREASURE_TRAP, "ＨＰ", 25 , GET_TYPE_NUM("万能") , FLAG:現ダンジョン, LOCAL , 1
+			ダンジョンフラグ:8:1 = 1
+		ELSE
+			CALL GET_TREASURE, 276 , 1 , FLAG:現ダンジョン, LOCAL , 2
+			ダンジョンフラグ:8:2 = 1
+		ENDIF
+	CASE 3
+		CALL GET_TREASURE_TRAP, "ＨＰ", 25 , GET_TYPE_NUM("万能") , FLAG:現ダンジョン, LOCAL , 3
+		ダンジョンフラグ:8:3 = 1
+	CASE 4
+		IF FLAG:現Y == 3
+			CALL GET_TREASURE, 1014 , 1 , FLAG:現ダンジョン, LOCAL , 4
+			ダンジョンフラグ:8:4 = 1
+		ELSE
+			CALL GET_TREASURE, 1015 , 1 , FLAG:現ダンジョン, LOCAL , 5
+			ダンジョンフラグ:8:5 = 1
+		ENDIF
+	CASEELSE
+		CALL GET_TREASURE_TRAP, "ＨＰ", 25 , GET_TYPE_NUM("万能") , FLAG:現ダンジョン, LOCAL , 1
+		ダンジョンフラグ:8:6 = 1
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_8
+SELECTCASE FLAG:現M
+	CASE 0
+		CALL DUNGEON_UPSTAIRS,1,5,9
+	CASE 1
+		CALL DUNGEON_UPSTAIRS,2,5,7
+	CASE 2
+		CALL DUNGEON_UPSTAIRS,3,5,9
+	CASE 3
+		CALL DUNGEON_UPSTAIRS,4,5,7
+	CASE 4
+		CALL DUNGEON_UPSTAIRS,5,5,9
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_8
+SELECTCASE FLAG:現M
+	CASE 1
+		CALL DUNGEON_DOWNSTAIRS,0,5,9
+	CASE 2
+		CALL DUNGEON_DOWNSTAIRS,1,5,7
+	CASE 3
+		CALL DUNGEON_DOWNSTAIRS,2,5,9
+	CASE 4
+		CALL DUNGEON_DOWNSTAIRS,3,5,7
+	CASE 5
+		CALL DUNGEON_DOWNSTAIRS,4,5,9
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_8
+	FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_8
+RETURN 38, 28, 38, 50
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_8
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_8
+SELECTCASE RAND:100
+	CASE IS < 40
+		RETURN 1
+	CASE IS < 80
+		RETURN 2
+	CASEELSE
+		RETURN 3
+ENDSELECT
+;=======================================================================
+;敵の総数
+;=======================================================================
+@ENEMY_NUM_8, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_8, ARG
+SELECTCASE RAND:100
+	CASE IS < 20
+		;30%でピットボール
+		RETURN 1107,35
+	CASE IS < 45
+		;25%でゴーレム
+		RETURN 1113,38
+	CASE IS < 70
+		;25%でゾンビコップ
+		RETURN 1095,33
+	CASE IS < 90
+		;20%でコープス
+		RETURN 1098,30
+	CASE IS < 100
+		;10%でスライム、ブラックウーズの代理
+		RETURN 1028,28
+ENDSELECT
+
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+;ARGはそのエレベーターのタイル
+@DUNGEON_ELEVATOR_8, ARG
+;RESULT:1～5にエレベータが存在するマップの番号を代入し、RESULTS:1～5には表示したい名称を代入、RETURNでは-1を返しておく
+RESULT:1 = 0
+RESULT:2 = 1
+RESULT:3 = 2
+RESULT:4 = 3
+RESULT:5 = 4
+RESULT:6 = 5
+RESULTS:1 = Ｂ１Ｆ
+RESULTS:2 = １Ｆ
+RESULTS:3 = ２Ｆ
+RESULTS:4 = ３Ｆ
+RESULTS:5 = ４Ｆ
+RESULTS:6 = ５Ｆ
+RETURN -1

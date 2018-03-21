@@ -1,0 +1,307 @@
+;-------------------------------------------------
+;白レン戦闘口上
+;テンプレより作成。ライセンスフリー
+;-------------------------------------------------
+;
+;
+
+;-------------------------------------------------
+;■台詞の行数を増やしたいときは
+;			LOCAL:1 = 行数
+;			LOCALS = 一行目
+;			LOCALS:1 = 二行目
+;			LOCALS:2 = 三行目
+;と増やしていく
+;-------------------------------------------------
+
+;-------------------------------------------------
+@BATTLE_EVENT_K5059, ARG, ARG:1, ARG:2
+;-------------------------------------------------
+SIF ARG < 0 && NO:ARG != 5059
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:2
+			LOCALS = では、皆様もワルツを！
+		ELSE
+			LOCALS = さあさ皆様方、一緒に楽しみましょう？
+		ENDIF
+	;COOP参加
+	CASE 2
+		;主人がCOOP発動
+		IF FLAG:行動順1 != -1 && FLAG:行動順1 == MASTER
+			;恋慕
+			IF TALENT:3 || TALENT:6
+				LOCALS = …まあ、信頼されているかぎりは力になってあげるわよ
+			ELSE
+				LOCALS = あら、露払いごくろうさま
+			ENDIF
+		;それ以外
+		ELSE
+			IF RAND:2
+				LOCALS = あら、私も混ぜてくださらない？
+			ELSE
+				LOCALS = 私、残酷でしてよ？
+			ENDIF
+		ENDIF
+	;被召喚時
+	CASE 3
+			LOCALS = 招待状は確かに受け取りましたわ。さあ、舞踏会を始めましょう
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+			LOCALS = それでは、御機嫌よう
+		;弱点をついた。つまりCOOP
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+				LOCALS = なぁに、もう後がないから、そうやって縮こまってる事にしたの？
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+;		;大ダメージ
+;		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+;			LOCALS = 
+;		ELSEIF ダメージ割合(ARG:1, ARG:2) > 25
+;			LOCALS = 
+;		ELSEIF ダメージ割合(ARG:1, ARG:2) <= 0
+;			LOCALS = 
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			LOCALS = （どの一手を、間違ったのかしらね――）
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			LOCALS = キャアッ！　くっ、乱暴なのね…！
+		;無効
+		ELSEIF ARG:2 == 0
+			IF RAND:2
+				LOCALS = あら、そんなもの？
+			ELSE
+				LOCALS = お生憎様、それは通用しないの
+			ENDIF
+		;吸収
+		ELSEIF ARG:2 < 0
+			LOCALS = ごちそうさま。さあ、続けましょう？
+		ENDIF
+	;反射された
+	CASE 15
+			LOCALS = な、なんですって…！？
+	;反射した
+	CASE 16
+			LOCALS = ふふ…　ご自分の攻撃の味はいかが？
+	;回避された
+	CASE 17
+			LOCALS = …あらっ？
+	;回避した
+	CASE 18
+			LOCALS = 私と踊っていただけるのかしら？
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+;-------------------------------------------------
+@BATTLE_MESSAGE_K5059,ARG,ARG:1 = 0
+;-------------------------------------------------
+
+LOCAL:1 = 1
+LOCALS = "EMPTY"
+
+;崩壊してる場合は口上表示しない
+SIF TALENT:ARG:9
+	RETURN 0
+
+CALLFORM SKILL_EFECT_{CFLAG:ARG:入力行動}
+;-------------------------------------------------
+;特定スキル
+;-------------------------------------------------
+;これは通常攻撃
+IF CFLAG:ARG:入力行動 == 0
+		IF RAND:3 == 0
+			LOCALS = ふふっ…
+		ELSEIF !RAND:2
+			LOCALS = いかが？
+		ELSE
+			LOCALS = un…　deux！
+		ENDIF
+;-------------------------------------------------
+;ＣＨＡＮＧＥ
+;-------------------------------------------------
+;ELSEIF LOCAL == 2301
+;	LOCALS = 
+;-------------------------------------------------
+;汎用スキル
+;-------------------------------------------------
+;Slash
+ELSEIF RANGE(CFLAG:ARG:入力行動,1, 99)
+	LOCALS = 抜けば玉散る氷の刃。どうぞ、お楽しみくださいね
+;Gun
+ELSEIF RANGE(CFLAG:ARG:入力行動,101, 199)
+	LOCALS = み～つけた♪
+;Strke
+ELSEIF RANGE(CFLAG:ARG:入力行動,201, 299)
+	LOCALS = 優雅に、よりしなやかに！
+;噛み付き系
+ELSEIF RANGE(CFLAG:ARG:入力行動,321, 326)
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = オ、オレサ、マ…　
+		LOCALS:1 = い、いくら契約でもこんなイロモノ全開のセリフは嫌ぁ！
+	ELSEIF !RAND:2
+		LOCALS = …あまり遊び心が過ぎると、飼い猫に手を噛まれるわよ？
+	ELSE
+		LOCALS = 吸血鬼の真似事は、趣味じゃないのだけどね
+	ENDIF
+;回復
+ELSEIF RANGE(CFLAG:ARG:入力行動,401, 499)
+;	;全体回復
+;	IF CFLAG:ARG:ターゲット > 6
+;		LOCALS = 
+;	ELSE
+		IF RAND:2
+			LOCALS = 私が治してあげるんだから、少しは感謝しなさいよね
+		ELSE
+			LOCALS = もう、しゃんとなさい。カーテンコールにはまだ早いわよ
+		ENDIF
+;	ENDIF
+;支援
+ELSEIF RANGE(CFLAG:ARG:入力行動,501, 599)
+	;強化系
+	IF RANGE(CFLAG:ARG:入力行動,501, 505)
+		LOCALS = たった数分しか持たないけど、これなら！
+	;弱体系
+	ELSEIF RANGE(CFLAG:ARG:入力行動,506, 509)
+		LOCALS = 余裕ね？　でも、それもここまで
+	;挑発
+	ELSEIF CFLAG:ARG:入力行動 == 515
+		IF RAND:2
+			LOCALS = え、なに？　そんな地味な姿なのに自分が格上だとか思ってるの？
+		ELSE
+			LOCALS = さっさと消えなさい、このブサイクモザイク猫！
+		ENDIF
+	;その他
+	ELSE
+;		LOCALS = 
+	ENDIF
+;;防御
+;ELSEIF RANGE(CFLAG:ARG:入力行動,601, 699)
+;	LOCALS = 
+;Fire
+ELSEIF RANGE(CFLAG:ARG:入力行動,701, 799)
+	LOCALS = 火遊びに興味はおありかしら？
+;Ice
+ELSEIF RANGE(CFLAG:ARG:入力行動,801, 899)
+	IF RAND:3 == 0
+		LOCALS = 氷柩を造って差し上げましょうか
+	ELSEIF !RAND:2
+		LOCALS = un…　deux…　trois！！
+	ELSE
+		LOCALS = 雪道にはお気をつけなさい、天狼に追いつかれてしまうわよ？
+	ENDIF
+;;Elect
+;ELSEIF RANGE(CFLAG:ARG:入力行動,901, 999)
+;	LOCALS = 
+;;Force
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1001, 1099)
+;	LOCALS = 
+;;Nerve
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1101, 1199)
+;	LOCALS = 
+;Mind
+ELSEIF RANGE(CFLAG:ARG:入力行動,1201, 1299)
+	IF RAND:3 == 0
+		LOCALS = 汚らしい現実の染みを落としてあげるわ
+	ELSEIF !RAND:2
+		LOCALS = ようこそ、何の汚れも無い夢の国へ
+	ELSE
+		LOCALS = 温かいパンと紅茶。それと、とびきりの愛を、ご馳走してあげる
+	ENDIF
+;;Light
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1301, 1399)
+;	LOCALS = 
+;;Dark
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1401, 1499)
+;	LOCALS = 
+;;Earth
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1501, 1599)
+;	LOCALS = 
+;;Water
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1601, 1699)
+;	LOCALS = 
+;;Wind
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1701, 1799)
+;	LOCALS = 
+;;Grav
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1801, 1899)
+;	LOCALS = 
+;;Nuclr
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1901, 1999)
+;	LOCALS = 
+;;Almig
+;ELSEIF RANGE(CFLAG:ARG:入力行動,2001, 2099)
+;	;自爆系
+;	IF RANGE(CFLAG:ARG:入力行動,2005, 2007)
+;		LOCALS = 
+;	ELSE
+;		LOCALS = 
+;	ENDIF
+;;魔法少女系
+ELSEIF RANGE(CFLAG:ARG:入力行動,2989, 2999)
+;せいゆうねた
+	IF CFLAG:ARG:入力行動 == 2997
+		LOCALS = Tiro―――　Finale！！
+	ELSE
+;		LOCALS = 
+	ENDIF
+
+;-------------------------------------------------
+;リンケージ
+;-------------------------------------------------
+;メシアライザー
+ELSEIF CFLAG:ARG:入力行動 == 4160
+	LOCAL:1 = 2
+	LOCALS = 力を貸してあげてもいいわよ。使い魔とマスターは一心同体と言うでしょう？
+	LOCALS:1 = %CSTR:ARG:二人称%が守りたいものは、私にとっても大切なものなんだから――
+;Lヒートライザ
+ELSEIF CFLAG:ARG:入力行動 == 4200
+	LOCALS = うふふ…　さあ、一緒に楽しみましょう？
+;死亡遊戯
+ELSEIF CFLAG:ARG:入力行動 == 4800
+	LOCALS = ――雪の下で永遠に眠りなさい
+;ELSEIF CFLAG:ARG:入力行動 == 
+;	IF RAND:2
+;		LOCALS = 
+;	ELSE
+;		LOCALS = 
+;	ENDIF
+
+;-------------------------------------------------
+;加筆分
+;-------------------------------------------------
+;
+ELSEIF CFLAG:ARG:入力行動 == 2978
+	IF RAND:2
+		LOCALS = さぁ…　いらっしゃい
+	ELSE
+		LOCALS = 鏡の世界にようこそ。もう時間の兎に追われる事もありませんわ
+	ENDIF
+
+;-------------------------------------------------
+;その他
+;-------------------------------------------------
+ELSE
+;	LOCALS = 
+ENDIF
+
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)

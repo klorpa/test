@@ -1,0 +1,476 @@
+;=======================================================================
+;サンプルダンジョン
+;ダンジョンのテンプレートみたいなものです
+;ダンジョンナンバー0
+;=======================================================================
+
+;ダンジョンフラグ:78:0 = 1.クリアフラグ
+;ダンジョンフラグ:78:1 = 1.初回
+;ダンジョンフラグ:78:10-17 = 1.宝箱
+
+;大学クリア後に出現
+;弱体化スサノオさんは分霊ってことで配置
+;ボスとしてストリゴイイ&ストリゲスを配置
+;あとは大体原作通り
+;フリーなんで適当に改変してください
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_78
+IF 依頼フラグ:5:0 == 2 && !ダンジョンフラグ:78:0
+	RETURN 1
+ENDIF
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_78
+RESULTS = Hikawa Shrine
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_78
+PRINT Hikawa Shrine 
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_78,ARG
+FLAG:現M = 0
+FLAG:現X = 20
+FLAG:現Y = 15
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_78
+IF ダンジョンフラグ:78:1 == 0
+	CALL SHOW_PICTURE, "NONFLOORD"
+	CALL MESSAGE_WINDOW_D, "", @"＞Following the directions of the professor, %CALLNAME:MASTER% went to the Hikawa Shrine, where Kumiko Hatano was recently seen."
+	CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% decided to combine the search with completing a request to investigate the demons appearing at the shrine."
+	ダンジョンフラグ:78:1 = 1
+ENDIF
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_78
+IF ダンジョンフラグ:78:0 == 1
+		CALL MESSAGE_WINDOW_D, "", "＞You saw a woman when you came to the entrance of the Hikawa Shrine./＞That must be the Kumiko Hatano the organization was investigating."
+		CALL MESSAGE_WINDOW_D, "", "＞She stares blankly as if possessed."
+		CALL MESSAGE_WINDOW_D, "", "...../.../..."
+		CALL MESSAGE_WINDOW_D, "", "＞You noticed two demons approaching her."
+		CALL MESSAGE_WINDOW_D, "Strix", "We should kidnap this woman?/These orders from Sid are easy work."
+
+	CALL INPUT_SELECT_D, @"[1]Rescue her from the demons and secure her/[2]Let the demons take her"
+		SELECTCASE RESULT
+			CASE 1
+				CALL MESSAGE_WINDOW_D, "", "＞One demon noticed you"
+				CALL MESSAGE_WINDOW_D, "Strigoii", "Who? Are you.../That devil summoner interfering with Sid.../Is that you?"
+				CALL MESSAGE_WINDOW_D, "Strigoii", "Sid said to kill all obstacles./You are an obstacle I'll kill."
+				CALL MESSAGE_WINDOW_D, "", "＞1 Haunt Strigoii appeared！/＞1 Femme Strix appeared！"
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+				;ストリゴイイ
+					CALL SET_ENEMY,8,[[キャラ:ストリゴイイ]],32,0,1
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+					CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CFLAG:(CHARANUM-1):速度補正 += 5
+					BASE:(CHARANUM-1):力 += 3
+					BASE:(CHARANUM-1):知恵 += 3
+					BASE:(CHARANUM-1):魔力 += 3
+					BASE:(CHARANUM-1):耐力 += 3
+					BASE:(CHARANUM-1):速さ += 3
+					BASE:(CHARANUM-1):運 += 3
+					ABL:(CHARANUM-1):最低攻撃回数 = 2
+					ABL:(CHARANUM-1):最大攻撃回数 = 3
+					ABL:(CHARANUM-1):スキル1 = [[スキル:テンタラフー]]
+					ABL:(CHARANUM-1):スキル2 = [[スキル:弱者必滅拳]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:暴れまくり]]
+					ABL:(CHARANUM-1):スキル4 = [[スキル:ブレインシェイク]]
+					ABL:(CHARANUM-1):スキル5 = 0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				;ストリゲス
+					CALL SET_ENEMY,10,[[キャラ:ストリゲス]],30,0,1
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 1200
+					CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+					CFLAG:(CHARANUM-1):速度補正 = 5
+					BASE:(CHARANUM-1):力 += 3
+					BASE:(CHARANUM-1):知恵 += 3
+					BASE:(CHARANUM-1):魔力 += 3
+					BASE:(CHARANUM-1):耐力 += 3
+					BASE:(CHARANUM-1):速さ += 3
+					BASE:(CHARANUM-1):運 += 3
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+
+				CALL MESSAGE_WINDOW_D, "", "＞Haunt Strigoii collapsed.../＞Femme Strix collapsed..."
+				CALL MESSAGE_WINDOW_D, "", "＞You brought back Kumiko Hatano, who gave no response even during the fighting."
+				CALL MESSAGE_WINDOW_D, "", "...../..../.."
+				CALL MESSAGE_WINDOW_D, "", "＞Kumiko Hatano was enslaved"
+				CALL ADD_NEW_COMPANION,[[キャラ:久美子]],0
+				ダンジョンフラグ:78:1 = 1
+			CASE 2
+				CALL MESSAGE_WINDOW_D, "", "＞Kumiko was taken away by the demons..."
+				ダンジョンフラグ:78:1 = 2
+			ENDSELECT
+
+		CALL MESSAGE_WINDOW_D, "", "＞Hikawa Shrine returned to the normal world./＞You got ￥50000 and 70 fame."
+		MONEY += 50000
+		FLAG:名声 += 70
+	ダンジョンフラグ:78:0 = 2
+ENDIF
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_78,ARG,ARG:1
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_78
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 37 
+		FLAG:最大Y = 17 
+		;                        0123456789012345678901234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                                     "
+		CALL MAKE_FLOOR_LINE, 1," 4         4   4    11111            "
+		CALL MAKE_FLOOR_LINE, 2," 111111  111  414   1   11    1      "
+ 		CALL MAKE_FLOOR_LINE, 3,"   1  1  1     4    1    1   414     "
+		CALL MAKE_FLOOR_LINE, 4," 111  1111 411   1111111 4           "
+		CALL MAKE_FLOOR_LINE, 5," 1           1   1  1  1   1111111   "
+		CALL MAKE_FLOOR_LINE, 6," 1  1111114  11  11 1 11   1  1  1   "
+		CALL MAKE_FLOOR_LINE, 7," 1 11  1      1   1 1 1  4 14 1 1111 "
+		CALL MAKE_FLOOR_LINE, 8," 111  11111  11   1 4 1 41    1 1  1 "
+		CALL MAKE_FLOOR_LINE, 9,"      1   1111    4   4  1 1551 1  1 "
+		CALL MAKE_FLOOR_LINE,10," 111111 4                1      1  1 "
+		CALL MAKE_FLOOR_LINE,11," 1   51 1  5111111111111111115  1  1 "
+		CALL MAKE_FLOOR_LINE,12," 1      1  11       1 1     11  11 1 "
+		CALL MAKE_FLOOR_LINE,13," 1   1111  1        1 1 11   1   1 4 "
+		CALL MAKE_FLOOR_LINE,14," 111 1    11        1 11111  1  11   "
+		CALL MAKE_FLOOR_LINE,15,"   11111111         8     14 1111    "
+		CALL MAKE_FLOOR_LINE,16,"                                     "
+		;                        0123456789012345678901234567890123456
+		
+		;宝箱
+		CALL SET_TILE,6,4,ダンジョンフラグ:(FLAG:現ダンジョン):10,0,3
+		CALL SET_TILE,6,11,ダンジョンフラグ:(FLAG:現ダンジョン):11,0,3
+		CALL SET_TILE,12,12,ダンジョンフラグ:(FLAG:現ダンジョン):12,0,3
+		CALL SET_TILE,24,2,ダンジョンフラグ:(FLAG:現ダンジョン):13,0,3
+		CALL SET_TILE,24,13,ダンジョンフラグ:(FLAG:現ダンジョン):14,0,3
+		CALL SET_TILE,25,13,ダンジョンフラグ:(FLAG:現ダンジョン):15,0,3
+		CALL SET_TILE,27,9,ダンジョンフラグ:(FLAG:現ダンジョン):16,0,3
+		CALL SET_TILE,28,12,ダンジョンフラグ:(FLAG:現ダンジョン):17,0,3
+
+		
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_78
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TRESURING_CALLING_78
+	RETURN RESULT
+;========
+;イベント
+;========
+
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_78,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y)  == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TRESURING_CALLING_78
+	RETURN RESULT
+	
+;========
+;罠の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 5
+	CALL TRAP_78
+	RETURN RESULT
+	
+;==========
+;イベントの処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	CALL EVENTING_CALLING_78
+	RETURN 1	
+
+ENDIF
+;========
+;ワープ
+;========
+@EVENTING_CALLING_78
+
+IF DA:(FLAG:現X):(FLAG:現Y)  == 4
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 1 && FLAG:現Y == 1
+				FLAG:現M = 0
+				FLAG:現X = 27
+				FLAG:現Y = 15
+			ELSEIF FLAG:現X == 27 && FLAG:現Y == 15
+				FLAG:現M = 0
+				FLAG:現X = 1
+				FLAG:現Y = 1
+			ELSEIF FLAG:現X == 11 && FLAG:現Y == 1
+				FLAG:現M = 0
+				FLAG:現X = 30
+				FLAG:現Y = 2
+			ELSEIF FLAG:現X == 28 && FLAG:現Y == 7
+				FLAG:現M = 0
+				FLAG:現X = 30
+				FLAG:現Y = 2
+			ELSEIF FLAG:現X == 15 && FLAG:現Y == 1
+				FLAG:現M = 0
+				FLAG:現X = 20
+				FLAG:現Y = 11
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 10
+				FLAG:現X = 20
+				FLAG:現Y = 11
+			ELSEIF FLAG:現X == 31 && FLAG:現Y == 3
+				FLAG:現X = 20
+				FLAG:現Y = 11
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 2
+				FLAG:現X = 22
+				FLAG:現Y = 9
+			ELSEIF FLAG:現X == 22 && FLAG:現Y == 9
+				FLAG:現X = 14
+				FLAG:現Y = 2
+			ELSEIF FLAG:現X == 16 && FLAG:現Y == 2
+				FLAG:現X = 18
+				FLAG:現Y = 9
+			ELSEIF FLAG:現X == 18 && FLAG:現Y == 9
+				FLAG:現X = 16
+				FLAG:現Y = 2
+			ELSEIF FLAG:現X == 29 && FLAG:現Y == 3
+				FLAG:現X = 15
+				FLAG:現Y = 2
+			ELSEIF FLAG:現X == 11 && FLAG:現Y == 4
+				FLAG:現X = 24
+				FLAG:現Y = 8
+			ELSEIF FLAG:現X == 24 && FLAG:現Y == 8
+				FLAG:現X = 11
+				FLAG:現Y = 4
+			ELSEIF FLAG:現X == 15 && FLAG:現Y == 3
+				FLAG:現X = 25
+				FLAG:現Y = 4
+			ELSEIF FLAG:現X == 25 && FLAG:現Y == 4
+				FLAG:現X = 15
+				FLAG:現Y = 3
+			ELSEIF FLAG:現X == 10 && FLAG:現Y == 6
+				FLAG:現X = 35
+				FLAG:現Y = 13
+			ELSEIF FLAG:現X == 35 && FLAG:現Y == 13
+				FLAG:現X = 10
+				FLAG:現Y = 6
+			ELSEIF FLAG:現X == 25 && FLAG:現Y == 7
+				FLAG:現X = 8
+				FLAG:現Y = 10
+			ENDIF
+	ENDSELECT
+ENDIF
+;=======================================================================
+;イベントまとめ
+;=======================================================================
+
+IF DA:(FLAG:現X):(FLAG:現Y)  == 4
+	IF ダンジョンフラグ:78:0 == 0
+		IF FLAG:現X == 20 && FLAG:現Y == 8
+		CALL MESSAGE_WINDOW_D, "", "＞In the depths of the Hikawa Shrine that was pulled to another world, a demon appeared."
+		CALL MESSAGE_WINDOW_D, "Man", "Hoh, are you a devil summoner./Indeed, you seem to have great power..."
+		CALL MESSAGE_WINDOW_D, "Susano-o", "I am Susano-o, the currently enshrined deity of Hikawa Shrine./This incident was created to alert humans."
+		CALL MESSAGE_WINDOW_D, "Susano-o", "You know about this dark summoner too./Recently, demons have been overflowing here..."
+		CALL MESSAGE_WINDOW_D, "Susano-o", "The seals here are breaking one after another./My power to seal those of another world is weakening as a result."
+		CALL MESSAGE_WINDOW_D, "Susano-o", "Because the seals were broken, my power has become too weak to do anything./So I created a commotion as warning."
+		CALL MESSAGE_WINDOW_D, "Susano-o", "If the seals are all broken, a terrible thing will happen./I have to stop it somehow./That's all I can say..."
+		CALL MESSAGE_WINDOW_D, "", "＞Susano-o faded away.../＞The seal of Hikawa shrine is apparently losing power..."
+	ダンジョンフラグ:78:0 = 1
+	ENDIF
+	ENDIF
+ENDIF
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TRESURING_CALLING_78
+	SELECTCASE FLAG:現M
+		CASE 0
+			SIF FLAG:現X == 6 && FLAG:現Y == 4
+			;耐久の香
+				CALL GET_TREASURE,1013,1,FLAG:現ダンジョン,10
+				
+			SIF FLAG:現X == 6 && FLAG:現Y == 11
+			;MAG500
+				CALL GET_TREASURE_MAG,,500,FLAG:現ダンジョン,11
+			;原作なし トラップにしておく
+			SIF FLAG:現X == 12 && FLAG:現Y == 12
+				CALL GET_TREASURE_TRAP,"ＭＰ", 25 , GET_TYPE_NUM("万能"),FLAG:現ダンジョン,12
+				
+			SIF FLAG:現X == 24 && FLAG:現Y == 2
+				;2000円
+				CALL GET_TREASURE_MONEY,0,2000,FLAG:現ダンジョン,13
+				
+			SIF FLAG:現X == 24 && FLAG:現Y == 13
+				;原作なし トラップにしておく
+				CALL GET_TREASURE_TRAP,"ＨＰ", 25 , GET_TYPE_NUM("万能"),FLAG:現ダンジョン,14
+				
+			SIF FLAG:現X == 25 && FLAG:現Y == 13
+				;15000円
+				CALL GET_TREASURE_MONEY,0,15000,FLAG:現ダンジョン,15
+				
+			SIF FLAG:現X == 27 && FLAG:現Y == 9
+				;原作・練気の剣 代用でNameless Sword
+				CALL GET_TREASURE,2449,1,FLAG:現ダンジョン,16
+				
+			SIF FLAG:現X == 28 && FLAG:現Y == 12
+				;原作・遁甲羅盤 代用でScryingBall 
+				CALL GET_TREASURE,1045,1,FLAG:現ダンジョン,17
+				
+	ENDSELECT
+RETURN 1
+
+
+;========
+;罠置き場
+;========
+@TRAP_78
+SELECTCASE FLAG:現M
+	CASE 0
+		IF  FLAG:現X == 29 && FLAG:現Y == 11
+			CALL DUNGEON_TRAP_POISON,40
+		ELSEIF FLAG:現X == 29 && FLAG:現Y == 9
+			CALL DUNGEON_TRAP_MP,10
+		ELSEIF FLAG:現X == 28 && FLAG:現Y == 9
+			CALL DUNGEON_TRAP_MP,10
+		ELSEIF FLAG:現X == 5 && FLAG:現Y == 11
+			CALL DUNGEON_TRAP_MP,10
+		ELSE
+			CALL DUNGEON_TRAP_POISON,40
+		ENDIF
+ENDSELECT
+RETURN 0
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_78
+
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5 - 15
+	CASEELSE
+		FLAG:エンカウント率 = 0
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_78
+RETURN 24, 23, 29, 32
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_78
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_78
+RETURN CLASS_NUM_COMMON("上級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_78, ARG
+RETURN ENEMY_NUM_COMMON("上級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_78, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE RAND:100
+			CASE IS < 13
+				RETURN [[キャラ:オキクムシ]], 23
+			CASE IS < 26
+				RETURN [[キャラ:リャナンシー]], 23
+			CASE IS < 39
+				RETURN [[キャラ:イツマデ]], 24
+			CASE IS < 52
+				RETURN [[キャラ:ネコマタ]], 25
+			CASE IS < 65
+				RETURN [[キャラ:ニスロク]], 26
+			CASE IS < 78
+				RETURN [[キャラ:ヒノエンマ]], 27
+			CASE IS < 91
+				RETURN [[キャラ:アルラウネ]], 28
+			CASE IS < 100
+				RETURN [[キャラ:トドメキ]], 29
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_78
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:2
+	CASE 0
+		RETURN [[キャラ:イツマデ]] , 3 + RAND:10 , CSVBASE([[キャラ:イツマデ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ニスロク]] , 3 + RAND:10 , CSVBASE([[キャラ:ニスロク]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT

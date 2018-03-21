@@ -1,0 +1,767 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:ガチャモード.ERB
+;	Facility	:ショップコマンド[]ガチャの処理。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	000		2017/09/23	名無					新規作成
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;=================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name
+;
+; *- SHOP関連(RPG)
+;
+;	# メニュー関連
+;	・SHOPCOMABLE_125
+;	・SHOP_COM_125
+;	・GACHA_MASCHINE_SHOP
+;
+;	# ガチャ！
+;	・GACHA_ONCE
+;	・GACHA_SEARCH_DEVIL
+;	・GACHA_SEARCH_ITEM
+;
+;=================================================
+@SHOPCOMABLE_125
+	IF FLAG:悪魔ガチャモード > 0
+		RESULTS = ガチャ！
+		RETURN 1
+	ENDIF
+RETURN 0
+
+
+;=================================================
+@SHOP_COM_125
+	CUSTOMDRAWLINE =
+	CALL GACHA_MASCHINE_SHOP
+
+
+;=================================================
+@GACHA_MASCHINE_SHOP
+PRINTFORML 
+PRINTFORML ここにはガチャガチャが置いてある……
+PRINTFORML 
+$GACHA_LOOP_START
+CUSTOMDRAWLINE =
+PRINTFORM ＞現在のピックアップは
+IF TALENT:MASTER:ガチャ > 0
+	LOCAL = (DAY ) % 5
+	SELECTCASE LOCAL
+		CASE 0
+			;なしの日
+			PRINTFORM  無し 
+		CASE 1
+			;性別ピックアップの日
+			LOCAL:1 = (DAY + TIME - 1) % 2
+			SELECTCASE LOCAL:1
+				CASE 0
+					PRINTFORM [女悪魔ピックアップ]
+					FLAG:現在ガチャトピック = 11000140
+				CASE 1
+					PRINTFORM [オトコピックアップ]
+					FLAG:現在ガチャトピック = 01000140
+			ENDSELECT
+		CASE 2
+			;性格の日
+			LOCAL:1 = (DAY + TIME - 1) % 8
+			SELECTCASE LOCAL:1
+				CASE 0
+					PRINTFORM [友愛ピックアップ]
+					FLAG:現在ガチャトピック = 01000201
+				CASE 1
+					PRINTFORM [獰猛ピックアップ]
+					FLAG:現在ガチャトピック = 01000202
+				CASE 2
+					PRINTFORM [愚鈍ピックアップ]
+					FLAG:現在ガチャトピック = 01000203
+				CASE 3
+					PRINTFORM [高慢ピックアップ]
+					FLAG:現在ガチャトピック = 01000204
+				CASE 4
+					PRINTFORM [狡猾ピックアップ]
+					FLAG:現在ガチャトピック = 01000205
+				CASE 5
+					PRINTFORM [冷静ピックアップ]
+					FLAG:現在ガチャトピック = 01000206
+				CASE 6
+					PRINTFORM [残虐ピックアップ]
+					FLAG:現在ガチャトピック = 01000207
+				CASE 7
+					PRINTFORM [賢いピックアップ]
+					FLAG:現在ガチャトピック = 01000208
+			ENDSELECT
+		CASE 3
+			;敏感の日
+			LOCAL:1 = (DAY + TIME - 1) % 4
+			SELECTCASE LOCAL:1
+				CASE 0
+					PRINTFORM [Ｃ敏感ピックアップ]
+					FLAG:現在ガチャトピック = 01000102
+				CASE 1
+					PRINTFORM [Ｂ敏感ピックアップ]
+					FLAG:現在ガチャトピック = 01000104
+				CASE 2
+					PRINTFORM [Ｖ敏感ピックアップ]
+					FLAG:現在ガチャトピック = 01000106
+				CASE 3
+					PRINTFORM [Ａ敏感ピックアップ]
+					FLAG:現在ガチャトピック = 01000108
+			ENDSELECT
+		CASE 4
+			;属性ピックアップの日
+			LOCAL:1 = (DAY + TIME - 1) % 4
+			SELECTCASE LOCAL:1
+				CASE 0
+					PRINTFORM [ライト悪魔ピックアップ]
+					FLAG:現在ガチャトピック = 05000001
+				CASE 1
+					PRINTFORM [ロウ悪魔ピックアップ]
+					FLAG:現在ガチャトピック = 05000002
+				CASE 2
+					PRINTFORM [カオス悪魔ピックアップ]
+					FLAG:現在ガチャトピック = 05000003
+				CASE 3
+					PRINTFORM [ダーク悪魔ピックアップ]
+					FLAG:現在ガチャトピック = 05000004
+			ENDSELECT
+	ENDSELECT
+ELSE
+	PRINTFORM [初回限定無料１０連]
+ENDIF
+PRINTFORML です。
+SIF FLAG:ガチャレベル設定 < 5 || TALENT:MASTER:ガチャ <= 0
+	FLAG:ガチャレベル設定 = 5
+SIF FLAG:ガチャレベル設定 > 80
+	FLAG:ガチャレベル設定 = 80
+PRINTFORML ガチャLV {FLAG:ガチャレベル設定}　　　所持魔貨 {MONEY:1}
+CUSTOMDRAWLINE =
+LOCAL = FLAG:ガチャレベル設定 * 2
+IF TALENT:MASTER:ガチャ > 0
+	IF TALENT:MASTER:ガチャ < DAY
+		PRINTFORML [1] 単発ガチャ　　－　
+		SETCOLOR 0xBB00BB
+		PRINTFORML 一日一回無料！
+		RESETCOLOR
+	ELSE
+		PRINTFORML [1] 単発ガチャ　　－　{LOCAL}魔貨
+	ENDIF
+	PRINTFORML [2] １０連ガチャ　－　{LOCAL * 10}魔貨
+	SIF FLAG:DEBUG
+		PRINTFORML [777] ＳＲ悪魔確定デバッグ用単発ガチャ　－　{LOCAL}魔貨
+ELSE
+	PRINTFORM [2] １０連ガチャ　－　
+	SETCOLOR 0xBB00BB
+	PRINTFORML 初回無料！
+	RESETCOLOR
+ENDIF
+PRINTFORML [3] 排出率の確認
+SIF TALENT:MASTER:ガチャ > 0
+	PRINTFORML [4] レベルの設定
+PRINTFORML [100] もどる
+CUSTOMDRAWLINE =
+
+IF TALENT:MASTER:ガチャ > 0 && FLAG:DEBUG
+	CALL INPUTINT(1, 2, 3, 4, 777, 100)
+ELSEIF TALENT:MASTER:ガチャ > 0
+	CALL INPUTINT(1, 2, 3, 4, 100)
+ELSE
+	CALL INPUTINT(2, 3, 100)
+ENDIF
+
+PRINTFORML 
+SELECTCASE RESULT
+	;１連ガチャ
+	CASE 1
+		IF TALENT:MASTER:ガチャ >= DAY
+			LOCAL = FLAG:ガチャレベル設定 * 2
+			IF MONEY:1 < (LOCAL)
+				PRINTFORMW 魔貨が足りません。
+				GOTO GACHA_LOOP_START
+			ENDIF
+		ELSE
+			TALENT:MASTER:ガチャ = DAY
+		ENDIF
+		MONEY:1 -= LOCAL
+		PRINTFORML ガチャガチャ……
+		PRINTFORMW 
+
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+
+		PRINTFORML 
+		PRINTFORMW ガチャを終了しました。
+		GOTO GACHA_LOOP_START
+
+	;１０連ガチャ
+	CASE 2
+		IF TALENT:MASTER:ガチャ > 0
+			LOCAL = FLAG:ガチャレベル設定 * 2
+			IF MONEY:1 < (LOCAL * 10)
+				PRINTFORMW 魔貨が足りません。
+				GOTO GACHA_LOOP_START
+			ENDIF
+			MONEY:1 -= LOCAL * 10
+		ELSE
+			TALENT:MASTER:ガチャ = DAY
+		ENDIF
+		PRINTFORML ガチャガチャガチャガチャガチャガチャガチャガチャガチャガチャ……
+		PRINTFORMW 
+
+		;最初が悪魔確定、最後がＲ以上確定
+		CALL GACHA_ONCE,1,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,0,FLAG:現在ガチャトピック
+		CALL GACHA_ONCE,2,FLAG:現在ガチャトピック
+
+		PRINTFORML 
+		PRINTFORMW ガチャを終了しました。
+		GOTO GACHA_LOOP_START
+
+	;排出率の確認
+	CASE 3
+		LOCAL = FLAG:ガチャレベル設定 * 2
+		PRINTFORML 　　１％　……ＳＲ……　{FLAG:ガチャレベル設定+1}～{FLAG:ガチャレベル設定+10}LVの「悪魔」
+		PRINTFORML 　　４％　……　Ｒ……　{MAX(FLAG:ガチャレベル設定/2,5)}～{FLAG:ガチャレベル設定+5}LV以下の「悪魔」
+		PRINTFORML 　１５％　……　Ｎ……　{MAX(FLAG:ガチャレベル設定/2,5)}LV以下の「悪魔」
+		PRINTFORML 　　２％　……ＳＲ……　{LOCAL*10}魔貨以内で現在交換可能な装備品・アイテム
+		PRINTFORML 　　８％　……　Ｒ……　{LOCAL*4}魔貨以内で現在交換可能な装備品・アイテム
+		PRINTFORML 　２０％　……　Ｎ……　{LOCAL}魔貨以内で現在交換可能な装備品・アイテム
+		PRINTFORML 　　５％　……ＳＲ……　{LOCAL*500}￥以内で現在購入可能な装備品・アイテム
+		PRINTFORML 　１０％　……　Ｒ……　{LOCAL*200}￥以内で現在購入可能な装備品・アイテム
+		PRINTFORML 　３５％　……　Ｎ……　{LOCAL*50}￥以内で現在購入可能な装備品・アイテム
+		PRINTFORML 　
+		PRINTFORML 　　・１０連ガチャは必ず悪魔が１体、またＲ以上が１つ選出されます。
+		PRINTFORML 　　　ただしＲアイテムでＮのものが出ても泣かない。
+		PRINTFORML 　　・選出後、悪魔は更に４分の１の確率でピックアップ対象から選ばれます。
+		PRINTFORML 　　　ただしピックアップ対象がいない場合は非ピックアップ対象から選ばれます。
+		PRINTFORML 　　　それでもいない場合は一つ下の条件に繰り下がり、改めて選び直します。
+		PRINTFORMW 
+		GOTO GACHA_LOOP_START
+
+	;ガチャレベルの変更
+	CASE 4
+		PRINTFORML ガチャに出てくる悪魔レベルおよびアイテム価格の上限を設定します。
+		PRINTFORML (最低５～最大マスターLVまたは８０まで)
+		CALL INPUT_MANY(0,BASE:MASTER:LV, , "0/1/2/3/4/5")
+		FLAG:ガチャレベル設定 = RESULT
+		GOTO GACHA_LOOP_START
+	;もどる
+	CASE 100
+		RETURN
+	;１連ガチャ
+	CASE 777
+		SIF !(FLAG:DEBUG)
+			GOTO GACHA_LOOP_START
+		IF TALENT:MASTER:ガチャ >= DAY
+			LOCAL = FLAG:ガチャレベル設定 * 2
+			IF MONEY:1 < (LOCAL)
+				PRINTFORMW 魔貨が足りません。
+				GOTO GACHA_LOOP_START
+			ENDIF
+		ELSE
+			TALENT:MASTER:ガチャ = DAY
+		ENDIF
+		MONEY:1 -= LOCAL
+		PRINTFORML SR確定ガチャ……
+		PRINTFORMW 
+
+		CALL GACHA_ONCE,777,FLAG:現在ガチャトピック
+
+		PRINTFORML 
+		PRINTFORMW ガチャを終了しました。
+		GOTO GACHA_LOOP_START
+
+ENDSELECT
+
+
+
+;=================================================
+;みんな大好きガチャ処理　(ARG=1は悪魔確定でARG=2でＲ以上確定。　ARG:3=ピックアップ内容)
+;=================================================
+@GACHA_ONCE(ARG = -1, ARG:3 = -1)
+LOCAL = 0
+	IF ARG == 1
+		LOCAL = RAND:2000000
+	ELSEIF ARG == 2
+		LOCAL = RAND:3000000
+		IF LOCAL >= 1500000
+			LOCAL += 5000000
+		ELSEIF LOCAL >= 500000 && LOCAL < 1500000
+			LOCAL += 2000000
+		ENDIF
+	ELSEIF ARG == 777
+		LOCAL = RAND:100000
+	ELSE
+		LOCAL = RAND:10000000
+	ENDIF
+	;　１％　……ＳＲ……　{FLAG:ガチャレベル設定+1}～{FLAG:ガチャレベル設定+10}LVの「悪魔」
+	IF   LOCAL < 100000
+		IF !(LOCAL % 4)
+			CALL GACHA_SEARCH_DEVIL, FLAG:ガチャレベル設定+1, FLAG:ガチャレベル設定+10, ARG:3
+			IF RESULT > 0
+				CALL ADD_NEW_COMPANION ,RESULT ,0 ,0
+				IF RESULT
+					LOCAL = RESULT:1
+					SIF FLAG:DEBUG
+						PRINTFORM {LOCAL, 5}
+					TALENT:LOCAL:ガチャ = 1
+					SIF FLAG:(20000+NO:LOCAL) < 100
+						FLAG:(20000+NO:LOCAL) = 100
+					SETCOLOR 0x00EEEE
+					PRINTFORM [ＳＲ悪魔]
+					RESETCOLOR
+					PRINTFORML \@ CSTR:LOCAL:種族名 != "" ? %CSTR:LOCAL:種族名% # %STR:(ABL:LOCAL:種族)%\@　%CSTR:LOCAL:種族名% %CALLNAME:LOCAL%
+					RETURN 0
+				ENDIF
+			ENDIF
+		ENDIF
+		CALL GACHA_SEARCH_DEVIL, FLAG:ガチャレベル設定+6, FLAG:ガチャレベル設定+10, 0
+		IF RESULT > 0
+			CALL ADD_NEW_COMPANION ,RESULT ,0 ,0
+			IF RESULT
+				LOCAL = RESULT:1
+				SIF FLAG:DEBUG
+					PRINTFORM {LOCAL, 5}
+				TALENT:LOCAL:ガチャ = 1
+				SIF FLAG:(20000+NO:LOCAL) < 100
+					FLAG:(20000+NO:LOCAL) = 100
+				SETCOLOR 0x00EEEE
+				PRINTFORM [ＳＲ悪魔]
+				RESETCOLOR
+				PRINTFORML \@ CSTR:LOCAL:種族名 != "" ? %CSTR:LOCAL:種族名% # %STR:(ABL:LOCAL:種族)%\@　%CSTR:LOCAL:種族名% %CALLNAME:LOCAL%
+				RETURN 0
+			ENDIF
+			;失敗した場合は次に回す（仲間枠飽和とかも含む）
+		ENDIF
+	ENDIF
+
+	;　４％　……　Ｒ……　{MAX(FLAG:ガチャレベル設定/2,5)}～{FLAG:ガチャレベル設定+5}LV以下の「悪魔」
+	IF   LOCAL < 500000
+		IF !(LOCAL % 4)
+			CALL GACHA_SEARCH_DEVIL, MAX(FLAG:ガチャレベル設定/2,5), FLAG:ガチャレベル設定+5, ARG:3
+			IF RESULT > 0
+				CALL ADD_NEW_COMPANION ,RESULT ,0 ,0
+				IF RESULT
+					LOCAL = RESULT:1
+					SIF FLAG:DEBUG
+						PRINTFORM {RESULT:1, 5}
+					TALENT:LOCAL:ガチャ = 1
+					SIF FLAG:(20000+NO:LOCAL) < 100
+						FLAG:(20000+NO:LOCAL) = 100
+					SETCOLOR 0xEEEE00
+					PRINTFORM [　Ｒ悪魔]　
+					RESETCOLOR
+					PRINTFORML \@ CSTR:LOCAL:種族名 != "" ? %CSTR:LOCAL:種族名% # %STR:(ABL:LOCAL:種族)%\@　%CSTR:LOCAL:種族名% %CALLNAME:LOCAL%
+					RETURN 0
+				ENDIF
+			ENDIF
+		ENDIF
+		CALL GACHA_SEARCH_DEVIL, MAX(FLAG:ガチャレベル設定/2,5), FLAG:ガチャレベル設定+5, 0
+		IF RESULT > 0
+			CALL ADD_NEW_COMPANION ,RESULT ,0 ,0
+			IF RESULT
+				LOCAL = RESULT:1
+				SIF FLAG:DEBUG
+					PRINTFORM {LOCAL, 5}
+				TALENT:LOCAL:ガチャ = 1
+				SIF FLAG:(20000+NO:LOCAL) < 100
+					FLAG:(20000+NO:LOCAL) = 100
+				SETCOLOR 0xEEEE00
+				PRINTFORM [　Ｒ悪魔]　
+				RESETCOLOR
+				PRINTFORML \@ CSTR:LOCAL:種族名 != "" ? %CSTR:LOCAL:種族名% # %STR:(ABL:LOCAL:種族)%\@ %CALLNAME:LOCAL%
+				RETURN 0
+			ENDIF
+			;失敗した場合は次に回す（仲間枠飽和とかも含む）
+		ENDIF
+	ENDIF
+
+	;１５％　……　Ｎ……　{MAX(FLAG:ガチャレベル設定/2,5)}LV以下の「悪魔」
+	IF  LOCAL < 2000000
+		IF !(LOCAL % 4)
+			CALL GACHA_SEARCH_DEVIL, 1, MAX(FLAG:ガチャレベル設定/2,5), ARG:3
+			IF RESULT > 0
+				CALL ADD_NEW_COMPANION ,RESULT ,0 ,0
+				IF RESULT
+					LOCAL = RESULT:1
+					SIF FLAG:DEBUG
+						PRINTFORM {LOCAL, 5}
+					TALENT:LOCAL:ガチャ = 1
+					SIF FLAG:(20000+NO:LOCAL) < 100
+						FLAG:(20000+NO:LOCAL) = 100
+					PRINTFORM [　Ｎ悪魔]　
+					PRINTFORML \@ CSTR:LOCAL:種族名 != "" ? %CSTR:LOCAL:種族名% # %STR:(ABL:LOCAL:種族)%\@ %CALLNAME:LOCAL%
+					RETURN 0
+				ENDIF
+			ENDIF
+		ENDIF
+		CALL GACHA_SEARCH_DEVIL, 1, MAX(FLAG:ガチャレベル設定/2,5), 0
+		IF RESULT > 0
+			CALL ADD_NEW_COMPANION ,RESULT ,0 ,0
+			IF RESULT
+				LOCAL = RESULT:1
+		SIF FLAG:DEBUG
+			PRINTFORM {LOCAL, 5}
+				TALENT:LOCAL:ガチャ = 1
+				SIF FLAG:(20000+NO:LOCAL) < 100
+					FLAG:(20000+NO:LOCAL) = 100
+				PRINTFORM [　Ｎ悪魔]　
+				PRINTFORML \@ CSTR:LOCAL:種族名 != "" ? %CSTR:LOCAL:種族名% # %STR:(ABL:LOCAL:種族)%\@ %CALLNAME:LOCAL%
+				RETURN 0
+			ENDIF
+			;失敗した場合は次に回す（仲間枠飽和とかも含む）
+		ENDIF
+	ENDIF
+
+	;　２％　……ＳＲ……　{LOCAL*10}魔貨以内で現在交換可能なアイテム
+	IF  LOCAL < 2200000
+		CALL GACHA_SEARCH_ITEM, FLAG:ガチャレベル設定 * 2 *10 / 2, 1
+		IF RESULT > 0
+			LOCAL = RESULT
+			SIF FLAG:DEBUG
+				PRINTFORM {LOCAL, 5}
+			SETCOLOR 0x00EEEE
+			PRINTFORM [ＳＲ魔貨]
+			RESETCOLOR
+			PRINTFORM %ITEMNAME:LOCAL%
+			CALL CHECK_ITEMMAX, LOCAL
+			IF RESULT > 0
+				SETCOLOR 0x888888
+				PRINTFORM 　(持ちきれずに破棄しました)
+				RESETCOLOR
+			ELSE
+				CALL GET_ITEM, LOCAL, 1
+			ENDIF
+			PRINTFORML
+			RETURN 0
+		ENDIF
+		;失敗した場合は次に回す
+	ENDIF
+
+	;　８％　……　Ｒ……　{LOCAL*4}魔貨以内で現在交換可能なアイテム
+	IF  LOCAL < 3000000
+		CALL GACHA_SEARCH_ITEM, FLAG:ガチャレベル設定 * 2 *4 /2, 1
+		IF RESULT > 0
+			LOCAL = RESULT
+			SIF FLAG:DEBUG
+				PRINTFORM {LOCAL, 5}
+			SETCOLOR 0xEEEE00
+			PRINTFORM [　Ｒ魔貨]
+			RESETCOLOR
+			PRINTFORM %ITEMNAME:LOCAL%
+			CALL CHECK_ITEMMAX, LOCAL
+			IF RESULT > 0
+				SETCOLOR 0x888888
+				PRINTFORM 　(持ちきれずに破棄しました)
+				RESETCOLOR
+			ELSE
+				CALL GET_ITEM, LOCAL, 1
+			ENDIF
+			PRINTFORML
+			RETURN 0
+		ENDIF
+		;失敗した場合は次に回す
+	ENDIF
+
+	;２０％　……　Ｎ……　{LOCAL}魔貨以内で現在交換可能なアイテム
+	IF  LOCAL < 5000000
+		CALL GACHA_SEARCH_ITEM, FLAG:ガチャレベル設定 * 2 /2, 1
+		IF RESULT > 0
+			LOCAL = RESULT
+			SIF FLAG:DEBUG
+				PRINTFORM {LOCAL, 5}
+			PRINTFORM [　Ｎ魔貨]
+			PRINTFORM %ITEMNAME:LOCAL%
+			CALL CHECK_ITEMMAX, LOCAL
+			IF RESULT > 0
+				SETCOLOR 0x888888
+				PRINTFORM 　(持ちきれずに破棄しました)
+				RESETCOLOR
+			ELSE
+				CALL GET_ITEM, LOCAL, 1
+			ENDIF
+			PRINTFORML
+			RETURN 0
+		ENDIF
+		;失敗した場合は次に回す
+	ENDIF
+
+	;　５％　……ＳＲ……　{LOCAL*500}￥以内で現在購入可能なアイテム
+	IF  LOCAL < 5500000
+		CALL GACHA_SEARCH_ITEM, FLAG:ガチャレベル設定 * 2 * 500 /2, 0
+		IF RESULT > 0
+			LOCAL = RESULT
+			SIF FLAG:DEBUG
+				PRINTFORM {LOCAL, 5}
+			SETCOLOR 0x00EEEE
+			PRINTFORM [ＳＲ￥　]
+			RESETCOLOR
+			PRINTFORM %ITEMNAME:LOCAL%
+			CALL CHECK_ITEMMAX, LOCAL
+			IF RESULT > 0
+				SETCOLOR 0x888888
+				PRINTFORM 　(持ちきれずに破棄しました)
+				RESETCOLOR
+			ELSE
+				CALL GET_ITEM, LOCAL, 1
+			ENDIF
+			PRINTFORML
+			RETURN 0
+		ENDIF
+		;失敗した場合は次に回す
+	ENDIF
+
+	;１０％　……　Ｒ……　{LOCAL*200}￥以内で現在購入可能なアイテム
+	IF  LOCAL < 5500000
+		CALL GACHA_SEARCH_ITEM, FLAG:ガチャレベル設定 * 2 *200 /2, 0
+		IF RESULT > 0
+			LOCAL = RESULT
+			SIF FLAG:DEBUG
+				PRINTFORM {LOCAL, 5}
+			SETCOLOR 0xEEEE00
+			PRINTFORM [　Ｒ￥　]
+			RESETCOLOR
+			PRINTFORM %ITEMNAME:LOCAL%
+			CALL CHECK_ITEMMAX, LOCAL
+			IF RESULT > 0
+				SETCOLOR 0x888888
+				PRINTFORM 　(持ちきれずに破棄しました)
+				RESETCOLOR
+			ELSE
+				CALL GET_ITEM, LOCAL, 1
+			ENDIF
+			PRINTFORML
+			RETURN 0
+		ENDIF
+		;失敗した場合は次に回す
+	ENDIF
+
+	;３５％　……　Ｎ……　{LOCAL*50}￥以内で現在購入可能なアイテム
+	CALL GACHA_SEARCH_ITEM, FLAG:ガチャレベル設定 * 2 *50 /2, 0
+	IF RESULT > 0
+		LOCAL = RESULT
+			SIF FLAG:DEBUG
+				PRINTFORM {RESULT, 4}
+		PRINTFORM [　Ｎ￥　]
+		PRINTFORM %ITEMNAME:LOCAL%
+		CALL CHECK_ITEMMAX, LOCAL
+		IF RESULT > 0
+			SETCOLOR 0x888888
+			PRINTFORM 　(持ちきれずに破棄しました)
+			RESETCOLOR
+		ELSE
+			CALL GET_ITEM, LOCAL, 1
+		ENDIF
+		PRINTFORML
+		RETURN 0
+	ENDIF
+	;失敗した場合は次に回す
+
+	PRINTFORML  エラー発生
+RETURN
+
+
+;=================================================
+;対象悪魔サーチ(ARG:1=下限レベル、ARG:2=上限レベル、ARG:3=ピックアップ内容)
+;帰す値は仲魔になった悪魔の番地またはアイテムNO、失敗したら-1帰す
+;ピックアップ内容は、XYZZZZZZ　Y=1でZ番の素質、Y=5でアライメント(1:Light、2:Law、3:C、4:Dark)を見る
+;ただしXが1の時はYの条件がそれではない時を見る
+;=================================================
+@GACHA_SEARCH_DEVIL, ARG:1=1, ARG:2=5, ARG:3 = -1
+
+;LOCAL:1番が選出された悪魔のNO
+LOCAL:1 = -1
+;LOCAL:2番が候補になった悪魔の総数
+LOCAL:2 = 0
+;LOCAL:3番が候補になった悪魔のRAND抽選用
+LOCAL:3 = 0
+;LOCAL:4番はピックアップの真偽チェック
+LOCAL:4 = 0
+;LOCAL:6はFORループ用
+LOCAL:6 = 0
+
+FOR LOCAL:6, 0, 1800
+	SIF !EXISTCSV(LOCAL:6, 0)
+		CONTINUE
+	IF ARG:3 > 0
+		SIF !CSVTALENT(LOCAL:6, (ARG:3 % 1000000), 0)
+			CONTINUE
+	ENDIF
+	SIF CSVCFLAG(LOCAL:6,(GETNUM(CFLAG,"全書召喚不可")),0) == 1
+		CONTINUE
+	SIF CSVCFLAG(LOCAL:6,(GETNUM(CFLAG,"合体条件有り")),0) == 1
+		CONTINUE
+	SIF CSVCFLAG(LOCAL:6,(GETNUM(CFLAG,"特殊合体のみ")),0) == 1
+		CONTINUE
+	SIF CSVABL(LOCAL:6, GETNUM(ABL, "種族")) <= 0
+		CONTINUE
+	SIF CSVABL(LOCAL:6, GETNUM(ABL, "種族")) >= 45
+		CONTINUE
+	SIF CSVBASE(LOCAL:6,(GETNUM(BASE, "LV")),0) < ARG:1
+		CONTINUE
+	SIF CSVBASE(LOCAL:6,(GETNUM(BASE, "LV")),0) > ARG:2
+		CONTINUE
+
+	;こっからピックアップ検出
+	IF ARG:3 > 0
+		;LOCAL:4が0なら真の時、1なら偽の時スルー出来る。
+		LOCAL:4 = ARG:3 / 10000000
+		;1は素質
+		IF (ARG:3 % 10000000) / 1000000 == 1
+			SIF CSVTALENT(LOCAL:6, (ARG:3 % 1000000) , 0) && LOCAL:4 == 0
+				CONTINUE
+			SIF !CSVTALENT(LOCAL:6, (ARG:3 % 1000000) , 0) && LOCAL:4 == 1
+				CONTINUE
+
+		;5はアライメント
+		ELSEIF (ARG:3 % 10000000) / 1000000 == 5
+			;余り1はライト
+			SIF (ARG:3 % 1000000) == 1 && CSVABL(LOCAL:6, GETNUM(ABL, "属性LD")) == 1 && LOCAL:4 == 0
+				CONTINUE
+			SIF (ARG:3 % 1000000) == 1 && !(CSVABL(LOCAL:6, GETNUM(ABL, "属性LD")) == 1) && LOCAL:4 == 1
+				CONTINUE
+			;余り2はロウ
+			SIF (ARG:3 % 1000000) == 2 && CSVABL(LOCAL:6, GETNUM(ABL, "属性LC")) == 3 && LOCAL:4 == 0
+				CONTINUE
+			SIF (ARG:3 % 1000000) == 2 && !(CSVABL(LOCAL:6, GETNUM(ABL, "属性LC")) == 3) && LOCAL:4 == 1
+				CONTINUE
+			;余り3はカオス
+			SIF (ARG:3 % 1000000) == 3 && CSVABL(LOCAL:6, GETNUM(ABL, "属性LC")) == 3 && LOCAL:4 == 0
+				CONTINUE
+			SIF (ARG:3 % 1000000) == 3 && !(CSVABL(LOCAL:6, GETNUM(ABL, "属性LC")) == 3) && LOCAL:4 == 1
+				CONTINUE
+			;余り4はダーク
+			SIF (ARG:3 % 1000000) == 4 && CSVABL(LOCAL:6, GETNUM(ABL, "属性LD")) == 1 && LOCAL:4 == 0
+				CONTINUE
+			SIF (ARG:3 % 1000000) == 4 && !(CSVABL(LOCAL:6, GETNUM(ABL, "属性LD")) == 1) && LOCAL:4 == 1
+				CONTINUE
+		ENDIF
+
+	ENDIF
+
+	LOCAL:2++
+	;ここまで通ったなら抽選チャンス
+	IF LOCAL:1 < 0
+		;これが初めてならそのまま入力
+		LOCAL:1 = LOCAL:6
+	ELSE
+		LOCAL:3 = RAND:(LOCAL:2 * 100)
+		SIF LOCAL:3 >= 100
+			CONTINUE
+		LOCAL:1 = LOCAL:6
+	ENDIF
+NEXT
+
+;ガチャ失敗を返す
+SIF LOCAL:1 <= 0
+	RETURN -1
+
+;ここまで来たら成功なのでキャラ番号を返す
+RETURN LOCAL:1
+
+;=================================================
+;対象アイテムサーチ(ARG:1=金額上限、ARG:3=マニーか魔貨か)
+;帰す値はアイテムNO、失敗したら-1帰す
+;ARG:3は0で￥、1で魔貨
+;ただしXが1の時はYの条件がそれではない時を見る
+;=================================================
+@GACHA_SEARCH_ITEM, ARG:1=25, ARG:3 = 0
+
+
+;LOCAL:1番が選出されたアイテムのNO
+LOCAL:1 = -1
+;LOCAL:2番が選出された総数
+LOCAL:2 = 0
+;LOCAL:3番が候補になったアイテムのRAND抽選用
+LOCAL:3 = 0
+;LOCAL:4番は0:￥か1:魔貨か。
+LOCAL:4 = ARG:3
+;LOCAL:5番はARG:1の記録
+LOCAL:5 = ARG:1
+;SIF LOCAL:5 < 15
+;	LOCAL:5 = 15
+;SIF LOCAL:5 < 75 && LOCAL:4 == 0
+;	LOCAL:5 = 75
+;LOCAL:6はFORループ用
+LOCAL:6 = 0
+
+;３分の１で装備、３分の２で消耗品。
+LOCAL:3 = RAND:9999
+IF (LOCAL:3 % 3) == 0
+	FOR LOCAL:6,2000,VARSIZE("ITEM")
+		SIF ITEMPRICE:(LOCAL:6) < 10 || ITEMPRICE:(LOCAL:6) > LOCAL:5
+			CONTINUE
+		RESULT = 0
+		IF LOCAL:4 == 0
+			TRYCALLFORM 購入条件_{LOCAL:6}
+			SIF RESULT == 0
+				CONTINUE
+		ELSE
+			TRYCALLFORM EQUIP_EXCHANGE_{LOCAL:6}
+			SIF RESULT == 0
+				CONTINUE
+		ENDIF
+		RESULT = 12
+		TRYCALLFORM 装備箇所_{(LOCAL:6)}
+		SIF RESULT < 0 && RESULT > 7
+			CONTINUE
+
+		LOCAL:2++
+		;ここまで通ったなら抽選チャンス
+		IF LOCAL:1 < 0
+			;これが初めてならそのまま入力
+			LOCAL:1 = LOCAL:6
+		ELSE
+			LOCAL:3 = RAND:(LOCAL:2 * 100)
+			SIF LOCAL:3 >= 100
+				CONTINUE
+			LOCAL:1 = LOCAL:6
+		ENDIF
+	NEXT
+ELSE
+	FOR LOCAL:6,1000,2000
+		SIF ITEMPRICE:(LOCAL:6) < 10 || ITEMPRICE:(LOCAL:6) > LOCAL:5
+			CONTINUE
+		RESULT = 0
+		IF LOCAL:4 == 0
+			TRYCALLFORM 道具購入条件_{LOCAL:6 +2000}
+			SIF RESULT == 0
+				CONTINUE
+		ELSE
+			TRYCALLFORM ITEM_EXCHANGE_{LOCAL:6 +2000}
+			SIF RESULT == 0	
+				CONTINUE
+		ENDIF
+
+		LOCAL:2++
+		;ここまで通ったなら抽選チャンス
+		IF LOCAL:1 < 0
+			;これが初めてならそのまま入力
+			LOCAL:1 = LOCAL:6
+		ELSE
+			LOCAL:3 = RAND:(LOCAL:2 * 100)
+			SIF LOCAL:3 >= 100
+				CONTINUE
+			LOCAL:1 = LOCAL:6
+		ENDIF
+	NEXT
+ENDIF
+
+;ガチャ失敗を返す
+SIF LOCAL:1 <= 0
+	RETURN -1
+
+;ここまで来たら成功なのでアイテム番号を返す
+RETURN LOCAL:1

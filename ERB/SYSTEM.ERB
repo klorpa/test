@@ -1,0 +1,1296 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SYSTEM.ERB
+;	Facility	:ゲーム開始時・ロード時等に行う処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/19		P						労役のシフト処理を追加
+;	003		2011/01/19		P						トリッシュの処理を変更
+;	004		2011/01/19		Ｎ鳥					破産ゲームオーバーをコメントアウト
+;	005		2011/02/04		P						ダンジョン内調教終了時にABLチェックに飛ぶように
+;	006		2011/02/06		Rsp暇人					ターン終了時に酔い覚まし処理を追加
+;	007		2011/04/24		P						ゲーム開始時にPALAMLV10~13を定義するように
+;	008		2012/12/02		ネトリス				ダンジョンから帰還したときに『CFLAG:ダンジョン内発情用欲情値』を０にするように変更
+;													ダンジョンから帰還したときに汚れもリセット
+;	009		2013/01/07		TR						エンディング日数制限をENDING.ERBで個別処理するように
+;	010		2014/10/21		ネトリス				デビオク処理を追加
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+
+
+@EVENTFIRST
+
+;FOR LOCAL , 0 , 100
+;	PRINTFORML CASE {LOCAL}
+;	PRINTFORML 	VARSIZE ダンジョン%TOSTR(LOCAL , "00")%
+;NEXT
+;WAIT
+
+
+IF FLAG:SHOP→SHOPフラグ
+	FLAG:SHOP→SHOPフラグ = 0
+	BEGIN SHOP
+ENDIF
+DAY = 1
+DAY:1 = 10
+MONEY:2 = 50000
+FLAG:1 = 0
+FLAG:探索時初期着衣設定 = 0
+FLAG:6 = 1
+;FLAG:今までのキャラ数 = 1
+FLAG:99 = 8
+FLAG:ＣＯＭＰ容量 = 8
+ITEM:Albert = 0
+EQUIP:MASTER:Albert = 0
+FLAG:合体予定悪魔1 = -1
+FLAG:合体予定悪魔2 = -1
+TARGET:1 = -1
+TARGET:2 = -1
+TARGET:3 = -1
+ASSI:1 = -1
+ASSI:2 = -1
+
+;GLOBAL変数読み込みor設定
+GLOBAL:メッセージ速度 = 1
+GLOBAL:オート時ウェイト = 500
+GLOBAL:右クリック時ウェイト = 1000
+GLOBAL:メッセージアニメ利用 = 1
+LOADGLOBAL
+
+;相性カラー初期設定
+FLAG:通常カラー = 192192192
+FLAG:弱点カラー = 102255255
+FLAG:耐性カラー = 102102102
+FLAG:無効カラー = 153000000
+FLAG:吸収カラー = 153000000
+FLAG:反射カラー = 153000000
+;オートリカバー初期設定
+FLAG:オートリカバー設定1 = 15
+FLAG:オートリカバー設定2 = 505050505050505
+FLAG:オートリカバー設定3 = 90000
+FLAG:プレイ開始時間 = GETMILLISECOND()
+FLAG:ショップコマンドを並べる数 = PRINTCPERLINE() > 0 ? PRINTCPERLINE() # 3
+FLAG:調教コマンドを並べる数 = PRINTCPERLINE() > 0 ? PRINTCPERLINE() # 3
+FLAG:調教パラメータを並べる数 = PRINTCPERLINE() > 0 ? PRINTCPERLINE() # 4
+CALL SET_DIFFICULT
+CALL SELECT_COLOSSEUM_RANDOMBATTLE
+
+MONEY = 3000
+;能力や相性などの要素数を指定
+CALL CONFIG_ELEMENT_NUM
+
+;ポジション初期化
+REPEAT 16
+	LOCALS = ポジション{COUNT+1}
+	FLAG:LOCALS = -1
+REND
+TFLAG:3 = -1
+
+
+CALL SET_MASTER
+CFLAG:MASTER:娘の父親の固有番号娘 = -1
+CFLAG:MASTER:娘の産みの親の固有番号娘 = -1
+;主人の経験値、マグネタイトの初期化
+BASE:MASTER:ＥＸＰ = 200
+BASE:MASTER:ＭＡＧ = 3000
+;主人の相性を設定
+CALL SET_RELATION, MASTER
+;ポジション2に指定
+CFLAG:MASTER:ポジション = 2
+FLAG:ポジション2 = 0
+CFLAG:MASTER:PTフラグ = 2
+SIF TALENT:MASTER:異能者 == 0 && TALENT:MASTER:達人 == 0
+	CALL STATUS_BONUS,MASTER,12
+;能力の同期化
+CALL SYNC_STATUS,0
+CALL HEALTH_CHARA,0
+
+
+CALL OPENING
+
+
+TARGET = 1
+SIF FLAG:DEBUG
+	TRYCALL DEBUG_MODE
+
+BEGIN SHOP
+
+;-----------------------------------------------------------------
+;難易度設定
+;-----------------------------------------------------------------
+@SET_DIFFICULT
+DO
+PRINTL ★★Please select training difficulty★★
+;PRINTL ※始めてプレイする方、奴隷を売却したくない方にはEasyがおすすめです。
+PRINTL [0]EASY
+PRINTL [1]NORMAL
+PRINTL [2]HARD
+PRINTFORML [99]DEBUG \@ FLAG:DEBUG ? [ON ] # [OFF] \@
+	CALL INPUTINT,0,1,2,99
+	SELECTCASE RESULT
+		CASE 0,1,2
+			FLAG:調教難易度 = RESULT+1
+			BREAK
+		CASE 99
+			CLEARLINE 7
+			FLAG:DEBUG = FLAG:DEBUG ? 0 # 1
+	ENDSELECT
+LOOP 1
+
+PRINTL ★★Please select combat difficulty★★
+PRINTL [0]EASY - Damage allies receive will be 75% 
+PRINTL [1]NORMAL
+PRINTL [2]HARD - Damage allies receive will be 150%
+PRINTL [3]MANIACS - HARD + Enemy stats are greatly increased.
+PRINTL [4]LUNATIC - MANIACS but enemy stats are even higher, Damage allies receive will be 200%
+PRINTL [5]Nightmare (HOLY SHIT ARE YOU SERIOUS?!)
+CALL INPUTINT,0,1,2,3,4,5
+FLAG:戦闘難易度 = RESULT+1
+PRINTL
+
+PRINTL ★★Please select battle disobedience event setting★★
+PRINTL [0] None
+PRINTL Desc: There will be no disobedience events.
+PRINTL 　　　　The behavior will be the same as vanilla.
+PRINTL [1] FLAVOR
+PRINTL Desc: Only flavior disobedience events will occur during battle.
+PRINTL 　　　　Theese events are text-only and don't inhibit combat in any way.
+PRINTL [2] EASY
+PRINTL Desc: Low difficulty disobedience events can occur during battle.
+PRINTL 　　　　May result in power increase or decrease, but no orders will be resisted.
+PRINTL [3] NORMAL
+PRINTL Desc: Normal difficulty disobedience events can occur during battle.
+PRINTL 　　　　Shifts balance and makes games more difficult. Demons may disobey orders.
+PRINTL [4] HARD
+PRINTL Desc: High difficulty disobedience events can occur during battle.
+PRINTL 　　　　※Not yet implemented.
+CALL INPUTINT( 0, 1, 2, 3, 4)
+FLAG:戦闘時ボイコット設定 = RESULT
+PRINTL
+
+PRINTL ★★EXTRA Events. Please select (Megaten Events) settings★★
+PRINTL [0] None
+PRINTL Desc: Forbids non-megaten events occuring.
+PRINTL 　　　　Also suppresses the appearance of non-megaten demons in some dungeons.
+PRINTL [1] Yes
+PRINTL Desc: Allows non-megaten events occuring.
+PRINTL 　　　　Also allows the appearance of non-megaten demons in some dungeons.
+CALL INPUTINT( 0, 1)
+IF RESULT == 0
+	CLEARBIT FLAG:EXTRAイベント設定, 0
+ELSE
+	SETBIT FLAG:EXTRAイベント設定, 0
+ENDIF
+PRINTL
+
+PRINTL ★★Three-size appearance setting★★
+;外見・スリーサイズ機能を利用しますか？
+PRINTL ※This option can be changed in the settings menu at a later time
+PRINTL [0] Don't use
+;利用しない
+PRINTL Desc: Three-size appearance will not be used
+;説明　：外見・スリーサイズ機能を利用しません。
+PRINTL [1] Use it
+;利用します
+PRINTL Desc: Three-size appearance function is used
+;説明　：外見・スリーサイズ機能を利用します。
+PRINTL 　　　　Additional appearance characteristica will be shown on the third status page
+PRINTL 　　　　of a character, some of which can be customized in the 'change name/nick' menu.
+PRINTL 　　　　There are also some items that can change this appearance further, that become available.
+;外見・スリーサイズが表示されます。また、変更を行うアイテムが追加されます。
+CALL INPUTINT( 0, 1)
+CALL SETTING_SET_3SIZE, RESULT
+PRINTL
+
+
+IF FLAG:経験ED数 > 0
+	PRINTL ★★Please select the combat stat calculation for human characters★★
+	;戦闘時の人間のステータス計算方式を選択してください
+	PRINTL [0] Normal (Vanilla Setting)
+	PRINTL Desc: Default eraMegaten setting.
+	PRINTL 　　　　Human stat impact during battle is about half of a demons.
+	;戦闘中の処理に反映される人間のステータスは悪魔の半分程度。
+	PRINTL [1] Improved Accuracy
+	PRINTL Desc: Setting where the to hit ratio for humans is calculated similar as for demons.
+	;命中率に関わるステータスの計算法を悪魔のものに近づけた設定。
+	PRINTL 　　　　Use this is you are irritated by missed attacks using the default setting.
+	;通常モードで攻撃が当たらずイライラしているあなたに。
+	PRINTL [2] Overal Raise
+	PRINTL Desc: Setting where most stats except ＨＰ and ＭＰ are calculated similar to demons.
+	;ＨＰ・ＭＰ以外のすべてのステータスの計算法を悪魔のものに近づけた設定。
+	PRINTL 　　　　Humans remain weaker, since a few stats are not affected.
+	;それでも悪魔よりは１～２回り弱いので油断は禁物。
+	PRINTL [3] Boost equipment stats by （LV/2）％
+	;装備品の補正を（LV/2）％の強化
+	PRINTL Desc: The effectiveness of human equipment is boosted by （LV/2）％ per LV.
+	;人間の装備品の補正を（LV/2）％の強化。
+	PRINTL 　　　　25 percent for level 50, 35 percent for level 70, etc...
+	;レベル50であれば25パーセント、レベル70であれば35パーセント。
+	CALL INPUTINT( 0, 1, 2, 3)
+	FLAG:人間戦闘ステ設定 = RESULT
+	PRINTL
+
+	PRINTL ★★Affinity impact setting during combat★★
+	;戦闘時の素質影響設定
+	PRINTL [0] Normal (vanilla setting)
+	;通常(バニラ設定)
+	PRINTL Desc　:eraMegaten default setting.
+	;説明　：eraMegaten本来の設定。
+	;※Not actually the default setting, things worked with Affinity for some skills before this setting was a thing
+	PRINTL 　　　　Affinity doesn't affect skill power and MP cost.
+	;素質による威力アップやコストカットは影響しない。
+	PRINTL [1] Affinity effect
+	;素質影響
+	PRINTL Desc　:Depending on Affinity, some skills will be affected.
+	;説明　：素質によるコストカットや
+	PRINTL 　　　　Affected skills will have increased power and/or reduced MP cost.
+	;威力アップの影響を受けるようになる。
+	PRINTL 　　　　※Affinities are specific to a character and can't be viewed.
+	PRINTL 　　　　※However, the effect on affected skills should be apparent.
+
+	CALL INPUTINT( 0, 1)
+	CALL BATTLE_SETTING_SET_TALENT, RESULT
+	PRINTL
+
+	PRINTL ★★Status effect influence on evasion★★
+	;戦闘時のバステ必中設定
+	PRINTL [0] Normal (vanilla setting)
+	;通常(バニラ設定)
+	PRINTL Desc　:eraMegaten default setting.
+	;説明　：eraMegaten本来の設定。
+	PRINTL 　　　　Attacks can be evaded even if suffereing from movement impeding status-effects.
+	;身動きの取れないバステでも回避が発生する。
+	PRINTL [1] Status effect unevasion
+	;[1] バステ必中
+	PRINTL Desc　:When affected by a movement impeding status-effect,
+	;説明　：身動きの取れないバステで
+	PRINTL 　　　　evasion becomes impossible.
+	;回避が不可能になる。
+	CALL INPUTINT( 0, 1)
+	CALL BATTLE_SETTING_SET_BAD_STATUS, RESULT
+	PRINTL
+
+	PRINTL ★★1more battle setting★★
+	;戦闘時の1more動作設定
+	PRINTL [0] Normal (vanilla setting)
+	;通常(バニラ設定)
+	PRINTL Desc　:eraMegaten default setting.
+	PRINTL 　　　　１MORE happens every time an enemy targets a characters weak-points.
+	;敵に弱点を一回でも突かれると１MORE発生する。
+	PRINTL [1] Alternate
+	;変更
+	PRINTL Desc　:Invalid, refelected, absorbed and otherwise avoided attacks
+	;説明　：無効や反射、吸収や回避で
+	PRINTL 　　　　no longer grant a １MORE. It becomes harder for the enemy to trigger １MORE.
+	;敵が１MOREしにくくなる。
+	CALL INPUTINT( 0, 1)
+	CALL BATTLE_SETTING_SET_1MORE, RESULT
+
+	PRINTL
+	PRINTL ★★装備耐性・効果変更設定★★
+	PRINTL ※Not yet implemented. Pick normal I guess?
+	PRINTL [0] Normal (vanilla setting)
+	PRINTL Desc　:eraMegaten default setting.
+	PRINTL 　　　　装備による耐性・効果を変更しません。
+	PRINTL [1] 影響する
+	PRINTL 説明　：装備による耐性・効果を変更します。
+	PRINTL 　　　　(説明文募集中、未実装)
+	CALL INPUTINT( 0, 1)
+	CALL BATTLE_SETTING_SET_EQUIP_EFFECT, RESULT
+	PRINTL
+ENDIF
+
+IF GETBIT(FLAG:発見ED,0)
+	PRINTL
+	PRINTL ★★魔貨レート変動設定★★
+	PRINTL [0] 通常(バニラ設定)
+	PRINTL 説明　：eraMegaten本来の設定。
+	PRINTL 　　　　魔貨レートは変動せず1魔貨＝￥50となります。
+	PRINTL [1] 変更する
+	PRINTL 説明　：毎日魔貨レートが変動するようになります。
+	PRINTL 　　　　レート範囲は1魔貨＝￥1～￥100となります。
+	CALL INPUTINT( 0, 1)
+	CALL SETTING_SET_MAKKA_RATE, RESULT
+	PRINTL
+ENDIF
+
+;;=================================================================================
+;;レベルアップ・イベントでの能力ボーナス
+;;=================================================================================
+;@STATUS_BONUS,ARG,ARG:1
+;	CUSTOMDRAWLINE =
+;	PRINTL
+;	PRINTFORML %NAME:ARG%に{ARG:1}ポイントのボーナスが与えられます。
+;	PRINTW 好きに割り振ってください。
+;
+;	REPEAT 6
+;	LOCAL:(COUNT+2) = 0
+;	REND
+;	LOCAL:1 = ARG:1
+;	$INPUT_UP_STATUS
+;	LOCAL = 0
+;	PRINTFORML %STR:(ABL:ARG:種族)%　　%CALLNAME:ARG%　　
+;	PRINTFORML 　　LV{BASE:ARG:LV,3}
+;	CUSTOMDRAWLINE ･
+;	WHILE LOCAL:1 > LOCAL
+;	PRINTL どの能力を上げる？
+;	PRINTL
+;	REPEAT 6
+;		PRINTFORML [{COUNT+1}]%BASENAME:(31+COUNT),4% {BASE:ARG:(31+COUNT)+LOCAL:(2+COUNT),3}　　　
+;	REND
+;	PRINTL
+;	PRINTFORML 残り{LOCAL:1-LOCAL,2}ポイント
+;	PRINTL
+;	CALL INPUTINT,1,2,3,4,5,6
+;	LOCAL:(1+RESULT) += 1
+;	LOCAL += 1
+;	CLEARLINE 12
+;	WEND
+;
+;	PRINTL
+;	REPEAT 6
+;	PRINTFORML [{COUNT+1}]%BASENAME:(31+COUNT),4% {BASE:ARG:(31+COUNT)+LOCAL:(2+COUNT),3}　　　
+;	REND
+;
+;	PRINTL
+;	PRINTL よろしいですか？
+;	CALL INPUT_YN
+;	IF RESULT == 1
+;	REPEAT 6
+;		LOCAL:(COUNT+2) = 0
+;	REND
+;	GOTO INPUT_UP_STATUS
+;	ENDIF
+;
+;	REPEAT 6
+;	BASE:ARG:(GET_BASESTATUS(COUNT+1)) += LOCAL:(2+COUNT)
+;	REND
+
+;=================================================================================
+;@STATUS_BONUS
+;新レベルアップ・イベントでの能力ボーナス
+;ARG   対象キャラ
+;ARG:1 ボーナスポイント
+;ARG:2 未使用
+;=================================================================================
+@STATUS_BONUS,ARG,ARG:1,ARG:2 = 0
+	#DIM DYNAMIC 消費済み,1
+	#DIM DYNAMIC カーソル,1
+	#DIM DYNAMIC 能力値上昇,6
+	#DIMS DYNAMIC 元値表示,6
+	#DIMS キー,4
+	SPLIT \@ FLAG:ダンジョン内操作設定 == 0 ? 8_4_6_2 # w_a_s_d \@,"_",キー
+	REDRAW 0
+
+	FOR LOCAL,0,6
+		LOCALS = %GET_BASESTATUS(LOCAL+1)%
+		元値表示:LOCAL =  %GET_BASESTATUS_E(LOCAL+1),4%：{BASE:ARG:LOCALS,4}({MAXBASE:ARG:LOCALS,4}) 
+	NEXT
+
+	CUSTOMDRAWLINE ･
+	PRINTFORML %種族名(ARG)%　　%CALLNAME:ARG%　　
+	PRINTFORML 　　LV{BASE:ARG:LV}　　　%GET_ALI1(ABL:ARG:属性LD),7%/%GET_ALI2(ABL:ARG:属性LC),7%
+	CUSTOMDRAWLINE ･
+	PRINTL Raise which stat?
+
+	WHILE 1
+		PRINTFORML 〔Remaining: {ARG:1-消費済み,2} points〕
+		FOR LOCAL,0,6
+			PRINTFORML % カーソル == LOCAL ? "●→" # "　　"% %元値表示:LOCAL% + {能力値上昇:LOCAL,2}
+		NEXT
+		
+		VARSET RESULTS,"",0,20
+		RESULTS:16 = _Enter_Confirm_%ARG:1 == 消費済み ? "" # "0x404040"%
+		;確定
+		CALL INPUT_ONEKEY_TAP_RESULTS(FLAG:ダンジョン内操作設定,"=","_")
+		SELECTCASE RESULTS
+			CASE "4","a","A"
+				IF 能力値上昇:カーソル > 0
+					能力値上昇:カーソル -= 1
+					消費済み -= 1
+				ENDIF
+			CASE "6","d","D"
+				IF ARG:1 > 消費済み
+					能力値上昇:カーソル += 1
+					消費済み += 1
+				ENDIF
+			CASE "8","w","W"
+				カーソル = カーソル == 0 ? 5 # カーソル-1
+			CASE "2","s","S"
+				カーソル = カーソル == 5 ? 0 # カーソル+1
+			CASE ""
+				IF ARG:1 == 消費済み 
+					PRINTL Is this ok?
+					CALL INPUT_YN,"Yes","No"
+					SIF RESULT == 1
+						RESTART
+					FOR LOCAL,0,6
+						BASE:ARG:(GET_BASESTATUS(LOCAL+1)) += 能力値上昇:LOCAL
+					NEXT
+					REDRAW 3
+					RETURN
+				ENDIF 
+		ENDSELECT
+		CLEARLINE 13
+	WEND
+
+;========================================================================
+;ゲームオーバー
+;========================================================================
+@GAME_OVER
+CUSTOMDRAWLINE =
+PRINTLC [0]Finish
+PRINTLC [1]Load Data
+;PRINTLC [2]最初からやり直す
+PRINTL 
+
+CALL INPUTINT,0,1
+SELECTCASE RESULT
+	CASE 0
+		PRINTW Thank you for playing. Emuera will quit now.
+		;お疲れ様でした。Emueraを終了します。
+		PRINTW お休みの間悪魔に体を乗っ取られぬようお気をつけて……
+	CASE 1
+		CALL TITLE_LOADGAME
+		PRINTW No data was loaded, the game will quit now.
+		;データをロードしなかったので終了します
+;	CASE 2
+;		FLAG:脱出 = 0
+;		FLAG:ショップコマンド = 0
+;		FLAG:ソーマギフト = 0
+;		FLAG:BeadChainギフト = 0
+;		FLAG:周回回数 -= 1
+;		FLAG:SHOP→SHOPフラグ = 1
+;		JUMP SHOP_COM_777
+;		IF RESULT == 0
+;			PRINTW お疲れ様でした。Emueraを終了します。
+;			PRINTW お休みの間悪魔に体を乗っ取られぬようお気をつけて……
+;		ENDIF
+ENDSELECT
+QUIT
+
+@EVENTCOM
+#PRI
+#DIM CHARA , 1
+REPEAT 35
+	TFLAG:COUNT = 0
+REND
+;加算と同時に初期化をしているのでいらないはず
+;REPEAT 101
+;	SIF MASTER > -1
+;		TCVAR:MASTER:COUNT = 0
+;	SIF TARGET > -1
+;		TCVAR:TARGET:COUNT = 0
+;	SIF ASSI > -1
+;		TCVAR:ASSI:COUNT = 0
+;REND
+FOR LOCAL:1 , 0 , 3
+	SELECTCASE LOCAL:1
+		CASE 0
+			CHARA = MASTER
+		CASE 1
+			CHARA = TARGET
+		CASE 2
+			SIF ASSI == -1
+				BREAK
+			CHARA = ASSI
+	ENDSELECT
+	FOR LOCAL,0,5
+		LOCALS = %AUTO_SPLIT("Ｃ/Ｖ/Ａ/乳首/乳房" , "/" , LOCAL)%
+		IF TEQUIP:CHARA:("被覆愛撫" + LOCALS) && TEQUIP:CHARA:("服内部愛撫" + LOCALS)
+			TEQUIP:CHARA:("衣装付き愛撫パターン" + LOCALS) = 1 + RAND:2
+		ELSEIF TEQUIP:CHARA:("被覆愛撫" + LOCALS)
+			TEQUIP:CHARA:("衣装付き愛撫パターン" + LOCALS) = 1
+		ELSEIF TEQUIP:CHARA:("服内部愛撫" + LOCALS)
+			TEQUIP:CHARA:("衣装付き愛撫パターン" + LOCALS) = 2
+		ELSE
+			TEQUIP:CHARA:("衣装付き愛撫パターン" + LOCALS) = 0
+		ENDIF
+	NEXT
+	IF !TFLAG:挿入続行
+		TEQUIP:CHARA:口挿入者 = -1
+		TEQUIP:CHARA:Ｖ挿入者 = -1
+		TEQUIP:CHARA:Ａ挿入者 = -1
+	ENDIF
+	;膣内の汚れが初期値の場合、膣内の精液量を0にする
+	SIF GET_STAIN("膣内", TOSTR(CHARA) ) == 1
+		TCVAR:CHARA:101 = 0
+	
+	;射精箇所と射精相手を初期化
+	TCVAR:CHARA:ペニス使用対象 = -1
+	TCVAR:CHARA:射精箇所 = 14
+NEXT
+TFLAG:挿入続行 = 0
+TFLAG:メッセージパターン = 0
+TFLAG:100 = 0
+TFLAG:調教者絶頂強度 = 0
+CALL COM_ORDER, SELECTCOM
+SIF RESULT == 0
+	SELECTCOM = 999
+
+@EVENTCOMEND
+#PRI
+
+CALL 気絶処理,TARGET
+IF RESULT != 0
+	PRINTW （Stamina is coming to it's limit and the training is ended）
+	;（体力が限界に来ています　調教を終了します）
+	BEGIN AFTERTRAIN
+ENDIF
+
+
+@EVENTTURNEND
+#PRI
+IF FLAG:ダンジョン内調教 == 1
+	ASSI = FLAG:ダンジョン内調教助手退避
+	;---- EDIT 004 ADD START -------------------------
+	;陥落素質や主人のABLの成長を判定する
+	CALL EVENTCHECK_ABL
+	;---- EDIT 004 ADD END　 -------------------------
+	FLAG:ダンジョン内調教 = 0
+	FLAG:ショップコマンド = [[ショップ:探索]]
+	;---- EDIT 003 ADD START -------------------------
+	;トリッシュテイクアウトの位置をSYSTEM_DUNGEON内に変更
+	IF FLAG:トリッシュ調教 == 1
+		PRINTW ＞トリッシュと別れて、回復の泉を出た…
+		FLAG:トリッシュ調教 = 2
+		CFLAG:"Contraceptive barrier" = 0
+		TARGET = -1
+	ELSE
+		TRYCALLFORM TRAIN_DUNGEON_{FLAG:現ダンジョン}
+	ENDIF
+	;---- EDIT 003 ADD START -------------------------
+	BEGIN SHOP
+ENDIF
+
+
+;ダンジョン内で発情した場合ココで治す
+CVARSET CFLAG , GETNUM(CFLAG , "ダンジョン内発情") , 0
+CVARSET CFLAG , GETNUM(CFLAG , "ダンジョン内発情用欲情値") , 0
+;汚れも落とす
+REPEAT CHARANUM
+	RESET_STAIN COUNT
+REND
+
+CALL EVENTCHECK_ABL
+
+
+;労役、ＮＴＲイベント呼び出し
+IF TIME == 3
+	
+	;労役の結果を呼び出し
+	;Restaurant
+	;売春
+	;レンタル
+	FOR LOCAL,0,CHARANUM
+		;---- EDIT 002 ADD START -------------------------
+		;新規作成
+		;オフの日は先に進まない
+		SIF GETBIT(CFLAG:LOCAL:シフト設定, DAY%7)
+			CONTINUE
+		;---- EDIT 002 ADD END ---------------------------
+		SIF CFLAG:LOCAL:労役フラグ == 1
+			CALL END_RESTRANT,LOCAL
+		SIF CFLAG:LOCAL:労役フラグ == 2
+			CALL END_PROSTITUTION,LOCAL
+		SIF CFLAG:LOCAL:労役フラグ == 3
+			CALL RETURN_SLAVE,LOCAL
+		
+	NEXT
+	
+	;店舗経営
+	FOR LOCAL,0,10
+		IF DE:0:LOCAL > 0
+			CALL 店舗日報,LOCAL
+			
+		ENDIF
+	NEXT
+	REPEAT CHARANUM
+		
+		;体力500未満で店舗労役しているキャラは外す
+		IF BASE:COUNT:体力 < 500 && CFLAG:COUNT:労役フラグ > 9 && CFLAG:COUNT:労役フラグ != 3
+			CFLAG:COUNT:労役フラグ = 0
+			IF CFLAG:COUNT:劇場出演順番 != 0
+				DE:(49+(CFLAG:COUNT:劇場出演順番)):(CFLAG:COUNT:労役店舗-1) = -1
+				DE:(59+(CFLAG:COUNT:劇場出演順番)):(CFLAG:COUNT:労役店舗-1) = -1
+				CFLAG:COUNT:労役フラグ = 0
+				CFLAG:COUNT:劇場出演順番 = 0
+				CFLAG:COUNT:労役店舗 = 0
+			ENDIF
+		ENDIF
+		IF CFLAG:COUNT:10 >= 100 && TALENT:COUNT:崩壊 == 0 && COUNT != MASTER
+			LOCAL = TARGET
+			TARGET = COUNT
+			CALL COLLAPSE_MIND_TRAIN
+			TARGET = LOCAL
+		ENDIF
+	
+	REND
+	;NTRイベント呼び出し
+	IF FLAG:ＮＴＲ機能
+		FOR LOCAL,1,CHARANUM
+			SIF CFLAG:LOCAL:この場に居ないフラグ == 1
+				CONTINUE
+			IF CFLAG:LOCAL:構ったフラグ == 0
+				CFLAG:LOCAL:放置日数 ++
+				IF CFLAG:LOCAL:2100 > 0
+					CFLAG:LOCAL:2100 -= CFLAG:LOCAL:放置日数*2
+					SIF CFLAG:LOCAL:2100 < 0
+						CFLAG:LOCAL:2100 = 0
+				ELSE
+					CFLAG:LOCAL:2100 += CFLAG:LOCAL:放置日数*2
+					SIF CFLAG:LOCAL:2100 > 0
+						CFLAG:LOCAL:2100 = 0
+				ENDIF
+			ELSE
+				CFLAG:LOCAL:放置日数 = 0
+				CFLAG:LOCAL:構ったフラグ = 0
+			ENDIF
+			CALL NTR_CHECK , LOCAL , 1
+		NEXT
+		;ＮＴＲキャラがどこかへ出かける
+		CALL EVENT_NTR_SELF
+		SIF GETBIT(FLAG:ＮＴＲ機能 , 7)
+			CALL NTR_HOUMONNHANNBAI
+		;上司イベント
+		REPEAT CHARANUM
+			SIF CFLAG:COUNT:上司来襲 > 0
+				;女を渡した場合の夜or呼び出された夜
+				CALL NTR_JOUSHI_1
+		REND
+	ENDIF
+	;ハードＮＴＲペナルティ
+	IF FLAG:ＮＴＲハードモード
+		FOR LOCAL,1,CHARANUM
+			IF CFLAG:LOCAL:現ＮＴＲ進行度 > 9 && (TALENT:LOCAL:ＮＴＲ == 1 || TALENT:LOCAL:ＮＴＲ == 3)
+				DRAWLINE
+				IF TALENT:LOCAL:ＮＴＲ == 1
+					PRINTFORMW %CALLNAME:LOCAL%は%NTRNAME(CFLAG:LOCAL:陥落キャラ)%以外に抱かれる事に抵抗を持っているようだ
+				ELSEIF TALENT:LOCAL:ＮＴＲ == 3
+					PRINTFORMW %CALLNAME:LOCAL%は%NTRNAME(CFLAG:LOCAL:陥落キャラ)%に%CALLNAME:MASTER%に体を許すなと命令されたようだ
+				ENDIF
+				PRINTFORMW 
+				IF TALENT:LOCAL:34 == 0
+					TALENT:LOCAL:34 = 1
+					PRINTFORML %CALLNAME:LOCAL%は【Reluctant】を取得した
+				ENDIF
+				IF ABL:LOCAL:0 > 0
+					ABL:LOCAL:0 = 0
+					PRINTFORML %CALLNAME:LOCAL%の従順が0になった
+				ENDIF
+				IF MARK:LOCAL:反発刻印 < 3
+					MARK:LOCAL:反発刻印 = 3
+					JUEL:LOCAL:恭順 = 0
+					JUEL:LOCAL:屈服 = 0
+					PRINTFORMW 恭順の球が0になった
+					PRINTFORMW 屈服の球が0になった
+					PRINTFORMW %CALLNAME:LOCAL%の反発刻印が3になった
+				ENDIF
+				JUEL:LOCAL:否定 += CFLAG:LOCAL:現ＮＴＲ進行度 * 50
+				PRINTFORMW 否定の球 + {CFLAG:LOCAL:現ＮＴＲ進行度 * 50}
+				DRAWLINE	
+			ELSEIF CFLAG:LOCAL:現ＮＴＲ進行度 > 9 &&TALENT:LOCAL:ＮＴＲ == 2
+				IF TALENT:LOCAL:73 == 0
+					TALENT:LOCAL:73 = 1
+					DRAWLINE
+					PRINTFORMW %CALLNAME:LOCAL%はわずかな快楽で堕ちてしまうようだ
+					PRINTFORML 	
+					PRINTFORMW %CALLNAME:LOCAL%は【即落ち】を取得した
+					DRAWLINE
+				ENDIF
+			ENDIF
+		NEXT
+		SIF GETBIT(FLAG:ＮＴＲ機能 , 8)
+			CALL TUMARATI_1
+		CALL NTR_AVACTRESS
+	ENDIF
+ENDIF
+
+REPEAT CHARANUM
+	CALL HEALTH_CHARA,COUNT
+	;ストレス加算処理
+	IF BASE:COUNT:1 < MAXBASE:COUNT:1
+		;15*消費気力の割合上昇
+		CFLAG:COUNT:ストレス値 += 10*(MAXBASE:COUNT:1 - BASE:COUNT:1) / MAXBASE:COUNT:1 / (1+陥落(COUNT))
+		;25*消費体力の割合上昇
+		CFLAG:COUNT:ストレス値 += 20*(MAXBASE:COUNT:0 - BASE:COUNT:0) / MAXBASE:COUNT:0 / (1+陥落(COUNT))
+	ENDIF
+	
+	;恋慕ルートキャラは自分以外が調教対象だとストレスが加算
+	SIF (TALENT:COUNT:恋慕 || TALENT:COUNT:親愛) && TARGET != COUNT && TARGET > -1
+		CFLAG:COUNT:ストレス値 += 陥落(COUNT)
+	
+	;気力の回復
+	BASE:COUNT:1 = MAXBASE:COUNT:1
+
+
+	;労役中のキャラは体力回復処理無し
+	SIF CFLAG:COUNT:12 == 3
+		GOTO SKIP_HEAL
+
+	;体力回復停止処理
+	IF CFLAG:COUNT:6 > 0
+		CFLAG:COUNT:6 -= 1
+		GOTO SKIP_HEAL
+	ENDIF
+
+	;体力の回復（夜の調教後は夜の休みが入るので回復大きい）(昼の調教後は昼休憩を挟むので少し大きい)
+	IF TIME == 3
+		;霊媒体質はここでＭＡＧが貯まる
+		SIF TALENT:COUNT:霊媒体質
+			CALL CONTROL_MAG , COUNT , (BASE:COUNT:ＭＡＧ* 10 - !TALENT:COUNT:非戦闘員 * 9) / 100
+		LOCAL = MAXBASE:COUNT:0 / 5
+	ELSEIF TIME == 1
+		LOCAL = MAXBASE:COUNT:0 / 10
+	ELSE
+		LOCAL = MAXBASE:COUNT:0 / 15
+	ENDIF
+
+	;回復早い、回復遅い、蓬莱人
+	IF TALENT:COUNT:130
+		TIMES LOCAL , 1.50
+	ELSEIF TALENT:COUNT:131
+		TIMES LOCAL , 0.75
+	ELSEIF TALENT:COUNT:147
+		TIMES LOCAL , 1.80
+	ENDIF
+
+	;日光浴、月光浴、吸血鬼
+	IF TIME < 2
+		SIF TALENT:COUNT:133
+			LOCAL += 100
+	ELSE
+		SIF TALENT:COUNT:132
+			TIMES LOCAL , 1.50
+		SIF TALENT:COUNT:134
+			LOCAL += 100
+	ENDIF
+
+	;治療
+	IF ASSI >= 0
+		SIF TALENT:ASSI:135
+		LOCAL += 150
+	ENDIF
+
+	;休憩フラグ（休憩フラグが経っている、もしくは調教対象でない）
+	IF FLAG:0 || TARGET != COUNT
+		LOCAL += 100
+	ENDIF
+
+	;ショップで休憩を選択時
+	IF FLAG:0 >= 2
+		TIMES LOCAL , 2.00
+	ENDIF
+
+	BASE:COUNT:0 += LOCAL
+	SIF BASE:COUNT:0 > MAXBASE:COUNT:0
+		BASE:COUNT:0 = MAXBASE:COUNT:0
+	
+	$SKIP_HEAL
+	
+	;崩壊判定
+	IF CFLAG:COUNT:10 >= 100 && TALENT:COUNT:9 == 0 && COUNT != MASTER
+		LOCAL = TARGET
+		TARGET = COUNT
+		CALL COLLAPSE_MIND_TRAIN
+		TARGET = LOCAL
+	ENDIF
+	
+	
+	;ストレス回復処理
+	SIF !CFLAG:COUNT:体力回復停止フラグ
+		CFLAG:COUNT:ストレス値 -= ((FLAG:0 > 0) + 1)  * MAX(3,CFLAG:COUNT:ストレス値 / 8)
+	
+	;ストレス値が0未満の場合は0にする
+	CFLAG:COUNT:ストレス値 = MAX(0,CFLAG:COUNT:ストレス値)
+
+REND
+
+;強制的に酔い覚まし
+CALL 酔い覚まし,1
+
+;朝まで休憩でない、もしくは夜の場合休憩フラグ値を0に
+SIF FLAG:0 != 3 || TIME == 3
+	FLAG:0 = 0
+
+IF FLAG:Pregnant機能
+	;全体の妊娠判定の処理
+	CALL IN_VAGINA
+ENDIF
+
+;午後なら次の日、午前なら午後にする
+IF TIME == 3
+	;日付変更時のイベント呼び出し
+	CALL EVENT_NIGHT_SELF
+	LOCAL = B
+	CALL EVENT_NEXTDAY
+	FLAG:ダンジョン探索済み = 0
+	FLAG:コロシアム参加済み = 0
+	;---- EDIT 003 ADD START -------------------------
+	;日付変更時の処理に移動
+	SIF FLAG:トリッシュの泉利用回数 > 0
+		FLAG:トリッシュの泉利用回数 = 1
+	SIF FLAG:トリッシュ調教 >= 0
+		FLAG:トリッシュ調教 = 0
+	SIF FLAG:トリッシュ調教 == -1
+		FLAG:トリッシュ調教 = -2
+	;---- EDIT 003 ADD START -------------------------
+	DAY = DAY+1
+	PRINTW The day has ended...
+	PRINTFORML 
+	; 魔貨レート変動設定が有効
+	IF SETTING_IS_MAKKA_RATE()
+		;魔貨レート設定
+		;1の数値を3に移動させて前に押し出し、3を新たに設定する
+		SWAP FLAG:魔貨レート1, FLAG:魔貨レート2
+		SWAP FLAG:魔貨レート2, FLAG:魔貨レート3
+		FLAG:魔貨レート3 = 1+RAND:100
+	ENDIF
+	; 幹部エンド迎えてるなら
+	IF GETBIT(FLAG:発見ED,0)
+		PRINTFORML ファントムから給料が振り込まれました
+;		PRINTFORML ￥{FLAG:組織貢献度 + FLAG:名声 * 1000}が届きました
+		PRINTFORML ￥{SQRT(FLAG:組織貢献度) * 3 + SQRT(FLAG:名声) * 11}が届きました
+		MONEY += SQRT(FLAG:組織貢献度) * 3 + SQRT(FLAG:名声) * 11
+		SELECTCASE RAND:20
+			CASE 0
+				PRINTFORML 力の香を1個手に入れました
+				ITEM:StIncense += 1
+			CASE 1
+				PRINTFORML 知恵の香を1個手に入れました
+				ITEM:InIncense += 1
+			CASE 2
+				PRINTFORML 魔力の香を1個手に入れました
+				ITEM:MaIncense += 1
+			CASE 3
+				PRINTFORML 耐力の香を1個手に入れました
+				ITEM:EnIncense += 1
+			CASE 4
+				PRINTFORML 速さの香を1個手に入れました
+				ITEM:AgIncense += 1
+			CASE 5
+				PRINTFORML 運の香を1個手に入れました
+				ITEM:LuIncense += 1
+		ENDSELECT
+		PRINTW
+		PRINTFORML 
+	ENDIF
+
+	TIME = 0
+	;野外ライブ実行済み判定を一日分減少
+	SIF FLAG:154 > 0
+		FLAG:154 -= 1
+	;バッドエンドの判定
+	;SIF DAY > DAY:1 && FLAG:5 == 0 && MONEY < MONEY:2 && FLAG:調教難易度 > 1
+	;	CALL BADENDING_1
+	;SIF DAY > DAY:1 && FLAG:5 == 0 && FLAG:調教難易度 > 1
+	;	CALL SHOP_COM_555
+	;SIF MONEY < 0
+	;	CALL BADENDING_2
+	
+	;エンディング条件達成＆エンディング
+	;---- EDIT 008 MOD START ---------------------
+	;IF FLAG:5 < 9 
+	;---- EDIT 008 MOD END   ---------------------
+	IF FLAG:5 < 9 && CHECK_TIMELIMIT(1,DAY < 51)
+		CALL CHECK_ENDING
+		SIF RESULT == 1
+			BEGIN SHOP
+	ENDIF
+	
+	;所属組織・ファントムソサエティで組織貢献度一定以上かつ未クリアでファントムEND
+	;便器か性欲処理係出身で売春か便器としての人気や経験が高いとファントムのアイドルEND
+	;悪名一定以上かつ未クリアで調教師END
+	
+	;未クリア + 一定以上の人気のある食堂経営でレストランオーナーEND
+	;未クリア + 主人の料理LV10 + 料理人気一定以上 + 一定以上の人気のある食堂経営でシェフEND
+	;未クリア + 娼館の人気一定以上で女衒END
+	;未クリア + 主人の技巧10 + 売春人気一定以上 + 娼館の人気一定以上で夜の王or女王END
+	;未クリア + 主人の技巧10 + 売春人気一定以上 + 娼館未経営で流浪の娼婦END
+	;未クリア + 欲望10 + ProstitEXP+ToiletEXPが一定以上で淫売END
+	;未クリア + 欲望or奉仕精神10 + ToiletEXP一定以上でボランティアEND
+	;未クリア + 欲望or奉仕精神10 + 便器人気一定以上でトイレのアイドルとか公園のアイドルEND
+	
+	
+	;戦闘相手決定…は一日の開始時に1週間先まで決める
+	CALL SELECT_COLOSSEUM_RANDOMBATTLE
+
+	;朝になった時のイベント呼び出し
+	CALL EVENT_NEWDAY
+	B = LOCAL
+	CALL MOON
+	CALL EVENT_NEWDAY_SELF
+	CALL NTRJOUSHI
+	CVARSET CFLAG , GETNUM(CFLAG,"ＮＴＲ夜這い") , 0
+	
+	;デビオク処理
+	IF イベントフラグ:40:0
+		;月曜日にデビオクの商品の入れ替え処理
+		IF (DAY % 7) == 0
+			CALL デビオク_リスト更新_新品
+			CALL デビオク_リスト更新_中古
+		ENDIF
+		;予約料の支払い
+		SIF FLAG:デビオク予約料金 > 0
+			CALL デビオク_予約料金処理
+	ENDIF
+ELSE
+	TIME += 1
+ENDIF
+
+;朝まで休憩の場合は関数の頭からやり直し(休憩繰り返し)
+SIF FLAG:0 == 3
+	RESTART
+
+BEGIN SHOP
+
+
+;========================================================================
+;ロード時の処理
+;========================================================================
+@EVENTLOAD
+LOADGLOBAL
+IF FLAG:一時セーブ管理
+	DELDATA LASTLOAD_NO
+	;一時セーブをコピーしてた場合の措置
+	IF FLAG:一時セーブ管理 != GLOBAL
+		PRINTL Corrupted/Invalid data
+		;不正なデータです
+		BEGIN TITLE
+	ENDIF
+	FLAG:一時セーブ管理 = 0
+	DO
+		LOCAL = RAND:10000 + 1
+	LOOP GLOBAL == LOCAL
+	GLOBAL = LOCAL
+	SAVEGLOBAL
+ENDIF
+GETMILLISECOND
+FLAG:プレイ開始時間 = RESULT
+;古いバージョンとのセーブデータ互換処理
+SIF LASTLOAD_VERSION < GAMEBASE_VERSION
+	CALL VERUP
+CALL VERUP_TEMP
+;ダンジョン内でセーブしていた場合、ダンジョンアタックを再度呼び出す
+IF FLAG:ショップコマンド == 101
+	BEGIN SHOP
+ENDIF
+
+@TITLE_LOADGAME
+#LOCALSIZE 2
+LOADGLOBAL
+$START
+SIF GLOBAL:1 < 0
+	GLOBAL:1 = 0
+SIF GLOBAL:1 > 30
+	GLOBAL:1 = 29
+IF GLOBAL:1 / 10 == 2
+	FOR LOCAL, 220 , 240
+		LOCAL:1 = GLOBAL:2 + LOCAL > 239 ? GLOBAL:2 + LOCAL - 20 # GLOBAL:2 + LOCAL
+		SIF LOCAL:1 == LASTLOAD_NO
+			SETCOLOR COLOR("aqua")
+		CHKDATA  LOCAL:1
+		PRINTFORML [{LOCAL ,3}] \@ !RESULT ? %RESULTS% # ---- \@
+		RESETCOLOR
+	NEXT
+ELSE
+	LOCAL:1 = GLOBAL:1 < 10 ? GLOBAL:1 * 20  # 200
+	FOR LOCAL, LOCAL:1 , LOCAL:1 + 20
+		;IF LOCAL == 99
+		;	SIF GLOBAL:1 != 4
+		;		PRINTL 
+		;		CONTINUE
+		;ELSEIF LOCAL == 98
+		;	PRINTL 
+		;	CONTINUE
+		;ENDIF
+		CHKDATA LOCAL
+		SIF LOCAL == LASTLOAD_NO
+			SETCOLOR COLOR("aqua")
+		IF !RESULT
+			PRINTFORML [{LOCAL,3}] %RESULTS%
+		ELSE
+			PRINTFORML [{LOCAL,3}] ----
+		ENDIF
+		RESETCOLOR
+	NEXT
+ENDIF
+DRAWLINE
+LOCAL =  RANGE(GLOBAL:1, 10 ,19) ? 400 # 300
+CHKDATA LOCAL
+SIF LOCAL == LASTLOAD_NO
+	SETCOLOR COLOR("aqua")
+IF !RESULT
+	PRINTFORML [{LOCAL}] %RESULTS%
+ELSE
+	PRINTFORML [{LOCAL}] ----
+ENDIF
+RESETCOLOR
+DRAWLINE
+PRINTFORMLC \@ GLOBAL:1 <= 0 || GLOBAL:1 >= 10 ? %" " * 16% # [1000] Previous page\@ 
+PRINTFORMLC [1001] Return
+PRINTFORMLC \@ GLOBAL:1 >= 9 ? %" " * 16% # [1002] Next page\@ 
+PRINTL 
+SIF GLOBAL:1 < 10 
+	SETCOLOR COLOR("aqua")
+PRINTFORM [1003] %"Regular Saves",19,LEFT%
+RESETCOLOR
+SIF RANGE(GLOBAL:1, 10, 19)
+	SETCOLOR COLOR("aqua")
+PRINTFORM [1004] %"Dungeon Saves",19,LEFT%
+RESETCOLOR
+SIF RANGE(GLOBAL:1, 20, 29)
+	SETCOLOR COLOR("aqua")
+PRINTFORM [1005] %"Auto-saves",19,LEFT%
+RESETCOLOR
+$INPUT_LOOP
+INPUT
+IF RESULT == 1001
+	RETURN 0
+ELSEIF RESULT == 1000 && GLOBAL:1 > 0 && GLOBAL:1 < 10
+	GLOBAL:1 -= 1
+	GOTO START
+ELSEIF RESULT == 1002 && GLOBAL:1 < 10
+	GLOBAL:1 += 1
+	GOTO START
+ELSEIF RESULT == 1003
+	GLOBAL:1 %= 10
+	GOTO START
+ELSEIF RESULT == 1004
+	GLOBAL:1 = GLOBAL:1 % 10 + 10
+	GOTO START
+ELSEIF RESULT == 1005
+	GLOBAL:1 = GLOBAL:1 % 10 + 20
+	GOTO START
+ENDIF
+IF RANGE(RESULT, 220, 239)
+	LOCAL = RESULT + GLOBAL:2
+	SIF LOCAL >= 240
+		LOCAL -= 20
+ELSE
+	LOCAL = RESULT
+ENDIF
+CHKDATA LOCAL
+IF RESULT
+	CLEARLINE 1
+	REUSELASTLINE Invalid Input
+	;無効な値です
+	GOTO INPUT_LOOP
+ENDIF
+SAVEGLOBAL
+LOADDATA LOCAL
+
+@TITLE_SAVEGAME
+#LOCALSIZE 2
+#DIM PAGE, 1
+PAGE = GLOBAL:1 % 10
+LOADGLOBAL
+$START
+LOCAL:1 = FLAG:ショップコマンド != [[ショップ:探索]] ? PAGE * 20 # 200
+FOR LOCAL, LOCAL:1 , LOCAL:1 + 20
+	;IF LOCAL == 99 || LOCAL == 98
+	;	PRINTL 
+	;	CONTINUE
+	;ENDIF
+	SIF LOCAL == LASTLOAD_NO
+		SETCOLOR COLOR("aqua")
+	CHKDATA LOCAL
+	IF !RESULT
+		PRINTFORML [{LOCAL,3}] %RESULTS%
+	ELSE
+		PRINTFORML [{LOCAL,3}] ----
+	ENDIF
+	RESETCOLOR
+NEXT
+PRINTFORMLC \@ PAGE <= 0 || FLAG:ショップコマンド == [[ショップ:探索]] ? %" " * 16% # [1000] Previous page\@ 
+PRINTFORMLC [1001] Return
+PRINTFORMLC \@ PAGE >= 9 || FLAG:ショップコマンド == [[ショップ:探索]]? %" " * 16% # [1002] Next page\@
+PRINTL 
+PRINTFORML [1003] Save Data Memo - \@STRLENS(SAVESTR:99)? Change from (%SAVESTR:99%) # Create\@
+$INPUT_LOOP
+INPUT
+IF RESULT == 1001
+	RETURN 0
+ELSEIF RESULT == 1000 && PAGE > 0 && FLAG:ショップコマンド != [[ショップ:探索]]
+	PAGE -= 1
+	GOTO START
+ELSEIF RESULT == 1002 && PAGE < 10 && FLAG:ショップコマンド != [[ショップ:探索]]
+	PAGE += 1
+	GOTO START
+ELSEIF RESULT == 1003
+	PRINTL Please input a memo that follows the content of the save data.
+	INPUTS
+	SAVESTR:99 = %RESULTS%
+	PRINTFORML '%SAVESTR:99%' will now be appended to save data.
+	PRINTFORML Set it again if you want to change or remove the memo.
+	GOTO START
+ENDIF
+IF FLAG:ショップコマンド == [[ショップ:探索]]
+	IF !RANGE(RESULT, 200, 219)
+		CLEARLINE 1
+		REUSELASTLINE Invalid Input
+		;無効な値です
+		GOTO INPUT_LOOP
+	ENDIF
+ELSE
+	IF !RANGE(RESULT, 0, 199)
+		CLEARLINE 1
+		REUSELASTLINE Invalid Input
+		;無効な値です
+		GOTO INPUT_LOOP
+	ENDIF
+ENDIF
+LOCAL = RESULT
+CHKDATA LOCAL
+IF !RESULT
+	PRINTL Save already exists. Really overwrite it?
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		RETURN 0
+ENDIF
+GLOBAL:1 = PAGE + (FLAG:ショップコマンド == [[ショップ:探索]]) * 10
+SAVEGLOBAL
+SAVEDATA LOCAL, SAVETEXT()
+
+@SYSTEM_AUTOSAVE
+SAVEDATA 300, SAVETEXT()
+IF TIME == 0
+	SAVEDATA 220 + GLOBAL:2, SAVETEXT()
+	IF GLOBAL:3 != DAY
+		GLOBAL:3 = DAY
+		SIF ++GLOBAL:2 == 20
+			GLOBAL:2 = 0
+	ENDIF
+	SAVEGLOBAL
+ENDIF
+
+;=======================================================
+;セーブデータ表示
+;=======================================================
+@SAVETEXT
+#FUNCTIONS
+#LOCALSSIZE 1
+LOCALS = 
+
+IF FLAG:カスタムゲーム画面
+	GETTIME
+	LOCALS += RESULTS
+	
+	LOCALS  += @" Day {DAY} -%AUTO_SPLIT("Morning,Day,Evening,Night",",",TIME)%- "
+	
+	LOCALS  += @"%CALLNAME:MASTER% LV{BASE:MASTER:LV} "
+	LOCALS  += @"[%AUTO_SPLIT("E,N,H",",",FLAG:調教難易度-1)%/%AUTO_SPLIT("E,N,H,M,L,NM",",",FLAG:戦闘難易度-1)%] "
+	
+	SIF FLAG:ゲームモード == 9
+		LOCALS  += "☆ "
+	
+	SIF FLAG:周回回数 > 0
+		LOCALS  += @"Lap:{FLAG:周回回数+1}"
+	
+	LOCALS  += @"Ver{GAMEBASE_VERSION/1000}.{GAMEBASE_VERSION%1000}"
+	
+	GETMILLISECOND
+	FLAG:プレイ時間 += RESULT - FLAG:プレイ開始時間
+	FLAG:プレイ開始時間 = RESULT
+	LOCALS  += @"【{MIN(FLAG:プレイ時間 / 1000 / 60 / 60, 999)}:"
+	IF FLAG:プレイ時間 / 1000 / 60 / 60 > 999
+		LOCALS  += "59】"
+	ELSEIF (FLAG:プレイ時間 / 1000 / 60) % 60 < 10
+		LOCALS  += @"0{(FLAG:プレイ時間 / 1000 / 60) % 60}】"
+	ELSE
+		LOCALS  += @"{(FLAG:プレイ時間 / 1000 / 60) % 60}】"
+	ENDIF
+	
+	IF FLAG:ショップコマンド == 101
+		IF FLAG:一時セーブ管理
+			LOCALS  += "- Suspended"
+			;  += "- 中断セーブ"
+		ELSE
+			IF STRLENS(SAVESTR:99)
+				LOCALS  += @"- %SAVESTR:99%"
+			ELSE
+				LOCALS  += "- SearchingDungeon"
+				;ダンジョン探索中
+			ENDIF
+		ENDIF
+	ELSE
+		SIF STRLENS(SAVESTR:99)
+			LOCALS  += @"- %SAVESTR:99%"
+	ENDIF
+ELSE
+	GETTIME
+	LOCALS += RESULTS
+	LOCALS  += @" Day {DAY} -%AUTO_SPLIT("Morning,Day,Evening,Night",",",TIME)%- "
+	
+	LOCALS  += @"Master: %CALLNAME:MASTER% LV{BASE:MASTER:LV} "
+	LOCALS  += @"［%AUTO_SPLIT("E,N,H",",",FLAG:調教難易度-1)% / %AUTO_SPLIT("E,N,H,M,L,NM",",",FLAG:戦闘難易度-1)%］"
+	
+	SIF FLAG:ゲームモード == 9
+		LOCALS  += "☆ "
+	SIF FLAG:周回回数 > 0
+		LOCALS  += @"Lap:{FLAG:周回回数+1}"
+		;週目
+	IF FLAG:ショップコマンド == 101
+		IF FLAG:一時セーブ管理
+			LOCALS  += "  Suspended"
+			;LOCALS  += "  中断セーブ"
+		ELSE
+			LOCALS  += "  SearchingDungeon"
+		ENDIF
+	ENDIF
+	LOCALS  += @"  Ver{GAMEBASE_VERSION/1000}.{GAMEBASE_VERSION%1000}"
+	GETMILLISECOND
+	FLAG:プレイ時間 += RESULT - FLAG:プレイ開始時間
+	FLAG:プレイ開始時間 = RESULT
+	LOCALS  += @" 【{MIN(FLAG:プレイ時間 / 1000 / 60 / 60, 999)}:"
+	IF FLAG:プレイ時間 / 1000 / 60 / 60 > 999
+		LOCALS  += "59】"
+	ELSEIF (FLAG:プレイ時間 / 1000 / 60) % 60 < 10
+		LOCALS  += @"0{(FLAG:プレイ時間 / 1000 / 60) % 60}】"
+	ELSE
+		LOCALS  += @"{(FLAG:プレイ時間 / 1000 / 60) % 60}】"
+	ENDIF
+	SIF STRLENS(SAVESTR:99)
+		LOCALS  += @"  (%SAVESTR:99%)"
+ENDIF
+
+;セーブデータサイズ削減処理
+VARSET A
+VARSET B
+VARSET C
+VARSET D
+VARSET E
+VARSET F
+VARSET G
+VARSET H
+VARSET I
+VARSET J
+VARSET K
+VARSET L
+VARSET M
+VARSET N
+VARSET O
+VARSET P
+VARSET Q
+VARSET R
+VARSET S
+VARSET T
+VARSET U
+VARSET V
+VARSET W
+VARSET X
+VARSET Y
+VARSET Z
+
+REPEAT CHARANUM
+	VARSET GOTJUEL:COUNT:0
+	VARSET EX:COUNT:0
+	VARSET PALAM:COUNT:0
+	VARSET SOURCE:COUNT:0
+REND
+RETURNF LOCALS

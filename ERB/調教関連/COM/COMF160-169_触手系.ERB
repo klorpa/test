@@ -1,0 +1,741 @@
+;-------------------------------------------------
+;触手召喚および派生コマンド
+;触手系コマンド
+;-------------------------------------------------
+@ACT_COM160
+PRINTL Sommon Tentacle
+TSTR:0 = 触手召喚
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:25 == 0
+	TEQUIP:25 = 1
+	;触手系コマンドに影響する装備は外す（道具が触手扱いになるため）
+	TEQUIP:11 = 0
+	TEQUIP:12 = 0
+	TEQUIP:13 = 0
+	TEQUIP:14 = 0
+	TEQUIP:16 = 0
+	TEQUIP:17 = 0
+	TEQUIP:19 = 0
+	TEQUIP:21 = 0
+	TEQUIP:37 = 0
+	TEQUIP:PLAYER:11 = 0
+	TEQUIP:PLAYER:12 = 0
+	TEQUIP:PLAYER:13 = 0
+	TEQUIP:PLAYER:14 = 0
+	TEQUIP:PLAYER:16 = 0
+	TEQUIP:PLAYER:17 = 0
+	SIF FLAG:47
+		TEQUIP:触手危険度 = LIMIT((FLAG:触手レベル - BASE:PLAYER:LV) * 10, 10, 80)
+;触手解除時はソース、経験の加算は行わず終了する
+ELSE
+	TEQUIP:25 = 0
+	;触手系コマンドの装備も解除する
+	TEQUIP:11 = 0
+	TEQUIP:12 = 0
+	TEQUIP:13 = 0
+	TEQUIP:14 = 0
+	TEQUIP:16 = 0
+	TEQUIP:17 = 0
+	TEQUIP:19 = 0
+	TEQUIP:21 = 0
+	TEQUIP:36 = 0
+	TEQUIP:PLAYER:11 = 0
+	TEQUIP:PLAYER:12 = 0
+	TEQUIP:PLAYER:13 = 0
+	TEQUIP:PLAYER:14 = 0
+	TEQUIP:PLAYER:16 = 0
+	TEQUIP:PLAYER:17 = 0
+	RETURN 1
+ENDIF
+
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += MAX(100, 200 - FLAG:触手レベル)
+DOWNBASE:TARGET:気力 += MAX(150, 300 - FLAG:触手レベル)
+
+SOURCE:TARGET:恐れ = MIN(3000, 2500 + FLAG:触手レベル)
+SOURCE:TARGET:逸脱 = MIN(3000, 2500 + FLAG:触手レベル)
+SOURCE:TARGET:反感 = MAX(2000, 2500 - FLAG:触手レベル)
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;TentacleEXPは先に見ておく
+IF EXP:55 < EXPLV:1
+	TIMES DOWNBASE:TARGET:体力 , 1.20
+	TIMES DOWNBASE:TARGET:気力 , 1.20
+	TIMES SOURCE:TARGET:恐れ , 1.20
+	TIMES SOURCE:TARGET:逸脱 , 1.20
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:55 < EXPLV:2
+	TIMES DOWNBASE:TARGET:体力 , 0.90
+	TIMES DOWNBASE:TARGET:気力 , 0.90
+	TIMES SOURCE:TARGET:恐れ , 0.90
+	TIMES SOURCE:TARGET:逸脱 , 0.90
+	TIMES SOURCE:TARGET:反感 , 0.90
+ELSEIF EXP:55 < EXPLV:3
+	TIMES DOWNBASE:TARGET:体力 , 0.80
+	TIMES DOWNBASE:TARGET:気力 , 0.80
+	TIMES SOURCE:TARGET:恐れ , 0.80
+	TIMES SOURCE:TARGET:逸脱 , 0.80
+	TIMES SOURCE:TARGET:反感 , 0.80
+ELSEIF EXP:55 < EXPLV:4
+	TIMES DOWNBASE:TARGET:体力 , 0.70
+	TIMES DOWNBASE:TARGET:気力 , 0.70
+	TIMES SOURCE:TARGET:恐れ , 0.70
+	TIMES SOURCE:TARGET:逸脱 , 0.70
+	TIMES SOURCE:TARGET:反感 , 0.70
+ELSEIF EXP:55 < EXPLV:5
+	TIMES DOWNBASE:TARGET:体力 , 0.60
+	TIMES DOWNBASE:TARGET:気力 , 0.60
+	TIMES SOURCE:TARGET:恐れ , 0.60
+	TIMES SOURCE:TARGET:逸脱 , 0.60
+	TIMES SOURCE:TARGET:反感 , 0.60
+ELSE
+	TIMES DOWNBASE:TARGET:体力 , 0.50
+	TIMES DOWNBASE:TARGET:気力 , 0.50
+	TIMES SOURCE:TARGET:恐れ , 0.50
+	TIMES SOURCE:TARGET:逸脱 , 0.50
+	TIMES SOURCE:TARGET:反感 , 0.50
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+IF EXP:55 == 0
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋1
+	CALL ADDS_ABNORMAL_EXP("Tentacle first experience", TARGET)
+ENDIF
+;PRINT TentacleEXP＋1
+;EXP:55 += 1
+CALL ADDS_EXP("触手経験", 1, TARGET)
+
+RETURN 1
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM160
+;触手召喚中
+PRINTL ＜Tentacle summoned＞
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += MAX(50, 150 - FLAG:触手レベル)
+DOWNBASE:TARGET:気力 += MAX(100, 200 - FLAG:触手レベル)
+
+SOURCE:TARGET:恐れ += MIN(1500, 1000 + FLAG:触手レベル)
+SOURCE:TARGET:逸脱 += MIN(1500, 1000 + FLAG:触手レベル)
+SOURCE:TARGET:反感 += MAX(500, 1000 - FLAG:触手レベル)
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+IF MAXBASE:MASTER:4 != 0
+	B = 1000
+	;ABL:技巧をみる
+	IF ABL:2 == 0
+		TIMES B , 1.00
+	ELSEIF ABL:2 == 1
+		TIMES B , 1.10
+	ELSEIF ABL:2 == 2
+		TIMES B , 1.20
+	ELSEIF ABL:2 == 3
+		TIMES B , 1.30
+	ELSEIF ABL:2 == 4
+		TIMES B , 1.40
+	ELSE
+		TIMES B , 1.50
+	ENDIF
+
+
+	;ABL:従順をみる
+	IF ABL:0 == 0
+		TIMES B , 0.80
+	ELSEIF ABL:0 == 1
+		TIMES B , 0.90
+	ELSEIF ABL:0 == 2
+		TIMES B , 1.00
+	ELSEIF ABL:0 == 3
+		TIMES B , 1.10
+	ELSEIF ABL:0 == 4
+		TIMES B , 1.20
+	ELSE
+		TIMES B , 1.30
+	ENDIF
+
+	;PALAM:欲情をみる
+	IF PALAM:5 < PALAMLV:1
+		TIMES B , 1.00
+	ELSEIF PALAM:5 < PALAMLV:2
+		TIMES B , 1.10
+	ELSEIF PALAM:5 < PALAMLV:3
+		TIMES B , 1.20
+	ELSEIF PALAM:5 < PALAMLV:4
+		TIMES B , 1.30
+	ELSEIF PALAM:5 < PALAMLV:5
+		TIMES B , 1.40
+	ELSE
+		TIMES B , 1.50
+	ENDIF
+
+	;触手挿入
+	SIF TEQUIP:13
+		TIMES B , 1.50
+	;アナル触手
+	SIF TEQUIP:14
+		TIMES B , 1.50
+	;触手クリ責め
+	SIF TEQUIP:11
+		TIMES B , 1.20
+	;触手乳首責め
+	SIF TEQUIP:16
+		TIMES B , 1.20
+	;触手搾乳
+	SIF TEQUIP:17
+		TIMES B , 1.30
+	;触手ペニス責め
+	SIF TEQUIP:12
+		TIMES B , 1.10
+	;触手緊縛
+	SIF TEQUIP:19
+		TIMES B , 1.20
+	;触手浣腸
+	SIF TEQUIP:21
+		TIMES B , 1.30
+	;触手口辱
+	SIF TEQUIP:36
+		TIMES B , 1.50
+
+	BASE:MASTER:4 += B
+ENDIF
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;TentacleEXPは先に見ておく
+IF EXP:55 < EXPLV:1
+	TIMES DOWNBASE:TARGET:体力 , 1.20
+	TIMES DOWNBASE:TARGET:気力 , 1.20
+;	TIMES SOURCE:TARGET:恐れ , 1.20
+;	TIMES SOURCE:TARGET:逸脱 , 1.20
+;	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:55 < EXPLV:2
+	TIMES DOWNBASE:TARGET:体力 , 0.90
+	TIMES DOWNBASE:TARGET:気力 , 0.90
+;	TIMES SOURCE:TARGET:恐れ , 0.90
+;	TIMES SOURCE:TARGET:逸脱 , 0.90
+;	TIMES SOURCE:TARGET:反感 , 0.90
+ELSEIF EXP:55 < EXPLV:3
+	TIMES DOWNBASE:TARGET:体力 , 0.80
+	TIMES DOWNBASE:TARGET:気力 , 0.80
+;	TIMES SOURCE:TARGET:恐れ , 0.80
+;	TIMES SOURCE:TARGET:逸脱 , 0.80
+;	TIMES SOURCE:TARGET:反感 , 0.80
+ELSEIF EXP:55 < EXPLV:4
+	TIMES DOWNBASE:TARGET:体力 , 0.70
+	TIMES DOWNBASE:TARGET:気力 , 0.70
+;	TIMES SOURCE:TARGET:恐れ , 0.70
+;	TIMES SOURCE:TARGET:逸脱 , 0.70
+;	TIMES SOURCE:TARGET:反感 , 0.70
+ELSEIF EXP:55 < EXPLV:5
+	TIMES DOWNBASE:TARGET:体力 , 0.60
+	TIMES DOWNBASE:TARGET:気力 , 0.60
+;	TIMES SOURCE:TARGET:恐れ , 0.60
+;	TIMES SOURCE:TARGET:逸脱 , 0.60
+;	TIMES SOURCE:TARGET:反感 , 0.60
+ELSE
+	TIMES DOWNBASE:TARGET:体力 , 0.50
+	TIMES DOWNBASE:TARGET:気力 , 0.50
+;	TIMES SOURCE:TARGET:恐れ , 0.50
+;	TIMES SOURCE:TARGET:逸脱 , 0.50
+;	TIMES SOURCE:TARGET:反感 , 0.50
+ENDIF
+
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+S = BASE:MASTER:4
+EJAC = MAXBASE:MASTER:4
+
+IF  S > EJAC * 2
+	E = 2
+ELSEIF S > EJAC
+	E = 1
+ELSE
+	E = 0
+ENDIF
+
+;射精時に中毒充足のソースを追加、なお触手は射精の再装填は無し
+;通常射精時
+SIF E == 1
+	A = 200
+;大量射精時
+SIF E == 2
+	A = 500
+
+IF E > 0
+	;精液中毒を見る
+	IF ABL:16 == 1
+		TIMES A , 0.00
+	ELSEIF ABL:16 == 2
+		TIMES A , 0.30
+	ELSEIF ABL:16 == 3
+		TIMES A , 0.60
+	ELSEIF ABL:16 == 4
+		TIMES A , 0.90
+	ELSEIF ABL:16 == 5
+		TIMES A , 1.20
+	ELSEIF ABL:16 == 6
+		TIMES A , 1.50
+	ELSEIF ABL:16 == 7
+		TIMES A , 1.80
+	ELSEIF ABL:16 == 8
+		TIMES A , 2.30
+	ELSEIF ABL:16 == 9
+		TIMES A , 3.00
+	ELSEIF ABL:16 >= 10
+		TIMES A , 5.00
+	ENDIF
+ENDIF
+
+SOURCE:TARGET:中毒充足 += A
+
+;射精時の処理
+;大量射精
+IF E == 2
+	;EXP:20 += 3
+	PRINT 触手大量射精
+	IF TALENT:PLAYER:触手 == 1 && PLAYER == MASTER
+		PRINT (主人)
+	ELSEIF TALENT:PLAYER:触手 == 1 && PLAYER == ASSI
+		PRINT (助手)
+	ENDIF
+	;PRINTL 
+	;PRINTL SemenEXP＋３
+	IF TEQUIP:13
+		IF CFLAG:108
+			PRINTL <避妊結界>
+		ELSE
+			CALL ADDS_EXP("膣射経験", 3, TARGET)
+			IF TALENT:PLAYER:触手 == 1 && PLAYER == MASTER
+			CFLAG:101 += 3
+;			PRINTL CreampieEXP＋３(主人)
+			ELSEIF TALENT:PLAYER:触手 == 1 && PLAYER == ASSI
+			CFLAG:103 += 3
+;			PRINTL CreampieEXP＋３(助手)
+			ELSE
+			CFLAG:112 += 3
+;			PRINTL CreampieEXP＋３(Tentacles)
+			ENDIF
+		ENDIF
+		CALL ADDS_EXP("精液経験", 3, TARGET)
+	ENDIF
+	IF TEQUIP:PLAYER:13
+		IF CFLAG:PLAYER:108
+			PRINTL <避妊結界>
+		ELSE
+			CALL ADDS_EXP("膣射経験", 3, PLAYER)
+			IF TALENT:PLAYER:触手 == 1 && PLAYER == MASTER
+				CFLAG:PLAYER:101 += 3
+				;PRINTL 調教者CreampieEXP＋３(主人)
+			ELSEIF TALENT:PLAYER:触手 == 1 && PLAYER == ASSI
+				CFLAG:PLAYER:103 += 3
+				;PRINTL 調教者CreampieEXP＋３(助手)
+			ELSE
+				CFLAG:PLAYER:112 += 3
+				;PRINTL 調教者CreampieEXP＋３(Tentacles)
+			ENDIF
+		ENDIF
+		CALL ADDS_EXP("精液経験", 3, PLAYER)
+	ENDIF
+	;T += 1
+	BASE:MASTER:4 -= EJAC*2
+	SIF BASE:MASTER:4 >= EJAC
+		BASE:MASTER:4 = EJAC-1
+
+;通常の射精
+ELSEIF E == 1
+	;EXP:20 += 1
+	PRINT 触手射精
+	IF TALENT:PLAYER:触手 == 1 && PLAYER == MASTER
+		PRINT (主人)
+	ELSEIF TALENT:PLAYER:触手 == 1 && PLAYER == ASSI
+		PRINT (助手)
+	ENDIF
+	PRINTL
+	;PRINTL SemenEXP＋１
+	IF TEQUIP:13
+		IF CFLAG:108
+			PRINTL <避妊結界>
+		ELSE
+			;EXP:5 += 1
+			CALL ADDS_EXP("膣射経験", 1, TARGET)
+			IF TALENT:PLAYER:触手 == 1 && PLAYER == MASTER
+				CFLAG:101 += 1
+				;PRINTL CreampieEXP＋１(主人)
+			ELSEIF TALENT:PLAYER:触手 == 1 && PLAYER == ASSI
+				CFLAG:103 += 1
+				;PRINTL CreampieEXP＋１(助手)
+			ELSE
+				CFLAG:112 += 1
+				;PRINTL CreampieEXP＋１(Tentacles)
+			ENDIF
+		ENDIF
+		CALL ADDS_EXP("精液経験", 1, TARGET)
+	ENDIF
+	IF TEQUIP:PLAYER:13
+		IF CFLAG:PLAYER:108
+			PRINTL <避妊結界>
+		ELSE
+			CALL ADDS_EXP("膣射経験", 1, PLAYER)
+			;EXP:PLAYER:5 += 3
+			IF TALENT:PLAYER:触手 == 1 && PLAYER == MASTER
+				CFLAG:PLAYER:101 += 1
+				;PRINTL 調教者CreampieEXP＋１(主人)
+			ELSEIF TALENT:PLAYER:触手 == 1 && PLAYER == ASSI
+				CFLAG:PLAYER:103 += 1
+				;PRINTL 調教者CreampieEXP＋１(助手)
+			ELSE
+				CFLAG:PLAYER:112 += 1
+				;PRINTL 調教者CreampieEXP＋１(Tentacles)
+			ENDIF
+		ENDIF
+		CALL ADDS_EXP("精液経験", 1, PLAYER)
+	ENDIF
+	;T += 1
+	SIF TEQUIP:TARGET:13
+		CALL ADDS_EXP("触手経験", 1, TARGET)
+	SIF TEQUIP:PLAYER:13
+		CALL ADDS_EXP("触手経験", 1, PLAYER)
+
+	BASE:MASTER:4 -= EJAC
+	SIF BASE:MASTER:4 >= EJAC
+		BASE:MASTER:4 = EJAC-1
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;触手が射精した場合の精液汚れ
+IF E > 0
+	;触手挿入
+	SIF TEQUIP:13
+		CALL SET_STAIN("膣内", "精液", TARGET)
+	;アナル触手
+	SIF TEQUIP:14
+		CALL SET_STAIN("アナル", "精液", TARGET)
+	;触手クリ責め
+	SIF TEQUIP:11
+		CALL SET_STAIN("ヴァギナ", "精液", TARGET)
+	;触手乳首責め
+	SIF TEQUIP:16
+		CALL SET_STAIN("胸", "精液", TARGET)
+	;触手搾乳
+	SIF TEQUIP:17
+		CALL SET_STAIN("胸", "精液", TARGET)
+	;触手ペニス責め
+	SIF TEQUIP:12
+		CALL SET_STAIN("ペニス", "精液", TARGET)
+	;触手緊縛（全身にぶっかけるイメージ）
+	IF TEQUIP:19
+		CALL SET_STAIN("口", "精液", TARGET)
+		CALL SET_STAIN("手", "精液", TARGET)
+		;ペニスがあればペニス、なければヴァギナへ
+		IF HAVE_PENIS(PLAYER)
+			CALL SET_STAIN("ペニス", "精液", TARGET)
+		ELSE
+			CALL SET_STAIN("ヴァギナ", "精液", TARGET)
+		ENDIF
+		CALL SET_STAIN("胸", "精液", TARGET)
+	ENDIF
+	;触手浣腸
+	SIF TEQUIP:21
+		CALL SET_STAIN("アナル", "精液", TARGET)
+	;触手口辱
+	SIF TEQUIP:36
+		CALL SET_STAIN("口", "精液", TARGET)
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;各触手派生コマンドから集めたTentacleEXPを一括処理
+;ADD_EXPなら個別に取らせても問題ないのでTで集める措置を無くす
+;T += 1
+;PRINT TentacleEXP＋
+;PRINTVL T
+;EXP:55 += T
+CALL ADDS_EXP("触手経験", 1, TARGET)
+;T = 0
+
+;触手装着中は依存度ベクトル強制変更
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2　強制変更なので、これまでの数値をリセット）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 = 2
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 = 4
+ENDIF
+IF RAND:100 + 1 < TEQUIP:触手危険度 && FLAG:47 && SELECTCOM != 160 && FLAG:触手レベル > 0
+PRINTL 　
+PRINTW 	･
+PRINTW 	･
+PRINTW 	･
+PRINTW 	!
+PRINT 触手は、与えられた命令に従わず、
+PRINT まるで自分の思考があるように
+PRINTL 勝手に動き出した…
+PRINTL 
+PRINTW 	･
+PRINTW 	･
+PRINTW 	･
+
+	IF !USE_CLI(TARGET)
+		TEQUIP:12 = 1
+	ELSE
+		TEQUIP:11 = 1
+	ENDIF
+	IF TALENT:オトコ == 0
+		TFLAG:19 = 1
+		TEQUIP:13 = 1
+	ENDIF
+	TEQUIP:14 = 1
+	IF TALENT:母乳体質
+		TEQUIP:17 = 1
+	ELSE
+		TEQUIP:16 = 1
+	ENDIF
+	TEQUIP:19 = 1
+	TEQUIP:36 = 1
+	
+	IF RAND:100 >= 5 + LIMIT((FLAG:触手レベル - BASE:LV) * 10, 0, 80)
+		PRINTFORM 触手は、%CALLNAME:TARGET%を襲うだけでは飽き足らず
+		PRINTFORM %CALLNAME:PLAYER%に襲い掛かった
+		IF !USE_CLI(PLAYER)
+			TEQUIP:PLAYER:12 = 1
+		ELSE
+			TEQUIP:PLAYER:11 = 1
+		ENDIF
+		IF TALENT:PLAYER:オトコ == 0
+			TEQUIP:PLAYER:13 = 1
+		ENDIF
+		TEQUIP:PLAYER:14 = 1
+		IF TALENT:PLAYER:母乳体質
+			TEQUIP:PLAYER:17 = 1
+		ELSE
+			TEQUIP:PLAYER:16 = 1
+		ENDIF
+	ENDIF
+	
+	TEQUIP:触手危険度 = LIMIT((FLAG:触手レベル - BASE:LV) * 10, 10, 80)
+ENDIF
+SIF FLAG:47
+	TEQUIP:触手危険度 += RAND:3
+RETURN 1
+
+
+
+;-------------------------------------------------
+;派生コマンドの処理
+;-------------------------------------------------
+@ACT_COM161
+;触手挿入
+JUMP COM44
+RETURN 1
+
+@ACT_COM162
+;アナル触手
+JUMP COM45
+RETURN 1
+
+@ACT_COM163
+;触手クリ責め
+JUMP COM42
+RETURN 1
+
+@ACT_COM164
+;触手乳首責め
+JUMP COM47
+RETURN 1
+
+@ACT_COM165
+;触手搾乳
+JUMP COM49
+RETURN 1
+
+@ACT_COM166
+;触手緊縛
+JUMP COM106
+RETURN 1
+
+@ACT_COM167
+;触手浣腸
+JUMP COM146
+RETURN 1
+
+
+@ACT_COM168
+;触手口辱
+PRINTL 触手口辱
+TSTR:0 = 触手口辱
+SELECTCOM = 168
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:36 == 0
+	TEQUIP:36 = 1
+	;汚れの付加
+	CALL SET_STAIN("口", "粘液", TARGET)
+ELSE
+	TEQUIP:36 = 0
+ENDIF
+
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+DOWNBASE:TARGET:体力 += 80
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:性行動 = 200
+SOURCE:TARGET:屈従 = 1000
+SOURCE:TARGET:逸脱 = 1000
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+IF TEQUIP:36 == 1
+	CALL SET_STAIN("口", "ペニス", TARGET)
+	CALL SET_STAIN("口", "粘液", TARGET)
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;TentacleEXPのリセット
+;T = 0
+
+;BlowjobEXP
+CALL ADDS_EXP("フェラ経験",1,TARGET)
+;PRINTL BlowjobEXP＋１
+RETURN 1
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM168
+;触手口辱中
+PRINTL ＜触手口辱中＞
+
+DOWNBASE:TARGET:体力 += 50
+DOWNBASE:TARGET:気力 += 80
+
+SOURCE:TARGET:性行動 += 100
+SOURCE:TARGET:屈従 += 700
+SOURCE:TARGET:逸脱 += 700
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;BlowjobEXP
+CALL ADDS_EXP("フェラ経験",1,TARGET)
+;PRINTL BlowjobEXP＋１
+
+;TentacleEXP加算
+;T += 1
+CALL ADDS_EXP("触手経験", 1, TARGET)
+
+RETURN 1
+
+
+@ACT_COM169
+;触手ペニス責め
+JUMP COM43
+RETURN 1
+
+@ACT_COM170
+;触手挿入させる
+JUMP COM52
+RETURN 1
+
+@ACT_COM171
+;アナル触手させる
+JUMP COM53
+RETURN 1
+
+@ACT_COM172
+;触手クリ責めさせる
+JUMP COM50
+RETURN 1
+
+@ACT_COM173
+;触手乳首責めさせる
+JUMP COM55
+RETURN 1
+
+@ACT_COM174
+;触手搾乳させる
+JUMP COM56
+RETURN 1
+
+@ACT_COM175
+;触手ペニス責めさせる
+JUMP COM51
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_160
+RETURN COMTYPE("触手系")
+@COMTYPE_161
+RETURN COMTYPE("触手系")
+@COMTYPE_162
+RETURN COMTYPE("触手系")
+@COMTYPE_163
+RETURN COMTYPE("触手系")
+@COMTYPE_164
+RETURN COMTYPE("触手系")
+@COMTYPE_165
+RETURN COMTYPE("触手系")
+@COMTYPE_166
+RETURN COMTYPE("触手系")
+@COMTYPE_167
+RETURN COMTYPE("触手系")
+@COMTYPE_168
+RETURN COMTYPE("触手系")
+@COMTYPE_169
+RETURN COMTYPE("触手系")
+@COMTYPE_170
+RETURN COMTYPE("触手系")
+@COMTYPE_171
+RETURN COMTYPE("触手系")
+@COMTYPE_172
+RETURN COMTYPE("触手系")
+@COMTYPE_173
+RETURN COMTYPE("触手系")
+@COMTYPE_174
+RETURN COMTYPE("触手系")
+@COMTYPE_175
+RETURN COMTYPE("触手系")
+
+
+
+

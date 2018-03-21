@@ -1,0 +1,1078 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:NTR_SELF.ERB
+;	Facility	:１日の終了時、ＮＴＲ状態のキャラが勝手に何処かへ行く処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2011/04/09		Ｎ鳥					新規作成
+;	002		2011/09/07		黒天					NTR_HOUMONNHANNBAI_SEXの処女/再生処女喪失の処理を関数を呼ぶように修正
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+
+;====================================================================
+;ＮＴＲ夜這い
+;====================================================================
+
+@EVENT_NTR_SELF
+#LOCALSIZE 1
+CUSTOMDRAWLINE =
+LOCAL = 0
+;キャラ登録数が1以下の時は引き返す
+SIF CHARANUM <= 1
+	RETURN 1
+REPEAT CHARANUM
+	;主人ならスキップ
+	SIF COUNT == MASTER
+		CONTINUE
+	;対象がその場にいないなら除外
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+	;レンタル中は除外
+	SIF CFLAG:COUNT:労役フラグ == 3
+		CONTINUE
+	;体力が500以下なら除外
+	SIF BASE:COUNT:0 <= 500
+		CONTINUE
+	;最も好感度が高いキャラがＮＰＣでなければ除外
+	SIF CFLAG:COUNT:陥落キャラ > -1
+		CONTINUE
+	;トロは別イベント
+	SIF CFLAG:COUNT:陥落キャラ == -16
+		CONTINUE
+	;上司は別イベント
+	SIF CFLAG:COUNT:陥落キャラ == -20
+		CONTINUE
+	
+	;ＮＴＲれてないかつ浮気心になってないキャラは除外
+	IF TALENT:COUNT:ＮＴＲ == 0
+		;淫乱度が最も高い好感度より高い場合はダメ
+		SIF CFLAG:COUNT:淫乱度 >= ABS(FAVORITE(COUNT, (FAVORITE_1(COUNT))))
+			CONTINUE
+		;
+		SIF !(FAVORITE_1_ID(COUNT) != CFLAG:COUNT:陥落キャラ && ABS(FAVORITE(COUNT, (FAVORITE_1(COUNT)))) > ABS(FAVORITE_ID(COUNT , CFLAG:COUNT:陥落キャラ)) + 500)
+			CONTINUE
+	ELSE
+		;淫ＮＴＲ以外は、陥落対象が最も好感度の高いキャラじゃないと行かない
+		SIF TALENT:COUNT:ＮＴＲ != 2 && FAVORITE_1_ID(COUNT) != CFLAG:COUNT:陥落キャラ
+			CONTINUE
+	ENDIF
+	CALL ＮＴＲ夜這い決定,COUNT
+	LOCAL = 1
+REND
+SIF LOCAL > 0
+	CUSTOMDRAWLINE =
+
+@ＮＴＲ夜這い決定,ARG
+;どの夜這いに進むか決定
+IF TALENT:ARG:ＮＴＲ == 2 && CFLAG:ARG:淫乱度 >= ABS(FAVORITE(ARG, (FAVORITE_1(ARG))))
+	;淫ＮＴＲ状態
+	IF (EXP:ARG:便器経験 > 50) && RAND:2 == 0
+		;公衆便所へ
+		CFLAG:ARG:ＮＴＲ夜這い = 3
+	ELSEIF (CFLAG:ARG:現ＮＴＲ進行度 >= 10 || CFLAG:ARG:淫乱度 >= 5000) && RAND:3 == 0
+		;乱交パーティへ
+		CFLAG:ARG:ＮＴＲ夜這い = 1
+	ELSEIF (CFLAG:ARG:現ＮＴＲ進行度 >= 5 || CFLAG:ARG:淫乱度 >= 4000) && RAND:2 == 0
+		;公園へ
+		CFLAG:ARG:ＮＴＲ夜這い = 2
+	ELSE
+		;夜の街へ
+		CFLAG:ARG:ＮＴＲ夜這い = 4
+	ENDIF
+ELSEIF (FAVORITE_1_ID(ARG) != CFLAG:ARG:陥落キャラ) && ABS(FAVORITE(ARG, (FAVORITE_1(ARG)))) > ABS(FAVORITE_ID(ARG , CFLAG:ARG:陥落キャラ)) + 500
+	;最も好感度の高いキャラが陥落対象で無い場合、ＮＴＲ前逢引へ
+	CFLAG:ARG:ＮＴＲ夜這い = 5
+ELSEIF CFLAG:ARG:現ＮＴＲ進行度 == 1
+	;ＮＴＲ後初の夜這い
+	CFLAG:ARG:ＮＴＲ夜這い = 6
+ELSE
+	$LOOP_RAND
+	LOCAL = RAND:6
+	SELECTCASE LOCAL
+		CASE 0
+		;野外調教(散歩他) 12
+			SIF (TALENT:ARG:ＮＴＲ != 3 && TALENT:ARG:ＮＴＲ != 6) || CFLAG:ARG:現ＮＴＲ進行度 < 6
+				GOTO LOOP_RAND
+			CFLAG:ARG:ＮＴＲ夜這い = 12
+		CASE 1
+		;デート 7
+			CFLAG:ARG:ＮＴＲ夜這い = 7
+		
+		CASE 2
+		;本番 8
+			CFLAG:ARG:ＮＴＲ夜這い = 8
+		CASE 3
+		;オナニー見せ合い 9
+			SIF (TALENT:ARG:ＮＴＲ != 3 && TALENT:ARG:ＮＴＲ != 6) && ABL:ARG:露出癖 < 3 && ABL:ARG:自慰中毒 < 1
+				GOTO LOOP_RAND
+			CFLAG:ARG:ＮＴＲ夜這い = 9
+		CASE 4
+		;アナルセックス 10
+			SIF (TALENT:ARG:ＮＴＲ != 3 && TALENT:ARG:ＮＴＲ != 6)
+				GOTO LOOP_RAND
+			CFLAG:ARG:ＮＴＲ夜這い = 10
+		CASE 5
+		;野外プレイ 11
+			SIF (TALENT:ARG:ＮＴＲ != 3 && TALENT:ARG:ＮＴＲ != 6) && ABL:ARG:露出癖 < 4
+				GOTO LOOP_RAND
+			CFLAG:ARG:ＮＴＲ夜這い = 11
+	
+	ENDSELECT
+	
+ENDIF
+CALLFORM NTR_SELF_{CFLAG:ARG:ＮＴＲ夜這い},ARG
+CALL 気絶処理,ARG
+
+RETURN 1
+
+;淫系
+;乱交パーティ
+@NTR_SELF_1,ARG
+#LOCALSIZE 1
+;回数・人数の算出
+;技巧人
+CFLAG:ARG:誘惑人数 = ABL:ARG:技巧 + RAND:(ABL:ARG:技巧 + 1) + TALENT:ARG:魅力 + TALENT:ARG:謎の魅力
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感
+	CFLAG:ARG:アナル回数 += 1
+
+CFLAG:ARG:フェラ回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:本番回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:アナル回数 *= CFLAG:ARG:誘惑人数
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 51
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+VARSET TCVAR:ARG:0 , 0
+
+SIF TALENT:ARG:処女
+	CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = (1+RAND:3)*CFLAG:ARG:誘惑人数
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;体力の消耗
+LOCAL = CFLAG:ARG:フェラ回数 * 5 + CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+;浮気癖がある場合は淫乱度倍化
+IF TALENT:ARG:浮気癖
+	CFLAG:ARG:淫乱度 += (LOCAL/10)*2
+ELSE
+	CFLAG:ARG:淫乱度 += LOCAL/10
+ENDIF
+
+;公園
+@NTR_SELF_2,ARG
+;回数・人数の算出
+;技巧人
+CFLAG:ARG:誘惑人数 = ABL:ARG:技巧/2 + TALENT:ARG:魅力 + TALENT:ARG:謎の魅力
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感
+	CFLAG:ARG:アナル回数 += 1
+
+CFLAG:ARG:フェラ回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:本番回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:アナル回数 *= CFLAG:ARG:誘惑人数
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 52
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+VARSET TCVAR:ARG:0 , 0
+SIF TALENT:ARG:処女
+	CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = (1+RAND:3)*CFLAG:ARG:誘惑人数
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;体力の消耗
+LOCAL = CFLAG:ARG:フェラ回数 * 5 + CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+;浮気癖がある場合は淫乱度倍化
+IF TALENT:ARG:浮気癖
+	CFLAG:ARG:淫乱度 += (LOCAL/10)*2
+ELSE
+	CFLAG:ARG:淫乱度 += LOCAL/10
+ENDIF
+
+
+;公衆便所
+@NTR_SELF_3,ARG
+;回数・人数の算出
+;技巧人
+CFLAG:ARG:誘惑人数 = ABL:ARG:技巧 + RAND:(ABL:ARG:技巧 + 1) + RAND:(ABL:ARG:技巧 + 1) + TALENT:ARG:魅力 + TALENT:ARG:謎の魅力
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/2 + ABL:ARG:精液中毒 + ABL:ARG:奉仕精神
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/2 + (ABL:ARG:セックス中毒) + ABL:ARG:Ｖ感覚
+ELSE
+	CFLAG:ARG:本番回数 = 0
+ENDIF
+CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/2 + (ABL:ARG:セックス中毒) + ABL:ARG:Ａ感覚
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感
+	CFLAG:ARG:アナル回数 += 1
+
+CFLAG:ARG:フェラ回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:本番回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:アナル回数 *= CFLAG:ARG:誘惑人数
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 53
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+VARSET TCVAR:ARG:0 , 0
+
+SIF TALENT:ARG:処女
+	CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得便器経験 = CFLAG:ARG:誘惑人数
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = (1+RAND:3)*CFLAG:ARG:誘惑人数
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;体力の消耗
+LOCAL = CFLAG:ARG:フェラ回数 * 10 + CFLAG:ARG:アナル回数 * 30 + CFLAG:ARG:本番回数 * 20
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 2
+;浮気癖がある場合は淫乱度倍化
+IF TALENT:ARG:浮気癖
+	CFLAG:ARG:淫乱度 += (LOCAL/10)*2
+ELSE
+	CFLAG:ARG:淫乱度 += LOCAL/10
+ENDIF
+
+;夜の街
+@NTR_SELF_4,ARG
+#LOCALSIZE 1
+;回数・人数の算出
+;技巧人
+CFLAG:ARG:誘惑人数 = 1 + (RAND:15 + TALENT:ARG:魅力 + TALENT:ARG:謎の魅力 + ABL:ARG:技巧/2 > 10) * (RAND:2 + 1)
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+IF ABL:ARG:Ａ感覚 > 1
+	CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3
+ELSE
+	CFLAG:ARG:アナル回数 = 0
+ENDIF
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感 && ABL:ARG:Ａ感覚
+	CFLAG:ARG:アナル回数 += 1
+
+CFLAG:ARG:フェラ回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:本番回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:アナル回数 *= CFLAG:ARG:誘惑人数
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 54
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+VARSET TCVAR:ARG:0 , 0
+
+SIF TALENT:ARG:処女
+	PRINTFORML <Virginity Lost>
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = (1+RAND:3)*CFLAG:ARG:誘惑人数
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;体力の消耗
+LOCAL = CFLAG:ARG:フェラ回数 * 5 + CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+;浮気癖がある場合は淫乱度倍化
+IF TALENT:ARG:浮気癖
+	CFLAG:ARG:淫乱度 += (LOCAL/10)*2
+ELSE
+	CFLAG:ARG:淫乱度 += LOCAL/10
+ENDIF
+
+;------------
+;ＮＴＲ前逢引
+;------------
+@NTR_SELF_5,ARG
+IF CFLAG:ARG:(2100 + FAVORITE_1_ID(ARG)) < 0
+	;各回数の算出
+	IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+		CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3
+	ELSE
+		CFLAG:ARG:フェラ回数 = 0
+	ENDIF
+	IF TALENT:ARG:オトコ == 0 || (TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6) || ABL:ARG:Ａ感覚 > 2
+		CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3
+	ELSE
+		CFLAG:ARG:アナル回数 = 0
+	ENDIF
+	SIF TALENT:ARG:Ａ敏感 && CFLAG:ARG:アナル回数
+		CFLAG:ARG:アナル回数 += 1
+ENDIF
+
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 55
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = 1+RAND:3
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+
+;------------------
+;ＮＴＲ後初めての夜
+;------------------
+@NTR_SELF_6,ARG
+#LOCALSIZE 4
+
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+IF TALENT:ARG:オトコ == 0 || (TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6) || ABL:ARG:Ａ感覚 > 2
+	CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3
+ELSE
+	CFLAG:ARG:アナル回数 = 0
+ENDIF
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感 && CFLAG:ARG:アナル回数
+	CFLAG:ARG:アナル回数 += 1
+
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 56
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+SIF TALENT:ARG:処女
+	PRINTFORML <Virginity Lost>
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = 1+RAND:5
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+LOCAL = CFLAG:ARG:フェラ回数 * 5 + CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+
+;------
+;デート
+;------
+@NTR_SELF_7,ARG
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 57
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 50
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 50
+ENDIF
+
+;----
+;本番
+;----
+@NTR_SELF_8,ARG
+;各回数の算出
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 58
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+SIF TALENT:ARG:処女
+	PRINTFORML <Virginity Lost>
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得キス経験 = 1+RAND:5
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+LOCAL = CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+
+;----------------
+;オナニー見せ合い
+;----------------
+@NTR_SELF_9,ARG
+;各回数の算出
+CFLAG:ARG:自慰見せつけ回数 = 1 + ABL:ARG:欲望 / 3 + ABL:ARG:露出癖 / 3 + ABL:ARG:自慰中毒
+
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 59
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:自慰見せつけ回数
+TCVAR:ARG:獲得自慰経験 = CFLAG:ARG:自慰見せつけ回数
+SIF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	TCVAR:ARG:獲得調教自慰経験 = CFLAG:ARG:自慰見せつけ回数
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:自慰見せつけ回数
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+LOCAL = CFLAG:ARG:自慰見せつけ回数 * 8
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+
+;--------------
+;アナルセックス
+;--------------
+@NTR_SELF_10,ARG
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || (TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6) || ABL:ARG:Ａ感覚 > 2
+	CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+SIF TALENT:ARG:Ａ敏感 && CFLAG:ARG:アナル回数
+	CFLAG:ARG:アナル回数 += 1
+
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 60
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = 1+RAND:5
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:アナル回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:アナル回数)/3
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+LOCAL = CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:挿入回数 * 5
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+
+;----------
+;野外プレイ
+;----------
+@NTR_SELF_11,ARG
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3 + ABL:ARG:露出癖
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3 + ABL:ARG:露出癖
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3 + ABL:ARG:露出癖
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3 + ABL:ARG:露出癖
+ENDIF
+IF TALENT:ARG:オトコ == 0 || (TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6) || ABL:ARG:Ａ感覚 > 2
+	CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3 + ABL:ARG:露出癖
+ELSE
+	CFLAG:ARG:アナル回数 = 0
+ENDIF
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感 && CFLAG:ARG:アナル回数
+	CFLAG:ARG:アナル回数 += 1
+
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 61
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+SIF TALENT:ARG:処女
+	PRINTFORML <Virginity Lost>
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = 1+RAND:5
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得野外露出経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+LOCAL = CFLAG:ARG:フェラ回数 * 5 + CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 1
+
+
+;--------
+;野外調教
+;--------
+@NTR_SELF_12,ARG
+CFLAG:ARG:誘惑人数 = ABL:ARG:技巧 + RAND:(ABL:ARG:技巧 + 1) + TALENT:ARG:魅力 + TALENT:ARG:謎の魅力
+;各回数の算出
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:精液中毒 + 1)/2 + ABL:ARG:奉仕精神 / 3 + ABL:ARG:露出癖 + ABL:ARG:マゾっ気/2
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｖ感覚 / 3 + ABL:ARG:露出癖 + ABL:ARG:マゾっ気/2
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3 + ABL:ARG:露出癖 + ABL:ARG:マゾっ気/2
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3 + ABL:ARG:露出癖 + ABL:ARG:マゾっ気/2
+ENDIF
+IF TALENT:ARG:オトコ == 0 || (TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6) || ABL:ARG:Ａ感覚 > 2
+	CFLAG:ARG:アナル回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ａ感覚 / 3 + ABL:ARG:露出癖 + ABL:ARG:マゾっ気/2
+ELSE
+	CFLAG:ARG:アナル回数 = 0
+ENDIF
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+SIF TALENT:ARG:Ａ敏感 && CFLAG:ARG:アナル回数
+	CFLAG:ARG:アナル回数 += 1
+
+CFLAG:ARG:フェラ回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:本番回数 *= CFLAG:ARG:誘惑人数
+CFLAG:ARG:アナル回数 *= CFLAG:ARG:誘惑人数
+;口上呼び出し
+DRAWLINE
+SWAP TARGET , ARG
+TFLAG:13 = 62
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , ARG
+
+SIF TALENT:ARG:処女
+	PRINTFORML <Virginity Lost>
+TALENT:ARG:処女 = 0
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得キス経験 = 1+RAND:5
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:アナル回数/2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:アナル回数 * 2 + CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数)/3
+TCVAR:ARG:獲得苦痛快楽経験 = (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数)/3
+TCVAR:ARG:獲得野外露出経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + CFLAG:ARG:フェラ回数 + CFLAG:ARG:挿入回数
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+;好きな人への好感度ＵＰ
+IF TALENT:ARG:ＮＴＲ == 3 || TALENT:ARG:ＮＴＲ == 6
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) -= 25
+ELSE
+	CFLAG:ARG:(2100+FAVORITE_1_ID(ARG)) += 25
+ENDIF
+LOCAL = CFLAG:ARG:フェラ回数 * 5 + CFLAG:ARG:アナル回数 * 15 + CFLAG:ARG:本番回数 * 10
+PRINTFORML Stamina - {LOCAL}
+BASE:ARG:体力 -= LOCAL
+CFLAG:ARG:現ＮＴＲ進行度 += 2
+
+;
+
+
+
+
+;--------
+;訪問販売
+;--------
+@NTR_HOUMONNHANNBAI
+#LOCALSIZE 5
+#DIM リスト, 200
+VARSET リスト, -1
+LOCAL:1 = 0
+FOR LOCAL,1,CHARANUM
+	SIF !陥落(LOCAL)
+		CONTINUE
+	SIF CFLAG:LOCAL:労役フラグ > 0
+		CONTINUE
+	SIF (CFLAG:LOCAL:その他 == 1116 || CFLAG:LOCAL:その他2 == 1116 || CFLAG:LOCAL:その他3 == 1116)
+		CONTINUE
+	SIF TALENT:LOCAL:オトコ
+		CONTINUE
+	SIF ABL:LOCAL:種族 != 0
+		CONTINUE
+	LOCAL:2 = CFLAG:LOCAL:放置日数
+	SIF TALENT:LOCAL:ＮＴＲ && CFLAG:LOCAL:陥落キャラ != -16
+		CONTINUE
+	SIF LOCAL:2 > 30
+		LOCAL:2 = 30
+	SIF LOCAL:2 < 5 && CFLAG:LOCAL:陥落キャラ != -16
+		CONTINUE
+	IF RAND:100 < LOCAL:2 || CFLAG:LOCAL:陥落キャラ == -16
+		リスト:(LOCAL:1) = LOCAL
+		LOCAL:1 ++
+	ENDIF
+NEXT
+SIF LOCAL:1 == 0
+	RETURN 0
+;トロの餌食決定＞LOCAL
+LOCAL = リスト:(RAND:(LOCAL:1))
+;ありえないと思うけど念のため。LOCALがキャラ登録番号の範囲外の場合なにもしない。
+SIF LOCAL < 1 && LOCAL >= CHARANUM
+	RETURN 0
+LOCAL:1 = 0
+IF CFLAG:LOCAL:構ったフラグ == 0
+	SIF 危険日(LOCAL) > 1
+		LOCAL:1 = 20
+ENDIF
+SIF CFLAG:LOCAL:陥落キャラ == -16
+	LOCAL:1 += 20
+DRAWLINE
+PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員の応対をしている
+PRINTFORML ・
+PRINTFORML ・・
+PRINTFORML ・・・
+IF RAND:10 < LOCAL:2 + LOCAL:1 || (CFLAG:LOCAL:その他 == 1117 || CFLAG:LOCAL:その他2 == 1117 || CFLAG:LOCAL:その他3 == 1117)
+	SIF CFLAG:LOCAL:陥落キャラ == -16
+		GOTO HOUMONNHANNBAI_NTR
+	IF CFLAG:LOCAL:訪問販売フラグ == 0
+		IF RAND:100 < CFLAG:LOCAL:放置日数 / 2 + LOCAL:1 || (CFLAG:LOCAL:その他 == 1117 || CFLAG:LOCAL:その他2 == 1117 || CFLAG:LOCAL:その他3 == 1117) || TALENT:LOCAL:淫乱 || TALENT:LOCAL:娼婦
+			IF TALENT:LOCAL:恋慕 || TALENT:LOCAL:親愛
+				PRINTFORMW %CALLNAME:LOCAL%は寂しさを利用した巧みな話術に流され、太った訪問販売員に身体をゆだねてしまった……
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員の巨大なイチモツに貫かれながら、
+				PRINTFORMW 胸に沸いた罪悪感に『一度だけ』『ゴムを付けてるから』と言い聞かせている……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:訪問販売フラグ = 1
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%はシャワーを浴びながら%CALLNAME:MASTER%への言い訳を呟いている……
+			ELSEIF TALENT:LOCAL:淫乱 || TALENT:LOCAL:娼婦
+				PRINTFORMW %CALLNAME:LOCAL%はお茶菓子を出そうと振り向いた瞬間、太った訪問販売員に後ろから抱きつかれた……
+				PRINTFORMW %CALLNAME:LOCAL%の尻に服越しからでも分かるほど大きなペニスが押し付けられている……
+				PRINTFORML しばらく%CALLNAME:MASTER%に触れられていなかった%CALLNAME:LOCAL%には
+				PRINTFORMW 下着をずらして侵入してくる巨大なペニスを拒む事はできなかった……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:訪問販売フラグ = 1
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は放置された精液の溜まったコンドームを眺めながら、先程の逢瀬の余韻に浸っている……
+			ELSEIF TALENT:LOCAL:服従 || TALENT:LOCAL:隷属
+				PRINTFORMW %CALLNAME:LOCAL%は試供品のドリンクを飲んだ瞬間、意識を失った……
+				PRINTFORMW 体内を押し上げるような圧迫感に目を覚ますと、大人の手首ほどもあるペニスが%CALLNAME:LOCAL%の秘部に根元まで突き立てられていた……
+				PRINTFORMW %CALLNAME:LOCAL%は抵抗する事もできずに太った訪問販売員に鳴かされ続けた……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:訪問販売フラグ = 1
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%はシャワーを浴びながら%CALLNAME:MASTER%への忠誠の言葉を反芻している……
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員と世間話をしている
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数
+			ELSE
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員を部屋に入れ、お茶を飲みながら談笑している
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 2
+			ENDIF
+		ENDIF
+	ELSEIF CFLAG:LOCAL:訪問販売フラグ
+		IF RAND:100 < CFLAG:LOCAL:放置日数 + LOCAL:1 || (CFLAG:LOCAL:その他 == 1117 || CFLAG:LOCAL:その他2 == 1117 || CFLAG:LOCAL:その他3 == 1117)
+			IF TALENT:LOCAL:恋慕 || TALENT:LOCAL:親愛
+				PRINTFORMW %CALLNAME:LOCAL%は言葉だけの力無い抵抗を口にしながら、太った訪問販売員に押し倒された……
+				PRINTFORML 何度目かの絶頂の後、%CALLNAME:LOCAL%が身体を起こそうとすると、
+				PRINTFORMW 太った訪問販売員がゴムを外して挿入しようとしている光景が目に飛び込んできた……
+				PRINTFORMW %CALLNAME:LOCAL%は力の入らない身体で必死に抵抗したが、太った訪問販売員の侵入を許してしまった……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW 太った訪問販売員はペニスを膣奥へしっかりと押し付けると、そのまま大量の精液を%CALLNAME:LOCAL%の子宮へと流し込んだ……
+				PRINTFORMW %CALLNAME:LOCAL%は子宮内を満たす熱を感じながら、%CALLNAME:MASTER%の名を呟き、涙を流した……
+			ELSEIF TALENT:LOCAL:淫乱 || TALENT:LOCAL:娼婦
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員が晒した巨大なペニスを目にした瞬間、糸が切れたかのように床へ崩れ落ちた……
+				PRINTFORML うまく動く事の出来ない%CALLNAME:LOCAL%に太った訪問販売員が覆い被さり、
+				PRINTFORMW 避妊具を付けていないペニスを%CALLNAME:LOCAL%の膣内へと一気に突き入れた……
+				PRINTFORMW 全身を襲う快楽の渦に%CALLNAME:LOCAL%は自分が強姦されている事も忘れ、太った訪問販売員のペニスによがり狂っている……
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員のペニスが膨張し射精が近いと知ると、思わず中出しを願う言葉を発してしまった……
+				PRINTFORMW 叩きつける様な勢いの射精に%CALLNAME:LOCAL%は全身を痙攣させながら絶頂に達した……
+			ELSEIF TALENT:LOCAL:服従 || TALENT:LOCAL:隷属
+				PRINTFORML 太った訪問販売員に服を脱ぐように言われた%CALLNAME:LOCAL%は、
+				PRINTFORMW %CALLNAME:MASTER%の命令ではないと理解しているのに服を肌蹴け、素肌を晒してしまった……
+				PRINTFORMW 太った訪問販売員は%CALLNAME:LOCAL%の全身をくまなく愛撫し、蕩けきったのを確認するとキスをしながらゆっくりとペニスを挿入した……
+				PRINTFORMW 耳元で愛を囁きながらゆっくりと抽挿を繰り返す太った訪問販売員に%CALLNAME:LOCAL%は抱き付きながら喘ぎ声を上げている……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORML %CALLNAME:LOCAL%は唐突に膣内で始まった射精に非難の声を上げようとしたが、
+				PRINTFORMW 太った訪問販売員に耳元で『アイシテイル』と囁かれると身体の力が抜けてしまった……
+				PRINTFORMW %CALLNAME:LOCAL%は子宮内に太った訪問販売員の精液が流し込まれるたびに、自分の中で何かが塗り替えられるような感覚に陥った……
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員に手を握られると、言葉とは裏腹に身体の力を抜けていった……
+				PRINTFORMW 困惑する%CALLNAME:LOCAL%をよそに太った訪問販売員は唇を奪いながらゆっくりと押し倒した……
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は曇った表情をしながらシャワールームで身体に付いた太った訪問販売員の匂いを落としている……
+			ELSE
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員のズボンの下からでも分かるほど隆起した股間から目を離せないでいる……
+				PRINTFORMW %CALLNAME:LOCAL%は目の前につきつけられた巨大なペニスを引き寄せられるようにして咥えてしまった……
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				PRINTFORMW %CALLNAME:LOCAL%は口内に残る太った訪問販売員の精液の感触を洗い流すかのように何度も口をゆすいでいる……
+			ENDIF
+		ENDIF
+	ELSEIF CFLAG:LOCAL:陥落キャラ == -16
+		$HOUMONNHANNBAI_NTR
+		IF RAND:100 < CFLAG:LOCAL:放置日数 + LOCAL:1 || (CFLAG:LOCAL:その他 == 1117 || CFLAG:LOCAL:その他2 == 1117 || CFLAG:LOCAL:その他3 == 1117)
+			IF TALENT:LOCAL:ＮＴＲ == 1
+				PRINTFORML ソファーに腰を下ろした太った訪問販売員の足元で、%CALLNAME:LOCAL%が目の前にそそり立つ男根に愛しそうに舌を這わせている……
+				PRINTFORML %CALLNAME:LOCAL%はペニスから口を離すと、太った訪問販売員に抱き付きながらペニスを女陰にあてがい、ゆっくりと腰を沈めた……
+				PRINTFORMW 大人の腕程もあるペニスが何の抵抗も無く飲み込んでいく膣口は、愛液を垂れ流しながら引く引くと痙攣している……
+				PRINTFORML 太った訪問販売員は%CALLNAME:LOCAL%を優しく抱き寄せると、気を抜いた所を見計らって激しく腰を突き上げた……
+				PRINTFORMW 不意を突かれた%CALLNAME:LOCAL%は言葉にならない声を上げながら、背中を弓なりに反らせた……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 30
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW 太った訪問販売員は絶え間なく続く絶頂の連続に朦朧としている%CALLNAME:LOCAL%の腰をぐっと引き寄せる……
+				PRINTFORML その瞬間、子宮口にあてがわれた男根から欲望の塊が大量に吐き出された……
+				PRINTFORMW %CALLNAME:LOCAL%は自分が征服されていく感覚に包まれながら、太った訪問販売員に口付けをした……
+				PRINTFORML ・
+				PRINTFORML ・・
+				PRINTFORML ・・・
+				PRINTFORML 幾度目かの射精を終え、太った訪問販売員がペニスを引き抜くと膣内に溜まっていた精液が一気に溢れ出した
+				PRINTFORML 息を荒げている%CALLNAME:LOCAL%の膣口はぽっかりと口を開けたまま、満足気にヒクヒクしている……
+			ELSEIF TALENT:LOCAL:ＮＴＲ == 2
+				PRINTFORML ベットで寝そべる太った訪問販売員の上で%CALLNAME:LOCAL%が腰を弾ませている……
+				PRINTFORML 汗を振りまきながら動く%CALLNAME:LOCAL%の女陰には大人の腕ほどのペニスがみっちりと収まっている……
+				PRINTFORML 腰を動かすたびに溢れ出る子種の量が、%CALLNAME:LOCAL%が犯された回数を物語っていた……
+				PRINTFORML %CALLNAME:LOCAL%の眼には光が無く、ただただ快楽の為に腰を振り続けている……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 30
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW 不意に太った訪問販売員が数回、激しく突き上げると%CALLNAME:LOCAL%の腰を掴み、押さえ込んだ
+				PRINTFORMW 次の瞬間、物凄い量の射精が始まり、%CALLNAME:LOCAL%は結合部から精液を逆流させながら太った訪問販売員の上に崩れ落ちた……
+				PRINTFORML ・
+				PRINTFORML ・・
+				PRINTFORML ・・・
+				PRINTFORML 太った訪問販売員は意識を失った%CALLNAME:LOCAL%の女陰に子種が漏れない様にペットボトルで栓をして、部屋を後にした……
+			ELSEIF TALENT:LOCAL:恋慕 || TALENT:LOCAL:親愛
+				PRINTFORMW %CALLNAME:LOCAL%は頬を赤らめながら太った訪問販売員にそっと身を寄せると、熱く激しいキスを交わした……
+				PRINTFORMW 唾液の糸を伝わせながらベットへ寝そべる%CALLNAME:LOCAL%の女陰はすでに『オトコ』を受け入れられるほどに雫に濡れていた……
+				PRINTFORML 太った訪問販売員の極太ペニスが膣内をこじ開けながらゆっくりと侵入すると、
+				PRINTFORMW %CALLNAME:LOCAL%は襲い来る快感にシーツを掴みながら悶えている……
+				PRINTFORML まるで膣内を自分のペニスの形に合うように造り変えるかの様な太った訪問販売員の腰使いに、
+				PRINTFORMW %CALLNAME:LOCAL%は悦びに満ちた嬌声で答えている……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 30
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW 巨大なペニスが膣内で脈打ち子種を吐き出すたびに、部屋の中に歓喜に満ちた悲鳴が響き渡る……
+				PRINTFORML ・
+				PRINTFORML ・・
+				PRINTFORML ・・・
+				PRINTFORML 太った訪問販売員は蕩けた表情で寝そべる%CALLNAME:LOCAL%の女陰から自分の子種が溢れ出す様を見ながら、
+				PRINTFORMW ニタリと口の端を吊り上げた……
+			ELSEIF TALENT:LOCAL:淫乱 || TALENT:LOCAL:娼婦
+				PRINTFORMW %CALLNAME:LOCAL%が上気した表情で下着を下ろすと、淫水が糸を引きながらポタポタとカーペットを汚した……
+				PRINTFORMW そして、そのまま四つん這いで太った訪問販売員に秘唇を広げて見せると、巨大なイチモツに一気に膣奥まで突き上げられた……
+				PRINTFORMW 部屋にあられもない声が響き、%CALLNAME:LOCAL%は舌を突き出しながら背中を弓なりに逸らしている……
+				PRINTFORMW 太った訪問販売員は%CALLNAME:LOCAL%の痴態を気に掛ける事無く、子宮口をこじ開けるかのようにゴツゴツと膣奥を突き上げている……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 30
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW 巨大なペニスが膨張した瞬間、太った訪問販売員の精液が膣内に叩きつけるように放たれると、
+				PRINTFORMW %CALLNAME:LOCAL%は頭を振りながらケモノのような喘ぎ声を上げながら絶頂に達した……
+				PRINTFORML ・
+				PRINTFORML ・・
+				PRINTFORML ・・・
+				PRINTFORMW すっかり太った訪問販売員のイチモツに馴染んだ%CALLNAME:LOCAL%の女陰は大きく口を広げ、ドロドロの子種を垂れ流している……
+			ELSEIF TALENT:LOCAL:服従 || TALENT:LOCAL:隷属
+				PRINTFORMW %CALLNAME:LOCAL%は微笑みながら太った訪問販売員の前で服をはだけると壁に手をつき尻を突き出した……
+				PRINTFORMW 太った訪問販売員が巨大なイチモツを突き入れると、既に太った訪問販売員のモノに馴染んだ膣壁がキュウキュウと締め付ける……
+				PRINTFORMW 太った訪問販売員が抉るように腰を使っても、%CALLNAME:LOCAL%は愛液を飛び散らせながら悦楽の声を上げている……
+				PRINTFORMW 気を良くした太った訪問販売員は%CALLNAME:LOCAL%に『ご褒美だ』囁くと、子宮に馴染ませるように大量の精液をゆっくりと流し込んだ……
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 30
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は膣内に子種を流し込まれるたびに、奴隷でしかない自分が『愛されている』と思い、幸せそうな笑みを浮かべている……
+				PRINTFORML ・
+				PRINTFORML ・・
+				PRINTFORML ・・・
+				PRINTFORMW %CALLNAME:LOCAL%は幾度と無く自分を『愛してくれた』太った訪問販売員のペニスを感謝の言葉を述べながら舌できれいにしている……
+				PRINTFORMW 太った訪問販売員はその様子を眺めながら満足げな笑みを浮かべている……
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員に抱き寄せられると、自ら唇を重ね舌を絡ませあった……
+				PRINTFORMW %CALLNAME:LOCAL%はそのまま押し倒されると自分から脚を広げ、太った訪問販売員の巨大なイチモツに膣内を押し広げられる快楽に浸った……
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員と舌を絡ませあいながら、幾度と無く種付けされている……
+			ELSE
+				PRINTFORMW %CALLNAME:LOCAL%は跪くと太った訪問販売員のジッパーを口で下げ、露わになった汗臭いイチモツを躊躇なく咥えた……
+				PRINTFORMW ペニスが十分な硬さになったのを確認すると%CALLNAME:LOCAL%は下着を下ろし、太った訪問販売員に尻を向けおねだりした……
+				CALL NTR_HOUMONNHANNBAI_SEX,LOCAL
+				CFLAG:LOCAL:(2084) += CFLAG:LOCAL:放置日数 * 10
+				PRINTFORMW %CALLNAME:LOCAL%は太った訪問販売員のペニスにこびり付いた精液を舌を使ってキレイになめっとっている……
+				PRINTFORMW ぽっかりと口を開けた%CALLNAME:LOCAL%の膣口からは入りきらなかった精液が溢れ出している……
+			ENDIF
+		ENDIF
+	ENDIF
+	DRAWLINE
+ELSE
+	PRINTFORMW %CALLNAME:LOCAL%はやんわりと断ったようだ
+	DRAWLINE
+ENDIF
+
+@NTR_HOUMONNHANNBAI_SEX,ARG
+;各回数の算出
+IF TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 = 3 + RAND:11
+	SIF HAVE_PENIS(ARG)
+		CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ELSE
+	CFLAG:ARG:本番回数 = 0
+	CFLAG:ARG:挿入回数 = (ABL:ARG:欲望 + 6)/4 + (ABL:ARG:セックス中毒 + 1)/2 + ABL:ARG:Ｃ感覚 / 3
+ENDIF
+IF TALENT:ARG:オトコ == 0 || ABL:ARG:精液中毒 || ABL:ARG:ＢＬっ気
+	CFLAG:ARG:フェラ回数 = 2 + RAND:5
+ELSE
+	CFLAG:ARG:フェラ回数 = 0
+ENDIF
+SIF TALENT:ARG:Ｖ敏感 && TALENT:ARG:オトコ == 0
+	CFLAG:ARG:本番回数 += 1
+
+;処女/再生処女喪失
+CALL 処女喪失, ARG
+CALL 処女喪失イベント, ARG
+
+IF EXP:ARG:Ｖ拡張経験 == 0 && EXP:ARG:Ａ拡張経験 == 0
+	CALL ADDS_ABNORMAL_EXP, "Expansion first experience", ARG
+	SETCOLOR COLOR("red")
+	PRINTL AbnormalEXP　拡張初体験 + 1
+	RESETCOLOR
+ENDIF
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ｖ拡張経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得キス経験 = 3+RAND:10
+SIF HAVE_PENIS(ARG)
+	TCVAR:ARG:獲得射精経験 = CFLAG:ARG:挿入回数 * 2 + CFLAG:ARG:本番回数/2
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:挿入回数 + CFLAG:ARG:本番回数
+TCVAR:ARG:獲得絶頂経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:挿入回数
+IF CFLAG:ARG:愛ＮＴＲ進行度 == 2
+	TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:本番回数 * 2
+	TCVAR:ARG:獲得精液経験 = CFLAG:ARG:フェラ回数 * 2 + CFLAG:ARG:本番回数 * 2
+	SIF CFLAG:ARG:108 == 0
+		CFLAG:ARG:105 += CFLAG:ARG:本番回数 * 2
+ENDIF
+TCVAR:ARG:獲得奉仕快楽経験 = (CFLAG:ARG:本番回数)/3
+;浮気癖がある場合は淫乱度倍化
+IF TALENT:ARG:浮気癖
+	CFLAG:ARG:淫乱度+= ((TCVAR:ARG:獲得絶頂経験 + TCVAR:ARG:獲得膣射経験) * 10)*2
+ELSE
+	CFLAG:ARG:淫乱度+= (TCVAR:ARG:獲得絶頂経験 + TCVAR:ARG:獲得膣射経験) * 10
+ENDIF
+TCVAR:ARG:獲得浮気経験 = 1
+CALL SHOW_ADD_EXP, ARG
+
+

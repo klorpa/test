@@ -1,0 +1,264 @@
+;====================
+;関連フラグリスト
+;====================
+;依頼フラグ:27:0 進行状況
+;====================
+;条件
+;====================
+@PLAYABLE_REQUEST_27
+;軽子坂攻略後
+IF ダンジョンフラグ:2:11 == 1 || FLAG:DEBUG
+	IF 依頼フラグ:27:0 == 0
+		RESULTS = Request：St. Hana School Investigation
+		RETURN 1
+	ELSEIF 依頼フラグ:27:0 == 1
+		RESULTS = Request：Magic Student Council Investigation
+		RETURN 1
+	ELSEIF 依頼フラグ:27:0 == 3
+		IF STRFLAG_NUM_REQ("帰還予定日" , , , , 27) <= DAY
+			RESULTS = St. Hana School Investigation Report
+			RETURN 1
+		ENDIF
+	ENDIF
+	RETURN 0
+ENDIF
+RETURN 0
+;====================
+;説明
+;====================
+@EXPLAIN_REQUEST_27
+PRINTL 
+PRINTW -An email arrived-
+PRINTW ....it's a request from the Phantom Society.
+IF 依頼フラグ:27:0 == 0
+	PRINTW There is a private school named St. Hana School.
+	PRINTW It may look like an ordinary high school at first glance, but they have many exceptionally talented people, who intervene in nearby demon incidents and have a rivalry with an external organization.
+	PRINTFORMW This request is directly from the Phantom Society and involves sending one of %CALLNAME:MASTER%'s slaves to St. Hana School, in order to gather information.
+ELSEIF 依頼フラグ:27:0 == 1
+	PRINTW The Phantom Society has decided on it's policy regarding the St. Hana School.
+	PRINTW The aim is to lessen the power of their Magic Student Council, so they can no longer act by themselves, which the organisation will follow up by a business proposal.
+	PRINTW The request this time is aimed at weakening the fighting power of te Student Council.
+ELSEIF 依頼フラグ:27:0 == 3
+	PRINTW It's time to get the report on St. Hana School from the slave that was sent there earlier.
+ENDIF
+;====================
+;内容
+;====================
+@REQUEST_27
+IF 依頼フラグ:27:0 == 0
+	A = 0
+	PRINTW Well, who will you sent to St. Hana School to gather information?
+	PRINTW You should send someone capable, but you won't be able to contact them for a few days.
+	REPEAT CHARANUM
+	;陥落済みの人間
+		SIF (陥落(COUNT) >= 1) && (ABL:COUNT:種族 == 0) && (CFLAG:COUNT:この場に居ないフラグ == 0) && COUNT != MASTER
+			GOTO OK
+	REND
+		PRINTW ...you don't have a suitable slave to send.
+		PRINTW It seems you'll have to get a loyal slave before you can undertake this request.
+		RETURN 0
+	$OK
+	
+	CALL INPUT_CHARA_LIST( "" , "CASTING_REQUEST_27")
+	IF RESULT == 1000
+		PRINTW You decided not to send a slave in.
+		PRINTW You'll need a loyal slave before you can undertake this request.
+	ELSE
+		LOCAL= RESULT
+		PRINTFORMW You dispacted %NAME:LOCAL%.
+		PRINTFORMW %HE_SHE(LOCAL,1)%'ll report back in 5 days time.
+		CFLAG:LOCAL:この場に居ないフラグ = 1
+		SIF LOCAL == TARGET
+			TARGET = -1
+		SIF LOCAL == ASSI
+			ASSI = -1
+		;送り込む奴隷を記憶(IDを覚えさせておく)
+		CALLF STRFLAG_NUM_REQ("調査奴隷", "=", , CFLAG:LOCAL:キャラ固有の番号)
+		;帰還予定日を記憶
+		CALLF STRFLAG_NUM_REQ("帰還予定日", "=", , DAY + 5)
+		依頼フラグ:27:0 = 3
+	ENDIF
+ELSEIF 依頼フラグ:27:0 == 1
+	PRINTW ...the operation begins with multiple demon incidents around St. Hana School.
+	PRINTW Since the Phantom Society already has some influence around here, perhaps this job won't be so hard.
+	PRINTW Students that don't respect the student council, Gaean agents, there are many levers.
+	PRINTW Once the incidents have started, %CALLNAME:MASTER%'s work will be to intercept part of the Student Council, when they split up to deal with them.
+	PRINTW ........
+	PRINTW ....
+	PRINTW ...
+	PRINTW You were notified by the Phantom Society.
+	PRINTW The student council has split into three groups to deal with the incidents.
+	PRINTW One consists of the Student Council President, who is a sword-user, and a nekomata.
+	PRINTW Another is a duo of Vice-President Summoner Charlie Wellington and Vice-President Yuri Watarai.
+	PRINTW Finally there is the duo of shifter Mizoroki Uroko and gunner Mizoroki Annie.
+	PRINTW Today, you aren't to crush them entirely.
+	PRINTW It's sufficent if you take out one group...
+	PRINTL Which group will you intercept?
+	PRINTL [0] Student President's group
+	PRINTL [1] Vice-President group
+	PRINTL [2] Mizoroki group
+	$INPUT_LOOP2
+	ONEINPUT
+	PRINTW ........
+	PRINTW ......
+	PRINTW ...
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	IF RESULT == 0
+		PRINTW It seems that theese two went to deal with trouble caused by some misguided students.
+		PRINTW Near the traces of a primitive summoning ritual, the students dressed like black magicians were already arrested.
+		PRINTW Holding them, were a smart, athletic girl with a ponytail and a sword, alongside a nekomata with a chainsaw.
+		PRINTW These two are from the Magic Student Council, they are Ichigo Toyonokaori and Chiyo Sasazuka.
+		PRINTW Well, let's take care of them.
+		PRINTFORMW The two put up their guard when they noticed %CALLNAME:MASTER%.
+		PRINTW It would be troublesome if they got reinforcements.
+		PRINTW You'll have to finish this quickly.
+		PRINTL Human　Ichigo Toyonokaori appeared!
+		PRINTL Beast Chiyo Sasazuka appeared!
+		CUSTOMDRAWLINE =
+		WAIT
+		CALL SET_ENEMY,8,4610,15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		CALL SET_BATTLE_STATUS(CHARANUM-1, 100, "攻撃")
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL SET_ENEMY,9,840,15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		PRINTW ...you defeated the two girls.
+		PRINTW Afterwards, you carried them away and reported to the Phantom Society.
+		CALL ADD_NEW_COMPANION, 4610,0
+		CALL ADD_NEW_COMPANION, 840,0
+		PRINTL You got Ichigo Toyonokaori and Chiyo Sasazuka.
+		PRINTL You looted a Nameless Sword from Ichigo.
+		ITEM:"Nameless Sword" += 1
+		依頼フラグ:27:0 = 2
+		;ここで捕獲したキャラの組み合わせを一応保存しておく
+		CALLF STRFLAG_NUM_REQ("捕獲キャラ", "=", , 1)
+	ELSEIF RESULT == 1
+		PRINTW It seems this group went to deal with trouble caused by misguided students.
+		PRINTW Some kind of machine wreckage was scatter here, with a burning smell lingering in the air.
+		;何やら機械の残骸らしき物があちこち飛び散り, 周囲には焦げ臭い臭いが漂っている.
+		PRINTW A man looking like a teacher, who wore a singed white coat, and some mesmerized students
+		;焦げた白衣の教師らしき男や学生が気絶しているのを, 金髪のハンサムな少年が手際悪く対処しており, 
+		PRINTW had been defeated by a handsome blone boy, while a maroon-haired girl was giving orders.
+		;栗色の髪の少女が溜息交じりに指示をしている.
+		PRINTW They must be the two Vice Precidents of the Student Council, Charlie Wellington and Yuri Watarai.
+		;この二人が退魔生徒会副会長, チャーリー　ウェリントンと渡会 百合だろう.
+		PRINTL While they both hold the rank of Vice President, and should therefore be equals,
+		PRINTW you heard they have some rivalty going on.
+		;同じ副会長と言う点では, この二人は同格の筈なのだが, 明確な上下関係が伺えるのが不思議ではある.
+		PRINTW Well, lets take care of thoose two.
+		PRINTFORMW They put their guard up and summoned some demons when they noticed %CALLNAME:MASTER%.
+		PRINTW It would be troublesome if they got any more reinforcements.
+		PRINTW You'll have to finish this quickly.
+		PRINTL Human Charlie Wellington appeared!
+		PRINTL Human Yuri Watarai appeared!
+		PRINTL Some summoned demons appeared!
+		CUSTOMDRAWLINE =
+		WAIT
+
+		CALL SET_ENEMY,8,513,20,0,0
+
+		CALL SET_ENEMY,9,4614,15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,10,512,15,0,0
+
+		CALL SET_ENEMY,14,501,15,0,0
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		CFLAG:(CHARANUM-1):行動回数 = 1
+		ABL:(CHARANUM-1):攻撃相性 = 17
+		ABL:(CHARANUM-1):射程 = 3
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,13,4611,15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		CFLAG:(CHARANUM-1):行動回数 = 1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL SET_BATTLE_STATUS(CHARANUM-1, 80, "攻撃")
+
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+
+		PRINTW ...you defeated the two Vice-Presidents.
+		PRINTW Afterwards, you carried them away and reported to the Phantom Society.
+		CALL ADD_NEW_COMPANION, 4611,0
+		CALL ADD_NEW_COMPANION, 4614,0
+		PRINTL You got Charlie Wellington and Yuri Watarai.
+		PRINTL You looted a Dolly Kadmon.
+		;ドリー・カドモンを手に入れた
+		ITEM:ドリー・カドモン += 1
+		依頼フラグ:27:0 = 5
+		;ここで捕獲したキャラの組み合わせを一応保存しておく
+		CALLF STRFLAG_NUM_REQ("捕獲キャラ", "=", , 2)
+	ELSE
+		PRINTFORMW 二人が対処していたのは学園内の異能者の起こしたトラブルだった様だ.
+		PRINTFORMW 既に概ね片は付いている様で, 白衣に眼鏡の少年が指示を出して, 金髪の少女に片づけをさせている.
+		PRINTFORMW この二人が退魔生徒会の, 溝呂木　鱗とアニーだろう.
+		PRINTW Well, lets take care of thoose two.
+		PRINTW When they noticed %CALLNAME:MASTER%, then instantly put their guard up.
+		PRINTW Uroko shifted his appearance while Annie drew her gun.
+		PRINTW It would be troublesome if they got reinforcements.
+		PRINTW You'll have to finish this quickly.
+		PRINTL Demon Azumi appeared!
+		PRINTL Human Annie appeared!
+		CUSTOMDRAWLINE =
+		WAIT
+		CALL SET_ENEMY,8,663,15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		CALL SET_BATTLE_STATUS(CHARANUM-1, 100, "攻撃")
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL SET_ENEMY,9,4613,15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		PRINTW ...you defeated the two.
+		PRINTW Afterwards, you carried them away and reported to the Phantom Society.
+		CALL ADD_NEW_COMPANION, 4613,0
+		CALL ADD_NEW_COMPANION, 4612,0
+		PRINTL You got Annie and Uroko Mizorogi.
+		依頼フラグ:27:0 = 4
+		;ここで捕獲したキャラの組み合わせを一応保存しておく
+		CALLF STRFLAG_NUM_REQ("捕獲キャラ", "=", , 3)
+	ENDIF
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	;PRINTFORMW ‥‥You reported on the job to Phantom Society.
+	PRINTW -You received ￥5000 as reward for your work-
+	MONEY += 5000
+ELSEIF 依頼フラグ:27:0 == 3
+	LOCAL = FINDCHARA_ID(STRFLAG_NUM_REQ("調査奴隷"))
+	PRINTFORMW %CALLNAME:LOCAL% returned and gave %HIS_HER(LOCAL)% report.
+	PRINTFORMW St. Hana Schoolに退魔生徒会なる異能者集団が存在するのは事実であり, 近辺の悪魔事件への介入を行っている.
+	PRINTFORMW 主な目的は, 学校敷地内に存在する霊地の保護であり, 
+	PRINTFORMW 内部の異能者の起こすトラブルへの対応及び, 外部からの干渉の排除の為の戦力が, 退魔生徒会という事らしい.
+	PRINTW ...you decided to relay this information to the Phantom Society.
+	PRINTFORMW -You got ￥1000 as payment for your effords-
+	CFLAG:LOCAL:この場に居ないフラグ = 0
+	MONEY += 1000
+	依頼フラグ:27:0 = 1
+ENDIF
+
+@CASTING_REQUEST_27
+SIF (陥落(COUNT) >= 1) && (ABL:COUNT:種族 == 0) && (CFLAG:COUNT:この場に居ないフラグ == 0) && COUNT != MASTER
+	RETURN 1
+RETURN 0
+

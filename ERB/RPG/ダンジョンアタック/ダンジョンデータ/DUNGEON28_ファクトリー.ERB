@@ -1,0 +1,1841 @@
+;=======================================================================
+;ファクトリー
+;=======================================================================
+;変数 ダンジョンフラグ:[[ダンジョン:ファクトリー]]:X
+;0 ファクトリーの情報（侵入条件)
+;1 暴走するデミナンディ
+;2 ベテルギウス
+;3 ヤヌス
+;4 ベルフェゴール
+;5 姫宮菊枝の状態 (-1以下 救出済み 0 何もない 1 拉致られてきたばかり 2 軽度の洗脳 3 重度の洗脳 4 家畜化)
+;6 収容所のパスコード 1 , 2 , 4 でそれぞれの扉解放
+;7 中央のエレベータへの扉 1 = 鍵を持っている 2 = 開けた
+;8 ファクトリーに入ったことがある 1 教会に来た 2 教会を出た 3 ファクトリー
+;9 家畜体験済み
+;10 性欲処理業務体験済み
+;11 パック 1 = 鍵をもらった
+;12 ナジャ 1 = 鍵をもらった 2 = 仲魔になった
+;13 収容所の人について助けるヒントをもらった
+;14 地下通路のパスコード入力 1 , 2 , 4 で三つの扉の制御
+;15 救出時の姫宮菊枝の状態 (5に準じる)
+;
+;他ダンジョンや依頼などで関係する変数
+;依頼フラグ:13:0 依頼・姫巫女救出依頼の進行度 請け負っている場合、進行度は2。断った・失敗した場合は-1になる
+;
+;
+;
+;=======================================================================
+;収容所については原作では旧水道橋から向かうのですが、ファクトリー内部で完結するように変更しました
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_28
+;[IF_DEBUG]
+;	RETURN 1
+;[ENDIF]
+;条件：ファクトリーの情報を得ている
+IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:0
+	RETURN 1
+ENDIF
+
+RETURN 0
+
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_28
+RESULTS = Factory
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_28
+PRINT Factory
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL 
+	CASE 1
+		PRINTL ・メシア教会
+	CASE 2
+		PRINTL ・タウン
+	CASE 3
+		PRINTL ・労働者寮
+	CASE 4
+		PRINTL ・地下発掘現場 １Ｆ
+	CASE 5
+		PRINTL ・地下発掘現場 Ｂ１Ｆ
+	CASE 6
+		PRINTL ・地下発掘現場 Ｂ２Ｆ
+	CASE 7
+		PRINTL ・地下発掘現場 Ｂ３Ｆ
+	CASE 8
+		PRINTL ・強制収容所 １Ｆ
+	CASE 9
+		PRINTL ・強制収容所 ２Ｆ
+	CASE 10
+		PRINTL ・地下通路 Ｂ１Ｆ
+	CASE 11
+		PRINTL ・地下通路 Ｂ７Ｆ
+ENDSELECT
+
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_28,ARG
+#LOCALSSIZE 1
+FLAG:現M = 1
+FLAG:現X = 1
+FLAG:現Y = 1
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_28
+;フィールドマップを全アナライズ
+IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:8 == 0
+	FLAG:現M = 0
+	CALL MAKE_FLOOR, 28
+	FOR LOCAL , 0 , 31
+		FOR LOCAL:1 , 0 , 41
+			CALL SET_FLOOR_ANALYZE, 2 , [[ダンジョン:ファクトリー]] , 0 , LOCAL:1, LOCAL
+		NEXT
+	NEXT
+	FLAG:現M = 1
+	CALL MAKE_FLOOR, 28
+	ダンジョンフラグ:[[ダンジョン:ファクトリー]]:8 = 1
+ENDIF
+;菊枝の状態
+IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 > -1 && 依頼フラグ:13:0 == 2
+	SELECTCASE DAY - STRFLAG_NUM_REQ("依頼を受けた日" , , , , 13)
+		;二日以内なら完全に無事
+		CASE IS <= 2
+			ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = 1
+		;５日以内なら助かる
+		CASE IS <= 5
+			SIF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 < 2
+				ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = 2
+		;１０日までは重度の洗脳
+		CASE IS <= 10
+			ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = 3
+		;それ以後は崩壊
+		CASEELSE
+			ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = 4
+		
+	ENDSELECT
+ENDIF
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_28
+IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 == -1
+	IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:15 == 1
+		CALL SHOW_PICTURE, "NONFLOORD", @"%CALLNAME:MASTER%の私室"
+		CALL MESSAGE_WINDOW, "", "＞数時間後……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"……あのままあそこに囚われていれば、/「歌」によって私は正気を失い、/メシア教会の下僕と成り果てていたでしょう" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"重ねてお礼をさせてください。/本当に、ありがとうございました" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "", "＞菊枝は深々と頭を下げた……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"想像するだに恐ろしい事です。/ヘブライの者たちが暗躍しているとはいえ、/人が、同じ人間をあのような手段で以て傀儡とするなどと……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"……いずれ、あの街は解放されるべきなのかもしれません" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"しかし、今の私にはこの身一つしかありません、/それすらも叶わないでしょう。/一刻も早く、今すぐにでもヒルコ様の元へ向かわなければ……" , , , "CENTER" , , 4
+		CALL INPUT_YN_M , "今日は休ませる" , "連絡を待たなければならない" , , , "CENTER" , 4
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW, "姫宮 菊枝", @"お心遣いありがとうございます。/ですが、心配なさらないでください。/休ませていただいたおかげで、体の調子はもう随分良くなりましたから" , , , "CENTER" , , 4
+		ELSE
+			CALL MESSAGE_WINDOW, "姫宮 菊枝", @"そうでしたね……/私がファクトリーから連れ出された事が、/ヒルコ様に伝わっていれば良いのですが…" , , , "CENTER" , , 4
+		ENDIF
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"そうですわ。せめてものお礼をさせてくださいませんか？/ヒルコ様の元へ行くまで、貴方のお手伝いをさせていただきたいと思うのです/微力ながら貴方のお役に立てるよう、精一杯努めましょう" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "", "＞姫宮菊枝が仲魔になった" , , "ログを残す" , "CENTER" , , 4
+	ELSEIF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:15 == 2
+		CALL SHOW_PICTURE, "NONFLOORD", @"%CALLNAME:MASTER%の私室"
+		CALL MESSAGE_WINDOW, "", "＞数時間後……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "", "＞正気を取り戻した菊枝が、青ざめた顔で自分の体を抱きしめるようにしている" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"私は……自分から、あんな……なんということを……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"……助けて下さったことは感謝します/ですが、あなたは一体……？" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "", "＞菊枝に自分の身の上と依頼について話した" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"そうですか、ヒルコ様が……それに、あなたが最近よく名を聞くあの方だったのですね" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"では、私が救出されたと知って何らかの情報を頂いているやもしれません。/今すぐにでもヒルコ様の元へ……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "姫宮 菊枝", @"……ごめんなさい/やはり今日は、もう休ませてください/……気分が優れませんので……" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "", "＞フラついた足取りで、菊枝は宛がわれた部屋に入って行った" , , , "CENTER" , , 4
+		CALL MESSAGE_WINDOW, "", "＞姫宮菊枝が仲魔になった" , , "ログを残す" , "CENTER" , , 4
+	ENDIF
+	
+	CALL ADD_NEW_COMPANION , [[キャラ:菊枝]] , 500
+	IF RESULT == 1
+		LOCAL = RESULT:1
+		BASE:LOCAL:LV += 10
+		BASE:LOCAL:力 += 1
+		BASE:LOCAL:知恵 += 3
+		BASE:LOCAL:魔力 += 3
+		BASE:LOCAL:耐力 += 2
+		BASE:LOCAL:速さ += 3
+		BASE:LOCAL:運 += 3
+		CFLAG:LOCAL:戦闘参加不可能 = -1
+		IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:15 == 2
+			TALENT:LOCAL:処女 = 0
+			EXP:LOCAL:Ｖ経験 += 30
+			EXP:LOCAL:Ａ経験 += 15
+			EXP:LOCAL:キス経験 += 10
+			EXP:LOCAL:絶頂経験 += 10
+			EXP:LOCAL:性交経験 += 45
+			EXP:LOCAL:膣射経験 += 45
+			EXP:LOCAL:自慰経験 += 10
+			EXP:LOCAL:精液経験 += 60
+			EXP:LOCAL:奉仕快楽経験 += 30
+			EXP:LOCAL:フェラ経験 += 10
+			EXP:LOCAL:輪姦経験 += 3
+		ENDIF
+	ENDIF
+	依頼フラグ:13:0 = 3
+	ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = -2
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_28,ARG,ARG:1
+RESULT = 1
+SELECTCASE DA:ARG:(ARG:1)
+	CASE 12
+		;監視塔入り口
+		IF BASE:MASTER:知恵 >= 10
+			RETURN 1
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE 11002
+		IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:7 == 2
+			RETURN 1
+		ELSEIF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:7 == 1
+			CALL MESSAGE_WINDOW_D , "" , "＞地下通路の鍵を使って扉を開けた"
+			ダンジョンフラグ:[[ダンジョン:ファクトリー]]:7 = 2
+			RETURN 1
+		ELSE
+			CALL MESSAGE_WINDOW_D , "" , "＞扉は閉ざされている"
+			RETURN 0
+		ENDIF
+	CASE 11012, 11022, 11032
+		IF !GETBIT(ダンジョンフラグ:[[ダンジョン:ファクトリー]]:14 , DA:ARG:(ARG:1) / 10 % 10 -1)
+			CALL MESSAGE_WINDOW_D , "" , "＞電子ロックされた扉がある"
+			CALL MESSAGE_WINDOW_D , "声" , "＞パスコードを入力してください" , "/" , "ログを残す/ボタンを利用する/再利用しない"
+			CALL INPUT_MANY , 0 , 9999
+			IF (DA:ARG:(ARG:1) == 11012 && RESULT == 9192) || (DA:ARG:(ARG:1) == 11022 && RESULT == 1213) || (DA:ARG:(ARG:1) == 11032 && RESULT == 1834)
+				CALL MESSAGE_WINDOW_D , "" , "＞………/＞……/＞…"
+				CALL MESSAGE_WINDOW_D , "声" , "＞パスコードを確認/　ロックを解除します"
+				SETBIT ダンジョンフラグ:[[ダンジョン:ファクトリー]]:14 , DA:ARG:(ARG:1) / 10 % 10 -1
+				RETURN 1
+			ELSE
+				CALL MESSAGE_WINDOW_D , "" , "＞………/＞……/＞…"
+				CALL MESSAGE_WINDOW_D , "声" , "＞パスコードが違います"
+				RETURN 0
+			ENDIF
+		ELSE
+			RETURN 1
+		ENDIF
+		
+	CASEELSE
+		CALL CAN_ENTER,ARG,ARG:1
+ENDSELECT
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_28
+SELECTCASE FLAG:現M
+	;ファクトリー
+	CASE 0
+		FLAG:最大X = 41
+		FLAG:最大Y = 39
+		;						           1         2         3         4
+		;						 01234567890123456789012345678901234567890
+		CALL MAKE_FLOOR_LINE, 0,"                                         "
+		CALL MAKE_FLOOR_LINE, 1,"                                 4       "
+		CALL MAKE_FLOOR_LINE, 2,"      111         11111         111      "
+		CALL MAKE_FLOOR_LINE, 3,"     11 11       111 111       11 11     "
+		CALL MAKE_FLOOR_LINE, 4,"    11   11      11   11      11 1111    "
+		CALL MAKE_FLOOR_LINE, 5,"   11 191111     11 9 11     11 111 11   "
+		CALL MAKE_FLOOR_LINE, 6,"  1111111 111     11111     11 11111 11  "
+		CALL MAKE_FLOOR_LINE, 7," 11 1    11111     111     11111 11   11 "
+		CALL MAKE_FLOOR_LINE, 8,"  11 1111111 11     1     11 11   11911  "
+		CALL MAKE_FLOOR_LINE, 9,"   11 1111111 11    1    11 1111911111   "
+		CALL MAKE_FLOOR_LINE,10,"   11111141111 11   1   11111111111111   "
+		CALL MAKE_FLOOR_LINE,11,"  1111111111111 11  A  1111111111111111  "
+		CALL MAKE_FLOOR_LINE,12," 111111111111111111111111111111111111111 "
+		CALL MAKE_FLOOR_LINE,13," 11111   11111111h1141111h11111111111111 "
+		CALL MAKE_FLOOR_LINE,14,"  1111   1111111hhh11111hhh111111111111  "
+		CALL MAKE_FLOOR_LINE,15,"   111 9 11111h11h1111 11h111111111111   "
+		CALL MAKE_FLOOR_LINE,16,"    111111111hhh11111   1111111111111    "
+		CALL MAKE_FLOOR_LINE,17,"     111111111h111111191111111111111     "
+		CALL MAKE_FLOOR_LINE,18,"      11111111111111111111111111111      "
+		CALL MAKE_FLOOR_LINE,19,"       111  111111  111111  111111       "
+		CALL MAKE_FLOOR_LINE,20,"       11    1111    1111    1111        "
+		CALL MAKE_FLOOR_LINE,21,"          11  11  11  11  11  11         "
+		CALL MAKE_FLOOR_LINE,22,"         9111    1111    1111            "
+		CALL MAKE_FLOOR_LINE,23,"        111 11  111111  111111           "
+		CALL MAKE_FLOOR_LINE,24,"         1191    1111    1111  11        "
+		CALL MAKE_FLOOR_LINE,25,"          11  11      11      9111       "
+		CALL MAKE_FLOOR_LINE,26,"             9111    1111    111111      "
+		CALL MAKE_FLOOR_LINE,27,"            111111111111111111111111     "
+		CALL MAKE_FLOOR_LINE,28,"           1111 11111111111111111111     "
+		CALL MAKE_FLOOR_LINE,29,"            111911  111111   111111      "
+		CALL MAKE_FLOOR_LINE,30,"             1111    1111     1111       "
+		CALL MAKE_FLOOR_LINE,31,"                  11       11            "
+		CALL MAKE_FLOOR_LINE,32,"                 1111     1119           "
+		CALL MAKE_FLOOR_LINE,33,"         1111111111111   111111          "
+		CALL MAKE_FLOOR_LINE,34,"       111   11h11111h1111h11111  11     "
+		CALL MAKE_FLOOR_LINE,35,"       111   111h1h11111111h11111111     "
+		CALL MAKE_FLOOR_LINE,36,"        11 9 1111111111111111111111      "
+		CALL MAKE_FLOOR_LINE,37,"         11111  11111 11111   1111       "
+		CALL MAKE_FLOOR_LINE,38,"                                         "
+		;						 01234567890123456789012345678901234567890
+		;						           1         2         3         4
+		
+	;メシア教会
+	CASE 1
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								012345678
+		CALL MAKE_FLOOR_LINE,0,"         "
+		CALL MAKE_FLOOR_LINE,1," T 1 4 9 "
+		CALL MAKE_FLOOR_LINE,2," 2 1 2 2 "
+		CALL MAKE_FLOOR_LINE,3," 11111 1 "
+		CALL MAKE_FLOOR_LINE,4,"   111 2 "
+		CALL MAKE_FLOOR_LINE,5," 1211111 "
+		CALL MAKE_FLOOR_LINE,6,"   1 2 1 "
+		CALL MAKE_FLOOR_LINE,7," 121 8 1 "
+		CALL MAKE_FLOOR_LINE,8,"         "
+	;タウン
+	CASE 2
+		FLAG:最大X = 9
+		FLAG:最大Y = 17
+;								012345678
+		CALL MAKE_FLOOR_LINE, 0,"         "
+		CALL MAKE_FLOOR_LINE, 1," 4 1 4 1 "
+		CALL MAKE_FLOOR_LINE, 2," 2 2 2 2 "
+		CALL MAKE_FLOOR_LINE, 3," 1111111 "
+		CALL MAKE_FLOOR_LINE, 4," 1     1 "
+		CALL MAKE_FLOOR_LINE, 5," 121 121 "
+		CALL MAKE_FLOOR_LINE, 6," 1     1 "
+		CALL MAKE_FLOOR_LINE, 7," 1111111 "
+		CALL MAKE_FLOOR_LINE, 8,"   2 2   "
+		CALL MAKE_FLOOR_LINE, 9," 1111111 "
+		CALL MAKE_FLOOR_LINE,10," 1     1 "
+		CALL MAKE_FLOOR_LINE,11," 124 421 "
+		CALL MAKE_FLOOR_LINE,12," 1     1 "
+		CALL MAKE_FLOOR_LINE,13," 1111111 "
+		CALL MAKE_FLOOR_LINE,14,"     2   "
+		CALL MAKE_FLOOR_LINE,15,"     8   "
+		CALL MAKE_FLOOR_LINE,16,"         "
+	;労働者寮
+	CASE 3
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								012345678
+		CALL MAKE_FLOOR_LINE,0,"         "
+		CALL MAKE_FLOOR_LINE,1,"   4 4 4 "
+		CALL MAKE_FLOOR_LINE,2,"   2 2 2 "
+		CALL MAKE_FLOOR_LINE,3," C211111 "
+		CALL MAKE_FLOOR_LINE,4,"     2   "
+		CALL MAKE_FLOOR_LINE,5," 4211111 "
+		CALL MAKE_FLOOR_LINE,6,"   2 2 2 "
+		CALL MAKE_FLOOR_LINE,7,"   4 4 8 "
+		CALL MAKE_FLOOR_LINE,8,"         "
+
+	;発掘現場１Ｆ
+	CASE 4
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								012345678
+		CALL MAKE_FLOOR_LINE,0,"         "
+		CALL MAKE_FLOOR_LINE,1,"     1   "
+		CALL MAKE_FLOOR_LINE,2,"     2   "
+		CALL MAKE_FLOOR_LINE,3,"   11111 "
+		CALL MAKE_FLOOR_LINE,4,"   1   1 "
+		CALL MAKE_FLOOR_LINE,5," 111 1 1 "
+		CALL MAKE_FLOOR_LINE,6," 2 1 1 2 "
+		CALL MAKE_FLOOR_LINE,7," 7 121 8 "
+		CALL MAKE_FLOOR_LINE,8,"         "
+	;発掘現場Ｂ１Ｆ
+	CASE 5
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+;								 0         1
+;								 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1,"         6 1   1 "
+		CALL MAKE_FLOOR_LINE, 2,"         2 1   1 "
+		CALL MAKE_FLOOR_LINE, 3,"         1112111 "
+		CALL MAKE_FLOOR_LINE, 4,"         1   1   "
+		CALL MAKE_FLOOR_LINE, 5,"         1 111 3 "
+		CALL MAKE_FLOOR_LINE, 6,"         1 1   2 "
+		CALL MAKE_FLOOR_LINE, 7,"         1 1 DDD "
+		CALL MAKE_FLOOR_LINE, 8,"           2 D   "
+		CALL MAKE_FLOOR_LINE, 9," 111112DDDDD D   "
+		CALL MAKE_FLOOR_LINE,10," 2 111       D   "
+		CALL MAKE_FLOOR_LINE,11," 8 111 12DDDDDDD "
+		CALL MAKE_FLOOR_LINE,12,"   1   1     2   "
+		CALL MAKE_FLOOR_LINE,13," 321 1 11111 111 "
+		CALL MAKE_FLOOR_LINE,14,"     2 1 2 1   2 "
+		CALL MAKE_FLOOR_LINE,15,"     111 8 111 7 "
+		CALL MAKE_FLOOR_LINE,16,"                 "
+
+	;発掘現場Ｂ２Ｆ
+	CASE 6
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+;								 0         1
+;								 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1,"       111   1 6 "
+		CALL MAKE_FLOOR_LINE, 2,"       111   1 2 "
+		CALL MAKE_FLOOR_LINE, 3,"   3 D2111111111 "
+		CALL MAKE_FLOOR_LINE, 4,"   2 D   111     "
+		CALL MAKE_FLOOR_LINE, 5," 1 DDDDD 111 721 "
+		CALL MAKE_FLOOR_LINE, 6," 1   D 2       1 "
+		CALL MAKE_FLOOR_LINE, 7," 1112D 3 DDD23 1 "
+		CALL MAKE_FLOOR_LINE, 8," 111     DDD   1 "
+		CALL MAKE_FLOOR_LINE, 9," 11111 32DDD2111 "
+		CALL MAKE_FLOOR_LINE,10," 2         D     "
+		CALL MAKE_FLOOR_LINE,11," 8 1 12111 DDD   "
+		CALL MAKE_FLOOR_LINE,12,"   1   111   D   "
+		CALL MAKE_FLOOR_LINE,13," 12111111111 D   "
+		CALL MAKE_FLOOR_LINE,14,"     111 2 1 2   "
+		CALL MAKE_FLOOR_LINE,15,"     111 8 11111 "
+		CALL MAKE_FLOOR_LINE,16,"                 "
+
+	;発掘現場Ｂ３Ｆ
+	CASE 7
+		FLAG:最大X = 17
+		FLAG:最大Y = 9
+;								 0         1
+;								 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1," 42D       126   "
+		CALL MAKE_FLOOR_LINE, 2,"   DDDDD   1     "
+		CALL MAKE_FLOOR_LINE, 3,"   DDDDD   111   "
+		CALL MAKE_FLOOR_LINE, 4,"   DDDDD     1   "
+		CALL MAKE_FLOOR_LINE, 5," 32DDDDDDDDD2111 "
+		CALL MAKE_FLOOR_LINE, 6,"   DDD       1   "
+		CALL MAKE_FLOOR_LINE, 7,"   DDD   12111   "
+		CALL MAKE_FLOOR_LINE, 8,"                 "
+
+	;強制収容所１Ｆ
+	CASE 8
+		FLAG:最大X = 25
+		FLAG:最大Y = 25
+;								 0         1         2
+;								 0123456789012345678901234
+		CALL MAKE_FLOOR_LINE, 0,"                         "
+		CALL MAKE_FLOOR_LINE, 1," 82111 121111111111111   "
+		CALL MAKE_FLOOR_LINE, 2,"     1 1 1 2 2 1 2 2 1   "
+		CALL MAKE_FLOOR_LINE, 3," 11121 1 1 1 1 1 1 1 1   "
+		CALL MAKE_FLOOR_LINE, 4," 1   1 1 1     1     1   "
+		CALL MAKE_FLOOR_LINE, 5," 126 1 1 1 1 1 1 1 1 111 "
+		CALL MAKE_FLOOR_LINE, 6,"       1 1 2 2 1 2 2 1 2 "
+		CALL MAKE_FLOOR_LINE, 7," 1111111 1111111111111 6 "
+		CALL MAKE_FLOOR_LINE, 8," 2                       "
+		CALL MAKE_FLOOR_LINE, 9," 1111111                 "
+		CALL MAKE_FLOOR_LINE,10,"   111                   "
+		CALL MAKE_FLOOR_LINE,11," 4211124                 "
+		CALL MAKE_FLOOR_LINE,12,"   111                   "
+		CALL MAKE_FLOOR_LINE,13," 4211124                 "
+		CALL MAKE_FLOOR_LINE,14,"   111                   "
+		CALL MAKE_FLOOR_LINE,15," 1111111                 "
+		CALL MAKE_FLOOR_LINE,16,"   111                   "
+		CALL MAKE_FLOOR_LINE,17," 1211124                 "
+		CALL MAKE_FLOOR_LINE,18,"   111                   "
+		CALL MAKE_FLOOR_LINE,19," 4211124                 "
+		CALL MAKE_FLOOR_LINE,20,"   111                   "
+		CALL MAKE_FLOOR_LINE,21," 1111111                 "
+		CALL MAKE_FLOOR_LINE,22,"     2                   "
+		CALL MAKE_FLOOR_LINE,23,"     8                   "
+		CALL MAKE_FLOOR_LINE,24,"                         "
+
+	;強制収容所２Ｆ
+	CASE 9
+		FLAG:最大X = 25
+		FLAG:最大Y = 9
+;								 0         1         2
+;								 0123456789012345678901234
+		CALL MAKE_FLOOR_LINE, 0,"                         "
+		CALL MAKE_FLOOR_LINE, 1," 9 11121111111 1111111   "
+		CALL MAKE_FLOOR_LINE, 2," 2 2 1 1 2 2 2 2 2 2 1   "
+		CALL MAKE_FLOOR_LINE, 3," 1 1 1 1 1 1 4 1 1 1 1   "
+		CALL MAKE_FLOOR_LINE, 4," 1   1 1             1   "
+		CALL MAKE_FLOOR_LINE, 5," 1 721 1 1 1 1 1 1 1 111 "
+		CALL MAKE_FLOOR_LINE, 6," 2     1 2 2 2 2 2 2 1 2 "
+		CALL MAKE_FLOOR_LINE, 7," 1111111111111 1111111 7 "
+		CALL MAKE_FLOOR_LINE, 8,"                         "
+
+	;地下通路Ｂ１Ｆ
+	CASE 10
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								012345678
+		CALL MAKE_FLOOR_LINE,0,"         "
+		CALL MAKE_FLOOR_LINE,1," 1111111 "
+		CALL MAKE_FLOOR_LINE,2," 1 1   2 "
+		CALL MAKE_FLOOR_LINE,3," 1 9 1 1 "
+		CALL MAKE_FLOOR_LINE,4," 1   1   "
+		CALL MAKE_FLOOR_LINE,5," 1 12111 "
+		CALL MAKE_FLOOR_LINE,6," 2   1 2 "
+		CALL MAKE_FLOOR_LINE,7," 11111 8 "
+		CALL MAKE_FLOOR_LINE,8,"         "
+
+	;地下通路Ｂ７Ｆ
+	CASE 11
+		FLAG:最大X = 33
+		FLAG:最大Y = 33
+;								 0         1         2         3
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1," 1111121 111111111 111 1 1111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1     1 1 2     1 1 2 1   111 2 "
+		CALL MAKE_FLOOR_LINE, 3," 123 111 1 11121 121 3 121 111 9 "
+		CALL MAKE_FLOOR_LINE, 4,"     1   1     1 1 1   1 1   1   "
+		CALL MAKE_FLOOR_LINE, 5," 11111 1 123 111 1 1 1 1 1 1 1 1 "
+		CALL MAKE_FLOOR_LINE, 6," 1     1 1   2 1   1 2 1 1 2 2 2 "
+		CALL MAKE_FLOOR_LINE, 7," 1111111 1 111 1 1 111 1 1 11111 "
+		CALL MAKE_FLOOR_LINE, 8,"       2 1 111   1   1 1 1 1   1 "
+		CALL MAKE_FLOOR_LINE, 9," 111111111 111 121 1 1 1 121 1 1 "
+		CALL MAKE_FLOOR_LINE,10," 1       1 2   1 1 2 1 1   1 2 1 "
+		CALL MAKE_FLOOR_LINE,11," 1 111 1 1 111 1 111 1 1 1 111 1 "
+		CALL MAKE_FLOOR_LINE,12," 1   1 2 1     1 1   1 1 2 111 2 "
+		CALL MAKE_FLOOR_LINE,13," 1 321 111 1 111 1 111 1 11111 1 "
+		CALL MAKE_FLOOR_LINE,14," 1   1     2 1   1 1   1     2   "
+		CALL MAKE_FLOOR_LINE,15," 1 11111111111 9 121 321 123 111 "
+		CALL MAKE_FLOOR_LINE,16," 1       2     2         1   111 "
+		CALL MAKE_FLOOR_LINE,17," 1 11111 11111 1 1111111 1111111 "
+		CALL MAKE_FLOOR_LINE,18," 2 1   1 1   1 1 1   2   1     1 "
+		CALL MAKE_FLOOR_LINE,19," 111 1 1 121 1 1 1 111 121 121 1 "
+		CALL MAKE_FLOOR_LINE,20," 1   2 1 1   1 2 1 1   1   1   1 "
+		CALL MAKE_FLOOR_LINE,21," 1 111 1 121 1 1 1 1 1 1 111 111 "
+		CALL MAKE_FLOOR_LINE,22," 2 1   1 1   1 2 1 1 2 1 111 111 "
+		CALL MAKE_FLOOR_LINE,23," 1 12111 123 11111 111 1 111 111 "
+		CALL MAKE_FLOOR_LINE,24,"   1               1   1 2 1   2 "
+		CALL MAKE_FLOOR_LINE,25," 111 1111124 1 4 111 111 4 11111 "
+		CALL MAKE_FLOOR_LINE,26," 1   1 2     1 2 1   1 2 2     1 "
+		CALL MAKE_FLOOR_LINE,27," 1 321 1 11111 1 1 111 1 1 111 1 "
+		CALL MAKE_FLOOR_LINE,28," 1     1 1 2 1 2 1   2 1 1 1 2 1 "
+		CALL MAKE_FLOOR_LINE,29," 1111111 1 1 1 1 111 1 1 1 1 1 1 "
+		CALL MAKE_FLOOR_LINE,30," 1       1   1 2   1   1 2 1   1 "
+		CALL MAKE_FLOOR_LINE,31," 121112111 11121 1211111 9 11121 "
+		CALL MAKE_FLOOR_LINE,32,"                                 "
+;								 012345678901234567890123456789012
+;								 0         1         2         3
+		DA:15:22 += 11000
+		DA:29:6 += 11010
+		DA:29:14 += 11020
+		DA:31:24 += 11030
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_COMMON_28_0, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1
+		RESULTS = 　
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_28_1, ARG , ARG:1 , ARG:2
+IF FLAG:現M == 0
+	SELECTCASE ARG:2
+		CASE IS > 30
+			SETCOLOR 0x441100
+		CASE IS >= 26
+			SETCOLOR 0x663300
+		CASE 25
+			IF GROUPMATCH(ARG:1, 10, 11)
+				SETCOLOR 0x996600
+			ELSE
+				SETCOLOR 0x663300
+			ENDIF
+		CASE 24
+			IF GROUPMATCH(ARG:1, 31, 32)
+				SETCOLOR 0x663300
+			ELSE
+				SETCOLOR 0x996600
+			ENDIF
+		CASE IS >= 22
+			SETCOLOR 0x996600
+		CASE 21
+			SIF GROUPMATCH(ARG:1, 14, 15 , 22 , 23 , 30 , 31)
+				RETURN 1
+			SETCOLOR 0x996600
+		CASEELSE
+			RETURN 1
+	ENDSELECT
+	RESULTS = ::
+ELSE
+	RETURN 1
+ENDIF
+
+@TILE_MARK_COMMON_28_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;寮
+	CASE 0
+		RESULTS = 寮
+	;メシア教会
+	CASE 2
+		RESULTS = %UNICODE(0x2020)%
+	;タウン
+	CASE 3
+		RESULTS = 街
+	CASE 1 , 4 TO 12
+		RESULTS = 入
+	CASE 1100 , 1101 , 1102
+		RESULTS = Ｅ
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_28_2, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1
+		IF BASE:MASTER:知恵 >= 10
+			RETURN 1
+		ELSE
+			RESULTS = ■
+		ENDIF
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_28_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;メッセンジャー
+	CASE 0, 2
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASE 1
+		RESULTS = 牧
+	CASE 310
+		RESULTS = CB
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_28, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "h"
+		RETURN 10
+	CASE "A"
+		RETURN 12
+	CASE "C"
+		RETURN 3104
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_28, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:84~99
+;LOCAL:4 イベント
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4
+		IF (FLAG:現M *1000 + LOCAL:4 * 10 + 4 == 11024) && ダンジョンフラグ:[[ダンジョン:ファクトリー]]:4 == 1
+			;ヤヌス倒してる場合はヤヌスのタイルはスキップ
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+		ENDIF
+		LOCAL:4++
+	CASE 5
+		;DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:5 * 10 + 5
+		;LOCAL:5++
+	CASE 6
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:6 * 10 + 6
+		LOCAL:6++
+	CASE 7
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:7 * 10 + 7
+		LOCAL:7++
+	CASE 8
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:8 * 10 + 8
+		LOCAL:8++
+	CASE 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+		SELECTCASE DA:(ARG:1):(ARG:2) / 10
+			CASE 100
+				DA:(ARG:1):(ARG:2) = 11009
+			CASE 900
+				DA:(ARG:1):(ARG:2) = 11019
+			CASE 1000
+				DA:(ARG:1):(ARG:2) = 11029
+		ENDSELECT
+		LOCAL:9++
+	
+ENDSELECT
+SIF FLAG:現M == 0 && RANGE(ARG:1 , 17 , 23) && RANGE(ARG:2 , 2 , 10) && BASE:MASTER:知恵 < 10
+	DA:(ARG:1):(ARG:2) = 0
+	
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_28
+CALL EVENT_DUNGEON_28
+RETURN RESULT
+
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_28,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+CALL EVENT_DUNGEON_28, ARG
+RETURN RESULT
+
+@EVENT_DUNGEON_28, ARG
+#DIM 交渉可能キャラ , 7
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+;==========
+;出口の処理
+;==========
+	CASE 8
+		CALL MESSAGE_WINDOW_D, "", "出口がある。外に出ますか？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+				CASE 300
+					;労働者寮
+					CALL DUNGEON_WORP_ID, 0 , 9 , 1
+				;CASE 1200
+				;	;監視塔
+				;	CALL DUNGEON_WORP_ID, 0 , 9 , 1
+				CASE 100
+					;メシア教会
+					CALL DUNGEON_WORP_ID, 0 , 29 , 1
+				CASE 200
+					;タウン
+					CALL DUNGEON_WORP_ID, 0 , 39 , 1
+				CASE 400
+					;発掘現場１Ｆ
+					CALL DUNGEON_WORP_ID, 0 , 49 , 1
+				CASE 500
+					;発掘現場Ｂ１Ｆ－１
+					CALL DUNGEON_WORP_ID, 0 , 69 , 1
+				CASE 501
+					;発掘現場Ｂ１Ｆ－２
+					CALL DUNGEON_WORP_ID, 0 , 79 , 1
+				CASE 801
+					;強制収容所１Ｆ表口
+					CALL DUNGEON_WORP_ID, 0 , 89 , 1
+				CASE 600
+					;発掘現場Ｂ１Ｆ－１
+					CALL DUNGEON_WORP_ID, 0 , 99 , 1
+				CASE 601
+					;発掘現場Ｂ１Ｆ－２
+					CALL DUNGEON_WORP_ID, 0 , 109 , 1
+				CASE 800
+					;強制収容所１Ｆ裏口
+					CALL DUNGEON_WORP_ID, 0 , 119 , 1
+				CASE 1000
+					;地下通路Ｂ１Ｆ
+					CALL DUNGEON_WORP_ID, 0 , 129 , 1
+			ENDSELECT
+		ENDIF
+		IF FLAG:現Y >= 31 && !GETBIT(ダンジョンフラグ:[[ダンジョン:ファクトリー]]:8 , 2)
+			FOR LOCAL , 31 , 38
+				FOR LOCAL:1 , 0 , 41
+					CALL SET_FLOOR_ANALYZE, 2 , [[ダンジョン:ファクトリー]] , 0 , LOCAL:1, LOCAL
+				NEXT
+			NEXT
+			SETBIT ダンジョンフラグ:[[ダンジョン:ファクトリー]]:8 , 2
+		ENDIF
+		IF !GETBIT(ダンジョンフラグ:[[ダンジョン:ファクトリー]]:8 , 1)
+			IF BASE:MASTER:知恵 >= 10
+				CALL MESSAGE_WINDOW_D , "" , "＞どこからともなく歌声とも嬌声ともつかない音が聞こえる……/＞聞いていると、体の奥が熱くなる感じがする"
+			ELSE
+				CALL MESSAGE_WINDOW_D , "" , "＞なぜだか、体の奥がジワジワと熱を帯び始めた……"
+			ENDIF
+			SETBIT ダンジョンフラグ:[[ダンジョン:ファクトリー]]:8 , 1
+		ENDIF
+		RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_28
+		RETURN 1
+	
+;=======
+;階段
+;=======
+	CASE 6
+		CALL UPSTAIRS_28
+		RETURN 1
+
+	CASE 7
+		CALL DOWNSTAIRS_28
+		RETURN 1
+
+;==========
+;扉の処理
+;==========
+	CASE 2
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+
+;========================
+;イベント
+;========================
+	CASE 4
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+			;
+			CASE 0
+				;街頭ヴィジョン
+				CALL MESSAGE_WINDOW_D , "" , "＞街頭ヴィジョンにニュースが流れている"
+				CALL MESSAGE_WINDOW_D , "" , "＞……特に変わったことはないようだ"
+				
+			CASE 1
+				CALL MESSAGE_WINDOW_D, "", "＞デミナンディ牧場"
+				CALL MESSAGE_WINDOW_D, "", "＞広々とした牧場のそこかしこで、全裸の女性たちが牛型の悪魔に犯されている……"
+				CALL MESSAGE_WINDOW_D, "", "＞犯されている女性たちは各々嬌声をあげ、/　全員ともが悪魔の男根を悦んで受け入れているようだ" , "/"  , "ログを残さない/ボタンを利用する/再利用する"
+				CALL MESSAGE_WINDOW_D, "", "＞女性の内半数以上は下腹部が膨らんでおり、乳房には搾乳機が取り付けられている" , "/"  , "ログを残さない/ボタンを利用する/再利用する"
+				IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 == 3
+					CALL MESSAGE_WINDOW_D, "", "＞牧場の一角で、姫宮菊枝がデミナンディに犯されている……"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"あっ%ハート()% はぁっ%ハート()%/もっと、おまんこにぃ、ザーメンをくださいっ%ハート()%/孕ませてくださいぃっ%ハート()%"
+					CALL MESSAGE_WINDOW_D, "", "＞悪魔との情事に夢中になっているようだ……"
+					CALL INPUT_YN_D, "連れ出す" , "立ち去る"
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"……！？/やめて！私を何処へ連れて行くつもりです！？"
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"私にはここでデミナンディの仔を産む崇高な使命が……/やっ、あっ%ハート()%/き、きてるぅ、あっついザーメンが、おまんこにいっぱぁい……%ハート()%"
+						CALL MESSAGE_WINDOW_D, "", "＞抵抗されてしまった…/＞正気を取り戻させなければ、連れ出すことは難しいだろう"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"んっ、やぁっ%ハート()%/ザーメン、ザーメンがいっぱい、あつくてビクビクって……%ハート()%"
+						CALL MESSAGE_WINDOW_D, "", "＞胎内に精液を吐き出される感覚に悦ぶ菊枝を残し、立ち去った……"
+						
+					ENDIF
+				ELSE
+					CALL DUNGEON_28_EVENT_SUB
+				ENDIF
+			CASE 2
+				
+				CALL MESSAGE_WINDOW_D, "労働者", "労働こそ我が喜び/労働こそ我が生きがい"
+				IF BASE:MASTER:知恵 >= 10
+					CALL MESSAGE_WINDOW_D, "労働者", "……あんたはあの扉とその向こうの監視塔が見えるのか"
+					CALL MESSAGE_WINDOW_D, "労働者", "ここの人たちは皆/あの塔から流れてくる歌声を聴くと/何かに憑りつかれたみたいに働くんだ"
+					CALL MESSAGE_WINDOW_D, "労働者", "あれが見えるって奴はみんな強制収容所に連れて行かれるんだそうだ/あんたも気を付けな"
+				ENDIF
+				
+			CASE 100
+				CALL MESSAGE_WINDOW_D , "神父" , "メシア教会へようこそ/何の御用でしょうか？"
+				
+			CASE 200
+				CALL MESSAGE_WINDOW_D, "労働者", "今日の仕事はキツかった……"
+				CALL MESSAGE_WINDOW_D, "労働者", "明日も頑張ろう……" , "/" , "ログを残さない/ボタンを利用する/再利用する"
+			CASE 201
+				CALL MESSAGE_WINDOW_D, "メシア教徒", "間もなく 神は私達の元へ/メシアを遣わされます/神を信じる者は みな救われるのです"
+				CALL MESSAGE_WINDOW_D, "メシア教徒", "働く者は 幸いです/よく働く者にこそ 神の救いの手が 差し伸べられるのです"
+
+			CASE 202
+				;酒場
+				CALL MESSAGE_WINDOW_D, "バーテン", "いらっしゃい"
+				$BAR_LOOP
+				CALL MESSAGE_WINDOW_D, "バーテン", "どういった御用で？"
+				CALL INPUT_SELECT_D, "[1]酒を飲む/[2]話を聞く/////[0]外に出る" , , , 2
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "バーテン", "また どうぞ"
+				ELSEIF RESULT == 1
+					CALL MESSAGE_WINDOW_D, "バーテン", "店での飲酒は未実装らしいですよ"
+				ELSEIF RESULT == 2
+					$BAR_LOOP_2
+					CALL INPUT_SELECT_D , "＞誰に話しかける？//[1]労働者の男/[2]うさんくさい男/[3]酔っ払い労働者/[4]怪しい男/[0]やめる" , , , 2
+					IF RESULT == 0
+						GOTO BAR_LOOP
+					ELSEIF RESULT == 1
+						CALL MESSAGE_WINDOW_D, "労働者の男", "俺はここの地下３階の現場で働いてるんだ/だけどそこにデカイ悪魔が出るようになっちまってさぁ/仕事が出来なくて困ってるんだよ"
+					ELSEIF RESULT == 2
+						CALL MESSAGE_WINDOW_D, "うさんくさい男", "デミナンディはナンディを元にして/食用に生み出されたデモノイドなんだ/人間の女を母体にして繁殖させると特に肉の質が良いのが生まれるのさ"
+					ELSEIF RESULT == 3
+						CALL MESSAGE_WINDOW_D, "酔っ払い労働者", "きょうもいちにち ホントよくはたらいたよ/オレって ろうどうしゃのカガミだね"
+					ELSEIF RESULT == 4
+						CALL MESSAGE_WINDOW_D, "怪しい男", "このエリアで働く人は皆幸せそうに見える/そんなに働く事が好きなのか……"
+						IF 依頼フラグ:13:0 == 2
+							CALL MESSAGE_WINDOW_D, "怪しい男", "……あんたが例の件の協力者だな？/お姫さんはここの地下の収容所…/それも普通には入れない場所に捕まってるらしい"
+							CALL MESSAGE_WINDOW_D, "怪しい男", "そこに辿り着くのに必要なパスコードを教えるぜ/「1213」「1834」「9192」だ/どんな順番で使うのかは知らないがコード自体は合ってるはずだぜ"
+						ENDIF
+					ENDIF
+					GOTO BAR_LOOP_2
+				ENDIF
+				
+			CASE 203
+				CALL MESSAGE_WINDOW_D, "労働者", "メシア教会のある建物に、地下に続くエレベーターがあるんだ/でもその先にはパスコードを知ってないと進めないみたいだ/あの奥には何があるんだろう？"
+			CASE 303
+				CALL MESSAGE_WINDOW_D, "", "＞性欲処理業務中の女性労働者が居る…"
+				;・性欲処理係として生きる　・性欲処理係の一日体験
+				;等ができるようにしたいなあ
+			CASE 300
+				CALL MESSAGE_WINDOW_D, "労働者", "ここファクトリーは千年王国の為に必要な物全てを生産することを目的として作られたエリアです/私の妻や娘達もデミナンディや赤ん坊を産む仕事に就いているんですよ"
+			CASE 300 TO 305
+				
+				CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+			CASE 310
+				CALL MESSAGE_WINDOW_D, "ナンディさん", "ナマステ！/ワタシ インドから来た ナンディさんネ/また会えた人 おひさネー うれしネー"
+				CALL MESSAGE_WINDOW_D, "ナンディさん", "コードブレーカー ネ やってネ"
+				CALL MESSAGE_WINDOW_D, "", "＞ナンディさんから『XTH』と書かれたゲームのパッケージを受け取った…"
+				CALL MESSAGE_WINDOW_D, "ナンディさん", "……ごめんネ いまコードブレーカー準備中ネ/また今度遊んでネ"
+			CASE 700
+				CALL MESSAGE_WINDOW_D, "", "＞ベテルギウス予定地"
+				;CALL BATTLE_DUNGEON_28_ベテルギウス
+			;収容所シリーズ
+			CASE 800
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "男", "俺をどこへ連れて行こうっていうんだ"
+				ENDIF
+				RETURN 1
+			CASE 801
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "ゴウ・ミフネ", "いやあ　みんなの為に/マジメに働くのは気持ちがイイね"
+				ENDIF
+				RETURN 1
+			CASE 802
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "男", "えっ 何処へ行こうというのです？/ここで人々のため働く事が私の仕事なんです"
+				ENDIF
+				RETURN 1
+			CASE 803
+				
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "トーマス・タンク", "私は生きる為とはいえ/戦いで多くの者を殺してきた……/今ここで彼らの冥福を祈り罪を贖うために/メシア教会にマグネタイトを捧げているのだ……"
+				ENDIF
+				RETURN 1
+			CASE 804
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "少年", "おまえアクマだな/オレをどこへつれてくつもりだ"
+				ENDIF
+				RETURN 1
+			CASE 805
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "女", "やめて！/私を一体どこへ連れてこうっていうの！？"
+				ENDIF
+				RETURN 1
+			CASE 806
+				CALL MESSAGE_WINDOW_D, "", "＞中に人が居る/＞助けますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "少女", "わたしを誘拐するつもりなの？/わたしはここでみんなのお世話をするの！/どこにもいかないんだから！"
+				ENDIF
+				RETURN 1
+			CASE 900
+				;姫宮菊枝イベント
+				;CALL MESSAGE_WINDOW_D, "", "＞強制収容所：姫宮菊枝"
+				;菊枝の状態で分岐
+				IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 == 1
+					CALL MESSAGE_WINDOW_D, "", "＞姫宮菊枝が居る/＞頭を両腕で抑えながら苦しんでいるようだ"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", "わた…しは、家畜、では……くっ…"
+					CALL INPUT_YN_D, "助ける" , "立ち去る"
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", "……！？/あなたは…？"
+						CALL MESSAGE_WINDOW_D, "", "＞………"
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", "……そうですか、ヒルコ様の依頼で……/ありがとうございます"
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", "行きましょう、早く脱出しなければ……/…あまり長くこの「歌」を聞いていては、あなたも私も無事では済まないでしょう/できれば一人でも多く解放してあげたいところですが…"
+						ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = -1
+						ダンジョンフラグ:[[ダンジョン:ファクトリー]]:15 = 1
+					ENDIF
+				ELSEIF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 == 2
+					CALL MESSAGE_WINDOW_D, "", @"＞むせ返るような雄と雌の臭いが鼻をついた……"
+					CALL MESSAGE_WINDOW_D, "", @"部屋の中では数人のテンプルナイトが、一人の女性を取り囲んで犯している"
+					CALL MESSAGE_WINDOW_D, "テンプルナイト", @"……では、もう一度尋ねましょう。/姫宮菊枝様、貴女は何者です？/何のために生き、何を成す為に生まれてきたのでしょう？"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"はい……"
+					CALL MESSAGE_WINDOW_D, "", @"＞菊枝はむしゃぶりついていたペニスからそっと口を離し、/どんよりと淀んだ瞳で答えた/……乳房には管理番号らしき烙印が捺されているのが見える"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"わたくしは……/わたくしは、デミナンディの精を女陰に賜り、/皆様の糧となるデミナンディを産ませていただく牝牛です%ハート()%"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"わたくしの子宮はデミナンディの仔を孕むため……/わたくしの手や口、尻穴はデミナンディの精を絞るため……/そして、メシア教徒の皆様の情欲を受け止めるためにあります%ハート()%"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"わたくしの身も心も、全ては神のため、そしてメシア教の皆様の物ですっ%ハート()%"
+					CALL MESSAGE_WINDOW_D, "テンプルナイト", @"よくぞ言えました/では、お勤めに入る前に、我々の精で貴方の体を隅々まで清めて差し上げましょう"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"はぁいっ%ハート()%/ありがとうございますっ%ハート()%"
+					CALL MESSAGE_WINDOW_D, "", @"＞テンプルナイト達の放った精液は菊枝の口腔内や膣内、尻穴の中へ注ぎ込まれ、/＞あるいは胸、髪など体の至る所を汚した……"
+					CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"はぁ……%ハート()%/皆様の精が、こんなにたくさん…/今日からは、毎日がこのような幸せで満たされるのですね…%ハート()%"
+					CALL MESSAGE_WINDOW_D, "テンプルナイト", @"それでは本日からここのデミナンディ牧場で労働に従事していただきます/我々の新たな同志よ、牧場へと案内致しましょう"
+					CALL MESSAGE_WINDOW_D, "", @"＞テンプルナイト達が、ほとんど放心状態の菊枝を連れ出そうとしている……"
+					CALL INPUT_YN_D, "助ける" , "身をひそめる"
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "テンプルナイト", @"！？/侵入者だ！ 排除しろ！"
+						;戦闘
+						
+						
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+						FOR LOCAL , 0 , 10
+							CALL SET_ENEMY,7+LOCAL,[[キャラ:テンプルナイト]],22,0,0
+						NEXT
+						CALL SYNC_STATUS, (LOCAL)
+						CALL HEALTH_CHARA, (LOCAL)
+						CALL BATTLE_START
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						
+						CALL MESSAGE_WINDOW_D, "姫宮 菊枝", @"ん……はぁ…"
+						CALL MESSAGE_WINDOW_D, "", @"＞菊枝は何が起こったのかも分からない恍惚とした様子で、/自分の体に精液を塗りたくったり、/指で掬い取ったそれをなめとったりしている……"
+						CALL INPUT_YN_D, "無理矢理連れ出す" , "放っておく"
+						IF RESULT == 0
+							CALL MESSAGE_WINDOW_D, "", "＞ドロドロの体で幸せそうな表情を浮かべる彼女の手を取り、その場を後にした……"
+							FLAG:脱出 = 1
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = -1
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:15 = 2
+							
+							RETURN 1
+						ELSE
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = 3
+						ENDIF
+					ELSE
+						CALL MESSAGE_WINDOW_D, "", "＞………"
+						CALL MESSAGE_WINDOW_D, "", "＞テンプルナイト達は、菊枝を連れ出していってしまった"
+						ダンジョンフラグ:[[ダンジョン:ファクトリー]]:5 = 3
+					ENDIF
+					FLAG:現Y -= 2
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない……"
+				ENDIF
+			CASE 1100
+				;パック
+				;女を抱かせてくれたら鍵をくれる。フェラ＜アナル＜本番＜中出し＜フルコースの順でMAGが多くもらえる
+				;とか思ってたけど気力がなくなって来たのでとりあえずフェラだけ
+				IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:12 != 0 || ダンジョンフラグ:[[ダンジョン:ファクトリー]]:11 != 0
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない……"
+					RETURN 1
+				ENDIF
+				VARSET 交渉可能キャラ , -1
+				LOCAL:1 = 0
+				LOCAL:2 = 0
+				LOCALS = 誰がパックの相手をする？/[9] やめておく
+				FOR LOCAL , 1 , 7
+					IF POS(LOCAL) > -1 
+						CALL INPUTABLE_CHARA , POS(LOCAL)
+						SIF RESULT == 0
+							CONTINUE
+						LOCAL:2 ++
+						IF !IS_LOOKSLIKE_MALE(POS(LOCAL))
+							LOCAL:1 ++
+							LOCALS += @"/[{LOCAL}] %CALLNAME:POS(LOCAL)%"
+						ENDIF
+					ENDIF
+				NEXT
+				SIF LOCAL:2 == 0
+					RETURN 1
+				CALL MESSAGE_WINDOW_D, "", "＞生意気そうな少年の姿をした悪魔が立っている……"
+				;コイツ真2で一人称一回も喋ってねえ
+				;少年悪魔だしオイラでいいよね
+				;とか言ってたら別人になってきた。まあパックだしいいよね
+				IF LOCAL:1 == 0
+					CALL MESSAGE_WINDOW_D, "パック", @"はーあ、タイクツ……/どっか、可愛い女の子でもいないかなあ……"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "パック", @"おっ……/なあなあアンタ、ひょっとしてココの/キョウセイシュウヨウジョっつーところに行きたいんじゃない？"
+					CALL MESSAGE_WINDOW_D, "パック", @"実はオイラ、とっておきの秘密の道知ってるんだけどなあ……知りたい？"
+					CALL INPUT_YN_D
+					IF RESULT == 1
+						CALL MESSAGE_WINDOW_D, "パック", @"ホント？ ホントに知りたくない？/いやー残念だなあー、あのマヌケな門番もシカト出来る道なんだけどなー"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "パック", @"……オイラさあ、最近ちょっとヤリ足りないっつーか……/ムラムラしてるんだよねえ。/誰かカーワイイ娘が一発抜いてくれたら/なんでも喋っちゃう気がするんだけどなあ……"
+						CALL INPUT_SELECT_D, LOCALS, , , 2
+						IF RESULT == 9
+							CALL MESSAGE_WINDOW_D, "パック", @"秘密の道、聞きたくないのかよー？"
+						ELSE
+							LOCAL = POS(RESULT)
+							CALL MESSAGE_WINDOW_D, "パック", @"やっりぃ！さっすが話が分かるじゃないか！"
+							CALL MESSAGE_WINDOW_D, "パック", @"それじゃあ早速そのお口でしゃぶってもらおうかな？/ちゃーんとザーメンは味わって飲み込んでくれよ？\@ LOCAL:2 > 1 ? /お仲間さんにも、オイラのチンポしゃぶってる所たっぷり見てもらおうな♪ # \@"
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%はむき出しになったパックのペニスの前に跪き、そそり立つそれに舌を這わせた……"
+							CALL MESSAGE_WINDOW_D, "", @"＞………/＞……/＞…"
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は1000MAGを得た"
+							CALL CONTROL_MAG , LOCAL , 1000
+							CALL MESSAGE_WINDOW_D, "パック", @"ふー……/アンタの口、まるでマンコみたいに気持ち良かったぜ"
+							CALL MESSAGE_WINDOW_D, "パック", @"それじゃ、オイラはこれで……"
+							CALL MESSAGE_WINDOW_D, "パック", @"……ジョーダン ジョーダン/怒らないでくれよ、コイツあげるからさ"
+							CALL MESSAGE_WINDOW_D, "", @"＞ファクトリー地下通路の鍵 を手に入れた"
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:7 = 2
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:11 = 1
+							CALL MESSAGE_WINDOW_D, "パック", @"ここに来る途中……ここからちょうど北東の辺りに、開かない扉があっただろ？/コイツを使えば開け―ゴマッ！ってなもんだよ"
+							CALL MESSAGE_WINDOW_D, "パック", @"それじゃあオイラはここらで帰るよ/オイラのチンポが忘れられなかったら、新宿まで来れば相手してやってもいいよ？"
+							CALL MESSAGE_WINDOW_D, "", @"＞パックはケタケタ笑いながら去って行った"
+							
+						ENDIF
+					ENDIF
+				ENDIF
+				RETURN 1
+			CASE 1101
+				;ナジャ
+				;ビッチ化してるけど元ネタ娼婦だしいいよね
+				;というかアレフさんの時も通りすがりのいい男についていくような子だし
+				IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:12 != 0 || ダンジョンフラグ:[[ダンジョン:ファクトリー]]:11 != 0
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない……"
+					RETURN 1
+				ENDIF
+				VARSET 交渉可能キャラ , -1
+				LOCAL:1 = 0
+				LOCAL:2 = 0
+				LOCALS = 誰がＭＡＧを与える？/[9] やめておく
+				FOR LOCAL , 1 , 7
+					IF POS(LOCAL) > -1 
+						CALL INPUTABLE_CHARA , POS(LOCAL)
+						SIF RESULT == 0
+							CONTINUE
+						LOCAL:2 ++
+						IF HAVE_PENIS(POS(LOCAL)) && BASE:POS(LOCAL):ＭＡＧ >= 3000
+							LOCAL:1 ++
+							LOCALS += @"/[{LOCAL}] %CALLNAME:POS(LOCAL)%"
+						ENDIF
+					ENDIF
+				NEXT
+				SIF LOCAL:2 == 0
+					RETURN 1
+				CALL MESSAGE_WINDOW_D, "", "＞年端もいかないような少女の姿をした悪魔が立っている/＞見た目に似合わず、少女の目や口元からは淫靡な雰囲気が漂っている……"
+					
+				IF LOCAL:1 == 0
+					CALL MESSAGE_WINDOW_D, "ナジャ", @"女の子\@LOCAL:2 > 1 ? だけで # が \@こんなところで何してるの？/早く帰らないとこわーい悪魔に食べられちゃうよ♪/クスクス……"
+				ELSE
+					;チンポからMAGをくれたら鍵をくれる、MAGが多ければ本番＋仲間になる
+					CALL MESSAGE_WINDOW_D, "ナジャ", @"あら……/ウフフ、\@IS_LOOKSLIKE_MALE(MASTER) ? お兄さん # お姉さん \@、収容所の方に行きたいんでしょ？"
+					CALL MESSAGE_WINDOW_D, "ナジャ", @"私にマグネタイトくれたら、とっておきの道教えてあげてもいいよ%ハート()%"
+					CALL INPUT_YN_D , "あげる" , "あげない"
+					IF RESULT == 1
+						CALL MESSAGE_WINDOW_D, "ナジャ", @"\@IS_LOOKSLIKE_MALE(MASTER) ? お兄さん # お姉さん \@ってば結構ケチなんだね？/まあいいや、私はここにいるから気が変わったらいつでも来てね♪"
+					ELSE
+						CALL INPUT_SELECT_D, LOCALS, , , 2
+						IF RESULT == 9
+							CALL MESSAGE_WINDOW_D, "ナジャ", @"\@IS_LOOKSLIKE_MALE(MASTER) ? お兄さん # お姉さん \@ってば結構ケチなんだね？/まあいいや、私はここにいるから気が変わったらいつでも来てね♪"
+						ELSE
+							LOCAL = POS(RESULT)
+							CALL MESSAGE_WINDOW_D, "ナジャ", @"ウフフ、それじゃ……/あなたのおチンポから、いっぱいマグネタイトちょうだいね%ハート()%"
+							IF TEQUIP:LOCAL:陰唇露出 == 0
+								CALL MESSAGE_WINDOW_D, "", @"＞ナジャはあっという間に%CALLNAME:LOCAL%の下半身を脱がせると、/　ペニスの目の前に跪いてうっとりとした顔でそれを撫で上げた"
+							ELSE
+								CALL MESSAGE_WINDOW_D, "", @"＞ナジャはあっという間に%CALLNAME:LOCAL%のペニスの目の前に跪き、/　うっとりとした顔でそれを撫で上げた"
+							ENDIF
+							IF TALENT:LOCAL:男の娘
+								IF PALAM:LOCAL:欲情 >= 3000
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"可愛い顔してこんなにガチガチにしちゃって……/ふふっ、すぐにぴゅっぴゅさせてあげますからねー%ハート()%"
+								ELSE
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"女の子みたいな顔してるのに、こんなに立派なおちんちんつけちゃって……/ふふっ、いっぱい出させてあげるね%ハート()%"
+								ENDIF
+							ELSEIF TALENT:LOCAL:オトコ == 0
+								IF PALAM:LOCAL:欲情 >= 3000
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"可愛い顔してこんなにガチガチにしちゃって……/ふふっ、すぐにぴゅっぴゅさせてあげますからねー%ハート()%"
+								ELSE
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"女の子のクセして、こんなに立派なおちんちんつけちゃって……/ふふっ、いっぱい出させてあげるね%ハート()%"
+								ENDIF
+							ELSE
+								IF PALAM:LOCAL:欲情 >= 3000
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"わぁ……もうガッチガチだね♪/私のお口に、いっぱいザーメンちょうだいね%ハート()%"
+								ELSE
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"はぁ……すっごいオトコノコのにおい……/あぁん、おいしそっ%ハート()%"
+								ENDIF
+							ENDIF
+							CALL MESSAGE_WINDOW_D, "ナジャ", @"それじゃ、いただきまーす%ハート()%/ちゅっ……あむ…んふ……"
+							CALL MESSAGE_WINDOW_D, "", @"＞ナジャは口の中に唾液をたっぷり含むと、その小さな口で%CALLNAME:LOCAL%のペニスを飲み込んでいった……"
+							CALL MESSAGE_WINDOW_D, "ナジャ", @"ん……むぅ、ふ、はぁ……/おっきぃし、ぶっとぃし、臭いはすっごいし、こんなにスゴイおちんちん久しぶりかも%ハート()%/出したくなったら、遠慮しないで私のお口にちょうだいね%ハート()%"
+							;略
+							CALL MESSAGE_WINDOW_D, "", @"＞小さな女の子らしいその可愛らしい口は見た目とは裏腹に、/　熟練した娼婦のそれのように舌を、唾液を、頬肉までもをペニスに絡ませている……"
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は激しいフェラチオの前にやがて限界を迎え、ナジャの口内へと精液を注ぎ込んだ"
+							CALL MESSAGE_WINDOW_D, "ナジャ", @"ん、ふ、ん、んんっ%ハート()%"
+							CALL MESSAGE_WINDOW_D, "", @"＞ナジャは放たれた精液に目を細めると恍惚の表情でそれを飲み下し、/　最後の一滴まで搾り取ろうと巧みに射精直後のペニスを責めたてた……"
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は3000MAGを失った……"
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:7 = 2
+							ダンジョンフラグ:[[ダンジョン:ファクトリー]]:12 = 1
+							
+							BASE:LOCAL:ＭＡＧ -= 3000
+							IF BASE:LOCAL:ＭＡＧ >= 7000
+								CALL MESSAGE_WINDOW_D, "ナジャ", @"……ん、はぁ……"
+								CALL MESSAGE_WINDOW_D, "", @"＞ナジャはぼんやりとした表情で、ぐっしょりと濡れたパンティを脱ぐと、/　%CALLNAME:LOCAL%に尻を向けて四つん這いになった/＞ミニスカートの下から顔を覗かせた秘唇はすっかり濡れそぼり、てらてらと妖しく光っている"
+								CALL MESSAGE_WINDOW_D, "ナジャ", @"マグネタイトだけもらおうと思ってたけど…/あんなに濃いザーメン飲んだら我慢できないよぉ%ハート()%"
+								CALL MESSAGE_WINDOW_D, "ナジャ", @"ね、お願い/あなたのおちんちんで、私のココ、ぐちゃぐちゃにかきまぜてぇ%ハート()%"
+								CALL INPUT_YN_D , "Yes" , "No"
+								IF RESULT == 0
+									CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は誘われるままにペニスをあてがい、/　少女の膣内を心行くまで味わった……"
+									CALL MESSAGE_WINDOW_D, "", @"＞………/＞……/＞…"
+									CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は7000MAGを失った……"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"はぁん……%ハート()%/いっぱいザーメン注がれちゃった……%ハート()%"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"分かってるよ、約束でしょ？/あんなにたっぷりもらっちゃったんだから守らなきゃね♪"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"それじゃ、ついてきて。こっちよ/……ん、やだ、垂れてきちゃう%ハート()%"
+									CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は少女に案内されるままに通路を歩き続けた……"
+									
+									FLAG:現X = 15
+									FLAG:現Y = 23
+									CALL SHOW_PICTURE, "D"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"ここよ。この鍵があれば、ここから収容所に行けるの/前に、おバカなテンプルナイトさんが落としてたのを貰ったんだ"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"それじゃあ、私は…"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"うーん、決めた。/私、あなたの仲魔になってあげる" , "/" , "ログを残さない/ボタンを利用する/再利用する"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"また私としたくなったら、いつでも呼んでね♪"
+									CALL MESSAGE_WINDOW_D, "", @"＞ナジャは投げキッスをして去って行った……"
+									CALL MESSAGE_WINDOW_D, "", @"＞妖精 ナジャが仲魔になった"
+									CALL MESSAGE_WINDOW_D, "", @"＞ファクトリー地下通路の鍵 を手に入れた"
+									CALL ADD_NEW_COMPANION , [[キャラ:ナジャ]] , 500 , 1
+								ELSE
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"そんなぁ……"
+									CALL MESSAGE_WINDOW_D, "ナジャ", @"……いいもん、その辺の悪魔にしてもらうから……"
+									CALL MESSAGE_WINDOW_D, "", @"＞ナジャはふらふらとした足取りで去って行った"
+									CALL MESSAGE_WINDOW_D, "", @"＞……床に何かが落ちている"
+									CALL MESSAGE_WINDOW_D, "", @"＞ファクトリー地下通路の鍵 を手に入れた"
+									
+								ENDIF
+							ELSE
+								CALL MESSAGE_WINDOW_D, "ナジャ", @"ふぅ……ごちそうさまっ、濃くておいしかったよ♪/それじゃ、約束通り教えてあげる。ついてきて！"
+								CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は少女に案内されるままに通路を歩き続けた……"
+								
+								FLAG:現X = 15
+								FLAG:現Y = 23
+								CALL SHOW_PICTURE, "D"
+								CALL MESSAGE_WINDOW_D, "ナジャ", @"ここよ。この鍵があれば、ここから収容所に行けるの/前に、おバカなテンプルナイトさんが落としてたのを貰ったんだ"
+								CALL MESSAGE_WINDOW_D, "ナジャ", @"それじゃあ、私はもう行くからね/また会ったら、今度はもっと気持ちいい事してあげる%ハート()%"
+								CALL MESSAGE_WINDOW_D, "", @"＞ナジャは投げキッスをして去って行った……"
+								CALL MESSAGE_WINDOW_D, "", @"＞ファクトリー地下通路の鍵 を手に入れた"
+								
+							ENDIF
+						ENDIF
+					ENDIF
+					
+				ENDIF
+				RETURN 1
+			CASE 1102
+				;ヤヌス
+				IF ダンジョンフラグ:[[ダンジョン:ファクトリー]]:4 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞男と女、二つの顔と体を持った双頭の悪魔が立っている…"
+					
+					CALL MESSAGE_WINDOW_D, "ヤヌス", "ここを通りたいの？/ここを通ろうってのか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+					
+						CALL MESSAGE_WINDOW_D, "ヤヌス", "通すわけには　いかないわねぇ/通すわけには　いかねえな"
+						CALL MESSAGE_WINDOW_D, "ヤヌス", "通ろうとする子は　好きにしていいって/通ろうとするヤツは　好きにしていいと"
+						CALL MESSAGE_WINDOW_D, "ヤヌス", "言われてるのよぉ　オォーッホッホッホ！/言われてんだよぉ　ヒィーッヒッヒッヒ！"
+						
+						CALL MESSAGE_WINDOW_D, "", "＞妖魔 ヤヌスが １体出た！"
+						
+						;戦闘開始
+						
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+						CALL SET_ENEMY,9,[[キャラ:ヤヌス]],34,0,1
+						LOCAL = CHARANUM -1
+						CFLAG:(LOCAL):行動回数 = 2
+						CFLAG:(LOCAL):ＭＰ補正 = 500
+						CFLAG:(LOCAL):速度補正 = MAXBASE:LOCAL:速さ
+						ABL:LOCAL:スキル2 = [[スキル:マハ・マグナス]]
+						ABL:LOCAL:スキル5 = [[スキル:マハ・ラギオン]]
+						ABL:LOCAL:スキル1 = [[スキル:マハコウハ]]
+						ABL:LOCAL:スキル6 = [[スキル:マハエイハ]]
+						ABL:LOCAL:スキル7 = [[スキル:マカラカーン]]
+						ABL:LOCAL:スキル8 = [[スキル:テトラカーン]]
+						ABL:(LOCAL):アイテム1 = 10000 + [[スキル:マハ・ガルーラ]]
+						ABL:(LOCAL):入手確率1 = 100
+						
+						CALL SYNC_STATUS, (LOCAL)
+						CALL HEALTH_CHARA, (LOCAL)
+						CALL BATTLE_START
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						CALL SHOW_PICTURE, "D"
+						CALL MESSAGE_WINDOW_D, "", "＞妖魔 ヤヌスは力尽きた"
+						ダンジョンフラグ:[[ダンジョン:ファクトリー]]:4 = 1
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+						;ヤヌス解放　特殊合体は何が良いだろう。特定の男×女とか？
+						FLAG:(10000 + [[キャラ:ヤヌス]]) = 1
+					ELSE
+						CALL MESSAGE_WINDOW_D, "ヤヌス", "なにぃ 引き下がっちゃうの？/なんだ 引き下がっちまうのか？"
+						CALL SHOW_FORCEMOVE, \@ARG == 2 ? UU # DD \@, "D", , "ヤヌス", "つまらないわねぇ/つまんねぇなぁ"
+						
+					ENDIF
+				ELSE
+						CALL MESSAGE_WINDOW_D, "", "＞誰もいない……"
+				ENDIF
+		ENDSELECT
+		RETURN 1
+		
+;========================
+;その他
+;========================
+	CASE 9
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+			;出入り口
+			CASE 0
+				;労働者寮へ
+				CALL DUNGEON_WORP_ID, 3 , 3008 , 1
+				RETURN 1
+			CASE 1
+				;監視塔へ
+				;CALL DUNGEON_WORP_ID, 3 , 3008
+				;RETURN 1
+				CALL MESSAGE_WINDOW_D , "" , "＞扉は閉ざされている"
+				RETURN 1
+			CASE 2
+				;メシア教会へ
+				CALL DUNGEON_WORP_ID, 1 , 1008 , 1
+				RETURN 1
+			CASE 3
+				;タウンへ
+				CALL DUNGEON_WORP_ID, 2 , 2008 , 1
+				RETURN 1
+			CASE 4
+				;発掘現場１Ｆへ
+				CALL DUNGEON_WORP_ID, 4 , 4008 , 1
+				RETURN 1
+			CASE 5
+				;センター-ファクトリー間通路へ
+				;CALL DUNGEON_WORP_ID, 4 , 4008
+				;RETURN 1
+				CALL MESSAGE_WINDOW_D , "" , "＞扉は閉ざされている"
+				RETURN 1
+			CASE 6
+				;発掘現場Ｂ１Ｆ－１へ
+				CALL DUNGEON_WORP_ID, 5 , 5008 , 1
+				RETURN 1
+			CASE 7
+				;発掘現場Ｂ１Ｆ－２へ
+				CALL DUNGEON_WORP_ID, 5 , 5018 , 1
+				RETURN 1
+			CASE 8
+				;強制収容所１Ｆ表口へ
+				CALL DUNGEON_WORP_ID, 8 , 8018 , 1
+				RETURN 1
+			CASE 9
+				;発掘現場Ｂ２Ｆ－１へ
+				CALL DUNGEON_WORP_ID, 6 , 6008 , 1
+				RETURN 1
+			CASE 10
+				;発掘現場Ｂ２Ｆ－２へ
+				CALL DUNGEON_WORP_ID, 6 , 6018 , 1
+				RETURN 1
+			CASE 11
+				;強制収容所１Ｆ裏口へ
+				CALL DUNGEON_WORP_ID, 8 , 8008 , 1
+				RETURN 1
+			CASE 12
+				;地下通路Ｂ１Ｆへ
+				CALL DUNGEON_WORP_ID, 10 , 10008 , 1
+				RETURN 1
+			;エレベーター
+			CASE 1100
+				CALL DUNGEON_ELEVATOR , 11009
+			CASE 1101
+				CALL DUNGEON_ELEVATOR , 11019
+			CASE 1102
+				CALL DUNGEON_ELEVATOR , 11029
+		ENDSELECT
+		RETURN 1
+ENDSELECT
+RETURN 0
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_28
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 500
+		LOCALS = ValueMedicine
+		LOCAL = 1
+	CASE 501
+		LOCALS = 罠
+		LOCALS:1 = ＨＰ
+		LOCAL = 25
+	CASE 600
+		LOCALS = EnIncense
+		LOCAL = 1
+	CASE 601
+		LOCALS = ValueMedicine
+		LOCAL = 1
+	CASE 602
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 10
+	CASE 603
+		LOCALS = 火除神符
+		LOCAL = 2
+	CASE 700
+		LOCALS = 魔法の箱
+		LOCALS:1 = サファイア
+		LOCALS:2 = Life stone
+		LOCAL = 8
+		LOCAL:1 = 1
+	CASE 1100
+		LOCALS = Dis-Close
+		LOCAL = 3
+	CASE 1101
+		LOCALS = StIncense
+		LOCAL = 1
+	CASE 1102
+		LOCALS = 魔法の箱
+		LOCALS:1 = オパール
+		LOCALS:2 = Life stone
+		LOCAL = 8
+		LOCAL:1 = 1
+	CASE 1103
+		LOCALS = MAG
+		LOCAL = 3000
+	CASE 1104
+		LOCALS = 魔法の箱
+		LOCALS:1 = オニキス
+		LOCALS:2 = Life stone
+		LOCAL = 8
+		LOCAL:1 = 1
+	CASE 1105
+		LOCALS = 魔貨
+		LOCAL = 160
+	CASE 1106
+		LOCALS = SmokeBall
+		LOCAL = 1
+	CASE 1107
+		LOCALS = 純米からじし
+		LOCAL = 2
+	CASEELSE
+ENDSELECT
+IF LOCALS == "￥"
+	CALL GET_TREASURE_MONEY, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 70, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "魔貨"
+	CALL GET_TREASURE_MONEY, 1, LOCAL, FLAG:現ダンジョン, FLAG:現M + 70, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "MAG" || LOCALS == "ＭＡＧ"
+	CALL GET_TREASURE_MAG, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 70, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "罠"
+	;LOCALS:1 種類 LOCAL ダメージ量or確率 LOCALS:2 相性
+	CALL GET_TREASURE_TRAP, LOCALS:1, LOCAL, GET_TYPE_NUM(LOCALS:2), FLAG:現ダンジョン, FLAG:現M + 70, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "魔法の箱"
+	IF GETNUM(ITEM, LOCALS:1) == -1 || GETNUM(ITEM, LOCALS:2) == -1
+		PRINTL ＞アイテム名の指定が間違ってます
+		PRINTW ＞アイテムの取得処理を中断します
+	ELSE
+		CALL MAGIC_BOX , LOCAL , GETNUM(ITEM, LOCALS:1) , GETNUM(ITEM, LOCALS:2) , LOCAL:1 , FLAG:現ダンジョン, FLAG:現M + 70, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+	ENDIF
+ELSE
+	IF GETNUM(ITEM, LOCALS) == -1
+		PRINTL ＞アイテム名の指定が間違ってます
+		PRINTW ＞アイテムの取得処理を中断します
+	ELSE
+		CALL GET_TREASURE, GETNUM(ITEM, LOCALS), LOCAL , FLAG:現ダンジョン, FLAG:現M + 70, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+	ENDIF
+ENDIF
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_28
+;位置とIDが対応しているはずなので、同IDの階段を探させれば良い
+SELECTCASE FLAG:現M
+	CASE 8, 9
+		CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , DA:(FLAG:現X):(FLAG:現Y) + 1000 + 1
+	CASEELSE
+		CALL DUNGEON_UPSTAIRS_ID, FLAG:現M-1 , DA:(FLAG:現X):(FLAG:現Y) - 1000 + 1
+ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_28
+SELECTCASE FLAG:現M
+	CASE 8, 9
+		CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , DA:(FLAG:現X):(FLAG:現Y) - 1000 - 1
+	CASEELSE
+		CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M+1 , DA:(FLAG:現X):(FLAG:現Y) + 1000 - 1
+ENDSELECT
+RETURN 1
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+@DUNGEON_ELEVATOR_28, ARG
+VARSET RESULT, -1
+VARSET RESULTS
+SELECTCASE ARG
+	CASE 11009
+		RESULT:1 = 1
+		RESULT:2 = 11
+		RESULTS:1 = 教会
+		RESULTS:2 = 地下通路Ｂ７Ｆ
+		RETURN -1
+	CASE 11019
+		RESULT:1 = 9
+		RESULT:2 = 11
+		RESULTS:1 = 強制収容所２Ｆ
+		RESULTS:2 = 地下通路Ｂ７Ｆ
+		RETURN -1
+	CASE 11029
+		RESULT:1 = 10
+		RESULT:2 = 11
+		RESULTS:1 = 地下通路Ｂ１Ｆ
+		RESULTS:2 = 地下通路Ｂ７Ｆ
+		RETURN -1
+ENDSELECT
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_28
+SELECTCASE FLAG:現M
+	;ファクトリー
+	CASE 0
+		FLAG:エンカウント率 = MAX(FLAG:未遭遇歩数 * 3 - 15, 0)
+		FLAG:MAG消費率 = 0
+		FOR LOCAL , 1 , 7
+			SIF POS(LOCAL) > -1
+				PALAM:POS(LOCAL):欲情 += (ABL:POS(LOCAL):欲望+ 1) * 5
+		NEXT
+	;タウン、教会、労働者寮、強制収容所
+	CASE 1, 2, 3
+		FLAG:未遭遇歩数 = 0
+		FLAG:エンカウント率 = 0
+		FLAG:MAG消費率 = 0
+	CASEELSE
+		FLAG:エンカウント率 = MAX(FLAG:未遭遇歩数 * 5 - 25, 0)
+		FLAG:MAG消費率 = 100
+ENDSELECT
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_28
+#LOCALSIZE 3
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_28
+SELECTCASE FLAG:現M
+	;ファクトリー
+	CASE 0 
+		RETURN CLASS_NUM_COMMON("初級")
+	;発掘現場・地下通路
+	CASE 4 TO 11
+		RETURN CLASS_NUM_COMMON("中級")
+ENDSELECT
+
+;=======================================================================
+;敵の総数
+;=======================================================================
+@ENEMY_NUM_28, ARG
+SELECTCASE FLAG:現M
+	;ファクトリー
+	CASE 0 
+		RETURN ENEMY_NUM_COMMON("中級", ARG)
+	;発掘現場・地下通路
+	CASE 4 TO 11
+		RETURN ENEMY_NUM_COMMON("上級", ARG)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_28, ARG
+SELECTCASE FLAG:現M
+	;ファクトリー
+	CASE 0
+		IF FLAG:現Y < 22
+			SELECTCASE RAND:100
+				CASE IS < 15
+					RETURN [[キャラ:ブッチャー]], 9
+				CASE IS < 30
+					RETURN [[キャラ:ボディコニアン]], 12
+				CASE IS < 45
+					RETURN [[キャラ:スレイヴ]], 9
+				CASE IS < 60
+					RETURN [[キャラ:デミナンディ]], 11
+				CASE IS < 75
+					RETURN [[キャラ:デプス]], 12
+				CASE IS < 90
+					RETURN [[キャラ:スライム]], 9
+				CASE IS < 100
+					RETURN [[キャラ:リリム]], 9
+			ENDSELECT
+		ELSEIF FLAG:現Y < 32
+			SELECTCASE RAND:100
+				CASE IS < 15
+					RETURN [[キャラ:ブッチャー]], 9
+				CASE IS < 30
+					RETURN [[キャラ:リリム]], 11
+				CASE IS < 45
+					RETURN [[キャラ:スレイヴ]], 9
+				CASE IS < 60
+					RETURN [[キャラ:デミナンディ]], 11
+				CASE IS < 75
+					RETURN [[キャラ:イヌガミ]], 13
+				CASE IS < 90
+					RETURN [[キャラ:インプ]], 9
+				CASE IS < 100
+					RETURN [[キャラ:ジャックフロスト]], 15
+			ENDSELECT
+		ELSE
+			SELECTCASE RAND:100
+				CASE IS < 15
+					RETURN [[キャラ:ネコマタ]], 12
+				CASE IS < 30
+					RETURN [[キャラ:モー・ショボー]], 15
+				CASE IS < 45
+					RETURN [[キャラ:スレイヴ]], 9
+				CASE IS < 60
+					RETURN [[キャラ:デミナンディ]], 11
+				CASE IS < 75
+					RETURN [[キャラ:イヌガミ]], 13
+				CASE IS < 90
+					RETURN [[キャラ:オキクムシ]], 16
+				CASE IS < 95
+					RETURN [[キャラ:テンプルナイト]], 22
+				CASE IS < 100
+					RETURN [[キャラ:ジャックランタン]], 20
+			ENDSELECT
+		ENDIF
+	;発掘現場１Ｆ～Ｂ１Ｆ
+	CASE 4, 5
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:ブッチャー]], 9
+			CASE IS < 30
+				RETURN [[キャラ:ボディコニアン]], 12
+			CASE IS < 45
+				RETURN [[キャラ:スレイヴ]], 9
+			CASE IS < 60
+				RETURN [[キャラ:デミナンディ]], 11
+			CASE IS < 75
+				RETURN [[キャラ:デプス]], 12
+			CASE IS < 90
+				RETURN [[キャラ:スライム]], 9
+			CASE IS < 100
+				RETURN [[キャラ:リリム]], 9
+		ENDSELECT
+	;発掘現場Ｂ２Ｆ～Ｂ３Ｆ
+	CASE 6, 7
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:ワーム]], 13
+			CASE IS < 35
+				RETURN [[キャラ:ガギソン]], 15
+			CASE IS < 50
+				RETURN [[キャラ:スレイヴ]], 12
+			CASE IS < 65
+				RETURN [[キャラ:デミナンディ]], 13
+			CASE IS < 85
+				RETURN [[キャラ:エンプーサ]], 15
+			CASE IS < 90
+				RETURN [[キャラ:ダツエバ]], 18
+			CASE IS < 95
+				RETURN [[キャラ:オニ]], 20
+			CASE IS < 100
+				RETURN [[キャラ:ワーカーホリック]], 21
+		ENDSELECT
+	;強制収容所
+	CASE 8, 9
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:狂信者]], 15
+			CASE IS < 40
+				RETURN [[キャラ:エンジェル]], 21
+			CASE IS < 55
+				RETURN [[キャラ:ブッチャー]], 13
+			CASE IS < 75
+				RETURN [[キャラ:エンジェル]], 14
+			CASE IS < 94
+				RETURN [[キャラ:テンプルナイト]], 22
+			CASE IS < 97
+				RETURN [[キャラ:アークエンジェル]], 24
+			CASE IS < 100
+				RETURN [[キャラ:プリンシパリティ]], 28
+		ENDSELECT
+	;地下通路Ｂ１Ｆ、Ｂ７Ｆ
+	CASE 10, 11
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:ゾンビアーミー]], 15
+			CASE IS < 40
+				RETURN [[キャラ:エンプーサ]], 15
+			CASE IS < 55
+				RETURN [[キャラ:ワーム]], 13
+			CASE IS < 75
+				RETURN [[キャラ:エンジェル]], 14
+			CASE IS < 94
+				RETURN [[キャラ:イヌガミ]], 16
+			CASE IS < 97
+				RETURN [[キャラ:アークエンジェル]], 24
+			CASE IS < 100
+				RETURN [[キャラ:マンイーター]], 27
+		ENDSELECT
+ENDSELECT
+;=================================
+;特殊調整
+;=================================
+@SET_ENEMY_STATUS_28, ARG
+#LOCALSIZE 1
+SELECTCASE NO:ARG
+	CASE [[キャラ:エンジェル]]
+		ABL:ARG:スキル1 = [[スキル:ディアラマ]]
+		ABL:ARG:スキル2 = [[スキル:マハンマ]]
+		ABL:ARG:スキル3 = [[スキル:ガルーラ]]
+		ABL:ARG:スキル6 = [[スキル:マハ・ガル]]
+		SIF BASE:ARG:LV >= 21
+			ABL:ARG:スキル7 = [[スキル:ハマオン]]
+	CASEELSE
+ENDSELECT
+
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_28
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:6
+	CASE 0
+		RETURN [[キャラ:ブッチャー]] , 3 + RAND:10 , CSVBASE([[キャラ:ブッチャー]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:デミナンディ]] , 3 + RAND:10 , CSVBASE([[キャラ:デミナンディ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:テンプルナイト]] , 3 + RAND:10 , CSVBASE([[キャラ:テンプルナイト]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 3
+		RETURN [[キャラ:狂信者]] , 3 + RAND:10 , CSVBASE([[キャラ:狂信者]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 4
+		RETURN [[キャラ:アークエンジェル]] , 3 + RAND:10 , CSVBASE([[キャラ:アークエンジェル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 5
+		RETURN [[キャラ:スレイヴ]] , 3 + RAND:10 , CSVBASE([[キャラ:スレイヴ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+
+
+
+
+
+
+
+
+
+;=======================================================================
+;未作成部分を実装
+;=======================================================================
+@DUNGEON_28_EVENT_SUB
+	CALL MESSAGE_WINDOW_D, "", "＞デミナンディ牧場"
+	CALL MESSAGE_WINDOW_D, "", "＞広々とした牧場のそこかしこで、全裸の女性たちが牛型の悪魔に犯されている……"
+	CALL MESSAGE_WINDOW_D, "", "＞犯されている女性たちは各々嬌声をあげ、全員ともに悪魔の男根を悦んで受け入れているようだ/＞女性の内半数以上は下腹部が膨らんでおり、乳房には搾乳機が取り付けられている"
+
+;処理方針が不明のため一旦コメントアウト
+;	CALL MESSAGE_WINDOW_D, "女性労働者", "こんにちは、労働従事希望の方ですか？"
+;	CALL MESSAGE_WINDOW_D, "", "＞牧場で働いているらしい労働者の女性が声をかけてきた/＞他の多くの女性と同様に腹部が膨らんでおり、/＞張った乳房にはＩＤらしき数字の焼き印が捺されている"
+;	CALL MESSAGE_WINDOW_D, "女性労働者", "こちらでは食用のデミナンディの繁殖のため/女性の子宮への種付けと出産を行っています"
+;	
+;	;牧場に男主人が来た場合
+;	IF IS_LOOKSLIKE_MALE(MASTER)
+;		CALL MESSAGE_WINDOW_D, "女性労働者", "また、妊娠中の女性の業務として/男性労働者の性欲処理の一部も担当しています"
+;		CALL MESSAGE_WINDOW_D, "女性労働者", "今であれば私がお相手できますが、ご利用になりますか？"
+;		CALL INPUT_SELECT_D, "[0] 口を利用する/[1] 膣を利用する/[2] 尻穴を利用する/[3] 利用しない"
+;		IF RESULT == 0
+;			
+;		ELSEIF RESULT == 1
+;			
+;		ELSEIF RESULT == 2
+;			
+;		ELSE
+;			
+;		ENDIF
+;	ELSE
+;		CALL MESSAGE_WINDOW_D, "女性労働者", "労働の喜び、神に仕えることの出来る喜び、/そして女性としての喜び全てを得られる素晴らしいお仕事ですよ"
+;		CALL MESSAGE_WINDOW_D, "女性労働者", "どうですか/私たちと一緒に身も心も神とメシア教徒の皆さんに捧げてみませんか？"
+;		CALL INPUT_YN_D, "デミナンディを産む工場になる(ゲームオーバー)" , "やめておく"
+;		IF RESULT == 0
+;			CALL BADENDING_NO43
+;		ELSE
+;			CALL MESSAGE_WINDOW_D, "女性労働者", "そうですか…/では、体験ボランティアをしてみませんか？"
+;			CALL MESSAGE_WINDOW_D, "女性労働者", "デミナンディによる種付けから出産までを二日間で体験することが出来るんです/後遺症などは残りませんし、肉体の安全などもメシア教会のしっかりしたケアとサポートがついています/一度お試しになってはみませんか？"
+;			CALL INPUT_YN_D, "体験ボランティアを試してみる(翌々日の朝になります)" , "やめておく"
+;			IF RESULT == 0
+;
+;			ELSE
+;				CALL MESSAGE_WINDOW_D, "女性労働者", "そうですか/では、体験してみたくなったらいつでもいらっしゃってください"
+;
+;		;ここで欲情を加算してループ
+;		;二段階目
+;		;CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の下腹部がほのかに熱を帯びている……"
+;		;さらに欲情を加算してループ
+;		;三段階目
+;		;CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の子宮の奥がキュン、と切なく疼いた……/＞もう、我慢できそうにない"
+;		;選択肢から「やめておく」が削除される
+;		;
+;		;CALL MESSAGE_WINDOW_D, "女性労働者", "どうですか/私たちと一緒にここで一生を神に捧げるつもりはありませんか？"
+;
+;
+;				CALL INPUT_SELECT_D, "[0] デミナンディを産む工場になる(ゲームオーバー)/[1] 体験ボランティアを試してみる(翌々日の朝になります)/[2] やめておく"
+;
+;				IF RESULT == 0
+;					
+;				ELSEIF RESULT == 1
+;					
+;				ELSEIF RESULT == 2
+;					
+;				ELSE
+;					
+;				ENDIF
+;			ENDIF
+;		ENDIF
+;	ENDIF
+
+
+
+
+
+
+
+;=======================================================================
+;ゲームオーバー
+;=======================================================================
+;デミナンディを産む工場になるEND
+@BADENDING_NO43
+	PRINTW ………… 
+	PRINTW ……… 
+	PRINTW …… 
+	PRINTW … 
+	PRINTW 塔からは今日も歌声が聞こえる
+	PRINTW  広々としたデミナンディ牧場の一角
+	PRINTFORMW メシア教徒となった%CALLNAME:MASTER%は牛型悪魔デミナンディの繁殖奴隷として身も心も捧げる日々を送っていた
+	PRINTFORMW 美しい歌声を耳にするだけで%CALLNAME:MASTER%の心は幸福に満たされ、秘所からはとめどなく愛液が溢れ出す
+	PRINTFORMW 身も心も繁殖奴隷となった%CALLNAME:MASTER%は四つん這いになり、虚ろな表情でデミナンディを求め腰を振る
+	PRINTFORMW 乳牛の様に大きく垂れ下がった乳房、大きく膨らんだ腹は%CALLNAME:MASTER%が悪魔を孕んでいる事を示していた
+	PRINTFORMW 雄を求める%CALLNAME:MASTER%の背後から一匹のデミナンディが覆いかぶさった
+	PRINTFORMW 挿入しやすいように腰をあげる%CALLNAME:MASTER%
+	PRINTFORMW %CALLNAME:MASTER%の秘所へとデミナンディの剛直が一気に最奥まで突きたてられた
+	PRINTFORMW 何度も雄牛に犯されすっかり馴染んでしまった%CALLNAME:MASTER%の膣は根元まで肉棒を飲み込み、
+	PRINTFORMW 膣壁を抉られると%CALLNAME:MASTER%の瞳は欲情に濡れ、唇からは艶かしい喘ぎが漏らす
+	PRINTL 
+	PRINTW 苦痛は快楽であり、種付けは今まで積み重ねてきた己の罪に対する贖罪
+	PRINTFORMW 神による救済の日までデミナンディを孕み、神に許される為の供物を積み上げる事が必要だとテンプルナイト達に教育された%CALLNAME:MASTER%の瞳には光はない
+	PRINTFORML 
+	PRINTFORMW うっとりとした表情で歌声に聞き入りながら今日も%CALLNAME:MASTER%はデミナンディへ種付けをせがみながら虚ろな笑みを浮かべた
+	PRINTW 
+	PRINTW 　　　　　　　　――  Bad Ending No.043 ( デミナンディ繁殖奴隷END -産めよ殖やせよ- )
+	CALL GLOBAL_BADEND_SET(43)
+
+
+

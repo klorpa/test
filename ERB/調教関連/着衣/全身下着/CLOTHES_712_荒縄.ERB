@@ -1,0 +1,69 @@
+@CLOTHES_NAME_712
+RESULTS = 荒縄
+
+;露出部位
+@CLOTHES_EXPOSE_712,ARG
+;ARG = 露出する部位
+;1 = 腕露出 2 = 足露出 3 = 脚露出 4 = 乳房露出 5 = 乳首露出 6 = ヘソ露出 7 = 陰唇露出 8 = 臀部露出
+SELECTCASE ARG
+	CASE 0
+		RETURN 0
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+;装備部位
+@CLOTHES_PART_712
+RETURN 7
+
+;服の前が開くか
+;1 開けられる、2 開きっぱなし
+@CLOTHES_OPENFRONT_712
+RETURN 0
+
+;胸の構造
+; 0:開けられない 1:ボタン式 2:チャック式 4:上からこんにちは 8:たくしあげてこんにちは 16:和服など、合わせる衣装 32:前から差し込めそうな穴 64:口元-胸元間にペニス入るスペース（ビット演算）
+@CLOTHES_BREAST_712
+RETURN 12
+
+;股間の構造
+;1 = ズボン、2 = ビキニタイプ、3 = スカート、4 = 穴開き、5 前開き、6 開閉可能
+@CLOTHES_CROTCH_712
+RETURN 6
+
+;装備時の調教効果
+@CLOTHES_SOURCE_712,ARG = -1
+SOURCE:ARG:痛み += 100
+RETURN 0
+
+;装備時の経験追加
+@CLOTHES_EXP_712,ARG = -1
+IF FLAG:ショップコマンド == 0
+	SIF ARG == -1
+		RETURN 0
+	PRINTFORML <荒縄着用中>\@ ARG == MASTER ? (主人) #\@\@ ARG == ASSI ? (助手) #\@
+	CALL ADDS_EXP("緊縛経験", 1, ARG)
+	IF ARG == TARGET
+		DOWNBASE:ARG:1 += 25
+		DOWNBASE:ARG:0 += 25
+	ENDIF
+
+	IF TCVAR:ARG:獲得苦痛快楽経験
+		TCVAR:ARG:獲得苦痛快楽経験 += MAX(TCVAR:ARG:獲得苦痛快楽経験*140/100 , 1)
+		SIF ARG == TARGET
+			TIMES DOWNBASE:ARG:1 , 1.10
+	ENDIF
+ELSE
+
+ENDIF
+
+;装備するための条件
+@CLOTHES_PREREQUISITE_712,ARG
+SIF ABL:ARG:従順 >= 3
+	RETURN 1
+SIF ARG == MASTER
+	RETURN 1
+RETURN 0
+
+@CLOTHES_PRICE_712
+RETURN 1000

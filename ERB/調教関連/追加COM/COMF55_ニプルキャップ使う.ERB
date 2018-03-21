@@ -1,0 +1,207 @@
+;-------------------------------------------------
+;ニプルキャップ使う
+;道具使用コマンド、レベル2
+;触手乳首責めさせる
+;-------------------------------------------------
+@CHECK_COM_ABLE55
+
+;ニプルキャップ実行判定
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;解除はいつでも可能
+SIF TEQUIP:PLAYER:16
+	RETURN 1
+;アイテムを持っているか、アイテムなし設定でないとダメ
+SIF !EXIST_ITEM(10)
+	RETURN 0
+
+SIF !USE_NIPLE(PLAYER)
+	RETURN 0
+
+;シャワー中はダメ
+SIF TEQUIP:32
+	RETURN 0
+RETURN 1
+
+@CHECK_COM_ABLE173
+
+;触手乳首責め
+SIF TEQUIP:25 == 0
+	RETURN 0
+
+;触手搾乳中は不可
+SIF TEQUIP:PLAYER:17
+	RETURN 0
+RETURN 1
+
+@ACT_COM55
+IF TEQUIP:25
+	PRINTL 触手乳首責めさせる
+	TSTR:0 = 触手乳首責めさせる
+	SELECTCOM = 173
+ELSE
+	PRINTL Use Nipple caps
+	TSTR:0 = 二プルキャップ使う
+ENDIF
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:PLAYER:16 == 0
+	TEQUIP:PLAYER:16 = 1
+ELSE
+	TEQUIP:PLAYER:16 = 0
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+LOSEBASE:0 += 10
+LOSEBASE:1 += 10
+
+SOURCE:4 = 10
+SOURCE:13 = 10
+SOURCE:17 = 10
+
+SOURCE:PLAYER:道具快Ｂ = 200
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;触手乳首責めなら、触手体液が胸に付く
+SIF TEQUIP:25
+	CALL SET_STAIN("胸", "粘液", PLAYER)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:40%+{A}
+;	PRINTFORML %EXPNAME:40%(調教者)+{A}
+;	EXP:40 += A
+;	EXP:PLAYER:40 += A
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:41%+{A}
+;	PRINTFORML %EXPNAME:41%(調教者)+{A}
+;	EXP:41 += A
+;	EXP:PLAYER:41 += A
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	
+	
+ENDIF
+
+;触手召喚時、TentacleEXPのリセットをする
+;SIF TEQUIP:25 == 1
+;	T = 0
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM55
+;二プルキャップ装備中
+IF TEQUIP:25
+	PRINTL ＜触手乳首責め中(調教者)＞
+ELSE
+	PRINTL ＜二プルキャップ装備中(調教者)＞
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+SOURCE:PLAYER:道具快Ｂ += 100
+
+RETURN 1
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;TentacleEXP加算
+SIF TEQUIP:25 == 1
+	CALL ADDS_EXP("触手経験", 1, PLAYER)
+;	T += 1
+
+
+;-------------------------------------------------
+;調教時テキスト
+;-------------------------------------------------
+;55,二プルキャップ使う
+;-------------------------------------------------
+@MESSAGE_COM55
+;装着時
+IF TEQUIP:PLAYER:16
+	PRINTFORMW %CALLNAME:PLAYER%は乳首にクリップローターを貼り付けた
+;解除時
+ELSE
+	PRINTFORMW %CALLNAME:PLAYER%はクリップローターを取り外した
+ENDIF
+
+;-------------------------------------------------
+;173,触手乳首責めさせる
+;-------------------------------------------------
+@MESSAGE_COM173
+;装着時
+IF TEQUIP:PLAYER:16
+	PRINTFORM 細かく蠢く触手が
+	IF TEQUIP:PLAYER:乳房露出 != -1 || (TEQUIP:PLAYER:乳房露出 == -1 && TEQUIP:PLAYER:下着（上） == 520)
+		IF TEQUIP:PLAYER:服 > 0
+			CALL CLOTHES_NAME,1,PLAYER
+			PRINT の布越しに
+		ELSEIF TEQUIP:PLAYER:全身服 > 0
+			CALL CLOTHES_NAME,3,PLAYER
+			PRINT の布越しに
+		ELSEIF TEQUIP:PLAYER:下着（上） > 0
+			CALL CLOTHES_NAME,5,PLAYER
+			PRINTFORM \@ TEQUIP:PLAYER:下着（上） == 520 ? を弄りながら # の上から\@
+		ELSEIF TEQUIP:PLAYER:その他 > 0
+			CALL CLOTHES_NAME,10,PLAYER
+			PRINT の内側に入り込んで
+		ENDIF
+	ELSE
+		IF TEQUIP:PLAYER:服 > 0
+			CALL CLOTHES_NAME,1,PLAYER
+			PRINT の開いた胸元からこぼれた、
+		ELSEIF TEQUIP:PLAYER:全身服 > 0
+			CALL CLOTHES_NAME,3,PLAYER
+			PRINT の開いた胸元からこぼれた、
+		ENDIF
+	ENDIF
+	PRINTFORM %CALLNAME:PLAYER%の
+	;小柄体型＋貧乳、絶壁
+	IF (TALENT:PLAYER:100 && TALENT:PLAYER:109) || TALENT:PLAYER:110
+		PRINT 僅かに膨らみが感じられる程度の
+	;貧乳
+	ELSEIF TALENT:PLAYER:109
+		PRINT 小振りの
+	;巨乳
+	ELSEIF TALENT:PLAYER:111
+		PRINT 手から溢れそうなほどの
+	;爆乳
+	ELSEIF TALENT:PLAYER:112
+		PRINT 手に余るほど大きな
+	ENDIF
+	PRINTFORMW 胸の先端の、突起を\@ TEQUIP:PLAYER:下着（上） == 520 ? 苛めた # つまみあげた\@……
+;解除時
+ELSE
+	PRINTFORMW 触手は%CALLNAME:PLAYER%の乳首から離れた
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_55
+RETURN COMTYPE("対調教者道具系")
+

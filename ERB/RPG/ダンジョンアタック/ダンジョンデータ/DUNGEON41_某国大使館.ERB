@@ -1,0 +1,754 @@
+
+;=======================================================================
+;某国大使館
+;ボス・マヨーネ様
+;ボス・天使パワー
+;ダンジョンナンバー41　ＭＡＰ0~2
+;突貫工事の為エラー出たらごめんなさい
+;=======================================================================
+
+
+
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_41
+;マヨーネ様の依頼を受けている
+IF (イベントフラグ:8:0 & 2)
+	RETURN 1
+;暫定処理
+ELSEIF イベントフラグ:1:0 == 3
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_41
+RESULTS = American Embassy
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_41
+PRINT American Embassy 
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Yotsuya Underpass
+	CASE 1
+		PRINTL １Ｆ
+	CASE 2
+		PRINTL ２Ｆ
+		
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_2_1_1
+RESULTS = Ｔ
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_41,ARG
+FLAG:現M = 0
+FLAG:現X = 11
+FLAG:現Y = 3
+;CALL AUTOMAP
+
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_41,ARG,ARG:1
+;警備兵
+;IF FLAG:現M == 0 && ARG == 4（現X） && ARG:1 == 2 （現Y） && ダンジョンフラグ:41:2 == 0（イベント見てない）
+IF FLAG:現M == 0 && ARG == 4 && ARG:1 == 1 && ダンジョンフラグ:41:2 == 0
+	;主人公のLv20以上なら通れる
+	IF BASE:MASTER:LV >= 20
+		;マヨーネＧＥＴ済み
+		IF イベントフラグ:1:0 == 3
+			PRINTFORML 「Wait、cannot you wait!!」
+			PRINTFORMW 「Ambassador Thorman is absent」
+			;マヨーネ陥落済みでＰＴにいる
+			IF FINDCHARA_B(4516,0) == 2
+				PRINTFORML 「I know the ambassador is absent」
+				PRINTFORML 「By the way、don't you have the demon summoning program in here？」
+				PRINTFORMW Mayone unexpectedly addressed the security guard。
+				;信用されてないあなた可哀そす
+				PRINTFORMW %CALLNAME:MASTER% knew the real reason that they were exploring the embassy…
+				PRINTL 「You…are not just a civilian. You will not return alive！！」
+				PRINTW 1 Divine Archangel appeared！
+				CUSTOMDRAWLINE =
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				;アークエンジェル
+				CALL SET_ENEMY,9,[[キャラ:アークエンジェル]],24,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 300
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CUSTOMDRAWLINE =
+
+				PRINTL
+				PRINTFORMW 「Ara ara…You died before answering」
+				PRINTFORMW 「Well、an underling wouldn't have known」
+				PRINTFORMW 「Shall we hurry、master」
+				ダンジョンフラグ:41:2 = 1
+				RETURN 1
+			ELSE
+				PRINTFORML 「You have proper ID」
+				PRINTFORMW 「I'm coming」
+				PRINTFORMW You were advised that the embassy is a den of angels。
+				PRINTFORMW You are to confirm the existence of a summoning server in this embassy。
+				PRINTFORMW Be glad that useless conflict has been avoided。
+				RETURN 1
+				ダンジョンフラグ:41:2 = 1
+			ENDIF
+		;マヨーネ未入手
+		ELSE
+			PRINTFORMW A bloody angel is laying on the floor…
+			PRINTFORMW 「Foolish one unafraid of God…You will be subject to Heaven's punishment」
+			PRINTFORMW The angel glared at you in hatred and disappeared。
+			ダンジョンフラグ:41:2 = 1
+			RETURN 1
+		ENDIF
+	ELSE
+		PRINTFORMW 「Wait、cannot you wait!!」
+		PRINTFORMW 「Ambassador Thorman is absent」
+		PRINTFORMW 「If you want to visit immediately, you need to join us」
+		RETURN 0
+	ENDIF
+ENDIF
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_41
+SELECTCASE FLAG:現M
+	CASE 0
+	;四ツ谷地下道
+		FLAG:最大X = 15 
+		FLAG:最大Y = 5 
+;								 012345678901234
+		CALL MAKE_FLOOR_LINE, 0,"               "
+		CALL MAKE_FLOOR_LINE, 1," 11111   11111 "
+		CALL MAKE_FLOOR_LINE, 2," 1   11111   1 "
+		CALL MAKE_FLOOR_LINE, 3," 126       821 "
+		CALL MAKE_FLOOR_LINE, 4,"               "
+		
+		;CALL SET_TILE,4,1,ダンジョンフラグ:41:2,0,4
+
+	CASE 1
+	;１階
+		FLAG:最大X = 15 
+		FLAG:最大Y = 9 
+;								 012345678901234
+		CALL MAKE_FLOOR_LINE, 0,"               "
+		CALL MAKE_FLOOR_LINE, 1," 1211 1 1121 1 "
+		CALL MAKE_FLOOR_LINE, 2,"    2 1 2    1 "
+		CALL MAKE_FLOOR_LINE, 3," 1111111111111 "
+		CALL MAKE_FLOOR_LINE, 4," 2    1    2 1 "
+		CALL MAKE_FLOOR_LINE, 5," 1121 1 1211 1 "
+		CALL MAKE_FLOOR_LINE, 6,"      1      1 "
+		CALL MAKE_FLOOR_LINE, 7," 11111126 7211 "
+		CALL MAKE_FLOOR_LINE, 8,"               "
+
+		;宝箱の設置
+		;X8,Y5，DB40:10 == 0の時宝箱が取れる
+		CALL SET_TILE,8,5,ダンジョンフラグ:40:10,0,3
+		;X1,Y1，DB40:11 == 0の時宝箱が取れる
+		CALL SET_TILE,1,1,ダンジョンフラグ:40:11,0,3
+
+		CALL SET_TILE,6,3,ダンジョンフラグ:41:3,0,4
+
+	CASE 2
+	;２階
+		FLAG:最大X = 9 
+		FLAG:最大Y = 9 
+;								 012345678
+		CALL MAKE_FLOOR_LINE, 0,"         "
+		CALL MAKE_FLOOR_LINE, 1," 1211111 "
+		CALL MAKE_FLOOR_LINE, 2,"       1 "
+		CALL MAKE_FLOOR_LINE, 3," 11111 1 "
+		CALL MAKE_FLOOR_LINE, 4," 2 1 2 1 "
+		CALL MAKE_FLOOR_LINE, 5," 1 1 1 1 "
+		CALL MAKE_FLOOR_LINE, 6,"   1   1 "
+		CALL MAKE_FLOOR_LINE, 7," 7211111 "
+		CALL MAKE_FLOOR_LINE, 8,"         "
+
+		CALL SET_TILE,1,1,ダンジョンフラグ:41:1,0,4
+		CALL SET_TILE,1,1,ダンジョンフラグ:41:1,1,-9
+
+	CASEELSE
+ENDSELECT
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_41
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	SELECTCASE FLAG:現M
+		;地下一階
+		CASE 0
+		;一階
+		CASE 1
+			;X8 && Y5座標の宝箱
+			IF FLAG:現X == 8 && FLAG:現Y == 5
+				;ボスを倒していない
+				IF ダンジョンフラグ:41:1 == 0
+					;1005,ValueMedicine,15,味方全員のHPを50回復する薬品
+					CALL GET_TREASURE,1005,1,FLAG:現ダンジョン,10
+				;ボスを倒している
+				ELSE
+					;79,Yellow candy(lay egg),20000,;妊娠中に使うと産卵し、妊娠を失う。妊娠キャンセルが可能だが、ハイリスク,
+					CALL GET_TREASURE,79,1,FLAG:現ダンジョン,12
+				ENDIF
+			;X1 && Y1座標の宝箱
+			ELSEIF FLAG:現X == 1 && FLAG:現Y == 1
+				;ボスを倒していない
+				IF ダンジョンフラグ:41:1 == 0
+					;1001,Medecine,50,;HPを30回復する薬品
+					CALL GET_TREASURE,1001,2,FLAG:現ダンジョン,11
+				;ボスを倒している
+				ELSE
+					;1008,RevivalBead,3000,リカーム
+					CALL GET_TREASURE,1008,2,FLAG:現ダンジョン,13
+				ENDIF
+			ENDIF
+		;二階
+		CASE 2
+	ENDSELECT
+	RETURN 1
+
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	SELECTCASE FLAG:現M
+		;地下一階の6を調べた
+		CASE 0
+			;地下一階　6の座標を指定　X3/Y3
+			SIF FLAG:現X == 3 && FLAG:現Y == 3
+				;一階　7の座標に移動　X10/Y7
+				CALL DUNGEON_UPSTAIRS,1,10,7
+		;一階の6を調べた
+		CASE 1
+			;一階　6の座標を指定
+			SIF FLAG:現X == 8 && FLAG:現Y == 7
+				;ニ階　7の座標に移動
+				CALL DUNGEON_UPSTAIRS,2,1,7
+	ENDSELECT
+	RETURN 1
+	
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	SELECTCASE FLAG:現M
+		;上記昇り階段の数値を入れ替える
+		;一階の7を調べた
+		CASE 1
+			;一階　MAP7の座標を指定
+			SIF FLAG:現X == 10 && FLAG:現Y == 7
+				;地下一階　6の座標に移動
+				CALL DUNGEON_DOWNSTAIRS,0,3,3
+		;二階の7を調べた
+		CASE 2
+			;ニ階　MAP7の座標を指定
+			SIF FLAG:現X == 1 && FLAG:現Y == 7
+				;一階　MAP6の座標に移動
+				CALL DUNGEON_DOWNSTAIRS,1,8,7
+	ENDSELECT
+	RETURN 1
+
+ELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDIF
+
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_41,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	SELECTCASE FLAG:現M
+		;地下一階
+		CASE 0
+		;一階
+		CASE 1
+			;X8 && Y5座標の宝箱
+			IF FLAG:現X == 8 && FLAG:現Y == 5
+				;ボスを倒していない
+				IF ダンジョンフラグ:41:1 == 0
+					;1005,ValueMedicine,15,味方全員のHPを50回復する薬品
+					CALL GET_TREASURE,1005,1,FLAG:現ダンジョン,10
+				;ボスを倒している
+				ELSE
+					;79,Yellow candy(lay egg),20000,;妊娠中に使うと産卵し、妊娠を失う。妊娠キャンセルが可能だが、ハイリスク,
+					CALL GET_TREASURE,79,1,FLAG:現ダンジョン,10
+				ENDIF
+			;X1 && Y1座標の宝箱
+			ELSEIF FLAG:現X == 1 && FLAG:現Y == 1
+				;ボスを倒していない
+				IF ダンジョンフラグ:41:1 == 0
+					;1001,Medecine,50,;HPを30回復する薬品
+					CALL GET_TREASURE,1001,2,FLAG:現ダンジョン,11
+				;ボスを倒している
+				ELSE
+					;1008,RevivalBead,3000,リカーム
+					CALL GET_TREASURE,1008,2,FLAG:現ダンジョン,11
+				ENDIF
+			ENDIF
+		;二階
+		CASE 2
+	ENDSELECT
+	RETURN 1
+
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	SELECTCASE FLAG:現M
+		;地下一階の6へ入った
+		CASE 0
+			;地下一階　6の座標を指定　X3/Y3
+			SIF FLAG:現X == 3 && FLAG:現Y == 3
+				;一階　7の座標に移動　X10/Y7
+				CALL DUNGEON_UPSTAIRS,1,10,7
+		;一階の6へ入った
+		CASE 1
+			;一階　6の座標を指定
+			SIF FLAG:現X == 8 && FLAG:現Y == 7
+				;ニ階　7の座標に移動
+				CALL DUNGEON_UPSTAIRS,2,1,7
+	ENDSELECT
+	RETURN 1
+	
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	SELECTCASE FLAG:現M
+		;上記昇り階段の数値を入れ替える
+		;一階の7へ入った
+		CASE 1
+			;一階　MAP7の座標を指定
+			SIF FLAG:現X == 10 && FLAG:現Y == 7
+				;地下一階　6の座標に移動
+				CALL DUNGEON_DOWNSTAIRS,0,3,3
+		;二階の7へ入った
+		CASE 2
+			;ニ階　MAP7の座標を指定
+			SIF FLAG:現X == 1 && FLAG:現Y == 7
+				;一階　MAP6の座標に移動
+				CALL DUNGEON_DOWNSTAIRS,1,8,7
+	ENDSELECT
+	RETURN 1
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	IF FLAG:現M == 1 && FLAG:現X == 6 && FLAG:現Y == 3 && ダンジョンフラグ:41:3 == 0
+		CUSTOMDRAWLINE =
+		PRINTL As you went through the corridor、an angel came down from above。
+		PRINTW 「Foolish enemies of God」
+		PRINTW 「There is no hope of salvation for you who killed our comrades!!」
+		PRINTL 3 Divine Archangels appeared！
+		CUSTOMDRAWLINE =
+		WAIT
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		;アークエンジェルＡ
+		;マヨーネ陥落済みでＰＴにいる
+		IF FINDCHARA_B(4516,0) == 2
+			;アークエンジェルLv24
+			CALL SET_ENEMY,8,[[キャラ:アークエンジェル]],39,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 300
+		ELSE
+			CALL SET_ENEMY,8,[[キャラ:アークエンジェル]],30,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		ENDIF
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;アークエンジェルＢ
+		;マヨーネ陥落済みでＰＴにいる
+		IF FINDCHARA_B(4516,0) == 2
+			;アークエンジェルLv24
+			CALL SET_ENEMY,9,[[キャラ:アークエンジェル]],39,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 300
+		ELSE
+			CALL SET_ENEMY,9,[[キャラ:アークエンジェル]],30,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		ENDIF
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;マヨーネ陥落済みでＰＴにいる
+		IF FINDCHARA_B(4516,0) == 2
+			;アークエンジェルLv24
+			CALL SET_ENEMY,10,[[キャラ:アークエンジェル]],39,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 300
+		ELSE
+			;アークエンジェルLv24
+			CALL SET_ENEMY,10,[[キャラ:アークエンジェル]],30,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+		ENDIF
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		PRINTFORMW 「Oh God…」
+		PRINTFORMW You defeated the group of angels。
+		;マヨーネＧＥＴ済み
+		IF イベントフラグ:1:0 == 3
+			;マヨーネ陥落済みでＰＴにいる
+			IF FINDCHARA_B(4516,0) == 2
+				PRINTFORMW 「Only a high ranking angel would know anything…」
+				ダンジョンフラグ:41:3 = 1
+			ELSE
+				PRINTFORMW The invasion seems to have already started…
+				PRINTFORMW If this is so、only the head angels would know where the server is。
+				ダンジョンフラグ:41:3 = 1
+			ENDIF
+		ELSE
+			PRINTFORML The security is really bad。
+			PRINTFORMW The guarding angel must have been deceived。
+			PRINTFORMW There might be another invader…
+			ダンジョンフラグ:41:3 = 1
+		ENDIF
+	ENDIF
+
+	IF FLAG:現M == 2 && FLAG:現X == 1 && FLAG:現Y == 1 && ダンジョンフラグ:41:4 == 0
+		;マヨーネＧＥＴ済み
+		IF イベントフラグ:1:0 == 3
+			CUSTOMDRAWLINE =
+			PRINTL There was an angel in the center of the red-carpeted office。
+			PRINTL 「You aren't the Gaeans？」
+			PRINTW 「Why are you here、human?」
+			;マヨーネ陥落済みでＰＴにいる
+			IF FINDCHARA_B(4516,0) == 2
+				PRINTFORMW 「Will you tell us the location of the summoning server？」
+			ELSE
+				PRINTFORMW The angel answered %CALLNAME:MASTER% who asked for the location of the summoning server。
+			ENDIF
+			PRINTFORMW 「Sorry、it's not here」
+			PRINTFORMW 「I shall avenge my comrades！！」
+			PRINTL 1 Divine Power appeared！
+			CUSTOMDRAWLINE =
+			WAIT
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			;パワーLv34
+			CALL SET_ENEMY,9,[[キャラ:パワー]],40,0,1
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+		
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			
+			;デビサバルートに続く
+			PRINTL Mission accomplished…Where is the demon summoning server?
+			
+		ELSE
+			CUSTOMDRAWLINE =
+			PRINTL Blood of the dying angel dyed the red carpet of the office。
+			PRINTW 「Ah, you're here.」
+			PRINTL 「Hmhm... I didn't think I could get here that quickly without you, fuckmeat.」
+			PRINTW Twirling the parasol, Mayone smirks.
+			PRINTL 「I thought that I would send you out with a glorious bang」
+			PRINTL 「But this angel... Cannot spit out the one thing I need to know.」
+			PRINTL 「Hmm, It's frustating! I have to vent it out... on you!」
+			PRINTFORMW ＞Mayone activated her parasol ＣＯＭＰ as she turned to %CALLNAME:MASTER%
+			PRINTL
+			PRINTL Devil Summoner Mayone appears!
+			PRINTW Five demons appear!
+			PRINTL
+			CUSTOMDRAWLINE =
+			WAIT
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,14,[[キャラ:マヨーネ]],30,0,1
+			;シングル
+			ABL:(CHARANUM-1):スキル1 = 111
+			;連続
+			ABL:(CHARANUM-1):スキル2 = 112
+			;ジオンガ
+			ABL:(CHARANUM-1):スキル3 = 902
+			;マハ・ジオ
+			ABL:(CHARANUM-1):スキル4 = 904
+			;ムド
+			ABL:(CHARANUM-1):スキル5 = 1401
+			;一分の魔脈
+			ABL:(CHARANUM-1):スキル6 = 2403
+			;ValueMedicine
+			ABL:(CHARANUM-1):スキル7 = 3005
+			;ＧＵＮ
+			ABL:(CHARANUM-1):スキル7 = 2101
+			EQUIP:(CHARANUM-1):剣 = [[アイテム:Athame Knife]]
+			EQUIP:(CHARANUM-1):銃 = [[アイテム:Desert Eagle]]
+			EQUIP:(CHARANUM-1):頭 = [[アイテム:Feather Trim]]
+			EQUIP:(CHARANUM-1):胴 = [[アイテム:Ageha Dress]]
+			EQUIP:(CHARANUM-1):腕 = [[アイテム:Leather Gloves]]
+			EQUIP:(CHARANUM-1):足 = [[アイテム:Dancing Heel]]
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			;ファントムウィッチ　Lv12（27）
+			CALL SET_ENEMY,13,[[キャラ:Fウィッチ]],27,0,0
+
+			;教条の塔　Lv27（30）
+			CALL SET_ENEMY,15,[[キャラ:教条の塔]],30,0,0
+			ABL:(CHARANUM-1):スキル1 = 902
+			ABL:(CHARANUM-1):スキル2 = 904
+			ABL:(CHARANUM-1):スキル3 = 1101
+			ABL:(CHARANUM-1):スキル4 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			;マンイーター　Lv27（30）
+			CALL SET_ENEMY,8,[[キャラ:マンイーター]],30,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			;ゴルゴンLv29
+			CALL SET_ENEMY,9,[[キャラ:ゴルゴン]],29,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			;アルケニー　Lv28
+			CALL SET_ENEMY,10,[[キャラ:アルケニー]],28,0,0
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			PRINTL
+			PRINTL  ｢Fufu…The angels apparently gathered while we played」
+			PRINTW 「I shall forgive you for being here today」
+			PRINTFORMW Mayone vanished with a SmokeBall while saying that…
+		ENDIF
+		ダンジョンフラグ:41:1 = 1
+		PRINTW ￥25000 obtained for investigating the embassy
+		MONEY += 25000
+		PRINTW The terminal in the office may now be used！
+		;現在地をターミナルに
+		DA:(FLAG:現X):(FLAG:現Y) = -9
+		RETURN 1
+	ENDIF
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_41
+RETURN 26, 23, 26, 30
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_41
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 1
+		FLAG:エンカウント率 = 10 + FLAG:未遭遇歩数*5
+	CASE 2
+		FLAG:エンカウント率 = 20 + FLAG:未遭遇歩数*5
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+ENDSELECT
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_41
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	ABL:(CHARANUM-1):アイテム2 = 3609
+	ABL:(CHARANUM-1):入手確率2 = 1
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_41
+RETURN CLASS_NUM_COMMON("上級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_41, ARG
+RETURN ENEMY_NUM_COMMON("上級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_41, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE RAND:100
+			CASE IS < 20
+				;20%でエンジェルLv5（23）
+				RETURN [[キャラ:エンジェル]], 23
+			CASE IS < 35
+				;15%でニケーLv17（23）
+				RETURN [[キャラ:ニケー]], 23
+			CASE IS < 15
+				;15%でエルフLv23
+				RETURN [[キャラ:エルフ]], 23
+			CASE IS < 50
+				;15%でケライノーLv25
+				RETURN [[キャラ:ケライノー]], 25
+			CASE IS < 70
+				;10%でゾンビアーミーLv15（24）
+				RETURN [[キャラ:ゾンビアーミー]], 24
+			CASE IS < 85
+				;15%でドヴェルガーLv23
+				RETURN 554, 23
+				;RETURN [[ドヴェルガー]], 23
+			CASE IS < 100
+				;15%でヒーホーＢLv20（23）
+				RETURN [[キャラ:ジャックランタン]], 23
+		ENDSELECT
+	CASE 1
+	;２Ｆでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15%でエルフLv23（26）
+				RETURN [[キャラ:エルフ]], 26
+			CASE IS < 35
+				;20%でニケーLv17（26）
+				RETURN [[キャラ:ニケー]], 26
+			CASE IS < 50
+				;15%でケライノーLv25
+				RETURN [[キャラ:ケライノー]], 25
+			CASE IS < 60
+				;10%でハルワタートLv25
+				RETURN [[キャラ:ハルワタート]], 25
+			CASE IS < 75
+				;15%でアークエンジェルLv24
+				RETURN [[キャラ:アークエンジェル]], 24
+			CASE IS < 85
+				;10%でゾンビアーミーLv15（24）
+				RETURN [[キャラ:ゾンビアーミー]], 24
+			CASE IS < 5
+				;10%でジャックランタンLv20（26）
+				;RETURN [[ジャックランタン]], 26
+			CASE IS < 100
+				;15%でドヴェルガーLv23
+				RETURN 554, 26
+				;RETURN [[ドヴェルガー]], 26
+		ENDSELECT
+	CASE 2
+	;３Ｆでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15%でエルフLv23（26）
+				RETURN [[キャラ:エルフ]], 26
+			CASE IS < 30
+				;15%でバンシーLv27
+				RETURN [[キャラ:バンシー]], 27
+			CASE IS < 50
+				;20%でニケーLv17（26）
+				RETURN [[キャラ:ニケー]], 26
+			CASE IS < 65
+				;15%でケライノー
+				RETURN [[キャラ:ケライノー]], 25
+			CASE IS < 75
+				;10%でハルワタートLv25（28）
+				RETURN [[キャラ:ハルワタート]], 28
+			CASE IS < 90
+				;15%でアークエンジェルLv24（27）
+				RETURN [[キャラ:アークエンジェル]], 27
+			CASE IS < 100
+				;10%でプリンシパリティLv28
+				RETURN [[キャラ:プリンシパリティ]], 28
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_41
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:プリンシパリティ]] , 3 + RAND:10 , CSVBASE([[キャラ:プリンシパリティ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:アークエンジェル]] , 3 + RAND:10 , CSVBASE([[キャラ:アークエンジェル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:ゾンビアーミー]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビアーミー]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT

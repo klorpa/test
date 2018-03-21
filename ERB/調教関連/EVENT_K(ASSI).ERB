@@ -1,0 +1,110 @@
+;助手口上を管理
+
+;-----------------------------------------------------------------------------------
+;文字通り助手の口上です
+;----------------------------------------------------------------------------------
+
+
+;--------------------------------------------------
+;@KOJO_MESSAGE_ASSIPLAY_COM関係
+;コマンド実行時に助手が行う場合出力されます
+;--------------------------------------------------
+@KOJO_MESSAGE_ASSIPLAY_COM
+IF FLAG:7 <= 0
+	RETURN 0
+ENDIF
+
+CALL 助手口上呼び出し , "KOJO_MESSAGE_ASSIPLAY_COM"
+SIF RESULT == 0 && FLAG:6 > 0
+	RETURN 0
+	
+
+;--------------------------------------------------
+;@KOJO_MESSAGE_ASSIPAIR_COM関係
+;二本フェラやダブル素股などの時に助手の口上を呼び出す関数
+;もちろん、口上に書き込みが必要になりますが・・・
+;--------------------------------------------------
+@KOJO_MESSAGE_ASSIPAIR_COM(ARG)
+IF FLAG:7 <= 0
+	RETURN 0
+ENDIF
+
+CALL 助手口上呼び出し , "KOJO_MESSAGE_ASSIPAIR_COM", -1 ,ARG
+
+RETURN RESULT
+	
+
+@助手口上呼び出し, ARGS , ARG = -1 , ARG:1 , ARG:2 , ARG:3
+#LOCALSSIZE 1
+SIF ARG == -1
+	ARG = ASSI
+LOCALS = %助手口上関数末尾文字(ARG)%
+;SIF ARG == -1
+;	ARG = TARGET
+;IF CFLAG:ARG:口上セレクト < 50
+;	LOCALS = _K{NO:ARG}
+;ELSEIF CFLAG:ARG:口上セレクト < 60
+;	LOCALS = _PUB{ABL:会話タイプ}
+;ELSE
+;	LOCALS = _SP{CFLAG:ARG:口上セレクト - 60}
+;ENDIF
+;SIF CFLAG:ARG:口上セレクト % 50 != 0 && CFLAG:ARG:口上セレクト < 60
+;	LOCALS += @"_{CFLAG:ARG:口上セレクト%50}"
+;[IF_DEBUG]
+;	PRINTFORML 呼び出す口上は %ARGS%%LOCALS% です
+;[ENDIF]
+IF ARGS == "KOJO_MESSAGE_ASSIPLAY_COM"
+	TRYCCALLFORM %ARGS%%LOCALS% , ARG:1 , ARG:2 , ARG:3
+	CATCH
+		TRYCCALLFORM %ARGS%_PUB{ABL:ARG:会話タイプ} , ARG:1 , ARG:2 , ARG:3
+		CATCH
+			RETURN 0
+		ENDCATCH
+	ENDCATCH
+;ELSEIF ARGS == "BATTLE_MESSAGE"
+;	TRYCCALLFORM %ARGS%%LOCALS% , ARG:1 , ARG:2
+;	CATCH
+;		TRYCCALLFORM %ARGS%_PUB{ABL:ARG:会話タイプ} , ARG:1 , ARG:2 , ARG:3
+;		CATCH
+;			TRYCCALLFORM %ARGS%_PUB{ABL:ARG:会話タイプ} , ARG:1 , ARG:2
+;			CATCH
+;				RETURN 0
+;			ENDCATCH
+;		ENDCATCH
+;	ENDCATCH
+ELSEIF ARGS == "KOJO_MESSAGE_ASSIPAIR_COM"
+	TRYCCALLFORM %ARGS%%LOCALS%, ARG:1
+	CATCH
+		TRYCCALLFORM %ARGS%_PUB{ABL:ARG:会話タイプ}
+		CATCH
+			RETURN 0
+		ENDCATCH
+	ENDCATCH
+	RETURN RESULT
+ELSE
+	TRYCCALLFORM %ARGS%%LOCALS%
+	CATCH
+		TRYCCALLFORM %ARGS%_PUB{ABL:ARG:会話タイプ}
+		CATCH
+			RETURN 0
+		ENDCATCH
+	ENDCATCH
+ENDIF
+
+RETURN 1
+
+@助手口上関数末尾文字 , ARG
+#FUNCTIONS
+#LOCALSSIZE 1
+SIF ARG == -1
+	ARG = ASSI
+IF CFLAG:ARG:口上セレクト < 50
+	LOCALS = _K{NO:ARG}
+ELSEIF CFLAG:ARG:口上セレクト < 60
+	LOCALS = _PUB{ABL:ARG:会話タイプ}
+ELSE
+	LOCALS = _SP{CFLAG:ARG:口上セレクト - 60}
+ENDIF
+SIF CFLAG:ARG:口上セレクト % 50 != 0 && CFLAG:ARG:口上セレクト < 60
+	LOCALS += @"_{CFLAG:ARG:口上セレクト%50}"
+RETURNF LOCALS

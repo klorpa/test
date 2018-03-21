@@ -1,0 +1,340 @@
+;オリジナルコメント
+;DB:101:33 ・0:イベント開始 2:イベント完了
+;DB:101:33:1 ・0:両名未改造&花田爆死 1:チャーリー改造&花田爆死 2:ブラウン改造&花田ミンチ 3:両名改造&花田ミンチ
+;とやりたかった。引数はもうこれ以上使えないなんてひでえ
+;J( 'ー`)しコメント
+;イベントフラグ:79:0　 0:イベント開始 2:イベント完了
+;イベントフラグ:79:1　 0:両名未改造&花田爆死 1:チャーリー改造&花田爆死 2:ブラウン改造&花田ミンチ 3:両名改造&花田ミンチ
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_79
+;ノルマ1回達成後
+IF FLAG:組織貢献度 >= 200000 && (イベントフラグ:79:0 < 2)
+	IF イベントフラグ:79:0 < 1
+		RESULTS = Hanada's Reward
+		RETURN 1
+	ENDIF
+ENDIF
+RETURN 0
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_79
+VARSET LOCAL,0
+IF イベントフラグ:79:0 < 1
+;全体的にマヨーネ様褒美のパロディ
+;オトコ調教済みなんて誰得？
+	PRINTW During the days when the contributions to the organisation go smoothly,
+	PRINTFORMW a man in a white robe paid an unexpected visit to %CALLNAME:MASTER%'s office.
+	PRINTL
+	PRINTFORMW 「You seems to be taking your duties seriously, admirable admirable.」
+	SIF FLAG:5 != 9
+		PRINTFORMW 「But can you afford to relax? Kukuku...」
+	PRINTFORMW 「...eh? Who am I?」
+	PRINTFORMW 「A former researcher of the Millenium Center and the Genius Head Scientist of the Phantom Society, I am Hanada!」
+	PRINTFORMW 「Keep that in mind!」
+	;「Inscribe it on your brain well！」 Whut? Verbose AF
+	PRINTFORMW 「Today you made a serious contribution...I prepared a reward for you.」
+	;blunder
+	
+	PRINTFORM When the genius scientist snapped his finger, 
+	
+	;経過日数で分岐　20日以内なら綺麗な状態、それ以後は搾り済み
+	IF DAY < 21
+		SELECTCASE FLAG:初期パートナー
+			CASE 4655
+				PRINTFORMW a collared and chained blond boy was brought in.
+				PRINTFORMW While he yelled to be let go, he was unable to do anything while chained.
+				PRINTFORMW The vitality he showed in his unflagging struggle may prove useful.
+				PRINTFORMW 「Your reward for working hard. I had strict orders to keep them beautiful.」
+				PRINTFORMW 「Wouldn't he be wonderful material for experimentation?」
+				PRINTFORMW High school boy Shinji Kuroi obtained
+				CALL ADD_NEW_COMPANION,4656,500
+				LOCAL:1 = GETCHARA(4656)
+			CASE 4656
+				PRINTFORMW a chained and collared boy was brought in.
+				PRINTFORMW The boy continues to groan and curse.
+				PRINTFORMW But, he is chained well and is unable to do anything。
+				PRINTFORMW 「Your reward for working hard. I was given strict orders to keep him beautiful for today.」
+				PRINTFORMW 「Wouldn't he be wonderful material for experimentation?」
+				PRINTFORMW High school boy Hidehiko Uesugi obtained
+				CALL ADD_NEW_COMPANION,4655,500
+				LOCAL:1 = GETCHARA(4655)
+			CASEELSE
+				PRINTFORMW two collared and chained boys were brought in.
+				PRINTFORMW They are untrained and running wild, trying to tear off their chains with vigorous force.
+				PRINTFORMW 「Your reward for working hard. I had strict orders to keep them beautiful for today.」
+				PRINTFORMW 「Wouldn't they be wonderful materials for experimentation?」
+				PRINTFORMW High schoolboy Shinji Kuroi and high school boy Hidehiko Uesugi obtained
+				CALL ADD_NEW_COMPANION,4655,500
+				CALL ADD_NEW_COMPANION,4656,500
+				LOCAL:1 = GETCHARA(4655)
+				LOCAL:2 = GETCHARA(4656)
+		ENDSELECT
+		;IF FLAG:戦闘難易度 < 3 && FLAG:未調教時陥落 > 1
+		;戦闘難易度がNOMAL以下かつ未調教時陥落オプションがオンの場合でなくても、戦力として加入させることが出来るほうがいいかな
+		PRINTL 
+		PRINTFORML By the way, what will you do with the boy\@ LOCAL:2 ? s #  \@?
+		CALL INPUT_YN("Keep as slaves","Keep as party members")
+			IF RESULT == 0
+				PRINTFORML %CALLNAME:MASTER% commanded subordinates to throw the boy\@ LOCAL:2 ? s #  \@ in the slave room.
+			ELSE
+				PRINTFORML Given the powerful medicine, the boy\@ LOCAL:2 ? s #  \@ began to curse out %CALLNAME:MASTER%.
+				PRINTFORMW With this curse from Mayone, the rebellious boy\@ LOCAL:2 ? s #  \@ will not be able to go against %CALLNAME:MASTER%.
+				PRINTFORML If you meddle with their virtue, they would not be too hard to push around.
+				CFLAG:(LOCAL:1):戦闘参加不可能 = -1
+				SIF LOCAL:2 > 0
+					CFLAG:(LOCAL:2):戦闘参加不可能 = -1
+			ENDIF
+		;ENDIF
+		PRINTL
+		PRINTFORMW 「...Still, is there anything else you want?」
+		PRINTL
+		PRINTL [0]You want Hanada
+		PRINTL [1]Nothing in particular
+		$INPUT_LOOP1
+		INPUT
+		IF RESULT == 0
+				PRINTFORMW 「That's no good, no good at all. I won't be yours.」
+				PRINTFORMW 「Doing sexual training with the best brain in the world, you can't be that presumptuous.」
+				PRINTFORMW 「It is the law of this world, that our Phantom Socitey rules.」
+				PRINTFORMW 「I have decided this, deciding it now.」
+				PRINTFORMW 「Well, I'll give you this instead.」
+			ELSEIF RESULT == 1
+				PRINTFORMW 「Arara, that so?」
+				PRINTFORMW 「Well, I made this with much effort.」
+			ELSE
+				GOTO INPUT_LOOP1
+			ENDIF
+		PRINTFORMW Hanada held out the Gun Dominator.
+		PRINTFORMW ...It is a quite suspicious-looking Gun.
+		PRINTFORMW 「This isn't an ordinary Dominator.」
+		PRINTFORMW 「From being remodeled by the great genius Hanada, it can fire bullets that stop time!」
+		PRINTFORMW 「Pull this lever here to charge it..Ara!?」
+		PRINTFORMW Hanada dropped the Gun!
+		PRINTFORMW The office was suddenly filled with a flash of light and Hanada's scream echoed!
+		PRINTL
+		PRINTFORMW ...After the flash was gone, the room is in tatters and the wreck of the Gun lies on the floor.
+		PRINTFORMW Hanada's charred sorpse was also lying there.
+		PRINTFORMW ....
+		PRINTFORMW 
+		PRINTFORMW ＞ %CALLNAME:MASTER% threw away the junk
+		イベントフラグ:79:1 = 0
+	ELSE
+		SELECTCASE FLAG:初期パートナー
+			CASE 4655
+				PRINTFORMW A cage with something inside entered the room.
+				PRINTFORMW Shining from the light reflecting off the fluid coating, a nude boy wrapped in tentacles appeared.
+				PRINTFORMW His belly is distended from the tentacles filling him and he has an expression of ecstasy.
+				PRINTFORMW The boy's arms and legs are tied up as he begs for his penis to be stroked but the tentacles don't pay that any heed.
+				PRINTFORMW 「This is now yours.」
+				PRINTFORMW 「I made this with my supersized tentacles.」
+				PRINTFORMW 「This boy was used as a guinea pig for the demons, the control is perfect!」
+				PRINTFORMW 「He might be a little addicted to my drugs,」
+				PRINTFORMW 「but you should have no problems making him a slave and use him as you like...」
+				PRINTFORMW Suddenly, %CALLNAME:MASTER% noticed something. ...The tentacles seemedlike they were grinning.
+				PRINTFORMW The tentacles suddenly burst from the cage and threw the boy at Hanada!
+				PRINTFORMW 「Rerere!」
+				PRINTFORMW 「Kokoko, ...It isn't me...killing you...」
+				PRINTFORMW The tentacles seized Hanada, bust through the door and escape outside!
+				PRINTFORMW As Hanada's 「former」 subordinates make a fuss of this and soon the rest of the office is busy like a beehive.
+				PRINTFORMW After things calm, only the boy remained. The boy suffered weakly begging for further pleasure...
+				PRINTFORMW The squeezed dry shell of former high school boy Shinji Kuroi obtained
+				PRINTL
+				PRINTFORMW ...Later, you heard that Hanada's squeezed dry corpse was found in Makai.
+				CALL ADD_NEW_COMPANION,4656,500
+				LOCAL = GETCHARA(4656)
+				IF RESULT == 1
+					ABL:LOCAL:Ｃ感覚 = 3
+					ABL:LOCAL:Ａ感覚 = 3
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:従順 = 2
+					ABL:LOCAL:欲望 = 3
+					ABL:LOCAL:技巧 = 2
+					ABL:LOCAL:奉仕精神 = 2
+					ABL:LOCAL:露出癖 = 1
+					ABL:LOCAL:マゾっ気 = 3
+					ABL:LOCAL:ＢＬっ気 = 2
+					ABL:LOCAL:自慰中毒 = 1
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:反発刻印 = 3
+					MARK:LOCAL:4 = 3
+					EXP:LOCAL:Ａ経験 = (DAY-20)*12
+					EXP:LOCAL:絶頂経験 = (DAY-20)*25
+					EXP:LOCAL:性交経験 = (DAY-20)*20
+					EXP:LOCAL:自慰経験 = (DAY-20)*5
+					EXP:LOCAL:調教自慰経験 = (DAY-20)*15
+					EXP:LOCAL:精液経験 = (DAY-20)*55
+					EXP:LOCAL:奉仕快楽経験 = (DAY-20)*5
+					EXP:LOCAL:フェラ経験 = (DAY-20)*30
+					EXP:LOCAL:苦痛快楽経験 = (DAY-20)*10
+					EXP:LOCAL:放尿経験 = (DAY-20)*5
+					EXP:LOCAL:レズ経験 = (DAY-20)*10
+					EXP:LOCAL:緊縛経験 = (DAY-20)*5
+					EXP:LOCAL:Ａ拡張経験 = (DAY-20)
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				;イベントフラグ:79:1 = 1
+			CASE 4656
+				PRINTFORMW A cage with something inside entered the room.
+				PRINTFORMW Shining from the light reflecting off the fluid coating, a nude boy wrapped in tentacles appeared.
+				PRINTFORMW While he still attempts to resist, he shakes as the tentacles wriggle and enter him.
+				PRINTFORMW As his hands and feet were tied up by the tentacles, he cannot give any serious resistance.
+				PRINTFORMW 「This is yours now.」
+				PRINTFORMW 「I made this with my supersized tentacles.」
+				PRINTFORMW 「This boy was used as a guinea pig for the demons, the control is perfect!」
+				PRINTFORMW 「He might be a little addicted to my drugs,」
+				PRINTFORMW 「but you should have no problems making him a slave and use him as you like...」
+				PRINTFORMW Suddenly, %CALLNAME:MASTER% noticed something. ...A tentacle was coming closer.
+				PRINTFORMW The tentacles jumped up and stuck to Hanada!
+				PRINTFORMW 「Rerere!」
+				PRINTFORMW 「Kokoko,...It isn't me...killing you...」
+				PRINTFORMW Hanada is sucked into the tentacle and swallowed up.
+				PRINTFORMW Hanada's 「former」 spray the tentacle with so much chemicals it's like a fog!
+				PRINTFORMW ...The tentacles turned brown and rotted away.
+				PRINTFORMW But the tentacles squeeze out semen and souls, and only the unconscious boy remained...
+				PRINTFORMW The squeezed dry shell of former high school boy Hidehiko Uesugi obtained
+				CALL ADD_NEW_COMPANION,4655,500
+				LOCAL = GETCHARA(4655)
+				IF RESULT == 1
+					ABL:LOCAL:Ｃ感覚 = 3
+					ABL:LOCAL:Ａ感覚 = 3
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:従順 = 2
+					ABL:LOCAL:欲望 = 3
+					ABL:LOCAL:技巧 = 2
+					ABL:LOCAL:奉仕精神 = 1
+					ABL:LOCAL:露出癖 = 2
+					ABL:LOCAL:マゾっ気 = 3
+					ABL:LOCAL:ＢＬっ気 = 2
+					ABL:LOCAL:自慰中毒 = 1
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:反発刻印 = 3
+					MARK:LOCAL:4 = 3
+					EXP:LOCAL:Ａ経験 = (DAY-20)*12
+					EXP:LOCAL:絶頂経験 = (DAY-20)*25
+					EXP:LOCAL:性交経験 = (DAY-20)*20
+					EXP:LOCAL:自慰経験 = (DAY-20)*5
+					EXP:LOCAL:調教自慰経験 = (DAY-20)*15
+					EXP:LOCAL:精液経験 = (DAY-20)*55
+					EXP:LOCAL:奉仕快楽経験 = (DAY-20)*5
+					EXP:LOCAL:フェラ経験 = (DAY-20)*30
+					EXP:LOCAL:苦痛快楽経験 = (DAY-20)*10
+					EXP:LOCAL:放尿経験 = (DAY-20)*5
+					EXP:LOCAL:レズ経験 = (DAY-20)*10
+					EXP:LOCAL:緊縛経験 = (DAY-20)*5
+					EXP:LOCAL:Ａ拡張経験 = (DAY-20)
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				イベントフラグ:79:1 = 2
+			CASEELSE
+				PRINTFORMW A cage with something inside entered the room.
+				PRINTFORMW Two girls were wrapped up by tenteacles in there.
+				PRINTFORMW The girls had an expression of ecstasy, tentacles were pushing into their mouths, their hands held open their pussies, they cry out as the tentacles pleasure them.
+				PRINTFORMW As the tentacles' semen falls to the floor, they bend over like dogs and stick out their tongues, they lick up the sperm as it falls on the floor.
+				PRINTFORMW 「This is yours now.」
+				PRINTFORMW 「I made this with my supersized tentacles.」
+				PRINTFORMW 「I was able to develop a medicine that allows humans to change sex! The results have been excellent.」
+				PRINTFORMW 「It is a bit unstable and addicting, 」
+				PRINTFORMW 「but you should have no problems making them into slaves and use them as you like...」
+				PRINTFORMW Then %CALLNAME:MASTER% noticed something. ...A tentacle was creeping up behind Hanada.
+				PRINTFORMW A needle protruded from a tentacle and pierced Hanada!
+				PRINTFORMW 「Rerere!」
+				PRINTFORMW 「Kokoko,...It isn't me...killing you...」
+				PRINTFORMW White smoke blasted from Hanada and he slowly collapsed.
+				PRINTFORMW 「Dazugedegedegedegureeeee」
+				PRINTFORMW Hanada became a demon slime, sticking to the glans of the tentacle!
+				PRINTFORMW When Hanada teared out the door and jumped outside, Hanada's 「former」 subordinates ran around in panic.
+				PRINTFORMW Not understanding the situation and gasping, only the two girls remained...
+				PRINTFORMW Successful experimental products Charlie and Brown obtained
+				PRINTL
+				PRINTFORMW ...Later, you heard that Hanada's 「former」 subordinates killed him in a gunfight.
+				CALL ADD_NEW_COMPANION,4655,500
+				LOCAL = GETCHARA(4655)
+				IF RESULT == 1
+					CALL ＴＳ処理, LOCAL, 3
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:Ｃ感覚 = 3
+					ABL:LOCAL:Ｖ感覚 = 3
+					ABL:LOCAL:Ａ感覚 = 1
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:従順 = 1
+					ABL:LOCAL:欲望 = 3
+					ABL:LOCAL:技巧 = 3
+					ABL:LOCAL:奉仕精神 = 1
+					ABL:LOCAL:露出癖 = 2
+					ABL:LOCAL:マゾっ気 = 1
+					ABL:LOCAL:レズっ気 = 3
+					ABL:LOCAL:自慰中毒 = 2
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:反発刻印 = 2
+					MARK:LOCAL:4 = 2
+					EXP:LOCAL:Ｖ経験 = (DAY-20)*20
+					EXP:LOCAL:Ａ経験 = (DAY-20)*20
+					EXP:LOCAL:絶頂経験 = (DAY-20)*25
+					EXP:LOCAL:性交経験 = (DAY-20)*110
+					EXP:LOCAL:膣射経験 = (DAY-20)*20
+					EXP:LOCAL:自慰経験 = (DAY-20)*5
+					EXP:LOCAL:調教自慰経験 = (DAY-20)*5
+					EXP:LOCAL:精液経験 = (DAY-20)*55
+					EXP:LOCAL:奉仕快楽経験 = (DAY-20)*5
+					EXP:LOCAL:フェラ経験 = (DAY-20)*30
+					EXP:LOCAL:苦痛快楽経験 = (DAY-20)*10
+					EXP:LOCAL:放尿経験 = (DAY-20)*5
+					EXP:LOCAL:レズ経験 = (DAY-20)*20
+					EXP:LOCAL:緊縛経験 = (DAY-20)*5
+					EXP:LOCAL:射精経験 = (DAY-20)*25
+					EXP:LOCAL:Ａ拡張経験 = (DAY-20)
+					CALL ADDS_ABNORMAL_EXP , "ＴＳ" , LOCAL
+					CALL SHOW_ABNORMAL_EXP , LOCAL, 0
+					EXP:LOCAL:ＴＳ経験 = 1
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				CALL ADD_NEW_COMPANION,4656,500
+				LOCAL = GETCHARA(4656)
+				IF RESULT == 1
+					CALL ＴＳ処理, LOCAL, 3
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:Ｃ感覚 = 3
+					ABL:LOCAL:Ｖ感覚 = 3
+					ABL:LOCAL:Ａ感覚 = 1
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:従順 = 1
+					ABL:LOCAL:欲望 = 3
+					ABL:LOCAL:技巧 = 3
+					ABL:LOCAL:奉仕精神 = 1
+					ABL:LOCAL:露出癖 = 2
+					ABL:LOCAL:マゾっ気 = 1
+					ABL:LOCAL:レズっ気 = 3
+					ABL:LOCAL:自慰中毒 = 2
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:反発刻印 = 2
+					MARK:LOCAL:4 = 2
+					EXP:LOCAL:Ｖ経験 = (DAY-20)*20
+					EXP:LOCAL:Ａ経験 = (DAY-20)*20
+					EXP:LOCAL:絶頂経験 = (DAY-20)*25
+					EXP:LOCAL:性交経験 = (DAY-20)*110
+					EXP:LOCAL:膣射経験 = (DAY-20)*20
+					EXP:LOCAL:自慰経験 = (DAY-20)*5
+					EXP:LOCAL:調教自慰経験 = (DAY-20)*5
+					EXP:LOCAL:精液経験 = (DAY-20)*55
+					EXP:LOCAL:奉仕快楽経験 = (DAY-20)*5
+					EXP:LOCAL:フェラ経験 = (DAY-20)*30
+					EXP:LOCAL:苦痛快楽経験 = (DAY-20)*10
+					EXP:LOCAL:放尿経験 = (DAY-20)*5
+					EXP:LOCAL:レズ経験 = (DAY-20)*20
+					EXP:LOCAL:緊縛経験 = (DAY-20)*5
+					EXP:LOCAL:射精経験 = (DAY-20)*25
+					EXP:LOCAL:Ａ拡張経験 = (DAY-20)
+					CALL ADDS_ABNORMAL_EXP , "ＴＳ" , LOCAL
+					CALL SHOW_ABNORMAL_EXP , LOCAL, 0
+					EXP:LOCAL:ＴＳ経験 = 1
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				イベントフラグ:79:1 = 3
+		ENDSELECT
+	ENDIF
+	イベントフラグ:79:0 = 2
+ENDIF

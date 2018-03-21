@@ -1,0 +1,873 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SHOP_RPG_2.ERB
+;	Facility	:SHOP_RPG.ERBの纏め買い対応版。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20xx/xx/xx		----					新規作成
+;	002		2010/12/28		旅人					纏め買い対応
+;	   		2011/01/02		旅人					複数画面に纏め買い対応
+;	003		2011/01/12		----					魔価となっている箇所を魔貨に修正
+;	004		2011/02/04		P						店を出るでそのまま店を出るように変更
+;	005		2011/03/08		P						商品が9の倍数のとき、何も無い次のページが出現していたのを修正
+;	006		2011/08/31		P						まとめ買いモードの時、装備品の並びが価格順になるように変更
+;	007		2013/11/30		ひみつ					スキル属性表示の適用範囲拡大
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------
+; 注意:
+;  先頭が_(アンダーバー)で始まる関数はプライベート関数
+;  当ファイル以外の場所で使用してはいけない(保守性の確保)
+;-------------------------------------------------
+
+;=================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name
+;
+; *- SHOP関連(RPG)
+;
+;	# 画面モード関連
+;	・ RPG_SHOP_SCREENMODE_DEFAULT
+;	・ RPG_SHOP_SCREENMODE_PRINT
+;	・ RPG_SHOP_SCREENMODE_CHANGE
+;
+;	# 購買画面
+;	・ RPG_SHOP_NOMAL
+;	・ RPG_SHOP_DUNGEON
+;
+;	# 購買画面:前処理
+;	・ _RPG_SHOP_SET_CONSTANT
+;	・ _RPG_ITEMLIST_MAKE_NOMAL
+;	・ _RPG_ITEMLIST_MAKE_EXCHANGE
+;
+;	# 購買画面:主処理
+;	・ RPG_SHOP_COUNTER
+;	・ _RPG_ITEMLIST_PRINT
+;	・ _GET_RPG_ITEM_NUM_MAX
+;	・ _GET_RPG_ITEM_EXP
+;	・ _EXE_RPG_ITEM_BUY
+;
+;=================================================
+
+;--------------------------------------------------------------------------------------------------
+;   画面モード関連
+;--------------------------------------------------------------------------------------------------
+; 画面モードは下記の変数を共通的に使用する
+;  M:0		画面モード(0:通常 1:纏め買い(大size) 2:纏め買い(小size))(画面遷移: 0→2→1→0...)
+;  M:1		初回訪問フラグ(0:初回(纏め買い(小size)モードに変更) 1:訪問済み)
+;-------------------------------------------------
+
+;=================================================
+;   sub RPG_SHOP_SCREENMODE_DEFAULT
+;=================================================
+;   画面モード:初回訪問時
+;-------------------------------------------------
+;  初回訪問時の画面モードを設定する
+;-------------------------------------------------
+; Input:
+;  M:0
+;  M:1
+;-------------------------------------------------
+;@RPG_SHOP_SCREENMODE_DEFAULT
+;初回
+;SIF M:1 == 0
+;	M:0 = 2
+
+;=================================================
+;   sub RPG_SHOP_SCREENMODE_PRINT
+;=================================================
+;   画面モード:表示
+;-------------------------------------------------
+; Input:
+;  M:0
+;-------------------------------------------------
+@RPG_SHOP_SCREENMODE_PRINT
+;画面モード設定
+PRINT [Screen mode]
+;【画面モード】
+
+IF FLAG:ショップ画面モード設定 == 0
+	PRINT Normal 
+	;通常
+	PRINTL [800]Change to normal Bulk-buying (Small size)
+	;[800]纏め買いモード(小size) に変更
+ELSEIF FLAG:ショップ画面モード設定 == 1
+	PRINT Bulk-buying (Big size) 
+	;纏め買い(大size)
+	PRINTL [800]Change to normal
+	;通常モードに変更
+ELSE
+	FLAG:ショップ画面モード設定 = 2
+	PRINT Bulk-buying (Small size)
+	;纏め買い(Small size) 
+	PRINTL [800]Change to normal Bulk-buying (Big size)
+	;纏め買いモード(大size)に変更
+ENDIF
+
+;=================================================
+;   sub RPG_SHOP_SCREENMODE_CHANGE
+;=================================================
+;   画面モード:変更
+;-------------------------------------------------
+; Input:
+;  M:0
+;-------------------------------------------------
+@RPG_SHOP_SCREENMODE_CHANGE
+;画面モード変更
+;IF M:0 == 0
+;	M:0 = 2
+;ELSEIF M:0 == 2
+;	M:0 = 1
+;ELSE
+;	M:0 = 0
+;ENDIF
+IF FLAG:ショップ画面モード設定 == 0
+	FLAG:ショップ画面モード設定 = 2
+ELSEIF FLAG:ショップ画面モード設定 == 2
+	FLAG:ショップ画面モード設定 = 1
+ELSE
+	FLAG:ショップ画面モード設定 = 0
+ENDIF
+;--------------------------------------------------------------------------------------------------
+;   購買画面
+;--------------------------------------------------------------------------------------------------
+
+;=================================================
+;   sub RPG_SHOP_NOMAL
+;=================================================
+;   アイテム購入:通常
+;-------------------------------------------------
+;   汎用SHOP画面
+;   SHOPモードにより、品揃えと通貨(￥と魔貨)が自動決定される
+;-------------------------------------------------
+; Input:
+;  ARG:0				画面モード(1:纏め買い(大size) 2:纏め買い(小size))
+;  ARG:1				SHOPモード(0:ジャンクSHOP 1:魔貨交換)
+;-------------------------------------------------
+@RPG_SHOP_NOMAL,ARG:0,ARG:1
+
+;通貨設定(SHOPモードで分岐)
+IF  ARG:1 == 1
+	LOCAL = 1
+ELSE
+	LOCAL = 0
+ENDIF
+
+;RPG SHOP:定数設定
+CALL _RPG_SHOP_SET_CONSTANT,ARG:0,LOCAL
+
+IF C:111 == 1
+	PRINTFORML 現在 {MONEY:1}魔貨 あります。
+	PRINTL 何と交換しますか？
+ELSE
+	PRINTFORML 何を購入しますか？		Current Money ￥{MONEY}
+ENDIF
+DRAWLINE
+FOR LOCAL,0,8
+	PRINTFORML [{LOCAL}] %GET_EQUIP_E(LOCAL)%
+NEXT
+PRINTL [8] アイテム
+PRINTL [99] Return
+PRINTL [100] 店を出る [101]ソート条件変更
+
+$INPUT_LOOP
+INPUT
+
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 99
+	RETURN -1
+ELSEIF RESULT == 101
+	CALL CHANGE_CONDITION_EQUIP_SORT
+	RESTART
+ELSEIF RESULT >= 0 && RESULT < 9
+	LOCAL = RESULT
+
+	IF C:111 == 1
+		CALL _RPG_ITEMLIST_MAKE_EXCHANGE,RESULT
+	ELSE
+		CALL _RPG_ITEMLIST_MAKE_NOMAL,RESULT
+	ENDIF
+
+	;アイテム数保持
+	LOCAL:1 = RESULT
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+;アイテム購入:受付
+CALL RPG_SHOP_COUNTER,LOCAL:1
+
+RESTART
+
+;=================================================
+;   sub RPG_SHOP_DUNGEON
+;=================================================
+;   アイテム購入:ダンジョン
+;-------------------------------------------------
+;   ダンジョンSHOP画面
+;   商品名と商品価格をsetする事で、販売画面を出力する
+;-------------------------------------------------
+; Input:
+;  ARG:0				SHOPモード(0:￥取引 1:魔貨交換)
+;  ARGS:1～19			商品名
+;  ARG:1～19			商品価格
+; Output:
+;  RESULT				結果(0:正常終了 1:画面モード変更(通常) )
+;-------------------------------------------------
+@RPG_SHOP_DUNGEON(ARG:0, ARGS:1, ARG:1, ARGS:2, ARG:2 , ARGS:3, ARG:3, ARGS:4, ARG:4, ARGS:5, ARG:5, ARGS:6, ARG:6, ARGS:7, ARG:7, ARGS:8, ARG:8, ARGS:9, ARG:9, ARGS:10, ARG:10, ARGS:11, ARG:11, ARGS:12, ARG:12, ARGS:13, ARG:13, ARGS:14, ARG:14, ARGS:15, ARG:15, ARGS:16, ARG:16, ARGS:17, ARG:17, ARGS:18, ARG:18, ARGS:19, ARG:19)
+#LOCALSIZE 4
+;LOCAL:3;画面モード(1:纏め買い(大size) 2:纏め買い(小size))
+LOCAL:3 = 2
+
+;通貨設定(SHOPモードで分岐)
+IF ARG:0 == 1
+	LOCAL = 1
+ELSE
+	LOCAL = 0
+ENDIF
+
+;画面モード:初回訪問時
+;CALL RPG_SHOP_SCREENMODE_DEFAULT
+
+$RESTART
+
+;RPG SHOP:定数設定
+CALL _RPG_SHOP_SET_CONSTANT,LOCAL:3,LOCAL
+
+;アイテムリスト:作成
+VARSET アイテムリスト,-1
+VARSET ITEMSALES,0
+LOCAL:1 = 0
+COUNT   = 1
+E = 0
+WHILE 1
+	;CHK:アイテム
+	IF STRLENS(ARGS:(COUNT)) != 0
+		LOCAL:2 = GETNUM(ITEM, ARGS:(COUNT))
+		;エラーの場合
+		IF LOCAL:2 == -1
+			PRINTFORML 【ERR!】アイテム'%ARGS:(COUNT)%'はITEM.csvに存在しない為、購買から除外されます。
+			E += 1
+		ELSE
+			アイテムリスト:(LOCAL:1) = LOCAL:2
+			ITEMSALES:(LOCAL:2) = ARG:(COUNT) ? ARG:(COUNT) # ITEMPRICE:(LOCAL:2)
+			LOCAL:1 += 1
+		ENDIF
+	ELSE
+		BREAK
+	ENDIF
+	COUNT += 1
+WEND
+
+IF E
+	PRINTL 関数『@RPG_SHOP_DUNGEON』にてエラーを検知しました。
+	PRINTL 引数又はcsv、又は処理に問題が無いか管理者に問い合わせて下さい。
+	PRINTL （エラーが起きたアイテムは販売対象から除外されています。）
+ENDIF
+
+;画面判定
+IF FLAG:ショップ画面モード設定 == 0
+	RETURN 1
+ELSE
+	;アイテム購入:受付
+	CALL RPG_SHOP_COUNTER,LOCAL:1,1
+	IF RESULT == 1
+		;画面モード切り替え
+		LOCAL:3 = FLAG:ショップ画面モード設定
+		GOTO RESTART
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;--------------------------------------------------------------------------------------------------
+;   購買画面:前処理
+;--------------------------------------------------------------------------------------------------
+
+;=================================================
+;   sub _RPG_SHOP_SET_CONSTANT
+;=================================================
+;   RPG SHOP:定数設定
+;-------------------------------------------------
+;   RPG SHOP内で共通使用する定数を設定する
+;-------------------------------------------------
+; Input:
+;  ARG:0				画面モード(1:纏め買い(大size) 2:纏め買い(小size))
+;  ARG:1				通貨(0:￥ 1:魔貨 その他:0で処理)
+; Output:
+;  C					配列:定数(C100番台)
+;-------------------------------------------------
+@_RPG_SHOP_SET_CONSTANT,ARG:0,ARG:1
+
+;set:C100番台(定数Constant)
+;C:100;ページ単位の表示数
+;C:101;MAX:装備・弾丸購入可能数
+;C:102;MIN:アイテム番号
+;C:103;MAX:アイテム番号
+;C:104;コマンド:購入
+C:100 = 9
+C:101 = 999
+C:102 = 1001
+C:103 = 2000
+C:104 = 100
+
+;C:110;画面モード(1:大size 2:小size)
+IF ARG:0 == 1
+	C:110 = 1
+ELSE
+	C:110 = 2
+ENDIF
+
+;C:111;通貨(0:￥ 1:魔貨)
+IF ARG:1 == 1
+	C:111 = 1
+ELSE
+	C:111 = 0
+ENDIF
+
+
+;=================================================
+;   sub _RPG_ITEMLIST_MAKE_NOMAL
+;=================================================
+;   購入可能アイテム設定:通常
+;-------------------------------------------------
+;   アイテムの内、購入条件を満たす
+;   値段1以上のアイテムを諸変数に設定する
+;-------------------------------------------------
+; Input:
+;  ARG					アイテムカテゴリ
+; Output:
+;  RESULT				アイテム数
+;  アイテムリスト		配列:アイテム番号
+;  ITEMSALES			配列:アイテム値段
+;-------------------------------------------------
+@_RPG_ITEMLIST_MAKE_NOMAL,ARG
+#LOCALSIZE 3
+VARSET アイテムリスト,-1
+VARSET ITEMSALES,0
+LOCAL:1 = 0
+
+;8未満は装備品・弾薬
+IF ARG < 8
+	FOR LOCAL,C:103,VARSIZE("ITEM")
+		SIF ITEMPRICE:LOCAL == 0
+			CONTINUE
+		RESULT = 12
+		TRYCCALLFORM 装備箇所_{LOCAL}
+			IF RESULT == ARG
+				TRYCCALLFORM 購入条件_{LOCAL}
+					IF RESULT == 1
+						アイテムリスト:(LOCAL:1) = LOCAL
+						LOCAL:1 += 1
+					ENDIF
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+;上記以外はアイテム
+ELSE
+	FOR LOCAL,C:102,C:103
+		SIF ITEMPRICE:LOCAL == 0
+			CONTINUE
+		TRYCCALLFORM 道具購入条件_{LOCAL+C:103}
+			IF RESULT == 1
+				アイテムリスト:(LOCAL:1) = LOCAL
+				LOCAL:1 += 1
+			ENDIF
+		CATCH
+			CONTINUE
+		ENDCATCH
+	NEXT
+ENDIF
+;価格の登録
+FOR LOCAL , 0 , FINDELEMENT(アイテムリスト , -1)
+	ITEMSALES:(アイテムリスト:LOCAL) = ITEMPRICE:(アイテムリスト:LOCAL)
+NEXT
+CALL EQUIP_SORT
+RETURN LOCAL:1
+
+;=================================================
+;   sub _RPG_ITEMLIST_MAKE_EXCHANGE
+;=================================================
+;   購入可能アイテム設定:交換
+;-------------------------------------------------
+;   アイテムの内、購入条件を満たす
+;   値段1以上のアイテムを諸変数に設定する
+;-------------------------------------------------
+; Input:
+;  ARG					アイテムカテゴリ
+; Output:
+;  RESULT				アイテム数
+;  アイテムリスト		配列:アイテム番号
+;  ITEMSALES			配列:アイテム値段
+;-------------------------------------------------
+@_RPG_ITEMLIST_MAKE_EXCHANGE,ARG
+#LOCALSIZE 3
+VARSET アイテムリスト,-1
+VARSET ITEMSALES,0
+LOCAL:1 = 0
+
+;8未満は装備品・弾薬
+IF ARG < 8
+	FOR LOCAL,C:103,VARSIZE("ITEM")
+		SIF ITEMPRICE:LOCAL == 0
+			CONTINUE
+		RESULT = 12
+		TRYCCALLFORM 装備箇所_{LOCAL}
+			IF RESULT == ARG
+				RESULT = 0
+				TRYCALLFORM EQUIP_EXCHANGE_{LOCAL}
+				SIF RESULT == 0
+					CONTINUE
+				アイテムリスト:(LOCAL:1) = LOCAL
+				LOCAL:1 += 1
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+;上記以外はアイテム
+ELSE
+	FOR LOCAL,C:102,C:103
+		SIF ITEMPRICE:LOCAL == 0
+			CONTINUE
+		RESULT = 0
+		TRYCALLFORM ITEM_EXCHANGE_{LOCAL+C:103}
+		SIF RESULT == 0
+			CONTINUE
+		アイテムリスト:(LOCAL:1) = LOCAL
+		LOCAL:1 += 1
+	NEXT
+ENDIF
+;価格の登録
+FOR LOCAL , 0 , FINDELEMENT(アイテムリスト , -1)
+	ITEMSALES:(アイテムリスト:LOCAL) = ITEMPRICE:(アイテムリスト:LOCAL)
+NEXT
+CALL EQUIP_SORT
+RETURN LOCAL:1
+
+
+;--------------------------------------------------------------------------------------------------
+;   購買画面:主処理
+;--------------------------------------------------------------------------------------------------
+
+;=================================================
+;   sub RPG_SHOP_COUNTER
+;=================================================
+;   アイテム購入:受付
+;-------------------------------------------------
+;   C:111に設定された通貨に沿って購入処理を行う
+;   購入対象アイテムはInputに事前設定された物とする
+;-------------------------------------------------
+; Input:
+;  ARG:0				アイテム数
+;  ARG:1				画面モード変更可否(0:不可 1:可能)
+;  アイテムリスト		配列:アイテム番号
+;  ITEMSALES			配列:アイテム値段
+;  C					配列:定数(C100番台)
+;  Z					配列:購入数
+; Output:
+;  RESULT				結果(0:正常終了 1:画面モード変更)
+;-------------------------------------------------
+@RPG_SHOP_COUNTER,ARG,ARG:1
+
+;Z:(購入数。アイテムIDはITEM.CSVと同期)
+VARSET Z,0
+
+LOCAL:1 = ARG
+
+;CHK基礎,InPUT
+P = 0
+$PRINT_LIST
+DRAWLINE
+IF ARG:1==1
+	;画面モード:表示
+	CALL RPG_SHOP_SCREENMODE_PRINT
+	PRINTL 
+ENDIF
+CALL _RPG_ITEMLIST_PRINT,LOCAL:1
+$INPUT_LOOP2
+INPUT
+
+;CHK基礎,InPUT
+LOCAL:2 = RESULT
+
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT == 800 && ARG:1
+	;画面モード:変更
+	CALL RPG_SHOP_SCREENMODE_CHANGE
+	RETURN 1
+ELSEIF RESULT == 7 && P > 0
+	P -= 1
+	GOTO PRINT_LIST
+ELSEIF RESULT == 9 && P < (LOCAL:1-1)/C:100
+	P += 1
+	GOTO PRINT_LIST
+ELSEIF RESULT == 1
+	CALL CHANGE_CONDITION_EQUIP_SORT
+	CALL EQUIP_SORT
+	GOTO PRINT_LIST
+;購入数増減
+ELSEIF 11 <= RESULT && RESULT <= 99
+
+	LOCAL:10 = RESULT / 10 + (P*C:100)
+	LOCAL:11 = RESULT % 10
+
+	;表示されていない物はエラー(0始まりの為-1)
+	SIF アイテムリスト:(LOCAL:10-1) == -1
+		GOTO INPUT_LOOP2
+
+	;CHK:増減
+	LOCAL:4 = 0
+	IF LOCAL:11 == 1
+		LOCAL:4 += 10
+	ELSEIF LOCAL:11 == 2
+		LOCAL:4 += 5
+	ELSEIF LOCAL:11 == 3
+		LOCAL:4 += 1
+	ELSEIF LOCAL:11 == 4
+		LOCAL:4 -= 1
+	ELSEIF LOCAL:11 == 5
+		LOCAL:4 -= 5
+	ELSEIF LOCAL:11 == 6
+		LOCAL:4 -= 10
+	ELSE
+		GOTO INPUT_LOOP2
+	ENDIF
+
+	;0始まりの為、-1
+	LOCAL:10 -= 1
+	Z:(アイテムリスト:(LOCAL:10)) += LOCAL:4
+
+	SIF Z:(アイテムリスト:(LOCAL:10)) < 0
+		Z:(アイテムリスト:(LOCAL:10)) = 0
+
+	;取得:アイテム所持最大数
+	CALL _GET_RPG_ITEM_NUM_MAX,アイテムリスト:(LOCAL:10)
+	LOCAL:3 = RESULT - ITEM:(アイテムリスト:(LOCAL:10))
+
+	SIF Z:(アイテムリスト:(LOCAL:10)) > LOCAL:3
+		Z:(アイテムリスト:(LOCAL:10)) = LOCAL:3
+
+;説明
+ELSEIF RANGE(RESULT, 1000, 2000)
+	;表示されていない物はエラー(対象全アイテムに存在するかCHK)
+	;LOCAL=0
+	;REPEAT ARG
+	;	SIF RESULT == アイテムリスト:(COUNT)
+	;		LOCAL=1
+	;REND
+	;SIF !LOCAL
+	;	GOTO INPUT_LOOP2
+	SIF アイテムリスト:(RESULT-1000) == -1
+		GOTO INPUT_LOOP2
+	;取得:アイテム説明
+	CALL _GET_RPG_ITEM_EXP,アイテムリスト:(RESULT-1000)
+
+;購入
+ELSEIF RESULT == C:104
+
+	;実行:アイテム購入
+	CALL _EXE_RPG_ITEM_BUY,LOCAL:1
+
+ELSE
+	GOTO INPUT_LOOP2
+ENDIF
+GOTO PRINT_LIST
+
+
+;=================================================
+;   sub _RPG_ITEMLIST_PRINT
+;=================================================
+;   RPGアイテムリスト:表示
+;-------------------------------------------------
+;   注:画面モードによって表示項目を調節する
+;-------------------------------------------------
+; Input:
+;  ARG					アイテム数
+;  アイテムリスト		配列:アイテム番号
+;  P					ページ番号
+;  C					配列:定数(100番台)
+;  Z					配列:購入数
+;-------------------------------------------------
+@_RPG_ITEMLIST_PRINT,ARG,
+;通貨設定
+;LOCALS:0;通貨単位
+;LOCALS:1;通貨文字(先頭付加)
+;LOCALS:2;通貨文字(末尾付加)
+;LOCALS:50;取引名称
+IF C:111 == 1
+	LOCALS:0 = 魔貨
+	LOCALS:1 = 
+	LOCALS:2 = 魔貨
+	LOCALS:50 = 交換
+ELSE
+	LOCALS:0 = 金額
+	LOCALS:1 = ￥
+	LOCALS:2 = 
+	LOCALS:50 = 購入
+ENDIF
+
+IF C:111 == 1
+	PRINTFORML Which item to be exchanged?　＜page.{P + 1}＞
+	PRINTFORML {MONEY:1}Macca
+ELSE
+	PRINTFORML Which item to buy?　＜page.{P + 1}＞
+	PRINTFORML Current Money ￥{MONEY}
+ENDIF
+DRAWLINE
+LOCAL:1 = 0
+LOCAL:2 = 0
+LOCAL:10 = C:100
+
+
+IF C:110 == 1
+	PRINT ITEM_NO |      アイテム名     | 
+	PRINTFORM %LOCALS:0% | 
+	PRINTL 所持数/最大数 ||================== 入力フォーム =================|| 購入数 | 購入費用
+ELSE
+	PRINT         アイテム名     | 
+	PRINTFORM  %LOCALS:0%  | 
+	PRINTL 所持数 ||=========== 入力フォーム ==========|| 購入数 | 購入費用
+ENDIF
+
+FOR LOCAL,P*LOCAL:10,MIN(P*LOCAL:10+LOCAL:10,ARG)
+
+	;取得:アイテム所持最大数
+	CALL _GET_RPG_ITEM_NUM_MAX,アイテムリスト:(LOCAL)
+	LOCAL:3 = RESULT
+
+	;Head
+	IF C:110 == 1
+		PRINTFORM [{LOCAL+1000}] | %ITEMNAME_E(アイテムリスト:LOCAL),20,LEFT% |
+	ELSE
+		LOCALS:20 = [{LOCAL+1000}]%ITEMNAME_E(アイテムリスト:LOCAL)%
+		STRLENS LOCALS:20
+		LOCAL:20 = RESULT
+		IF LOCAL:20 > 22
+			SUBSTRING LOCALS:20,0,20
+			LOCALS:20 = %RESULTS%..
+		ENDIF
+		PRINTFORM %LOCALS:20,22,LEFT% |
+	ENDIF
+
+	PRINTFORM %LOCALS:1 + TOSTR(ITEMSALES:(アイテムリスト:LOCAL)) + LOCALS:2,10 % | 
+	PRINTFORM %TOSTR(ITEM:(アイテムリスト:LOCAL)),3 %
+	SIF C:110 == 1
+		PRINTFORM /%TOSTR(LOCAL:3),3 %
+	PRINTFORM  || 
+
+	;FORM
+	PRINTFORM [{(LOCAL:2+1)*10 +1}] +10 
+	SIF C:110 == 1
+		PRINTFORM [{(LOCAL:2+1)*10 +2}] +5 
+	PRINTFORM [{(LOCAL:2+1)*10 +3}] +1 
+	PRINTFORM [{(LOCAL:2+1)*10 +4}] -1 
+	SIF C:110 == 1
+		PRINTFORM [{(LOCAL:2+1)*10 +5}] -5 
+	PRINTFORM [{(LOCAL:2+1)*10 +6}] -10 
+	PRINT || 
+
+	;購入数
+	LOCAL:4 = Z:(アイテムリスト:LOCAL)
+	PRINTFORM %TOSTR(LOCAL:4),3 %個 |
+	PRINTFORM %LOCALS:1 + TOSTR(ITEMSALES:(アイテムリスト:LOCAL) * LOCAL:4) + LOCALS:2,10 %
+
+	PRINTL 
+
+	LOCAL:1 += 1
+	LOCAL:2 += 1
+NEXT
+
+;合計行
+LOCAL:1 = 0
+LOCAL:2 = 0
+REPEAT ARG
+
+	LOCAL:4 = Z:(アイテムリスト:COUNT)
+	;全件加算
+	LOCAL:1 += LOCAL:4
+	LOCAL:2 += ITEMSALES:(アイテムリスト:COUNT) * LOCAL:4
+
+
+REND
+
+PRINTFORML 総%LOCALS:50%アイテム数 {LOCAL:1}個
+IF C:111 == 1
+	PRINTFORML 総%LOCALS:50%費用 {LOCAL:2}魔貨
+ELSE
+	PRINTFORML 総%LOCALS:50%費用 ￥{LOCAL:2}
+ENDIF
+PRINTL
+PRINTFORML [{C:104}]まとめて%LOCALS:50%する
+
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 13% # [7]Previous page\@
+PRINTLC [0]Return [1]ソート条件変更
+PRINTFORMLC \@(P >= (ARG-1) / C:100) ? %" " * 13% # [9]Next page\@
+
+;=================================================
+;   sub _GET_RPG_ITEM_NUM_MAX
+;=================================================
+;   取得:アイテム所持最大数
+;-------------------------------------------------
+; Input:
+;  ARG					アイテムID
+;  C					配列:定数(100番台)
+; Output:
+;  RESULT				アイテム所持最大数
+;-------------------------------------------------
+@_GET_RPG_ITEM_NUM_MAX,ARG
+
+LOCAL:3 = 0
+
+;CHK:装備品・弾丸
+TRYCCALLFORM 装備箇所_{ARG}
+
+	;7:弾丸
+	IF RESULT == 7
+		LOCAL:3 = C:101
+
+	;弾丸以外は装備品
+	ELSE
+		LOCAL:3 = C:101
+	ENDIF
+
+;CHK:上記以外はアイテム
+CATCH
+
+	CALLFORM 最大所持数_{ARG+C:103}
+	LOCAL:3 = RESULT
+
+ENDCATCH
+RETURN LOCAL:3
+
+;=================================================
+;   sub _GET_RPG_ITEM_EXP
+;=================================================
+;   取得:アイテム説明
+;-------------------------------------------------
+; Input:
+;  ARG					アイテムID
+;-------------------------------------------------
+@_GET_RPG_ITEM_EXP,ARG
+
+;CHK:装備品・弾丸
+TRYCCALLFORM 装備箇所_{ARG}
+
+	;7:弾丸
+	IF RESULT == 7
+		CALLFORM 装備解説_{ARG}
+
+	;弾丸以外は装備品
+	ELSE
+		CALL 装備説明,ARG
+	ENDIF
+
+;CHK:上記以外はアイテム
+CATCH
+
+	PRINTFORML %ITEMNAME_E(ARG),20,LEFT%
+	SIF FLAG:スキル属性表示設定 == 1
+		CALL SKILL_EXPLAIN_PERFORMANCE, ARG + C:103, -1
+	TRYCALLFORM SKILL_EXPLAIN_{ARG+C:103}
+	DRAWLINE
+
+ENDCATCH
+WAIT
+
+;=================================================
+;   sub _EXE_RPG_ITEM_BUY
+;=================================================
+;   実行:アイテム購入
+;-------------------------------------------------
+; Input:
+;  ARG					アイテム数
+;  アイテムリスト		配列:アイテム番号
+;  DE					配列:購入数
+;  C					配列:定数(100番台)
+;-------------------------------------------------
+@_EXE_RPG_ITEM_BUY,ARG
+;通貨設定
+;LOCALS:50;取引名称
+IF C:111 == 1
+	LOCALS:50 = 交換
+ELSE
+	LOCALS:50 = 購入
+ENDIF
+;合計
+LOCAL:1 = 0
+LOCAL:2 = 0
+
+;CHK:ERR
+REPEAT ARG
+
+	LOCAL:4 = Z:(アイテムリスト:COUNT)
+	;全件加算
+	LOCAL:1 += LOCAL:4
+	LOCAL:2 += ITEMSALES:(アイテムリスト:COUNT) * LOCAL:4
+
+REND
+
+IF LOCAL:2 == 0
+	PRINTW アイテムが選択されていません。
+	RETURN
+ELSE
+
+	IF C:111 == 1 && MONEY:1 < LOCAL:2
+		PRINTFORMW Not enough macca (%LOCALS:50%費用 {LOCAL:2}魔貨 / 所持魔貨 {MONEY:1})
+		RETURN
+	ELSEIF  C:111 == 0 && MONEY < LOCAL:2
+		PRINTFORMW お金が足りません (%LOCALS:50%費用 ￥{LOCAL:2} / 所持金￥{MONEY})
+		RETURN
+	ENDIF
+ENDIF
+
+LOCAL:1 = 0
+LOCAL:2 = 0
+REPEAT ARG
+
+	LOCAL:4 = Z:(アイテムリスト:COUNT)
+	SIF LOCAL:4 == 0
+		CONTINUE
+
+	;全件加算
+	LOCAL:1 += LOCAL:4
+	LOCAL:3 = ITEMSALES:(アイテムリスト:COUNT) * LOCAL:4
+	LOCAL:2 += LOCAL:3
+	PRINTFORM %LOCALS:50%アイテム：%ITEMNAME_E(アイテムリスト:COUNT),20,LEFT% | 
+	PRINTFORM %LOCALS:50%個数： %TOSTR(LOCAL:4),3 %個 | 
+	IF C:111 == 1
+		PRINTFORML 費用 {LOCAL:3}魔貨
+	ELSE
+		PRINTFORML 金額 ￥{LOCAL:3}
+	ENDIF
+
+	;取引処理
+	Z:(アイテムリスト:COUNT) = 0
+	IF C:111 == 1
+		MONEY:1 -= LOCAL:3
+	ELSE
+		MONEY:0 -= LOCAL:3
+	ENDIF
+	CALL GET_ITEM,アイテムリスト:COUNT,LOCAL:4
+
+REND
+
+PRINTFORML 総%LOCALS:50%アイテム数 {LOCAL:1}個
+IF C:111 == 1
+	PRINTFORML 総%LOCALS:50%費用 {LOCAL:2}魔貨
+ELSE
+	PRINTFORML 総%LOCALS:50%費用 ￥{LOCAL:2}
+ENDIF
+PRINTFORML 上記を%LOCALS:50%しました。
+WAIT

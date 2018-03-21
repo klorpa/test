@@ -1,0 +1,1438 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx.ERB
+;	Facility	:依頼:030(デビルサバイバー２)。
+;				 デビルサバイバー２のメインシナリオ。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2011/08/23		旅人					新規作成
+;	002		2011/09/16		旅人					二日目作成
+;	003		2011/10/16		旅人					三日目作成
+;	004		2011/11/27		旅人					四日目作成
+;	005		2013/06/16		旅人					仮入手処理追加
+;	006		2014/12/12		セーロGUN				五日目作成
+;	007		2015/01/15		セーロGUN				ロナウドルート作成
+;	008		2015/01/28		セーロGUN				ヤマトルート作成
+;	009		2015/02/28		セーロGUN				各ルートの条件を色々と変更。ダイチルート作成
+;	010		2015/12/29		セーロGUN				BRルート作成。目標はミヤコちゃんとイチャイチャする
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【当ファイルについて】
+; 当ファイルはデビルサバイバー２のイベントをCALLするだけの、メインファイルである。
+; 詳細な処理は各サブファイルに記載する。
+; （サブファイルは日付ごとに１ファイル用意する）
+;
+;
+; 【フラグについて】
+; デビルサバイバー２のイベントでは、"FLAG:デビサバ２進行度"を使用している。
+; ３桁の数値が以下の仕様で設定される。
+;
+; ・３桁目…日付区分。０～７
+; ・２桁目…イベント区分。０～９
+; ・１桁目…イベント詳細区分。０～９
+;
+; ◆例
+; 例えば一日目の場合は、000～099を使用出来る。
+; この内イベントごとに、0～9の詳細区分を使用可能。
+; その為、例えば[ドゥベ戦]と[イオ加入]の二つのイベントを一日目に入れたい場合、
+;
+;	・[ドゥベ戦] … 000～009
+;	・[イオ加入] … 010～019
+;
+; といった形でフラグを使用出来る。
+; 具体的なフラグの割り振り方は、
+; 各日付ごとのサブファイルを参照すれば詳細が確認出来る。
+;
+;-------------------------------------------------------------------------------
+
+;===============================================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name						Explanation
+;
+;	・ PLAYABLE_REQUEST_xxx				依頼:条件
+;	・ EXPLAIN_REQUEST_xxx				依頼:説明
+;	・ REQUEST_xxx						依頼:メイン処理
+;	・ EVENT_BATTLE_TURNTOP_REQUESTxxx	依頼:戦闘中処理(ターン開始時)
+;	・ EVENT_BATTLE_TURNEND_REQUESTxxx	依頼:戦闘中処理(ターン終了時)
+;
+; *- 独自関数
+;
+;	・ REQUEST_30_FLAG_RESET			依頼:フラグリセット
+;	・ REQUEST_30_DAY_TITLE				依頼:一日のタイトル
+;	・ REQUEST_30_DAY_END				依頼:一日の終了
+;	・ REQUEST_30_TURN_END				依頼:ターンの終了
+;	・ REQUEST_30_BASE_LV				依頼:基礎レベル
+;
+;===============================================================================
+
+;====================
+;条件
+;====================
+@PLAYABLE_REQUEST_30
+#DIM DYNAMIC L_FLAG_REQ
+#DIM DYNAMIC L_FLAG_EVENT_DIGIT
+
+;-----------------------------
+;- 共通チェック
+;-----------------------------
+
+;- デバッグ
+IF FLAG:DEBUG
+	;OK
+
+;- 主人レベル30以上
+ELSEIF BASE:MASTER:LV >= 30
+	;OK
+
+;- 50日制限
+ELSEIF DAY < 51
+	;OK
+
+ELSE
+	;NG
+	RETURN 0
+ENDIF
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+;- フラグをセット
+L_FLAG_REQ = FLAG:デビサバ２進行度
+
+;- フラグをセット(イベントフラグ:２桁目)
+L_FLAG_EVENT_DIGIT = L_FLAG_REQ % 100
+
+
+SELECTCASE L_FLAG_REQ
+	;-----------------------------
+	;- [1ST DAY]
+	;-----------------------------
+	CASE 000 TO 099
+
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] 戦闘:ドゥベ
+			CASE 00 TO 09
+				RESULTS = Top Secret mission from the Japanese government organization
+				RETURN 1
+			; [10-19] イオ加入
+			CASE 10 TO 19
+				RESULTS = JP's Human Resources Recovery （1ST DAY）
+				RETURN 1
+		ENDSELECT
+
+	;-----------------------------
+	;- [2ND DAY]
+	;-----------------------------
+	CASE 100 TO 199
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] 戦闘:ハッカー
+			CASE 00 TO 09
+				RESULTS = Request from JP's （2ND DAY）
+				RETURN 1
+			; [10-19] 戦闘:メラク
+			CASE 10 TO 19
+				RESULTS = Request from JP's （2ND DAY - Osaka）
+				RETURN 1
+		ENDSELECT
+
+
+	;-----------------------------
+	;- [3RD DAY]
+	;-----------------------------
+	CASE 200 TO 299
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] 戦闘:名古屋捜索
+			CASE 00 TO 09
+				RESULTS = Request from JP's （3RD DAY）
+				RETURN 1
+			; [10-19] 戦闘:名古屋支局
+			CASE 10 TO 19
+				RESULTS = Request from JP's （ 3RD DAY - Nagoya）
+				RETURN 1
+		ENDSELECT
+
+	;-----------------------------
+	;- [4TH DAY]
+	;-----------------------------
+	CASE 300 TO 399
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] メグレズ
+			CASE 00 TO 09
+				RESULTS = Request from JP's （4TH DAY）
+				RETURN 1
+			; [10-19] メグレズ対策会議
+			CASE 10 TO 19
+				RESULTS = Request from JP's （4TH DAY - Megrez Countermeasure Meeting）
+				RETURN 1
+			; [20-29] ニカイアの主
+			CASE 20 TO 29
+				RESULTS = Request from JP's （4TH DAY - Tokyo）
+				RETURN 1
+			; [30-39] デルタ浮上戦
+			CASE 30 TO 39
+				RESULTS = Request from JP's （4TH DAY - Delta Levitation Warfare）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [5TH DAY]
+	;-----------------------------
+	CASE 400 TO 499
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] 黒い傷
+			CASE 00 TO 09
+				RESULTS = はれときどきどく （5TH DAY）
+				RETURN 1
+			; [10-19] 撃墜のために
+			CASE 10 TO 19
+				RESULTS = Request from JP's （5TH DAY - Shooting Down）
+				RETURN 1
+			; [20-29] ビブロンス戦
+			CASE 20 TO 29
+				RESULTS = Unexpected Hostility （5TH DAY）
+				RETURN 1
+			; [30-39] 巨大方陣
+			CASE 30 TO 39
+				RESULTS = Call from Ronaldo （5TH DAY - Gigantic Square）
+				RETURN 1
+			; [40-49] オトメ加入
+			CASE 40 TO 49
+				RESULTS = Temporary Staffing （5TH DAY）
+				RETURN 1
+			; [50-59] ミザール&アリオト戦
+			CASE 50 TO 59
+				RESULTS = Request from JP's （5TH DAY - Two Giants Decisive battle）
+				RETURN 1
+			; [60-69] アイリの加入
+			CASE 60 TO 69
+				RESULTS = JP's Human Resources Recovery （5TH DAY）
+				RETURN 1
+			; [70-79] 種の意思
+			CASE 70 TO 79
+				RESULTS = Seed of Intention （5TH DAY）
+				RETURN 1
+		ENDSELECT
+
+	;-----------------------------
+	;- [6TH DAY ヤマトルート]
+	;-----------------------------
+	CASE 1000 TO 1099
+		
+		;大阪勢の面々が戦闘参加不可能になるもしくは売却とかされていなくなる
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:ヤマト]]) < 0 || GETCHARA([[キャラ:フミ]]) < 0 || GETCHARA([[キャラ:ケイタ]]) < 0)
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:マコト]]) < 0 || CFLAG:GETCHARA([[キャラ:マコト]]):戦闘参加不可能 > 0)
+			RETURN 0
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] ダイチ戦
+			CASE 00 TO 09
+				RESULTS = Call from Yamato （6TH DAY）
+				RETURN 1
+			; [10-29] ロナウド戦
+			CASE 10 TO 29
+				RESULTS = Outcome of Nonsense （6TH DAY）
+				RETURN 1
+			; [30-39] ベネちゃん
+			CASE 30 TO 39
+				RESULTS = Defeat number 7 （6TH DAY）
+				RETURN 1
+			; [50-59] ラストバトル
+			CASE 40 TO 49
+				RESULTS = To a Righteous Tomorrow （7TH DAY）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [6TH DAY ロナウドルート]
+	;-----------------------------
+	CASE 2000 TO 2099
+		
+		;名古屋勢の面々が戦闘参加不可能になるもしくは売却とかされていなくなる
+		SIF GETCHARA([[キャラ:アイリ]]) < 0 || CFLAG:GETCHARA([[キャラ:アイリ]]):戦闘参加不可能 > 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:オトメ]]) < 0 || CFLAG:GETCHARA([[キャラ:オトメ]]):戦闘参加不可能 > 0
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:ジョー]]) < 0 || CFLAG:GETCHARA([[キャラ:ジョー]]):戦闘参加不可能 > 0)
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:ロナウド]]) < 0 || CFLAG:GETCHARA([[キャラ:ロナウド]]):戦闘参加不可能 > 0)
+			RETURN 0
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] ダイチ戦
+			CASE 00 TO 09
+				RESULTS = Call from Ronaldo（6TH DAY）
+				RETURN 1
+			; [10-19] フミマコトケイタ戦
+			CASE 10 TO 19
+				RESULTS = Unknown Threat （6TH DAY）
+				RETURN 1
+			; [20-29] ヤマト戦
+			CASE 20 TO 29
+				RESULTS = Settlement of the Strong Man （6TH DAY）
+				RETURN 1
+			; [30-39] ベネトナシュ
+			CASE 30 TO 39
+				RESULTS = Defeat number 7 （6TH DAY）
+				RETURN 1
+			; [40-49] ラストバトル
+			CASE 40 TO 49
+				RESULTS = To an Unseen Tomorrow （7TH DAY）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [6TH DAY ダイチルート]
+	;-----------------------------
+	CASE 3000 TO 3099
+		
+		;イオとアイリがいなくなる
+		SIF GETCHARA([[キャラ:イオ]]) < 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:アイリ]]) < 0 || CFLAG:GETCHARA([[キャラ:アイリ]]):戦闘参加不可能 > 0
+			RETURN 0
+		;東京勢が仲間になった後、戦闘参加不可能になるもしくは売却とかされていなくなる
+		SIF L_FLAG_EVENT_DIGIT >= 10 && GETCHARA([[キャラ:デビサバ２主人公]]) < 0
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:ダイチ]]) < 0 || CFLAG:GETCHARA([[キャラ:ダイチ]]):戦闘参加不可能 > 0)
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:ヒナコ]]) < 0 || CFLAG:GETCHARA([[キャラ:ヒナコ]]):戦闘参加不可能 > 0)
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && (GETCHARA([[キャラ:ジュンゴ]]) < 0 || CFLAG:GETCHARA([[キャラ:ジュンゴ]]):戦闘参加不可能 > 0)
+			RETURN 0
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] マコト戦
+			CASE 00 TO 09
+				RESULTS = Struggle on Osaka （6TH DAY）
+				RETURN 1
+			; [10-19] ロナウド戦
+			CASE 10 TO 19
+				RESULTS = Unknown Threat （6TH DAY）
+				RETURN 1
+			; [20-29] ヤマト戦
+			CASE 20 TO 29
+				RESULTS = Settlement of the strong man （6TH DAY）
+				RETURN 1
+			; [30-49] ベネトナシュ戦
+			CASE 30 TO 49
+				RESULTS = Defeat number 7 （6TH DAY）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [6TH DAY 憂う者ルート]
+	;-----------------------------
+	CASE 4000 TO 4099
+		
+		;イオとアイリがいなくなる
+		SIF GETCHARA([[キャラ:イオ]]) < 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:アイリ]]) < 0 || CFLAG:GETCHARA([[キャラ:アイリ]]):戦闘参加不可能 > 0
+			RETURN 0
+		;東京勢とサダクが仲間になった後、戦闘参加不可能になるもしくは売却とかされていなくなる
+		SIF L_FLAG_EVENT_DIGIT >= 10 && GETCHARA([[キャラ:サダク]]) < 0
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && GETCHARA([[キャラ:デビサバ２主人公]]) < 0
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && ( GETCHARA([[キャラ:ダイチ]]) < 0 || CFLAG:GETCHARA([[キャラ:ダイチ]]):戦闘参加不可能 > 0)
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && ( GETCHARA([[キャラ:ヒナコ]]) < 0 || CFLAG:GETCHARA([[キャラ:ヒナコ]]):戦闘参加不可能 > 0)
+			RETURN 0
+		SIF L_FLAG_EVENT_DIGIT >= 10 && ( GETCHARA([[キャラ:ジュンゴ]]) < 0 || CFLAG:GETCHARA([[キャラ:ジュンゴ]]):戦闘参加不可能 > 0)
+			RETURN 0
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] ダイチ戦
+			CASE 00 TO 09
+				RESULTS = Struggle with Tokyo forces （6TH DAY）
+				RETURN 1
+			; [10-19] フミ戦
+			CASE 10 TO 19
+				RESULTS = Recapture Osaka （6TH DAY）
+				RETURN 1
+			; [20-29] マコトケイタ戦
+			CASE 20 TO 29
+				RESULTS = Where the Trumpet Blows at the End （6TH DAY）
+				RETURN 1
+			; [30-39] ロナウド戦
+			CASE 30 TO 39
+				RESULTS = Call from Ronaldo （6TH DAY - Settlement of belief）
+				RETURN 1
+			; [40-49] ベネトナシュ戦
+			CASE 40 TO 49
+				RESULTS = Defeat number 7 （6TH DAY）
+				RETURN 1
+			; [50-59] 新しき明日へ
+			CASE 50 TO 59 
+				LOCAL = GETCHARA([[キャラ:サダク]])
+				;サダクが陥落してない
+				SIF !TALENT:LOCAL:3 && !TALENT:LOCAL:4 && !TALENT:LOCAL:5 && !TALENT:LOCAL:6 && !TALENT:LOCAL:7 && !TALENT:LOCAL:8
+					RETURN 0
+				
+				RESULTS = To a New Tomorrow （7TH DAY）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [7TH DAY ダイチルート]
+	;-----------------------------
+	CASE 3100 TO 3199
+		
+		;東京勢とアイリが戦闘参加不可能になるもしくは売却とかされていなくなる
+		SIF GETCHARA([[キャラ:イオ]]) < 0 || GETCHARA([[キャラ:デビサバ２主人公]]) < 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:アイリ]]) < 0 || CFLAG:GETCHARA([[キャラ:アイリ]]):戦闘参加不可能 > 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:ダイチ]]) < 0 || CFLAG:GETCHARA([[キャラ:ダイチ]]):戦闘参加不可能 > 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:ヒナコ]]) < 0 || CFLAG:GETCHARA([[キャラ:ヒナコ]]):戦闘参加不可能 > 0
+			RETURN 0
+		SIF GETCHARA([[キャラ:ジュンゴ]]) < 0 || CFLAG:GETCHARA([[キャラ:ジュンゴ]]):戦闘参加不可能 > 0
+			RETURN 0
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [00-09] 事件の元凶
+			CASE 00 TO 09
+				RESULTS = Cause of the Incident （7TH DAY）
+				RETURN 1
+			; [10-19] ルート分岐
+			CASE 10 TO 19
+				RESULTS = The Visible Road （7TH DAY）
+				RETURN 1
+			; [20-29] ポラリス撃破ルート
+			CASE 20 TO 29
+				RESULTS = To a Free Tomorrow （7TH DAY）
+				RETURN 1
+			; [30-39] 世界回帰ルート
+			CASE 30 TO 39
+				;サダク以外のデビサバ２キャラが誰か一人でもいない
+				SIF GETCHARA([[キャラ:ヤマト]]) < 0 || GETCHARA([[キャラ:フミ]]) < 0 || GETCHARA([[キャラ:ケイタ]]) < 0
+					RETURN 0
+				SIF GETCHARA([[キャラ:ティコ]]) < 0 || GETCHARA([[キャラ:コハル]]) < 0
+					RETURN 0
+				SIF GETCHARA([[キャラ:オトメ]]) < 0 || CFLAG:GETCHARA([[キャラ:オトメ]]):戦闘参加不可能 > 0
+					RETURN 0
+				SIF GETCHARA([[キャラ:ロナウド]]) < 0 || CFLAG:GETCHARA([[キャラ:ロナウド]]):戦闘参加不可能 > 0
+					RETURN 0
+				SIF GETCHARA([[キャラ:ジョー]]) < 0 || CFLAG:GETCHARA([[キャラ:ジョー]]):戦闘参加不可能 > 0
+					RETURN 0
+				SIF GETCHARA([[キャラ:マコト]]) < 0 || CFLAG:GETCHARA([[キャラ:マコト]]):戦闘参加不可能 > 0
+					RETURN 0
+				RESULTS = Advance Tomorrow （7TH DAY）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [BR 火曜日]
+	;-----------------------------
+	CASE 5000 TO 5099
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [0-09] デネボラ戦
+			CASE 0 TO 9
+				RESULTS = Anger of a Lion （ TUES DAY ）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- [BR 水曜日]
+	;-----------------------------
+	CASE 5100 TO 5199
+		
+		;- CHK:イベントフラグ
+		SELECTCASE L_FLAG_EVENT_DIGIT
+			; [0-9] 雑魚戦１
+			CASE 0 TO 9
+				RESULTS = Looking for a Friend （ WEB DAY ）
+				RETURN 1
+			; [10-19] スピカ
+			CASE 10 TO 19
+				RESULTS = King of Binary Stars （ WEB DAY ）
+				RETURN 1
+			; [20-29] 雑魚戦２
+			CASE 20 TO 29
+				RESULTS = Escape Support （ WEB DAY ）
+				RETURN 1
+		ENDSELECT
+	;-----------------------------
+	;- 終了
+	;-----------------------------
+	CASE 10000
+		RETURN 0
+	;- 作成中
+	CASEELSE
+		RESULTS = Contact from JP's (Wait and Selivery)
+		RETURN 1
+
+ENDSELECT
+
+;念の為
+RETURN 0
+
+;====================
+;説明
+;====================
+@EXPLAIN_REQUEST_30
+#DIM DYNAMIC L_FLAG_REQ
+#DIM DYNAMIC L_FLAG_EVENT_FIRST_DIGIT
+;- フラグをセット
+L_FLAG_REQ = FLAG:デビサバ２進行度
+
+;- フラグをセット(イベントフラグ:１桁目)
+L_FLAG_EVENT_FIRST_DIGIT = L_FLAG_REQ % 10
+
+SELECTCASE L_FLAG_REQ
+	;-----------------------------
+	;- 1ST DAY
+	;-----------------------------
+
+	;- 戦闘:ドゥベ
+	CASE 000 TO 009
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ....It's a job request from Phantom Society
+		PRINTL Seems to be a job request from a certain organization from Japan
+		PRINTL 
+		PRINTL Contents are top secret.
+		PRINTL 
+		PRINTL It looks like a relatively dangerous type of mission.
+		PRINTL Meet the client and listen to the objective.
+		PRINTL 
+		PRINTL Reward: ￥30000
+
+	;- 回収:イオ
+	CASE 010 TO 019
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ....It's a message from JP's.
+		IF L_FLAG_EVENT_FIRST_DIGIT == 0
+			;初回
+			PRINTL Looks like it's possible to collect the rescued girl. 
+			PRINTL 
+			PRINTL Let's go to JP's Tokyo branch to collect the girl
+			PRINTL 
+			PRINTL Reward: The Rescued Girl
+		ELSE
+			PRINTL Looks like it's possible to collect Io. 
+			PRINTL 
+			PRINTL Let's go to JP's Tokyo branch to collect Io
+			PRINTL 
+			PRINTL Reward: Io
+		ENDIF
+
+	;-----------------------------
+	;- 2ND DAY
+	;-----------------------------
+
+	;- 戦闘:ハッカー
+	CASE 100 TO 109
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL Contents are top secret.
+		PRINTL 
+		PRINTL Meet Yamato and listen to the mission objective.
+		PRINTL 
+		PRINTL Reward: ￥20000
+
+
+	;- 戦闘:メラク
+	CASE 110 TO 119
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL The request received last time has not been completed yet.
+		PRINTL まずは前回までの履歴を確認しよう。
+		PRINTL 
+		PRINTL Reward: ￥40000
+
+
+	;-----------------------------
+	;- 3RD DAY
+	;-----------------------------
+
+	;- 戦闘:ボティス
+	CASE 200 TO 209
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL Contents are top secret.
+		PRINTL 
+		PRINTL Meet Yamato and listen to the mission objective.
+		PRINTL 
+		PRINTL  （ Warning: When this request is received, the day ends ）
+		PRINTL 
+		PRINTL Reward: ￥30000～50000
+
+
+	;- 戦闘:名古屋支局
+	CASE 210 TO 219
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL Contents are top secret.
+		PRINTL 
+		PRINTL Meet Yamato and listen to the mission objective.
+		PRINTL 
+		PRINTL  （ Warning: When this request is received, the time zone advances by one）
+		PRINTL 
+		PRINTL Reward: ￥50000
+
+
+	;-----------------------------
+	;- 4TH DAY
+	;-----------------------------
+
+	;- メグレズ
+	CASE 300 TO 309
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL Contents are top secret.
+		PRINTL 
+		PRINTL Meet Yamato and listen to the mission objective.
+		PRINTL 
+
+	;- メグレズ対策会議
+	CASE 310 TO 319
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL Seems like the Megrez Countermeasure Meeting will be held.
+		PRINTL 
+		PRINTL Head to the Tokyo branch office.
+		PRINTL 
+
+	;- ニカイアの主
+	CASE 320 TO 329
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL 各地のメグレズの芽の対処が主な任務らしい。
+		PRINTL 
+		PRINTL Let's use the terminal at the Tokyo branch office...
+
+	;- デルタ浮上戦
+	CASE 330 TO 339
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL メグレズ殲滅戦を行う様だ…。
+		PRINTL 
+		PRINTL 東京支局のターミナルを利用しよう…。
+		PRINTL 
+		PRINTL Reward: ￥50000
+	;-----------------------------
+	;- 5TH DAY
+	;-----------------------------
+
+	;- はれときどきどく
+	CASE 400 TO 409
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ....It's a contract from Phantom Society
+		PRINTL 
+		PRINTL 先日の報告について、通達する事がある様だ。
+		PRINTL 
+
+	;- 撃墜のために
+	CASE 410 TO 419
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL Contents are top secret.
+		PRINTL 
+		PRINTL Please head to the Tokyo branch office.
+		PRINTL 
+
+	
+	;- ビフロンス戦
+	CASE 420 TO 429
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL  （ Warning: When this request is received, the time zone advances by one）
+		PRINTL 
+		PRINTL Reward: ￥0～60000
+	
+	;- 巨大方陣
+	CASE 430 TO 439
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL It's a call from Ronaldo.
+		PRINTL 
+		PRINTL There seems to be something he wants to show.
+		PRINTL 
+		PRINTL Let's Head to the Tokyo Metropolitan Goverment
+		PRINTL 
+	
+	;- オトメの加入
+	CASE 440 TO 449
+	
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ....It's a message from Yamato.
+		PRINTL 
+		PRINTL Looks like you should come to the Osaka main office
+		PRINTL 
+	;- 決戦二大巨頭
+	CASE 450 TO 459
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ...It's a request from JP's.
+		PRINTL 
+		PRINTL アリオト撃墜のための作戦が始まるらしい。
+		PRINTL 
+		PRINTL まずは大阪本局へ向かう必要がある様だ。
+		PRINTL 
+		PRINTL 
+		PRINTL  （ Warning: When this request is received, the day ends 
+		PRINTL  　またイオをPTに編成している場合、途中で外れます ）
+		PRINTL 
+		PRINTL Reward: ￥80000
+	
+	;- アイリの加入
+	CASE 460 TO 469
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ....It's a message from JP's.
+		PRINTL アイリの回収が可能になったらしい。
+		PRINTL 
+		PRINTL ジプス大阪本局に、アイリを回収しに行こう。
+		PRINTL 
+		PRINTL Reward: アイリ
+		
+	;- 種の意思
+	CASE 470 TO 479
+		PRINTL -You've got mail-
+		PRINTL 
+		IF L_FLAG_EVENT_FIRST_DIGIT == 0
+			PRINTL ････ヤマトからの呼び出しだ。
+			PRINTL
+			PRINTL 話すことがあるらしい。
+			PRINTL
+			PRINTL まずは大阪本局へ向かう必要がある様だ。
+			PRINTL
+		ELSE
+			PRINTL ････各勢力からの誘いのメールだ。
+			PRINTL
+			PRINTL よく考えてから、どの勢力につくか決めよう。
+			PRINTL
+		ENDIF
+	;-----------------------------
+	;- 6TH DAY
+	;-----------------------------
+	;--------------------------------------------
+	;ヤマトルート
+	;--------------------------------------------
+	;- 東京勢との争い
+	CASE 1000 TO 1009
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ヤマトからの連絡だ。
+		PRINTFORML 
+		PRINTFORML ついにポラリス謁見に向けての作戦を開始するらしい。
+		PRINTFORML 
+		PRINTFORML まずは大阪本局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one）
+		PRINTFORML 
+		PRINTFORML Reward: \100000
+	;- 戯言の結末
+	CASE 1010 TO 1029
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ヤマトからの連絡だ。
+		PRINTFORML 
+		PRINTFORML どうやらロナウドとの決着をつけるつもりらしい。
+		PRINTFORML 
+		PRINTFORML まずは大阪本局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: \100000
+	;- 撃破数７
+	CASE 1030 TO 1039
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ヤマトからの連絡だ。
+		PRINTFORML 
+		PRINTFORML まずは大阪本局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: \150000
+	;- ラストバトル
+	CASE 1040 TO 1049
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ヤマトからの連絡だ。
+		PRINTFORML 
+		PRINTFORML あちらは既に最後の戦いへ赴く準備ができたらしい。
+		PRINTFORML 
+		PRINTFORML %CALLNAME:MASTER%の準備ができたなら、
+		PRINTFORML 大阪本局のターミナルに集合するように、とのことだ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML Reward: 実力主義社会
+	;--------------------------------------------
+	;ロナウドルート
+	;--------------------------------------------
+	;- 東京勢との争い
+	CASE 2000 TO 2009
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ロナウドからの連絡だ。
+		PRINTFORML 
+		PRINTFORML 今後の方針について話し合いたいらしい。
+		PRINTFORML 
+		PRINTFORML まずは名古屋支局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+	;- 未知の脅威
+	CASE 2010 TO 2019
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ロナウドからの連絡だ。
+		PRINTFORML 
+		PRINTFORML 急ぎの用があるらしい。
+		PRINTFORML 
+		PRINTFORML まずは東京の宮下公園へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+	;- 強者との決着
+	CASE 2020 TO 2029
+		PRINTFORML トランペッターはヤマトの管轄だとフミが言っていた。
+		PRINTFORML ならば、彼の本拠地である大阪本局にその情報がある可能性が高いだろう。
+		PRINTFORML
+		PRINTFORML 探しに行くならば、大阪本局のターミナルを利用しよう。
+		PRINTFORML
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1500魔貨
+	;- 撃破数７
+	CASE 2030 TO 2039
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ロナウドからの連絡だ。
+		PRINTFORML 
+		PRINTFORML どうやらベネトナシュとの決着をつけるつもりらしい。
+		PRINTFORML 
+		PRINTFORML まずは名古屋支局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 2000魔貨
+	;- ラストバトル
+	CASE 2040 TO 2049
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ロナウドからの連絡だ。
+		PRINTFORML 
+		PRINTFORML あちらは既に最後の戦いへ赴く準備ができたらしい。
+		PRINTFORML 
+		PRINTFORML %CALLNAME:MASTER%の準備ができたなら、
+		PRINTFORML 大阪本局のターミナルに集合するように、とのことだ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML Reward: 平等と平和
+	;--------------------------------------------
+	;ダイチルート
+	;--------------------------------------------
+	;- マコト戦
+	CASE 3000 TO 3009
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ダイチからの連絡だ。
+		PRINTFORML 
+		PRINTFORML 今後の方針について話し合いたいらしい。
+		PRINTFORML 
+		PRINTFORML まずは東京支局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+
+	;- ロナウド戦
+	CASE 3010 TO 3019
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ‥‥ダイチからの連絡だ。
+		PRINTFORML 
+		PRINTFORML 急いで宮下公園に来てほしいとの事だ。
+		PRINTFORML 
+		PRINTFORML まずは東京のターミナルへ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+	;- ヤマト戦
+	CASE 3020 TO 3029
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ヤマトからの呼び出しだ。
+		PRINTFORML 
+		PRINTFORML 通天閣で待つらしい。
+		PRINTFORML 
+		PRINTFORML まずは大阪本局へ向かう必要がある様だ。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1500魔貨
+	;- 撃破数７
+	CASE 3030 TO 3049
+		PRINTFORML -You've got mail-
+		PRINTFORML
+		PRINTFORML ダイチからの呼び出しだ。
+		PRINTFORML
+		PRINTFORML 向こうは既にベネトナシュとの決戦の準備が出来たらしい。
+		PRINTFORML
+		PRINTFORML まずは東京支局へ向かう必要がある様だ。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML  （ Warning: When this request is received, the day ends ）
+		PRINTFORML 
+		PRINTFORML Reward: 2000魔貨
+	;--------------------------------------------
+	;憂う者ルート
+	;--------------------------------------------
+	;- 東京勢との争い
+	CASE 4000 TO 4009
+		PRINTFORML -You've got mail-
+		PRINTFORML
+		PRINTFORML …あの少年からの呼び出しだ。
+		PRINTFORMW 先日、彼と会った場所で、%CALLNAME:MASTER%の合流を待つらしい…。
+		PRINTFORMW 彼と合流すれば、ポラリス打倒に向けての行動を開始することになるだろう…。
+		PRINTFORML
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+	;- 大阪奪還
+	CASE 4010 TO 4019
+		PRINTFORML -アラームが鳴っています-
+		PRINTL 
+		PRINTFORML 「…輝く者よ。少し話をしていいかな？」
+		PRINTL
+		PRINTFORML 振り向くと、自室の中にサダクがいた…。
+		PRINTFORML …いつの間にいたのか。
+		PRINTL
+		PRINTFORML 「……？おかしなことを聞くね、私は常に君の傍にいるよ」
+		PRINTFORML 「……」
+		PRINTFORML 「…ああ、失礼した。勝手に君の自室に現れるのは良くなかったね」
+		PRINTFORML 「今度からはノックしてから現れよう…」
+		PRINTL
+		PRINTFORML 「それよりも、輝く者。間もなく、第７のセプテントリオンが現れる」
+		PRINTFORML 「第７のセプテントリオンの特性は君達人間にとって正に天敵と言っていいものだ」
+		PRINTFORML 「倒すには、情報を集める必要があるだろう」
+		PRINTFORML 「ジプスの本拠地である大阪には悪魔などの情報が集まっているはずだ」
+		PRINTFORML 「７体目のセプテントリオンを迎え撃つためにもここを攻めるべきだと思うのだが…どうする？」
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: ￥12000
+	;- 終末のラッパ吹き
+	CASE 4020 TO 4029
+		PRINTFORML -自室の扉がノックされています-
+		PRINTFORML
+		PRINTFORML 返事を返すと、サダクが入ってきた…。
+		PRINTFORML
+		PRINTFORML 「輝く者、君は確かトランペッターを探していたね？」
+		PRINTFORML 「つい先程、ジプス大阪本局で該当する悪魔の所在情報を発見してきたよ」
+		PRINTFORML
+		PRINTFORML 「これだ、見てくれ。この書類の末尾付近に、トランペッターの名がある」
+		PRINTFORML 「封印場所は日比谷公園というところだ。それから…解除コードというものも、ここにあるようだね」
+		PRINTFORML 「ああ、らっきー。…さぁ、これがコードだね、君が持っていくといいだろう」
+		PRINTFORML
+		PRINTFORML 「しかし、安心するのは早い。トランペッターで対抗するなら、一つ問題があるんだ」
+		PRINTFORML 「…トランペッターのラッパは、ベネトナシュだけに効力を発揮するわけではないんだよ」
+		PRINTFORML 「その音波は広範囲に渡り、徐々にだが確実に…。周辺一帯に効果を及ぼす」
+		PRINTFORML 「無論、私達も例外じゃない。悪魔召喚プログラムや召喚アプリにも障害が発生するだろう、それを避ける術はない」
+		PRINTFORML 「つまり私達も、悪魔を召喚する事が叶わなくなる」
+		PRINTFORML 「ラッパの効力が浸透する前に、悪魔を喚べばいいのだが…。その後は再召喚は不可能だね」
+		PRINTFORML 「そのデメリットさえ許せれば、トランペッターの利用は有効な対策となり得るだろう」
+		PRINTFORML 「つまり、この策は…私たちにとって諸刃の剣に当たる。思案が必要だが…」
+		PRINTFORML
+		PRINTFORML 「元々、トランペッターは峰津院大和の管轄にあった。峰津院大和が、かの悪魔の能力を知っている可能性は高い」
+		PRINTFORML 「恐らく、彼もトランペッターの利用をベネトナシュへの対抗手段の一つとして考えているだろう」
+		PRINTFORML 「峰津院大和の手にトランペッターが渡る前に、急ぐべきだとも思うが…どうする？」
+		PRINTFORML
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+	;- 信念の決着
+	CASE 4030 TO 4039
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML ロナウドからの呼び出しだ。
+		PRINTFORML 
+		PRINTFORML 宮下公園で待つらしい。
+		PRINTFORML 
+		PRINTFORML まずは東京支局へ向かう必要がある様だ。
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 1000魔貨
+	;- 撃破数７
+	CASE 4040 TO 4049
+		PRINTFORML -You've got mail-
+		PRINTFORML 
+		PRINTFORML 仲間達からの連絡だ…。
+		PRINTFORML 向こうは既にベネトナシュとの決戦の準備はできたらしい。
+		PRINTFORML 東京支局で待っているそうだ。
+		PRINTFORML 
+		PRINTFORML ベネトナシュはその能力によって悪魔を帰還させ、召喚も封じる。
+		PRINTFORML そして人間による攻撃も、自動効果スキル『人間不可侵』によって無効化してしまう。
+		PRINTFORML 正に人類の天敵の名に相応しいセプテントリオンだろう。
+		PRINTFORML 
+		PRINTFORML フミが正しければ、トランペッターによって悪魔の帰還だけは防げるはずだが…。
+		PRINTFORML 
+		PRINTFORML …%CALLNAME:MASTER%はベネトナシュと闘う準備はできているだろうか？
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML  （ Warning: When this request is received, the time zone advances by one  ）
+		PRINTFORML 
+		PRINTFORML Reward: 2000魔貨
+	;- 新しき明日へ
+	CASE 4050 TO 4059
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML いつの間にか、サダクが自室の中に佇んでいる。
+		PRINTFORML だが、%CALLNAME:MASTER%はサダクをかつてのように咎めることはしなかった。
+		PRINTFORML サダクが微笑みながら見つめてくる…。
+		PRINTFORML 
+		PRINTFORML 「やぁ…輝く者よ。終末まで残りわずかだ」
+		PRINTFORML 「永かった。本当に永かったよ…」
+		PRINTFORML 「ポラリスまでの道程…。この結論に至るまで…、悠久の時が過ぎてしまった」
+		PRINTFORML 
+		PRINTFORML 「…正直、驚いているよ。君たちの自由を求める精神に。そして強さに」
+		PRINTFORML 「私が手を貸さずとも、人はいずれ摂理から外れる存在だったのかもしれないな」
+		PRINTFORML 
+		PRINTFORML ここまで人類を手助けしてくれたのはサダク自身だ。
+		PRINTFORML サダクのおかげだと思うのだが…。
+		PRINTFORML 
+		PRINTFORML 「フフ…私は種を蒔いただけさ。それを育てたのは、君達自身に他ならない」
+		PRINTFORML 
+		PRINTFORML 「ポラリスまであとわずかだ」
+		PRINTFORML 「手に入れよう…真の自由を」
+		PRINTFORML 「そして人の、人の手による、人のための歴史を紡いで欲しい」
+		PRINTFORML 「新しき世界がどのようになるか、全て人間の可能性次第だ」
+		PRINTFORML 「君の可能性を持ってすれば、それは素晴らしい世界になるだろう。君ならできる…%CALLNAME:MASTER%」
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML Reward: 自由
+	
+	;-----------------------------
+	;- 7TH DAY
+	;-----------------------------
+	;--------------------------------------------
+	;ダイチルート
+	;--------------------------------------------
+	;- 事件の元凶
+	CASE 3100 TO 3109
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ‥‥ダイチからの連絡だ。
+		PRINTL 
+		PRINTL 今後の方針について話し合いたいらしい。
+		PRINTL 
+		PRINTL まずは東京支局へ向かう必要がある様だ。
+		PRINTL
+
+	;- 示された道
+	CASE 3110 TO 3119
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ‥‥例の少年からの連絡だ。
+		PRINTL 
+		PRINTL 赤坂の迎賓館で待つとの事らしい。
+		PRINTL 
+		PRINTL まずは東京のターミナルへ向かう必要がある様だ。
+		PRINTL
+	;- 自由な明日へ
+	CASE 3120 TO 3129
+		PRINTL -You've got mail-
+		PRINTL
+		PRINTL ‥‥ダイチからの連絡だ。
+		PRINTL
+		PRINTL あちらは既に最後の戦いへ赴く準備ができたらしい。
+		PRINTL
+		PRINTL 準備が出来たら大阪本局のターミナルに集合、とのことだ。
+		PRINTL
+		PRINTL
+		PRINTL  （ Warning: When this request is received, the day ends ）
+		PRINTL
+		PRINTL Reward: 3000魔貨
+	;- 進むべき明日へ
+	CASE 3130 TO 3139
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ‥‥ダイチからの連絡だ。
+		PRINTL 
+		PRINTL あちらは既に最後の戦いへ赴く準備ができたらしい。
+		PRINTL 
+		PRINTL 準備が出来たら大阪本局のターミナルに集合、とのことだ。
+		PRINTL 
+		PRINTL 
+		PRINTL Reward: 復元された世界
+	
+	;-----------------------------
+	;- BR
+	;-----------------------------
+	;-----------------------------
+	;- 火曜日
+	;-----------------------------
+	;- 戦闘:デネボラ
+	CASE 5000 TO 5009
+		PRINTL ジプスからの依頼はまだ保留状態だ。
+		PRINTL 
+		PRINTL 受ける準備が出来たら、まずは東京支局へ向かおう。
+		PRINTL
+		PRINTL Reward: ￥40000
+	;-----------------------------
+	;- 水曜日
+	;-----------------------------
+	;- 戦闘:雑魚１
+	CASE 5100 TO 5109
+		PRINTL ジプスからの連絡だ。
+		PRINTL 
+		PRINTL 捜索を依頼していた仲間についての情報が入ったらしい。
+		PRINTL 
+		PRINTL まずは東京支局へ向かうとしよう。
+		PRINTL 
+		PRINTL Reward: ￥20000
+	;- 戦闘:スピカ
+	CASE 5110 TO 5119
+		PRINTL 携帯端末が着信音を鳴らしている。
+		PRINTL 
+		PRINTL マコトからの連絡のようだ。
+		PRINTL 
+		PRINTL Reward: ￥50000
+	;- 戦闘:スピカ
+	CASE 5120 TO 5129
+		PRINTL 携帯端末が着信音を鳴らしている。
+		PRINTL 
+		PRINTL マコトからの連絡のようだ。
+		PRINTL 
+		PRINTL ジプスに追われて、名古屋に逃走しているのだという。
+		PRINTL 
+		PRINTL 名古屋に急ぐ必要がありそうだ。
+	;-----------------------------
+	;- 作成中
+	;-----------------------------
+	CASEELSE
+		PRINTL -You've got mail-
+		PRINTL 
+		PRINTL ‥‥ジプスから、仕事の連絡の様だ。
+ENDSELECT
+
+;====================
+;内容
+;====================
+@REQUEST_30
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+PRINTL
+
+SELECTCASE FLAG:デビサバ２進行度
+	;-----------------------------
+	;- 1ST DAY
+	;-----------------------------
+	CASE 000 TO 099
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_30_1
+
+	;-----------------------------
+	;- 2ND DAY
+	;-----------------------------
+	CASE 100 TO 199
+		;- 依頼:メイン処理(2ND DAY)
+		CALL REQUEST_30_2
+
+	;-----------------------------
+	;- 3RD DAY
+	;-----------------------------
+	CASE 200 TO 299
+		;- 依頼:メイン処理(3RD DAY)
+		CALL REQUEST_30_3
+
+	;-----------------------------
+	;- 4TH DAY
+	;-----------------------------
+	CASE 300 TO 399
+		;- 依頼:メイン処理(4TH DAY)
+		CALL REQUEST_30_4
+
+	;-----------------------------
+	;- 5TH DAY
+	;-----------------------------
+	CASE 400 TO 499
+		;- 依頼:メイン処理(5TH DAY)
+		CALL REQUEST_30_5
+
+	;-----------------------------
+	;- FINAL DAY
+	;-----------------------------
+	CASE 1000 TO 1099
+		;- 依頼:メイン処理(6TH DAYヤマトルート)
+		CALL REQUEST_30_10
+	CASE 2000 TO 2099
+		;- 依頼:メイン処理(6TH DAYロナウドルート)
+		CALL REQUEST_30_20
+	CASE 3000 TO 3099
+		;- 依頼:メイン処理(6TH DAYダイチルート)
+		CALL REQUEST_30_30
+	CASE 3100 TO 3199
+		;- 依頼:メイン処理(7TH DAYダイチルート)
+		CALL REQUEST_30_31
+	CASE 4000 TO 4099
+		;- 依頼:メイン処理(6TH DAY憂う者ルート)
+		CALL REQUEST_30_40
+	;-----------------------------
+	;- 火曜日
+	;-----------------------------
+	CASE 5000 TO 5099
+		;- 依頼:メイン処理(TR-1)
+		CALL REQUEST_30_50
+	CASE 5100 TO 5199
+		;- 依頼:メイン処理(TR-2)
+		CALL REQUEST_30_51
+	;CASE 5200 TO 5299
+	;	;- 依頼:メイン処理(TR-3)
+	;	CALL REQUEST_30_52
+	CASEELSE
+;------------------------------------------------------------------------------- 
+;------------------------------------------------------------------------------- 
+;		PRINTFORMW ＞自宅の一室。
+;		PRINTFORMW ＞依頼を確認したが、どうやらまだ続きが出来ていない様だ。
+;		PRINTFORMW ＞続きが作成されれば、依頼のタイトルも変わるだろう。
+;		PRINTFORMW ＞…気長に待つ事にしよう。
+;		PRINTFORMW ＞………
+;		PRINTFORMW ＞……
+;		PRINTFORMW ＞…
+		;- 依頼:仮入手
+		CALL REQUEST_30_TEMP_GET
+
+ENDSELECT
+
+;--------------------------------------------------
+;追加部分
+;=================================================
+;   sub EVENT_BATTLE_START_REQUESTxxx
+;=================================================
+;   依頼:戦闘中処理(戦闘開始時)
+;-------------------------------------------------
+;   CALL先でフラグを設定
+;-------------------------------------------------
+@EVENT_BATTLE_START_REQUEST30
+#DIM DYNAMIC L_FLAG_DAYS_DIGIT
+
+;- フラグをセット(３桁目)
+L_FLAG_DAYS_DIGIT = 1 + FLAG:デビサバ２進行度 / 100
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+;- 存在する場合だけ呼び出し
+TRYCALLFORM EVENT_BATTLE_START_REQUEST30_{L_FLAG_DAYS_DIGIT}
+;----------------------------------------------------
+;追加部分ここまで
+;----------------------------------------------------
+
+;=================================================
+;   sub EVENT_BATTLE_TURNTOP_REQUESTxxx
+;=================================================
+;   依頼:戦闘中処理(ターン開始時)
+;-------------------------------------------------
+;   CALL先でフラグを設定
+;-------------------------------------------------
+@EVENT_BATTLE_TURNTOP_REQUEST30
+#DIM DYNAMIC L_FLAG_DAYS_DIGIT
+
+;- フラグをセット(３桁目)
+L_FLAG_DAYS_DIGIT = 1 + FLAG:デビサバ２進行度 / 100
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+;- 存在する場合だけ呼び出し
+TRYCALLFORM EVENT_BATTLE_TURNTOP_REQUEST30_{L_FLAG_DAYS_DIGIT}
+
+
+;=================================================
+;   sub EVENT_BATTLE_TURNEND_REQUESTxxx
+;=================================================
+;   依頼:戦闘中処理(ターン終了時)
+;-------------------------------------------------
+;   CALL先でフラグを設定
+;-------------------------------------------------
+@EVENT_BATTLE_TURNEND_REQUEST30
+#DIM DYNAMIC L_FLAG_DAYS_DIGIT
+IF FLAG:デビサバ２進行度 < 1000 || FLAG:デビサバ２進行度 >= 5000
+	;- フラグをセット(３桁目)
+	L_FLAG_DAYS_DIGIT = 1 + FLAG:デビサバ２進行度 / 100
+ELSEIF FLAG:デビサバ２進行度 < 5000
+	L_FLAG_DAYS_DIGIT = 6
+ENDIF
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+;- 存在する場合だけ呼び出し
+TRYCALLFORM EVENT_BATTLE_TURNEND_REQUEST30_{L_FLAG_DAYS_DIGIT}
+
+
+;-------------------------------------------------------------------------------
+;   独自関数
+;-------------------------------------------------------------------------------
+
+;=================================================
+;   sub REQUEST_30_FLAG_RESET
+;=================================================
+;   依頼:フラグリセット
+;-------------------------------------------------
+;   MENU画面で「依頼出現」が出る様、
+;   依頼登録フラグをリセットする
+;-------------------------------------------------
+@REQUEST_30_FLAG_RESET
+#DIM DYNAMIC L_REQUEST_NO
+
+L_REQUEST_NO = 30
+
+;- フラグがONの場合、クリアしてOFFに変更
+SIF GETBIT(FLAG:依頼出現1,L_REQUEST_NO)
+	CLEARBIT  FLAG:依頼出現1,L_REQUEST_NO
+
+
+;=================================================
+;   sub REQUEST_30_DAY_TITLE
+;=================================================
+;   依頼:一日のタイトル
+;-------------------------------------------------
+;   フォーマットは下記
+;
+;   1ST DAY
+;   憂鬱の第一日
+;-------------------------------------------------
+; Input:
+;  ARGS:0				日付
+;  ARGS:1				タイトル
+;-------------------------------------------------
+@REQUEST_30_DAY_TITLE(ARGS:0,ARGS:1)
+
+CUSTOMDRAWLINE =
+ALIGNMENT CENTER
+PRINTFORML
+PRINTFORML
+PRINTFORML %ARGS:0%
+PRINTFORML %ARGS:1%
+PRINTFORML
+PRINTFORML
+ALIGNMENT LEFT
+CUSTOMDRAWLINE =
+WAIT
+
+;=================================================
+;   sub REQUEST_30_SECTION_TITLE
+;=================================================
+;   依頼:各セクションのタイトル
+;-------------------------------------------------
+;   フォーマットは下記
+;
+;   謎のハッカー
+;-------------------------------------------------
+; Input:
+;  ARGS:0				日付
+;  ARGS:1				タイトル
+;-------------------------------------------------
+@REQUEST_30_SECTION_TITLE(ARGS:0)
+
+CUSTOMDRAWLINE =
+ALIGNMENT CENTER
+PRINTFORML
+PRINTFORML %ARGS:0%
+PRINTFORML
+ALIGNMENT LEFT
+CUSTOMDRAWLINE =
+WAIT
+
+;=================================================
+;   sub REQUEST_30_DAY_END
+;=================================================
+;   依頼:一日の終了
+;-------------------------------------------------
+@REQUEST_30_DAY_END
+PRINTFORMW The day has ended.
+
+;- 朝になる処理
+FLAG:休憩フラグ = 3
+BEGIN TURNEND
+RETURN
+
+;=================================================
+;   sub REQUEST_30_TURN_END
+;=================================================
+;   依頼:ターンの終了
+;-------------------------------------------------
+@REQUEST_30_TURN_END
+;- 1ターン経過
+FLAG:休憩フラグ = 1
+BEGIN TURNEND
+RETURN
+
+;=================================================
+;   sub REQUEST_30_BASE_LV
+;=================================================
+;   依頼:基礎レベル
+;-------------------------------------------------
+;   経過日数を基に、基礎レベルを返す
+;-------------------------------------------------
+; Input:
+;  ARG					経過日数
+; Output:
+;  RETURNF				基礎レベル
+;-------------------------------------------------
+@REQUEST_30_BASE_LV(ARG=1)
+#FUNCTION
+RETURNF 30 + (3*(ARG - 1))

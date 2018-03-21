@@ -1,0 +1,580 @@
+
+
+
+;=====================================================================
+;ダンジョンＲＰＧモジュール
+;=====================================================================
+
+
+@SHOPCOMABLE_103
+;パーティに一人以上いるなら
+LOCAL = 0
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:PTフラグ == 2
+		LOCAL += 1
+REND
+IF LOCAL > 0
+	RESULTS = Search
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+@SHOP_COM_103
+FLAG:ショップコマンド = 103
+DRAWLINE
+PRINTL Please select a location to explore
+CALL SHOW_DUNGEONLIST
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	FLAG:ショップコマンド == 0
+	RETURN 0
+ELSE
+	LOCAL = RESULT
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{RESULT}
+		SIF RESULT == 0
+			GOTO INPUT_LOOP
+		FLAG:現ダンジョン = LOCAL
+		CALL DUNGEON_ATTACK
+		FLAG:脱出 = 0
+		BEGIN TURNEND
+	CATCH
+		GOTO INPUT_LOOP
+	ENDCATCH
+ENDIF
+
+;=====================================================================
+;攻略可能ダンジョンを表示
+;=====================================================================
+@SHOW_DUNGEONLIST
+FOR LOCAL,0,100
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{LOCAL}
+		IF RESULT
+			CALLFORM GET_DUNGEON_NAME_{LOCAL}
+			PRINTFORML [{LOCAL}] %RESULTS%
+		ENDIF
+	CATCH
+	ENDCATCH
+NEXT
+PRINTL [100] Return
+
+;=====================================================================
+;現在のフロアを描画
+;=====================================================================
+@SHOW_FLOOR
+CALLFORM FLOORNAME_{FLAG:現ダンジョン}
+PRINTFORML ￥{MONEY,8}　　MAG:{BASE:MASTER:ＭＡＧ,6}
+PRINTFORML 踏破率：{FLAG:踏破率}  遭遇率：{FLAG:遭遇率}％  発見率：{FLAG:発見率}
+CUSTOMDRAWLINE =
+
+;=====================================================================
+;ダンジョンでのコマンドを表示
+;=====================================================================
+@SHOW_DUNGEON_COMMAND
+PRINTL ＣＯＭＭＡＮＤ
+
+PRINTFORM [ 1]探索    　[ 2]帰還      　\@ FLAG:踏破率 < 100 || FLAG:現階層 == FLAG:最大階層 ? %" " * 14% #[ 3]次のフロア\@　  
+SIF FLAG:踏破率 == 100 && FLAG:現階層 == FLAG:最大階層
+PRINT [ 4]ＶＳ ＢＯＳＳ
+PRINTL
+PRINTL [10]ＩＴＥＭ　[11]ＭＡＧＩＣ　[12]ＥＸＴＲＡ  　[13]ＥＱＵＩＰ
+PRINTL [14]ＣＯＭＰ　[15]ＦＯＲＭ  　[16]ＳＴＡＴＵＳ　[17]ＭＡＧ
+CUSTOMDRAWLINE =
+
+
+;=====================================================================
+;ダンジョン攻略のメイン処理
+;=====================================================================
+@DUNGEON_ATTACK
+
+TRYCALLFORM EVENT_DUNGEON_START_{FLAG:現ダンジョン}
+;スタート地点を呼び出し(現M、現X、現Yにそれぞれ代入)
+CALLFORM START_DUNGEON_{FLAG:現ダンジョン}
+
+;終了条件が満たされるまで処理を繰り返す
+
+WHILE 1 == 1
+	;現パーティ描画
+	CALL SHOW_NOW_FORMATION_P,0,2
+	;ダンジョンを描画
+	CALL SHOW_FLOOR
+	;コマンド表示
+	CALL SHOW_DUNGEON_COMMAND
+	
+	;入力待ち
+	$INPUT_LOOP
+	INPUT
+	
+	IF RESULT == 1
+		CALL SEARCH_DUNGEON
+	ELSEIF RESULT == 2
+		FLAG:脱出 = 1
+	ELSEIF RESULT == 3
+		SIF FLAG:踏破率 < 100 || FLAG:現階層 == FLAG:最大階層
+			GOTO INPUT_LOOP
+		CALL GO_NEXT
+	ELSEIF RESULT == 4
+		SIF FLAG:踏破率 < 100 || FLAG:現階層 != FLAG:最大階層
+			GOTO INPUT_LOOP
+		CALLFORM BOSS_DUNGEON_{FLAG:現ダンジョン}
+		SIF RESULT == 0
+			GOTO INPUT_LOOP
+		
+	ELSEIF RESULT == 14
+		CALL COMMAND_COMP_FIELD
+	ELSEIF RESULT == 10
+		CALL COMMAND_ITEM_FIELD
+	ELSEIF RESULT == 11
+		CALL COMMAND_MAGIC_FIELD,2
+	ELSEIF RESULT == 12
+		CALL COMMAND_MAGIC_FIELD,1
+	ELSEIF RESULT == 13
+		CALL EQUIPMENT
+	ELSEIF RESULT == 15
+		CALL SETUP_FORMATION
+	ELSEIF RESULT == 16
+		CALL SHOP_COM_110
+	ELSEIF RESULT == 17
+		CALL SWITCH_MAG
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+
+		;脱出フラグ立ってたら終わり
+		SIF FLAG:脱出
+			BREAK
+WEND
+
+
+;=====================================================================
+;探索
+;=====================================================================
+@SEARCH_DUNGEON
+PRINTW 探索中……
+;ＭＡＧ消費
+CALL CONSUME_MAG
+
+;移動後のダンジョンイベント呼び出し
+CALLFORM EVENT_SEARCH_DUNGEON_{FLAG:現ダンジョン}
+SIF RESULT
+	LOCAL = 1
+;毒などのチェック
+
+;遭遇チェック
+IF LOCAL == 0
+	IF RAND:100 < FLAG:遭遇率
+CALLFORM SEARCH_DUNGEON_{FLAG:現ダンジョン}
+		CALLFORM CHECK_ENCOUNT_{FLAG:現ダンジョン}
+		PRINTW 悪魔と遭遇した！
+		FLAG:遭遇率 = 0
+		CALL BATTLE_START
+	ELSEIF RAND:100 < FLAG:発見率
+CALLFORM SEARCH_DUNGEON_{FLAG:現ダンジョン}
+		CALLFORM  CHECK_TREASURE_{FLAG:現ダンジョン}
+		PRINTFORMW %ITEMNAME:RESULT%を手に入れた
+		CALL GET_ITEM,RESULT,1
+		FLAG:発見率 = 0
+	ELSE
+	PRINTW 探索を終えた
+CALLFORM SEARCH_DUNGEON_{FLAG:現ダンジョン}
+	
+	ENDIF
+ENDIF
+
+RETURN 1
+
+
+
+
+;=====================================================================
+;COMP起動
+;=====================================================================
+@COMMAND_COMP_FIELD
+PRINTL [0] 召喚
+PRINTL [100] Return
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 0
+
+	$CHOOSE_COMPANION_LOOP
+	CALL CHOOSE_COMPANION,1
+	IF RESULT == 1000
+		RESTART
+	ELSE
+		LOCAL = RESULT
+		CALL SHOW_NOW_FORMATION_P,0,2
+		PRINTL [0] ＣＡＮＣＥＬ
+		PRINTL どこに喚びだす？
+		$INPUT_SUMMON_POSITION_LOOP
+		INPUT
+		LOCAL:1 = RESULT
+		IF RESULT == 0
+			GOTO CHOOSE_COMPANION_LOOP
+		ELSEIF RESULT > 0 && RESULT < 7
+			CALL INSERT_POSITION,LOCAL:1,LOCAL
+			GOTO CHOOSE_COMPANION_LOOP
+		ELSE
+			GOTO INPUT_SUMMON_POSITION_LOOP
+		ENDIF
+	ENDIF
+ELSE
+	GOTO INPUT_LOOP
+
+ENDIF
+
+
+;=====================================================================
+;アイテム使用
+;=====================================================================
+@COMMAND_ITEM_FIELD
+FOR LOCAL,1001,2000
+	TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{LOCAL+2000}
+		SIF RESULT == 0 || ITEM:LOCAL < 1
+		;非戦闘時に使えないor一個も持っていない場合無視
+			CONTINUE
+	CATCH
+		;未実装アイテムは無視
+		CONTINUE
+	ENDCATCH
+			TRYCCALLFORM 最大所持数_{LOCAL+2000}
+				PRINTFORMC [{LOCAL}] %ITEMNAME:LOCAL,20,LEFT% {ITEM:LOCAL}/{RESULT,2}個
+			CATCH
+				PRINTFORMC [{LOCAL}] %ITEMNAME:LOCAL,20,LEFT% {ITEM:LOCAL}/99個
+			ENDCATCH
+NEXT
+PRINTL
+DRAWLINE
+PRINTL [0] Return
+
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT >= 2000
+	GOTO INPUT_LOOP
+ELSE
+	LOCAL = RESULT+2000
+	TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{RESULT+2000}
+		SIF RESULT == 0 || ITEM:(LOCAL-2000) < 1
+			GOTO INPUT_LOOP
+	CATCH
+		GOTO INPUT_LOOP
+	ENDCATCH
+	CALLFORM SKILL_EXPLAIN_{LOCAL}
+;	CALLFORM SKILL_SPHERE_{LOCAL}
+
+	CALL SELECT_SKILL_TARGET,LOCAL,ARG
+	SIF RESULT == -1
+		RESTART
+	
+	CALLFORM ACTION_FIELD_{LOCAL},0,RESULT
+
+;	IF RESULT == 1
+	;単体目標のアイテム
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [0]やめる
+;		$INPUT_LOOP2
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT < 1 || RESULT > 6
+;			GOTO INPUT_LOOP2
+;		ELSE
+;			LOCALS = ポジション{RESULT}
+;			SIF FLAG:LOCALS == -1
+;				GOTO INPUT_LOOP2
+;			CALLFORM ACTION_FIELD_{LOCAL},0,FLAG:LOCALS
+;		ENDIF
+;		RESTART
+;	ELSEIF RESULT == 2
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [17] 前列 [18] 後列
+;		PRINTL [0] やめる
+;		$INPUT_LOOP3
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT != 17 && RESULT != 18
+;			GOTO INPUT_LOOP3
+;		ELSE
+;			CALLFORM ACTION_FIELD_{LOCAL},0,RESULT
+;		ENDIF
+;		RESTART
+;	ELSE
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [1] 使う [0] やめる
+;		$INPUT_LOOP4
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT != 1 && RESULT != 0
+;			GOTO INPUT_LOOP4
+;		ELSE
+;			CALLFORM ACTION_FIELD_{LOCAL},0,19
+;		ENDIF
+;		RESTART
+;	ENDIF
+	
+ENDIF
+
+SIF FLAG:脱出
+	RETURN 1
+
+;=====================================================================
+;魔法・特技使用
+;=====================================================================
+@COMMAND_MAGIC_FIELD,ARG
+CALL SHOW_NOW_FORMATION_P,0,2
+PRINTL [0] Return
+IF ARG == 2
+	PRINTL 誰の魔法を使う？
+ELSE
+	PRINTL 誰の特技を使う？
+ENDIF
+$INPUT_LOOP_CHARA
+INPUT
+
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT > 6 || RESULT < 1
+	GOTO INPUT_LOOP_CHARA
+ELSE
+	LOCALS = ポジション{RESULT}
+	SIF FLAG:LOCALS < 0
+		GOTO INPUT_LOOP_CHARA
+ENDIF
+LOCAL:2 = 0
+LOCAL:1 = FLAG:LOCALS
+FOR LOCAL,1,FLAG:スキル数+1
+	LOCALS = スキル{LOCAL}
+	IF ABL:(LOCAL:1):LOCALS > 0
+		TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{ABL:(LOCAL:1):LOCALS}
+			SIF RESULT == 0
+				CONTINUE
+			;非戦闘時に使えない場合無視
+			CALLFORM SKILL_DECIDE_TYPE_{ABL:(LOCAL:1):LOCALS}
+			SIF RESULT != ARG
+				CONTINUE
+			;特技の場合無視
+		CATCH
+			;未実装は無視
+			CONTINUE
+		ENDCATCH
+		
+		CALLFORM SKILL_NAME_{ABL:(LOCAL:1):LOCALS}
+		PRINTFORM [{LOCAL}] %RESULTS,20,LEFT%
+		CALLFORM SKILL_COSTTYPE_{SKILLNUM(LOCAL:1,LOCAL)}
+		IF RESULT == 2
+			CALLFORM SKILL_COST_{SKILLNUM(LOCAL:1,LOCAL)}
+			PRINTFORM {RESULT * MAXBASE:ARG:ＨＰ / 100,3}ＨＰ　　
+		ELSE
+			CALLFORM SKILL_COST_{SKILLNUM(LOCAL:1,LOCAL)}
+			PRINTFORM {RESULT,3}ＭＰ　　
+		ENDIF
+		LOCAL:2 += 1
+	ENDIF
+	
+	SIF LOCAL:2%2 == 0 && LOCAL:2 > 0
+		PRINTL
+NEXT
+PRINTL
+DRAWLINE
+PRINTL [0] Return
+
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RESTART
+ELSEIF RESULT > FLAG:スキル数 || RESULT < 1
+	GOTO INPUT_LOOP
+ELSE
+	LOCALS = スキル{RESULT}
+	SIF ABL:(LOCAL:1):LOCALS < 1
+		GOTO INPUT_LOOP
+	TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{ABL:(LOCAL:1):LOCALS}
+		SIF RESULT == 0
+			GOTO INPUT_LOOP
+			;非戦闘時に使えない場合無視
+		CALLFORM SKILL_DECIDE_TYPE_{ABL:(LOCAL:1):LOCALS}
+			SIF RESULT != ARG
+				GOTO INPUT_LOOP
+			;特技の場合無視
+		CALL CHECK_ACTIONABLE,LOCAL:1,ABL:(LOCAL:1):LOCALS
+			SIF RESULT == 0
+				GOTO INPUT_LOOP
+			;使用不能なら無視
+	CATCH
+		GOTO INPUT_LOOP
+	ENDCATCH
+	LOCAL = ABL:(LOCAL:1):LOCALS
+	CALLFORM SKILL_EXPLAIN_{LOCAL}
+	
+	CALL SELECT_SKILL_TARGET,LOCAL,ARG
+	SIF RESULT == -1
+		RESTART
+	
+	CALLFORM ACTION_FIELD_{LOCAL},LOCAL:1,RESULT
+
+;	CALLFORM SKILL_SPHERE_{LOCAL}
+;	IF RESULT == 1
+;	;単体目標
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [0]やめる
+;		$INPUT_LOOP2
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT < 1 || RESULT > 6
+;			GOTO INPUT_LOOP2
+;		ELSE
+;			LOCALS = ポジション{RESULT}
+;			SIF FLAG:LOCALS == -1
+;				GOTO INPUT_LOOP2
+;			CALLFORM ACTION_FIELD_{LOCAL},0,FLAG:LOCALS
+;		ENDIF
+;		RESTART
+;	ELSEIF RESULT == 2
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [17] 前列 [18] 後列
+;		PRINTL [0] やめる
+;		$INPUT_LOOP3
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT != 17 && RESULT != 18
+;			GOTO INPUT_LOOP3
+;		ELSE
+;			CALLFORM ACTION_FIELD_{LOCAL},0,RESULT
+;		ENDIF
+;		RESTART
+;	ELSE
+;		CALL SHOW_NOW_FORMATION_P,0,2
+;		PRINTL [1] 使う [0] やめる
+;		$INPUT_LOOP4
+;		INPUT
+;		IF RESULT == 0
+;			RESTART
+;		ELSEIF RESULT != 1 && RESULT != 0
+;			GOTO INPUT_LOOP4
+;		ELSE
+;			CALLFORM ACTION_FIELD_{LOCAL},0,19
+;		ENDIF
+;		RESTART
+;	ENDIF
+	
+ENDIF
+
+
+SIF FLAG:脱出
+	RETURN 1
+
+;===================================================================
+;次のフロアへ
+;===================================================================
+@GO_NEXT
+TRYCALLFORM MESSAGE_NEXTFLOOR_{FLAG:現ダンジョン}
+FLAG:現階層 += 1
+FLAG:踏破率 = 0
+FLAG:遭遇率 = 0
+FLAG:発見率 = 0
+
+;===================================================================
+;ＭＡＧ消費処理
+;===================================================================
+@CONSUME_MAG
+FOR LOCAL:1,1,7
+	LOCALS = ポジション{LOCAL:1}
+	IF FLAG:LOCALS > -1
+		;LOCALに消費する人の番号を突っ込む
+		LOCAL = FLAG:LOCALS
+		;CPが0なら飛ばす
+		SIF BASE:LOCAL:CP == 0
+			CONTINUE
+		
+		IF CFLAG:LOCAL:ＭＡＧ自己消費 == 1
+			;自己消費がＯＮなら自分のＭＡＧを見る
+			IF BASE:LOCAL:ＭＡＧ == 0
+				;ＭＡＧが空の場合主人を見る
+				IF BASE:MASTER:ＭＡＧ == 0
+					;主人のも空ならダメージ処理
+					CALL VAR_HP,LOCAL,-(BASE:LOCAL:ＨＰ/10),0
+					CALL VAR_MP,LOCAL,-(BASE:LOCAL:ＭＰ/10),0
+				ELSE
+					CALL CONTROL_MAG,MASTER,-MAXBASE:LOCAL:CP/5
+				ENDIF
+			ELSE
+				;空でなければ自分で消費
+				CALL CONTROL_MAG,LOCAL,-MAXBASE:LOCAL:CP/5
+			ENDIF
+		ELSE
+			;自己消費がＯＦＦなら主人のＭＡＧを見る
+			IF BASE:MASTER:ＭＡＧ == 0
+				;主人のＭＡＧが空の場合自分のＭＡＧを見る
+				IF BASE:LOCAL:ＭＡＧ == 0
+					;主人のも空ならダメージ処理
+					CALL VAR_HP,LOCAL,-(BASE:LOCAL:ＨＰ/10),0
+					CALL VAR_MP,LOCAL,-(BASE:LOCAL:ＭＰ/10),0
+				ELSE
+					CALL CONTROL_MAG,LOCAL,-MAXBASE:LOCAL:CP/5
+				ENDIF
+			ELSE
+				;空でなければ主人で消費
+				CALL CONTROL_MAG,MASTER,-MAXBASE:LOCAL:CP/5
+			ENDIF
+		ENDIF
+	ENDIF
+NEXT
+
+;===================================================================
+;ＭＡＧ消費切り替え
+;===================================================================
+@SWITCH_MAG
+
+$PRINT_LIST
+DRAWLINE
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS < 1
+		CONTINUE
+	PRINTFORM [{LOCAL}]　
+	CALL ARRANGE_CHARALIST_2,FLAG:LOCALS
+	CALL ARRANGE_CHARALIFE, FLAG:LOCALS
+	PRINTFORM 　MAG:[{BASE:(FLAG:LOCALS):ＭＡＧ,5}/{MAXBASE:(FLAG:LOCALS):ＭＡＧ,5}] \@ CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 ? 自己消費 # 主人消費 \@
+NEXT
+PRINTL
+
+DRAWLINE
+PRINTFORML ＭＡＧ消費を切り替えたいキャラを選んでください
+DRAWLINE
+
+PRINTLC [1000]Return
+
+$INPUT_LOOP_1
+INPUT
+LOCALS = ポジション{RESULT}
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT >= 6 || FLAG:LOCALS < 1
+	GOTO INPUT_LOOP_1
+ELSE
+	IF CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 == 0
+		CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 = 1
+	ELSE
+		CFLAG:(FLAG:LOCALS):ＭＡＧ自己消費 = 0
+	ENDIF
+ENDIF
+RESTART
+
+
+
+
+
+
+
+

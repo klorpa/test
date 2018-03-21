@@ -1,0 +1,789 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx_yyy.ERB
+;	Facility	:依頼:030(デビルサバイバー２) ２日目。
+;				 REQUEST_30のサブファイル。
+;				 ２日目のデータを管理する。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2011/08/23		旅人					新規作成
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【フラグついて】
+; フラグは下記のみ使用。
+;
+;
+; [00-09] 戦闘:ハッカー
+; FLAG:デビサバ２進行度 = 100;初回
+; FLAG:デビサバ２進行度 = 101;訪問済み
+; FLAG:デビサバ２進行度 = 105;戦闘中
+; FLAG:デビサバ２進行度 = 110;戦闘クリア
+;
+; [10-19] 戦闘:メラク
+; FLAG:デビサバ２進行度 = 110;初回
+; FLAG:デビサバ２進行度 = 115;戦闘中
+; FLAG:デビサバ２進行度 = 200;終了(2ND DAY)
+;
+;
+; 【メモ】
+; ・ハッカーは何もしてこない。
+;
+;-------------------------------------------------------------------------------
+
+;===============================================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name						Explanation
+;
+;	・ REQUEST_xxx_yyy					依頼:メイン処理(yyy)
+;	・ EVENT_BATTLE_TURNEND_REQUESTxxx_yyy
+;										依頼:戦闘中処理(ターン終了時)(yyy)
+;
+; *- 独自関数
+;
+;	・ SET_ACTION_REQ_30_2_フミ			SET_ACTION:REQ_30_2(フミ)
+;
+;===============================================================================
+
+
+;====================
+;内容
+;====================
+@REQUEST_30_2
+#DIM L_FLAG_REQ
+#DIM L_FLAG_EVENT_DIGIT
+#DIM L_FLAG_EVENT_FIRST_DIGIT
+#DIM L_BTL_FLG
+#DIM L_TMP
+
+;- フラグをセット
+L_FLAG_REQ = FLAG:デビサバ２進行度
+
+;- フラグをセット(イベントフラグ:２桁)
+L_FLAG_EVENT_DIGIT = L_FLAG_REQ % 100
+
+;- フラグをセット(イベントフラグ:１桁目)
+L_FLAG_EVENT_FIRST_DIGIT = L_FLAG_REQ % 10
+
+;- 戦闘フラグ(デバッグ用。OFFで戦闘無しで実行出来る)
+L_BTL_FLG = 1
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+SELECTCASE L_FLAG_EVENT_DIGIT
+	;- 戦闘:ハッカー
+	CASE 00 TO 09
+		;- 初回
+		IF L_FLAG_EVENT_FIRST_DIGIT == 0
+			;- フラグセット
+			FLAG:デビサバ２進行度 = 101
+
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞エレベータを抜け、ヤマトと面会した。
+			PRINTFORMW ＞ジプス東京支局の広間の一角にて、会議が行われた…。
+			PRINTFORML 
+			PRINTFORMW 「…さてサマナー、私は大阪に向かう予定だ」
+			PRINTFORMW 「ジプスの本局は大阪にあるのだが、次の敵は大阪に来る事が分かっている」
+			PRINTFORMW 「君には私と共に、現地に赴いて欲しい」
+			PRINTFORMW …どうやら、次の敵を撃破しろ、という事らしい。
+			PRINTFORML 
+			PRINTFORMW 「…大阪には君と同じ様に、ジプスの協力者が滞在している」
+			PRINTFORMW 「この先は彼らとの協力も必要になるかもしれない」
+			PRINTFORMW 「顔合わせを兼ねて、会っておくと良い」
+			PRINTFORML 
+			PRINTFORMW 「それと君の職業に合わせ、追加報酬も考えている」
+			PRINTFORMW 「君の働き次第では…、人材の融通も検討しよう」
+			PRINTFORMW …人材の融通…。
+			PRINTFORMW …つまり、奴隷の融通という事か。
+
+		;- ２回目以降
+		ELSE
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞エレベータを抜け、ヤマトと面会した。
+		ENDIF
+
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW 「・・・それでは依頼を再確認したい」
+		PRINTFORMW 「君には私と共に、大阪に出向いて貰いたい」
+		PRINTFORMW 「現地にはジプスの局員や協力者が居る。君にとっても、新たな出会いがあるだろう」
+		PRINTFORMW 「また現地では敵の来襲が予想されている」
+		PRINTFORMW 「敵の詳細については、不明である」
+		PRINTFORML
+		PRINTFORMW 「さて、どうする？」
+		PRINTFORML
+		PRINTFORML  （ Please note: The day will end after this request ）
+		PRINTFORMW
+
+		CALL INPUT_YN("依頼を受ける", "まだ準備が")
+		PRINTL
+		IF RESULT == 0
+			PRINTFORMW 「そうか。それでは移動するとしよう」
+			PRINTFORMW 「君には私と共に、港区に存在する新橋駅に向かって貰う」
+			PRINTFORMW 「日比谷口にあるSL広場に行く予定だ」
+			PRINTFORMW ＞今回はヤマトと一緒の様だ…。
+		ELSE
+			PRINTFORMW 「そうか。幸いまだ時間はある」
+			PRINTFORMW 「準備が出来たらまたここに来てくれ」
+			PRINTFORMW ＞準備を整えたら、またここへ来よう。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			RETURN
+		ENDIF
+
+		PRINTFORML
+		PRINTFORMW ＞出発の時間までは、まだ多少時間がある。
+		PRINTFORMW ＞%CALLNAME:MASTER%は準備不足が無いか、入念にチェックを始めた…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+
+		;-----------------------------
+		;- タイトル
+		;-----------------------------
+
+		;- 依頼:一日のタイトル
+		CALL REQUEST_30_DAY_TITLE("2ND DAY", "激動の第二日")
+
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞JR新橋駅 ― SL広場。
+		PRINTFORMW ＞ヤマト達と共に、ここ蒸気機関車前に来た。
+		PRINTFORMW ＞展示してある機関車の下に、緊急時の移動手段があるらしい。
+		PRINTFORMW ＞携帯端末で蒸気機関車を動かし、地面に設置されていたハッチから地下へと降りて行った…。
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 専用車両ホーム。
+		PRINTFORMW ＞駅のホームに出た…。
+		PRINTFORMW ＞…どこかの駅の様だが、見た事も無い駅だ。
+		PRINTFORMW 「ジプス専用ホームだ。ジプスはこういった地下鉄道を各地に持っている」
+		PRINTFORMW ＞…専用でこれほどの設備を持っているとは…。
+		PRINTFORML
+		PRINTFORMW 『それでは、私の護衛はここまでです』
+		PRINTFORMW 『サマナーもお気を付けて』
+		PRINTFORMW ＞マコトと別れ、目の前の列車に乗った。
+		PRINTFORMW ＞大阪までは２時間程度らしい。暫くは、高速の列車の中で休養の様だ。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 専用車両ホーム - 大阪。
+		PRINTFORMW ＞大阪駅に着いた。
+		PRINTFORMW ＞ホームに出る。
+		PRINTFORMW 「…さてサマナー、私は本局で会議がある」
+		PRINTFORMW 「そこに見えているのが大阪の局員だ。服装が違うのは協力者となる」
+		PRINTFORMW 「ジプスは有能な一般人にも協力して貰っている。君もその内の…いや、一般人では無かったな」
+		PRINTFORMW 「仕事は後程連絡する。暫くは自由行動をしておいてくれ」
+		PRINTFORMW ヤマトはそのまま、ホームの奥へと去って行った…。
+		PRINTFORMW ひとまず他の協力者と顔を合わせておこう…。
+		PRINTFORMW ＞%CALLNAME:MASTER%は、ホームに居る局員たちの方へと歩いて行った…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞大阪 ― フェスティバルゲート。
+		PRINTFORMW ＞大阪市浪速区に存在する、複合娯楽施設。略称フェスゲ。
+		PRINTFORMW ＞協力者達と同行し、この建造物に来た。
+		PRINTFORMW ＞大阪の現状を見に来たのだが、いつの間にか半分は観光になっている様だ。
+		PRINTFORML
+		PRINTFORMW ＞協力者達は皆悪魔使いである。
+		PRINTFORMW ＞どうやら彼らは、東京組と大阪組で分かれている様だ…。
+		PRINTFORML
+		PRINTFORMW ＞東京組は、全部で３人…。
+		PRINTFORMW ＞一人目は、黒いスーツの男性。名前は"秋江　譲(アキエ　ジョー)"。少しゆるい感じが特徴だ。
+		PRINTFORMW ＞二人目は、先日軽トラックを運転していた少年…。"志島　大地(シジマ　ダイチ)"。
+		PRINTFORMW ＞　　少し気の弱い印象を受けるが、ごく普通の少年の様である。
+		PRINTFORMW ＞そして三人目は、先日"ドゥベ"を撃破したと言う少年。
+		PRINTFORMW ＞　　フード付きの白い服を着た、髪質が若干モジャモジャしている少年だ。
+		PRINTFORML
+		PRINTFORML ジョー：
+		PRINTFORMW 「ゲフェスだよねぇ。うんうん。いやぁーこれがゲフェスかぁー」
+		PRINTFORML ダイチ：
+		PRINTFORMW 「いやいや、フェスゲだから」
+		PRINTFORML ジョー：
+		PRINTFORMW 「フェスゲだっけ？白鳥白鳥」
+		PRINTFORML ダイチ：
+		PRINTFORMW 「スワン、スワン、ね。どんなギャグ…」
+		PRINTFORMW ＞…この３人は、どうやらヤマトが前日に大阪入りさせていた様だ。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞…大阪組は二人の様だ。
+		PRINTFORMW ＞一人目は、露出の多い服を着た女性。名前は"九条　緋那子(クジョウ　ヒナコ)"。
+		PRINTFORMW ＞二人目は、身長こそ低いものの、ボクシングをしているらしい少年。"和久井　啓太(ワクイ　ケイタ)"。
+		PRINTFORML
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「ケイタ！フェスティバルゲート行こうって納得したやん、どこ行くん」
+		PRINTFORML ケイタ：
+		PRINTFORMW 「アホウ、誰が納得なんかしてるか。昨日の借りが無かったら帰っとるわ」
+		PRINTFORMW ＞…このケイタという少年は、一匹狼の素行が目立つ様だ。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞…協力者の内、女性はヒナコのみの様だ。ヒナコは１９歳らしい。
+		PRINTFORMW ＞彼女は胸が半分ほど外に見えている、露出の高い過激な服を着ている…。
+		PRINTFORMW ＞ダンサーらしく、踊りが得意らしい。メガネに紅く長い髪、薄着がトレードマークの様だ。
+		PRINTFORMW ＞スタイルは抜群に良い。奴隷に出来れば、使い道は豊富にあるだろう…。
+		PRINTFORML
+		PRINTFORMW ＞個性的な協力者と共に、フェスティバルゲートの門をくぐって行った…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+
+		;- 依頼:各セクションのタイトル
+		CALL REQUEST_30_SECTION_TITLE("謎のハッカー")
+
+		PRINTFORML
+		PRINTFORML
+
+		PRINTFORMW ＞フェスティバルゲートのアトラクションホールに入ると、悪魔が徘徊していた…。
+		PRINTFORMW ＞どうやらどこかから侵入した様だが…何かがおかしい。
+		PRINTFORMW ＞その中央には、何やらキーボードをカタカタと打つ女性が居た…。
+		PRINTFORML
+		PRINTFORML 虚ろな目の女性：
+		PRINTFORML 「………」
+		PRINTFORMW
+		PRINTFORMW ＞胸が大きな、色白でショートの女だ。チャイナドレスの様な物を着ている。
+		PRINTFORMW ＞女は何やら虚ろな目で、キーボードを叩いている。
+		PRINTFORMW ＞だがこちらに気付いたのか、突然携帯端末を取り出し悪魔を召喚して来た。
+		PRINTFORMW ＞どうやら、こちらと戦闘を行う気の様だ…。
+		PRINTFORMW ＞携帯端末が鳴っている…。
+		PRINTFORMW ＞ヤマトから連絡の様だ…。
+		PRINTFORML 
+		PRINTFORMW 「サマナー、君の居る地点からジプスに対してハッキングを行っている者が居る」
+		PRINTFORMW 「発見次第、捕獲してくれ。場所は近い」
+		PRINTFORMW ＞…それっぽいのが目の前に居るのを伝えた。
+		PRINTFORMW 「…流石だなサマナー…」
+		PRINTFORMW 「すまないが、生け捕りにしてくれ」
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORMW ＞…いつの間にか、ホールには大量の悪魔が現れている…。
+		PRINTFORML ジョー：
+		PRINTFORMW 「やぁ～、これは数が多いねー」
+		PRINTFORML ダイチ：
+		PRINTFORMW 「うおお、や、やるしかねー！」
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「ウチがこっち側やるから、あんたあの女やって！頼んだで！」
+		PRINTFORML ケイタ：
+		PRINTFORMW 「チッ…クソ悪魔、どつくぞコラ…！」
+		PRINTFORMW ＞…どうやら各人は、周囲の悪魔の相手をしてくれる様だ。
+		PRINTFORML 
+		PRINTFORMW ＞となると、あのチャイナドレスの女は%CALLNAME:MASTER%の仕事と言う事か…。
+		PRINTFORMW ＞%CALLNAME:MASTER%はハッカーの前に立った。
+		PRINTFORML 
+		PRINTFORML 虚ろな目の女性：
+		PRINTFORMW 「………」
+		PRINTFORML 
+		PRINTFORMW ＞目の前の女、ハッカーは未だにキーを叩いている。
+		PRINTFORMW ＞良く見ると、かなりの美人である…。
+		PRINTFORMW ＞チャイナドレスにコートを羽織っているが、巨乳が隠し切れていない。脱げば相当凄いだろう…。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞戦利品として貰い受けるのも良いかも知れない、などと思いながら――――
+		PRINTFORMW ＞%CALLNAME:MASTER%は、謎のハッカーと向かい合った――――
+
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 105
+
+		PRINTFORMW 
+		PRINTFORMW 人間 謎のハッカーが一体出た！
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- 悪魔解析度増加処理(1000でMAX)
+			CALL INCREASE_ANALYZE([[キャラ:ジプス局員]],1000)
+
+			;- SET:謎のハッカー (ジプス局員を加工して作成)
+			CALL SET_ENEMY,9,[[キャラ:ジプス局員]],REQUEST_30_BASE_LV(2),1,1
+			L_TMP = CHARANUM-1
+			CFLAG:L_TMP:ＨＰ補正 = 1000
+			CFLAG:L_TMP:ＭＰ補正 = 1000
+			NAME:L_TMP		= 謎のハッカー
+			CALLNAME:L_TMP	= 謎のハッカー
+			;スキル消去
+			ABL:L_TMP:スキル1 = 0
+			ABL:L_TMP:スキル2 = 0
+			ABL:L_TMP:スキル3 = 0
+			ABL:L_TMP:スキル4 = 0
+			ABL:L_TMP:スキル5 = 0
+			ABL:L_TMP:スキル6 = 0
+			ABL:L_TMP:スキル7 = 0
+			ABL:L_TMP:スキル8 = 0
+			TALENT:L_TMP:オトコ = 0
+			;パターンセット
+			CSTR:L_TMP:思考パターン = REQ_30_2_フミ
+
+			;- 戦闘前処理
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+
+			;- SET:雑魚
+			CALL SET_ENEMY,7, [[キャラ:タマモ]],REQUEST_30_BASE_LV(2),0
+			CALL SET_ENEMY,8, [[キャラ:ハクジョウシ]],REQUEST_30_BASE_LV(2),0
+			CALL SET_ENEMY,10, [[キャラ:ヤクシニー]],REQUEST_30_BASE_LV(2),0
+			CALL SET_ENEMY,11, [[キャラ:ヴァルキリー]],REQUEST_30_BASE_LV(2),0
+
+			;- 戦闘開始
+			CALL BATTLE_START
+
+			;- 戦闘終了
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+		ENDIF
+
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		PRINTFORMW ＞ハッカーは机の上でぐったりしている…
+		CUSTOMDRAWLINE =
+		PRINTFORMW ＞…謎のハッカーを撃破した。
+		PRINTFORMW ＞だが次の瞬間、ハッカーの後ろに新たな悪魔が出現した…。
+		PRINTFORMW ＞端末には、「ボティス」と表示されている…。
+		PRINTFORML 
+		PRINTFORML ボティス：
+		PRINTFORMW 「ウヌラ何者ダ…」
+		PRINTFORMW 「ソノ娘ハ我ガ主ノ駒」
+		PRINTFORMW 「マダ失ウ訳ニハ行カヌ」
+		PRINTFORML 
+		PRINTFORMW ＞悪魔はそのまま、ハッカーを机ごとワープさせた…。
+		PRINTFORMW ＞もう、悪魔は居ない…。
+		PRINTFORMW ＞悪魔と、謎のハッカー。
+		PRINTFORMW ＞ひとまず、ヤマトに連絡を入れておこう…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW …ジプス大阪本局。
+		PRINTFORMW 時刻は22時を回ったが、広間にて会議が行われる予定だ。
+		PRINTFORMW ヤマトが広間に降りて来るまで、それぞれが雑談をしている。
+		PRINTFORML
+		PRINTFORMW ＞…ヤマトが広間に来た。
+		PRINTFORMW ＞会議が始まる様だ…。
+		PRINTFORMW 「さて諸君、今日の予定だが」
+		PRINTFORMW 「ジプスは本日現れた謎のハッカーを調査する予定だ」
+		PRINTFORMW 「その為、今日の作戦実行は見送る」
+		PRINTFORMW …どうやら、敵の撃破は中止になった様だ。
+		PRINTFORML
+		PRINTFORMW 「サマナーは東京に戻って貰って良い。東京から来た人員は同様だ」
+		PRINTFORMW 「作戦の実行は明日以降となる」
+		PRINTFORMW 「サマナーが私に連絡を入れてくれ。その日に実行する。各員もこちらを優先して欲しい」
+		PRINTFORMW …どうやら、今日はこれでお開きらしい。
+		PRINTFORMW 次の敵は、明日以降となる様だ。
+		PRINTFORML
+		PRINTFORMW ＞協力者達は、それぞれ広間から出て行く様だ…。
+		PRINTFORMW ＞帰りの列車まで、まだ時間がある。
+		PRINTFORMW ＞ヤマトが話しかけて来た…。
+		PRINTFORMW 「サマナー、報酬を渡しておこう」
+		PRINTFORMW 「ハッカーの対応の件だ」
+		PRINTFORMW …ハッカーは取り逃したが、報酬は出る様だ。
+		PRINTFORMW 後程、口座に振り込まれているだろう。
+		PRINTFORML
+		PRINTFORMW 何やら協力者達が、こちらに寄って来た。
+		PRINTFORMW どうやら、東京組は土産を買いに行くらしい。大阪組が案内する様だ。
+		PRINTFORMW こちらに来たのはつまり…、「一緒に行かないか？」という事らしい。
+		PRINTFORMW …ジプスの依頼は、どこか普段とは違う生活になるのかも知れない…。
+		PRINTFORMW …たまにはこういうのも良いだろう。
+		PRINTFORML
+		PRINTFORMW ＞…時刻はそろそろ23時になる。
+		PRINTFORML ジョー：
+		PRINTFORMW 「大阪と言えばたこ焼きだよねぇ。お好み焼き定食も良いかな」
+		PRINTFORML ダイチ：
+		PRINTFORMW 「持って帰れないでしょ」
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「そうやなぁ…ケイタは何かオススメないん？」
+		PRINTFORML ケイタ：
+		PRINTFORMW 「あぁ？…いか焼き羊羹でええやろ」
+		PRINTFORMW ＞%CALLNAME:MASTER%は、協力者と共に夜の大阪に飛び出して行った…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORMW 
+		PRINTFORMW ￥20000を入手しました。
+		PRINTL 
+		PRINTL 
+
+		MONEY += 20000
+
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 110
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_30_FLAG_RESET
+
+		;- 依頼:一日の終了
+		CALL REQUEST_30_DAY_END
+
+
+	;- メラク戦
+	CASE 10 TO 19
+
+		PRINTFORMW ＞メールを確認する。
+		PRINTFORML 
+		PRINTFORMW ＞前回は大阪のフェスティバルゲートにて、謎のハッカーと交戦した…。
+		PRINTFORMW ＞次の依頼は、大阪に来襲する敵の撃破だ。
+		PRINTFORMW ＞ヤマトに連絡を入れれば、作戦は実行されるだろう。
+		PRINTFORML
+		PRINTFORMW ＞大阪にて、謎の敵を撃破する。
+		PRINTFORMW ＞敵の詳細については、不明。
+		PRINTFORMW ＞さて、どうしたものか。
+		PRINTFORML
+		PRINTFORML  （ Please note: The day will end after this request ）
+		PRINTFORMW
+
+		CALL INPUT_YN("依頼を受ける", "まだ準備が")
+		IF RESULT == 0
+			PRINTFORMW ＞準備は出来ている…。
+			PRINTFORMW ＞ヤマトに連絡をしよう。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+		ELSE
+			PRINTFORMW ＞まだ準備が出来ていない気がする…。
+			PRINTFORMW ＞準備を整えたら、連絡をしよう。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			RETURN
+		ENDIF
+
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 専用車両ホーム - 大阪。
+		PRINTFORMW ＞大阪駅に着いた。
+		PRINTFORMW ＞ホームに出る。
+		PRINTFORMW ＞時刻は深夜。
+		PRINTFORMW ＞大阪本局にて、ヤマトと合流する手筈となっている。
+		PRINTFORMW ＞他の協力者には、ジプスから連絡が行われている様だ。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 大阪本局。
+		PRINTFORMW ＞広間にてヤマトと合流した。
+		PRINTFORMW ＞他の協力者が揃う間に、ヤマトから話があるらしい。
+		PRINTFORMW ＞広間の奥にて二人だけとなった…。
+		PRINTFORML
+		PRINTFORMW 「サマナー、知っての通りだが君と他の協力者は別個に行動している」
+		PRINTFORMW 「…実は先程まで全員揃っていたのだが、今は休憩を取って貰っている」
+		PRINTFORMW …どういう事だろうか。
+		PRINTFORML
+		PRINTFORMW …そこへ、東京組の少年が来た。
+		PRINTFORMW 髪質がモジャっとしている少年だ。
+		PRINTFORMW 「戻ったか」
+		PRINTFORMW 「…分かった。君が言うのなら、問題はあるまい」
+		PRINTFORMW 「…君やサマナーの様に、他の協力者…彼らが強い心を持ってくれると良いが」
+		PRINTFORMW …何やら、揉め事でもあった様だ。
+		PRINTFORMW …協力者を心配しているのだろうか。
+		PRINTFORMW 「ああ、心配だ」
+		PRINTFORMW 「…この国の未来がな」
+		PRINTFORML
+		PRINTFORMW 「…我らジプスは古くより、この国の霊的防衛を担ってきた組織だ」
+		PRINTFORMW 「そして峰津院の血脈こそ、代々ジプスの長として彼らを率いてきた存在なのだ」
+		PRINTFORMW 「それは私自身が強い…という理由だけではない…」
+		PRINTFORMW 「私の一族は、古来無二の力を持っていてね…」
+		PRINTFORMW …古来無二の力？
+		PRINTFORMW 「…『龍脈』だ」
+		PRINTFORMW ＞…龍脈…ファントムで僅かに聞いた事はあるが…。
+		PRINTFORML
+		PRINTFORMW 「フフ…『龍脈』とは、いわばこの大地に流れる、『気』の道を意味する言葉だ」
+		PRINTFORMW 「我ら峰津院は唯一『龍脈』を取り出し、それを望む形に変えて、使う事が出来る一族なのだよ」
+		PRINTFORMW 「私はこの力でジプスをまとめ、国を守るためにのみ存在を許される…」
+		PRINTFORMW 「…いわば、この国の影だ」
+		PRINTFORMW ＞ヤマトは、様々な感情が混じった顔をしている…。
+		PRINTFORML
+		PRINTFORMW ＞少年は、「力を貸すよ」と答えた…。
+		PRINTFORMW ＞ヤマトは冷ややかに少年を見た…。
+		PRINTFORMW 「そうだな…」
+		PRINTFORMW 「果たして、君の可能性が本物ならば…」
+		PRINTFORMW 「喜んでその助けを受けよう」
+		PRINTFORMW ＞可能性…。
+		PRINTFORMW ＞そういえば、ヤマトは協力者を勧誘する時、無理強いはしていないと聞いた。
+		PRINTFORMW ＞未来は自分で選ばせているらしい。
+		PRINTFORMW ＞…ヤマトにとって、可能性と言う言葉は…重要なキーワードなのかも知れない…。
+		PRINTFORMW 「ところで、二人とも…」
+		PRINTFORML
+		PRINTFORML ＞ウイー…ウイー…
+		PRINTFORMW
+		PRINTFORMW ＞警報が鳴っている…。
+		PRINTFORMW ＞照明は消え、広間には赤いランプが点滅している…。
+		PRINTFORMW 「……！」
+		PRINTFORMW 「何事だ？」
+		PRINTFORML
+		PRINTFORMW ＞ドタドタドタ…
+		PRINTFORMW ＞数名のジプス局員が、慌てて掛け込んで来た…。
+		PRINTFORML
+		PRINTFORML ジプス局員：
+		PRINTFORMW 『…峰津院局長！通天閣付近に敵出現！』
+		PRINTFORMW 『南北より２体です！』
+		PRINTFORML ヤマト：
+		PRINTFORMW 「モニタ、つなげ。ジプス各隊に緊急招集、指揮系統を確立しろ」
+		PRINTFORMW ＞ヤマトは矢継ぎ早に指示を出している…。
+		PRINTFORMW 『モニタ、来ましたっ！４番、入ります！』
+		PRINTFORML
+		PRINTFORMW ＞モニタには、数人の自衛隊員と"敵"が映っている…。
+		PRINTFORMW ＞………。
+		PRINTFORMW ＞モニタには、自衛隊員が敵に撃破されていく映像が流れていった…。
+		PRINTFORML
+		PRINTFORMW 「ほう…やはり歯が立たんか」
+		PRINTFORML
+		PRINTFORMW ＞気が付くと、協力者達が駆け付けていた…。
+		PRINTFORMW ＞モニタを見ながら、何やら騒いでいる…。
+		PRINTFORMW ＞ジプス局員が慌ただしく連絡を入れて来た。
+		PRINTFORML
+		PRINTFORML ジプス局員：
+		PRINTFORMW 『召喚アプリ、呼称確認！
+		PRINTFORMW   コード、"メラク"です！』
+		PRINTFORML ヤマト：
+		PRINTFORMW 「よし…、メラクの進路から人をどかせ」
+		PRINTFORMW 「北は私が片付ける」
+		PRINTFORMW 「サマナー…指揮を任せる。南のメラクを撃退しろ」
+		PRINTFORMW …どうやら、仕事の時間の様だ。
+		PRINTFORMW 「他の者は可能な限り彼らをサポートしろ」
+		PRINTFORMW 「作戦を開始する」
+		PRINTFORML
+		PRINTFORMW …協力者達を引き連れ、通天閣に向かおう。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞大阪 ― 通天閣前。
+		PRINTFORMW ＞既にメラクと言われる"敵"とジプス局員が交戦中の様だ。
+		PRINTFORMW ＞見ると、赤い円柱状の物体が、通天閣に飛翔し爆発している。
+		PRINTFORMW ＞ジプス局員がこちらを制止する。
+		PRINTFORML
+		PRINTFORML ジプス局員：
+		PRINTFORMW 『来るな！来るんじゃない！』
+		PRINTFORMW 『奴は通天閣を狙っている！これ以上爆撃させるな！』
+		PRINTFORMW 『奴の攻撃は…』
+		PRINTFORMW ＞その瞬間、ジプス局員は、レーザーの様なビームを受けて氷漬けになった…。
+		PRINTFORMW ＞そしてそのまま…砕け散った…。
+		PRINTFORMW ＞レーザーの射線の元を辿る。
+		PRINTFORMW ＞そこには…
+		PRINTFORML
+		PRINTFORML 『％Ω○Ψ、％Ψ…』
+		PRINTFORMW
+		PRINTFORMW ＞…通天閣前の道路に、メラクと言われる敵が居た。
+		PRINTFORMW ＞魚を連想させるフォルムの、大型の蒼い悪魔だ。
+		PRINTFORML
+		PRINTFORMW ＞携帯端末が鳴っている。
+		PRINTFORML ヤマト：
+		PRINTFORMW 「サマナー、聞こえるか」
+		PRINTFORMW 「メラクの特性を把握したので、伝えておく」
+		PRINTFORML
+		PRINTFORMW 「奴は円形の子機を排出する」
+		PRINTFORMW 「子機は自爆を行って攻撃するようだ」
+		PRINTFORMW 「本体は砲撃を行ってくるが、正面にしか撃たない。射線に注意しろ」
+		PRINTFORMW 「…以上だ」
+		PRINTFORML
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「サマナーさん頼んだで！周りはウチらに任しとき！」
+		PRINTFORMW ＞ヒナコの声を合図に、それぞれが散開していく。
+		PRINTFORMW ＞…どうやら、今回も大物担当の様だ。
+		PRINTFORML
+		PRINTFORMW ＞メラクは次々と子機を排出し、通天閣を爆撃している…。
+		PRINTFORMW ＞%CALLNAME:MASTER%が近付くと、メラクは身体をこちらに向けて来た。
+		PRINTFORMW ＞もはや、逃げられそうに無いだろう――――
+		PRINTFORML
+		PRINTFORMW ＞%CALLNAME:MASTER%は、目の前の悪魔と対峙した――――
+		PRINTFORML
+
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 115
+
+		PRINTFORMW 
+		PRINTFORMW セプテントリオン 巨門星メラクが一体出た！
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- 悪魔解析度増加処理(1000でMAX)
+			CALL INCREASE_ANALYZE([[キャラ:メラク]],1000)
+
+			;- SET:メラク
+			CALL SET_ENEMY,9,[[キャラ:メラク]],REQUEST_30_BASE_LV(2),1,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+			CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			;- 戦闘前処理
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+
+			;- 戦闘開始
+			CALL BATTLE_START
+
+			;- 戦闘終了
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+
+		ENDIF
+
+		PRINTFORMW ＞メラクは崩れ落ちた…
+		CUSTOMDRAWLINE =
+
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		PRINTFORMW ＞メラクを撃破した後、ヤマトが姿を現した。
+		PRINTFORMW 「…メラクを倒したか」
+		PRINTFORMW 「予想以上の結果だ」
+		PRINTFORMW …どうやら、応援に来た様だ。少し遅かったが。
+		PRINTFORML
+		PRINTFORMW 「フフフ…驚いたよ。上出来だ」
+		PRINTFORMW 「通天閣も無事のようだな。多少の修復が必要だが、すぐ済むだろう」
+		PRINTFORMW 「さて、所用は済んだな。もう解散して構わん」
+		PRINTFORMW 「深夜だ。本局に部屋を用意する。東京組は明日の朝戻ると良い」
+		PRINTFORMW …ジプスが結界でも張ったのか、通天閣前に人は居なかった…。
+		PRINTFORMW …恐らく今回の件も悪魔騒ぎとして、内密に処理されるだろう。
+		PRINTFORML
+		PRINTFORMW ＞ヤマトは、疲れた様子も無く本局に帰って行った…。
+		PRINTFORMW ＞確か、ヤマトは一人でもう一体のメラクを撃破しに行った筈だが…。
+		PRINTFORMW ＞…やはり戦闘部門の長だけあって、実力は相当な様だ…。
+		PRINTFORML
+		PRINTFORMW ＞他の協力者達は、地面に座り込んだりして休憩している…。
+		PRINTFORML ジョー：
+		PRINTFORMW 「いや～、疲れたね。今夜は飲もうか、ねぇ？」
+		PRINTFORML ダイチ：
+		PRINTFORMW 「俺まだ未成年だから！飲めないから！」
+		PRINTFORMW ＞座りこんでいたダイチは、ジョーに引きずられて行った…。
+		PRINTFORMW ＞ひとまず、本局で休息を取ろう…。
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「サマナーさん、やるやん！頼りになるわ～」
+		PRINTFORML ケイタ：
+		PRINTFORMW 「ふん、やるやないか」
+		PRINTFORMW ＞どうやら、今回の件で信頼された様だ…。
+		PRINTFORMW ＞協力者達と共に、本局へ帰った…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 大阪本局。
+		PRINTFORMW ＞日付が変わって一時間が経った。
+		PRINTFORMW ＞%CALLNAME:MASTER%に割り当てられた部屋で、宴会が行われている。
+		PRINTFORMW ＞要人用の部屋なのか、他の部屋よりも大きいのが選ばれた理由の様だ。
+		PRINTFORMW ＞ヒナコはダブルベッドでゴロゴロしている…。
+		PRINTFORML
+		PRINTFORML ダイチ：
+		PRINTFORMW 「ドゥベ、メラクか…さっぱりわかんねーや」
+		PRINTFORMW ダイチは、何やら考え事をしている。
+		PRINTFORMW 話題も移り変わり、"敵"についての話になっていた。
+		PRINTFORML
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「ドゥベ、メラク…って北斗七星ちゃうん」
+		PRINTFORMW ヒナコが何やら気が付いた様だ…。
+		PRINTFORMW 北斗七星…。
+		PRINTFORMW ドゥベ、メラク、フェクダ、メグレズ、アリオト、ミザール、ベネトナシュ…。
+		PRINTFORMW 確かにドゥベ、メラク…は、北斗七星に連なる星の名だ。
+		PRINTFORML
+		PRINTFORML ダイチ：
+		PRINTFORMW 「って事は…全部で７体？」
+		PRINTFORMW 「あと５体って事かぁ…」
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「そうなるなぁ」
+		PRINTFORMW 北斗七星が関係しているのならば、あと５体という憶測は正しいのかもしれない。
+		PRINTFORMW いずれにせよ、ヤマトはかなりの情報を持っている筈だ。
+		PRINTFORMW 折を見て、ヤマトに聞いてみよう。
+		PRINTFORML
+		PRINTFORML ヒナコ：
+		PRINTFORMW 「ほなサマナー、ウチらはそろそろ部屋に戻るわぁ」
+		PRINTFORMW 「また大阪来たら、案内したるで～♪」
+		PRINTFORMW ＞ヒナコ達は、部屋に戻って行った…。
+		PRINTFORML
+		PRINTFORMW ＞今回は東京勢、そして大阪勢について面識を持てた。
+		PRINTFORMW ＞彼らは、今日の一件でこちらを信用してくれている様だ。
+		PRINTFORMW ＞一方で相手にしている敵の正体は、まだ分からない…。
+		PRINTFORML
+		PRINTFORMW ＞そういえば、ヤマトは人材の融通も検討すると言っていた…。
+		PRINTFORMW ＞ヒナコは悪魔使いとしても、性奴隷としても魅力的な人材である…。
+		PRINTFORMW ＞…今度、ヤマトにヒナコを融通して貰えないか聞いておこう…。
+		PRINTFORML
+		PRINTFORMW ＞室内は静寂に包まれている…。
+		PRINTFORMW ＞そろそろ寝よう…。
+		PRINTFORMW ＞明日の朝、列車で戻る事にした。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORMW ￥40000を入手しました。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML 『2ND DAY』 が完了しました。
+		PRINTFORML
+		PRINTFORMW 
+		PRINTL 
+		PRINTL 
+
+		MONEY += 50000
+
+		;- フラグセット
+		FLAG:デビサバ２進行度 = 200
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_30_FLAG_RESET
+
+		;- 依頼:一日の終了
+		CALL REQUEST_30_DAY_END
+
+ENDSELECT
+
+
+;=================================================
+;   sub SET_ACTION_REQ_30_2_フミ
+;=================================================
+;   SET_ACTION:REQ_30_2(フミ)
+;-------------------------------------------------
+; Input:
+;  ARG:0				キャラ
+;-------------------------------------------------
+@SET_ACTION_REQ_30_2_フミ(ARG)
+
+;瀕死なら行動無し
+SIF CFLAG:ARG:ステート == GET_STATE_NUM("DYING")
+	RETURN
+
+DRAWLINE
+PRINTFORML
+;- 赤
+SETCOLOR 0xFF0000
+PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+PRINTFORML ┃[9] 謎のハッカー　　　　　┃　┃ハッキング　　　　　　　　　　　　　　　┃
+PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━━┓
+PRINTFORML ┃………　　　　　　　　　　　　　　　　　　　　┃
+PRINTFORML ┃ハッカーはキーボードを叩いている………　　　　┃
+PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　　┃
+PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━━┛
+PRINTFORML 
+RESETCOLOR
+RETURN

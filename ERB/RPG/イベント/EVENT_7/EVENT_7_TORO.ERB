@@ -1,0 +1,435 @@
+@EVENT_7_TORO
+#LOCALSIZE 10
+#LOCALSSIZE 30
+;ルート進行を保存
+LOCAL:6 = STRFLAG_NUM_EV("罪ルート進行", , , , [[イベント:ペルソナ２]])
+LOCAL:7 = STRFLAG_NUM_EV("罰ルート進行", , , , [[イベント:ペルソナ２]])
+LOCAL:8 = STRFLAG_NUM_EV("ニャル進行", , , , [[イベント:ペルソナ２]])
+LOCAL:9 = STRFLAG_NUM_EV("フィレモン進行", , , , [[イベント:ペルソナ２]])
+;提供噂の決定
+VARSET LOCALS
+LOCAL = 10
+;--------------------------------------
+;噂の在庫調査
+;--------------------------------------
+;罪進行3以上
+IF (LOCAL:6 >= 3 || LOCAL:7 >= 3) && STRFLAG_NUM_EV("機能美こそ最先端の噂") < 2
+	LOCALS:LOCAL = 今年の流行は防具の噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+;罪進行3　ゾディアック前
+IF LOCAL:6 == 3 && STRFLAG_NUM_EV("元陸上部員の意外な就職先の噂") < 2
+	LOCALS:LOCAL = コスプレクラブの噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+IF LOCAL:6 == 5
+	IF STRFLAG_NUM_EV("ヴィジュアル系番長の噂") < 2
+		LOCALS:LOCAL = ロリコンプロデューサーの噂
+		IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+			LOCAL++
+		ELSE
+			LOCALS:LOCAL = 
+		ENDIF
+	ELSE
+		LOCALS:LOCAL = 番長の彼女の噂
+		IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+			LOCAL++
+		ELSE
+			LOCALS:LOCAL = 
+		ENDIF
+	ENDIF
+ENDIF
+;罪進行度7(空の科学館突入可能)以上・罰進度7(うららと戦闘可能)以上
+IF (LOCAL:6 >= 7 || LOCAL:7 >= 7) && STRFLAG_NUM_EV("英国伝統の防具の噂") < 2
+	LOCALS:LOCAL = 魔法の仕立て屋の噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+IF (LOCAL:6 == 8) && STRFLAG_NUM_EV("ナチスの切札は機械化美女軍団の噂") < 2
+	LOCALS:LOCAL = ナチスの美人秘密兵士の噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+;罪進行度7(空の科学館クリア後)以上
+IF (LOCAL:6 >= 9) && STRFLAG_NUM_EV("口笛店主会心の作の噂") < 2
+	LOCALS:LOCAL = 口笛店主渾身の新作の噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+SIF LOCAL == 10
+	LOCALS = ネタ切れ
+
+CUSTOMDRAWLINE =
+;--------------------------------------
+;選択肢冒頭
+;--------------------------------------
+IF !STRFLAG_EV("トロ初回", 1)
+	PRINTL ＞仲間の寿司貴族達と共に寿司をがつがつと食べる太った若者がいる
+	PRINTW ＞彼が横内健太、通称噂屋トロらしい
+	PRINTL 
+	PRINTL トロ:
+	PRINTW 「噂を買いたい？。あぁ、何を隠そう、僕は凄腕セールスマンなんだけど、職業がら、噂話にくわしくなっちゃってね」
+	PRINTW 「今じゃ噂屋なんて呼ばれてるんだ」
+	PRINTW 「噂話は、セールスだけじゃなくて、いろんな役に立つからね～」
+	PRINTW 「君も噂が知りたかったら、教えてあげるよ」
+	PRINTW 「まぁ、これも商売だし、もらうものはしっかりもらうけど」
+ELSE
+	PRINTL トロ:
+	PRINTW 「やあ。また来たね？　僕は今日も絶好調さ。ノット、膨満感だね」
+ENDIF
+IF 0
+	$START
+	PRINTW 「で、まだなにかあるかな？」
+ENDIF
+PRINTL 
+PRINTL [0] Buy Rumors
+PRINTL [1] Talk
+PRINTL [9] Leave the Store
+CALL INPUTINT(0, 1, 9)
+IF RESULT == 0
+	IF LOCALS == "ネタ切れ"
+		PRINTL トロ:
+		PRINTL 「やあ。また来たね？　だけど、今日はネタ切れってやつだね」
+		PRINTW 「特に売れるような噂はないね。残念だけど、また今度ってことで」
+		GOTO START
+	ENDIF
+	PRINTW 「で、どのネタが欲しいんだい？」
+	PRINTL 
+	$INPUT_LOOP_CHOICE
+	FOR LOCAL, 10, 30
+		SIF STRLENS(LOCALS:LOCAL) == 0
+			BREAK
+		PRINTFORML [{LOCAL-10}] %LOCALS:LOCAL%
+	NEXT
+	PRINTL [100] Return
+	INPUT
+	IF RESULT == 100
+		PRINTL トロ:
+		PRINTW 「うん、噂はいらないのかい？」
+		GOTO START
+	ELSEIF RESULT+10 >=0 && RESULT+10 < VARSIZE("LOCALS") && STRLENS(LOCALS:(RESULT+10))
+		LOCALS = %LOCALS:(RESULT+10)%
+		IF LOCALS == "今年の流行は防具の噂"
+			;噂基本価格
+			LOCAL = 5000
+			;価格補正人数係数
+			LOCAL:1 = 30
+			;レンタルの日数
+			LOCAL:2 = 1
+			;レンタルの最低価格
+			LOCAL:3 = 10
+		ELSEIF LOCALS == "コスプレクラブの噂"
+			;噂基本価格
+			LOCAL = 10000
+			;価格補正人数係数
+			LOCAL:1 = 25
+			;レンタルの日数
+			LOCAL:2 = 1
+			;レンタルの最低価格
+			LOCAL:3 = 10
+		ELSEIF LOCALS == "ロリコンプロデューサーの噂"
+			;噂基本価格
+			LOCAL = 50000
+			;価格補正人数係数
+			LOCAL:1 = 15
+			;レンタルの日数
+			LOCAL:2 = 3
+			;レンタルの最低価格
+			LOCAL:3 = 30
+		ELSEIF LOCALS == "番長の彼女の噂"
+			;噂基本価格
+			LOCAL = 50000
+			;価格補正人数係数
+			LOCAL:1 = 15
+			;レンタルの日数
+			LOCAL:2 = 3
+			;レンタルの最低価格
+			LOCAL:3 = 30
+		ELSEIF LOCALS == "魔法の仕立て屋の噂"
+			;噂基本価格
+			LOCAL = 80000
+			;価格補正人数係数
+			LOCAL:1 = 10
+			;レンタルの日数
+			LOCAL:2 = 3
+			;レンタルの最低価格
+			LOCAL:3 = 50
+		ELSEIF LOCALS == "口笛店主渾身の新作の噂"
+			;噂基本価格
+			LOCAL = 160000
+			;価格補正人数係数
+			LOCAL:1 = 8
+			;レンタルの日数
+			LOCAL:2 = 3
+			;レンタルの最低価格
+			LOCAL:3 = 100
+		ELSEIF LOCALS == "ナチスの美人秘密兵士の噂"
+			;噂基本価格
+			LOCAL = 160000
+			;価格補正人数係数
+			LOCAL:1 = 8
+			;レンタルの日数
+			LOCAL:2 = 3
+			;レンタルの最低価格
+			LOCAL:3 = 100
+		ENDIF
+	ELSE
+		GOTO INPUT_LOOP_CHOICE
+	ENDIF
+	PRINTFORML 「%LOCALS%ね、いいよ」
+	PRINTW 「で、なにをくれるのかな？」
+	PRINTL 
+	$INPUT_LOOP_TORO
+	PRINTL [0] Buy Rumor With Money
+	PRINTL [1] Buy Rumor With Gifts
+	PRINTL [2] Seduce
+	PRINTL [3] Lend a Slave
+	PRINTL [4] Resolve With Violence
+	PRINTL [99] Buy Another Rumor
+	PRINTL [100] Return
+	CALL INPUTINT(0, 1, 2, 3 ,4, 99, 100)
+	SELECTCASE RESULT
+		CASE 0
+			;値段を決定する。女主人の場合は陥落人数により割引が発生する
+			IF TALENT:MASTER:オトコ == 0
+				LOCAL = LOCAL * (100 - LOCAL:1 * (FLAG:恋慕人数 + FLAG:淫乱人数 +FLAG:服従人数))/100
+				;下限は5000
+				SIF LOCAL <= 5000
+					LOCAL = 5000
+			ENDIF
+			PRINTL トロ:
+			PRINTFORMW 「そうだな。{LOCAL}円ほどでどうかな？」
+			IF MONEY > LOCAL
+				PRINTL 支払いますか？
+			ELSE
+				PRINTW 所持金が足りない…
+				GOTO INPUT_LOOP_TORO
+			ENDIF
+			CALL INPUT_YN
+			IF RESULT == 0
+				MONEY -= LOCAL
+				PRINTFORMW ＞{LOCAL}円を支払った
+				PRINTL 
+				PRINTL トロ:
+				PRINTW 「うん、確かに受け取ったよ。まいど」
+			ELSE
+				PRINTL トロ:
+				PRINTW 「まぁ高いっていうんなら、仕方ないね」
+				PRINTW 「価値がわからない人間に売ることはないし」
+				GOTO INPUT_LOOP_TORO
+			ENDIF
+		CASE 1
+			PRINTL トロ:
+			PRINTW 「ん、欲しいもの？　それなら、なんか食べるものがいいな」
+			PRINTW 提供できる食べ物がない！ 
+			GOTO INPUT_LOOP_TORO
+		CASE 2
+			IF TALENT:MASTER:オトコ
+				PRINTL トロ:
+				PRINTW 「いや、僕はそういう趣味とかないから…」
+				PRINTW 「とってもノーサンキューだ！」
+				GOTO INPUT_LOOP_TORO
+			ELSEIF TALENT:MASTER:謎の魅力 == 0
+				PRINTL トロ:
+				PRINTW 「うーん、悪くはない提案だけど…」
+				PRINTW 「正直、いま、そっちのほうは満足しちゃってるんだよね」
+				PRINTW 「そういうわけで、今はノーサンキューかな」
+				GOTO INPUT_LOOP_TORO
+			ELSE
+				PRINTL トロ:
+				PRINTW 「君が相手をしてくれる？」
+				PRINTW 「そういうことなら…」
+				CALLF STRFLAG_EV("主人売春", 1)
+			ENDIF
+		CASE 3
+			PRINTL トロ:
+			PRINTW 「奴隷を貸してくれる？」
+			PRINTW 「うーん…まぁ、貸してくれる奴隷次第ならセールスの役に立ちそうだけど」
+			PRINTW 「それじゃあよさそうな子だったら、3日ほどで手を打たせてもらうかな」
+			PRINTW 「で、どんなの子を貸してくれるってくれるっていうのさ？」
+			CALL RENTAL_SLAVE(LOCAL:2, LOCAL:3)
+			IF RESULT == 1
+				PRINTL トロ:
+				PRINTW 「うん、これならバッチリだ」
+				PRINTW 「商談成立だね」
+				CALLF STRFLAG_EV("奴隷レンタル", 1)
+			ELSE
+				PRINTL トロ:
+				PRINTW 「適当な奴隷がいないみたいだね」
+				PRINTW 「それじゃあ、この話はなかったことにしてもらうよ」
+				GOTO INPUT_LOOP_TORO
+			ENDIF
+		CASE 4
+			PRINTW ＞ここでこいつを締め上げてしまうか
+			PRINTW ＞このあたりにはもう近づけなくなるが、どうとでもなるだろう
+			PRINTL ＞本当に暴力で無理矢理解決しますか？
+			CALL INPUT_YN
+			IF RESULT == 0
+				PRINTL トロ:
+				PRINTW 「な、なにをするんだ」
+				PRINTL 「わ、わかった…知ってることは何でも話すから勘弁してくれ」
+				PRINTFORMW %CALLNAME:MASTER%が武器を取り出すと、噂屋トロはあっけなく降参した
+				;だいぶDCに傾く
+				CALL INCREASE_LD, -10
+				CALL INCREASE_LC, -10
+				CALLF STRFLAG_EV("トロ暴力", 1)
+			ELSE
+				PRINTW 無駄に暴力を使っても仕方ない。やめておこう
+				GOTO INPUT_LOOP_TORO
+			ENDIF
+		CASE 99
+			PRINTL トロ:
+			PRINTW 「うん、そうかい？」
+			PRINTW 「じゃあ、別のネタを選んでよ」
+			GOTO INPUT_LOOP_CHOICE
+		CASE 100
+			PRINTL トロ:
+			PRINTL 「おや、やめるの？」
+			PRINTW 　まぁ、いいよ。こっちの商売は無理に売ることもないから」
+			GOTO START
+	ENDSELECT
+	IF LOCALS == "コスプレクラブの噂"
+		PRINTL トロ:
+		PRINTW 「じゃあ、噂だけど…」
+		PRINTW 「夢崎区のクラブゾディアックって知ってる？」
+		PRINTW 「ふつーに学生なんかの遊び場なはずなんだけどさ」
+		PRINTW 「どーも、最近様子がおかしいらしいんだよね」
+		PRINTW 「いや、なんか変な格好した連中が出入りしてて」
+		PRINTW 「転生戦士だとか、正義の戦いだとか、悪を滅ぼすだとかそんなこといってるとか」
+		PRINTW 「いわゆるコスプレのごっこ遊びだと思うんだけど…」
+		PRINTW 「なんかもう、小学生とかも出入してるらしいし」
+		PRINTW 「いやぁ、時代も変わったよねぇ」
+		PRINTW 「僕らの頃はアニメとかもっと日陰なもんだとおもったけど」
+		PRINTW 「いまや、クラブを占拠してみんなでわいわいとか、信じられないよ」
+	ELSEIF LOCALS == "ロリコンプロデューサーの噂"
+		PRINTL トロ:
+		PRINTW 「じゃあ、噂だけど…」
+		PRINTW 「今話題沸騰中のMUSESのプロデューサーの佐々木銀次だけど」
+		PRINTW 「自分がプロデュースするアイドルの子を食べちゃってるというか」
+		PRINTW 「調教しちゃってるって話だよ」
+		PRINTW 「まぁ、口さがないおばさんたちの噂だけど、嘘とは言い切れないね」
+		PRINTW 「だって、いきなり無名の高校生がデビューとか…ねぇ？」
+	ELSEIF LOCALS == "番長の彼女の噂"
+		PRINTL トロ:
+		PRINTW 「じゃあ、噂だけど…」
+		PRINTW 「今話題沸騰中のガスチェンバーライブのヴォーカルの彼女なんだけど」
+		PRINTW 「すごい綺麗なお嬢様だっていうんだよね」
+		PRINTW 「それが、絵に書いたような大和撫子で、すごい家に住んでるとか」
+		PRINTW 「それがまぁ、いくらアイドルっていっても、メジャーデビュー前の、それもカス高の番長なんかと付き合うなんて」
+		PRINTW 「実はその子は親へのあてつけでそんなのと付き合ってて」
+		PRINTW 「そのために、番長もデビューさせちゃうとか…って話だよ」
+		PRINTW 「親子げんかでアイドルつくるなんて、すごい話だよねぇ」
+	ELSEIF LOCALS == "今年の流行は防具の噂"
+		PRINTL トロ:
+		PRINTL 「じゃあ、噂だけど…
+		PRINTW 　今年のファッションの最先端はなんと防具らしいよ」
+		PRINTW 「まぁ、物騒な世の中だし、防具が求められるってのはわかるけど
+		PRINTW 　それがファッションになるなんてねぇ」
+		PRINTW 「ほら、蓮華台のロサ・カンディータ、高級ブティックだけど知ってる？
+		PRINTW 　あそこでも、近々、オリジナルデザインの防具を大々的に売り出すとかなんとか」
+		PRINTL 「売り文句は【知性と品性に満ち溢れた貴方に相応しい一品】だとか
+		PRINTW 　なんでも、防御力は低いけど、魔法につよくて、また魔法を使うのを助けてくれるとか」
+		PRINTL 「魔法に強いのはいいかもしれないけど
+		PRINTL 　魔法を使うのを助けてくれるってのは僕なんかはいいけど
+		PRINTW 　大抵の人には関係ない気もするけど」
+	ELSEIF LOCALS == "魔法の仕立て屋の噂"
+		PRINTL トロ:
+		PRINTL 「じゃあ、噂だけど…
+		PRINTW 　港南区の倫敦屋で防具を買えるらしいよ」
+		PRINTL 「なんでも、あそこのテイラーが英国で服の勉強をしてたときに
+		PRINTW 　覚えた魔術を利用しているとか」
+		PRINTL 「一見、普通の防具に見えても、魔法使いが扱いやすいように
+		PRINTW 　すごい工夫がされてるから英国紳士ならぬ、英国魔術師御用達の逸品になってるとか」
+		PRINTL 「紳士はともかくとして、魔術師がそんないるとは思えないけど
+		PRINTW 　イギリスは魔術が発展してるらしいし、悪くはないかもね」
+	ELSEIF LOCALS == "口笛店主渾身の新作の噂"
+		PRINTL トロ:
+		PRINTL 「じゃあ、噂だけど…
+		PRINTW 　この平坂区の東亜ディフェンスって知ってる？」
+		PRINTL 「そこで、本物の防具が買えるらしい
+		PRINTW 　まぁ、ディフェンスっていうくらいだから当然かな？」
+		PRINTL 「でも、そこの防具はひと味もふた味も違うとか
+		PRINTW 　特に新作は、魔法から身を守ってくれるらしい」
+		PRINTL 「親父はとっつきづらいけど、質はいいらしいし
+		PRINTW 　君もいってみたら？」
+	ELSEIF LOCALS == "ナチスの美人秘密兵士の噂"
+		PRINTL トロ:
+		PRINTL 「じゃあ、噂だけど…
+		PRINTW 　最近ナチスの生き残りが珠閒瑠市を狙ってるって噂知ってる？」
+		PRINTL 「なんでも彼らが秘蔵した兵器の中に聖なる槍みたいなものがあるらしいんだけど
+		PRINTW 　それが強化服みたいなもので、中に人が入っているっていうんだ」
+		PRINTL 「それで、なんでもその兵器の中の人には女の人が混じっていて
+		PRINTW 　それがすっごく美人な軍人さんなんだってさ」
+		PRINTL 「まぁナチスの秘密兵器なんて実際に出てこられたら困るし
+		PRINTW 　あくまで噂であってほしい噂だけどね」
+	ENDIF
+	IF STRFLAG_EV("主人売春")
+		PRINTL トロ:
+		PRINTW 「さて、噂はこんな感じだけど…わかってるよね？」
+		PRINTL 
+		PRINTW ＞トロはいやらしい笑みを浮かべる
+		PRINTFORMW ＞%CALLNAME:MASTER%は無言で頷くと、トロと共にホテルへと向かった…
+		CALL PROSITUTION_GOSSIP_M
+	ENDIF
+	CUSTOMDRAWLINE = 
+	WAIT
+	CALLF STRFLAG_NUM_EV(LOCALS, "=", , 1)
+	PRINTFORMW ＞%LOCALS%を手に入れた
+	RETURN 0
+ELSEIF RESULT == 1
+	PRINTL トロ:
+	;罪ルート(ゾディアッククリア前)
+	IF RANGE(LOCAL:6, 2, 3)
+		PRINTL 「えっ？仮面党？知らないよ、そんな名前
+		PRINTL 　党って事は、何かの組織の名前なのかな？
+		PRINTW 　そんな連中がこの街にいるの？」
+		PRINTL 「それ凄いネタだよ、早速チェックしとかなきゃ
+		PRINTL 　そうだ。あのピースダイナーにいる女子高生なら何か知ってるんじゃない？
+		PRINTW 　もう聞いてみた？」
+	;罪ルート(コンサートクリア前)
+	ELSEIF RANGE(LOCAL:6, 4, 5)
+		PRINTL 「噂のネタが聞けるのは嬉しいんだけど、どうも武器とか防具とか物騒な話が多くて嫌だね
+		PRINTL 　まぁ、悪魔とかでてくるんじゃ、武器を欲しがるのも仕方ないけど
+		PRINTW 　どうせなら、今みたいにアイドルとかそういう噂で溢れてるほうがいいね」
+	;罪ルート(空の科学館クリア前)
+	ELSEIF RANGE(LOCAL:6, 6, 7)
+		PRINTL 「この平坂区でもスマイル平坂がテロのターゲットになったよ
+		PRINTW 　お洒落とはいえないけど、僕も愛用してたデパートだけにわりとショックだよ」
+	;罪ルート(ラストバタリオン登場後)
+	ELSEIF RANGE(LOCAL:6, 9, 10)
+		PRINTL 「街の人達は、いきなり現れた兵士達で大騒ぎだね
+		PRINTW 　僕？　僕はとりあえずここでエンガワが食べれるうちは騒いだりしないね」
+	;罰ルート
+	ELSEIF RANGE(LOCAL:7, 2, 4)
+		PRINTL 「ＪＯＫＥＲ呪い？　結構試してる人がいるみたいだけど
+		PRINTW 　僕にはもっと頼りになるものがあるから、あんまり興味ないね」
+	;条件該当なし用
+	ELSE
+		PRINTL 「やっぱりここは情報収集の場所にうってつけだね
+		PRINTL 　話は聞けるし、お寿司も美味しいし、モグモグ…
+		PRINTW 　ハァ…もう何もかも大漁って感じ」
+	ENDIF
+ELSE
+	PRINTL トロ:
+	PRINTW 「うん、噂はいらないのかい？」
+	PRINTW 「まぁ、僕はいつもここにいるから、またいつでも来るといいよ」
+	RETURN -1
+ENDIF
+GOTO START

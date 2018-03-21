@@ -1,0 +1,586 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:ZOUMA.ERB
+;	Facility	:Zoma作成
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2013/11/24		ひみつ					リスト表示数設定
+;	003		2015/08/06		----					素材の保有MAGが譲渡されないバグを修正
+;	004		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;================================================================
+;Zoma作成
+;================================================================
+@MAKE_ZOUMA
+;LOCAL:1 素材の登録番号
+LOCAL:1 = -1
+$START_MAKE
+
+CALL INPUT_CHARA_LIST("Please choose a demon to fuse with a Dolly Kadmon and create a zoma", "CASTING_MAKE_ZOUMA")
+IF RESULT == 1000
+	RETURN 0
+ENDIF
+
+LOCAL:1 = RESULT
+LOCAL:3 = CHARANUM
+
+;一旦合体結果の悪魔をキャラ登録
+CALL ADD_NEW_COMPANION,4402,500, -1
+
+;スキル継承
+FOR LOCAL,1,FLAG:スキル数+1
+	LOCALS = スキル{LOCAL}
+	ABL:(LOCAL:3):LOCALS = ABL:(LOCAL:1):LOCALS
+NEXT
+;能力継承
+FOR LOCAL,0,7
+	BASE:(LOCAL:3):(GET_BASESTATUS(LOCAL)) = BASE:(LOCAL:1):(GET_BASESTATUS(LOCAL)) +1
+NEXT
+;CFLAG:(LOCAL:3):初期LV = CSVBASE(NO:(LOCAL:1),GETNUM(BASE,"LV"),0)
+CFLAG:(LOCAL:3):初期LV = BASE:(LOCAL:3):LV
+
+;調教効果による能力アップ
+BASE:(LOCAL:3):力 += (ABL:(LOCAL:1):欲望+1)/2
+BASE:(LOCAL:3):知恵 += (ABL:(LOCAL:1):技巧+1)/2
+BASE:(LOCAL:3):魔力 += (ABL:(LOCAL:1):欲望+1)/2
+BASE:(LOCAL:3):耐力 += (ABL:(LOCAL:1):従順+1)/2
+BASE:(LOCAL:3):速さ += (ABL:(LOCAL:1):技巧+1)/2
+BASE:(LOCAL:3):運 += (ABL:(LOCAL:1):従順+1)/2
+
+;ガチャモードONで、ガチャ継承処理
+IF FLAG:悪魔ガチャモード > 0
+	SIF TALENT:(LOCAL:1):ガチャ
+		TALENT:(LOCAL:3):ガチャ = 1
+ENDIF
+
+SIF TALENT:(LOCAL:1):武器
+	TALENT:(LOCAL:3):武器 = 1
+SIF TALENT:(LOCAL:1):鉤爪
+	TALENT:(LOCAL:3):鉤爪 = 1
+SIF TALENT:(LOCAL:1):鉤足
+	TALENT:(LOCAL:3):鉤足 = 1
+SIF TALENT:(LOCAL:1):羽
+	TALENT:(LOCAL:3):羽 = 1
+SIF TALENT:(LOCAL:1):尾
+	TALENT:(LOCAL:3):尾 = 1
+SIF TALENT:(LOCAL:1):射撃武器
+	TALENT:(LOCAL:3):射撃武器 = 1
+SIF TALENT:(LOCAL:1):毛皮
+	TALENT:(LOCAL:3):毛皮 = 1
+SIF TALENT:(LOCAL:1):触手
+	TALENT:(LOCAL:3):触手 = 1
+SIF TALENT:(LOCAL:1):嘴
+	TALENT:(LOCAL:3):嘴 = 1
+SIF TALENT:(LOCAL:1):動物耳
+	TALENT:(LOCAL:3):動物耳 = 1
+SIF TALENT:(LOCAL:1):小柄体型
+	TALENT:(LOCAL:3):小柄体型 = 1
+SIF TALENT:(LOCAL:1):小人体型
+	TALENT:(LOCAL:3):小人体型 = 1
+SIF TALENT:(LOCAL:1):大柄
+	TALENT:(LOCAL:3):大柄 = 1
+SIF TALENT:(LOCAL:1):巨体
+	TALENT:(LOCAL:3):巨体 = 1
+
+;ソウルハッカーズのZomaの耐性変化をアレンジ　獣：獣型、爬虫類：竜型、←以外で羽持ち：天使型、←以外：人型
+IF TALENT:(LOCAL:1):獣
+	TALENT:(LOCAL:3):動物耳 = 1
+	TALENT:(LOCAL:3):尾 = 1
+	TALENT:(LOCAL:3):毛皮 = 1
+	BASE:(LOCAL:3):剣撃 = 75
+	BASE:(LOCAL:3):飛具 = 75
+ELSEIF TALENT:(LOCAL:1):爬虫類
+	TALENT:(LOCAL:3):尾 = 1
+	BASE:(LOCAL:3):衝撃 = 75
+	BASE:(LOCAL:3):核熱 = 75
+ELSEIF TALENT:(LOCAL:3):羽
+	BASE:(LOCAL:3):火炎 = 75
+	BASE:(LOCAL:3):水撃 = 75
+ELSE
+	BASE:(LOCAL:3):火炎 = 75
+	BASE:(LOCAL:3):衝撃 = 75
+ENDIF
+
+;武器によって射程と相性が変更
+IF TALENT:(LOCAL:3):武器
+	ABL:(LOCAL:3):攻撃相性 = 0
+ELSEIF TALENT:(LOCAL:3):射撃武器
+	ABL:(LOCAL:3):攻撃相性 = 1
+	ABL:(LOCAL:3):射程 = 3
+ENDIF
+
+CALL SYNC_STATUS,LOCAL:3
+CALL HEALTH_CHARA,LOCAL:3
+CALL CONTROL_MAG,LOCAL:3,BASE:(LOCAL:1):ＭＡＧ+CFLAG:(LOCAL:1):強化使用ＭＡＧ
+
+NAME:(LOCAL:3) = %" "%
+CALLNAME:(LOCAL:3) = %" "%
+
+CUSTOMDRAWLINE =
+;合体結果のステータスを表示
+U = LOCAL:3
+LOCAL:10 = 2
+$PRINT_STATUS
+PRINTFORML %STR:(ABL:U:80)%　　%CALLNAME:U%　　
+CALLFORM SHOW_INFO_PAGE_{LOCAL:10}
+CUSTOMDRAWLINE =
+
+
+	;ステータスの表示切替用
+PRINTFORMLC \@ LOCAL:10 == 2 ? [1007]Previous page # %" " * 16% \@
+PRINTFORMLC                 
+PRINTFORMLC \@ LOCAL:10 == 1 ? [1009]Next page # %" " * 16% \@
+PRINTL
+PRINTL
+
+;合体するかどうか　→　合体実行（実際には既に終わっている）
+PRINTL Is this demon alright? [0]Yes [1]No
+$INPUT_LOOP
+INPUT
+IF RESULT == 1007 && LOCAL:10 == 2
+	LOCAL:10 = 1
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1009 && LOCAL:10 == 1
+	LOCAL:10 = 2
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1
+	DELCHARA LOCAL:3
+	REPEAT 4
+		LOCAL:(COUNT+1) = -1
+	REND
+	RESTART
+ELSEIF RESULT == 0
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+
+;名称決定
+CALL NAME_ZOUMA,LOCAL:3
+
+;作成時のセリフを表示
+TRYCCALLFORM FUSION_MESSAGE_K{NO:(LOCAL:3)},LOCAL:3
+
+CATCH
+	TRYCALLFORM FUSION_MESSAGE_PUB{ABL:(LOCAL:3):会話タイプ},LOCAL:3
+ENDCATCH
+
+;忠誠度による素質変更
+CALL MAKE_TALENT,LOCAL:3,BASE:(LOCAL:1):忠誠度*3
+
+PRINTFORMW %STR:(ABL:(LOCAL:3):種族)% %CALLNAME:(LOCAL:3)% became an intermediary.
+
+CALL FUSION_LETTER,LOCAL:1,3
+
+;合体素材の悪魔を消去
+SIF GET_STATE(CFLAG:(LOCAL:1):ステート) == "DYING"
+	CALL INCREASE_LD,-7
+CALL キャラ削除, LOCAL:1
+
+ITEM:ドリー・カドモン -= 1
+
+RETURN 0
+
+GOTO START_MAKE
+
+
+@CASTING_MAKE_ZOUMA
+SIF 契約(COUNT) > 0
+	RETURN 0
+SIF ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 44
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF CFLAG:COUNT:合体不可
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+
+;==========================================================================
+;Zomaをドリー・カドモンに戻す
+;==========================================================================
+@DEL_ZOUMA
+
+CALL INPUT_CHARA_LIST("Which Zoma shall be turned back into a Dolly Kadmon?", "CASTING_DEL_ZOUMA")
+IF RESULT == 1000
+		RETURN 0
+ENDIF
+
+LOCAL:1 = RESULT
+PRINTFORMW %NAME:(LOCAL:1)% was reverted into a Dolly Kadmon.
+
+CALL FUSION_LETTER, LOCAL:1,5
+
+IF TARGET == LOCAL:1
+	TARGET = -1
+ELSE
+	SIF TARGET > LOCAL:1
+		TARGET -= 1
+ENDIF
+IF ASSI == LOCAL:1
+	ASSI = -1
+ELSE
+	SIF ASSI > LOCAL:1
+		ASSI -= 1
+ENDIF
+
+;合体素材の悪魔を消去
+;SIF CFLAG:(LOCAL:1):ポジション > 0
+;	CALL REMOVE_POSITION,CFLAG:(LOCAL:1):ポジション
+;DELCHARA LOCAL:1
+CALL キャラ削除, LOCAL:1
+;ポジションに齟齬が発生するので、FLAG側を初期化＋CFLAG側から読み込み
+;CALL REFRESH_POS
+
+ITEM:ドリー・カドモン += 1
+
+@CASTING_DEL_ZOUMA
+SIF ABL:COUNT:種族 != 45
+	RETURN 0
+;メアリは削除できない
+SIF NO:COUNT == 4509
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+;================================================================
+;Zoma強化合体
+;================================================================
+@FUSION_ZOUMA
+;#DIM 強化する造魔
+;#DIM 合体素材
+FLAG:合体予定悪魔1 = -1
+FLAG:合体予定悪魔2 = -1
+$START_FUSION
+
+IF FLAG:合体予定悪魔1 > -1
+	CALL INPUT_CHARA_LIST("Please choose the demon to fuse", "CASTING_FUSION_ZOUMA", "", "DOWN_PRINT_FUSION_ZOUMA")
+ELSE
+	CALL INPUT_CHARA_LIST("Please choose the Zoma to fuse", "CASTING_FUSION_ZOUMA", "", "DOWN_PRINT_FUSION_ZOUMA")
+ENDIF
+	;選択
+	;２体目
+IF RESULT == 1000
+	IF FLAG:合体予定悪魔1 > -1
+		FLAG:合体予定悪魔1 = -1
+		GOTO START_FUSION
+	ELSE
+		RETURN 0
+	ENDIF
+ENDIF
+
+
+
+IF FLAG:合体予定悪魔1 > 0
+	FLAG:合体予定悪魔2 = RESULT
+	
+	;能力とスキルを保存
+	FOR LOCAL, 0, 7
+		LOCAL:(10+LOCAL) = BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL))
+	NEXT
+	FOR LOCAL,1,FLAG:スキル数+1
+		LOCALS = スキル{LOCAL}
+		LOCAL:(20+LOCAL) = ABL:(FLAG:合体予定悪魔1):LOCALS
+		SIF !EQUIP:MASTER:SkillKeeper
+		ABL:(FLAG:合体予定悪魔1):LOCALS = 0
+	NEXT
+
+	;能力平均化処理
+	FOR LOCAL, 1, 7
+		IF BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL)) < MAXBASE:(FLAG:合体予定悪魔2):GET_BASESTATUS(LOCAL)
+			BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL)) = (BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL)) + MAXBASE:(FLAG:合体予定悪魔2):(GET_BASESTATUS(LOCAL))*3)/4
+		ELSE
+			BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL)) = (BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL)) * 2 + MAXBASE:(FLAG:合体予定悪魔2):(GET_BASESTATUS(LOCAL))*3)/5
+		ENDIF
+	NEXT
+	;Lvは上がりづらく
+	BASE:(FLAG:合体予定悪魔1):LV = MAX(BASE:(FLAG:合体予定悪魔1):LV, (BASE:(FLAG:合体予定悪魔1):LV * 3 + BASE:(FLAG:合体予定悪魔2):LV) / 4)
+	SIF EQUIP:MASTER:SkillKeeper
+		GOTO WEN
+	;スキルごちゃ混ぜ処理
+	$WHI
+		;強化するZomaの空いているスキル枠を参照する
+		;空いていなければRETURN 0
+		FOR LOCAL:3,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL:3}
+			IF ABL:(FLAG:合体予定悪魔1):LOCALS == 0
+				LOCALS:1 = %LOCALS%
+				BREAK
+			ENDIF
+			SIF LOCAL:3 == FLAG:スキル数
+				GOTO WEN
+		NEXT
+
+		;強化するZomaと合体素材のスキルの中から継承可能かつ持っていないスキルをピックアップ。
+		;見つけた場合、LOCALに放り込む。
+		;LOCALが埋まっている場合は、優先度がより高ければLOCALに上書き。
+
+		LOCAL = 0
+
+		;合体素材
+		FOR LOCAL:3,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL:3}
+			;未修得なら次へ
+			SIF ABL:(FLAG:合体予定悪魔2):LOCALS == 0
+				CONTINUE
+			;継承必要部位読み込み、強化するZomaが持ってなければ次へ
+			RESULT = 1
+			TRYCALLFORM 継承部位_{ABL:(FLAG:合体予定悪魔2):LOCALS}, FLAG:合体予定悪魔1
+			SIF RESULT == 0
+				CONTINUE
+			;既に習得しているスキルかつ、重複習得数（通常１）以上になるならば次へ
+			IF CHECK_SKILL(FLAG:合体予定悪魔1, ABL:(FLAG:合体予定悪魔2):LOCALS)
+				TRYCCALLFORM 重複習得数_{ABL:(FLAG:合体予定悪魔2):LOCALS}
+					SIF HAVE_SKILL_OVERLAP(FLAG:合体予定悪魔1, ABL:(FLAG:合体予定悪魔2):LOCALS) + 1 > RESULT
+						CONTINUE
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ENDIF
+			
+			IF LOCAL == 0
+				LOCAL = ABL:(FLAG:合体予定悪魔2):LOCALS
+				TRYCCALLFORM SKILL_RANK_{ABL:(FLAG:合体予定悪魔2):LOCALS}
+					LOCAL:4 = RESULT
+				CATCH
+					LOCAL:4 = 0
+				ENDCATCH
+			ENDIF
+			
+			TRYCCALLFORM SKILL_RANK_{ABL:(FLAG:合体予定悪魔2):LOCALS}
+				LOCAL:6 = RESULT
+			CATCH
+				LOCAL:6 = 0
+			ENDCATCH
+			
+			IF LOCAL:6 < LOCAL:4
+				LOCAL = ABL:(FLAG:合体予定悪魔2):LOCALS
+				LOCAL:4 = LOCAL:6
+			ENDIF
+		NEXT
+
+		;LOCAL:20~
+		FOR LOCAL:3,1,FLAG:スキル数+1
+			;未修得なら次へ
+			SIF LOCAL:(20+LOCAL:3) == 0
+				CONTINUE
+			;継承必要部位読み込み、強化するZomaが持ってなければ次へ
+			RESULT = 1
+			TRYCALLFORM 継承部位_{LOCAL:(20+LOCAL:3)}, FLAG:合体予定悪魔1
+			SIF RESULT == 0
+				CONTINUE
+			;既に習得しているスキルかつ、重複習得数（通常１）以上になるならば次へ
+			IF CHECK_SKILL(FLAG:合体予定悪魔1, LOCAL:(20+LOCAL:3))
+				TRYCCALLFORM 重複習得数_{LOCAL:(20+LOCAL:3)}
+					SIF HAVE_SKILL_OVERLAP(FLAG:合体予定悪魔1, LOCAL:(20+LOCAL:3)) + 1 > RESULT
+						CONTINUE
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ENDIF
+			
+			IF LOCAL == 0
+				LOCAL = LOCAL:(20+LOCAL:3)
+				TRYCCALLFORM SKILL_RANK_{LOCAL:(20+LOCAL:3)}
+					LOCAL:4 = RESULT
+				CATCH
+					LOCAL:4 = 0
+				ENDCATCH
+			ENDIF
+			
+			TRYCCALLFORM SKILL_RANK_{LOCAL:(20+LOCAL:3)}
+				LOCAL:6 = RESULT
+			CATCH
+				LOCAL:6 = 0
+			ENDCATCH
+			
+			IF LOCAL:6 < LOCAL:4
+				LOCAL = LOCAL:(20+LOCAL:3)
+				LOCAL:4 = LOCAL:6
+			ENDIF
+		NEXT
+
+		;この時点でLOCALが0＝継承できるスキルが無いのでBREAK
+		SIF LOCAL == 0
+			GOTO WEN
+
+		;全部捜査したらLOCALS:1のスキル枠に習得させる。
+		ABL:(FLAG:合体予定悪魔1):(LOCALS:1) = LOCAL
+	GOTO WHI
+	$WEN
+
+	;ガチャモードONで両方ガチャ素質持ってるか検出、持ってないなら一時的に-999に
+	IF FLAG:悪魔ガチャモード > 0
+		SIF TALENT:(FLAG:合体予定悪魔1):ガチャ > 0 && TALENT:(FLAG:合体予定悪魔2):ガチャ <= 0
+			TALENT:(FLAG:合体予定悪魔1):ガチャ = -999
+	ENDIF
+	CALL SYNC_STATUS, FLAG:合体予定悪魔1
+	CALL HEALTH_CHARA, FLAG:合体予定悪魔1
+	CUSTOMDRAWLINE =
+	;合体結果のステータスを表示
+	U = FLAG:合体予定悪魔1
+	PRINTFORML %STR:(ABL:U:80)%　　%CALLNAME:U%　　
+	CALL SHOW_INFO_PAGE_2
+	CUSTOMDRAWLINE =
+	
+	
+	;合体するかどうか　→　合体実行（実際には既に終わっている）
+	PRINT Is this demon alright? 
+
+	CALL INPUT_YN,"Yes","No",2
+
+	IF RESULT == 1
+		;ガチャモードONならガチャ素質を復元
+		SIF FLAG:悪魔ガチャモード == -999
+			TALENT:(FLAG:合体予定悪魔1):ガチャ = 1
+
+		;能力とスキルを復元
+		FOR LOCAL,0,7
+			BASE:(FLAG:合体予定悪魔1):(GET_BASESTATUS(LOCAL)) = LOCAL:(10+LOCAL)
+		NEXT
+		FOR LOCAL,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL}
+			ABL:(FLAG:合体予定悪魔1):LOCALS = LOCAL:(20+LOCAL) 
+		NEXT
+			CALL SYNC_STATUS, FLAG:合体予定悪魔1
+			CALL HEALTH_CHARA, FLAG:合体予定悪魔1
+		RESTART
+	ENDIF
+	
+	;ＭＡＧを吸収
+	CALL CONTROL_MAG, FLAG:合体予定悪魔1, BASE:(FLAG:合体予定悪魔2):ＭＡＧ+CFLAG:(FLAG:合体予定悪魔2):強化使用ＭＡＧ
+;---忠誠度による素質変更--------------------------
+	SIF TALENT:(FLAG:合体予定悪魔1):妻 || TALENT:(FLAG:合体予定悪魔1):夫 || TALENT:(FLAG:合体予定悪魔1):淫魔 || TALENT:(FLAG:合体予定悪魔1):玩具
+		CALL MAKE_TALENT, FLAG:合体予定悪魔1, BASE:(FLAG:合体予定悪魔2):忠誠度
+;-------------------------------------------------
+	IF TALENT:(FLAG:合体予定悪魔2):娼婦 || TALENT:(FLAG:合体予定悪魔2):親愛 || TALENT:(FLAG:合体予定悪魔2):隷属
+		CALL 造魔耐性強化(FLAG:合体予定悪魔1,1)
+	ELSEIF TALENT:(FLAG:合体予定悪魔2):淫乱 || TALENT:(FLAG:合体予定悪魔2):恋慕 || TALENT:(FLAG:合体予定悪魔2):服従
+		CALL 造魔耐性強化(FLAG:合体予定悪魔1,0)
+	ENDIF
+;	;作成時のセリフを表示
+;	TRYCCALLFORM FUSION_MESSAGE_K{NO:(FLAG:合体予定悪魔1)},LOCAL:3
+;	
+;	
+;	
+;	CATCH
+;		TRYCALLFORM FUSION_MESSAGE_PUB{ABL:(FLAG:合体予定悪魔1):会話タイプ},LOCAL:3
+;	ENDCATCH
+;	
+;	;ここに忠誠度による素質変化とか予定
+;	CALL MAKE_TALENT,LOCAL:3,(BASE:(FLAG:合体予定悪魔1):忠誠度+BASE:(FLAG:合体予定悪魔2):忠誠度)
+;	BASE:(LOCAL:3):忠誠度 = MAX(100,RESULT/2)
+;	
+;	PRINTFORMW %STR:(ABL:(LOCAL:3):種族)% %CALLNAME:(LOCAL:3)%が仲魔になった。
+	
+	IF TARGET == FLAG:合体予定悪魔2
+		TARGET = -1
+	ELSE
+		SIF TARGET > FLAG:合体予定悪魔2
+			TARGET -= 1
+	ENDIF
+	IF ASSI == FLAG:合体予定悪魔2
+		ASSI = -1
+	ELSE
+		SIF ASSI > FLAG:合体予定悪魔2
+			ASSI -= 1
+	ENDIF
+	
+	;手紙システム
+	CALL FUSION_LETTER, FLAG:合体予定悪魔2, 4
+	
+	;合体素材の悪魔を消去
+	SIF GET_STATE(CFLAG:(FLAG:合体予定悪魔2):ステート) == "DYING"
+		CALL INCREASE_LD,-7
+	CALL キャラ削除, FLAG:合体予定悪魔2
+	RETURN 0
+ELSE
+	FLAG:合体予定悪魔1 = RESULT
+ENDIF
+
+GOTO START_FUSION
+
+@CASTING_FUSION_ZOUMA
+SIF 契約(COUNT) > 0 && FLAG:合体予定悪魔1 > -1 
+	RETURN 0
+SIF (FLAG:合体予定悪魔1 > -1 && (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 44)) || (FLAG:合体予定悪魔1 == -1 && ABL:COUNT:種族 != 45)
+	RETURN 0
+SIF COUNT == FLAG:合体予定悪魔1 || COUNT == FLAG:合体予定悪魔2
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF CFLAG:COUNT:合体不可
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+@DOWN_PRINT_FUSION_ZOUMA
+SIF FLAG:合体予定悪魔1 > -1
+	PRINTFORML Selected Zoma:%CALLNAME:(FLAG:合体予定悪魔1)%
+;SIF FLAG:合体予定悪魔2 > -1
+;	PRINTFORML 2nd body:%CALLNAME:(FLAG:合体予定悪魔2)%
+
+;===========================================
+;Zomaの名前決定
+;===========================================
+@NAME_ZOUMA,ARG
+PRINTL Please name the zouma:
+
+	CALL CREATE_RANDOM_NAME_IF
+	NAME:ARG     = %RESULTS%
+	CALLNAME:ARG = %RESULTS%
+
+@造魔耐性強化(ARG,ARG:1)
+#DIM LCOLOR
+LCOLOR = GETCOLOR()
+PRINTFORMW Since the fusion demon had surrender markings, one elemental damage source can be \@ ARG:1 ? nullified # resisted \@.
+IF CFLAG:ARG:変更相性1
+	PRINTFORM Current resistance: %GET_TYPE_E(CFLAG:ARG:変更相性1 - 1) % 
+	;Which elemental affinity will you strengthen：
+	CALL SET_AISYOU_COLOR(CFLAG:ARG:変更相性値1)
+	PRINTFORML \@ CFLAG:ARG:変更相性値1 < 0 ? Drain # 　 \@\@ CFLAG:ARG:変更相性値1 != 999 ? {ABS(CFLAG:ARG:変更相性値1), 3}％ # %" "%Repel \@
+	SETCOLOR LCOLOR
+ENDIF
+DRAWLINE
+PRINTL Which elemental affinity do you change?
+FOR LOCAL, 0, FLAG:相性数 - 1
+	SIF LOCAL >= 8 && LOCAL <= 11
+		CONTINUE
+	PRINTFORM [{LOCAL, 2}]%GET_TYPE_E(LOCAL)% 
+	CALL SET_AISYOU_COLOR(MAXBASE:ARG:(GET_TYPE(LOCAL)))
+	PRINTFORM \@ MAXBASE:ARG:(GET_TYPE(LOCAL)) < 0 ? Drain # 　 \@
+	PRINTFORM \@ MAXBASE:ARG:(GET_TYPE(LOCAL)) != 999 ? {ABS(MAXBASE:ARG:(GET_TYPE(LOCAL))), 3}％ # %" "%Repel \@　
+	PRINTFORM \@ LOCAL % 6 == 5 ? \n # \@
+	SETCOLOR LCOLOR
+NEXT
+PRINTL 
+DRAWLINE
+PRINTL [100] Do not change any
+DRAWLINE
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT >= FLAG:相性数-1 || (RESULT >= 8 && RESULT <= 11)
+	GOTO INPUT_LOOP
+ENDIF
+CFLAG:ARG:変更相性1 = RESULT+1
+
+PRINTFORM For %CALLNAME:ARG%'s body, %GET_TYPE_E(CFLAG:ARG:変更相性1 - 1)% is now 
+IF !ARG:1
+	CFLAG:ARG:変更相性値1 = 50
+	PRINTW resisted.
+ELSE
+	CFLAG:ARG:変更相性値1 = 0
+	PRINTW nullified.
+ENDIF
+DRAWLINE

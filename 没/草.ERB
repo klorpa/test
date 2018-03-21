@@ -1,0 +1,580 @@
+
+
+PRINTL どんな態度で接しますか？
+PRINTL [1]友好的
+PRINTL [2]威圧的
+
+
+
+
+;=====================================================================
+;口調タイプ：女・若者の汎用口上＋会話用ファイルです
+;=====================================================================
+
+;口上
+
+
+
+
+
+
+
+
+
+
+;====================================================================
+;悪魔会話
+;====================================================================
+@TALK_PUB304,ARG,ARG:1
+;LOCAL 交渉目的　1仲魔　2お金　3ＭＡＧ　4アイテム　5いなくなれ
+;LOCAL:1 RAND制御に。
+;LOCAL:2 交渉に必要な数値
+LOCAL = 0
+
+IF CFLAG:(FINDCHARA(NO,NO:ARG)):PTフラグ > 0
+	LOCAL = 2
+	GOTO SUCCESS_NEGOTIATE
+ENDIF
+
+$START_TALK
+IF ARG:1 == 1
+	LOCAL:1 = RAND:3
+	SELECTCASE LOCAL:1
+		CASE 0
+			CFLAG:ARG:友好度 += 10
+			GOTO NEGOTIATE_START
+		CASE 1
+			CFLAG:ARG:友好度 += 1
+			GOTO TALK2
+		CASEELSE
+			GOTO TALK1
+	ENDSELECT
+ELSE
+
+	LOCAL:1 = RAND:3
+	SELECTCASE LOCAL:1
+		CASE 0
+			CFLAG:ARG:友好度 += 10
+			GOTO NEGOTIATE_START
+		CASE 1
+			CFLAG:ARG:友好度 += 1
+			GOTO TALK3
+		CASEELSE
+			GOTO TALK3
+	ENDSELECT
+ENDIF
+
+;交渉前会話
+
+$TALK1
+
+PRINTL 「私が欲しいの？」
+PRINTL
+PRINTL [1]そうだ　[2]別に
+$INPUT_LOOP_1
+INPUT
+PRINTL
+IF RESULT == 1
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2) + CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS > 90 
+			PRINTFORML 「%CSTR:ARG:11%、あなたの奴隷よ」
+			PRINTW 「好きにして……」
+			GOTO PARTYIN
+		CASE IS < 15 + CFLAG:ARG:緊張度
+			PRINTFORML 「%CSTR:ARG:12%如きが%CSTR:11%を仲魔にしようっての！？」
+			PRINTW 「ふざけんなっ！」
+			GOTO ASSAULT
+		CASE IS < 30
+			PRINTFORMW 「なぜ？」
+			PRINTL
+			PRINTL [0]魅力的　　　[1]役に立つ
+			$INPUT_LOOP_1_2
+			INPUT
+			IF RESULT == 0
+				
+			ELSEIF
+			
+		CASE IS < 60
+		CASEELSE
+			CFLAG:ARG:友好度 += 50
+			
+			PRINTL 「嬉しいこと言うじゃない」
+			PRINTW 「うーん、どうしよっかなー♪」
+			LOCAL:2 = 1
+			GOTO ONEDARI
+	ENDSELECT
+ELSEIF RESULT == 2
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS > 70
+			CFLAG:ARG:友好度 += 40
+			GOTO NEGOTIATE_START
+		CASE IS < 20 + CFLAG:ARG:緊張度
+			PRINTFORML 「%CSTR:ARG:12%如きが腹の立つこと言ってくれるじゃない」
+			PRINTW 「ふざけんなっ！」
+			GOTO ANGRY
+		CASE IS < 40
+			PRINTW 「優しく話しかけといて、その気はないってワケ？」
+			CFLAG:ARG:緊張度 += 25
+			RESULT == 6
+			GOTO GOODBYE
+		CASEELSE
+			PRINTW 「ふーん」
+			CFLAG:ARG:友好度 += RAND:30
+			GOTO TALK2
+	ENDSELECT
+
+ELSE
+	GOTO INPUT_LOOP_1
+ENDIF
+
+$TALK2
+PRINTL 「Hey, what are you doing in such a place?」
+;「ねえ、人間がこんなところで何してるの？」
+PRINTL
+PRINTL [1]Demon extermination　　　　　[2]A walk
+;[1]悪魔退治　　　　　[2]散歩
+;PRINTL [3]仲魔を探しに来た　[4]奴隷を探しに来た
+$INPUT_LOOP_2
+INPUT
+PRINTL
+IF RESULT == 1
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵/2+MAXBASE:MASTER:運/2+MAXBASE:MASTER:力)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS > 90 
+			PRINTFORMW 「仲魔になるから助けてー！」
+			GOTO PARTYIN
+		CASE IS < 15 + CFLAG:ARG:緊張度
+			PRINTFORMW 「%CSTR:11%のトモダチ殺ったのもアンタね！？」
+			PRINTW 「いけぇ！」
+			GOTO ASSAULT
+		CASE IS < 35
+			GOTO TALK3
+		CASE IS > 70
+			PRINTW 「さ、さよなら」
+			GOTO ESCAPE
+		CASE IS > 50
+			GOTO HEIKINANO
+		CASEELSE
+			CFLAG:ARG:緊張度 += 5
+			PRINTL 「たまには退治される側になってみたら？」
+			GOTO KIMAZUI
+	ENDSELECT
+ELSEIF RESULT == 2
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS > 85
+			PRINTFORMW 「たまにはそういうのもいいかもね」
+			PRINTFORMW 「ねえ、%CSTR:ARG:11%も連れてってよ」
+			GOTO PARTYIN
+		CASE IS < 20 + CFLAG:ARG:緊張度
+			PRINTFORMW 「たまにはそういうのもいいかもね」
+			PRINTFORMW 「三途の川まで散歩してくるといいわ」
+			PRINTW 「いけぇ！」
+			GOTO ASSAULT
+		CASE IS < 35
+			PRINTL 「もう少し気の効いたこと言えないの？」
+			CFLAG:ARG:緊張度 += 1
+			GOTO NEGOTIATE_START
+		CASE IS > 70
+			PRINTL 「もうちょっと、散歩するのに丁度良い所あるんじゃない？」
+			CFLAG:ARG:友好度 += RAND:40
+			GOTO NEGOTIATE_START
+		CASEELSE
+			CFLAG:ARG:緊張度 += 2
+			PRINTL 「ふーん…怪しいわね」
+			GOTO KIMAZUI
+	ENDSELECT
+ELSE
+	GOTO INPUT_LOOP_2
+ENDIF
+
+$TALK3
+PRINTL 「怖いわ…」
+PRINTL
+PRINTL [1]近づく　　　　　[2]威嚇
+$INPUT_LOOP_3
+INPUT
+PRINTL
+IF RESULT == 1
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS > 90 
+			PRINTFORML 「%CSTR:ARG:11%、あなたの奴隷よ」
+			PRINTW 「好きにして……」
+			GOTO PARTYIN
+		CASE IS < 15 + CFLAG:ARG:緊張度
+			PRINTFORMW 「ウフフ、バーカ！」
+			GOTO ASSAULT
+		CASE IS < 50
+			PRINTW 「キャー！」
+			PRINTFORMW %NAME:ARG%は逃げていった
+			CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+			RETURN 6
+		CASEELSE
+			CFLAG:ARG:友好度 += (RAND:30-15)
+			PRINTFORMW 「ひっ……」
+			GOTO ESCAPE
+	ENDSELECT
+ELSEIF RESULT == 2
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS > 70
+			PRINTFORMW 「クールなのがステキ！仲魔にして！」
+			CFLAG:ARG:友好度 += 20
+			GOTO ONEDARI
+		CASE IS < 25 + CFLAG:ARG:緊張度
+			PRINTFORML 「何するのよ！」
+			PRINTW 怒らせてしまったようだ
+			GOTO ANGRY
+		CASE IS < 50
+			PRINTW 「キャー！」
+			PRINTFORMW %NAME:ARG%は逃げていった
+			CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+			RETURN 6
+		CASEELSE
+			CFLAG:ARG:友好度 += 40
+			GOTO ONEDARI
+	ENDSELECT
+ELSE
+	GOTO INPUT_LOOP_3
+ENDIF
+
+$HEIKINANO
+PRINTW 「アクマを殺して平気なの？」
+PRINTL
+PRINTL [1]平気　　　　　[2]平気じゃない
+$INPUT_LOOP_HEIKINANO
+INPUT
+PRINTL
+IF RESULT == 1
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS < 35 + CFLAG:ARG:緊張度
+			PRINTFORMW 「見下げ果てたド外道ね！」
+			PRINTFORMW 「死んじゃえっ！」
+			GOTO ASSAULT
+		CASE IS < 70
+			CFLAG:ARG:緊張度 += 10
+			GOTO TALK3
+		CASE IS > 95
+			PRINTFORML 「%CSTR:ARG:11%、あなたの奴隷よ」
+			PRINTW 「好きにして……」
+			GOTO PARTYIN
+		CASEELSE
+			CFLAG:ARG:友好度 += 40
+			GOTO ONEDARI
+	ENDSELECT
+ELSEIF RESULT == 2
+	LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2)+CFLAG:ARG:友好度
+	SELECTCASE LOCAL:1
+		CASE IS < 15 + CFLAG:ARG:緊張度
+			PRINTFORMW 「何するのよー！」
+			PRINTW 怒らせてしまったようだ
+			GOTO ANGRY
+		CASE IS < 50
+			PRINTW 「キャー！」
+			PRINTFORMW %NAME:ARG%は逃げていった
+			CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+			RETURN 6
+		CASE IS > 90
+			PRINTFORMW 「強い人ってステキ！」
+			PRINTFORMW 「%CSTR:ARG:11%、あなたの奴隷よ」
+			GOTO PARTYIN
+		CASEELSE
+			CFLAG:ARG:友好度 += 40
+			GOTO ONEDARI
+	ENDSELECT
+ELSE
+	GOTO INPUT_LOOP_HEIKINANO
+ENDIF
+
+
+
+GOTO NEGOTIATE_START
+
+;交渉
+
+$NEGOTIATE_START
+SELECTCASE CFLAG:ARG:友好度
+	CASE IS < 10
+		PRINTW 「あーもうムカつくっ！用があるならさっさと言いなさいよ！」
+	CASE IS < 25
+		PRINTFORMW 「なあに、%CSTR:ARG:12%？」
+		PRINTFORML %CSTR:ARG:11%に何か用？」
+	CASE IS < 50
+		PRINTFORMW 「それで……%CSTR:ARG:11%に何か用なの？」
+	CASEELSE
+		PRINTFORMW 「気分がいいし、%CSTR:ARG:11%に用があるなら聞いてあげるわよ？」
+ENDSELECT
+PRINTL
+PRINTL [1] 仲魔になれ [2]なんかくれ [3]見逃してくれ
+$INPUT_LOOP_NEGOTIATE
+INPUT
+SELECTCASE RESULT
+	CASE 1
+		LOCAL = 1
+		GOTO ONEDARI
+	CASE 2
+		SIF RAND:100 < 30 && CFLAG:ARG:緊張度 > RAND:10
+			GOTO GET_DAMAGE
+		LOCAL = 2
+		CFLAG:ARG:友好度 += RAND:15
+		GOTO ONEDARI
+	CASE 3
+		LOCAL = 3
+		CFLAG:ARG:友好度 += RAND:60
+		GOTO ONEDARI
+	CASEELSE
+		GOTO INPUT_LOOP_NEGOTIATE
+ENDSELECT
+
+
+$KIMAZUI
+PRINTW きまずくなってきた
+PRINTL
+PRINTL どうしますか？
+PRINTL [0]なだめる　[1]ほほえむ
+PRINTL [2]泣く　　　[3]説得する
+PRINTL
+$INPUT_LOOP_KIMAZUI
+SIF RESULT < 0 || RESULT > 3
+
+GOTO NEGOTIATE_START
+
+$ESCAPE
+PRINTW 「あなたの事は忘れないわー！」
+PRINTL
+PRINTL [0]追いかける　[1]あきらめる
+$INPUT_LOOP_ESCAPE
+INPUT
+PRINTL
+IF RESULT == 0
+
+
+	;判定入れる予定
+	PRINTW 追いつけなかった
+	PRINTFORMW %NAME:ARG%は逃げていった
+	CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+	RETURN 6
+ELSEIF RESULT == 1
+	PRINTFORMW %NAME:ARG%は逃げていった
+	CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+	RETURN 6
+ELSE
+	GOTO INPUT_LOOP_ESCAPE
+ENDIF
+
+$ONEDARI
+PRINT 「それじゃあ……」
+PRINTW
+SELECTCASE RAND:2
+	CASE 0
+		LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (300 + RAND:1000)/100
+		PRINTFORML 「￥{LOCAL:2}頂戴」
+		PRINTL
+		PRINTL [0]Yes [1]No
+		$INPUT_LOOP_ONEDARI1
+		INPUT
+		IF RESULT == 0 && MONEY < LOCAL:2
+			PRINTW 「お金がないの？」
+			CFLAG:ARG:友好度 -= RAND:5 +1
+			LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2) + CFLAG:ARG:友好度
+			IF LOCAL:1 > 90
+				PRINTL 「仕方ないなあ、このくらい持っておきなさいよね」
+				LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (300 + RAND:1000)/100
+				PRINTFORMW ￥{LOCAL:2}恵まれた
+				MONEY += LOCAL:2
+				GOTO ONEDARI
+			ELSEIF LOCAL:1 > 30
+				PRINTW 「仕方ないなあ、別のもので我慢してあげるわ」
+				IF RAND:10 < 3
+				;30%で気まずくなる
+					PRINT 「それじゃあ……
+					WAIT
+					PRINTW あなたの命をちょーだい？」
+					GOTO KIMAZUI
+				ENDIF
+					
+				GOTO ONEDARI
+			ELSEIF LOCAL:1 > 15
+				PRINTW 「あーあ、シラけちゃった」
+				GOTO GOODBYE
+			ELSE
+				PRINTW 「それっぽっちも持ってないのに話しかけないでよ！」
+				GOTO ANGRY
+			ENDIF
+			
+			
+		ELSEIF RESULT == 0
+			MONEY -= LOCAL:2
+			CFLAG:ARG:友好度 += RAND:5 + 2
+			LOCAL:1 = RAND:100 + CFLAG:ARG:友好度
+			IF LOCAL:1 < 30
+			;払ったのに気まずくなる
+				PRINTL 「まだよ あせっちゃダメ」
+				PRINT 「それじゃあ……
+				WAIT
+				PRINTW あなたの命をちょーだい？」
+				GOTO KIMAZUI
+			ELSEIF LOCAL:1 < 50
+			;払ったのに逃げられる
+				PRINTW 「ありがとう！」
+				GOTO ESCAPE
+			ELSEIF LOCAL:1 < 80
+				PRINTL 「まだよ あせっちゃダメ」
+				GOTO ONEDARI
+			ELSE
+				PRINTW 「ありがとう！」
+				GOTO SUCCESS_NEGOTIATE
+			ENDIF
+		ELSEIF
+
+		ELSE
+			GOTO INPUT_LOOP_ONEDARI1
+		ENDIF
+	CASE 1
+		LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (300 + RAND:1000)/100
+		PRINTFORML 「{LOCAL:2}MAG頂戴」
+		PRINTL
+		PRINTL [0]Yes [1]No
+		$INPUT_LOOP_ONEDARI2
+		INPUT
+		IF RESULT == 0 && BASE:MASTER:ＭＡＧ < LOCAL:2
+			PRINTW 「マッカがないワケぇ！？」
+			CFLAG:ARG:友好度 -= RAND:5 +1
+			LOCAL:1 = RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2) + CFLAG:ARG:友好度
+			IF LOCAL:1 > 90
+				PRINTL 「仕方ないなあ、このくらい持っておきなさいよね」
+				LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (300 + RAND:1000)/100
+				PRINTFORMW {LOCAL:2}MAG恵まれた
+			CALL CONTROL_MAG,MASTER,+LOCAL:2
+				GOTO ONEDARI
+			ELSEIF LOCAL:1 > 30
+				PRINTW 「仕方ないなあ、別のもので我慢してあげるわ」
+				IF RAND:10 < 3
+				;30%で気まずくなる
+					PRINT 「それじゃあ……
+					WAIT
+					PRINTW あなたの命をちょーだい？」
+					GOTO KIMAZUI
+				ENDIF
+					
+				GOTO ONEDARI
+			ELSEIF LOCAL:1 > 15
+				PRINTW 「あーあ、シラけちゃった」
+				GOTO GOODBYE
+			ELSE
+				PRINTW 「それっぽっちも持ってないのに話しかけないでよ！」
+				GOTO ANGRY
+			ENDIF
+			
+			
+		ELSEIF RESULT == 0
+			CALL CONTROL_MAG,MASTER,-LOCAL:2
+			CFLAG:ARG:友好度 += RAND:5 + 2
+			LOCAL:1 = RAND:100 + CFLAG:ARG:友好度
+			IF LOCAL:1 < 30
+			;払ったのに気まずくなる
+				PRINTL 「まだよ あせっちゃダメ」
+				PRINT 「それじゃあ……
+				WAIT
+				PRINTW あなたの命をちょーだい？」
+				GOTO KIMAZUI
+			ELSEIF LOCAL:1 < 50
+			;払ったのに逃げられる
+				PRINTW 「ありがとう！」
+				GOTO ESCAPE
+			ELSEIF LOCAL:1 < 80
+				PRINTL 「まだよ あせっちゃダメ」
+				GOTO ONEDARI
+			ELSE
+				PRINTW 「ありがとう！」
+				GOTO SUCCESS_NEGOTIATE
+			ENDIF
+
+		ELSE
+			GOTO INPUT_LOOP_ONEDARI2
+		ENDIF
+
+	CASEELSE
+ENDSELECT
+
+
+
+
+$SUCCESS_NEGOTIATE
+IF LOCAL == 1
+	GOTO PARTYIN
+ELSEIF LOCAL == 2
+	SIF RAND:100 + RAND:(MAXBASE:MASTER:知恵+MAXBASE:MASTER:運/2) + CFLAG:ARG:友好度 < 50
+		GOTO GET_DAMAGE
+	SIF RAND:2 == 0
+		GOTO GETMONEY
+	GOTO GETMAG
+ELSEIF LOCAL == 3
+	RESULT == 2
+	GOTO GOODBYE
+ENDIF
+
+
+$PARTYIN
+PRINTFORML 「%CSTR:ARG:11%、%STR:(ABL:ARG:種族)% %NAME:ARG%」
+PRINTW 「よろしくね！」
+PRINTFORMW %STR:(ABL:ARG:種族)% %NAME:ARG%が仲魔になった
+CALL ADD_NEW_COMPANION,NO:ARG,200
+RETURN 1
+
+$GETMONEY
+PRINTL 「これあげる！」
+LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (300 + RAND:1000) * 5 /100
+PRINTFORMW %NAME:MASTER%は￥{LOCAL:2}手に入れた
+MONEY += LOCAL:2
+RESULT = 2
+GOTO GOODBYE
+
+$GETMAG
+PRINTL 「これあげる！」
+LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (600 + RAND:1500) * 5 /100
+PRINTFORMW %NAME:MASTER%は{LOCAL:2}MAG手に入れた
+CALL CONTROL_MAG,MASTER,LOCAL:2
+RESULT = 2
+GOTO GOODBYE
+
+$GET_DAMAGE
+PRINTW 「これあげる！」
+PRINTW %NAME:MASTER%はダメージをもらった
+CALL VAR_HP,MASTER,-MAXBASE:MASTER:ＨＰ/5,0
+RESULT = 2
+GOTO GOODBYE
+
+$ANGRY
+PRINTFORMW %NAME:ARG%はやる気だ
+CFLAG:ARG:決裂フラグ = 1
+RETURN 4
+
+$ASSAULT
+PRINTFORMW %NAME:ARG%に不意をつかれた！
+CFLAG:ARG:決裂フラグ = 1
+RETURN 3
+
+$GOODBYE
+IF CFLAG:(FINDCHARA(NO,NO:ARG)):PTフラグ > 0
+	PRINTL 「仲魔によろしく言っといて♪」
+	PRINTFORMW %NAME:ARG%は去っていった
+ELSEIF CFLAG:ARG:緊張度 > 20
+	PRINTL 「付き合ってらんないわ」
+	PRINTFORMW %NAME:ARG%は去っていった
+ELSEIF CFLAG:ARG:友好度 < 50
+	PRINTL 「それじゃあね！」
+	PRINTFORMW %NAME:ARG%は去っていった
+ELSEIF CFLAG:ARG:友好度 < 80
+	PRINTL 「またね♪」
+	PRINTFORMW %NAME:ARG%は去っていった
+ELSEIF CFLAG:ARG:友好度 < 80
+	PRINTL 「名残惜しいけど……またね♪」
+	PRINTFORMW %NAME:ARG%は去っていった
+ENDIF
+CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+RETURN RESULT

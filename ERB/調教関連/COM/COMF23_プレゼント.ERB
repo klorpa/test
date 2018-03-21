@@ -1,0 +1,128 @@
+;-------------------------------------------------
+;プレゼント
+;コミュニケーション系コマンド、レベル3
+;-------------------------------------------------
+@ACT_COM23
+PRINTL Gift
+;プレゼント
+
+PRINTFORML What will you gift?
+;何を贈りますか？
+PRINTFORML [0] Smile(free)
+;スマイル（タダ）
+SIF MONEY >= 500
+	PRINTFORML [1] Liquor(￥1000)
+	;お酒(￥1000)
+SIF MONEY >= 1500
+	PRINTFORML [2] Daily necessities(￥2500)
+	;日用品(￥2500)
+SIF MONEY >= 4000
+	PRINTFORML [3] Accessory(￥10000)
+SIF MONEY >= 10000
+	PRINTFORML [4] Clothes(￥25000)
+	;服(￥25000)
+SIF MONEY >= 50000
+	PRINTFORML [5] Exotic Alcohol(￥150000)
+	;外界のお酒(￥150000)
+PRINTFORML [100] Nevermind
+;やっぱりやめる
+
+INPUT
+IF RESULT != 100 && (RESULT < 0 || RESULT > 6)
+	RESTART
+ELSEIF RESULT == 1 && MONEY < 1000
+	RESTART
+ELSEIF RESULT == 2 && MONEY < 2500
+	RESTART
+ELSEIF RESULT == 3 && MONEY < 10000
+	RESTART
+ELSEIF RESULT == 4 && MONEY < 25000
+	RESTART
+ELSEIF RESULT == 5 && MONEY < 150000
+	RESTART
+ELSEIF RESULT == 0
+	;花をプレゼント
+	TFLAG:17 = 0
+ELSEIF RESULT == 1
+	;酒をプレゼント
+	TFLAG:17 = 1
+	MONEY -= 1000
+ELSEIF RESULT == 2
+	;日用品をプレゼント
+	TFLAG:17 = 2
+	MONEY -= 2500
+ELSEIF RESULT == 3
+	;アクセサリをプレゼント
+	TFLAG:17 = 3
+	MONEY -= 10000
+ELSEIF RESULT == 4
+	;服をプレゼント
+	TFLAG:17 = 4
+	MONEY -= 25000
+ELSEIF RESULT == 5
+	;凄い酒をプレゼント
+	TFLAG:17 = 5
+	MONEY -= 150000
+ELSEIF RESULT >= 100
+	PRINTFORMW Decided not to gift anything now.
+	;プレゼントを渡すのを止めました
+	RETURN 0
+ENDIF
+
+TSTR:0 = プレゼント
+;プレゼント
+;CALL KOJO_MESSAGE_COM
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 10
+DOWNBASE:TARGET:気力 += 20
+
+IF TFLAG:17 == 0
+	SOURCE:TARGET:恭順 = 1000
+	SOURCE:TARGET:逸脱 = 100
+ELSEIF TFLAG:17 == 1
+	SOURCE:TARGET:恭順 = 1500
+	SOURCE:TARGET:逸脱 = 150
+ELSEIF TFLAG:17 == 2
+	SOURCE:TARGET:恭順 = 2500
+	SOURCE:TARGET:逸脱 = 250
+ELSEIF TFLAG:17 == 3
+	SOURCE:TARGET:恭順 = 3500
+	SOURCE:TARGET:逸脱 = 350
+ELSEIF TFLAG:17 == 4
+	SOURCE:TARGET:恭順 = 5000
+	SOURCE:TARGET:逸脱 = 500
+ELSEIF TFLAG:17 == 5
+	SOURCE:TARGET:恭順 = 7000
+	SOURCE:TARGET:逸脱 = 700
+ENDIF
+
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0 && TFLAG:17 > 0
+	A = TFLAG:17
+;	PRINTS EXPNAME:23
+;	PRINTVL +A
+	CALL ADDS_EXP("愛情経験", A, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 4
+
+;依存度補正値
+SIF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+	TFLAG:30 += TFLAG:17
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_23
+RETURN COMTYPE("コミュ系")
+

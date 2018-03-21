@@ -1,0 +1,124 @@
+;======================================================
+;装備品のデータ
+;Hinokagutsuchi
+;原作小説含めて、N島くん以外も使ってるし、装備制限自体はなしに
+;ただ、N島くんが使うときは弓子のステに応じた基本ステ補正と自分と弓子のLVに応じて攻撃力・命中にボーナスをつけるように
+;性能の計算は魔晶剣とほぼ同じで、持ち手のステータス
+;この補正は弓子を陥落させている場合は好感度TOPのキャラにも発生する
+;======================================================
+@基本能力修正_2207,ARG,ARG:1 = -1
+#LOCALSIZE 1
+#LOCALSSIZE 1
+LOCAL = GETCHARA([[キャラ:弓子]])
+SIF LOCAL < 0
+	RETURN 0
+SIF ARG:1 < 0
+	RETURN 0
+SIF ARG:1 == GETCHARA([[キャラ:朱実]]) || (FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL))
+	RETURN BASE:LOCAL:GET_BASESTATUS(ARG) / 10
+RETURN 0
+@戦闘能力修正_2207,ARG,ARG:1 = -1
+#LOCALSIZE 3
+LOCAL = GETCHARA([[キャラ:弓子]])
+LOCAL:1 = 0
+LOCAL:2 = 40
+;剣のレベル設定。弓子が陥落している場合、弓子のレベルの半分が加算される
+SIF ARG:1 >=0 && LOCAL >= 0 && (NO:(ARG:1) == [[キャラ:朱実]] || 陥落(LOCAL, ARG:1))
+	LOCAL:2 += MIN(BASE:LOCAL:LV / 2, 40)
+LOCAL:2 += 5
+;レベルによる戦闘能力値
+SELECTCASE GET_BATTLESTATUS(ARG)
+	CASE "攻撃"
+		LOCAL:1 = LOCAL:2 * 3/2
+	CASE "命中"
+		LOCAL:1 = LOCAL:2
+	CASE "魔法威力"
+		LOCAL:1 = LOCAL:2 * 3/2
+	CASE "魔法効果"
+		LOCAL:1 = LOCAL:2
+ENDSELECT
+;STATUSによる能力値　朱美ありは弓子陥落でステータスによって性能が加算される
+IF ARG:1 >= 0 && (NO:(ARG:1) == [[キャラ:朱実]] || (LOCAL >=0 && 陥落(LOCAL, ARG:1)))
+	SELECTCASE GET_BATTLESTATUS(ARG)
+		CASE "攻撃"
+			LOCAL:1 +=  BASE:(ARG:1):力*3/2 + BASE:(ARG:1):耐力 / 2
+		CASE "命中"
+			LOCAL:1 += BASE:(ARG:1):速さ*3/2 + BASE:(ARG:1):運/2
+		CASE "魔法威力"
+			LOCAL:1 += BASE:(ARG:1):魔力*3/2 + BASE:(ARG:1):知恵 / 2
+		CASE "魔法効果"
+			LOCAL:1 += BASE:(ARG:1):知恵 + BASE:(ARG:1):運/2 + BASE:(ARG:1):魔力/2
+	ENDSELECT
+ENDIF
+;剣仕様に変更
+SELECTCASE GET_BATTLESTATUS(ARG)
+	CASE "攻撃"
+		TIMES LOCAL:1, 1.00
+	CASE "命中"
+		LOCAL:1 += 10
+	CASE "魔法威力"
+		TIMES LOCAL:1, 0.80
+	CASE "魔法効果"
+		TIMES LOCAL:1, 0.40
+ENDSELECT
+;最低でも40レベル剣の性能は保証される
+SELECTCASE GET_BATTLESTATUS(ARG)
+	CASE "攻撃"
+		RETURN MAX(107, LOCAL:1)
+	CASE "命中"
+		RETURN MAX(94, LOCAL:1)
+	CASE "魔法威力"
+		RETURN MAX(85, LOCAL:1)
+	CASE "魔法効果"
+		RETURN MAX(33, LOCAL:1)
+ENDSELECT
+@防御相性_2207,ARG,ARG:1 = -1
+SELECTCASE ARG
+ENDSELECT
+RETURN 100
+
+@攻撃相性_2207, ARG = -1
+RETURN GET_TYPE_NUM("火炎")
+
+@最低攻撃回数_2207, ARG = -1
+RETURN 1
+
+@最大攻撃回数_2207, ARG = -1
+RETURN 1
+
+@射程_2207, ARG = -1
+RETURN 1
+
+@攻撃範囲_2207, ARG = -1
+RETURN 2
+
+@装備箇所_2207
+RETURN GET_EQUIPNUM("剣")
+
+;-----------------------------
+;- ショップ
+;-----------------------------
+@購入条件_2207
+RETURN 0
+
+@必要レベル_2207
+RETURN 1
+
+@装備条件_2207,ARG
+RETURN 1
+
+@装備条件説明_2207
+PRINTL 特殊条件:
+PRINTL 弓子と関係が深いものが装備するときのみ、性能が変化する。
+
+@装備解説_2207
+PRINTL イザナギとイザナミの間に生まれた火の神。
+PRINTL イザナミの体を焼いてしまい、結果死に至らせてしまう。
+PRINTL 激怒したイザナギに殺され、その死体から多くの神が誕生する。
+PRINTL 
+PRINTL 原作小説において、イザナミの助けを得た中島 朱実により剣として召喚されため、
+PRINTL 女神転生シリーズでは原則的に、剣として扱われる。
+;二行にまとめてもいいか迷う
+
+RETURN 0
+

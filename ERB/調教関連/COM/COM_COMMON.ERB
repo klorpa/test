@@ -1,0 +1,96 @@
+;-------------------------------------------------
+;共通判定
+;N 通常のCOM呼び出し経路でCALLTRAIN時以外は潰して無印まで活かせない
+;D DOTRAINの経路で、CALLTRAINフラグを潰してから判定させる
+;無印 実際の処理はここで行う
+;-------------------------------------------------
+@COM_ABLE_COMMON_N, ARG
+SIF !TFLAG:CALLTRAIN
+	RETURN 0
+CALL COM_ABLE_COMMON, ARG
+RETURN RESULT
+
+;DOTRAIN用　CALLTRAINフラグを折ってからチェックに入る
+;DOTRAINを利用する場合、これで判定させること
+@COM_ABLE_COMMON_D, ARG
+TFLAG:CALLTRAIN = 0
+CALL COM_ABLE_COMMON, ARG
+RETURN RESULT
+
+@COM_ABLE_COMMON, ARG
+SIF ARG < 0 ||ARG > 1008
+	RETURN 0
+
+;フィルタ判定
+IF FLAG:フィルタ透過設定
+	SIF GET_COM_FILTERING(ARG, TARGET)
+		RETURN 0
+	SELECTCASE ARG
+		CASE IS < 20
+			SIF CFLAG:TARGET:愛撫系フィルタ
+				RETURN 0
+		CASE IS < 40
+			SIF CFLAG:TARGET:コミュ系フィルタ
+				RETURN 0
+		CASE IS < 50
+			SIF CFLAG:TARGET:道具系フィルタ
+				RETURN 0
+		CASE IS < 60
+			SIF CFLAG:TARGET:対調教者道具系フィルタ
+				RETURN 0
+		CASE IS < 67
+			SIF CFLAG:TARGET:∨性交系フィルタ
+				RETURN 0
+		CASE IS < 80
+			SIF CFLAG:TARGET:Ａ性交系フィルタ
+				RETURN 0
+		CASE IS < 90
+			SIF CFLAG:TARGET:奉仕系フィルタ
+				RETURN 0
+		CASE IS < 100
+			SIF CFLAG:TARGET:調教者奉仕系フィルタ
+				RETURN 0
+		CASE IS < 120
+			SIF CFLAG:TARGET:ＳＭフィルタ
+				RETURN 0
+		CASE IS < 140
+			SIF CFLAG:TARGET:助手・レズ系フィルタ
+				RETURN 0
+		CASE IS < 160
+			SIF CFLAG:TARGET:ハード系フィルタ
+				RETURN 0
+		CASE IS < 180
+			SIF CFLAG:TARGET:触手系フィルタ
+				RETURN 0
+		CASEELSE
+			SIF CFLAG:TARGET:特殊コマンドフィルタ
+				RETURN 0
+	ENDSELECT
+ENDIF
+
+LOCAL = 0
+;個別判定
+TRYCCALLFORM CHECK_COM_ABLE{ARG}
+	LOCAL = RESULT
+CATCH
+	LOCAL = 0
+ENDCATCH
+
+RETURN LOCAL
+
+
+
+;-------------------------------------------------
+;共通実行
+;-------------------------------------------------
+@COM_COMMON,ARG
+
+LOCAL = 0
+TRYCCALLFORM ACT_COM{ARG}
+	LOCAL = RESULT
+CATCH
+	LOCAL = 0
+ENDCATCH
+
+RETURN LOCAL
+

@@ -1,0 +1,1870 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:DUNGEON_4.ERB
+;	Facility	:ダンジョン精神世界 アマネ・イザベル・レミエルを獲得可能
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX								新規作成
+;	002		20XX/XX/XX			P					デビサバルートにおけるダンジョンとしてイベント再構築
+;	003		2011/01/11			P					レミエルが仲魔になるように改訂・敵配置を変更
+;	004		2011/01/15			P					直哉ルート版を作成
+;	005		2011/01/16			P					バグ修正
+;	006		2011/01/28			P					バグ修正
+;	007		2011/02/02			P					バグ修正及び一部仕様変更
+;	008		2011/02/04			P					バグ修正及び一部仕様変更
+;	009		2011/02/06			P					上記の修正の修正
+;	010		2011/02/08			P					一部選択肢に属性の変動を追加
+;	011		2011/05/03			P					敵テーブルを変更
+;	012		2013/01/06			TR					アマネの調教を1箇所1回から回数制に変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=======================================================================
+;精神世界
+;ダンジョンナンバー4
+;=======================================================================
+;1 イベント1
+;2 イベント2
+;3 イベント3
+;4 イベントクリア数
+;5 レイプフラグ
+;6 レミエルレベル
+;7 クリア方法の分岐取得
+;8 アマネ調教回数
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_4
+;---- EDIT 004 ADD START -------------------------
+;直哉ルートを条件に追加
+;百合の花・直哉ルート5
+IF FLAG:百合の花ルート == 5 || FLAG:直哉ルート == 5
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+;---- EDIT 004 ADD END ---------------------------
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_4
+RESULTS = Inner World
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_4
+SELECTCASE FLAG:現M
+	CASE 4
+		PRINT 精神世界最奥
+	CASE 6
+		PRINTFORM \@FLAG:百合の花ルート ? サイコダイバーの事務所 # 直哉の部屋\@
+	CASEELSE
+		PRINT Inner World
+ENDSELECT
+;---- EDIT 004 ADD START -------------------------
+;レイプイベント用に条件を変更
+@TILE_MARK_ID_4_1_4
+IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 1
+	RESULTS = Ｔ
+ELSE
+	RESULTS = ！
+ENDIF
+@TILE_MARK_ID_4_2_4
+IF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 1
+	RESULTS = Ｔ
+ELSE
+	RESULTS = ！
+ENDIF
+@TILE_MARK_ID_4_3_4
+IF ダンジョンフラグ:(FLAG:現ダンジョン):3 == 1
+	RESULTS = Ｔ
+ELSE
+	RESULTS = ！
+ENDIF
+;---- EDIT 004 ADD END ---------------------------
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_4,ARG
+FLAG:現M = 6
+FLAG:現X = 2
+FLAG:現Y = 3
+
+@EVENT_DUNGEON_START_4
+;---- EDIT 004 ADD START -------------------------
+;新規作成
+;直哉ルートのレイプイベントの実行済みフラグを消去
+ダンジョンフラグ:(FLAG:現ダンジョン):1 = ダンジョンフラグ:(FLAG:現ダンジョン):1 == -2 ? -1 # ダンジョンフラグ:(FLAG:現ダンジョン):1
+ダンジョンフラグ:(FLAG:現ダンジョン):2 = ダンジョンフラグ:(FLAG:現ダンジョン):2 == -2 ? -1 # ダンジョンフラグ:(FLAG:現ダンジョン):2
+ダンジョンフラグ:(FLAG:現ダンジョン):3 = ダンジョンフラグ:(FLAG:現ダンジョン):3 == -2 ? -1 # ダンジョンフラグ:(FLAG:現ダンジョン):3
+;---- EDIT 012 ADD START -------------------------
+ダンジョンフラグ:(FLAG:現ダンジョン):8 = 0
+;---- EDIT 012 ADD END   -------------------------
+
+;---- EDIT 004 ADD END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+;最初の部屋のアナライズをとっておく
+CALL FLOOR_ANALYZE
+;直哉ルートテキスト追加
+IF ダンジョンフラグ:4:0 == 1
+	CALL SHOW_FLOOR
+	CALL SHOW_NOW_FORMATION_P,0,2,,2
+	FLAG:コマンド表示行数 = LINECOUNT
+	IF FLAG:百合の花ルート
+		CALL MESSAGE_WINDOW_D, "レミエル", "アマネの心は私が守っています/しかし、それがいつまでもつかはわかりません/急ぎ、イザ・ベルを討ち、アマネを救うのです"
+	ELSE
+		CALL MESSAGE_WINDOW_D, "イザ・ベル", "来たかい/さすがにまだレミエルにこの体をとられはしないけど/うっとおしいことこのうえないからねぇ/とっとと、レミエルを倒しておくれよ"
+	ENDIF
+ELSE
+	CALL SHOW_FLOOR
+	CALL SHOW_NOW_FORMATION_P,0,2,,2
+	FLAG:コマンド表示行数 = LINECOUNT
+	IF FLAG:百合の花ルート
+		CALL MESSAGE_WINDOW_D, "SYSTTEM", @"＞レミエルと共にサイコダイバーのもとを訪れた/＞サイコダイブの準備が整ったところで、/＞レミエルが%CALLNAME:MASTER%の目を見据える"
+		CALL MESSAGE_WINDOW_D, "レミエル", "…自分をしっかりと持ちなさい。/悪魔に心を飲まれぬように…/そうすれば、現実の世界と何も変わることはありません"
+		CALL MESSAGE_WINDOW_D, "レミエル", "しかし、アマネの心は、すでにイザ・ベルに支配されつつあります/彼女の心があなた方の敵となり、現れる可能性もあるでしょう。/充分に注意してください"
+		CALL MESSAGE_WINDOW_D, "レミエル", "イザ・ベルは彼女の心の最奥に巣食っています/戦いを挑む前に、アマネの自我を取り戻させ、/彼女が目覚めさせるのです/そうすれば、彼女自身の意志で、あなた方に力を貸してくれるでしょう"
+		CALL MESSAGE_WINDOW_D, "レミエル", "イザ・ベルは強大な悪魔ですが、あくまで戦うのはアマネの心のなかです/彼女の助けがあれば、その力も十分に振るうことはできず、/討つことも可能になるでしょう"
+		CALL MESSAGE_WINDOW_D, "レミエル", "魔に飲まれ、心が死んでしまえば、二度と現実世界に戻ることは出来ません/私も手助けをしますが充分に注意する事です。/さあ、行きなさい。/あなた方に神の加護があらん事を…！"
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞直哉の元を訪れた/＞アマネが眠る傍らに直哉と見知らぬ男がいる/＞この男が直哉の用意したサイコダイバーということだ"
+		CALL MESSAGE_WINDOW_D, "直哉", "精神世界では自分をしっかりと持つことだ/そうすれば、現実の世界と何も変わることはない"
+		CALL MESSAGE_WINDOW_D, "直哉", "だが、アマネの心は、すでにイザ・ベルの支配から抜け出しつつある/アマネの心がお前の敵となり、現れることだろう/レミエルはアマネの心の最奥に巣食っているはずだ/戦いを挑む前に、アマネの心を犯し、屈服させろ"
+		CALL MESSAGE_WINDOW_D, "直哉", "アマネの心をくじけば、それだけイザ・ベルの力が増す/レミエルは強力な天使だが、あくまで戦うのはアマネの心のなかだ/アマネの心をくじき、お前に味方させれば、/レミエルも十分に力を発揮することは出来まい"
+		CALL MESSAGE_WINDOW_D, "直哉", "奴らに敗れ、心が死んでしまえば、二度と現実世界に戻ることは出来ん/中ではイザ・ベルがお前の手助けをするだろう/さぁ、ゆくがいい/神の手先など滅ぼしてしまえ"
+	ENDIF
+	ダンジョンフラグ:4:0 = 1
+ENDIF
+CALL MESSAGE_WINDOW_D, "", "＞アマネの精神世界へとサイコダイブする……"
+CALL MESSAGE_WINDOW_D, "", "………/……/…"
+CALL DUNGEON_WORP_ID, 0, 8, 1
+;---- EDIT 004 ADD END ---------------------------
+;CALL AUTOMAP
+FLAG:MAG消費率 = 75
+
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+;---- EDIT 004 ADD START -------------------------
+;直哉ルートのテキスト追加
+@CAN_ENTER_4,ARG,ARG:1
+#LOCALSSIZE 1
+IF FLAG:現M == 0 && ARG == 12 && ARG:1 == 12
+	IF FLAG:百合の花ルート
+		CALL MESSAGE_WINDOW_D, "", "＞レミエルの声が聞こえる"
+		LOCALS = この扉の先がアマネの精神の最奥です/
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):4 < 3
+			LOCALS += "アマネの精神は解放されていません/厳しい戦いになるでしょうが、それでも進むのですか？"
+		ELSE
+			LOCALS +=  "イザ・ベルは強力な悪魔…、厳しい戦いになるでしょう/準備は大丈夫ですか？"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "レミエル", LOCALS
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "レミエル", "貴方に神の御加護があらんことを…！"
+			RETURN 1
+		ELSE
+			CALL MESSAGE_WINDOW_D, "レミエル", "それでは準備をすることです"
+			RETURN 0
+		ENDIF
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞イザ・ベルの声が聞こえる"
+		LOCALS = この扉の先がアマネの精神の最奥だよ/
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):4 < 3
+			LOCALS += "まだ、アマネの心は元気みたいだねぇ/これだと厄介なことになるけど、それでも進むのかい？"
+		ELSE
+			LOCALS += "レミエルは強い。/厳しい戦いになるよ/準備は出来てるのかい？"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "イザ・ベル", LOCALS
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "イザ・ベル", "それじゃあ、頑張っておくれよ"
+			RETURN 1
+		ELSE
+			CALL MESSAGE_WINDOW_D, "イザ・ベル", "じゃあ、とっとと準備しな"
+			RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+;---- EDIT 004 ADD END ---------------------------
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_4
+SELECTCASE FLAG:現M
+	CASE 0
+	;北東
+		FLAG:最大X = 30
+		FLAG:最大Y = 30
+		;						 000000000011111111112222222222
+		;						 012345678901234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                              "
+		CALL MAKE_FLOOR_LINE, 1," 112A 1112121 1111111111 B211 "
+		CALL MAKE_FLOOR_LINE, 2," 11   1     1    2     1   11 "
+		CALL MAKE_FLOOR_LINE, 3," 11 111 1111111  12111 111 11 "
+		CALL MAKE_FLOOR_LINE, 4," 11 1   2     2      1   1 2  "
+		CALL MAKE_FLOOR_LINE, 5," 1111 1111121 1111 12121 111  "
+		CALL MAKE_FLOOR_LINE, 6,"  1   1          1     1   1  "
+		CALL MAKE_FLOOR_LINE, 7," 11 111 1 11111  11121 111 118"
+		CALL MAKE_FLOOR_LINE, 8," 11 1   2 1   1    1 1   1 1  "
+		CALL MAKE_FLOOR_LINE, 9," 11 12111 1   1  1 1 11121 11 "
+		CALL MAKE_FLOOR_LINE,10," 1  1     1   1  2          1 "
+		CALL MAKE_FLOOR_LINE,11," 1  111 1 1 4 11111111 1111 1 "
+		CALL MAKE_FLOOR_LINE,12," 1  1   1 1 2 1        1 2  1 "
+		CALL MAKE_FLOOR_LINE,13," 1  11111 111 112C 1 1 1 D  1 "
+		CALL MAKE_FLOOR_LINE,14," 1  1   1          1 1 1    1 "
+		CALL MAKE_FLOOR_LINE,15," 1  1   1          1 1 1    1 "
+		CALL MAKE_FLOOR_LINE,16," 1  12D 1 C2111  111 1 1 11 1 "
+		CALL MAKE_FLOOR_LINE,17," 1      1     1  1   1 1 1  1 "
+		CALL MAKE_FLOOR_LINE,18," 1 1111211111 1111 1 111 1  1 "
+		CALL MAKE_FLOOR_LINE,19," 1        1   1    1 1   1  1 "
+		CALL MAKE_FLOOR_LINE,20," 1  1112E 1 111  111 111111 1 "
+		CALL MAKE_FLOOR_LINE,21," 1    1     1    1   1   1  1 "
+		CALL MAKE_FLOOR_LINE,22," 1 11 111 111 1111 E2121 1  1 "
+		CALL MAKE_FLOOR_LINE,23," 1  1 1   1      2   1   1  1 "
+		CALL MAKE_FLOOR_LINE,24," 11 121 111 121121 1 1 111  1 "
+		CALL MAKE_FLOOR_LINE,25," 1    1 1   1      1   1 2  1 "
+		CALL MAKE_FLOOR_LINE,26," 1 11 121 111111111111 1 F  1 "
+		CALL MAKE_FLOOR_LINE,27," 1  1                       1 "
+		CALL MAKE_FLOOR_LINE,28," 1111111111111111111111111111 "
+		CALL MAKE_FLOOR_LINE,29,"                               "
+		;A
+		DA:4:1 = 6
+		;B
+		DA:25:1 = 16
+		;C
+		DA:17:13 = 26
+		DA:10:16 = 27
+		;D
+		DA:25:13 = 36
+		DA:6:16 = 37
+		;E
+		DA:8:20 = 46
+		DA:19:22 = 47
+		;F
+		DA:25:26 = 56
+	CASE 1
+		FLAG:最大X = 16 
+		FLAG:最大Y = 17 
+		;						 0123456789012345
+		CALL MAKE_FLOOR_LINE, 0,"                "
+		CALL MAKE_FLOOR_LINE, 1," 11111111111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1    1 1   1 1 "
+		CALL MAKE_FLOOR_LINE, 3," 111  1 1 1 1 1 "
+		CALL MAKE_FLOOR_LINE, 4,"   1  1 1 1   1 "
+		CALL MAKE_FLOOR_LINE, 5," 111 11 1 11111 "
+		CALL MAKE_FLOOR_LINE, 6," 1      1     1 "
+		CALL MAKE_FLOOR_LINE, 7," 111  11111 1 1 "
+		CALL MAKE_FLOOR_LINE, 8,"      1   1 1 1 "
+		CALL MAKE_FLOOR_LINE, 9," 1111 1 111 1 1 "
+		CALL MAKE_FLOOR_LINE,10," 1  111 2   1 1 "
+		CALL MAKE_FLOOR_LINE,11," 1      4   111 "
+		CALL MAKE_FLOOR_LINE,12,"   1          1 "
+		CALL MAKE_FLOOR_LINE,13,"   111111111111 "
+		CALL MAKE_FLOOR_LINE,14,"              2 "
+		CALL MAKE_FLOOR_LINE,15,"              A "
+		CALL MAKE_FLOOR_LINE,16,"                "
+		;A
+		DA:14:15 = 7
+	CASE 2
+		FLAG:最大X = 19 
+		FLAG:最大Y = 19 
+		;						 0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0,"                   "
+		CALL MAKE_FLOOR_LINE, 1," 1111111   1111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1  1  1   1  1  1 "
+		CALL MAKE_FLOOR_LINE, 3," 1  2  1   1  2  1 "
+		CALL MAKE_FLOOR_LINE, 4," 1124211   1121211 "
+		CALL MAKE_FLOOR_LINE, 5," 1  2  1   1  2  1 "
+		CALL MAKE_FLOOR_LINE, 6," 1  1  1   1  1  1 "
+		CALL MAKE_FLOOR_LINE, 7," 11111111111111111 "
+		CALL MAKE_FLOOR_LINE, 8,"       1 2 1       "
+		CALL MAKE_FLOOR_LINE, 9,"       12B21       "
+		CALL MAKE_FLOOR_LINE,10,"       1 2 1       "
+		CALL MAKE_FLOOR_LINE,11," 11111111111111111 "
+		CALL MAKE_FLOOR_LINE,12," 1  1  1   1  1  1 "
+		CALL MAKE_FLOOR_LINE,13," 1  2  1   1  2  1 "
+		CALL MAKE_FLOOR_LINE,14," 1121211   1121211 "
+		CALL MAKE_FLOOR_LINE,15," 1  2  1   1  2  1 "
+		CALL MAKE_FLOOR_LINE,16," 1  1  1   1  1  1 "
+		CALL MAKE_FLOOR_LINE,17," 1111111   1111111 "
+		CALL MAKE_FLOOR_LINE,18,"                   "
+		;B
+		DA:9:9 = 17
+	CASE 3
+		FLAG:最大X = 17 
+		FLAG:最大Y = 18
+		;						 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1,"                 "
+		CALL MAKE_FLOOR_LINE, 2," 111111111111111 "
+		CALL MAKE_FLOOR_LINE, 3," 1 1           1 "
+		CALL MAKE_FLOOR_LINE, 4," 1 1 111111111 1 "
+		CALL MAKE_FLOOR_LINE, 5," 1 1 1       1 1 "
+		CALL MAKE_FLOOR_LINE, 6," 1 1 1 11111 1 1 "
+		CALL MAKE_FLOOR_LINE, 7," 1 1 1 1   1 1 1 "
+		CALL MAKE_FLOOR_LINE, 8," 1 1 1 141 1 1 1 "
+		CALL MAKE_FLOOR_LINE, 9," 1 1 1   1 1 1 1 "
+		CALL MAKE_FLOOR_LINE,10," 1 1 11111 1 1 1 "
+		CALL MAKE_FLOOR_LINE,11," 1 1       1 1 1 "
+		CALL MAKE_FLOOR_LINE,12," 1 111111111 1 1 "
+		CALL MAKE_FLOOR_LINE,13," 1           1 1 "
+		CALL MAKE_FLOOR_LINE,14," 111111111111111 "
+		CALL MAKE_FLOOR_LINE,15," 2               "
+		CALL MAKE_FLOOR_LINE,16," 4               "
+		CALL MAKE_FLOOR_LINE,17,"                 "
+		DA:1:16 = 57
+	CASE 4
+		FLAG:最大X = 9 
+		FLAG:最大Y = 9
+		;						 012345678
+		CALL MAKE_FLOOR_LINE, 0,"         "
+		CALL MAKE_FLOOR_LINE, 1," 1111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1111111 "
+		CALL MAKE_FLOOR_LINE, 3," 1114111 "
+		CALL MAKE_FLOOR_LINE, 4," 1111111 "
+		CALL MAKE_FLOOR_LINE, 5," 1111111 "
+		CALL MAKE_FLOOR_LINE, 6," 1111111 "
+		CALL MAKE_FLOOR_LINE, 7," 1111111 "
+		CALL MAKE_FLOOR_LINE, 8,"         "
+		DA:4:5 = 11
+	CASE 6
+		FLAG:最大X = 5
+		FLAG:最大Y = 5
+		;						 012345
+		CALL MAKE_FLOOR_LINE, 0,"     "
+		CALL MAKE_FLOOR_LINE, 1," 111 "
+		CALL MAKE_FLOOR_LINE, 2," 141 "
+		CALL MAKE_FLOOR_LINE, 3," 111 "
+		CALL MAKE_FLOOR_LINE, 4,"  2  "
+		DA:2:3 = 11
+	CASEELSE
+ENDSELECT
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_4
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;==========
+;イベントの処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENT_4
+	RETURN 1
+ELSE
+	CALL MESSAGE_WINDOW_D, "SYSTTEM", "Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_4,ARG
+#LOCALSIZE 10
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;イベントの処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENT_4
+	RETURN 1
+;========
+;ワープの処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL WARP_4
+	RETURN 1
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+ENDIF
+RETURN 0
+@EVENT_4
+SELECTCASE FLAG:現M
+	CASE 0
+		;ボス部屋にワープ
+		CALL DUNGEON_WORP_ID, 4, 11, 1
+		;部屋をアナライズし表示更新
+		CALL FLOOR_ANALYZE
+		CALL SHOW_FLOOR
+		CALL SHOW_NOW_FORMATION_P,0,2,,2
+		FLAG:コマンド表示行数 = LINECOUNT
+		IF FLAG:百合の花ルート
+			CALL MESSAGE_WINDOW_D, "", "＞扉の中には足を踏み入れると突然周囲が一面の花畑になった…/＞そして、アマネがひとりぼんやりと立っているのを見つけた…"
+			CALL MESSAGE_WINDOW_D, "声", "…誰だい？/…人の心に、土足で踏み込む奴は…"
+			CALL MESSAGE_WINDOW_D, "", "＞一面の花畑が突然溶岩が流れる荒野へと変貌した/＞そして、巨大な悪魔…イザ・ベルが姿を現した"
+			CALL MESSAGE_WINDOW_D, "イザ・ベル", "失礼な奴らだねぇ…。ねぇ、アマネ？/これはさっさと殺してあげないとねぇ"
+			CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%はアマネに声をかけた"
+			PRINTFORML 
+			;3箇所解放でアマネは敵にならない
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 3
+				CALL MESSAGE_WINDOW_D, "アマネ", "…はっ、！？/私…は…？/イザ・ベル…？/これは…いったい…"
+				CALL MESSAGE_WINDOW_D, "アマネ", "そうか、私はイザ・ベルに…！/貴方が助けてくれたのですね…/もう、捉えられるわけには行かない…！/イザ・ベル…、あなたの言いなりにはなりませんよ…。これは、私の心…!"
+				LOCAL = GETCHARA([[キャラ:アマネ]])
+				CALL ADD_GUEST_COMPANION([[キャラ:アマネ]], 500, 1)
+				IF RESULT && LOCAL == -1
+					LOCAL = GETCHARA([[キャラ:アマネ]])
+					PRINTL 
+					CALL MESSAGE_WINDOW_D, "", @"＞意識を取り戻したアマネは、%CALLNAME:MASTER%のパーティに加わった"
+					BASE:LOCAL:LV = 30
+					BASE:LOCAL:力 = 4
+					BASE:LOCAL:知恵 = 17
+					BASE:LOCAL:魔力 = 16
+					BASE:LOCAL:耐力 = 8
+					BASE:LOCAL:速さ = 8
+					BASE:LOCAL:運 = 10
+					BASE:LOCAL:ＥＸＰ = 5*(29)*(30)*(31)/3
+					;---- EDIT 007 MOD START -------------------------
+					;核熱250%なグローブありだと、さすがにここでどうにもならないので
+					EQUIP:LOCAL:剣 = [[アイテム:Slicer]]
+					EQUIP:LOCAL:頭 = [[アイテム:Feather Trim]]
+					EQUIP:LOCAL:胴 = [[アイテム:Starry Robe]]
+					EQUIP:LOCAL:腕 = [[アイテム:Guard Angel]]
+					EQUIP:LOCAL:足 = [[アイテム:Safety Boots]]
+					;---- EDIT 007 MOD END   -------------------------
+					ABL:LOCAL:スキル3 = [[スキル:デ・カジャ]]
+					ABL:LOCAL:スキル4 = [[スキル:ハンマ]]
+					ABL:LOCAL:スキル5 = [[スキル:ペンパトラ]]
+					ABL:LOCAL:スキル6 = [[スキル:マハ・ザンマ]]
+					ABL:LOCAL:スキル7 = [[スキル:リカーム]]
+					ABL:LOCAL:スキル8 = [[スキル:メ・ディアラマ]]
+					;隠し補正をつけておく
+					CFLAG:LOCAL:魔法被ダメージ補正 = -70
+					CALL SYNC_STATUS,(LOCAL)
+					CALL HEALTH_CHARA,(LOCAL)
+				ENDIF
+				CALL MESSAGE_WINDOW_D, "イザ・ベル", "何て事を…！/アマネの自我がっ…！/…ええぃ！/ならば、もう一度、オマエの心を取り込んでやるわ！"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "イザ・ベル", "あら…ムダ、ムダよ？/アマネの心にはアタシの根が、しっかりと張っているんだから…/さぁ、お前たちも出てきて奴らを殺しちゃいなさいな"
+				CALL MESSAGE_WINDOW_D, "", "＞邪悪な笑みを浮かべたアマネ達が次々と現れる…"
+				CALL SET_ENEMY,14,4513,35,1,1
+				ABL:(CHARANUM-1):スキル1 = 1005
+				ABL:(CHARANUM-1):スキル2 = 402
+				ABL:(CHARANUM-1):スキル3 = 418
+				ABL:(CHARANUM-1):スキル4 = 0
+				ABL:(CHARANUM-1):スキル5 = 0
+				ABL:(CHARANUM-1):スキル6 = 0
+				ABL:(CHARANUM-1):スキル7 = 0
+				ABL:(CHARANUM-1):スキル8 = 0
+				ABL:(CHARANUM-1):スキル9 = 0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+				CSTR:(CHARANUM-1):思考パターン = 4513
+				BASE:(CHARANUM-1):速さ = 21
+				CFLAG:LOCAL:COOP被ダメージ補正 = -50
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL SET_ENEMY,8,3263,28,1,1
+				CSTR:(CHARANUM-1):思考パターン = 3263
+				CALL SET_ENEMY,9,3263,28,1,1
+				CSTR:(CHARANUM-1):思考パターン = 3263
+				CALL SET_ENEMY,10,3263,28,1,1
+				CSTR:(CHARANUM-1):思考パターン = 3263
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "", "＞魔王 イザ･ベルが出た！"
+			CALL SET_ENEMY,13,207,48 - ダンジョンフラグ:(FLAG:現ダンジョン):4 * 5, 1, 1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 2500
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+			ABL:(CHARANUM-1):スキル6 = 0
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			BASE:(CHARANUM-1):速さ = 20
+			BASE:(CHARANUM-1):剣撃 = 112
+			BASE:(CHARANUM-1):戦技 = 100
+			BASE:(CHARANUM-1):打撃 = 112
+			BASE:(CHARANUM-1):飛具 = 100
+			MAXBASE:(CHARANUM-1):剣撃 = 112
+			MAXBASE:(CHARANUM-1):戦技 = 100
+			MAXBASE:(CHARANUM-1):打撃 = 112
+			MAXBASE:(CHARANUM-1):飛具 = 100
+			BASE:(CHARANUM-1):CLOSE = 200
+			BASE:(CHARANUM-1):CHARM = -100
+			BASE:(CHARANUM-1):FREEZE = -100
+			BASE:(CHARANUM-1):SHOCK = -100
+			BASE:(CHARANUM-1):BIND = -100
+			BASE:(CHARANUM-1):PANIC = -100
+			MAXBASE:(CHARANUM-1):CLOSE = 200
+			MAXBASE:(CHARANUM-1):CHARM = -100
+			MAXBASE:(CHARANUM-1):FREEZE = -100
+			MAXBASE:(CHARANUM-1):SHOCK = -100
+			MAXBASE:(CHARANUM-1):BIND = -100
+			MAXBASE:(CHARANUM-1):PANIC = -100
+			CSTR:(CHARANUM-1):思考パターン = イザベル
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL BATTLE_START
+			CALL SHOW_FLOOR
+			CALL SHOW_NOW_FORMATION_P,0,2,,2
+			FLAG:コマンド表示行数 = LINECOUNT
+			CALL MESSAGE_WINDOW_D, "イザ・ベル", "な…何て事だい…！/アンタはまさか救世主なのか…！/アンタにやられるとは…！/…ギャアアアアアアアアッ！"
+			CALL MESSAGE_WINDOW_D, "", "＞イザ・ベルは力尽きた…"
+			CALL MESSAGE_WINDOW_D, "アマネ", "…ありがとうございます/貴方のお陰で助かりました。/あのままであれば…私の心は失われ、/完全にイザ・ベルに乗っ取られてしまっていた事でしょう。"
+			CALL MESSAGE_WINDOW_D, "アマネ", "さぁ…私も力を貸します/現実の世界にお戻り下さい…"
+			CALL MESSAGE_WINDOW_D, "", "意識が遠のいていく……"
+			CALL MESSAGE_WINDOW_D, "", "………/………/…"
+			;直哉部屋にワープ
+			CALL DUNGEON_WORP_ID, 6, 11, 1
+			CALL SHOW_FLOOR
+			CALL SHOW_NOW_FORMATION_P,0,2,,2
+			FLAG:コマンド表示行数 = LINECOUNT
+			CALL MESSAGE_WINDOW_D, "", @"気がつくと%CALLNAME:MASTER%は現実世界に帰ってきていた…"
+			;---- EDIT 003 ADD START -------------------------
+			;レミエルの加入処理及びメッセージの追加
+			FLAG:(10000+[[キャラ:レミエル]]) = 1
+			LOCAL = GETCHARA([[キャラ:アマネ]])
+			;補正を消す
+			SIF LOCAL >= 0
+				CFLAG:LOCAL:魔法被ダメージ補正 = 0
+			;---- EDIT 006 ADD START -------------------------
+			;条件文の中身を入れ替え
+			IF ABL:MASTER:属性LD == 1 && ABL:MASTER:属性LC == 1
+				CALL MESSAGE_WINDOW_D, "", "＞目の前にはアマネと天使がいる"
+				CALL MESSAGE_WINDOW_D, "アマネ", "…無事に戻れたようですね。ありがとうございます"
+				CALL MESSAGE_WINDOW_D, "天使", "よく、やりましたね。/これで悪しき魔王イザ・ベルの脅威は去りました"
+				CALL INPUT_YN_D("アマネ？", "レミエル？")
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "アマネ", "ええ、私はアマネです/そして、彼女がレミエルです"
+					LOCALS = レミエル
+				ELSE
+					LOCALS =  天使
+				ENDIF
+				CALL MESSAGE_WINDOW_D, LOCALS, "この姿でお会いするのは初めてでしたね/あなたがイザ・ベルを倒した事で、私は役目を終え、/アマネの中にいる必要がなくなりました"
+				CALL MESSAGE_WINDOW_D, LOCALS, "これからは、我らが本来の役目に戻り、正しき人間の手助けをします/そう、つまり仲魔としてあなたの助けとなりましょう/私の力を正しく用いて、世界と人々を救うのですよ"
+				CALL MESSAGE_WINDOW_D, "", "＞大天使 レミエルが仲魔になった"
+				SIF FLAG:20307 < 100
+					FLAG:20307 = 100
+				CALL ADD_NEW_COMPANION, [[キャラ:レミエル]], 500, 1
+				IF RESULT
+					CFLAG:(RESULT:1):イベント加入 = 1
+					BASE:(RESULT:1):LV = 35
+					BASE:(RESULT:1):力 = 8
+					BASE:(RESULT:1):知恵 = 18
+					BASE:(RESULT:1):魔力 = 12
+					BASE:(RESULT:1):耐力 = 8
+					BASE:(RESULT:1):速さ = 13
+					BASE:(RESULT:1):運 = 11
+					ABL:(RESULT:1):習得LV1 -= 28
+					ABL:(RESULT:1):習得LV2 -= 28
+					ABL:(RESULT:1):習得LV3 -= 28
+					ABL:(RESULT:1):習得LV4 -= 28
+					ABL:(RESULT:1):習得LV5 -= 28
+					ABL:(RESULT:1):習得LV6 -= 28
+					ABL:(RESULT:1):受胎アイテム = [[アイテム:スキルカード【天使の血杯】]]
+					BASE:(RESULT:1):ＥＸＰ = 5*(34)*(35)*(36)/3
+					CFLAG:(RESULT:1):戦闘参加不可能 = -1
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞目の前にはアマネがいる"
+				CALL MESSAGE_WINDOW_D, "アマネ", "…無事に戻れたようですね。/ありがとうございます"
+				CALL INPUT_YN_D("アマネ？", "レミエル？")
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "アマネ", "ええ、私はアマネです"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "アマネ", "クスクス…/お分かりになりませんか？/私は、アマネです"
+				ENDIF
+				CALL MESSAGE_WINDOW_D, "アマネ", "あなたがイザ・ベルを倒した事で、その役目を終えたのでしょう/レミエルはもう私の中にはいません/去り際にレミエルはあなたに力を貸すと言っていました/然るべき手順を踏めば、呼び出すことができるでしょう"
+			ENDIF
+			;---- EDIT 006 ADD  END -------------------------
+			CALL MESSAGE_WINDOW_D, "アマネ", "レミエルだけではありません/私にもあなたの仕事を手伝わせてください"
+			CALL MESSAGE_WINDOW_D, "アマネ", "知っての通り、私の中にはイザ・ベルがいました/それは、我が父、クズリュウがイザ・ベルを召喚し、/私の中に降ろしたからです/父はイザ・ベルの力があれば、神の試練を乗り越えられると考えたのです"
+			CALL MESSAGE_WINDOW_D, "アマネ", "メシア教会の目的は人が団結し、神の試練を乗り越える事…/それは神の教えを守り、秩序の世界築く事でも、叶えられる事なのです"
+			CALL MESSAGE_WINDOW_D, "アマネ", "私は自分の在り方を迷っていました/果たして、神の試練を乗り越える為に、悪魔の力を借り、/結果として人々を苦しめる事は正しいのかと"
+ 			CALL MESSAGE_WINDOW_D, "アマネ", "私は、私の心に従います/例えそれが、父と考えを違え、互いに争う結果になったとしても/父やメシア教の暴走を止めたいのです"
+ 			CALL MESSAGE_WINDOW_D, "アマネ", "あなたは人々を導き、団結させ、/この試練を乗り越える道を示すことができる……/救世主なのです"
+ 			CALL MESSAGE_WINDOW_D, "アマネ", "あなたを助けることで、私の目的もまた達成されるでしょう/ですから、私にあなたを助けさせてはもらえませんか？"
+ 			;---- EDIT 003 ADD START -------------------------
+ 			CALL INPUT_YN_D
+ 			IF RESULT == 0
+ 				CALL MESSAGE_WINDOW_D, "アマネ", "ありがとうございます/これから力をあわせて、人々を助けていきましょう"
+ 				CALL MESSAGE_WINDOW_D, "", "＞アマネが仲間に加わった"
+				CALL ADD_NEW_COMPANION,4513,500
+				;戦闘参加可能で加入するが、調教で戦闘参加不可能になる
+				CFLAG:GETCHARA([[キャラ:アマネ]]):戦闘参加不可能 = -1
+				CFLAG:GETCHARA([[キャラ:アマネ]]):魔法被ダメージ補正 = 0
+			ELSE
+				CALL MESSAGE_WINDOW_D, "アマネ", "そうですか…/なすべきことをなすのに、人に頼るべきではないということですね/わかりました…/では、私は私なりに、人々のために働くとしましょう"
+				LOCAL = GETCHARA([[キャラ:アマネ]])
+				IF LOCAL >= 0
+					IF CFLAG:LOCAL:引継ぎ回数
+						CFLAG:LOCAL:この場に居ないフラグ = 1
+					ELSE
+						CALL キャラ削除(LOCAL)
+					ENDIF
+				ENDIF
+			ENDIF
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CALL MESSAGE_WINDOW_D, "", "＞メシア教会から口座に礼金￥100000が振り込まれた/＞おそらくはレミエルの仕業だろう"
+			MONEY += 100000
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+			FLAG:百合の花ルート = 6
+			FLAG:脱出 = 1
+		ELSE
+			;---- EDIT 005 ADD START -------------------------
+			;ネストが崩れていたのを修正
+			;---- EDIT 004 ADD START -------------------------
+			;直哉ルート追加
+			LOCAL:2 = GETCHARA([[キャラ:マインドアマネ]])
+			LOCAL:3 = LOCAL:2 >= 0 ? MARK:(LOCAL:2):屈服刻印 * 2 - MARK:(LOCAL:2):反発刻印 # 0
+			;敵レベル基準値
+			ダンジョンフラグ:(FLAG:現ダンジョン):6 = ダンジョンフラグ:(FLAG:現ダンジョン):5 ? 52 - LOCAL:3 * 2 # 49 - ダンジョンフラグ:(FLAG:	現ダンジョン):4 * 3
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):5 == 0
+				CALL MESSAGE_WINDOW_D, "", "＞扉の中に足を踏み入れると周囲がいきなり枯れ果てた花畑になった……/＞そして、目の前でアマネがひとり泣いているのを見つけた…"
+				CALL MESSAGE_WINDOW_D, "声", "…あなたですね/アマネの精神を荒らしまわっているのは？/…人の心にこのようなことをするとは…"
+				CALL MESSAGE_WINDOW_D, "", "＞大天使 レミエルがアマネを守るようにして現れた…"
+				CALL MESSAGE_WINDOW_D, "レミエル", "今、ここで私があなたを破らねば、/アマネの心は完全に死に絶えてしまうでしょう/人の子よ。悪魔に力を貸すのみならず、/その非道な行為の裁きを受けるのです！"
+				;イベント内容の分岐　アマネ崩壊
+				ダンジョンフラグ:(FLAG:現ダンジョン):7 = 2
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞扉の中に足を踏み入れると周囲がいきなり一面の花畑になった……/＞そして、アマネがひとりぼんやりと立っているのを見つけた"
+				CALL MESSAGE_WINDOW_D, "声", "…誰ですか？/…人の心に、土足で踏み込むものは…"
+				CALL MESSAGE_WINDOW_D, "", "＞アマネの傍らに大天使 レミエルが姿を現した"
+				CALL MESSAGE_WINDOW_D, "レミエル", "さぁ、心を強く持つのです/我らただしきものはあのような悪しきものに/負けるわけにはいかないのです"
+				IF LOCAL:3 >= 6 && ダンジョンフラグ:(FLAG:現ダンジョン):5
+					;イベント内容の分岐　アマネ裏切り
+					ダンジョンフラグ:(FLAG:現ダンジョン):7 = 3
+					CALL MESSAGE_WINDOW_D, "アマネ", "……"
+					CALL MESSAGE_WINDOW_D, "レミエル", "……どうしたのです？"
+					CALL MESSAGE_WINDOW_D, "アマネ", "申し訳ありません/ですが、私は神よりもっと素晴らしい物を知ってしまったのです"
+					CALL MESSAGE_WINDOW_D, "", @"＞アマネはレミエルを残し、%CALLNAME:MASTER%の傍へとやってきた…"
+					CALL MESSAGE_WINDOW_D, "アマネ", "私はあなたのものです/さぁなんなりとご命令ください"
+					IF GETCHARA([[キャラ:アマネ]]) == -1
+						CALL MESSAGE_WINDOW_D, "", @"＞アマネが、%CALLNAME:MASTER%のパーティに加わった"
+	;					SIF RESULT:1 >= 0
+	;						PRINTFORMDW %CALLNAME:(RESULT:1)%をCOMPに戻したので注意してください
+						NO:(LOCAL:2) = [[キャラ:アマネ]]
+						CFLAG:(LOCAL:2):この場に居ないフラグ = 0
+						CFLAG:(LOCAL:2):戦闘参加不可能 = 0
+						CFLAG:(LOCAL:2):善悪値 = 0
+						CFLAG:(LOCAL:2):秩混値 = 0
+						TALENT:(LOCAL:2):母乳体質 = 0
+						TALENT:(LOCAL:2):処女 = 1
+						;隠し補正をつけておく
+						CFLAG:(LOCAL:2):魔法被ダメージ補正 = -50
+						CALL SYNC_STATUS, LOCAL:2
+						CALL HEALTH_CHARA, LOCAL:2
+						LOCAL:1 = -1
+						LOCAL:2 = -1
+						FOR LOCAL, 6, 0, -1
+							LOCALS = ポジション{LOCAL} 
+							IF FLAG:LOCALS < 0
+								LOCAL:1 = LOCAL
+								BREAK
+							ENDIF
+						NEXT
+						IF LOCAL:1 == -1
+							FOR LOCAL, 6, 0, -1
+								LOCALS = ポジション{LOCAL} 
+								IF ABL:(FLAG:LOCALS):種族 || NO:(FLAG:LOCALS) == [[キャラ:メアリ]]
+									LOCAL:1 = LOCAL
+									;LOCAL:2にどかすキャラを入れる
+									LOCAL:2 = POS(LOCAL)
+									;ポジションから外す
+									CALL REMOVE_POSITION(LOCAL)
+									BREAK
+								ENDIF
+							NEXT
+						ENDIF
+						;---- EDIT 007 MOD START -------------------------
+						IF LOCAL:1 > 0
+							CALL INSERT_POSITION, LOCAL:1, GETCHARA([[キャラ:アマネ]])
+						ELSE
+							CALL MESSAGE_WINDOW_D, "", "＞PTメンバーに空きがなかったので、アマネは戦闘に加わりません"
+						ENDIF
+						;---- EDIT 007 MOD END   -------------------------
+					ELSE
+						CALL キャラ削除, LOCAL:2
+					ENDIF
+					CALL MESSAGE_WINDOW_D, "レミエル", "そんな…/これでは私はなんのために…"
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "おおっと、逃がしゃしないよ/あんたはここで自分で守ろうとしてた人間たちに殺されるのさ"
+					CALL MESSAGE_WINDOW_D, "レミエル", "くっ…/イザ・ベル!"
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "なんて、顔してるんだい？/アマネも幸せそうじゃないか/天使らしく祝福してやりなよ"
+					CALL MESSAGE_WINDOW_D, "レミエル", "……神よ/私にこの悪しきものどもを打ち破るだけの力を！"
+				ELSE
+				;イベント内容の分岐　通常
+					ダンジョンフラグ:(FLAG:現ダンジョン):7 = 1
+					CALL MESSAGE_WINDOW_D, "アマネ", "はい…/私は再びイザ・ベルに捉えられるわけには行きません/どうか、私に力をお貸しください"
+					CALL MESSAGE_WINDOW_D, "レミエル", "よくぞ、いいました/では、行きますよ！"
+					CALL SET_ENEMY,13,4513,ダンジョンフラグ:(FLAG:現ダンジョン):6-3,1,1
+					ABL:(CHARANUM-1):スキル1 = 1005
+					ABL:(CHARANUM-1):スキル2 = 402
+					ABL:(CHARANUM-1):スキル3 = 418
+					ABL:(CHARANUM-1):スキル4 = 0
+					ABL:(CHARANUM-1):スキル5 = 0
+					ABL:(CHARANUM-1):スキル6 = 0
+					ABL:(CHARANUM-1):スキル7 = 0
+					ABL:(CHARANUM-1):スキル8 = 0
+					ABL:(CHARANUM-1):スキル9 = 0
+					LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+					CALL SET_BATTLE_STATUS(CHARANUM-1, 20 * LOCAL:1, "ＨＰ")
+					CALL SET_BATTLE_STATUS(CHARANUM-1, 20 * LOCAL:1, "ＭＰ")
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CSTR:(CHARANUM-1):思考パターン = レミエルアマネ
+					BASE:(CHARANUM-1):速さ = 25
+				ENDIF
+			ENDIF
+			CALL SET_ENEMY, 14, [[キャラ:レミエル]], ダンジョンフラグ:(FLAG:現ダンジョン):6, 1, 1
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):単独リンケージ = 1
+			BASE:(CHARANUM-1):速さ = 30
+			BASE:(CHARANUM-1):衝撃 = 25
+			BASE:(CHARANUM-1):疾風 = 150
+			BASE:(CHARANUM-1):重力= 25
+			BASE:(CHARANUM-1):氷結= 25
+			BASE:(CHARANUM-1):電撃= -50
+			MAXBASE:(CHARANUM-1):衝撃 = 25
+			MAXBASE:(CHARANUM-1):疾風 = 150
+			MAXBASE:(CHARANUM-1):重力= 25
+			MAXBASE:(CHARANUM-1):氷結= 25
+			MAXBASE:(CHARANUM-1):電撃= -50
+			CSTR:(CHARANUM-1):思考パターン = レミエル
+			CSTR:(CHARANUM-1):増援パターン = レミエル
+			LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 50 * LOCAL:1, "ＨＰ")
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 20 * LOCAL:1, "ＭＰ")
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY, 8, [[キャラ:ハルワタート]], ダンジョンフラグ:(FLAG:現ダンジョン):6-5
+			CALL SET_ENEMY_D4_ST, (CHARANUM-1)
+			CALL SET_ENEMY, 9, [[キャラ:アムルタート]], ダンジョンフラグ:(FLAG:現ダンジョン):6-5
+			CALL SET_ENEMY_D4_ST, (CHARANUM-1)
+			CALL SET_ENEMY, 10, [[キャラ:ライラ]], ダンジョンフラグ:(FLAG:現ダンジョン):6-5
+			CALL SET_ENEMY_D4_ST, (CHARANUM-1)
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			;---- EDIT 005 ADD START -------------------------
+			;メッセージの位置を戦闘前に修正し、フラグリセット処理を追加
+			CALL MESSAGE_WINDOW_D, "", "＞大天使 レミエルが出た！"
+			CALL BATTLE_START
+			CALL SHOW_FLOOR
+			CALL SHOW_NOW_FORMATION_P,0,2,,2
+			FLAG:コマンド表示行数 = LINECOUNT
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			;---- EDIT 005 ADD END   -------------------------
+			FLAG:(10000+[[キャラ:イザ･ベル]]) = 1
+			LOCAL = GETCHARA([[キャラ:アマネ]])
+			;補正を消す
+			SIF LOCAL >= 0
+				CFLAG:LOCAL:魔法被ダメージ補正 = 0
+			CALL MESSAGE_WINDOW_D, "レミエル", "な、なんということです…/この私が悪しき者どもに敗れるなど…/あぁ…神よ…どうかお許し下さい…"
+			CALL MESSAGE_WINDOW_D, "SYSYTEM", "＞レミエルは力尽きた"
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):7 == 3
+				CALL MESSAGE_WINDOW_D, "アマネ", "……ごめんなさい"
+				CALL MESSAGE_WINDOW_D, "", "＞消え行くレミエルを見ながら、アマネがぽつりとつぶやいた"
+			ENDIF
+			;ログ残し
+			CALL MESSAGE_WINDOW_D, "", "＞意識が遠のいていく…"
+			CALL MESSAGE_WINDOW_D, "", "………/……/…"
+			;直哉部屋にワープ
+			CALL DUNGEON_WORP_ID, 6, 11, 1
+			CALL SHOW_FLOOR
+			CALL SHOW_NOW_FORMATION_P,0,2,,2
+			FLAG:コマンド表示行数 = LINECOUNT
+			CALL MESSAGE_WINDOW_D, "", "＞気がつくと、サイコダイブする前にいた部屋に帰ってきていた…/＞目の前には邪悪な笑みを浮かべるアマネとニヤニヤ笑う直哉がいる…"
+			CALL MESSAGE_WINDOW_D, "直哉", "その様子だとうまくいったようだな？"
+			CALL MESSAGE_WINDOW_D, "アマネ", "あぁ、せいせいしたよ/しかし、たかが人間ごときが本当にあのレミエルを倒してしまうなんてねぇ"
+			CALL MESSAGE_WINDOW_D, "直哉", "俺が見込んだ人間だ。このくらい当然だ/これでお前も安心して、後を託せるだろう？"
+			CALL MESSAGE_WINDOW_D, "アマネ", "あぁ、そうだね。ベルの力受け取るといい"
+			CALL MESSAGE_WINDOW_D, "", @"＞アマネから、黒い靄のようなものが立ちのぼり、/＞%CALLNAME:MASTER%のＣＯＭＰへと吸い込まれていった"
+			CALL MESSAGE_WINDOW_D, "", @"＞靄が出なくなると、アマネが崩れ落ちた…/＞%CALLNAME:MASTER%が駆け寄ろうとすると頭の中に声が響いてきた"
+			IF ABL:MASTER:属性LD == 3 &&  ABL:MASTER:属性LC == 3
+				CALL MESSAGE_WINDOW_D, "声", "そうそう、レミエルからだいぶ力を奪えたからね/実体化して戦うことも十分できそうだよ/そういうわけで、これからアンタにて力を貸してやるよ/ありがたく思うんだね"
+				CALL MESSAGE_WINDOW_D, "", "＞魔王 イザ・ベルが仲魔になった"
+				SIF FLAG:20207 < 100
+					FLAG:20207 = 100
+				CALL ADD_NEW_COMPANION, [[キャラ:イザ･ベル]], 500, 1
+				IF RESULT
+					CFLAG:(RESULT:1):イベント加入 = 1
+					BASE:(RESULT:1):LV = 35
+					BASE:(RESULT:1):力 = 4
+					BASE:(RESULT:1):知恵 = 18
+					BASE:(RESULT:1):魔力 = 21
+					BASE:(RESULT:1):耐力 = 9
+					BASE:(RESULT:1):速さ = 12
+					BASE:(RESULT:1):運 = 6
+					ABL:(RESULT:1):習得LV1 -= 18
+					ABL:(RESULT:1):習得LV2 -= 18
+					ABL:(RESULT:1):習得LV3 -= 18
+					ABL:(RESULT:1):習得LV4 -= 18
+					ABL:(RESULT:1):習得LV5 -= 18
+					BASE:(RESULT:1):ＥＸＰ = 5*(34)*(35)*(36)/3
+					ABL:(RESULT:1):受胎アイテム = [[アイテム:スキルカード【灼熱の花】]]
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "声", "そうそう、これから基本的にはここから応援させてもらうわけだけど/しかるべき手続きを踏めば、実体化して戦ってあげることも/できないでもないから覚えておきな"
+			ENDIF
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):7 == 2
+				CALL MESSAGE_WINDOW_D, "直哉", "さて……それはそうと……/これは駄目だな/壊れてしまっている"
+				CALL MESSAGE_WINDOW_D, "", "＞アマネの様子を見ていた直哉がそう言った"
+				CALL MESSAGE_WINDOW_D, "直哉", "こいつほどの力があれば、/なにかしら使い道はありそうなものだと期待していたが…/そうだ。奴隷としてはどうなんだ？/これでも使い道はあるのか？"
+				CALL INPUT_YN_D("ある", "ない")
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "直哉", "そうか/なら、持って行くがいい"
+					CALL MESSAGE_WINDOW_D, "", "＞九頭竜 天音を手に入れた"
+					CALL ADD_NEW_COMPANION, [[キャラ:アマネ]], 200
+					IF RESULT
+						TALENT:(RESULT:1):崩壊 = 1
+						TALENT:(RESULT:1):非戦闘員 = 1
+						CFLAG:(RESULT:1):イベント加入 = 3
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "直哉", "そうか/ならば、こちらで適当に処分しておこう"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "アマネ", "うぅ……/ここは……"
+				CALL MESSAGE_WINDOW_D, "", "＞アマネは目を覚ますと、呻きながら立ち上がった"
+				CALL MESSAGE_WINDOW_D, "直哉", "お目覚めか"
+				CALL MESSAGE_WINDOW_D, "アマネ", "私はレミエルと…"
+				CALL MESSAGE_WINDOW_D, "直哉", "そう、レミエルと共に負けたのだ/悪いことは言わない/俺達に力を貸せ、共に神を倒すのだ"
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):7 == 3
+					CALL MESSAGE_WINDOW_D, "アマネ", "……言われるまでもありません/私はすでに神を捨て、この方を選んだのです"
+					CALL MESSAGE_WINDOW_D, "直哉", "ほう、すでにおとしていたのか/やるじゃないか/神の所有物である巫女を奪い取るとはな"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "アマネ", "何を馬鹿なことを！/ここで私とレミエルが負けても、最後には絶対…！"
+					CALL MESSAGE_WINDOW_D, "直哉", "まぁいいさ/お前がすんなり俺たちにつくとは思ってない/ただ、こいつは奴隷商人だからな…/どうなるかはお前も大体想像がつくんじゃないか？"
+					CALL MESSAGE_WINDOW_D, "アマネ", "なっ…！？"
+					CALL MESSAGE_WINDOW_D, "直哉", "神の巫女がどう扱われるか、楽しみだよ/クックック"
+					CALL MESSAGE_WINDOW_D, "", "＞九頭竜 天音を手に入れた"
+					IF ダンジョンフラグ:(FLAG:現ダンジョン):5
+						LOCAL:2 = GETCHARA([[キャラ:マインドアマネ]])
+						IF GETCHARA([[キャラ:アマネ]]) == -1
+							NO:(LOCAL:2) = [[キャラ:アマネ]]
+							CFLAG:(LOCAL:2):イベント加入 = 2
+							CFLAG:(LOCAL:2):この場に居ないフラグ = 0
+							CFLAG:(LOCAL:2):戦闘参加不可能 = 1
+							BASE:(LOCAL:2):LV = CSVBASE(NO:(LOCAL:2), 30, 0)
+							BASE:(LOCAL:2):力 = CSVBASE(NO:(LOCAL:2), 31, 0)
+							BASE:(LOCAL:2):知恵 = CSVBASE(NO:(LOCAL:2), 32, 0)
+							BASE:(LOCAL:2):魔力 = CSVBASE(NO:(LOCAL:2), 33, 0)
+							BASE:(LOCAL:2):耐力 = CSVBASE(NO:(LOCAL:2), 34, 0)
+							BASE:(LOCAL:2):速さ = CSVBASE(NO:(LOCAL:2), 35, 0)
+							BASE:(LOCAL:2):運 = CSVBASE(NO:(LOCAL:2), 36, 0)
+							BASE:(LOCAL:2):ＥＸＰ = CSVBASE(NO:(LOCAL:2), 7, 0)
+							EQUIP:(LOCAL:2):剣 = CSVEQUIP(NO:(LOCAL:2), 10, 0)
+							EQUIP:(LOCAL:2):頭 = CSVEQUIP(NO:(LOCAL:2), 12, 0)
+							EQUIP:(LOCAL:2):胴 = CSVEQUIP(NO:(LOCAL:2), 13, 0)
+							EQUIP:(LOCAL:2):腕 = CSVEQUIP(NO:(LOCAL:2), 14, 0)
+							EQUIP:(LOCAL:2):足 = CSVEQUIP(NO:(LOCAL:2), 15, 0)
+							TALENT:(LOCAL:2):母乳体質 = 0
+							TALENT:(LOCAL:2):処女 = 1
+							FOR LOCAL,1, FLAG:スキル数+1
+								ABL:(LOCAL:2):("スキル"+TOSTR(LOCAL)) = CSVABL(NO:(LOCAL:2), GETNUM(ABL, ("スキル"+TOSTR(LOCAL))), 0)
+							NEXT
+							FOR LOCAL,1, 21
+								ABL:(LOCAL:2):("習得スキル"+TOSTR(LOCAL)) = CSVABL(NO:(LOCAL:2), GETNUM(ABL, ("習得スキル"+TOSTR(LOCAL))), 0)
+								ABL:(LOCAL:2):("習得LV"+TOSTR(LOCAL)) = CSVABL(NO:(LOCAL:2), GETNUM(ABL, ("習得LV"+TOSTR(LOCAL))), 0)
+							NEXT
+						ELSE
+							CALL キャラ削除, LOCAL:2
+						ENDIF
+					ELSE
+						CALL ADD_NEW_COMPANION, [[キャラ:アマネ]], 200
+						IF RESULT
+							CFLAG:(RESULT:1):イベント加入 = 2
+						ENDIF
+					ENDIF
+				ENDIF
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "直哉", "さて、今回はこんなところか/だが、次のベル神はさらに手強いだろう/また現れるまで鍛錬を怠らないことだ/これを使うといい"
+			CALL MESSAGE_WINDOW_D, "", "＞直哉から￥100000を受け取った"
+			MONEY += 100000
+			FLAG:ベル神撃破 |= 2
+			FLAG:直哉ルート = 6
+			FLAG:脱出 = 1
+			;---- EDIT 004 ADD END ---------------------------
+			;---- EDIT 005 ADD END ---------------------------
+		ENDIF
+	CASE 1
+		IF FLAG:百合の花ルート
+			IF !ダンジョンフラグ:(FLAG:現ダンジョン):1
+				CALL MESSAGE_WINDOW_D, "悪魔", "こんな所にまでやってこれるなんて、あなた本当に人間？/まぁいいわ/……あなたが何であれ、この娘は解放できない/あなたにも死んでもらうしかないわね"
+				CALL MESSAGE_WINDOW_D, "", "＞魔獣 アルケニーが１体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,805,32,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL BATTLE_START
+				CALL SHOW_FLOOR
+				CALL SHOW_NOW_FORMATION_P,0,2,,2
+				FLAG:コマンド表示行数 = LINECOUNT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞レミエルの声が聞こえる"
+				CALL MESSAGE_WINDOW_D, "レミエル", "よくやりましたね/今の悪魔はアマネの心を縛り上げていたものです"
+				CALL INCREASE_LD, 3
+				CALL INCREASE_LC, 3
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 1
+				ダンジョンフラグ:(FLAG:現ダンジョン):4 += 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、少し解放されました/そして、そのおかげで私も手助けができます/貴方の力となるものをここに作り出しましょう"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 2
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、さらに解放されました/完全に解放するまであと一歩といったところです/貴方の力となるものをここにも作り出すので使ってください"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、完全に解放されました/さぁ、いまこそ精神世界の最奥に赴き、イザ・ベルを討つのです"
+				ENDIF
+			ELSE
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+		ELSE
+			;---- EDIT 004 ADD START -------------------------
+			;新規作成
+			IF !ダンジョンフラグ:(FLAG:現ダンジョン):1
+				CALL MESSAGE_WINDOW_D, "天使", "人の子が、このような所まで来るとは…/汝がこの娘に仇なすというならば、我が汝を討とう"
+				CALL MESSAGE_WINDOW_D, "", "＞天使 アムルタートが１体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,[[キャラ:アムルタート]],36,0,1
+				CALL SET_ENEMY_D4_ST, (CHARANUM-1)
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL BATTLE_START
+				CALL SHOW_FLOOR
+				CALL SHOW_NOW_FORMATION_P,0,2,,2
+				FLAG:コマンド表示行数 = LINECOUNT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞イザ・ベルの声が聞こえる"
+				CALL MESSAGE_WINDOW_D, "イザ・ベル", "よくやってくれたねぇ/アマネを守るこいつさえいなければ…/ちょっとお待ち…"
+				CALL MESSAGE_WINDOW_D, "", "＞少しして目の前にアマネが現れた…"
+				CALL RAPE, 1
+				SIF FLAG:ダンジョン内調教 == 1
+					RETURN 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "今ので、アマネへの支配力が強まったよ/おかげで、アンタの手助けをできるよ/さぁ、これなんかどうだい？"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+					PRINTW 
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 2
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "アマネを完全に支配するまであと一歩といったところだよ/さぁ手伝ってやるから、頑張っておくれよ"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "今ので、アマネをほぼ完全に支配したよ/さぁ、精神世界の最奥に行って、レミエルのやつを殺してやりなよ"
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == -1
+				CALL AMANE_TRAIN
+				RETURN RESULT
+			ELSE
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+			;---- EDIT 004 ADD END ---------------------------
+		ENDIF
+	CASE 2
+		IF FLAG:百合の花ルート
+			IF !ダンジョンフラグ:(FLAG:現ダンジョン):2
+				CALL MESSAGE_WINDOW_D, "悪魔", "なんだ。お前は？/俺はこの女を堕とさなきゃいけねーんだ/邪魔するなら、殺してやる！"
+				CALL MESSAGE_WINDOW_D, "SYSTTEM", "妖魔 インキュバスが１体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:インキュバス]],32,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL BATTLE_START
+				CALL SHOW_FLOOR
+				CALL SHOW_NOW_FORMATION_P,0,2,,2
+				FLAG:コマンド表示行数 = LINECOUNT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞レミエルの声が聞こえる"
+				CALL MESSAGE_WINDOW_D, "レミエル", "よくやりましたね/今の悪魔はアマネを堕落させようとしていたものです"
+				CALL INCREASE_LD, 3
+				CALL INCREASE_LC, 3
+				ダンジョンフラグ:(FLAG:現ダンジョン):2 = 1
+				ダンジョンフラグ:(FLAG:現ダンジョン):4 += 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、少し解放されました/そして、そのおかげで私も手助けができます/貴方の力となるものをここに作り出しましょう"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 2
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、さらに解放されました/完全に解放するまであと一歩といったところです/貴方の力となるものをここにも作り出すので使ってください"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、完全に解放されました/さぁ、いまこそ精神世界の最奥に赴き、イザ・ベルを討つのです"
+				ENDIF
+			ELSE
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+		ELSE
+			;---- EDIT 004 ADD START -------------------------
+			;新規作成
+			IF !ダンジョンフラグ:(FLAG:現ダンジョン):2
+				CALL MESSAGE_WINDOW_D, "天使", "悪しき者よ…/正しきものに危害を加えさせはしない！"
+				CALL MESSAGE_WINDOW_D, "", "＞天使 ライラが１体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,[[キャラ:ライラ]],36,0,1
+				CALL SET_ENEMY_D4_ST, (CHARANUM-1)
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL BATTLE_START
+				CALL SHOW_FLOOR
+				CALL SHOW_NOW_FORMATION_P,0,2,,2
+				FLAG:コマンド表示行数 = LINECOUNT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞イザ・ベルの声が聞こえる"
+				CALL MESSAGE_WINDOW_D, "イザ・ベル", "よくやってくれたねぇ/アマネを守るこいつさえいなければ…/ちょっとお待ち…"
+				CALL MESSAGE_WINDOW_D, "", "＞少しして目の前にアマネが現れた…"
+				CALL RAPE, 2
+				SIF FLAG:ダンジョン内調教 == 1
+					RETURN 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "今ので、アマネへの支配力が強まったよ/おかげで、アンタの手助けをできるよ/さぁ、これなんかどうだい？"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+					PRINTW 
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 2
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "アマネを完全に支配するまであと一歩といったところだよ/さぁ手伝ってやるから、頑張っておくれよ"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "今ので、アマネをほぼ完全に支配したよ/さぁ、精神世界の最奥に行って、レミエルのやつを殺してやりなよ"
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):2 == -1
+				CALL AMANE_TRAIN
+				RETURN RESULT
+			ELSE
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+			;---- EDIT 004 ADD END ---------------------------
+		ENDIF
+	CASE 3
+		IF FLAG:百合の花ルート
+			IF !ダンジョンフラグ:(FLAG:現ダンジョン):3
+				CALL MESSAGE_WINDOW_D, "", "＞アマネがいる…/が、その表情は邪悪で、とてもアマネには見えない"
+				CALL MESSAGE_WINDOW_D, "アマネ？", "………"
+				CALL MESSAGE_WINDOW_D, "", "マインドアマネが１体出た！"
+				CALL INCREASE_LD, 3
+				CALL INCREASE_LC, 3
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:マインドアマネ]],32,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL BATTLE_START
+				CALL SHOW_FLOOR
+				CALL SHOW_NOW_FORMATION_P,0,2,,2
+				FLAG:コマンド表示行数 = LINECOUNT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞レミエルの声が聞こえる"
+				CALL MESSAGE_WINDOW_D, "レミエル", "よくやりましたね/今のはイザ・ベルが支配したアマネの心です"
+				ダンジョンフラグ:(FLAG:現ダンジョン):3 = 1
+				ダンジョンフラグ:(FLAG:現ダンジョン):4 += 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、少し解放されました/そして、そのおかげで私も手助けができます/貴方の力となるものをここに作り出しましょう"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 2
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、さらに解放されました/完全に解放するまであと一歩といったところです/貴方の力となるものをここにも作り出すので使ってください"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "レミエル", "今ので、アマネはイザ・ベルの支配から、完全に解放されました/さぁ、いまこそ精神世界の最奥に赴き、イザ・ベルを討つのです"
+				ENDIF
+			ELSE
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+		ELSE
+			;---- EDIT 004 ADD START -------------------------
+			;新規作成
+			IF !ダンジョンフラグ:(FLAG:現ダンジョン):3
+				CALL MESSAGE_WINDOW_D, "天使", "主よ…/我に悪しきものを退ける力を…！"
+				CALL MESSAGE_WINDOW_D, "", "＞天使 ハルワタートが１体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,[[キャラ:ハルワタート]],36,0,1
+				CALL SET_ENEMY_D4_ST, (CHARANUM-1)
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL BATTLE_START
+				CALL SHOW_FLOOR
+				CALL SHOW_NOW_FORMATION_P,0,2,,2
+				FLAG:コマンド表示行数 = LINECOUNT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞イザ・ベルの声が聞こえる"
+				CALL MESSAGE_WINDOW_D, "イザ・ベル", "よくやってくれたねぇ/アマネを守るこいつさえいなければ…/ちょっとお待ち…"
+				CALL MESSAGE_WINDOW_D, "", "＞少しして目の前にアマネが現れた…"
+				CALL RAPE, 3
+				SIF FLAG:ダンジョン内調教 == 1
+					RETURN 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "今ので、アマネへの支配力が強まったよ/おかげで、アンタの手助けをできるよ/さぁ、これなんかどうだい？"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+					PRINTW 
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 2
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "アマネを完全に支配するまであと一歩といったところだよ/さぁ手伝ってやるから、頑張っておくれよ"
+					CALL MESSAGE_WINDOW_D, "", "＞ターミナルが現れた"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "イザ・ベル", "今ので、アマネをほぼ完全に支配したよ/さぁ、精神世界の最奥に行って、レミエルのやつを殺してやりなよ"
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):3 == -1
+				CALL AMANE_TRAIN
+				RETURN RESULT
+			ELSE
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+			;---- EDIT 004 ADD END ---------------------------
+		ENDIF
+ENDSELECT
+
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+CALL AUTOMAP
+RETURN 1
+;=======================================================================
+;ワープゾーン
+;=======================================================================
+;ワープゾーンのタイル調整
+@TILE_MARK_COMMON_4_6, ARG, ARG:1, ARG:2
+RESULTS = ！
+@TILE_MARK_COMMON_4_7, ARG, ARG:1, ARG:2
+RESULTS = ！
+@WARP_4
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+	;A
+	CASE 6
+		CALL DUNGEON_WORP_ID, 1, 7, 1
+	;A
+	CASE 7
+		CALL DUNGEON_WORP_ID, 0, 6, 1
+	;B
+	CASE 16
+		CALL DUNGEON_WORP_ID, 2, 17, 1
+	;B
+	CASE 17
+		CALL DUNGEON_WORP_ID, 0, 16, 1
+	;C
+	CASE 26
+		CALL DUNGEON_WORP_ID, 0, 27, 1
+	;C
+	CASE 27
+		CALL DUNGEON_WORP_ID, 0, 26, 1
+	;D
+	CASE 36
+		CALL DUNGEON_WORP_ID, 0, 37, 1
+	;D
+	CASE 37
+		CALL DUNGEON_WORP_ID, 0, 36, 1
+	;E
+	CASE 46
+		CALL DUNGEON_WORP_ID, 0, 47, 1
+	;E
+	CASE 47
+		CALL DUNGEON_WORP_ID, 0, 46, 1
+	;F
+	CASE 56
+		CALL DUNGEON_WORP_ID, 3, 57, 1
+	;F
+	CASE 57
+		CALL DUNGEON_WORP_ID, 0, 56, 1
+ENDSELECT
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_4
+IF FLAG:百合の花ルート
+	RETURN 24, 27, 29, 35
+ELSE
+	RETURN 29, 32, 34, 45
+ENDIF
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_4
+FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+SIF FLAG:未遭遇歩数 < 6
+	FLAG:エンカウント率 = 0
+;---- EDIT 011 MOD START -------------------------
+;エンカウントを全体的に改訂
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_4
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_4
+RETURN CLASS_NUM_COMMON("上級")
+;=======================================================================
+;敵の総数
+;=======================================================================
+@ENEMY_NUM_4, ARG
+RETURN ENEMY_NUM_COMMON("上級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_4, ARG
+IF FLAG:百合の花ルート
+	SELECTCASE RAND:100
+		CASE IS < 20
+			RETURN [[キャラ:マンイーター]], 27
+		CASE IS < 40
+			RETURN [[キャラ:バンシー]], 27
+		CASE IS < 60
+			RETURN [[キャラ:ゴルゴン]], 29
+		CASE IS < 80
+			RETURN [[キャラ:ナーガ]], 28
+		CASE IS < 100
+			RETURN [[キャラ:フェニックス]], 28
+	ENDSELECT
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 30
+			RETURN [[キャラ:エンジェル]], 32
+		CASE IS < 60
+			RETURN [[キャラ:ニケー]], 33
+		CASE IS < 80
+			RETURN [[キャラ:アークエンジェル]], 33
+		CASE IS < 100
+			RETURN [[キャラ:プリンシパリティ]], 34
+	ENDSELECT
+ENDIF
+;=======================================================================
+;特殊調整
+;=======================================================================
+@SET_ENEMY_STATUS_4, ARG
+;精神世界の天使はTALKできない
+SIF !FLAG:百合の花ルート
+	ABL:ARG:会話タイプ = 331
+;@CHECK_ENCOUNT_4
+;IF RAND:100 < FLAG:エンカウント率
+;	$LOOP_ENCOUNT
+;	SELECTCASE FLAG:現M
+;		CASEELSE
+;		;１Ｆでの遭遇
+;			LOCAL:2 = 0
+;			;---- EDIT 003 ADD START -------------------------
+;			;敵配置変更　28レベル付近に
+;			;---- EDIT 004 ADD START -------------------------
+;			;直哉ルートの敵配置を設定
+;			FOR LOCAL,7,17,1
+;				;１枠あたり10％の確率で出現
+;				IF RAND:100 < 10
+;					IF FLAG:百合の花ルート
+;						SELECTCASE RAND:100
+;							CASE IS < 20
+;								CALL SET_ENEMY,LOCAL,[[キャラ:マンイーター]],27,0
+;							CASE IS < 40
+;								CALL SET_ENEMY,LOCAL,[[キャラ:バンシー]],27,0
+;							CASE IS < 60
+;								CALL SET_ENEMY,LOCAL,[[キャラ:ゴルゴン]],29,0
+;							CASE IS < 80
+;								CALL SET_ENEMY,LOCAL,[[キャラ:ナーガ]],28,0
+;							CASE IS < 100
+;								CALL SET_ENEMY,LOCAL,[[キャラ:フェニックス]],28,0
+;						ENDSELECT
+;					ELSE
+;						SELECTCASE RAND:100
+;							CASE IS < 30
+;								CALL SET_ENEMY,LOCAL,[[キャラ:エンジェル]],32,0
+;							CASE IS < 60
+;								CALL SET_ENEMY,LOCAL,[[キャラ:ニケー]],33,0
+;							CASE IS < 80
+;								CALL SET_ENEMY,LOCAL,[[キャラ:アークエンジェル]],33,0
+;							CASE IS < 100
+;								CALL SET_ENEMY,LOCAL,[[キャラ:プリンシパリティ]],34,0
+;						ENDSELECT
+;						;精神世界の天使はTALKできない
+;						ABL:(CHARANUM-1):会話タイプ = 331
+;					ENDIF
+;					LOCAL:2 += 1
+;				ENDIF
+;			NEXT
+;			;---- EDIT 003 ADD END ---------------------------
+;			;---- EDIT 004 ADD END ---------------------------
+;			SIF LOCAL:2 == 0
+;				GOTO LOOP_ENCOUNT
+;		
+;	ENDSELECT
+;	RETURN 1
+;ELSE
+;	FLAG:未遭遇歩数 += 1
+;	RETURN 0
+;ENDIF
+;;---- EDIT 011 MOD END   -------------------------
+;=================================
+;思考パターン
+;=================================
+;アマネクローンの思考パターン
+@SET_ACTION_3263,ARG
+;後衛に居るなら前衛に出る
+IF CPOS(ARG) > 11
+	CFLAG:ARG:入力行動 = 2301
+	CFLAG:ARG:入力行動 = CPOS(ARG)-5
+ENDIF
+
+;---- EDIT 003 ADD START -------------------------
+;イザ・ベルの灼熱の花にあわせてマカラカーンをはるルーチンを追加
+;アマネの思考パターン
+@SET_ACTION_4513,ARG
+;ポジション8.9.10.が死んでたらリカーム
+;それ以外に死んでるキャラが居たらリカーム
+IF TFLAG:435 == 1 && CFLAG:ARG:行動した回数 == 0
+	CFLAG:ARG:入力行動 = [[スキル:マカラカーン]]
+	CFLAG:ARG:ターゲット = 22
+	RETURN 1
+;---- EDIT 003 ADD END ---------------------------
+ELSEIF CFLAG:POS(8):ステート == GET_STATE_NUM("DYING")
+	CALL CHECK_ACTIONABLE,ARG,418
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = 418
+	CFLAG:ARG:ターゲット = POS(8)
+	RETURN 1
+ELSEIF CFLAG:POS(9):ステート == GET_STATE_NUM("DYING")
+	CALL CHECK_ACTIONABLE,ARG,418
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = 418
+	CFLAG:ARG:ターゲット = POS(9)
+	RETURN 1
+ELSEIF CFLAG:POS(10):ステート == GET_STATE_NUM("DYING")
+	CALL CHECK_ACTIONABLE,ARG,418
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = 418
+	CFLAG:ARG:ターゲット = POS(10)
+	RETURN 1
+;前衛に居るならスウェイバック
+ELSEIF CPOS(ARG) == 9
+	CFLAG:ARG:入力行動 = 2301
+	CFLAG:ARG:ターゲット = 14
+	RETURN 1
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+;---- EDIT 003 ADD START -------------------------
+;新規作成
+;イザ・ベルの思考パターン
+@SET_ACTION_イザベル, ARG
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+;アマネとの連携用
+TFLAG:435 = CFLAG:ARG:集中フラグ ? 1 # 0
+TFLAG:436 = 1
+IF CFLAG:ARG:行動した回数 == 0
+	SIF CFLAG:ARG:集中フラグ
+		CFLAG:ARG:入力行動 = [[スキル:灼熱の花]]
+ELSEIF CFLAG:ARG:１moreフラグ == 0
+	SELECTCASE RAND:100
+		CASE IS < 20
+			CFLAG:ARG:入力行動 = [[スキル:コンセントレイト]]
+			TFLAG:435 = 1
+		CASE IS < 40
+			CFLAG:ARG:入力行動 = [[スキル:フレイラ]]
+		CASE IS < 60
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギオン]]
+		CASE IS < 70
+			CFLAG:ARG:入力行動 = 現HP割合(ARG) < 25 ? [[スキル:万魔の乱舞]] # [[スキル:メギド]]
+	ENDSELECT
+ENDIF
+
+IF CFLAG:ARG:入力行動 == -1
+	SELECTCASE RAND:100
+		CASE IS < 15
+			CFLAG:ARG:入力行動 = [[スキル:マカ・カジャ]]
+		CASE IS < 45
+			CFLAG:ARG:入力行動 = [[スキル:放電]]
+		CASE IS < 75
+			CFLAG:ARG:入力行動 = [[スキル:マハムドオン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = 0
+	ENDSELECT
+ENDIF
+;アクション実行不能
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+SIF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+;---- EDIT 003 ADD END ---------------------------
+;---- EDIT 003 ADD START -------------------------
+;新規作成　アマネとイザベルの連携用のフラグたて
+;---- EDIT 004 ADD START -------------------------
+;レミエルのリンケージ用の処理を追加
+@EVENT_BATTLE_ACTEND_DUNGEON4
+IF FINDCHARA_ENEMY([[キャラ:レミエル]])
+	LOCAL = RESULT:1
+	IF CFLAG:LOCAL:入力行動 == [[スキル:アイスブレイク]]
+		LOCAL:1 = [[キャラ:ハルワタート]]
+		LOCAL:2 = [[スキル:ブフダイン]]
+	ELSEIF CFLAG:LOCAL:入力行動 == [[スキル:グラビティブレイク]]
+		LOCAL:1 = [[キャラ:アムルタート]]
+		LOCAL:2 = [[スキル:グラダイン]]
+	ELSEIF CFLAG:LOCAL:入力行動 == [[スキル:ソニックブレイク]]
+		LOCAL:1 = [[キャラ:ライラ]]
+		LOCAL:2 = [[スキル:ザンダイン]]
+	ELSE
+		RETURN 0
+	ENDIF
+	IF TFLAG:410 >= CHARANUM
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	CALL ACTIONABLE_CHARA, TFLAG:410
+	IF RESULT == 0
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	IF NO:(TFLAG:410) != LOCAL:1
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	CALL CHECK_ACTIONABLE, TFLAG:410, LOCAL:2
+	IF RESULT == 0
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	IF TFLAG:411 >= CHARANUM
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	IF NO:(TFLAG:411) != LOCAL:1
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	CALL ACTIONABLE_CHARA, TFLAG:411
+	IF RESULT == 0
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+	CALL CHECK_ACTIONABLE, TFLAG:411, LOCAL:2
+	IF RESULT == 0
+		CFLAG:LOCAL:入力行動 = 0
+		RETURN 0
+	ENDIF
+ENDIF
+SIF !TFLAG:436
+	RETURN 0
+IF FINDCHARA_ENEMY([[キャラ:イザ･ベル]]) && CFLAG:(RESULT:1):魔法反射フラグ && CFLAG:(RESULT:1):集中フラグ
+	TFLAG:400 = 1
+	CFLAG:(RESULT:1):魔法反射フラグ = 0
+ENDIF
+IF TFLAG:400 && FINDCHARA_ENEMY([[キャラ:イザ･ベル]]) && !CFLAG:(RESULT:1):集中フラグ
+	TFLAG:400 = 0
+	CFLAG:(RESULT:1):魔法反射フラグ = 1
+ENDIF
+;---- EDIT 003 ADD END ---------------------------
+;---- EDIT 004 ADD END ---------------------------
+;---- EDIT 004 ADD START -------------------------
+;新規作成
+@RAPE, ARG
+IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 0
+	CALL MESSAGE_WINDOW_D, "アマネ", "な…/これは…一体…/それにあなたは？"
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "久しぶりだねぇ、アマネ"
+	CALL MESSAGE_WINDOW_D, "アマネ", "その声はイザ・ベル!/一体どこに！？"
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "今はちょっと色々あって/アンタの前に顔を出すことができないのさ/まぁそのかわり、その人間が相手してくれるから、我慢しておくれよ"
+	CALL MESSAGE_WINDOW_D, "アマネ", "イザ・ベル…！"
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "人間、さっき話した通りだよ/レミエルを倒すためにはアマネの心を攻めなきゃいけないんだよ/手っ取り早いのは、ここでこのアマネを殺しちまうことだね/アマネの心を殺していけば、レミエルに会うまでには廃人寸前ってわけさ"
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "壊してしまうのがいやなら、犯してやってもいい/聞いたよ。アンタの本職は調教師なんだって？/アマネが壊されるのと、堕とされるの、どっちも楽しそうだからねぇ/どうするかはアンタに任せるよ"
+	CALL INPUT_YN_D("殺す", "犯す")
+	IF RESULT == 0
+		CALL MESSAGE_WINDOW_D, "アマネ", "やめてください…/悪魔になど、従ってはいけません/まだ間に合います/共にイザ・ベルを倒しましょう"
+		CALL INCREASE_LD, -8
+		CALL INCREASE_LC, -8
+		CALL MESSAGE_WINDOW_D, "アマネ", "いや、やめて…きゃああああ"
+		CALL MESSAGE_WINDOW_D, "", "＞アマネの影を殺害した"
+		CALL INCREASE_LD, -8
+		CALL INCREASE_LC, -8
+		ダンジョンフラグ:(FLAG:現ダンジョン):ARG = 1
+	ELSE
+		CALL MESSAGE_WINDOW_D, "アマネ", "い、いや…近づかないでください…!"
+		;引継ぎなんかの問題が絡んでくるのでマインドアマネとしてキャラを作ったあとに上書きしていく
+		CALL ADD_NEW_COMPANION, [[キャラ:マインドアマネ]], 100
+		LOCAL = RESULT:1
+		CFLAG:LOCAL:イベント加入 = 1
+		NAME:LOCAL = 九頭竜 天音
+		CALLNAME:LOCAL = アマネ
+		TALENT:LOCAL:悲観的 = 0
+		TALENT:LOCAL:無関心 = 0
+		TALENT:LOCAL:痛みに強い = 0
+		TALENT:LOCAL:恥薄い = 0
+		TALENT:LOCAL:舌使い = 0
+		TALENT:LOCAL:濡れやすい = 0
+		TALENT:LOCAL:貞操無頓着 = 0
+		TALENT:LOCAL:愚鈍 = 0
+		;EDIT 007 MOD START --------------
+		;相性と呼び名の調整を追加、属性の修正
+		;種族を人間に
+		TALENT:LOCAL:サマナー = 1
+		TALENT:LOCAL:異能者 = 1
+		TALENT:LOCAL:気丈 = 1
+		TALENT:LOCAL:素直 = 1
+		TALENT:LOCAL:無関心 = 1
+		TALENT:LOCAL:保守的 = 1
+		TALENT:LOCAL:巨乳 = 1
+		TALENT:LOCAL:抑圧 = 1
+		TALENT:LOCAL:人気 = 1
+		ABL:LOCAL:種族 = 0
+		ABL:LOCAL:奉仕精神 = 1
+		BASE:LOCAL:LV = 30
+		BASE:LOCAL:力 = 4
+		BASE:LOCAL:知恵 = 17
+		BASE:LOCAL:魔力 = 16
+		BASE:LOCAL:耐力 = 8
+		BASE:LOCAL:速さ = 8
+		BASE:LOCAL:運 = 10
+		BASE:LOCAL:ＥＸＰ = 5*(29)*(30)*(31)/3
+		BASE:LOCAL:CP = 0
+		EQUIP:LOCAL:剣 = [[アイテム:Slicer]]
+		EQUIP:LOCAL:頭 = [[アイテム:Feather Trim]]
+		EQUIP:LOCAL:胴 = [[アイテム:Tang Lion Happi]]
+		EQUIP:LOCAL:腕 = [[アイテム:Star Gloves]]
+		EQUIP:LOCAL:足 = [[アイテム:Safety Boots]]
+		FOR LOCAL:1, 1, 21
+			ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:1)) = CSVABL([[キャラ:アマネ]], GETNUM(ABL, ("習得スキル"+TOSTR(LOCAL:1))), 0)
+			ABL:LOCAL:("習得LV"+TOSTR(LOCAL:1)) = CSVABL([[キャラ:アマネ]], GETNUM(ABL, ("習得LV"+TOSTR(LOCAL:1))), 0)
+		NEXT
+		ABL:LOCAL:スキル1 = [[スキル:ザンマ]]
+		ABL:LOCAL:スキル2 = [[スキル:ディアラマ]]
+		ABL:LOCAL:スキル3 = [[スキル:デ・カジャ]]
+		ABL:LOCAL:スキル4 = [[スキル:ハンマ]]
+		ABL:LOCAL:スキル5 = [[スキル:ペンパトラ]]
+		ABL:LOCAL:スキル6 = [[スキル:マハ・ザンマ]]
+		ABL:LOCAL:スキル7 = [[スキル:リカーム]]
+		ABL:LOCAL:スキル8 = [[スキル:メ・ディアラマ]]
+		CFLAG:LOCAL:善悪値 = 128
+		CFLAG:LOCAL:秩混値 = 255
+		ABL:LOCAL:会話タイプ = 0
+		CSTR:LOCAL:一人称 = 私
+		CSTR:LOCAL:二人称 = あなた
+		FOR LOCAL:1, 0, FLAG:相性数
+			BASE:LOCAL:GET_TYPE(LOCAL:1) = 100
+			MAXBASE:LOCAL:GET_TYPE(LOCAL:1) = 100
+		NEXT
+		BASE:LOCAL:破魔 = 0
+		MAXBASE:LOCAL:破魔 = 0
+		;EDIT 007 MOD END---------------
+		TARGET = GETCHARA([[キャラ:マインドアマネ]])
+		ダンジョンフラグ:(FLAG:現ダンジョン):5 = 1
+		FLAG:ダンジョン内調教 = 1
+		ダンジョンフラグ:(FLAG:現ダンジョン):ARG = -2
+	ENDIF
+ELSE
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):5
+		CALL MESSAGE_WINDOW_D, "イザ・ベル", "さぁて、しっかり可愛がってあげなよ/あんまりひどいことしちゃ駄目だよ/なんてね、うふふ"
+		TARGET = GETCHARA([[キャラ:マインドアマネ]])
+		CFLAG:"Contraceptive barrier" = 1
+		ダンジョンフラグ:(FLAG:現ダンジョン):5 = 1
+		FLAG:ダンジョン内調教 = 1
+		ダンジョンフラグ:(FLAG:現ダンジョン):ARG = -2
+	ELSE
+		CALL MESSAGE_WINDOW_D, "イザ・ベル", "さぁ、さっさとやっちゃいなよ/あんまりじらしたらかわいそうだからねぇ、うふふ"
+		CALL MESSAGE_WINDOW_D, "アマネ", "あなたも本当はわかっているはずです…/このようなことをしていいはずがないと/だから…/きゃあ！！"
+		CALL MESSAGE_WINDOW_D, "", "＞アマネの影を殺害した"
+		CALL INCREASE_LD, -8
+		CALL INCREASE_LC, -8
+		ダンジョンフラグ:(FLAG:現ダンジョン):ARG = 1
+	ENDIF
+ENDIF
+ダンジョンフラグ:(FLAG:現ダンジョン):4 += 1
+
+@TRAIN_DUNGEON_4
+IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "お楽しみはもう終わりかい？/一応言っておくけど、やり過ぎると壊れちゃうから注意しなよ/まぁ、他の心の影を探すことだね"
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "後は一度帰って日をかえるのもいいね/時間をおけば、またこの影を犯すこともできるさね"
+ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):8 - AMANE_TRAINCOUNT() <= 0  
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "そのくらいにしておくんだね、少しは休ませてやらないと壊れちまうよ"
+ELSE
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "お楽しみはもう終わりかい？/それじゃあ、引き続き頑張っておくれよ"
+ENDIF
+PRINTL 
+CALL INCREASE_LD, -4
+CALL INCREASE_LC, -4
+BASE:体力 = MAXBASE:体力
+BASE:気力 = MAXBASE:気力
+CFLAG:ストレス値 = 0
+CFLAG:"Contraceptive barrier" = 0
+CFLAG:この場に居ないフラグ = 1
+CALL SHOW_FLOOR
+CALL SHOW_NOW_FORMATION_P,0,2,,2
+FLAG:コマンド表示行数 = LINECOUNT
+IF ダンジョンフラグ:(FLAG:現ダンジョン):8 - AMANE_TRAINCOUNT() <= 0  
+	CALL MESSAGE_WINDOW_D, "", @"＞ぐったりしているアマネの心の影を放置して/＞%CALLNAME:MASTER%は探索を再開した"
+ELSE
+	CALL MESSAGE_WINDOW_D, "", @"＞アマネの心の影は荒い息を吐いてはいるが/＞まだ調教に耐えることが出来そうだ…"
+ENDIF
+PRINTFORMW 
+TARGET = -1
+
+@増援パターン_レミエル, ARG, ARG:1, ARG:2
+IF RAND:3 == 0
+	CALL SET_ENEMY, ARG:1, [[キャラ:ハルワタート]], ダンジョンフラグ:(FLAG:現ダンジョン):6 - 5
+ELSEIF RAND:2
+	CALL SET_ENEMY, ARG:1, [[キャラ:アムルタート]], ダンジョンフラグ:(FLAG:現ダンジョン):6 - 5
+ELSE
+	CALL SET_ENEMY, ARG:1, [[キャラ:ライラ]], ダンジョンフラグ:(FLAG:現ダンジョン):6 - 5
+ENDIF
+CALL SET_ENEMY_D4_ST, CHARANUM - 1
+SIF ARG:2 < 2
+	RETURN 0
+RETURN 1
+@SET_ENEMY_D4_ST, ARG
+SELECTCASE NO:ARG
+	CASE [[キャラ:ハルワタート]]
+		CSTR:ARG:思考パターン = レミエル取り巻き
+		ABL:ARG:スキル1 = [[スキル:ラク・カジャ]] 
+		ABL:ARG:スキル2 = [[スキル:ブフダイン]]
+		ABL:ARG:スキル3 = [[スキル:光の裁き]]
+		ABL:ARG:スキル4 = [[スキル:エンジェルアロー]]
+		CFLAG:ARG:ＨＰ補正 = 250
+		CFLAG:ARG:ＭＰ補正 = 250
+	CASE [[キャラ:アムルタート]]
+		CSTR:ARG:思考パターン = レミエル取り巻き
+		ABL:ARG:スキル1 = [[スキル:マカ・カジャ]] 
+		ABL:ARG:スキル2 = [[スキル:グラダイン]]
+		ABL:ARG:スキル3 = [[スキル:光の裁き]]
+		ABL:ARG:スキル4 = [[スキル:エンジェルアロー]]
+		CFLAG:ARG:ＨＰ補正 = 250
+		CFLAG:ARG:ＭＰ補正 = 250
+	CASE [[キャラ:ライラ]]
+		CSTR:ARG:思考パターン = レミエル取り巻き
+		ABL:ARG:スキル1 = [[スキル:スク・カジャ]] 
+		ABL:ARG:スキル2 = [[スキル:ザンダイン]]
+		ABL:ARG:スキル3 = [[スキル:光の裁き]]
+		ABL:ARG:スキル4 = [[スキル:エンジェルアロー]]
+		CFLAG:ARG:ＨＰ補正 = 250
+		CFLAG:ARG:ＭＰ補正 = 250
+ENDSELECT
+BASE:ARG:戦技 = 100
+BASE:ARG:飛具 = 100
+MAXBASE:ARG:戦技 = 100
+MAXBASE:ARG:飛具 = 100
+CALL SYNC_STATUS, ARG
+CALL HEALTH_CHARA, ARG
+@SET_ACTION_レミエル, ARG
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+IF CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ == 0
+	FOR LOCAL:1, 7, 17
+		LOCAL = POS(LOCAL:1)
+		SIF LOCAL == -1
+			CONTINUE
+		IF NO:LOCAL == [[キャラ:ハルワタート]]
+			CALL CHECK_ACTIONABLE, LOCAL, [[スキル:ブフダイン]]
+			IF RESULT == 1
+				IF !TFLAG:401
+					TFLAG:401 = LOCAL
+				ELSE
+					TFLAG:402 = LOCAL
+				ENDIF
+			ENDIF
+		ENDIF
+		IF NO:LOCAL == [[キャラ:アムルタート]]
+			CALL CHECK_ACTIONABLE, LOCAL, [[スキル:グラダイン]]
+			IF RESULT == 1
+				IF !TFLAG:404
+					TFLAG:404 = LOCAL
+				ELSE
+					TFLAG:405 = LOCAL
+				ENDIF
+			ENDIF
+		ENDIF
+		IF NO:LOCAL == [[キャラ:ライラ]]
+			CALL CHECK_ACTIONABLE, LOCAL, [[スキル:ザンダイン]]
+			IF RESULT == 1
+				IF !TFLAG:407
+					TFLAG:407 = LOCAL
+				ELSE
+					TFLAG:408 = LOCAL
+				ENDIF
+			ENDIF
+		ENDIF
+	NEXT
+	LOCAL = 1
+	LOCAL:1 = 0
+	LOCAL:2 = 0
+	LOCAL:3 = 0
+	IF TFLAG:401 && TFLAG:402
+		LOCAL:LOCAL = 1
+		LOCAL++
+	ENDIF
+	IF TFLAG:404 && TFLAG:405
+		LOCAL:LOCAL = 2
+		LOCAL++
+	ENDIF
+	IF TFLAG:407 && TFLAG:408
+		LOCAL:LOCAL = 3
+	ENDIF
+	IF LOCAL:(RAND:LOCAL+1) == 1
+		CFLAG:ARG:入力行動 = [[スキル:アイスブレイク]]
+		TFLAG:410 = TFLAG:401
+		TFLAG:411 = TFLAG:402
+	ELSEIF LOCAL:(RAND:LOCAL) == 2
+		CFLAG:ARG:入力行動 = [[スキル:グラビティブレイク]]
+		TFLAG:410 = TFLAG:404
+		TFLAG:411 = TFLAG:405
+	ELSEIF LOCAL:(RAND:LOCAL) == 3
+		CFLAG:ARG:入力行動 = [[スキル:ソニックブレイク]]
+		TFLAG:410 = TFLAG:407
+		TFLAG:411 = TFLAG:408
+	ELSE
+		CFLAG:ARG:入力行動 = [[スキル:召し寄せ]]
+	ENDIF
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 25
+			CFLAG:ARG:入力行動 = [[スキル:ジオダイン]]
+		CASE IS < 50
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ジオダイン]]
+		CASE IS < 75
+			CFLAG:ARG:入力行動 = [[スキル:マハンマオン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = 0
+	ENDSELECT
+ENDIF
+;アクション実行不能
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = -1
+	CFLAG:ARG:防御フラグ = 1
+	RETURN 0
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+@SET_ACTION_レミエル取り巻き, ARG
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+SIF TFLAG:410 == ARG || TFLAG:411 == ARG
+	RETURN 0
+SELECTCASE RAND:100
+	CASE IS < 25
+		CFLAG:ARG:入力行動 = ABL:ARG:スキル1
+	CASE IS < 50
+		CFLAG:ARG:入力行動 = ABL:ARG:スキル2
+	CASE IS < 75
+		CFLAG:ARG:入力行動 = ABL:ARG:スキル3
+	CASEELSE
+		CFLAG:ARG:入力行動 = ABL:ARG:スキル4
+ENDSELECT
+;アクション実行不能
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = -1
+	CFLAG:ARG:防御フラグ = 1
+	RETURN 0
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+
+@SET_ACTION_レミエルアマネ, ARG
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+SELECTCASE RAND:100
+	CASE IS < 25
+		CFLAG:ARG:入力行動 = [[スキル:重力の壁]]
+	CASE IS < 50
+		CFLAG:ARG:入力行動 = [[スキル:テトラジャ]]
+	CASE IS < 75
+		CFLAG:ARG:入力行動 = [[スキル:メ・ディアラマ]]
+	CASEELSE
+		CFLAG:ARG:入力行動 = [[スキル:メギド]]
+ENDSELECT
+;アクション実行不能
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = -1
+	CFLAG:ARG:防御フラグ = 1
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+;---- EDIT 004 ADD END ---------------------------
+
+;---- EDIT 012 ADD START -------------------------
+@AMANE_TRAINCOUNT
+#FUNCTION
+RETURNF GROUPMATCH(-1,ダンジョンフラグ:(FLAG:現ダンジョン):1,ダンジョンフラグ:(FLAG:現ダンジョン):2,ダンジョンフラグ:(FLAG:現ダンジョン):3)
+	
+@AMANE_TRAIN
+IF ダンジョンフラグ:(FLAG:現ダンジョン):8 >= AMANE_TRAINCOUNT()
+	CALL MESSAGE_WINDOW_D, "", "＞アマネの影がいる…"
+	CALL MESSAGE_WINDOW_D, "イザ・ベル", "これ以上はやらないほうがいいね/まぁ時間をおいて少し休ませてやれば/また楽しんでも大丈夫だから我慢おし"
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞アマネの影がいる…/＞犯しますか？"
+	CALL INPUT_YN_D
+	IF RESULT == 0
+		TARGET = GETCHARA([[キャラ:マインドアマネ]])
+		FLAG:ダンジョン内調教 = 1
+		ダンジョンフラグ:(FLAG:現ダンジョン):8++
+		RETURN 1
+	ENDIF
+ENDIF
+RETURN 0
+
+;---- EDIT 012 ADD END   -------------------------

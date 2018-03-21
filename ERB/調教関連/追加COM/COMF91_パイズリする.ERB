@@ -1,0 +1,213 @@
+
+@CHECK_COM_ABLE91
+
+;パイズリする実行判定
+;オトコだとダメ
+SIF !HAVE_TIT(PLAYER)
+	RETURN 0
+;[絶壁]だと不可
+SIF TALENT:PLAYER:110
+	RETURN 0
+;[爆乳]なら技巧LV1以上、[巨乳]でなければ技巧3以上、[貧乳]だと技巧4以上必要
+SIF (TALENT:PLAYER:112 == 1 && ABL:PLAYER:2 < 1) || (TALENT:PLAYER:111 == 1 && ABL:PLAYER:2 < 2) || (TALENT:PLAYER:112 == 0 && TALENT:PLAYER:111 == 0 && ABL:PLAYER:2 < 3) || (TALENT:PLAYER:109 == 1 && ABL:PLAYER:2 < 4)
+	RETURN 0
+SIF !USE_PENIS(TARGET)
+	RETURN 0
+SIF !USE_HAND(PLAYER)
+	RETURN 0
+SIF !USE_BREAST(PLAYER,0,8)
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+RETURN 1
+;チンポ出てないとダメ
+;SIF TEQUIP:陰唇露出 != -1
+;	RETURN 0
+;ラブトラップに掛かっているとダメ
+;SIF TEQUIP:29 || TEQUIP:35
+;	RETURN 0
+;調教者が貧乳だと技巧4必要、絶壁だとダメ
+;SIF (TALENT:PLAYER:貧乳 && ABL:PLAYER:技巧 < 4) || (TALENT:PLAYER:絶壁)
+;	RETURN 0
+;性器が汚れているとMASTERの場合フェラするはできない（調教者が汚れ無視か愛液、Ｐ、母乳のよごれならＯＫ）
+;SIF STAIN:TARGET:2 >= 4 && (STAIN:TARGET:2 != 18 && STAIN:TARGET:2 != 19) && ASSIPLAY == 0 && TALENT:MASTER:64 == 0
+;	RETURN 0
+;性器が汚れており、汚臭敏感で従順3以下のASSIの場合フェラはできない（調教者が汚れ無視か愛液、Ｐ、母乳のよごれならＯＫ）
+;IF STAIN:TARGET:2 >= 4 && (STAIN:TARGET:2 != 18 && STAIN:TARGET:2 != 19) && ASSIPLAY
+;	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0
+;		RETURN 0
+;ENDIF
+;オトコかふたなりじゃないとダメ
+;SIF HAVE_CLITORIS(TARGET)
+;	RETURN 0
+;オナホール装着中はダメ
+;SIF TEQUIP:12
+;	RETURN 0
+;触手調教中はダメ
+;SIF TEQUIP:25
+;	RETURN 0
+;三角木馬騎乗中はダメ
+;SIF TEQUIP:41
+;	RETURN 0
+;RETURN 1
+
+
+@ACT_COM91
+;パイズリする
+
+
+PRINTL Do Boobjob
+TSTR:0 = パイズリする
+
+
+;CALL KOJO_MESSAGE_COM
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 1500
+
+;ABL:調教者の技巧をみる
+IF ABL:PLAYER:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:PLAYER:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:PLAYER:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:PLAYER:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:欲望をみる
+IF ABL:1 == 0
+	TIMES B , 1.00
+ELSEIF ABL:1 == 1
+	TIMES B , 1.10
+ELSEIF ABL:1 == 2
+	TIMES B , 1.20
+ELSEIF ABL:1 == 3
+	TIMES B , 1.30
+ELSEIF ABL:1 == 4
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.50
+ENDIF
+
+;助手のABL:Ｂ感覚をみる
+IF ABL:PLAYER:Ｂ感覚 == 0
+	TIMES B , 0.50
+ELSEIF ABL:PLAYER:Ｂ感覚 == 1
+	TIMES B , 0.80
+ELSEIF ABL:PLAYER:Ｂ感覚 == 2
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:Ｂ感覚 == 3
+	TIMES B , 1.20
+ELSEIF ABL:PLAYER:Ｂ感覚 == 4
+	TIMES B , 1.50
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+	LOCAL:99 = B
+
+;再装填処理中は射精ゲージは20分の1に
+IF CFLAG:PLAYER:9 > 0
+	B /= 20
+	LOCAL:99 /= 20
+ENDIF
+
+	BASE:PLAYER:99 += LOCAL:99
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+LOSEBASE:0 += 25
+LOSEBASE:1 += 100
+
+SOURCE:0 = 150
+SOURCE:13 = 15
+SOURCE:17 = 15
+SOURCE:18 = 20
+
+;調教者に快Ｂ
+SOURCE:PLAYER:3 = 150
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:16 += 20
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 14
+;射精先選択の可・不可
+TFLAG:704 = 0
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＰ⇔調教者のＢの汚れが移動
+CALL MOVE_STAIN("ペニス", TARGET, "胸", PLAYER)
+
+;PRINTFORML ServicPlsEXP(調教者) + 1
+;EXP:PLAYER:奉仕快楽経験 += 1
+CALL ADDS_EXP("奉仕快楽経験", 1, PLAYER)
+
+RETURN 1
+
+
+@MESSAGE_COM91
+IF TEQUIP:主導権
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%の胸を掴むと
+	IF TALENT:PLAYER:貧乳 || TALENT:PLAYER:絶壁
+		PRINTW その薄い胸にペニスを擦りつけた…
+	ELSEIF TALENT:PLAYER:爆乳 || TALENT:PLAYER:巨乳
+		PRINTW まるでセックスするように谷間への挿入を始めた…
+	ELSE
+		PRINTW そのままペニスをはさませて扱き始めた…
+	ENDIF
+;それ以外
+ELSE
+	PRINTFORM %CALLNAME:PLAYER%は
+	IF TALENT:PLAYER:貧乳 || TALENT:PLAYER:絶壁
+		PRINTFORM 薄い胸で懸命に%CALLNAME:TARGET%のペニスを
+	ELSEIF TALENT:PLAYER:爆乳 || TALENT:PLAYER:巨乳
+		PRINTFORM 豊満な胸で%CALLNAME:TARGET%のペニスを包み込んで
+	ELSE
+		PRINTFORM 胸で%CALLNAME:TARGET%のペニスをはさんで
+	ENDIF
+	PRINTW 擦りあげている…
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_91
+RETURN COMTYPE("調教者奉仕系")
+
+

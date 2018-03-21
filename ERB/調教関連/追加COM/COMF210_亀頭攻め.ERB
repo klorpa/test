@@ -1,0 +1,114 @@
+;-------------------------------------------------
+;亀頭攻め
+;愛撫系コマンド
+;-------------------------------------------------
+@ACT_COM210
+PRINTL Give Glans Rub
+TSTR:0 = 亀頭攻め
+
+;調教者→調教対象
+TFLAG:28 = 2
+TEQUIP:PLAYER:口挿入者 = TARGET
+TFLAG:挿入続行 = 1
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 100
+DOWNBASE:TARGET:気力 += 120
+
+SOURCE:TARGET:快Ｃ = 300
+SOURCE:TARGET:露出 = 20
+SOURCE:TARGET:逸脱 = 30
+SOURCE:TARGET:反感 = 30
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 20
+
+;調教者のTALENT:舌使いをみる
+SIF TALENT:PLAYER:52
+	TIMES SOURCE:TARGET:快Ｃ , 2.00
+
+;調教者のTALENT:猫舌をみる
+SIF TALENT:PLAYER:54
+	TIMES SOURCE:TARGET:快Ｃ , 1.50
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＰ⇔調教者の口の汚れが移動
+CALL MOVE_STAIN("ペニス", TARGET, "口", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 5
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;PRINTFORML BlowjobEXP(調教者) + 1
+CALL ADDS_EXP("フェラ経験", 1, PLAYER)
+
+;調教者が猫舌持ちの場合は、調教者にSadoEXPを追加
+IF TALENT:PLAYER:54
+	CALL ADDS_EXP("嗜虐快楽経験", 1, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+
+RETURN 1
+
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_210
+RETURN COMTYPE("調教者奉仕系")
+
+;===================================================
+;自身の調教コマンド実行可能判定
+;フェラチオが可能で触手調教中でなく射精装填中であること。
+;===================================================
+@CHECK_COM_ABLE210
+;フェラチオできないときはダメ
+SIF !PLAY_FELLA(PLAYER,TARGET)
+	RETURN 0
+;触手調教中はダメ。
+SIF TEQUIP:25
+	RETURN 0
+;このくだりってフェラのコマンドができるかどうかでも同じな気もするが
+;こういう誰でもいじれる所で別所を参照やると後々面倒なことになるのでやめる。
+;あ、スイマセン↓は許してくださいお願いします
+;射精非装填中はダメ。
+SIF	CFLAG:9 == 0
+	RETURN 0
+RETURN 1
+
+
+@MESSAGE_COM210
+PRINTFORMW %CALLNAME:PLAYER%は勃起した%CALLNAME:TARGET%のペニスを咥えると、首を前後に振り亀頭部を攻め始めた…

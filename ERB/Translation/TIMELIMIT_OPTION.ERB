@@ -1,0 +1,54 @@
+;----------------------------------------------------------
+; Code to make the 50-day time limit for endings, some events etc
+; a setting that can be disabled or enabled
+;
+; For now, this doesn't include removing the carry-over penalty for working
+;----------------------------------------------------------
+
+;----------------------------------------------------------
+; Checks if the general flag is set or if ARG:2 is set checks that flag
+; If it isn't(= timelimit setting still active) ARG:1 is returned
+; If it is set, ARG is returned
+;----------------------------------------------------------
+@CHECK_TIMELIMIT(ARG,ARG:1,ARG:2 = 0)
+#FUNCTION
+IF GETBIT(FLAG:TIMELIMIT_SETTING_F,ARG:2)
+	RETURNF ARG
+ELSE
+	RETURNF ARG:1
+ENDIF
+
+;----------------------------------------------------------
+; Function for setting the timelimit options
+;----------------------------------------------------------
+@TIMELIMIT_SETTING
+#DIM lineclearhelper,1
+PRINTL Specifies what aspects of gameplay will be affected by timelimits.
+PRINTL Pick any entry to toggle it's setting.
+PRINTL Å¶Please note that changing the settings here may not affect the effects of all timelimits that already expired
+PRINTL   Also note that re-enabling the timelimits after they would have expired, may immediately cause some lockouts
+PRINTL   Finally, it's possible that not all endings etc. are affected by these settings.
+PRINTL   Please report those discrepancies at the /egg or the discord
+PRINTL
+LOCAL:5 = LINECOUNT
+$input_loop
+CLEARLINE LINECOUNT - LOCAL:5
+PRINTFORML [ 0] Endings and Story-lockout : \@ GETBIT(FLAG:TIMELIMIT_SETTING_F,0) ? Not affected # Affected \@
+PRINTFORML [ 1] Work and other reduced returns after new game+ : \@ GETBIT(FLAG:TIMELIMIT_SETTING_F,1) ? Not affected # Affected \@
+PRINTFORML [ 2] Other Ending-related things : \@ GETBIT(FLAG:TIMELIMIT_SETTING_F,2) ? Not affected # Affected \@
+PRINTL    Å¶This includes an event that may lock you out of some endings
+;PRINTL   But not all of them and maybe you want to view the event, so it has it's own setting
+
+PRINTL
+PRINTFORML [100] Return
+CALL INPUTINT(0, 1, 2, 100)
+IF RESULT != 100
+	IF GETBIT(FLAG:TIMELIMIT_SETTING_F,RESULT)
+		CLEARBIT FLAG:TIMELIMIT_SETTING_F,RESULT
+	ELSE
+		SETBIT FLAG:TIMELIMIT_SETTING_F,RESULT
+	ENDIF
+	GOTO input_loop
+ELSE
+	RETURN
+ENDIF

@@ -1,0 +1,1140 @@
+;=======================================================================
+;ダンジョン突入時のイベント
+;=======================================================================
+@START_DUNGEON_53, ARG
+IF !STRFLAG_D("初回", 1)
+	PRINTW ＞Gun声が聞こえる
+	PRINTL ＞本当にラスト・バタリオンの兵士が来ており、
+	PRINTW ＞なにものかと交戦しているようだ
+	PRINTW ＞カラコルの入り口を探そう
+ENDIF
+FLAG:現M = 0
+FLAG:現X = 2
+FLAG:現Y = 10
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_53
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)% 10
+	;========
+	;宝の処理
+	;========
+	CASE 3
+		CALL TREASURE_53
+		RETURN 1
+	;========================
+	;イベント
+	;========================
+	CASE 4
+		CALL EVENT_53
+		RETURN 1
+	;=======
+	;ワープゾーン
+	;=======
+	CASE 6,7
+		CALL WORP_53
+		RETURN 1
+	;=======
+	;メッセンジャー
+	;=======
+	CASE 8
+		CALL MESSAGE_53, 0
+		RETURN 1
+	;=======
+	;特殊タイル
+	;=======
+	CASE 9
+		CALL SPECIAL_53
+		RETURN 1
+	;=======
+	;ダークゾーン
+	;=======
+	CASE -1
+		IF DA:(FLAG:現X):(FLAG:現Y) < -10
+			CALL DARK_53
+			RETURN 1
+		ENDIF
+	CASEELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDSELECT
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_53,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+	;==========
+	;扉の処理
+	;==========
+	CASE 2
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_53
+		RETURN 1
+;========================
+;イベント
+;========================
+	CASE 4
+		CALL EVENT_53, 1
+		RETURN 0
+;=======
+;ワープゾーン
+;=======
+	CASE 6,7
+		CALL WORP_53
+		RETURN 1
+;=======
+;メッセンジャー
+;=======
+	CASE 8
+		CALL MESSAGE_53, 1
+		RETURN 1
+;=======
+;特殊タイル
+;=======
+	CASE 9
+		CALL SPECIAL_53
+		RETURN 1
+;=======
+;ダークゾーン
+;=======
+	CASE -1
+		CALL DARK_53, 1
+		RETURN 1
+ENDSELECT
+;=======
+;主に扉
+;=======
+;扉のタイル表示
+@TILE_MARK_COMMON_53_2, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASEELSE
+		RESULTS = 扉
+ENDSELECT
+@CAN_ENTER_53, ARG, ARG:1
+SELECTCASE DA:ARG:(ARG:1)
+	CASE 9012
+		IF !STRFLAG_D("ジョーカー撃破")
+			PRINTW ＞中から激しい物音がする
+			PRINTW ＞部屋の中にはいりますか？
+			CALL INPUT_YN
+			SIF RESULT == 1
+				RETURN 0
+		ENDIF
+	CASE 12012
+		IF !STRFLAG_D("M12ドアオープン")
+			IF ARG:1 > FLAG:現Y
+				PRINTW ＞扉は開かない。
+				PRINTW ＞反対側から鍵が掛かっているようだ。
+				RETURN 0
+			ELSE
+				PRINTW ＞扉の鍵を開けた。
+				CALLF STRFLAG_D("M12ドアオープン", 1)
+			ENDIF
+		ENDIF
+	CASE 12022
+		IF !STRFLAG_D("聖槍騎士団撃破")
+			PRINTW ＞中に誰かいるようだ
+			PRINTW ＞部屋の中にはいりますか？
+			CALL INPUT_YN
+			SIF RESULT == 1
+				RETURN 0
+		ENDIF
+	CASE 15012
+		IF !STRFLAG_D("M15ドアオープン")
+			IF ARG:1 > FLAG:現Y
+				PRINTW ＞扉は開かない。
+				PRINTW ＞反対側から鍵が掛かっているようだ。
+				RETURN 0
+			ELSE
+				PRINTW ＞扉の鍵を開けた。
+				CALLF STRFLAG_D("M15ドアオープン", 1)
+			ENDIF
+		ENDIF
+	CASE 18012
+		IF !STRFLAG_D("カラコルクリア")
+			PRINTW ＞ここが最深部のようだ
+			PRINTW ＞部屋の中にはいりますか？
+			CALL INPUT_YN
+			SIF RESULT == 1
+				RETURN 0
+		ENDIF
+ENDSELECT
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+@TILE_MARK_COMMON_53_9, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASE 98
+		RESULTS = Ｃ
+	CASE 99
+		RESULTS = 出
+ENDSELECT
+
+@SPECIAL_53
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;ケーブルカー
+	CASE 98
+		PRINTW ＞ケーブルカーがある
+		IF FLAG:現M == 8 && !STRFLAG_D("ケーブルカー起動", 1)
+			PRINTW ＞あたりを探すと電源があったので起動させた
+			PRINTW ＞これで以降はケーブルカーを使える
+		ENDIF
+		IF !STRFLAG_D("ケーブルカー起動")
+			PRINTW ＞しかし、電源が供給されておらず、動かない
+		ELSE
+			PRINTL ＞ケーブルカーに乗りますか？
+			CALL INPUT_YN
+			SIF RESULT == 0
+				CALL DUNGEON_WORP_ID, ABS(FLAG:現M - 8), 989, 1
+		ENDIF
+	;出口
+	CASE 99
+		CALL DUNGEON_EXIT
+ENDSELECT
+;=======
+;ELEVATOR定義
+;=======
+@DUNGEON_ELEVATOR_53, ARG
+RETURN 9, 12, 15
+@EVENT_53, ARG
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0
+		PRINTW ＞ラスト・バタリオンの兵士たちがいる。
+		PRINTW ＞そして、彼らの足元に仮面党員達が倒れている…
+		PRINTW ＞どうやら、ラスト・バタリオンと交戦しているのは仮面党員のようだ
+		PRINTL 
+		PRINTL 兵士:
+		PRINTW 「む、サマナーか！　総統の邪魔はさせんぞ！」
+		PRINTW 「ジーク・ハイル！」
+		PRINTL 
+		WAIT
+		CALL SET_ENEMY,7, [[キャラ:Ｓゾルダート]], 45, 0
+		CALL SET_ENEMY,8, [[キャラ:Ｍゾルダート]], 45, 0
+		CALL SET_ENEMY,9, [[キャラ:Ｍゾルダート]], 45, 0
+		CALL SET_ENEMY,10, [[キャラ:Ｍゾルダート]], 45, 0
+		CALL SET_ENEMY,11, [[キャラ:Ｓゾルダート]], 45, 0
+		CALL SET_ENEMY,12, [[キャラ:Ｖクラフト]], 45, 0
+		CALL SET_ENEMY,13, [[キャラ:Ｓシュッツェ]], 45, 0
+		CALL SET_ENEMY,14, [[キャラ:コマンダント]], 45, 0
+		CALL SET_ENEMY,15, [[キャラ:Ｓシュッツェ]], 45, 0
+		CALL SET_ENEMY,16, [[キャラ:Ｖクラフト]], 45, 0
+		CALL ADJUST_IMPERIAL
+		PRINTL ＞帝国兵　コマンダントが一体出た！
+		PRINTL ＞帝国兵　マシーネンゾルダートが三体出た！
+		PRINTL ＞帝国兵　シュツルゾルダートが二体出た！
+		PRINTL ＞帝国兵　シャルフシュッツェが二体出た！
+		PRINTL ＞帝国兵　ヴィンスクラフトが二体出た！
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		PRINTW ＞兵士達を倒した
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		CALLF STRFLAG_D("入り口帝国兵撃破", 1)
+	CASE 900
+		PRINTW ＞扉の中では、大勢のラスト・バタリオンの兵士達が倒れていた
+		PRINTW ＞そして、その中に仮面の男、ジョーカーがいる…
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「く、貴様は……やはりやってきたか」
+		PRINTL 「貴様にはシバルバーを浮上させ、願いを叶える権利も、
+		PRINTW 　この場にやってくる権利もないというのに」
+		PRINTW 「なのに、貴様がここにいるのは『奪う者』だからだ…！」
+		PRINTW 「だが、『与える者』 たるこの僕が貴様に夢を壊させはしない…！」
+		PRINTW 「ここで引導を渡してやる…！」
+		PRINTL 
+		PRINTW ペルソナ使い ジョーカーが１体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9,[[キャラ:ジョーカー]],50,0,1
+		CALL ADJUST_KAMEN
+		CALL BATTLE_START
+		PRINTW ペルソナ使い ジョーカーを倒した
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「クッ……僕は……うぁぁ…」
+		PRINTL 女の声:
+		PRINTW 「お前たち…！　あいつをとめるのよ！」
+		PRINTL 
+		PRINTW ＞突然、女が現れ、仮面党員達をけしかけて来た！
+		PRINTL 
+		PRINTL 女:
+		PRINTW 「さぁ、ジョーカー、こんなやつは放っておいて一刻もはやく奥へ」
+		PRINTL ジョーカー:
+		PRINTW 「クイーン、ぐ、しょうがない…だが、覚えておけ。貴様は僕が倒して見せる！」
+		PRINTL 
+		PRINTW ＞ジョーカーはそういうと、クイーンと共に部屋から出て行った
+		CALL SET_ENEMY, 7, [[キャラ:牡牛カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 8, [[キャラ:獅子カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 10, [[キャラ:蠍カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 11, [[キャラ:水瓶カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 12, [[キャラ:牡牛カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 13, [[キャラ:獅子カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 15, [[キャラ:蠍カメーンＲ]], 45, 0
+		CALL SET_ENEMY, 16, [[キャラ:水瓶カメーンＲ]], 45, 0
+		FOR LOCAL:1, 7 , 17
+			LOCAL = POS(LOCAL:1)
+			SIF LOCAL < 0
+				CONTINUE
+		LOCAL:2 = FLAG:戦闘難易度 - 3 > 0 ? 100 + (FLAG:戦闘難易度 - 3) * 20 # 100
+		CALL SET_BATTLE_STATUS(LOCAL, 12 * LOCAL:2, "ＨＰ")
+		CALL SET_BATTLE_STATUS(LOCAL, 5 * LOCAL:2, "ＭＰ")
+		CALL SYNC_STATUS, LOCAL
+		CALL HEALTH_CHARA, LOCAL
+		NEXT
+		CALL BATTLE_START
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		CALLF STRFLAG_D("ジョーカー撃破", 1)
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+	CASE 1200
+		PRINTW ＞広間に入ると、ジョーカーとその傍らにクイーンがいた。
+		PRINTW ＞そして、二人に聖槍騎士団が槍を突きつけている。
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「くっ、過去の亡霊ごときが僕の邪魔をするのか」
+		PRINTL Longinus８
+		PRINTW 「夢を与えるものか。しかし、花など儚きものにそのような力があろうか」
+		PRINTL Longinus９:
+		PRINTW 「クックック…、妄想に踊らされる哀れなマリオネッテよ」
+		PRINTW 「かつて見た女の幻影が忘れられぬか」
+		PRINTL ジョーカー:
+		PRINTW 「クッ…なぜそれを…」
+		PRINTL Longinus９:
+		PRINTW 「我らはなんでもお見通しよ…。そう、貴様がなぜ女の幻影にすがったか。本当は何を憎悪しているのかもなぁ！」
+		PRINTL クイーン:
+		PRINTW 「ジョーカーはやらせはしない！」
+		PRINTL 
+		PRINTW ＞ジョーカーを庇うように、クイーンが聖槍騎士団の前に立つ。
+		PRINTL 
+		PRINTL Longinus１０:
+		PRINTW 「フハハハ、フラウ・アクエリアス、いまさらミュッターとして振舞うつもりか？」
+		PRINTL Longinus８:
+		PRINTW 「貴様が望んだのはフロイラインだ。そしてその結果がどうなったか、貴様もわかっているだろう」
+		PRINTL ジョーカー:
+		PRINTW 「ミュッター…？　僕の…ママは…達哉が…うぁぁ…」
+		PRINTL クイーン:
+		PRINTW 「ジョーカー、こんなやつらの話に惑わされないで！」
+		PRINTL Longinus１０:
+		PRINTW 「この期に及んで誤魔化そうとはな…」
+		PRINTL Longinus９
+		PRINTL 「ホイールオブフォーチュンのマリオネッテよ
+		PRINTW 　貴様に代わり、我々がこの女を裁いてやろう」
+		PRINTL Longinus８:
+		PRINTW 「いや、どうやら、客が来たようだ」
+		PRINTL Longinus１０:
+		PRINTW 「壊れかけのマリオネッテよりは楽しめるか」
+		PRINTL Longinus９
+		PRINTW 「いくが良い。壊れかけとはいえ、まだ踊ることはできるだろう」
+		PRINTW 「時の円環にて、己が役割を果たすといい」
+		PRINTL 
+		PRINTFORMW ＞そういうと聖槍騎士団は%CALLNAME:MASTER%に槍を向けてきた
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「ク……こんな……僕が……」
+		PRINTL クイーン:
+		PRINTW 「とにかく、行きましょう…ここで時間を使っては…」
+		PRINTL ジョーカー：
+		PRINTW 「……わかった」
+		PRINTL 
+		PRINTW ＞ジョーカー達は遺跡の奥へと消えていった。
+		PRINTL 
+		PRINTL Longinus１０:
+		PRINTW 「サマナーよ。今のは良い見物だったなぁ？」
+		PRINTL Longinus９：
+		PRINTW 「いや、奴らの関係を知らなければ、楽しめんだろうよ」
+		PRINTL Longinus８：
+		PRINTW 「そうか。では、特別に教えてやるとしようか」
+		PRINTW 「どうだ。聞きたいか？」
+		CALL INPUT_YN
+		IF RESULT == 0
+			PRINTL Longinus８:
+			PRINTW 「奴は、フラウ・アクエリアスはジョーカーのミュッターなのだよ」
+			PRINTW 「そして、あの仮面の下には若く美しい顔が隠されている」
+			PRINTW 「あの女がジョーカーに願ったものだ」
+			PRINTW 「そう、美しい女優だった、あの女はなによりその若さと美しさを失うことを恐れた」
+			PRINTW 「その恐怖のために、自分のキントを愛せなかったのだ」
+			PRINTW 「そんなミュッターをキントが憎悪するのは仕方があるまい？」
+			PRINTL Longinus１０:
+			PRINTW 「ミュッターだけではない。ファーターもまた、キントにとってよきファーターではなかった」
+			PRINTW 「そう、不甲斐なく、ミュッターに何も言えず、キントを助けられなかった」
+			PRINTW 「キントはそんなファーターを侮蔑し、理想の父親像を胸にいだいたのだ」
+			PRINTW 「そして、その理想像により、ファーターを黙殺したのだ」
+			PRINTL Longinus９:
+			PRINTW 「そのファーターこそ、イン・ラケチを記した橿原 明成なのだ」
+			PRINTL 「そう…、ファーターへの懺悔と、ミュッターへの断罪…、
+			PRINTW 　それこそが貴様が邪魔しようとしていたものなのだよ」
+			PRINTL Longinus１０:
+			PRINTW 「さて、もういいだろう」
+			PRINTW 「貴様が狂わせた喜劇がどんなものかはわかっただろう」
+			PRINTW 「せっかくのマリオネッテの舞台だ」
+			PRINTW 「アウフ・ヴィーダーゼーエン…券を持たない客は無意識の深淵に帰れ」
+		ELSE
+			PRINTL Longinus８:
+			PRINTW 「他人の運命には興味がないということか」
+			PRINTW 「クックック、虫ケラらしくもないな」
+			PRINTL Longinus１０:
+			PRINTW 「ならば、いいだろう」
+			PRINTW 「せっかくのマリオネッテの舞台だ」
+			PRINTW 「アウフ・ヴィーダーゼーエン…券を持たない客は無意識の深淵に帰れ」
+		ENDIF
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,8, [[キャラ:Longinus１０]], 50, 0, 1
+		CALL SET_ENEMY,9, [[キャラ:Longinus９]], 50, 0, 1
+		CALL SET_ENEMY,10, [[キャラ:Longinus８]], 50, 0, 1
+		CALL ADJUST_IMPERIAL
+		PRINTL ＞聖槍騎士団　Longinus１０が一体出た！
+		PRINTL ＞聖槍騎士団　Longinus９が一体出た！
+		PRINTL ＞聖槍騎士団　Longinus８が一体出た！
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		WAIT
+		PRINTW ＞聖槍騎士団は力尽きた！
+		CALLF STRFLAG_D("聖槍騎士団撃破", 1)
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+			IF STRFLAG_NUM_EV("ナチスの美人秘密兵士の噂", , , , [[イベント:噂]])  == 2
+		PRINTL 
+		PRINTL ＞破壊した聖槍騎士団たちは、負傷しているようだがまだ息はあるようだ
+		PRINTW ＞先ほど叩いた大口を反省させるべく、操り人形として扱ってやるのも悪くはない
+		PRINTW
+	ELSEIF STRFLAG_NUM_EV("ナチスの切札は機械化美女軍団の噂", , , , [[イベント:噂]]) == 2
+		PRINTL 
+		PRINTL ＞撃破した聖槍騎士団の状態を検分してみる
+		PRINTW ＞人の姿をしながら明らかに機械で構成された肉体は先程の戦闘でも致命的な損傷は免れた洋だ
+		PRINTL ＞他者を操り人形呼ばわりした機械の乙女たちを、今後どう扱うか思案しながら、彼女らの選りすぐりを始めた…
+		PRINTW
+	ENDIF
+		IF STRFLAG_NUM_EV("ナチスの美人秘密兵士の噂", , , , [[イベント:噂]]) == 2 || STRFLAG_NUM_EV("ナチスの切札は機械化美女軍団の噂", , , , [[イベント:噂]]) == 2
+			PRINTL ＞3名のうちどれを連れて帰ろう
+			PRINTW
+			PRINTL ＞[0]Longinus１０
+			PRINTL ＞[1]Longinus９
+			PRINTL ＞[2]Longinus８
+			PRINTL
+			CALL INPUTINT,0,1,2
+			SELECTCASE RESULT
+			CASE 0
+			PRINTW ＞Longinus１０を手に入れた
+				CALL ADD_NEW_COMPANION,[[キャラ:Longinus１０]],0
+					BASE:(CHARANUM-1):LV = 40
+					BASE:(CHARANUM-1):知恵 -= 3
+					BASE:(CHARANUM-1):魔力 -= 3
+					BASE:(CHARANUM-1):耐力 -= 2
+					BASE:(CHARANUM-1):速さ -= 3
+					BASE:(CHARANUM-1):運   -= 3
+					ABL:(CHARANUM-1):種族 = 0
+					BASE:(CHARANUM-1):剣撃 = 100
+					BASE:(CHARANUM-1):飛具 = 100
+					BASE:(CHARANUM-1):打撃 = 100
+					BASE:(CHARANUM-1):戦技 = 100
+					BASE:(CHARANUM-1):火炎 = 100
+					BASE:(CHARANUM-1):氷結 = 100
+					BASE:(CHARANUM-1):電撃 = 100
+					BASE:(CHARANUM-1):衝撃 = 100
+					BASE:(CHARANUM-1):神経 = 100
+					BASE:(CHARANUM-1):精神 = 100
+					BASE:(CHARANUM-1):破魔 = 100
+					BASE:(CHARANUM-1):呪殺 = 100
+					BASE:(CHARANUM-1):地変 = 100
+					BASE:(CHARANUM-1):水撃 = 100
+					BASE:(CHARANUM-1):疾風 = 100
+					BASE:(CHARANUM-1):重力 = 100
+					BASE:(CHARANUM-1):核熱 = 100
+					BASE:(CHARANUM-1):万能 = 100
+					BASE:(CHARANUM-1):サイコ = 100
+					MAXBASE:(CHARANUM-1):剣撃 = 100
+					MAXBASE:(CHARANUM-1):飛具 = 100
+					MAXBASE:(CHARANUM-1):打撃 = 100
+					MAXBASE:(CHARANUM-1):戦技 = 100
+					MAXBASE:(CHARANUM-1):火炎 = 100
+					MAXBASE:(CHARANUM-1):氷結 = 100
+					MAXBASE:(CHARANUM-1):電撃 = 100
+					MAXBASE:(CHARANUM-1):衝撃 = 100
+					MAXBASE:(CHARANUM-1):神経 = 100
+					MAXBASE:(CHARANUM-1):精神 = 100
+					MAXBASE:(CHARANUM-1):破魔 = 100
+					MAXBASE:(CHARANUM-1):呪殺 = 100
+					MAXBASE:(CHARANUM-1):地変 = 100
+					MAXBASE:(CHARANUM-1):水撃 = 100
+					MAXBASE:(CHARANUM-1):疾風 = 100
+					MAXBASE:(CHARANUM-1):重力 = 100
+					MAXBASE:(CHARANUM-1):核熱 = 100
+					MAXBASE:(CHARANUM-1):万能 = 100
+					MAXBASE:(CHARANUM-1):サイコ = 100	
+					ABL:(CHARANUM-1):攻撃範囲 = 1	
+					TALENT:(CHARANUM-1):異能者 = 1
+					ABL:(CHARANUM-1):スキル1 = 0
+					ABL:(CHARANUM-1):スキル2 = 0
+					ABL:(CHARANUM-1):スキル3 = 0
+					ABL:(CHARANUM-1):スキル4 = 0
+					ABL:(CHARANUM-1):スキル5 = 0
+					ABL:(CHARANUM-1):スキル1 = 513;トラフーリ
+					ABL:(CHARANUM-1):スキル2 = 510;トラエスト
+					ABL:(CHARANUM-1):スキル3 = 62;Longinus Copy（弱）
+					ABL:(CHARANUM-1):習得スキル1 = 515;挑発
+					ABL:(CHARANUM-1):習得LV1 = 42
+					ABL:(CHARANUM-1):習得スキル2 = 2418;コーチング
+					ABL:(CHARANUM-1):習得LV2 = 44
+					ABL:(CHARANUM-1):習得スキル3 = 123;徒花一閃
+					ABL:(CHARANUM-1):習得LV3 = 46
+					ABL:(CHARANUM-1):習得スキル4 = 514;雄叫び
+					ABL:(CHARANUM-1):習得LV4 = 48
+					ABL:(CHARANUM-1):習得スキル5 = 2419;アドバイス
+					ABL:(CHARANUM-1):習得LV5 = 50
+					ABL:(CHARANUM-1):習得スキル6 = 141;忠義のGun撃
+					ABL:(CHARANUM-1):習得LV6 = 54
+					ABL:(CHARANUM-1):習得スキル7 = 2413;気功(大)
+					ABL:(CHARANUM-1):習得LV7 = 58
+					TALENT:(CHARANUM-1):オトコ = 0
+					TALENT:(CHARANUM-1):処女 = 1
+					TALENT:(CHARANUM-1):臆病 = 1
+					TALENT:(CHARANUM-1):プライド高い = 1
+					TALENT:(CHARANUM-1):生意気 = 1
+					TALENT:(CHARANUM-1):ツンデレ = 1
+					TALENT:(CHARANUM-1):一線越えない = 1
+					TALENT:(CHARANUM-1):目立ちたがり = 1
+					TALENT:(CHARANUM-1):痛みに弱い = 1
+					TALENT:(CHARANUM-1):習得早い = 1
+					TALENT:(CHARANUM-1):恥じらい = 1
+					TALENT:(CHARANUM-1):薬毒耐性 = 1
+					TALENT:(CHARANUM-1):快感に素直 = 1
+					TALENT:(CHARANUM-1):自慰しやすい = 1
+					TALENT:(CHARANUM-1):貞操観念 = 1
+					TALENT:(CHARANUM-1):小柄体型 = 1
+					TALENT:(CHARANUM-1):貧乳 = 1
+					TALENT:(CHARANUM-1):霊媒体質 = 1
+					TALENT:(CHARANUM-1):おもらし癖 = 1
+					EXP:(CHARANUM-1):放尿経験 += 5
+						IF STRFLAG_NUM_EV("ナチスの切札は機械化美女軍団の噂", , , , [[イベント:噂]]) == 2
+							TALENT:(CHARANUM-1):機械の乙女 = 1
+							TALENT:(CHARANUM-1):Ｃ鈍感 = 1
+							TALENT:(CHARANUM-1):Ｂ鈍感 = 1
+							TALENT:(CHARANUM-1):Ａ鈍感 = 1
+							TALENT:(CHARANUM-1):Ｖ鈍感 = 1
+						ELSE
+							TALENT:(CHARANUM-1):Ｖ敏感 = 1
+						ENDIF
+					CFLAG:(CHARANUM-1):帽子 = 18;軍帽
+					CFLAG:(CHARANUM-1):服 = 107;ブラウス
+					CFLAG:(CHARANUM-1):下衣 = 209;タイトミニスカート
+					CFLAG:(CHARANUM-1):全身服 = 316;軍服
+					CFLAG:(CHARANUM-1):手 = 401;手袋
+					CFLAG:(CHARANUM-1):下着（上） = 502;スポーツブラ
+					CFLAG:(CHARANUM-1):下着（下） = 617;縞パン
+					CFLAG:(CHARANUM-1):靴下 = 806;パンティストッキング
+					CFLAG:(CHARANUM-1):靴 = 901;ブーツ
+					CFLAG:(CHARANUM-1):戦闘参加不可能 = 1
+					CSTR:(CHARANUM-1):種族名 = 聖槍騎士
+					CSTR:(CHARANUM-1):タイトル = ドイツ軍人
+			CASE 1
+			PRINTW ＞Longinus９を手に入れた
+				CALL ADD_NEW_COMPANION,[[キャラ:Longinus９]],0
+					BASE:(CHARANUM-1):LV = 40
+					BASE:(CHARANUM-1):知恵 -= 3
+					BASE:(CHARANUM-1):魔力 -= 3
+					BASE:(CHARANUM-1):耐力 -= 2
+					BASE:(CHARANUM-1):速さ -= 3
+					BASE:(CHARANUM-1):運   -= 3
+					ABL:(CHARANUM-1):種族 = 0
+					BASE:(CHARANUM-1):剣撃 = 100
+					BASE:(CHARANUM-1):飛具 = 100
+					BASE:(CHARANUM-1):打撃 = 100
+					BASE:(CHARANUM-1):戦技 = 100
+					BASE:(CHARANUM-1):火炎 = 100
+					BASE:(CHARANUM-1):氷結 = 100
+					BASE:(CHARANUM-1):電撃 = 100
+					BASE:(CHARANUM-1):衝撃 = 100
+					BASE:(CHARANUM-1):神経 = 100
+					BASE:(CHARANUM-1):精神 = 100
+					BASE:(CHARANUM-1):破魔 = 100
+					BASE:(CHARANUM-1):呪殺 = 100
+					BASE:(CHARANUM-1):地変 = 100
+					BASE:(CHARANUM-1):水撃 = 100
+					BASE:(CHARANUM-1):疾風 = 100
+					BASE:(CHARANUM-1):重力 = 100
+					BASE:(CHARANUM-1):核熱 = 100
+					BASE:(CHARANUM-1):万能 = 100
+					BASE:(CHARANUM-1):サイコ = 100
+					MAXBASE:(CHARANUM-1):剣撃 = 100
+					MAXBASE:(CHARANUM-1):飛具 = 100
+					MAXBASE:(CHARANUM-1):打撃 = 100
+					MAXBASE:(CHARANUM-1):戦技 = 100
+					MAXBASE:(CHARANUM-1):火炎 = 100
+					MAXBASE:(CHARANUM-1):氷結 = 100
+					MAXBASE:(CHARANUM-1):電撃 = 100
+					MAXBASE:(CHARANUM-1):衝撃 = 100
+					MAXBASE:(CHARANUM-1):神経 = 100
+					MAXBASE:(CHARANUM-1):精神 = 100
+					MAXBASE:(CHARANUM-1):破魔 = 100
+					MAXBASE:(CHARANUM-1):呪殺 = 100
+					MAXBASE:(CHARANUM-1):地変 = 100
+					MAXBASE:(CHARANUM-1):水撃 = 100
+					MAXBASE:(CHARANUM-1):疾風 = 100
+					MAXBASE:(CHARANUM-1):重力 = 100
+					MAXBASE:(CHARANUM-1):核熱 = 100
+					MAXBASE:(CHARANUM-1):万能 = 100
+					MAXBASE:(CHARANUM-1):サイコ = 100	
+					ABL:(CHARANUM-1):攻撃範囲 = 1	
+					TALENT:(CHARANUM-1):異能者 = 1
+					ABL:(CHARANUM-1):スキル1 = 0
+					ABL:(CHARANUM-1):スキル2 = 0
+					ABL:(CHARANUM-1):スキル3 = 0
+					ABL:(CHARANUM-1):スキル4 = 0
+					ABL:(CHARANUM-1):スキル1 = 1705;マハ・ガルーラ
+					ABL:(CHARANUM-1):スキル2 = 905;マハ・ジオンガ
+					ABL:(CHARANUM-1):スキル3 = 62;Longinus Copy（弱）
+					ABL:(CHARANUM-1):スキル4 = 1112;毒ガスブレス
+					ABL:(CHARANUM-1):習得スキル1 = 1134;神経ガードブレイク
+					ABL:(CHARANUM-1):習得LV1 = 42
+					ABL:(CHARANUM-1):習得スキル2 = 520;フォッグブレス
+					ABL:(CHARANUM-1):習得LV2 = 44
+					ABL:(CHARANUM-1):習得スキル3 = 123;徒花一閃
+					ABL:(CHARANUM-1):習得LV3 = 46
+					ABL:(CHARANUM-1):習得スキル4 = 1124;アラクノワイヤー
+					ABL:(CHARANUM-1):習得LV4 = 48
+					ABL:(CHARANUM-1):習得スキル5 = 141;忠義のGun撃
+					ABL:(CHARANUM-1):習得LV5 = 54
+					ABL:(CHARANUM-1):習得スキル6 = 49;夜桜の舞い
+					ABL:(CHARANUM-1):習得LV6 = 64
+					TALENT:(CHARANUM-1):オトコ = 0
+					TALENT:(CHARANUM-1):処女 = 1
+					TALENT:(CHARANUM-1):気丈 = 1
+					TALENT:(CHARANUM-1):自制心 = 1
+					TALENT:(CHARANUM-1):一線越えない = 1
+					TALENT:(CHARANUM-1):恥じらい = 1
+					TALENT:(CHARANUM-1):痛みに強い = 1
+					TALENT:(CHARANUM-1):針さばき = 1
+					TALENT:(CHARANUM-1):習得早い = 1
+					TALENT:(CHARANUM-1):薬毒耐性 = 1
+					TALENT:(CHARANUM-1):快感の否定 = 1
+					TALENT:(CHARANUM-1):Ａ敏感 = 1
+					TALENT:(CHARANUM-1):Ｂ敏感 = 1
+					TALENT:(CHARANUM-1):巨乳 = 1
+					TALENT:(CHARANUM-1):両刀 = 1
+					ABL:(CHARANUM-1):技巧 = 1
+						IF STRFLAG_NUM_EV("ナチスの切札は機械化美女軍団の噂", , , , [[イベント:噂]]) == 2
+							TALENT:(CHARANUM-1):機械の乙女 = 1
+							TALENT:(CHARANUM-1):Ｃ鈍感 = 1
+							TALENT:(CHARANUM-1):Ｂ鈍感 = 1
+							TALENT:(CHARANUM-1):Ａ鈍感 = 1
+							TALENT:(CHARANUM-1):Ｖ鈍感 = 1
+						ELSE
+							TALENT:(CHARANUM-1):Ａ敏感 = 1
+							TALENT:(CHARANUM-1):Ｂ敏感 = 1
+						ENDIF
+					CFLAG:(CHARANUM-1):帽子 = 18;軍帽
+					CFLAG:(CHARANUM-1):服 = 107;ブラウス
+					CFLAG:(CHARANUM-1):下衣 = 209;タイトミニスカート
+					CFLAG:(CHARANUM-1):全身服 = 316;軍服
+					CFLAG:(CHARANUM-1):手 = 412;手甲
+					CFLAG:(CHARANUM-1):下着（上） = 507;ブラジャー(黒)
+					CFLAG:(CHARANUM-1):下着（下） = 609;パンティ(黒)
+					CFLAG:(CHARANUM-1):靴下 = 806;パンティストッキング
+					CFLAG:(CHARANUM-1):靴 = 901;ブーツ
+					CFLAG:(CHARANUM-1):戦闘参加不可能 = 1
+					CFLAG:(CHARANUM-1):その他 = 1105;マフラー
+					CSTR:(CHARANUM-1):種族名 = 聖槍騎士
+					CSTR:(CHARANUM-1):タイトル = ドイツ軍人
+			CASE 2
+			PRINTW ＞Longinus８を手に入れた
+				CALL ADD_NEW_COMPANION,[[キャラ:Longinus８]],0
+					BASE:(CHARANUM-1):LV = 40
+					BASE:(CHARANUM-1):知恵 -= 3
+					BASE:(CHARANUM-1):魔力 -= 3
+					BASE:(CHARANUM-1):耐力 -= 2
+					BASE:(CHARANUM-1):速さ -= 3
+					BASE:(CHARANUM-1):運   -= 3
+					ABL:(CHARANUM-1):種族 = 0
+					BASE:(CHARANUM-1):剣撃 = 100
+					BASE:(CHARANUM-1):飛具 = 100
+					BASE:(CHARANUM-1):打撃 = 100
+					BASE:(CHARANUM-1):戦技 = 100
+					BASE:(CHARANUM-1):火炎 = 100
+					BASE:(CHARANUM-1):氷結 = 100
+					BASE:(CHARANUM-1):電撃 = 100
+					BASE:(CHARANUM-1):衝撃 = 100
+					BASE:(CHARANUM-1):神経 = 100
+					BASE:(CHARANUM-1):精神 = 100
+					BASE:(CHARANUM-1):破魔 = 100
+					BASE:(CHARANUM-1):呪殺 = 100
+					BASE:(CHARANUM-1):地変 = 100
+					BASE:(CHARANUM-1):水撃 = 100
+					BASE:(CHARANUM-1):疾風 = 100
+					BASE:(CHARANUM-1):重力 = 100
+					BASE:(CHARANUM-1):核熱 = 100
+					BASE:(CHARANUM-1):万能 = 100
+					BASE:(CHARANUM-1):サイコ = 100
+					MAXBASE:(CHARANUM-1):剣撃 = 100
+					MAXBASE:(CHARANUM-1):飛具 = 100
+					MAXBASE:(CHARANUM-1):打撃 = 100
+					MAXBASE:(CHARANUM-1):戦技 = 100
+					MAXBASE:(CHARANUM-1):火炎 = 100
+					MAXBASE:(CHARANUM-1):氷結 = 100
+					MAXBASE:(CHARANUM-1):電撃 = 100
+					MAXBASE:(CHARANUM-1):衝撃 = 100
+					MAXBASE:(CHARANUM-1):神経 = 100
+					MAXBASE:(CHARANUM-1):精神 = 100
+					MAXBASE:(CHARANUM-1):破魔 = 100
+					MAXBASE:(CHARANUM-1):呪殺 = 100
+					MAXBASE:(CHARANUM-1):地変 = 100
+					MAXBASE:(CHARANUM-1):水撃 = 100
+					MAXBASE:(CHARANUM-1):疾風 = 100
+					MAXBASE:(CHARANUM-1):重力 = 100
+					MAXBASE:(CHARANUM-1):核熱 = 100
+					MAXBASE:(CHARANUM-1):万能 = 100
+					MAXBASE:(CHARANUM-1):サイコ = 100	
+					ABL:(CHARANUM-1):攻撃範囲 = 1	
+					TALENT:(CHARANUM-1):異能者 = 1
+					ABL:(CHARANUM-1):スキル1 = 0
+					ABL:(CHARANUM-1):スキル2 = 0
+					ABL:(CHARANUM-1):スキル3 = 0
+					ABL:(CHARANUM-1):スキル4 = 0
+					ABL:(CHARANUM-1):スキル5 = 0
+					ABL:(CHARANUM-1):スキル1 = 1005;マハ・ザンマ
+					ABL:(CHARANUM-1):スキル2 = 905;マハ・ジオンガ
+					ABL:(CHARANUM-1):スキル3 = 62;Longinus Copy（弱）
+					ABL:(CHARANUM-1):習得スキル1 = 1032;衝撃ガードブレイク
+					ABL:(CHARANUM-1):習得LV1 = 42
+					ABL:(CHARANUM-1):習得スキル2 = 502;スク・カジャ
+					ABL:(CHARANUM-1):習得LV2 = 44
+					ABL:(CHARANUM-1):習得スキル3 = 123;徒花一閃
+					ABL:(CHARANUM-1):習得LV3 = 46
+					ABL:(CHARANUM-1):習得スキル4 = 1008;竜巻
+					ABL:(CHARANUM-1):習得LV4 = 48
+					ABL:(CHARANUM-1):習得スキル5 = 141;忠義のGun撃
+					ABL:(CHARANUM-1):習得LV5 = 54
+					ABL:(CHARANUM-1):習得スキル6 = 1007;リムドーラ
+					ABL:(CHARANUM-1):習得LV6 = 64
+					TALENT:(CHARANUM-1):オトコ = 0
+					TALENT:(CHARANUM-1):処女 = 1
+					TALENT:(CHARANUM-1):素直 = 1
+					TALENT:(CHARANUM-1):好奇心 = 1
+					TALENT:(CHARANUM-1):楽観的 = 1
+					TALENT:(CHARANUM-1):解放 = 1
+					TALENT:(CHARANUM-1):濡れやすい = 1
+					TALENT:(CHARANUM-1):献身的 = 1
+					TALENT:(CHARANUM-1):痛みに強い = 1
+					TALENT:(CHARANUM-1):習得早い = 1
+					TALENT:(CHARANUM-1):快感に素直 = 1
+					TALENT:(CHARANUM-1):倒錯的 = 1
+					ABL:(CHARANUM-1):歌唱技能 = 2
+					EXP:(CHARANUM-1):歌唱経験 += 30
+						IF STRFLAG_NUM_EV("ナチスの切札は機械化美女軍団の噂", , , , [[イベント:噂]]) == 2
+							TALENT:(CHARANUM-1):機械の乙女 = 1
+							TALENT:(CHARANUM-1):Ｃ鈍感 = 1
+							TALENT:(CHARANUM-1):Ｂ鈍感 = 1
+							TALENT:(CHARANUM-1):Ａ鈍感 = 1
+							TALENT:(CHARANUM-1):Ｖ鈍感 = 1
+						ELSE
+							TALENT:(CHARANUM-1):Ｖ敏感 = 1
+						ENDIF
+
+					CFLAG:(CHARANUM-1):帽子 = 18;軍帽
+					CFLAG:(CHARANUM-1):服 = 107;ブラウス
+					CFLAG:(CHARANUM-1):下衣 = 209;タイトミニスカート
+					CFLAG:(CHARANUM-1):全身服 = 316;軍服
+					CFLAG:(CHARANUM-1):手 = 401;手袋
+					CFLAG:(CHARANUM-1):下着（上） = 507;ブラジャー(黒)
+					CFLAG:(CHARANUM-1):下着（下） = 609;パンティ(黒)
+					CFLAG:(CHARANUM-1):靴下 = 806;パンティストッキング
+					CFLAG:(CHARANUM-1):靴 = 901;ブーツ
+					CFLAG:(CHARANUM-1):戦闘参加不可能 = 1
+					CFLAG:(CHARANUM-1):その他 = 1105;マフラー
+					CSTR:(CHARANUM-1):種族名 = 聖槍騎士
+					CSTR:(CHARANUM-1):タイトル = ドイツ軍人
+			ENDSELECT
+		PRINTW ＞女性と、壊れた聖槍騎士団の残骸から、Longinus一体を構成可能な部品をかき集めた
+		ENDIF
+	ITEM:1418 += 5 
+	CASE 1800
+		PRINTW ＞広間にはジョーカーとクイーン、それに聖槍騎士団と、彼らに囲まれた軍服の男、フューラーがいる
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「やはり、来たか…資格なきものよ」
+		PRINTL フューラー:
+		PRINTFORMW 「資格なきものが来れたのは、ユンゲに力がなかったからではないか？」
+		PRINTL 「ならばユンゲ達にも資格はなく、シバルバーを浮上させる資格をもつのは
+		PRINTW 　１２宮を象徴する我が聖槍騎士団のみだ」
+		PRINTL 聖槍騎士団:
+		PRINTW 「ジーク・ハイル！」
+		PRINTW 「ジーク・ライヒ！」
+		PRINTW 「一つの国、一つの国民、一人の総統！」
+		PRINTL ジョーカー:
+		PRINTW 「フッ…、噂によって蘇った過去の亡霊が、今更何を願う？」
+		PRINTL フューラー:
+		PRINTW 「ホイール・オブ・フォーチューンのマリオネットと、同じことよ」
+		PRINTL 「人間の中には、破滅と進歩…
+		PRINTW 　矛盾する望みが、常にせめぎ合っている」
+		PRINTW 「それを望む諸君らの恐れと期待が、私を招いたのだ」
+		PRINTW 「応じたからには、答えてやらねばなるまい？」
+		PRINTL ジョーカー:
+		PRINTW 「そう…だが、それは僕の役目だ」
+		PRINTW 「ご老体には、お帰り願おうか」
+		PRINTW 「そこのゴミどもと、一緒にな…」
+		PRINTW 「そして、貴様もだ…サマナー」
+		PRINTW 「貴様は人類をイデアリアンへと昇華させる、この尊い仕事をまったく理解していない…」
+		PRINTW 「貴様などに人類の夢を邪魔させるわけにはいかない」
+		PRINTL フューラー:
+		PRINTW 「左様…無知で愚かな人間が適切な導きを受けられぬとこのような下らぬ事になる」
+		PRINTW 「大衆には全てを決してくれる指導者が必要なのが常よ…」
+		PRINTL ジョーカー:
+		PRINTW 「だからこそ、このジョーカーが人類を新たな段階へと導く！！」
+		PRINTW 「見るがいい！」
+		PRINTW 「死と再生の翼、シバルバーを！！」
+		PRINTL 
+		PRINTW ＞ジョーカーが手に持っていた髑髏を掲げると突然大きな振動が広間を襲った！
+		PRINTL 
+		PRINTL フューラー:
+		PRINTW 「素晴らしい…！！」
+		PRINTW 「あれこそ真の総統都市…」
+		PRINTW 「フューラー・シュテッテに相応しい威容だ！！」
+		PRINTL ジョーカー:
+		PRINTW 「クックック…アーハッハッハッ！！」
+		PRINTW 「見ろ、父さんの言っていたことは、本当だったんだ！！」
+		PRINTL クイーン:
+		PRINTW 「ま、まさか、本当だったなんて…」
+		PRINTL ジョーカー:
+		PRINTW 「クッ…！？」
+		PRINTW 「違う…僕が…したかったことは…」
+		PRINTW 「こんな…惨いこと…じゃない…！」
+		PRINTL 
+		PRINTW ＞ジョーカーが突然頭を抱えてうずくまる
+		PRINTL 
+		PRINTL フューラー:
+		PRINTW 「今だ！　髑髏を奪えーい！！」
+		PRINTL 
+		PRINTW ＞聖槍騎士団がジョーカーにとびかかり、一撃を加え、髑髏を奪い取った！
+		PRINTL 
+		PRINTL フューラー:
+		PRINTW 「フハハハハッ！！」
+		PRINTW 「アレが浮上してしまえば、こんな場所は用済みよ！」
+		PRINTW 「じきにここも崩れ去る！」
+		PRINTW 「早く脱出しないと、巻き込まれるぞぉ！！」
+		PRINTL 
+		PRINTW ＞ブーンというモーターの音が響き渡り、聖槍騎士団はフューラーをつれて飛び去っていった
+		PRINTFORMW ＞あとには%CALLNAME:MASTER%と気を失ったジョーカーとクイーンが残された…
+		PRINTL 
+		PRINTL クイーン:
+		PRINTW 「淳をやらせはしない…！」
+		PRINTL 
+		PRINTFORMW ＞クイーンが%CALLNAME:MASTER%の前に立ちはだかった
+		PRINTFORMW ＞%CALLNAME:MASTER%も武器を構え、応戦しようとする
+		PRINTW ＞その時、どこからか聞き覚えのある声が響いた
+		PRINTL 
+		PRINTL 何者かの声:
+		PRINTW 「力を望むか…？　ならばお前も望むがいい」
+		PRINTL クイーン:
+		PRINTW 「なんでもいい。淳を守れるなら…！」
+		PRINTW 「う…うぐ、うあぁぁぁぁ！！」
+		PRINTL 
+		PRINTW ＞クイーンの体がみるみる鈍色に光る金属へと変質していく
+		PRINTW ＞仮面党員 メタル・マムが一体出た！
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9,[[キャラ:メタル・マム]],55,0,1
+		CALL ADJUST_KAMEN
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		WAIT
+		PRINTW ＞メタル・マムは力尽きた
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「クイーン…、くそ…頭が……」
+		PRINTL 
+		PRINTW ＞ジョーカーが頭を抱えながら、立ち上がる…
+		PRINTW ＞そして、割れた仮面からのぞくクイーンの顔を見ると硬直した
+		PRINTL 
+		PRINTL ジョーカー:
+		PRINTW 「まさか…？」
+		PRINTW 「いや、母さんは…こんなところにいるわけが…」
+		PRINTW 「それに母さんは達哉が殺した…、いや、あの時死んだのはお姉ちゃん…？」
+		PRINTW 「うあぁぁぁぁ」
+		PRINTL 
+		PRINTW ＞ジョーカーが頭を抱え、激しく身悶える
+		PRINTW ＞そこに突然、男が現れる…
+		PRINTW ＞七姉妹学園で出会った男だ…
+		PRINTL 
+		PRINTL 男:
+		PRINTW 「なさけない。仮面党の頭領ともあろうものが部下ひとり失ったくらいで狼狽えるのか？」
+		PRINTL ジョーカー:
+		PRINTW 「父さん！　でも、母さんが！」
+		PRINTL ジョーカーの父:
+		PRINTW 「それがどうした？　お前はこの女に何を望んでいた？」
+		PRINTL ジョーカー:
+		PRINTW 「そ、それは…うぅ」
+		PRINTL ジョーカーの父:
+		PRINTW 「こうして裁かれることだろう？　くっく」
+		PRINTL ジョーカー:
+		PRINTW 「いや、僕はそんなことを望んでは…いや、このことだけじゃない…シバルバーだって…」
+		PRINTL ジョーカーの父:
+		PRINTW 「何を言っている？　よく思い出せ、お前は誰だ？　なんのためにここにいる？」
+		PRINTL ジョーカー:
+		PRINTL 「僕は…僕は…そう、ジョーカーだ
+		PRINTW 　人々に夢を与えるために、そして大切なものを奪う奴らを裁くためにここにいる…！」
+		PRINTL ジョーカーの父:
+		PRINTW 「そうだ。そのためには力が必要だろう」
+		PRINTW 「さぁ、望め…憎め…・憎悪の炎に身を焦がせ…」
+		PRINTL ジョーカー:
+		PRINTW 「力が・・・欲しい・・・！何者にも屈しない力が・・・！！」
+		PRINTL ジョーカーの父:
+		PRINTW 「願いは届いたぞ…捧げられし贄はお前自身…天使と称えられたお前に、その力を与えよう…」
+		PRINTL ジョーカー:
+		PRINTW 「あああああああああ…！？や…やめろぉぉぉぉぉぉぉ…！！」
+		PRINTL 
+		PRINTW ＞ジョーカーの背後に異形のペルソナが現れる
+		PRINTW ＞そして、みるみるうちにジョーカーを異形の姿へと変えていった
+		PRINTW ＞ペルソナ使い？ エンジェルジョーカーが一体出た！
+
+		CALL SET_ENEMY,9,[[キャラ:エンジェルジョーカー]],60,0,1
+		CALL ADJUST_KAMEN
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		WAIT
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		PRINTW ＞エンジェルジョーカーは力尽きた
+		PRINTL 
+		PRINTL ジョーカーの父:
+		PRINTW 「ふむ、やはり、こんなものか」
+		PRINTW 「この黒須 淳は私の大切な玩具だったんだがな」
+		PRINTW 「こうなっては仕方ない。運命の輪から外すとしよう」
+		PRINTW 「いや、もうこの運命自体、君のおかげで使い物にならん」
+		PRINTW 「シバルバーにきたまえ」
+		PRINTW 「そこで君の力を楽しませてもらうとしよう」
+		PRINTL 
+		PRINTW ＞男がそういうと目の前が真っ白な光で包まれる
+		PRINTL 
+		PRINTW ……………… 
+		PRINTW ………… 
+		PRINTW ……
+		PRINTW 
+		PRINTW ＞気がつくと事務所の一室にいた…
+		PRINTW ＞足元にはジョーカー、黒須 淳と呼ばれていた少年が倒れている
+		PRINTW ＞黒須 淳を手に入れた
+		PRINTW ＞ファントム・ソサエティから、ラスト・バタリオンを地上から追い払ったことにより報酬が支払われた
+		PRINTW ＞￥100000を手に入れた
+		CALL ADD_NEW_COMPANION, [[キャラ:淳]], 100
+		MONEY += 100000
+		CALLF STRFLAG_NUM_EV("罪ルート進行", "=", , 11, [[イベント:ペルソナ２]])
+		FLAG:脱出 = 1
+ENDSELECT
+
+@TREASURE_53
+#LOCALSIZE 3
+#LOCALSSIZE 2
+LOCAL:2 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+;個数,-1のとき、魔貨・0の時、\となる
+LOCAL = 1
+LOCALS:1 = 
+;IDは現M*100＋X個目の宝箱の法則でふられている
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 100
+		LOCALS = ￥
+		LOCAL = 3555
+	CASE 200
+		LOCALS = CliffPowder
+		LOCAL = 3
+	CASE 201
+		LOCALS = InIncense
+	CASE 300
+		LOCALS = ￥
+		LOCAL = 6120
+	CASE 500
+		LOCALS = SealingBell
+		LOCAL = 3
+	CASE 600
+		LOCALS = TetrajaStone
+	CASE 700
+		LOCALS = Life stone
+		LOCAL = 3
+	CASE 900
+		LOCALS = 極寒の勾玉
+		LOCAL = 2
+	CASE 901
+		LOCALS = POISON
+		LOCAL = 100
+		LOCALS:1 = 神経
+	CASE 1000
+		LOCALS = 火炎の勾玉
+		LOCAL = 3
+	CASE 1001
+		LOCALS = ＭＰ
+		LOCAL = 10
+	CASE 1002
+		LOCALS = 烈火の勾玉
+		LOCAL = 2
+	CASE 1003
+		LOCALS = 激雷の勾玉
+		LOCAL = 2
+	CASE 1100
+		LOCALS = ＭＰ
+		LOCAL = 10
+	CASE 1101
+		LOCALS = ＨＰ
+		LOCAL = 20
+	CASE 1102
+		LOCALS = ＭＰ
+		LOCAL = 10
+	CASE 1103
+		LOCALS = MaIncense
+	CASE 1104
+		LOCALS = ＨＰ
+		LOCAL = 20
+	CASE 1200
+		LOCALS = ＨＰ
+		LOCAL = 15
+	CASE 1201
+		LOCALS = ＨＰ
+		LOCAL = 15
+	CASE 1202
+		LOCALS = スキルカード【光の裁き】
+	CASE 1203
+		LOCALS = スキルカード【闇の審判】
+	CASE 1300
+		LOCALS = PALYZE
+		LOCAL = 100
+		LOCALS:1 = 神経
+	CASE 1301
+		LOCALS = スキルカード【穢れ無き威光】
+	CASE 1302
+		LOCALS = スキルカード【丑の刻参り】
+	CASE 1400
+		LOCALS = ＨＰ
+		LOCAL = 25
+	CASE 1401
+		LOCALS = EnIncense
+	CASE 1402
+		LOCALS = ＨＰ
+		LOCAL = 25
+		LOCALS:1 = 神経
+	CASE 1600
+		LOCALS = Bead
+		LOCAL = 3
+	CASE 1601
+		LOCALS = MAG
+		LOCAL = 27000
+	CASE 1602
+		LOCALS = ＭＰ
+		LOCAL = 20
+	CASE 1700
+		LOCALS = BeadChain
+		LOCAL = 2
+	CASE 1800
+		LOCALS = MAG
+		LOCAL = 50000
+	CASE 1801
+		LOCALS = MegidolaStone
+	CASE 1802
+		LOCALS = KaihiNoJitsu
+ENDSELECT
+IF LOCALS == "￥"
+	CALL GET_TREASURE_MONEY, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 10
+ELSEIF LOCALS == "魔貨"
+	CALL GET_TREASURE_MONEY, 1, LOCAL, FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 10
+ELSEIF LOCALS == "MAG"
+	CALL GET_TREASURE_MAG, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 10
+ELSEIF LOCALS == "ＨＰ" || LOCALS == "ＭＰ" || LOCALS == "POISON" || LOCALS == "PALYZE"
+	CALL GET_TREASURE_TRAP, LOCALS, LOCAL, GET_TYPE_NUM(LOCALS:1), FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 10
+ELSE
+	CALL GET_TREASURE, GETNUM(ITEM, LOCALS), LOCAL , FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 10
+ENDIF
+;=======
+;メッセンジャー(8)
+;ARGは進入時の時に真
+;ARGがの場合RETURNして打ち切る
+;=======
+@TILE_MARK_COMMON_53_8, ARG, ARG:1, ARG:2
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@MESSAGE_53, ARG
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+ENDSELECT
+;=======
+;ワープゾーン
+;=======
+@TILE_MARK_COMMON_53_6, ARG, ARG:1, ARG:2
+SELECTCASE ARG % 100
+	CASE 6
+		RESULTS = 昇
+	CASE 16
+		RESULTS = →
+	CASE 26
+		RESULTS = ↓
+ENDSELECT
+
+@TILE_MARK_COMMON_53_7, ARG, ARG:1, ARG:2
+SELECTCASE ARG % 100
+	CASE 7
+		RESULTS = 降
+	CASE 17
+		RESULTS = ←
+	CASE 27
+		RESULTS = ↑
+ENDSELECT
+
+;=======
+;ワープゾーン
+;=======
+@WORP_53
+LOCAL = DA:(FLAG:現X):(FLAG:現Y)
+;直接指定
+SELECTCASE LOCAL % 100
+	CASE 6
+		CALL DUNGEON_UPSTAIRS_ID, FLAG:現M - 1, LOCAL - 999
+	CASE 7
+		CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M + 1, LOCAL + 999
+	CASE 16
+		CALL DUNGEON_WORP_ID, FLAG:現M+1, LOCAL+1001, 1
+		FLAG:現X += 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現X += 1
+	CASE 17
+		CALL DUNGEON_WORP_ID, FLAG:現M-1, LOCAL-1001, 1
+		FLAG:現X -= 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現X -= 1
+	;↓
+	CASE 26
+		CALL DUNGEON_WORP_ID, FLAG:現M-1, LOCAL-999, 1
+		FLAG:現Y += 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現Y += 1
+	;↑
+	CASE 27
+		CALL DUNGEON_WORP_ID, FLAG:現M+1, LOCAL+999, 1
+		FLAG:現Y -= 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現Y -= 1
+ENDSELECT
+;=======
+;ダークゾーン
+;=======
+@TILE_MARK_COMMON_53_D, ARG, ARG:1, ARG:2
+IF FLAG:ライトマ || EQUIP:MASTER:DarkScanner
+	SELECTCASE -ARG/10
+	ENDSELECT
+ENDIF
+SETCOLOR 0x202020
+RESULTS = □
+
+@DARK_53, ARG
+SELECTCASE -DA:(FLAG:現X):(FLAG:現Y)/10
+ENDSELECT
+
+
+@TRAIN_DUNGEON_53

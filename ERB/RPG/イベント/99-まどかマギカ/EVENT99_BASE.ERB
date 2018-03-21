@@ -1,0 +1,148 @@
+;イベントフラグ:99:0 リスト
+;0:開始前				1:Incubator受け取ってない		2:Incubator受け取り		3:魔法少女脱走解決
+;4:ラスボス対決準備		5:ラスボスと対決直前		6:ラスボス撃破		7:キュウべえの誘いを蹴った（イベント終了）
+
+;イベントフラグ:99:1 リスト
+;0:ほむらルート		1:キュウべえルート
+
+;イベントフラグ:99:2 リスト
+;0:オクタヴィア撃破		1:さやか救済
+
+;イベントフラグ:99:3 リスト
+;0:エンディング無し　1:キュウべえＥＮＤ
+
+;デビサバ２からフラグリセット関数を拝借
+;=================================================
+;   sub EVENT_99_FLAG_RESET
+;=================================================
+;   依頼:フラグリセット
+;-------------------------------------------------
+;   MENU画面で「依頼出現」が出る様、
+;   依頼登録フラグをリセットする
+;-------------------------------------------------
+@EVENT_99_FLAG_RESET
+
+;- フラグがONの場合、クリアしてOFFに変更
+SIF GETBIT(FLAG:イベント出現2,99 - 64)
+	CLEARBIT FLAG:イベント出現2, 99 - 64
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_99
+;メガテン系イベント以外不許可の場合
+SIF GETBIT(FLAG:EXTRAイベント設定, 0) == 0
+	RETURN 0
+
+IF (イベントフラグ:99:0 == 0 || イベントフラグ:99:0 == 1 )
+	IF イベントフラグ:99:0 == 0 
+		RESULTS = （Madoka☆Magica ＭＯＤ）Mystery White Demon
+		RETURN 1
+	ELSE
+		RESULTS = （Madoka☆Magica ＭＯＤ）Kyuubey's Gift
+		RETURN 1
+	ENDIF
+ENDIF
+
+IF BASE:MASTER:LV > 24 && イベントフラグ:99:0 == 2
+	RESULTS = （Madoka☆Magica ＭＯＤ）Magical Girl Escape
+	RETURN 1
+ENDIF
+
+IF イベントフラグ:99:0 == 3
+	RESULTS = （Madoka☆Magica ＭＯＤ）Kyuubey's Invitation
+	RETURN 1
+ENDIF
+
+IF BASE:MASTER:LV > 59 && イベントフラグ:99:0 == 4
+	RESULTS = （Madoka☆Magica ＭＯＤ）On the Eve of Battle
+	RETURN 1
+ENDIF
+
+IF イベントフラグ:99:0 == 5
+	IF イベントフラグ:99:1 == 0 
+		RESULTS = （Madoka☆Magica ＭＯＤ）Walpurgisnacht
+		RETURN 1
+	ELSE
+		RESULTS = （Madoka☆Magica ＭＯＤ）Distorted『Prayer』
+		RETURN 1
+	ENDIF
+ENDIF
+
+IF イベントフラグ:99:0 == 6 && イベントフラグ:99:1 == 0 && BASE:MASTER:LV > 69
+	RESULTS = （Madoka☆Magica ＭＯＤ2）Rebellion Story
+	RETURN 1
+ENDIF	
+
+RETURN 0
+
+;====================
+;説明
+;====================
+;@EXPLAIN_REQUEST_99
+;
+;SELECTCASE イベントフラグ:99:0
+;	CASE 0
+;	PRINTFORML -警備部隊からの依頼-
+;	PRINTFORML 
+;	PRINTFORML ファントムの秘密研究施設がある都市区画において
+;	PRINTFORML 正体不明の悪魔が確認された。
+;	PRINTFORML 目標に警備部隊の存在を悟らせる危険性があるため、一般構成員が目標に接触せよ。
+;	PRINTFORML 可能な場合、目標を排除すること。
+;	PRINTFORML 
+;	PRINTFORML 報酬：￥100000　　　　　※目標を駆逐した場合のみ
+;	CASE 1
+;	PRINTFORML キュウべえはまだ%CALLNAME:MASTER%にソフトを渡したがっているようだ。
+;	PRINTFORML 魔法少女の戦術的、そして財政的価値は十分にありそうだが…
+;	CASE 2
+;	PRINTFORML -警備部隊からの依頼-
+;	PRINTFORML 
+;	PRINTFORML ファントムの秘密研究施設から魔法少女２体が脱走した。
+;	PRINTFORML 現在のところ目だった騒ぎは起きていないが、敵対組織への接触を行う可能性がある。
+;	PRINTFORML 警備部隊より先行して行動できる一般構成員は目標を確認しだい、排除せよ。
+;	PRINTFORML 
+;	PRINTFORML 報酬：￥75000　　　　　※目標を駆逐した場合のみ
+;	CASE 3
+;	PRINTFORML -Incubatorからの依頼-
+;	PRINTFORML 
+;	PRINTFORML Incubatorは円環の理となった鹿目まどかを排除するつもりのようだ。
+;	PRINTFORML 神格の域に達したかの魔法少女を倒す事ができれば、%CALLNAME:MASTER%は全能の神にも匹敵する因果を手に入れる事ができる。
+;	PRINTFORML メシア教もガイア教も辿り着けない高みへと、%CALLNAME:MASTER%は辿り着く事ができるのだ。
+;ENDSELECT
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_99
+IF (イベントフラグ:99:0 == 0 || イベントフラグ:99:0 == 1 )
+	CALL EVENT_99_1
+	RETURN 0
+ENDIF
+IF イベントフラグ:99:0 == 2
+	CALL EVENT_99_2
+	RETURN 0
+ENDIF
+IF イベントフラグ:99:0 == 3
+	CALL EVENT_99_3
+	RETURN 0
+ENDIF
+
+IF イベントフラグ:99:0 == 4
+	CALL EVENT_99_4
+	RETURN 0
+ENDIF
+
+IF イベントフラグ:99:0 == 5
+	CALL EVENT_99_5
+	RETURN 0
+ENDIF
+
+IF イベントフラグ:99:0 == 6
+	CALL EVENT_99_6
+	RETURN 0
+ENDIF
+
+;#;PRINTL 入力
+;#;INPUTS
+;#;TRYCALLFORM SHOPCOM_EVENT_4_%RESULTS%
+;#;RETURN 0

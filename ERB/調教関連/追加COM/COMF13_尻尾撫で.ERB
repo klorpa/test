@@ -1,0 +1,79 @@
+;-------------------------------------------------
+;尻尾撫で
+;愛撫系コマンド　レベル2
+;-------------------------------------------------
+@CHECK_COM_ABLE13
+
+SIF !USE_HAND(PLAYER)
+	RETURN 0
+
+SIF !USE_TAIL(TARGET)
+	RETURN 0
+
+	RETURN 1
+
+@ACT_COM13
+
+PRINTL Tail Caress
+TSTR:0 = 尻尾撫で
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 5
+DOWNBASE:TARGET:気力 += 30
+
+SOURCE:TARGET:情愛 = 75
+SOURCE:TARGET:性行動 = 30
+SOURCE:TARGET:露出 = 10
+SOURCE:TARGET:反感 = 20
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 20
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 3
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 2
+
+RETURN 1
+
+@MESSAGE_COM13
+PRINTFORMW 尻尾を軽く甘噛みしながら丹念に愛撫した……
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_13
+RETURN COMTYPE("愛撫系")
+

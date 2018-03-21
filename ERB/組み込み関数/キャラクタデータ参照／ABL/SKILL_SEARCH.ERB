@@ -1,0 +1,300 @@
+;-------------------------------------------------
+;関数名:(CHECK|HAVE)_SKILL_SEARCH
+;概　要:条件に合うスキルを所持しているか調べる関数
+;引　数: ARG:0…調べるキャラの登録番号(並び順)
+;　　　 ARGS:0…[省略可]相性(Slash/Gun/Strke/Skill/Fire/Ice/Elect/Force/Nerve/Mind/Light/Dark/Earth/Water/Wind/Grav/Nuclr/Almig/Psych/Auto)
+;　　　 ARGS:1…[省略可]範囲(単体/一列/全体/敵味方全体/範囲) ※範囲=一列+全体
+;　　　 ARGS:2…[省略可]効果(攻撃/回復/状態変化/特殊/状態回復)
+;　　　 ARGS:3…[省略可]EXTRAかMAGICか(EXTRA/物理/MAGIC/魔法/OTHER/その他)
+;　　　  ARG:1…[省略可]リンケージのスキル番号(リンケージ参加者のみ必要。発動者は不要)
+;　　　         省略された箇所は判定しない
+;戻り値:真偽値(0か1)。該当するスキルがあれば真(1)、なければ偽(0)を返す
+;　　　 CHECK～は装備スキルを無視する。HAVE～は装備スキルもチェックする
+;主にリンケージでの使用を想定
+;手直してる途中で気付いたけど面倒だったので保留
+;-------------------------------------------------
+@CHECK_SKILL_SEARCH(ARG:0 = -1, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1 = -1)
+#LOCALSIZE 1
+IF TALENT:ARG:異能者
+	FOR LOCAL:0, 1, FLAG:異能者スキル数 + 1
+		CALL _SKILL_CHECK(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1, ABL:(ARG:0):@"スキル{LOCAL:0}")
+		SIF RESULT
+			RETURN 1
+	NEXT
+ELSE
+	FOR LOCAL:0, 1, FLAG:スキル数 + 1
+		CALL _SKILL_CHECK(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1, ABL:(ARG:0):@"スキル{LOCAL:0}")
+		SIF RESULT
+			RETURN 1
+	NEXT
+ENDIF
+RETURN 0
+
+@HAVE_SKILL_SEARCH(ARG:0 = -1, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1 = -1)
+#LOCALSIZE 2
+IF TALENT:ARG:異能者 || TALENT:ARG:達人
+	FOR LOCAL:0, 1, 42
+		LOCAL:0 = LOCAL:0 == FLAG:異能者スキル数 + 1 ? 21 # LOCAL:0
+		LOCAL:1 = ABL:(ARG:0):@"\@ LOCAL:0 > 20 ? 装備 # \@スキル{LOCAL:0 > 20 ? LOCAL:0 - 20 # LOCAL:0}"
+		SIF !LOCAL:1 && LOCAL:0 > 20
+			BREAK
+		CALL _SKILL_CHECK(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1, LOCAL:1)
+		SIF RESULT
+			RETURN 1
+	NEXT
+ELSE
+	FOR LOCAL:0, 1, 42
+		LOCAL:0 = LOCAL:0 == FLAG:スキル数 + 1 ? 21 # LOCAL:0
+		LOCAL:1 = ABL:(ARG:0):@"\@ LOCAL:0 > 20 ? 装備 # \@スキル{LOCAL:0 > 20 ? LOCAL:0 - 20 # LOCAL:0}"
+		SIF !LOCAL:1 && LOCAL:0 > 20
+			BREAK
+		CALL _SKILL_CHECK(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1, LOCAL:1)
+		SIF RESULT
+			RETURN 1
+	NEXT
+ENDIF
+RETURN 0
+
+
+;-------------------------------------------------
+;関数名:_SKILL_CHECK
+;概　要:スキルが条件に合うかチェックする内部関数
+;引　数: ARG:0…調べるキャラの登録番号(並び順)
+;　　　 ARGS:0…[省略可]相性(Slash/Gun/Strke/Skill/Fire/Ice/Elect/Force/Nerve/Mind/Light/Dark/Earth/Water/Wind/Grav/Nuclr/Almig/Psych/Auto)
+;　　　 ARGS:1…[省略可]範囲(単体/一列/全体/敵味方全体/範囲) ※範囲=一列+全体
+;　　　 ARGS:2…[省略可]効果(攻撃/回復/状態変化/特殊/状態回復)
+;　　　 ARGS:3…[省略可]EXTRAかMAGICか(EXTRA/物理/MAGIC/魔法/OTHER/その他)
+;　　　  ARG:1…[省略可]リンケージのスキル番号(リンケージ参加者のみ必要。発動者は不要)
+;　　　  ARG:2…チェックするスキル番号
+;　　　         省略された箇所は判定しない
+;戻り値:真偽値(0か1)。該当するスキルがあれば真(1)、なければ偽(0)を返す
+;備　考:内部関数(他所から使えません)
+;-------------------------------------------------
+@_SKILL_CHECK(ARG:0 = -1, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARG:1 = -1, ARG:2)
+#LOCALSIZE 1
+SIF !ARG:2
+	RETURN 0
+
+IF ARGS:3 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_DECIDE_TYPE_{ARG:2}
+	LOCAL:0 = ((ARGS:3 == "EXTRA" || ARGS:3 == "物理") && RESULT == 1) || ((ARGS:3 == "MAGIC" || ARGS:3 == "魔法") && RESULT == 2)
+	LOCAL:0 |= (ARGS:3 == "OTHER" || ARGS:3 == "その他") && RESULT != 1 && RESULT != 2
+	SIF !LOCAL:0
+		RETURN 0
+ENDIF
+
+IF ARGS:0 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_TYPE_{ARG:2}(ARG:0)
+	SIF RESULT != GET_TYPE_NUM(ARGS:0)
+		RETURN 0
+ENDIF
+
+IF ARGS:1 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_SPHERE_{ARG:2}
+	LOCAL:0 = (ARGS:1 == "単体" && RESULT == 1) || (ARGS:1 == "一列" && RESULT == 2) || (ARGS:1 == "全体" && RESULT == 3)
+	LOCAL:0 |= (ARGS:1 == "敵味方全体" && RESULT == 4) || (ARGS:1 == "範囲" && (RESULT == 2 || RESULT == 3))
+	SIF !LOCAL:0
+		RETURN 0
+ENDIF
+
+IF ARGS:2 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_EFECT_{ARG:2}
+	LOCAL:0 = (ARGS:2 == "攻撃" && RESULT == 1) || (ARGS:2 == "回復" && RESULT == 2) || (ARGS:2 == "状態変化" && RESULT == 3)
+	LOCAL:0 |= (ARGS:2 == "特殊" && RESULT == 4) || (ARGS:2 == "状態回復" && RESULT == 5)
+	SIF !LOCAL:0
+		RETURN 0
+ENDIF
+
+CALL CHECK_ACTIONABLE(ARG:0, ARG:2)
+SIF !RESULT
+	RETURN 0
+
+IF INRANGE(ARG:1, 4000, 4999)
+	CALLFORM SKILL_SPECIAL_ACTIONABLE_{ARG:1}(ARG:0)
+	SIF !RESULT
+		RETURN 0
+ENDIF
+
+RETURN 1
+
+;-------------------------------------------------
+;関数名:(CHECK|HAVE)_SKILL_SEARCH2
+;概　要:条件に合うスキルを所持しているか調べる関数
+;引　数: ARG:0…調べるキャラの登録番号(並び順)
+;　　　 ARGS:0…[省略可]相性(Slash/Gun/Strke/Skill/Fire/Ice/Elect/Force/Nerve/Mind/Light/Dark/Earth/Water/Wind/Grav/Nuclr/Almig/Psych/Auto)
+;　　　 ARGS:1…[省略可]範囲(単体/一列/全体/敵味方全体/範囲) ※範囲=一列+全体
+;　　　 ARGS:2…[省略可]効果(攻撃/回復/状態変化/特殊/状態回復)
+;　　　 ARGS:3…[省略可]EXTRAかMAGICか(EXTRA/物理/MAGIC/魔法/OTHER/その他)
+;　　　 ARGS:4…[省略可]追加状態異常(GOOD/HAPPY/SHOCK/PANIK/SLEEP/FREEZE/BIND/CLOSE/POISON/BOMB/CHARM/PALYZE/CURSE/FLY/STONE/DYING/ORGY/HEAT)
+;　　　  ARG:3…[省略不可]技の威力(スキルの期待値で計算、0で威力不要、-で数値未満を出す)
+;　　　  ARG:1…[省略可]リンケージのスキル番号(リンケージ参加者のみ必要。発動者は不要)
+;　　　         省略された箇所は判定しない
+;戻り値:真偽値(0か1)。該当するスキルがあれば真(1)、なければ偽(0)を返す
+;　　　 CHECK～は装備スキルを無視する。HAVE～は装備スキルもチェックする
+;主にリンケージでの使用を想定
+;手直してる途中で気付いたけど面倒だったので保留
+;-------------------------------------------------
+@CHECK_SKILL_SEARCH2(ARG:0 = -1, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:1 = -1)
+#LOCALSIZE 1
+IF TALENT:ARG:異能者
+	FOR LOCAL:0, 1, FLAG:異能者スキル数 + 1
+		CALL _SKILL_CHECK2(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:3, ARG:1, ABL:(ARG:0):@"スキル{LOCAL:0}")
+		SIF RESULT
+			RETURN 1
+	NEXT
+ELSE
+	FOR LOCAL:0, 1, FLAG:スキル数 + 1
+		CALL _SKILL_CHECK2(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:3, ARG:1, ABL:(ARG:0):@"スキル{LOCAL:0}")
+		SIF RESULT
+			RETURN 1
+	NEXT
+ENDIF
+RETURN 0
+
+@HAVE_SKILL_SEARCH2(ARG:0 = -1, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:3, ARG:1 = -1)
+#LOCALSIZE 2
+IF TALENT:ARG:異能者 || TALENT:ARG:達人
+	FOR LOCAL:0, 1, 42
+		LOCAL:0 = LOCAL:0 == FLAG:異能者スキル数 + 1 ? 21 # LOCAL:0
+		LOCAL:1 = ABL:(ARG:0):@"\@ LOCAL:0 > 20 ? 装備 # \@スキル{LOCAL:0 > 20 ? LOCAL:0 - 20 # LOCAL:0}"
+		SIF !LOCAL:1 && LOCAL:0 > 20
+			BREAK
+		CALL _SKILL_CHECK2(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:3, ARG:1, LOCAL:1)
+		SIF RESULT
+			RETURN 1
+	NEXT
+ELSE
+	FOR LOCAL:0, 1, 42
+		LOCAL:0 = LOCAL:0 == FLAG:スキル数 + 1 ? 21 # LOCAL:0
+		LOCAL:1 = ABL:(ARG:0):@"\@ LOCAL:0 > 20 ? 装備 # \@スキル{LOCAL:0 > 20 ? LOCAL:0 - 20 # LOCAL:0}"
+		SIF !LOCAL:1 && LOCAL:0 > 20
+			BREAK
+		CALL _SKILL_CHECK2(ARG:0, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:3, ARG:1, LOCAL:1)
+		SIF RESULT
+			RETURN 1
+	NEXT
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;関数名:_SKILL_CHECK2
+;概　要:スキルが条件に合うかチェックする内部関数
+;引　数: ARG:0…調べるキャラの登録番号(並び順)
+;　　　 ARGS:0…[省略可]相性(Slash/Gun/Strke/Skill/Fire/Ice/Elect/Force/Nerve/Mind/Light/Dark/Earth/Water/Wind/Grav/Nuclr/Almig/Psych/Auto)
+;　　　 ARGS:1…[省略可]範囲(単体/一列/全体/敵味方全体/範囲) ※範囲=一列+全体
+;　　　 ARGS:2…[省略可]効果(攻撃/回復/状態変化/特殊/状態回復)
+;　　　 ARGS:3…[省略可]EXTRAかMAGICか(EXTRA/物理/MAGIC/魔法/OTHER/その他)
+;　　　 ARGS:4…[省略可]追加状態異常(GOOD/HAPPY/SHOCK/PANIK/SLEEP/FREEZE/BIND/CLOSE/POISON/BOMB/CHARM/PALYZE/CURSE/FLY/STONE/DYING/ORGY/HEAT)
+;　　　  ARG:3…[省略不可]技の威力(スキルの期待値で計算、0で威力不要、-で単発威力の数値未満を出す)
+;　　　  ARG:1…[省略可]リンケージのスキル番号(リンケージ参加者のみ必要。発動者は不要)
+;　　　  ARG:2…チェックするスキル番号
+;　　　         省略された箇所は判定しない
+;戻り値:真偽値(0か1)。該当するスキルがあれば真(1)、なければ偽(0)を返す
+;備　考:内部関数(他所から使えません)
+;-------------------------------------------------
+@_SKILL_CHECK2(ARG:0 = -1, ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARG:3, ARG:1 = -1, ARG:2)
+#LOCALSIZE 3
+SIF !ARG:2
+	RETURN 0
+
+IF ARGS:3 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_DECIDE_TYPE_{ARG:2}
+	LOCAL:0 = ((ARGS:3 == "EXTRA" || ARGS:3 == "物理") && RESULT == 1) || ((ARGS:3 == "MAGIC" || ARGS:3 == "魔法") && RESULT == 2)
+	LOCAL:0 |= (ARGS:3 == "OTHER" || ARGS:3 == "その他") && RESULT != 1 && RESULT != 2
+	SIF !LOCAL:0
+		RETURN 0
+ENDIF
+
+IF ARGS:0 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_TYPE_{ARG:2}(ARG:0)
+	SIF RESULT != GET_TYPE_NUM(ARGS:0)
+		RETURN 0
+ENDIF
+
+IF ARGS:1 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_SPHERE_{ARG:2}
+	LOCAL:0 = (ARGS:1 == "単体" && RESULT == 1) || (ARGS:1 == "一列" && RESULT == 2) || (ARGS:1 == "全体" && RESULT == 3)
+	LOCAL:0 |= (ARGS:1 == "敵味方全体" && RESULT == 4) || (ARGS:1 == "範囲" && (RESULT == 2 || RESULT == 3))
+	SIF !LOCAL:0
+		RETURN 0
+ENDIF
+
+IF ARGS:2 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_EFECT_{ARG:2}
+	LOCAL:0 = (ARGS:2 == "攻撃" && RESULT == 1) || (ARGS:2 == "回復" && RESULT == 2) || (ARGS:2 == "状態変化" && RESULT == 3)
+	LOCAL:0 |= (ARGS:2 == "特殊" && RESULT == 4) || (ARGS:2 == "状態回復" && RESULT == 5)
+	SIF !LOCAL:0
+		RETURN 0
+ENDIF
+
+IF ARGS:4 != ""
+	RESULT = -1
+	TRYCALLFORM SKILL_ADDTIONAL_STATE_{ARG:2}(ARG:0)
+	SIF RESULT != GET_STATE_NUM(ARGS:4)
+		RETURN 0
+ENDIF
+
+
+IF ARG:3 != 0
+	RESULT = -1
+	TRYCALLFORM SKILL_POWER_{ARG:2}(ARG:0)
+	LOCAL:0 = RESULT;
+	IF ARG:3 > 0
+		LOCAL:1 = 0
+		LOCAL:2 = -1
+		;百烈突き、千烈突き
+		IF ARG:2 == 229 || ARG:2 == 230
+			;最大攻撃回数
+			TRYCALLFORM SKILL_MAXATTACKNUMBER_{ARG:2}(-1)
+			LOCAL:1 = RESULT;
+			;一体辺りの最大ＨＩＴ数
+			TRYCALLFORM SKILL_MAXATK_PER_{ARG:2}(-1)
+			LOCAL:2 = RESULT;
+			SIF LOCAL:2 > 0
+				LOCAL:1 = LOCAL:2
+			;　最低攻撃回数
+			TRYCALLFORM SKILL_MINATTACKNUMBER_{ARG:2}(-1)
+		ELSE
+			;最大攻撃回数
+			TRYCALLFORM SKILL_MAXATTACKNUMBER_{ARG:2}(ARG:0)
+			LOCAL:1 = RESULT;
+			;一体辺りの最大ＨＩＴ数
+			TRYCALLFORM SKILL_MAXATK_PER_{ARG:2}(ARG:0)
+			LOCAL:2 = RESULT;
+			SIF LOCAL:2 > 0
+				LOCAL:1 = LOCAL:2
+			;　最低攻撃回数
+			TRYCALLFORM SKILL_MINATTACKNUMBER_{ARG:2}(ARG:0)
+		ENDIF
+		LOCAL:2 = RESULT;
+		SIF 1 < LOCAL:1 + LOCAL:2
+			LOCAL:0 = LOCAL:0 * (LOCAL:1 + LOCAL:2) / 2
+			
+		SIF LOCAL:0 < ARG:3
+			RETURN 0
+	ELSE
+		ARG:3 = ARG:3 - ARG:3 - ARG:3
+		SIF LOCAL:0 >= ARG:3
+			RETURN 0
+	ENDIF
+ENDIF
+
+CALL CHECK_ACTIONABLE(ARG:0, ARG:2)
+SIF !RESULT
+	RETURN 0
+
+IF INRANGE(ARG:1, 4000, 4999)
+	CALLFORM SKILL_SPECIAL_ACTIONABLE_{ARG:1}(ARG:0)
+	SIF !RESULT
+		RETURN 0
+ENDIF
+
+RETURN 1

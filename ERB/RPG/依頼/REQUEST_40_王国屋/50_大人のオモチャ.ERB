@@ -1,0 +1,61 @@
+@PLAYABLE_OUKOKUYA_REQ_50
+RESULTS = Adult Toy
+RETURN !GETBIT(依頼フラグ:40:0, 50)
+
+@EXPLAIN_OUKOKUYA_REQ_50
+RESULTS = 
+RESULTS += "/Searching for an adult toy.(Requester:五部田　林造)/"
+RESULTS += "Difficulty: ☆/"
+RESULTS += "Reward	  :Macca depending on the value of the request fullfilling demon./Bonus Condition available/"
+RESULTS += "/Condition/"
+RESULTS += "Fairy Pixie/"
+RESULTS += "Ability[Obedience]>Lv3 Ability[Servicing]>Lv1 Trait[Virgin]　/Bonus Condition　Ability[ＡSensitivity]>Lv3/"
+RESULTS += "/備考/"
+RESULTS += "今、マジでむらむらしててよー、スッキリしたいんだよなぁ/"
+RESULTS += "だっつうのに、いつも使ってるオナホが見つからなくてよ～/"
+RESULTS += "わりぃけど持って来てくんねぇか？/"
+RESULTS += "なぁに、礼はするさ/"
+RESULTS += "なんせカジノでバカ勝ちしたからな！ /"
+RESULTS += "あぁ、オナホは新品で頼むぜって、当たり前かぁ？ヒャハハハ/"
+RESULTS += "んじゃ、頼むぜ/"
+
+@CHARASELLABLE_OUKOKUYA_REQ_50
+SIF NO:COUNT != [[キャラ:ピクシー]]
+	RETURN 0
+SIF ABL:COUNT:従順 < 3
+	RETURN 0
+SIF ABL:COUNT:奉仕精神 == 0
+	RETURN 0
+SIF TALENT:COUNT:処女 == 0
+	RETURN 0
+RETURN 1
+
+;--------------------------------------------------------
+;報酬処理
+;ただし、売却人数・属性変動などは共通で処理済み
+;調教師名声の処理はされてないので適宜処理してください
+;
+;ARGはキャラクター
+;--------------------------------------------------------
+@TAKE_REWARD_OUKOKUYA_REQ_50, ARG
+#LOCALSIZE 1
+CALL CHARA_SELL, ARG, 1
+LOCAL = RESULT
+CALL MESSAGE_WINDOW, "五部田", @"おっ？わりぃな、やっぱりオナホはピクシーにかぎるぜ、ヒャハハ", , , , , 4
+;ボーナス条件を満たした場合
+IF ABL:ARG:Ａ感覚 >= 3
+	TIMES LOCAL , 1.20
+	CALL MESSAGE_WINDOW, "五部田", @"おぉーー！？こっちの穴も使えるようにしてくれたのか！/ありがとよ、これは礼だ！取っといてくれ", , , , , 4
+	CALL MESSAGE_WINDOW, "", @"＞依頼を達成し/＞{LOCAL}魔貨と耐力の香を手に入れました", , , , , 4
+	CALL GET_ITEMS, "EnIncense", 1
+;満たさなかった場合
+ELSE
+	TIMES LOCAL , 1.10
+	CALL MESSAGE_WINDOW, "", @"＞依頼を達成し/＞{LOCAL}魔貨を手に入れました", , , , , 4
+ENDIF
+MONEY:1 += LOCAL
+
+FLAG:調教師名声 += 20
+
+;帳簿閲覧用処理
+CALL 帳簿閲覧, ARG, LOCAL

@@ -1,0 +1,127 @@
+;-------------------------------------------------
+;飲精
+;特殊コマンド
+;-------------------------------------------------
+@CHECK_COM_ABLE204
+;野外プレイ中かつ野外プレイ拡張機能ありじゃないとダメ
+SIF TEQUIP:29  == 0 || FLAG:46 == 0
+	RETURN 0
+;人が５人以上いないとダメ
+SIF TEQUIP:46 < 5
+	RETURN 0
+;野次馬の興奮度が60以上ないとダメ
+SIF TEQUIP:47 < 60
+	RETURN 0
+RETURN 1
+
+;最初に表示
+@ACT_COM204
+;飲精
+PRINTL Semen Chug
+TSTR:0 = 飲精
+;CALL KOJO_MESSAGE_COM
+;CALL MESSAGE_COM204
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 0
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:性行動 = 420
+SOURCE:TARGET:達成 = 200
+SOURCE:TARGET:屈従 = 650
+SOURCE:TARGET:逸脱 = 500
+SOURCE:TARGET:反感 = 500
+
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*40 + 100
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 200
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷の口に汚れ移動
+CALL SET_STAIN("口", "精液", TARGET)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+
+;-------------------------------------------------
+;吸精処理
+;野次馬の人数*500
+;-------------------------------------------------
+LOCAL = TEQUIP:46 * 500
+CALL CONTROL_MAG,TARGET,LOCAL
+
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+@COM_ORDER_204, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "欲望", 2, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "奉仕精神", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "精液中毒", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "MARK", "快楽刻印", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "PALAM", "欲情", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭鈍感", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭敏感", -3, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "献身的", 6, ARG, ARG:1
+SIF !TALENT:ARG:淫乱 && !TALENT:ARG:娼婦
+	CALL ADD_COM_ORDER, "TALENT", "快感の否定", -1, ARG, ARG:1
+;男嫌い（淫乱、娼婦で無効）
+SIF HATE(ARG, ARG:1)
+	CALL ADD_COM_ORDER, "TALENT", \@IS_MALE(PLAYER) ? 男嫌い # 女嫌い \@, -12, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "淫乱", 5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "娼婦", 10, ARG, ARG:1
+;調教者がふたなり
+;CALL ADD_COM_ORDER, "TALENT", "ふたなり", 8, ARG:1, ARG
+;CALL ADD_COM_ORDER, "STAIN", "ペニス", 100, ARG, ARG:1
+CALL ADD_COM_ORDER, "RELATION", , , ARG, ARG:1
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_204
+RETURN 34
+
+;-------------------------------------------------
+;204,飲精
+;-------------------------------------------------
+@MESSAGE_COM204
+PRINTFORML %CALLNAME:PLAYER%は、野次馬たちを煽り、用意しておいた容器に精液を溜めさせた…
+PRINTFORM %CALLNAME:TARGET%は
+;野次馬が14人より多い
+IF TEQUIP:46 > 14
+	IF RAND:2 == 0
+		PRINTL 目の前でジョッキに注がれた大量の精液をゆっくりと飲み始めた…
+	ELSE
+		PRINTL 精液がパンパンに流し込まれたペットボトルに口付け、静かに時間をかけて味わい始めた…
+	ENDIF
+ELSE
+	IF RAND:2 == 0
+		PRINTL 精液がなみなみと注がれたグラスを持ち、そのまま喉を鳴らして飲み始めた…
+	ELSE
+		PRINTL 雄濁が注がれたワンカップを手に取り、見せつけるように飲んでいく…
+	ENDIF
+ENDIF
+PRINT 周囲の野次馬たちは
+IF RAND:2 == 0
+	PRINTFORMW 下品な笑みを浮かべながら、%CALLNAME:TARGET%が白濁液を飲み込んでいく光景を眺めている…
+ELSE
+	PRINTFORMW 時折、口の中に残った雄液を咀嚼させ、口を開けさせ、胃に精液を収めたことを確認していく…
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_204
+RETURN COMTYPE("特殊コマンド系")

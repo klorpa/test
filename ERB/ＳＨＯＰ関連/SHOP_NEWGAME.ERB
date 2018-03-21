@@ -1,0 +1,868 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SHOP_NEWGAME.ERB
+;	Facility	:周回ニューゲームに関する関数群です
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/02/15		黒天					キャラの引継ぎで一括選択の項目を追加
+;	003		2011/04/13		黒天					引継ぎ可能キャラが二人未満の場合、一括選択が表示できないよう変更
+;													引継ぎ一括選択に対応する番号を0→999に変更
+;													引継ぎ一括選択時に本当に一括変更を行うかの確認を追加
+;	004		2011/05/01		Ｐ						主人をペルソナ使いからその他の特性に変更した場合、初期ペルソナを削除するように
+;	005		2011/05/23		Ｐ						引継ぎ時にダンジョンフラグ:0-99:100-124(マップサイズ情報)を削除しないように
+;	006		2011/06/24		Ｐ						マテリアルカードの引き継ぎ措置を変更
+;	007		2011/09/02		旅人					デビサバ２用フラグの初期化を追加
+;	008		2012/01/18		Ｐ						初期リンク悪魔習得スキルを引継ぎ時に再設定するように
+;													喰奴のスキル引継ぎの仕様を変更
+;	009		2012/03/26								ＮＴＲフラグ、ＮＴＲイベント進行度の引継ぎリセット修正
+;	010		2013/11/24		ひみつ					リスト表示数設定
+;	011		2014/10/21		ネトリス				デビオクで使用しているデータのリセット処理を追加
+;	012		2016/07/30		（U´・ω・｀）			RanRanDungeonを引き継ぎ可能に
+;	013		2017/05/10		kuma					周回ボーナスの調整
+;	014		2015/10/02		魔晶拡張パッチ				魔晶武器の引き継ぎ処理を変更
+;	014		2017/06/29		ああああ				元性別の扱いを変更
+;	015		2017/05/10		kuma					周回ボーナスの調整
+;	016		2017/09/19		kuma					周回ボーナスの調整　人気
+
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=================================================================
+;強くてニューゲーム関連
+;=================================================================
+;引き継ぐ物
+;悪魔解析度、合体解禁フラグ、素質・調教アイテム、衣装、オートマッピング
+;
+;ボーナスが付くもの
+;主人初期能力、初期ＣＯＭＰ容量、初期所持金、初期店人気
+;=================================================================
+
+
+@SHOPCOMABLE_777
+RESULTS = New Game
+IF FLAG:5 == 9 || DAY > 50 || FLAG:周回回数 > 0
+	RETURN 1
+ENDIF
+RETURN 0
+
+@SHOP_COM_777
+PRINTFORML Begin new game plus?
+PRINTL [0]Begin [1]Do not
+$INPUT_LOOP
+INPUT
+IF RESULT == 1
+	RETURN 0
+ELSEIF RESULT == 0
+	CALL START_NEWGAME
+	RETURN 1
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+
+;=================================================================
+;引継ぎ処理
+;=================================================================
+@START_NEWGAME
+;周回回数を+1
+SIF FLAG:5 == 9
+	FLAG:周回回数 += 1
+FLAG:経験ED数 = 0
+FOR LOCAL,0,64
+	SIF GETBIT(FLAG:発見ED , LOCAL)
+		FLAG:経験ED数 ++
+NEXT
+FOR LOCAL,0,64
+	SIF GETBIT(FLAG:発見ED2 , LOCAL)
+		FLAG:経験ED数 ++
+NEXT
+;-----------------------------------------------------------------
+;引き継がないものを初期化
+;主人以外のキャラを削除
+;-----------------------------------------------------------------
+;先に、削除しないキャラを選択することも出来る。
+
+CALL SELECT_YOME
+
+FOR LOCAL,CHARANUM-1,0,-1
+	SIF CFLAG:LOCAL:引継ぎフラグ == 0
+		CALL キャラ削除(LOCAL)
+NEXT
+CALL REFRESH_POS
+
+;引き継いだキャラのレベルを１・能力をALL3に。習得スキルをＣＳＶから再読み込み。引継ぎフラグに応じて素質や能力変更
+;Humanキャラの場合元CSVのレベル通りになるのでコメントアウト
+;FOR LOCAL,1,CHARANUM
+;	SIF FLAG:5 == 9
+;		CFLAG:LOCAL:引継ぎ回数 += 1
+;	IF (CSVTALENT(NO:LOCAL,230,0) == 0 && (NO:LOCAL == 0 || (NO:LOCAL > 4500 && NO:LOCAL < 4800) || NO:LOCAL > 4920)) || TALENT:LOCAL:230
+;		BASE:LOCAL:LV = CSVBASE(NO:LOCAL,GETNUM(BASE,"LV"),0)
+;		BASE:LOCAL:ＥＸＰ = 5*(BASE:LOCAL:LV-1)*(BASE:LOCAL:LV+1)*(BASE:LOCAL:LV)/3
+;		BASE:LOCAL:ＭＡＧ = 0
+;		CFLAG:LOCAL:初期LV = 1
+;		FOR LOCAL:1,1,7
+;			BASE:LOCAL:GET_BASESTATUS(LOCAL:1) = CSVBASE(NO:LOCAL,GETNUM(BASE,GET_BASESTATUS(LOCAL:1)),0)
+;			CFLAG:LOCAL:(GET_BASESTATUS(LOCAL:1) + "強化回数") = 0
+;		NEXT
+;		;このあとで処理する
+;		;CFLAG:LOCAL:この場に居ないフラグ = 1
+;		SIF CPOS(LOCAL) > 0
+;			CALL REMOVE_POSITION,CPOS(LOCAL)
+;		;敵専用スキルを削除
+;		FOR LOCAL:3,1,FLAG:スキル数+1
+;			LOCALS = スキル{LOCAL:3}
+;			TRYCCALLFORM 敵専用_{ABL:LOCAL:LOCALS}
+;				SIF RESULT == 1
+;					ABL:LOCAL:LOCALS = 0
+;			CATCH
+;			ENDCATCH
+;		NEXT
+;	ELSE
+;		BASE:LOCAL:LV = 1
+;		CFLAG:LOCAL:初期LV = 1
+;		BASE:LOCAL:ＥＸＰ = 0
+;		BASE:LOCAL:ＭＡＧ = 0
+;		FOR LOCAL:1,1,7
+;			BASE:LOCAL:GET_BASESTATUS(LOCAL:1) = 3
+;			CFLAG:LOCAL:(GET_BASESTATUS(LOCAL:1) + "強化回数") = 0
+;		NEXT
+;		BASE:LOCAL:(RAND:6 + 31) += 1
+;	ENDIF
+
+;引き継いだキャラのレベルを人間なら5、悪魔なら1にして能力をＣＳＶから読み込んでからレベルに合わせて増減、習得スキルをＣＳＶから再読み込み。引継ぎフラグに応じて素質や能力変更
+FOR LOCAL,1,CHARANUM
+	CFLAG:LOCAL:引継ぎ回数 += 1
+	CALL SHOP_NEWGAME_INITCHARA, LOCAL
+	CALL 装備強化_CSTR, "全解除：能力のみ", LOCAL
+NEXT
+
+
+;-----------------------------------------------------------------
+;イベントフラグを初期化
+;-----------------------------------------------------------------
+;VARSET ダンジョンフラグ:0:0,0
+;ダンジョン・イベント・依頼・闘技場フラグ初期化
+FOR LOCAL, 0, 100
+	FOR LOCAL:1, 0, 100
+		ダンジョンフラグ:LOCAL:(LOCAL:1) = 0
+		IF LOCAL:1 < 20
+			イベントフラグ:LOCAL:(LOCAL:1) = 0
+			闘技場フラグ:LOCAL:(LOCAL:1) = 0
+			依頼フラグ:LOCAL:(LOCAL:1) = 0
+		ENDIF
+	NEXT
+NEXT
+
+FLAG:初期パートナー = 0
+FLAG:属性固定LD = 0
+FLAG:属性固定LC = 0
+FLAG:ルート確定 = 0
+FLAG:直哉ルート = 0
+FLAG:百合の花ルート = 0
+FLAG:ベル神撃破 = 0
+;---- EDIT 007 ADD START -------------------------
+FLAG:デビサバ２進行度 = 0
+;---- EDIT 007 ADD END ---------------------------
+FLAG:真IV進行度 = 0
+FLAG:ナイト・テイル進行度 = 0
+FLAG:トリッシュ調教 = 0
+FLAG:ダンジョン出現1 = 0
+FLAG:ダンジョン出現2 = 0
+FLAG:闘技場出現1 = 0
+FLAG:闘技場出現2 = 0
+FLAG:イベント出現1 = 0
+FLAG:イベント出現2 = 0
+FLAG:依頼出現1 = 0
+FLAG:依頼出現2 = 0
+CFLAG:MASTER:101 = 0
+CFLAG:MASTER:102 = 0
+CFLAG:MASTER:103 = 0
+CFLAG:MASTER:104 = 0
+CFLAG:MASTER:105 = 0
+CFLAG:MASTER:110 = 0
+CFLAG:MASTER:111 = 0
+CFLAG:MASTER:112 = 0
+CFLAG:MASTER:出産日 = 0
+CFLAG:MASTER:父親の固有番号親 = 0
+CFLAG:MASTER:娘の産みの親のキャラ番号親 = 0
+CFLAG:MASTER:娘の産みの親の固有番号親 = 0
+TALENT:MASTER:153 = 0
+CFLAG:MASTER:発情妊娠 = 0
+CFLAG:MASTER:父親失踪 = 0
+CFLAG:MASTER:この場に居ないフラグ = 0
+
+TALENT:MASTER:154 = 0
+
+FLAG:ダンジョンフィルタ1 = 0
+FLAG:ダンジョンフィルタ2 = 0
+FLAG:キャンセル済みED = 0
+FLAG:キャンセル済みED2 = 0
+FLAG:名声 = 0
+FLAG:調教師名声 = 0
+FLAG:闘技場名声 = 0
+FLAG:組織貢献度 = 0
+FLAG:所属組織 = 0
+FLAG:闘技場ランク = 0
+SAVESTR:ランダム対戦チーム =
+CALL SELECT_COLOSSEUM_RANDOMBATTLE
+TIME:1 = 0
+
+
+;-----------------------------------------------------------------
+;魔晶装備削除
+;-----------------------------------------------------------------
+FOR LOCAL,0,50
+	IF DC:LOCAL:90 != 1
+		FOR LOCAL:2,0,99
+			DC:LOCAL:(LOCAL:2) = 0
+		NEXT
+	ENDIF
+NEXT
+
+;VARSET DC:0:0,0
+
+;-----------------------------------------------------------------
+;店舗解体
+;-----------------------------------------------------------------
+VARSET DE:0:0,0
+
+;-----------------------------------------------------------------
+;文字列フラグ削除
+;一応、文字列フラグ管理で使ってる部分だけに限定
+;-----------------------------------------------------------------
+VARSET SAVESTR, "", 100, 500
+
+;-----------------------------------------------------------------
+;装備品・アイテム・ドリーカドモン・インストールソフト削除
+;-----------------------------------------------------------------
+;主人の装備初期化
+CALL 全装備解除,MASTER
+FOR LOCAL,0,VARSIZE("EQUIP")
+	EQUIP:MASTER:LOCAL = CSVEQUIP(NO:MASTER,LOCAL,0)
+NEXT
+FOR LOCAL,200,6000
+	SELECTCASE LOCAL
+		CASE 220 TO 250
+			ITEM:LOCAL = ABS(ITEM:LOCAL)
+		CASE 500 TO 503 , 508 TO 515 , 517 , 530 , 533 , 540 TO 542 , 554 , 559
+		;一部除くインストールソフトを引継ぎ
+		;RanRanDungeonを追加
+		CASE 2450 TO 2499
+			SIF DC:(LOCAL-2450):90 != 1
+				ITEM:LOCAL = 0
+		;特定の魔晶武器を引き継ぎ
+		CASEELSE
+			TRYCCALLFORM 引継ぎ可不可_{LOCAL}
+				SIF RESULT <= 0
+					ITEM:LOCAL = 0
+				SIF ITEM:LOCAL > RESULT
+					ITEM:LOCAL = RESULT
+			CATCH
+				ITEM:LOCAL = 0
+			ENDCATCH
+	ENDSELECT
+	;例外のアイテムはここに記述
+NEXT
+;調教アイテムを破棄
+VARSET ITEM,0,0,100
+
+;-----------------------------------------------------------------
+;種族ごとの売却回数を初期化
+;-----------------------------------------------------------------
+FOR LOCAL,30000,35021
+	FLAG:LOCAL = 0
+NEXT
+
+;-----------------------------------------------------------------
+;キャンセルしたEDをリセット
+;-----------------------------------------------------------------
+FLAG:キャンセル済みED = 0
+FLAG:キャンセル済みED2 = 0
+;-----------------------------------------------------------------
+;日付、時間、調教対象や助手のリセット
+;-----------------------------------------------------------------
+DAY = 1
+DAY:1 = 10
+MONEY:2 = 50000
+TIME = 0
+TARGET = -1
+ASSI = -1
+FLAG:5 = 0
+FLAG:ダンジョン探索済み = 0
+FLAG:コロシアム参加済み = 0
+;SIF FLAG:恋慕人数 > FLAG:周回回数*2
+;	FLAG:恋慕人数 = FLAG:周回回数*2
+;SIF FLAG:淫乱人数 > FLAG:周回回数*2
+;	FLAG:淫乱人数 = FLAG:周回回数*2
+;SIF FLAG:服従人数 > FLAG:周回回数*2
+;	FLAG:服従人数 = FLAG:周回回数*2
+FLAG:今周回恋慕人数 = 0
+FLAG:今周回淫乱人数 = 0
+FLAG:今周回服従人数 = 0
+FLAG:奴隷売却数 = 0
+
+;今週回の帳簿リセット
+VARSET FLAG, 0, 1403, 1406
+VARSET FLAG, 0, 1413, 1416
+VARSET FLAG, 0, 1423, 1426
+VARSET FLAG, 0, 1433, 1436
+FLAG:売却人数 = 0
+FLAG:売却人数（恋慕親愛） = 0
+FLAG:売却人数（淫乱娼婦） = 0
+FLAG:売却人数（服従隷属） = 0
+FLAG:食堂総利益 = 0
+FLAG:娼館総利益 = 0
+FLAG:公衆便所総利益 = 0
+FLAG:レンタル総利益 = 0
+FLAG:劇場総利益 = 0
+FLAG:コンサート総利益 = 0
+;デビオクの内容もリセット
+VARSET 中古キャラ売却済み:0:0, 0
+VARSET 中古キャラ売却価格:0:0, 0
+VARSET 中古キャラABL:0:0, 0
+VARSET 中古キャラBASE:0:0, 0
+VARSET 中古キャラCFLAG:0:0, 0
+VARSET 中古キャラCFLAG2:0:0, 0
+VARSET 中古キャラCFLAG3:0:0, 0
+VARSET 中古キャラCFLAG異常経験記録:0:0, 0
+VARSET 中古キャラEXP:0:0, 0
+VARSET 中古キャラTALENT:0:0, 0
+VARSET 中古キャラMARK:0:0, 0
+VARSET 中古キャラ妊娠相手:0:0, 0
+VARSET 中古キャラ売却先:0:0, 0
+VARSET 中古キャラ売却日:0:0, 0
+VARSET デビオク商品リスト:0:0, 0
+VARSET デビオク予約フラグ:0:0, 0
+
+;-----------------------------------------------------------------
+;難易度
+;-----------------------------------------------------------------
+CALL SET_DIFFICULT
+
+;-----------------------------------------------------------------
+;主人の能力設定
+;-----------------------------------------------------------------
+;CALL NEW_MASTER
+;-----------------------------------------------------------------
+;主人の調教・労役設定
+;-----------------------------------------------------------------
+
+;素質・能力・経験を弄くる
+;周回数が5以上の場合能力リセット時に旧あなたを新規キャラとして加入させるか選択
+PRINTFORML Do you want to carry over the traits, skills and experiences of the player?
+CALL INPUT_YN,"Yes","No"
+
+IF FLAG:経験ED数 > 4
+	IF RESULT == 1
+		PRINTFORML Do you want the old player character to join as an NPC?
+		CALL INPUT_YN,"Yes","No"
+		;旧あなた加入処理
+		IF RESULT == 0
+			CALL ADD_NEW_COMPANION, 4998, 500
+			IF RESULT == 1
+				LOCAL = CFLAG:(RESULT:1):キャラ固有の番号
+				COPYCHARA 0, (RESULT:1)
+				;呼び名
+				IF CFLAG:LOCAL:73  == 1
+					NAME:(RESULT:1)     = ダークサマナー
+					CALLNAME:(RESULT:1) = Summoner
+				ELSEIF CFLAG:LOCAL:73  == 2
+					NAME:(RESULT:1)     = ペルソナ使いサマナー
+					CALLNAME:(RESULT:1) = Persona User
+				ELSEIF CFLAG:LOCAL:73  == 3
+					NAME:(RESULT:1)     = 異能者サマナー
+					CALLNAME:(RESULT:1) = Adept
+				ELSEIF CFLAG:LOCAL:73  == 4
+					NAME:(RESULT:1)     = 観光客
+					CALLNAME:(RESULT:1) = 観光客
+				ELSEIF CFLAG:LOCAL:73  == 5
+					NAME:(RESULT:1)     = 喰奴サマナー
+					CALLNAME:(RESULT:1) = Avatar tuner
+				ELSEIF CFLAG:LOCAL:73  == 6
+					NAME:(RESULT:1)     = 達人サマナー
+					CALLNAME:(RESULT:1) = Master
+				ELSEIF CFLAG:LOCAL:73  == 7
+					NAME:(RESULT:1)     = 悪魔狩人サマナー
+					CALLNAME:(RESULT:1) = 悪魔狩人
+				ELSEIF CFLAG:LOCAL:73  == 8
+					NAME:(RESULT:1)     = 悪魔人サマナー
+					CALLNAME:(RESULT:1) = 悪魔人
+				ELSEIF CFLAG:LOCAL:73  == 9
+					NAME:(RESULT:1)     = 愚者
+					CALLNAME:(RESULT:1) = 愚者
+				ELSEIF CFLAG:LOCAL:73  == 10
+					NAME:(RESULT:1)     = シフター
+					CALLNAME:(RESULT:1) = シフター
+				ELSE
+					NAME:(RESULT:1)     = 謎の人
+					CALLNAME:(RESULT:1) = 謎の人
+				ENDIF
+				CFLAG:(RESULT:1):引継ぎフラグ = 1
+				CFLAG:(RESULT:1):引継ぎ回数   = 1
+				CFLAG:(RESULT:1):ポジション   = 0
+				CFLAG:(RESULT:1):所属ＣＯＭＰ = 0
+				CFLAG:(RESULT:1):合体不可     = 0
+				CFLAG:(RESULT:1):キャラ固有の番号 = LOCAL
+				NO:(RESULT:1) = 4998
+				CALL SHOP_NEWGAME_INITCHARA, (RESULT:1)
+			ENDIF
+		ENDIF
+
+		FOR LOCAL,0,26
+			ABL:MASTER:LOCAL = CSVABL(NO:MASTER,LOCAL,0)
+		NEXT
+		FOR LOCAL,0,VARSIZE("EXP")
+			EXP:MASTER:LOCAL = CSVEXP(NO:MASTER,LOCAL,0)
+		NEXT
+		FOR LOCAL,0,101
+			JUEL:MASTER:LOCAL = 0
+		NEXT
+		VARSET CFLAG:MASTER:0 , 0 , 2001 , 2600
+		CFLAG:MASTER:陥落キャラ = 0
+		;素質
+		TALENT:MASTER:謎の魅力 = 0
+		TALENT:MASTER:絶倫 = 0
+		TALENT:MASTER:淫乱 = 0
+		TALENT:MASTER:娼婦 = 0
+		TALENT:MASTER:母乳体質 = 0
+		TALENT:MASTER:人気 = 0
+		Flag:人気取得者数 = 0
+		CFLAG:MASTER:第何子まで産んだか = 0
+		CFLAG:MASTER:仕送り時してくれる人数親 = 0  
+	;	CFLAG:MASTER:キャラ固有の番号 = FLAG:今までのキャラ数
+	;	FLAG:今までのキャラ数 += 1
+		CFLAG:MASTER:料理人気 = 0
+		CFLAG:MASTER:売春人気 = 0
+		CFLAG:MASTER:便器人気 = 0
+		CFLAG:MASTER:劇場人気 = 0
+		CFLAG:MASTER:アイドル人気 = 0
+		IF TALENT:MASTER:オトコ == 0 
+			TALENT:MASTER:処女 = 1
+		ELSE
+			CFLAG:MASTER:元処女 = 1
+			CFLAG:MASTER:元Ｖ感覚 = 1
+		ENDIF
+		TALENT:MASTER:サド = 0
+		TALENT:MASTER:マゾ = 0
+		TALENT:MASTER:汚れ無視 = 0
+		ITEM:"【汚れ無視】" = 0
+		TALENT:MASTER:調合知識 = 0
+		ITEM:"【調合知識】" = 0
+		TALENT:MASTER:禁断の知識 = 0
+		ITEM:"【禁断の知識】" = 0
+		TALENT:MASTER:覚 = 0
+		ITEM:"【Third eye】" = 0
+		TALENT:MASTER:触手使役術 = 0
+		ITEM:"【Tentacle summoning】" = 0
+		EX:MASTER:0 = 0
+		EX:MASTER:1 = 0
+		EX:MASTER:2 = 0
+		EX:MASTER:3 = 0
+		FLAG:主人出自 = 0
+		CFLAG:MASTER:異常経験記録 = 0
+	ENDIF
+ELSE
+	IF RESULT == 1
+		FOR LOCAL,0,26
+			ABL:MASTER:LOCAL = CSVABL(NO:MASTER,LOCAL,0)
+		NEXT
+		FOR LOCAL,0,VARSIZE("EXP")
+			EXP:MASTER:LOCAL = CSVEXP(NO:MASTER,LOCAL,0)
+		NEXT
+		FOR LOCAL,0,101
+			JUEL:MASTER:LOCAL = 0
+		NEXT
+		VARSET CFLAG:MASTER:0 , 0 , 2001 , 2600
+		CFLAG:MASTER:陥落キャラ = 0
+		;素質
+		TALENT:MASTER:謎の魅力 = 0
+		TALENT:MASTER:絶倫 = 0
+		TALENT:MASTER:淫乱 = 0
+		TALENT:MASTER:娼婦 = 0
+		TALENT:MASTER:母乳体質 = 0
+		TALENT:MASTER:人気 = 0
+		Flag:人気取得者数 = 0
+		CFLAG:MASTER:第何子まで産んだか = 0
+		CFLAG:MASTER:仕送り時してくれる人数親 = 0  
+	;	CFLAG:MASTER:キャラ固有の番号 = FLAG:今までのキャラ数
+	;	FLAG:今までのキャラ数 += 1
+		CFLAG:MASTER:料理人気 = 0
+		CFLAG:MASTER:売春人気 = 0
+		CFLAG:MASTER:便器人気 = 0
+		CFLAG:MASTER:劇場人気 = 0
+		CFLAG:MASTER:アイドル人気 = 0
+		IF TALENT:MASTER:オトコ == 0 
+			TALENT:MASTER:処女 = 1
+		ELSE
+			CFLAG:MASTER:元処女 = 1
+			CFLAG:MASTER:元Ｖ感覚 = 1
+		ENDIF
+		TALENT:MASTER:サド = 0
+		TALENT:MASTER:マゾ = 0
+		TALENT:MASTER:汚れ無視 = 0
+		ITEM:"【汚れ無視】" = 0
+		TALENT:MASTER:調合知識 = 0
+		ITEM:"【調合知識】" = 0
+		TALENT:MASTER:禁断の知識 = 0
+		ITEM:"【禁断の知識】" = 0
+		TALENT:MASTER:覚 = 0
+		ITEM:"【Third eye】" = 0
+		TALENT:MASTER:触手使役術 = 0
+		ITEM:"【Tentacle summoning】" = 0
+		EX:MASTER:0 = 0
+		EX:MASTER:1 = 0
+		EX:MASTER:2 = 0
+		EX:MASTER:3 = 0
+		FLAG:主人出自 = 0
+	ENDIF
+ENDIF
+
+;ＴＳEXPが奇数の場合、元性別と現性別を別にする
+;IF EXP:MASTER:ＴＳ経験 % 2 == 1
+;	CFLAG:MASTER:元性別 = !TALENT:MASTER:オトコ
+;ELSE
+;	CFLAG:MASTER:元性別 = TALENT:MASTER:オトコ
+;ENDIF
+
+	;人気を初期化+ボーナス
+	FLAG:料理人気 = MIN(FLAG:周回回数 * 50,FLAG:料理人気,500)
+	FLAG:売春人気 = MIN(FLAG:周回回数 * 50,FLAG:売春人気,500)
+	CFLAG:MASTER:料理人気 = MIN(FLAG:周回回数 * 50,CFLAG:MASTER:料理人気,1000)
+	CFLAG:MASTER:売春人気 = MIN(FLAG:周回回数 * 50,CFLAG:MASTER:売春人気,500)
+	CFLAG:MASTER:便器人気 = MIN(FLAG:周回回数 * 50,CFLAG:MASTER:便器人気,500)
+	CFLAG:MASTER:アイドル人気 = MIN(FLAG:周回回数 * 50,CFLAG:MASTER:アイドル人気,1000)
+
+PRINTW Carry over Light/Dark Law/Chaos alignment?
+CALL INPUT_YN,"Carry over","Reset it"
+IF RESULT == 1
+	CFLAG:MASTER:善悪値 = 128
+	CFLAG:MASTER:秩混値 = 128
+	ABL:MASTER:属性LD = 2
+	ABL:MASTER:属性LC = 2
+ENDIF
+PRINTL Do you want to inherit the number of people you made surrender?
+PRINTL ※This number might decrease depending on the number of cycles
+CALL INPUT_YN,"Yes","No"
+IF RESULT == 1
+	FLAG:恋慕人数 = 0
+	FLAG:淫乱人数 = 0
+	FLAG:服従人数 = 0
+	FLAG:奴隷売却総数 = 0
+ENDIF
+
+PRINTFORML Keep the same build and gender?
+CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	CALL SET_MASTER_BASIC
+
+;-----------------------------------------------------------------
+;主人の戦闘特性
+;-----------------------------------------------------------------
+DRAWLINE
+PRINTL All combat elements are being initialized
+DRAWLINE
+;スキル初期化
+FOR LOCAL,1,FLAG:異能者スキル数+1
+	LOCALS = スキル{LOCAL}
+	;例外を作りたければここで逃がす事
+	SELECTCASE ABL:MASTER:LOCALS
+		CASEELSE
+			ABL:MASTER:LOCALS = 0
+	ENDSELECT
+NEXT
+
+;能力値初期化
+FOR LOCAL,2,VARSIZE("BASE")
+	MAXBASE:MASTER:LOCAL = CSVBASE(NO:MASTER,LOCAL,0)
+	BASE:MASTER:LOCAL = CSVBASE(NO:MASTER,LOCAL,0)
+NEXT
+
+FOR LOCAL,0,8
+	CFLAG:MASTER:(1170+LOCAL) = 0
+NEXT
+
+;ペルソナのステ設定
+FOR LOCAL, 0, 100
+	IF DITEMTYPE:LOCAL:ペルソナ("装備状態")
+		DITEMTYPE:LOCAL:ペルソナ("LV") = 1
+		DITEMTYPE:LOCAL:ペルソナ("力") = 3
+		DITEMTYPE:LOCAL:ペルソナ("知恵") = 3
+		DITEMTYPE:LOCAL:ペルソナ("魔力") = 3
+		DITEMTYPE:LOCAL:ペルソナ("耐力") = 3
+		DITEMTYPE:LOCAL:ペルソナ("速さ") = 3
+		DITEMTYPE:LOCAL:ペルソナ("運") = 3
+		DITEMTYPE:LOCAL:ペルソナ("EXP") = 0
+		DITEMTYPE:LOCAL:ペルソナ("ランク") = 0
+		DITEMTYPE:LOCAL:ペルソナ("強化可能回数") = 0
+	ENDIF
+NEXT
+
+;特性初期化
+CALL SET_MASTER_MAJORING
+;---- EDIT 004 MOD START -------------------------
+IF TALENT:MASTER:ペルソナ使い == 0 && CFLAG:MASTER:初期ペルソナナンバー
+	FOR LOCAL:1 , 0 , 50
+		DITEMTYPE:(CFLAG:MASTER:初期ペルソナナンバー):(LOCAL:1) = 0
+	NEXT
+	CFLAG:MASTER:初期ペルソナナンバー = 0
+	ABL:MASTER:初期ペルソナ = 0
+ENDIF
+;---- EDIT 004 MOD END -------------------------
+;-----------------------------------------------------------------
+;ペルソナ削除
+;主人公のペルソナ決定に使いたいので、ここでやる
+;よく考えたら0~10まで削除すればいい話でした
+;-----------------------------------------------------------------
+FOR LOCAL, 0, 12
+	FOR LOCAL:1 , 0 , 50
+		DITEMTYPE:LOCAL:(LOCAL:1) = 0
+	NEXT
+NEXT
+
+;-----------------------------------------------------------------
+;主人の特性・まとめ
+;-----------------------------------------------------------------
+CALL SET_MASTER_NAME
+CFLAG:MASTER:労役フラグ = 0
+BASE:MASTER:ＥＸＰ = 200
+BASE:MASTER:ＭＡＧ = 3000
+;ポジション2に指定
+;CFLAG:MASTER:ポジション = 2
+;FLAG:ポジション2 = 0
+;CFLAG:MASTER:PTフラグ = 2
+;普通に考えて、この時点で主人がパーティから居ない事態のほうがおかしい
+LOCAL:1 = 0
+FOR LOCAL,0,64
+	SIF GETBIT(FLAG:発見ED , LOCAL)
+		LOCAL:1 ++
+NEXT
+;周回能力ボーナスはＥＤ発見数×３
+CALL STATUS_BONUS,MASTER,(TALENT:MASTER:異能者 || TALENT:MASTER:達人) ? LOCAL:1*3 # 12+(LOCAL:1*3)
+;能力の同期化
+CALL SYNC_STATUS,0
+CALL HEALTH_CHARA,0
+CALL REFRESH_POS
+;-----------------------------------------------------------------
+;ＣＯＭＰ容量は8+見たEDの数に
+;-----------------------------------------------------------------
+FLAG:ＣＯＭＰ容量 = 8+LOCAL:1
+LOCAL:2 = LOCAL:1
+;-----------------------------------------------------------------
+;所持金の調整
+;-----------------------------------------------------------------
+;￥
+LOCAL:1 = MONEY / 100
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 1000, 90)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 2500, 80)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 5000, 70)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 10000, 60)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 25000, 50)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 50000, 25)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 100000, 10)
+MONEY = LOCAL:1
+;ＥＤ発見毎に+2000の初期所持金
+;周回するたびに+500の初期所持金
+;LOCAL:1 = MIN(1000 + 2000 * LOCAL:2, 1000000)
+;3500円保障
+;LOCAL:1 = MAX(LOCAL:1, 3000)
+;MONEY += LOCAL:1
+
+;ＥＤ発見毎に+2000の初期所持金
+;周回するたびに+500の初期所持金
+;ただし周回ボーナスの最高額は100万までとする(そこまで周回を重ねるのも困難な話だが)
+;3500円保障
+MONEY += 1000 + 2000 * (LOCAL:2 + 1)
+MONEY += MIN(500 * FLAG:周回回数, 1000000)
+
+;魔貨
+LOCAL:1 = MONEY:1 / 100
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 20, 90)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 50, 80)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 100, 70)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 200, 60)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 500, 50)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 1000, 25)
+LOCAL:1 = TABLE_CALC2(LOCAL:1, 2000, 10)
+MONEY:1 = LOCAL:1
+;ＥＤ発見毎に+25の初期所持魔貨
+;周回するごとに発見ＥＤ×周回数の初期所持魔貨
+;MONEY:1 += MIN(25 * LOCAL:2, 1000000)
+
+;ＥＤ発見毎に+25の初期所持魔貨
+;周回するごとに発見ＥＤ×周回数×5の初期所持魔貨
+;ただし周回ボーナスの最高額は100万までとする(そこまで周回を重ねるのも困難な話だが)
+MONEY:1 += 25 * LOCAL:2
+MONEY:1 += MIN(LOCAL:2 * FLAG:周回回数 * 5, 1000000)
+
+CALL OPENING
+
+
+;=============================================================================
+;テーブル計算汎用処理
+;=============================================================================
+;-------------------------------------------------
+;テーブル計算その１
+;-------------------------------------------------
+;テーブル計算用
+;ARG:0 = 代入すべき変数(以下元変数)より引き渡された数
+;ARG:1 ・ ARG:2 = 元変数がARG:2より大きいならばARG:1を引いてARG:2を割る
+@TABLE_CALC(ARG, ARG:1, ARG:2)
+#FUNCTION
+LOCAL = ARG
+SIF LOCAL > ARG:1
+	LOCAL = ARG:1 + (LOCAL - ARG:1) / ARG:2
+
+RETURNF LOCAL
+
+;-------------------------------------------------
+;テーブル計算その２
+;-------------------------------------------------
+;テーブル計算用
+;ARG:0 = 代入すべき変数(以下元変数)より引き渡された数
+;ARG:1 ・ ARG:2 = 元変数がARG:2より大きいならばARG:1を引いそれに、ARG:2の100分の1の値を掛ける
+@TABLE_CALC2(ARG, ARG:1, ARG:2)
+#FUNCTION
+LOCAL = ARG
+SIF LOCAL > ARG:1
+	LOCAL = ARG:1 + (LOCAL - ARG:1) * ARG:2 / 100
+
+RETURNF LOCAL
+
+;=============================================================================
+;引き継ぎ嫁選択
+;=============================================================================
+@SELECT_YOME
+
+LOCAL:1 = 0
+FOR LOCAL,0,CHARANUM
+	SIF TALENT:LOCAL:妻 || TALENT:LOCAL:夫 || TALENT:LOCAL:淫魔 || TALENT:LOCAL:玩具 || CFLAG:LOCAL:引継ぎ回数
+		BREAK
+	SIF LOCAL == CHARANUM - 1
+		RETURN 0
+NEXT
+
+PRINTL Do you want to carry over contracted characters?
+CALL INPUT_YN,"Yes","No"
+IF RESULT == 1
+	RETURN 0
+ENDIF
+
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+LOCAL:2 = 0
+REPEAT CHARANUM
+	SIF COUNT == MASTER
+		CONTINUE
+	SIF (TALENT:COUNT:妻 || TALENT:COUNT:夫 || TALENT:COUNT:淫魔 || TALENT:COUNT:玩具) == 0 && CFLAG:COUNT:引継ぎ回数 == 0
+		CONTINUE
+	Q:(LOCAL:2) = COUNT
+	LOCAL:2 += 1
+REND
+
+$PRINT_LIST
+LOCAL:10 = 0
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:引継ぎフラグ > 0
+		LOCAL:10 += 1
+
+NEXT
+
+DRAWLINE
+;PRINTFORML 引き継ぐキャラを選んでください　引き継ぎ人数：{LOCAL:10}/{1+FLAG:周回回数/2}　＜page.{P}＞
+PRINTFORML Please choose which characters to carry over　＜page.{P + 1}＞
+DRAWLINE
+;---- EDIT 002 ADD START -------------
+;対象キャラが二人以上の場合に全員を変更する選択肢を表示する。
+SIF LOCAL:2 >= 2
+	PRINTFORML [999] Change settings for all transferable characters.
+DRAWLINE
+;---- EDIT 002 ADD END ---------------
+
+FOR LOCAL, P * リスト表示数(), (P + 1) * リスト表示数()
+	IF Q:(LOCAL) > -1
+		PRINTFORM [{Q:LOCAL}] %CALLNAME:(Q:LOCAL)%   
+		IF CFLAG:(Q:LOCAL):引継ぎフラグ == 1
+			PRINTL ○ Inherit contract and surrender markings
+		ELSEIF CFLAG:(Q:LOCAL):引継ぎフラグ == 2
+			PRINTL ○ Reset contract and surrender markings
+		ELSEIF CFLAG:(Q:LOCAL):引継ぎフラグ == 3
+			PRINTL ○ Reset experience
+		ELSEIF CFLAG:(Q:LOCAL):引継ぎフラグ == 4
+			PRINTL ○ Reset sexual abilities
+		ELSE
+			PRINTL × Don't carry over
+		ENDIF
+	ENDIF
+NEXT
+
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1007]Previous page\@
+PRINTLC [1000] End character selection
+PRINTFORMLC \@(P >= (LOCAL:2 - 1) / リスト表示数()) ? %" " * 16% # [1009]Next page\@
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1007
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+;---- EDIT 002 MOD START -------------
+ELSEIF (RESULT < 0 || RESULT >= CHARANUM || FINDELEMENT(Q, RESULT) == -1) && RESULT != 999
+;---- EDIT 002 MOD END ---------------
+	GOTO INPUT_LOOP_1
+ENDIF
+
+LOCAL:5 = RESULT
+
+;一括引継ぎの場合、間違い対策として確認を追加
+IF RESULT == 999
+	PRINTL Changing the setting for all transferable characters.
+ENDIF
+
+;IF CFLAG:(LOCAL:5):引継ぎフラグ == 0 && LOCAL:10 >= 1+FLAG:周回回数/2
+;	GOTO INPUT_LOOP_1
+;ENDIF
+
+PRINTL [0] Don't carry over
+PRINTL [1] Inherit contract and surrender markings
+PRINTL [2] Reset contract and surrender markings
+PRINTL [3] Reset experience
+PRINTL [4] Reset sexual abilities
+
+$INPUT_LOOP2
+INPUT
+SIF RESULT < 0 || RESULT > 4
+	GOTO INPUT_LOOP_1
+
+;---- EDIT 002 MOD START -------------
+IF LOCAL:5 == 999
+	;対象キャラが二人未満の場合は無効
+	SIF LOCAL:2 < 2
+		GOTO INPUT_LOOP_1
+	;一括選択
+	FOR LOCAL,0,LOCAL:2
+		CFLAG:(Q:LOCAL):引継ぎフラグ = RESULT
+	NEXT
+ELSE
+	;個別選択
+	CFLAG:(LOCAL:5):引継ぎフラグ = RESULT
+ENDIF
+;---- EDIT 002 MOD END ---------------
+
+GOTO PRINT_LIST

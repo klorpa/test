@@ -1,0 +1,84 @@
+@戦闘行動対応忠誠度上昇,ARG
+	#DIMS CONST COLOUR = "崩壊","友愛","獰猛","愚鈍","高慢","狡猾","冷静","残虐","賢い","ゾンビ","天使","堕天使","虚心"
+	#DIM LOYALTY,1
+	#DIM MOTIVE,1
+	;LOYALTY      獲得忠誠度
+	;MOTIVE       忠誠度上昇の引き金となったTALENT
+	LOYALTY = 0
+	MOTIVE = 0
+
+	;ボイコット設定がOFFの場合はセリフ処理のみ
+	IF FLAG:戦闘時ボイコット設定 ==  0
+		;Humanは処理されない
+		SIF IS_HUMAN(ARG) == 1
+			GOTO RISE_SKIPPED_OFF
+		;基本動機となる素質ごとの判定
+		FOR LOCAL,0,VARSIZE("COLOUR")
+			SIF !TALENT:ARG:(COLOUR:LOCAL)
+				CONTINUE
+			CALLFORM COMBAT_HIGH_%COLOUR:LOCAL%,ARG,CFLAG:ARG:入力行動
+			IF RESULT > LOYALTY || (RESULT <= 0 && LOYALTY <= 0)
+				LOYALTY = RESULT
+				MOTIVE = GETNUM(TALENT,COLOUR:LOCAL)
+			ENDIF
+		NEXT
+		;継承タイプと一致するスキルなら忠誠度+1(Zomaを除く)
+		IF LOYALTY <= 0 && ABL:ARG:種族 != GET_RACE_NUM("Zoma")
+			CALLFORM SKILL_SUCCESSION_TYPE_{CFLAG:ARG:入力行動}
+			SIF TALENT:ARG:GET_SUCCESSION(RESULT)
+				LOYALTY += 1
+		ENDIF
+		;メッセージ呼び出し
+		$RISE_SKIPPED_OFF
+		CALL 口上呼び出し , "BATTLE_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , MOTIVE
+		;忠誠度増減
+		TCVAR:ARG:獲得忠誠度 = MAX(0,TCVAR:ARG:獲得忠誠度+LOYALTY)
+	;ボイコット設定が有効な場合
+	ELSE
+		;Humanは処理されない
+		SIF IS_HUMAN(ARG) == 1
+			GOTO RISE_SKIPPED_ON
+
+		;基本動機となる素質ごとの判定
+		FOR LOCAL,0,VARSIZE("COLOUR")
+			SIF !TALENT:ARG:(COLOUR:LOCAL)
+				CONTINUE
+			CALLFORM COMBAT_HIGH_%COLOUR:LOCAL%,ARG,CFLAG:ARG:入力行動
+			IF RESULT > LOYALTY || (RESULT <= 0 && LOYALTY <= 0)
+				LOYALTY = RESULT
+				MOTIVE = GETNUM(TALENT,COLOUR:LOCAL)
+			ENDIF
+		NEXT
+
+		;継承タイプと一致するスキルなら忠誠度+1(Zomaを除く)
+		IF LOYALTY <= 0 && ABL:ARG:種族 != GET_RACE_NUM("Zoma")
+			CALLFORM SKILL_SUCCESSION_TYPE_{CFLAG:ARG:入力行動}
+			SIF TALENT:ARG:GET_SUCCESSION(RESULT)
+				LOYALTY += 1
+		ENDIF
+
+		$RISE_SKIPPED_ON
+
+		;インストールソフト《BlackCompany》は忠誠度上昇を阻害
+		SIF EQUIP:MASTER:BlackCompany == 1 && LOYALTY > 0
+			LOYALTY *= TALENT:ARG:虚心 ? -1 # -5
+		;ボイコット判定
+		IF LOYALTY <= 0 && IS_HUMAN(ARG) == 0
+			;忠誠度上昇がない場合はボイコット判定
+			IF MOTIVE != 0
+				CALL ボイコット判定, ARG
+				CALL 口上呼び出し , "BATTLE_BOYCOTT_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , MOTIVE
+			ENDIF
+			;スキルコストに応じてペナルティ設定
+			CALLFORM SKILL_COST_{CFLAG:ARG:入力行動},ARG
+			LOYALTY -= MAX(1,RESULT) * (TALENT:ARG:虚心 ? 1 # 5)
+		ELSE
+			;忠誠度上昇に伴うメッセージ
+			CALL 口上呼び出し , "BATTLE_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , MOTIVE
+		ENDIF
+		;難易度[EASY]以上で気力値増減
+		SIF FLAG:戦闘時ボイコット設定 > 1
+			BASE:ARG:気力 = LIMIT(BASE:ARG:気力+LOYALTY,0,MAXBASE:ARG:気力)
+		;忠誠度増減
+		TCVAR:ARG:獲得忠誠度 = MAX(0,TCVAR:ARG:獲得忠誠度+LOYALTY)
+	ENDIF

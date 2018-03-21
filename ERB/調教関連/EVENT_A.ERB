@@ -1,0 +1,973 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:EVENT_A.ERB
+;	Facility	:EVENT_ABILITY、能力や素質の変化イベントに関する関数群です。
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/03/21		黒天					処女&再生処女喪失イベント用の関数「@処女喪失」「@処女喪失イベント」を新規作成
+;	002		2012/02/04		ネトリス				主人の大業物取得イベント追加,
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;EVENT_A.ERB、EVENT_ABILITY、能力や素質の変化イベント
+@EVENTCHECK_ABL
+SIF TARGET >= 0
+	CALL EVENTCHECK_T
+SIF MASTER >= 0
+	CALL EVENTCHECK_M
+SIF ASSI >= 0
+	CALL EVENTCHECK_A
+IF FLAG:主人陥落機能
+	SIF MASTER > -1
+		CALL 主人陥落
+ENDIF
+IF FLAG:ＮＴＲ機能
+	SIF TARGET > -1
+		CALL NTR_CHECK,TARGET
+	SIF ASSI > -1
+		CALL NTR_CHECK,ASSI
+ENDIF
+;割五鈷杵彫りの指輪の処理で使用します
+SIF TARGET > -1 && (CFLAG:MASTER:その他 == 1130 || CFLAG:MASTER:その他2 == 1130 || CFLAG:MASTER:その他3 == 1130)
+	CALL CHECK_LEVEL_UP , TARGET
+;---------------------------------------------------------
+;陥落素質
+;---------------------------------------------------------
+@EVENTCHECK_T
+IF TALENT:3 == 0 && TALENT:4 == 0 && TALENT:5 == 0 && 陥落() < 2 && TALENT:9 == 0 && (FLAG:ＮＴＲ機能 == 0 || FAVORITE_1(TARGET) == MASTER)
+
+	;Affection：Obedience、奉仕精神3以上+屈服刻印Lv3+反発刻印Lv0+ServicPlsEXP200以上+依存度1000以上+AbnormalEXP2未満
+	IF ABL:0 >= 3 && ABL:7 >= 3 && MARK:2 == 3 && MARK:3 == 0 && EXP:21 >= 200 && CFLAG:2 >= 1000 && (EXP:50 - CFLAG:初期異常経験) < 2
+		PRINTFORMW %CALLNAME:TARGET% looks different.
+		PRINTFORML %CALLNAME:TARGET% feels joy at being with %CALLNAME:MASTER%.
+		PRINTFORMW %NAME:TARGET% developed 【Affection】 for %CALLNAME:MASTER%.
+		PRINTL 　
+		TALENT:3 = 1
+		TALENT:ＮＴＲ = 0
+		FLAG:恋慕人数 += 1
+		FLAG:今周回恋慕人数 += 1
+		;主人に落とされていることを保存
+		CFLAG:2400 = 2
+		CFLAG:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+		
+		SIF ABL:種族 != 0 && !TALENT:非戦闘員
+			CALL CHECK_LEVEL_UP , TARGET
+
+
+	;Lewd：欲望3以上+CVAB感覚合計10以上+快楽刻印Lv3+屈服刻印Lv3+反発刻印Lv0+ClimaxEXP50以上+AbnormalEXP3以上orAbnormalEXP1以上+LesbianEXPもしくはＢＬEXP1000以上orLesbianEXPもしくはＢＬEXP2000以上
+	ELSEIF ABL:1 >= 3 && ABL:3+ABL:4+ABL:5+ABL:6 >= 10 && MARK:1 == 3 && MARK:2 == 3 && MARK:3 == 0 && EXP:2 >= 50
+		IF EXP:50 >= 3 || (EXP:50 >= 1 && (EXP:40 >= 1000 || EXP:41 >= 1000))
+			PRINTFORMW %CALLNAME:TARGET% looks different.
+			PRINTFORML %CALLNAME:TARGET% began to drown in the pleasure %CALLNAME:MASTER% could provide.
+			PRINTFORMW %NAME:TARGET% got 【Lewd】.
+			IF TALENT:TARGET:天使
+				PRINTFORMW %NAME:TARGET% became a 【Fallen】 captivated by sexual desire.
+				TALENT:TARGET:天使 = 0
+				TALENT:TARGET:堕天使 = 1
+				IF TALENT:TARGET:抑圧
+					IF TALENT:TARGET:解放 == 0
+						PRINTFORMW %NAME:TARGET% lost 【Repressed】 and got 【Liberated】.
+						TALENT:TARGET:抑圧 = 0
+						TALENT:TARGET:解放 = 1
+					ELSE
+						PRINTFORMW %NAME:TARGET% lost 【Repressed】.
+						TALENT:TARGET:抑圧 = 0
+					ENDIF
+				ENDIF
+			ENDIF
+;				CALL DECIDE_RELATION
+;				IF RELATION:X < 100 && C >= 1000
+;					Y = RELATION:X
+;					Z = 200 - Y
+;					SIF Z == 200
+;						Z = 120
+;					RELATION:X = Z
+;					REPEAT CHARANUM
+;						SIF NO:COUNT == X
+;							W = COUNT
+;					REND
+;					T = NO:TARGET
+;					SIF RELATION:W:T < Z
+;						RELATION:W:T = Z
+;					IF ASSI > 0
+;						IF ASSI == W
+;							PRINTFORMW %CALLNAME:TARGET%は、%CALLNAME:W%に艶かしい視線を送っていた
+;						ELSE
+;							PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:W%の名を切なそうに呟いていた
+;						ENDIF
+;					ELSE
+;						PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:W%の名を切なそうに呟いていた
+;					ENDIF
+;					PRINTFORMW %CALLNAME:TARGET%と%CALLNAME:W%の相性が{RELATION:X}％になりました
+;				ENDIF
+			PRINTL 　
+			TALENT:4 = 1
+			TALENT:ＮＴＲ = 0
+			FLAG:淫乱人数 += 1
+			FLAG:今周回淫乱人数 += 1
+			;主人に落とされていることを保存
+			CFLAG:2400 = 2
+			CFLAG:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+			SIF ABL:種族 != 0 && !TALENT:非戦闘員
+				CALL CHECK_LEVEL_UP , TARGET
+		ENDIF
+
+	;Submissive：Obedience、マゾっ気3以上+CAVB感覚10未満+屈服刻印Lv3+反発刻印Lv0+MasoEXP+BondageEXP200以上+依存度-1000以下+AbnormalEXP2以上
+	ELSEIF ABL:0 >= 3 && ABL:9 >= 3 && ABL:3+ABL:4+ABL:5+ABL:6 < 10 && MARK:2 == 3 && MARK:3 == 0 && EXP:30+EXP:51 >= 200 && -CFLAG:2 >= 1000 && EXP:50 >= 2
+		PRINTFORMW %CALLNAME:TARGET% looked different.
+		PRINTFORML %CALLNAME:TARGET%'s heart fell prostrate to %CALLNAME:MASTER%.
+		PRINTFORMW %NAME:TARGET% got 【Submissive】.
+		IF TALENT:TARGET:天使
+			PRINTFORMW %NAME:TARGET% became enslaved to %CALLNAME:MASTER% in heat and soul、and became a 【Fallen】.
+			TALENT:TARGET:天使 = 0
+			TALENT:TARGET:堕天使 = 1
+			IF TALENT:TARGET:抑圧
+				IF TALENT:TARGET:解放 == 0
+					PRINTFORMW %NAME:TARGET% lost 【Repressed】 and got 【Liberated】.
+					TALENT:TARGET:抑圧 = 0
+					TALENT:TARGET:解放 = 1
+				ELSE
+					PRINTFORMW %NAME:TARGET% lost 【Repressed】.
+					TALENT:TARGET:抑圧 = 0
+				ENDIF
+			ENDIF
+		ENDIF
+		PRINTL 　
+		CSTR:12 = 御主人様
+		TALENT:5 = 1
+		TALENT:ＮＴＲ = 0
+		FLAG:服従人数 += 1
+		FLAG:今周回服従人数 += 1
+		;主人に落とされていることを保存
+		CFLAG:2400 = 3
+		CFLAG:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+		SIF ABL:種族 != 0 && !TALENT:非戦闘員
+			CALL CHECK_LEVEL_UP , TARGET
+	ENDIF
+
+ENDIF
+
+
+IF 陥落() < 2 && TALENT:9 == 0 && (FLAG:ＮＴＲ機能 == 0 || FAVORITE_1(TARGET) == MASTER)
+	;Love:情愛、Obedience、奉仕精神5以上+反発刻印Lv0+LoveEXP200以上+ServicPlsEXP400以上+依存度3000以上+AbnormalEXP5未満
+	IF TALENT:3 && ABL:0 >= 5 && ABL:7 >= 5 && MARK:3 == 0 && EXP:23 >= 200 && EXP:21 >= 400 && CFLAG:2 >= 3000 && (EXP:50 - CFLAG:初期異常経験) < 5
+		PRINTFORMW %CALLNAME:TARGET% looks different.
+		PRINTFORML %CALLNAME:TARGET% seems to depend on %CALLNAME:MASTER% with both body and soul.
+		;%CALLNAME:TARGET%は身も心も%CALLNAME:MASTER%に依存しきっているようだ
+		PRINTFORMW %NAME:TARGET%'s 【Affection】 became 【Love】.
+		PRINTL 　
+		TALENT:3 = 0
+		TALENT:6 = 1
+		TALENT:ＮＴＲ = 0
+		
+		;主人に落とされていることを保存
+		CFLAG:2400 = 4
+		CFLAG:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+
+	;Whore：淫乱、欲望5以上+CVAB感覚合計20以上+反発刻印Lv0+ClimaxEXP200以上+AbnormalEXP6以上orAbnormalEXP4以上+LesbianEXPもしくはＢＬEXP2000以上orAbnormalEXP3以上+LesbianEXPもしくはＢＬEXP3000以上
+	ELSEIF TALENT:4 && ABL:1 >= 5 && ABL:3+ABL:4+ABL:5+ABL:6 >= 20 && MARK:3 == 0 && EXP:2 >= 200
+		IF EXP:50 >= 6 || (EXP:50 >= 4 && (EXP:40 >= 2000 || EXP:41 >= 2000)) || (EXP:50 >= 3 && (EXP:40 >= 3000 || EXP:41 >= 3000))
+			PRINTFORMW %CALLNAME:TARGET% looks different.
+			PRINTFORML %CALLNAME:TARGET%'s heart and soul have been completely dedicated to the pleasure %CALLNAME:MASTER% could bring.
+			PRINTFORMW %NAME:TARGET%'s 【Lewd】 became 【Whore】.
+			PRINTL 　
+			TALENT:4 = 0
+			TALENT:7 = 1
+			TALENT:ＮＴＲ = 0
+			;主人に落とされていることを保存
+			CFLAG:2400 = 5
+			CFLAG:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+		ENDIF
+
+	;Slave：服従、Obedience、マゾっ気5以上+CAVB感覚15未満+反発刻印Lv0+MasoEXP+BondageEXP500以上+依存度-3000以下+LesbianEXPもしくはＢＬEXP1500未満+AbnormalEXP5以上
+	ELSEIF TALENT:5 && ABL:0 >= 5 && ABL:9 >= 5 && ABL:3+ABL:4+ABL:5+ABL:6 < 15 && MARK:3 == 0 && EXP:30+EXP:51 >= 500 && -CFLAG:2 >= 3000 && EXP:50 >= 5
+		PRINTFORMW %CALLNAME:TARGET% looks different.
+		PRINTFORML %CALLNAME:TARGET% has completely become %CALLNAME:MASTER%'s slave in heart and soul.
+		PRINTFORMW %NAME:TARGET%'s 【Submissive】 became 【Slave】.
+		PRINTL 　
+		TALENT:5 = 0
+		TALENT:8 = 1
+		TALENT:ＮＴＲ = 0
+		;主人に落とされていることを保存
+		CFLAG:2400 = 6
+		CFLAG:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+	ENDIF
+ENDIF
+
+;調教したことがある
+SETBIT FLAG:(50000+NO:TARGET), 0
+SIF TALENT:TARGET:恋慕
+	SETBIT FLAG:(50000+NO:TARGET), 1
+SIF TALENT:TARGET:親愛
+	SETBIT FLAG:(50000+NO:TARGET), 2
+SIF TALENT:TARGET:淫乱
+	SETBIT FLAG:(50000+NO:TARGET), 3
+SIF TALENT:TARGET:娼婦
+	SETBIT FLAG:(50000+NO:TARGET), 4
+SIF TALENT:TARGET:服従
+	SETBIT FLAG:(50000+NO:TARGET), 5
+SIF TALENT:TARGET:隷属
+	SETBIT FLAG:(50000+NO:TARGET), 6
+;---------------------------------------------------------
+;その他奴隷の素質および能力
+;---------------------------------------------------------
+;特殊性感素質、一つしか取得はできない（重複した場合は上から優先）
+;自慰狂い：Ｃ感覚４以上、FrcMasturEXP１００以上、ClimaxEXP１５０以上
+IF ABL:3 >= 4 && EXP:11 >= 100 && EXP:2 >= 150 && TALENT:74 == 0 && TALENT:75 == 0 && TALENT:76 == 0 && TALENT:77 == 0
+	PRINTFORMW %CALLNAME:TARGET% looks different.
+	PRINTFORML Even though training was over, %CALLNAME:TARGET% stared longingly at %CALLNAME:MASTER% while playing with their own clit.
+	PRINTFORMW %NAME:TARGET% got 【Masturbation mad】.
+	PRINTL 　
+	TALENT:74 = 1
+ENDIF
+
+;セックス狂：Ｖ感覚４以上、SexEXP３００以上、ClimaxEXP１５０以上
+IF ABL:4 >= 4 && EXP:4 >= 300 && EXP:2 >= 150 && TALENT:74 == 0 && TALENT:75 == 0 && TALENT:76 == 0 && TALENT:77 == 0
+	PRINTFORMW %CALLNAME:TARGET% looks different
+	PRINTFORML Even though the training was over, %CALLNAME:TARGET% entreated by be embraced even more by %CALLNAME:MASTER%.
+	PRINTFORMW %NAME:TARGET% got 【Sex maniac】.
+	PRINTL 　
+	TALENT:75 = 1
+ENDIF
+
+;尻穴狂い：Ａ感覚４以上、ＡEXP３００以上、ClimaxEXP１５０以上
+IF ABL:5 >= 4 && EXP:1 >= 300 && EXP:2 >= 150 && TALENT:74 == 0 && TALENT:75 == 0 && TALENT:76 == 0 && TALENT:77 == 0
+	PRINTFORMW %CALLNAME:TARGET% looks different
+	PRINTFORML Even though training was over, %CALLNAME:TARGET% stared longingly at %CALLNAME:MASTER% while playing with their own ass.
+	PRINTFORMW %NAME:TARGET% got 【Anal maniac】.
+	PRINTL 　
+	TALENT:76 = 1
+ENDIF
+
+;淫乳：Ｂ感覚４以上、MilkEXP１００以上、ClimaxEXP１５０以上
+IF ABL:6 >= 4 && EXP:54 >= 100 && EXP:2 >= 150 && TALENT:74 == 0 && TALENT:75 == 0 && TALENT:76 == 0 && TALENT:77 == 0
+	PRINTFORMW %CALLNAME:TARGET% looks different
+	PRINTFORML Even though training was over, %CALLNAME:TARGET% stared longingly at %CALLNAME:MASTER% while playing with their own breasts.
+	PRINTFORMW %NAME:TARGET% got 【Boob crazy】.
+	PRINTL 　
+	TALENT:77 = 1
+ENDIF
+
+
+;特殊性癖素質
+;サド：サドっ気Lv４以上、SadoEXP３００以上、技巧Lv４以上
+IF ABL:10 >= 4 && EXP:32 >= 300 && ABL:2 >= 4 && TALENT:83 == 0 && TALENT:84 == 0
+	PRINTFORMW %CALLNAME:TARGET% looks different
+	PRINTFORML %CALLNAME:TARGET% awakened to the joy of bullying.
+	PRINTFORMW %NAME:TARGET% became 【Sadist】.
+	PRINTL 　
+	TALENT:83 = 1
+ENDIF
+
+;マゾ：マゾっ気Lv４以上、MasoEXP３００以上
+IF ABL:9 >= 4 && EXP:30 >= 300 && TALENT:83 == 0 && TALENT:84 == 0
+	PRINTFORMW %CALLNAME:TARGET% looks different
+	PRINTFORML %CALLNAME:TARGET% awakened to the joy of being bullied.
+	PRINTFORMW %NAME:TARGET% became 【Masochist】.
+	PRINTL 　
+	TALENT:84 = 1
+ENDIF
+
+;人気：ビデオ20本以上売却、平均価格１５００以上
+IF TALENT:145 == 0 && CFLAG:ビデオ売却数 >= 20 && CFLAG:ビデオ売却合計金額 / CFLAG:ビデオ売却数 >= 1500
+	PRINTFORMW %CALLNAME:TARGET%'s video became very popular.
+	PRINTFORMW %NAME:TARGET% got 【Popular】.
+	TALENT:人気 = 1
+	Flag:人気取得者数 += 1
+ENDIF
+
+;舌使い：技巧Lv５以上、BlowjobEXP５００以上
+IF TALENT:52 == 0 && EXP:22 >=500 && ABL:2 >= 5
+	PRINTFORMW %CALLNAME:TARGET% gained much lewd mouth experience, learning well the ways to use a tongue.
+	PRINTFORMW %NAME:TARGET% got 【Skilled tongue】.
+	PRINTL 　
+	TALENT:52 = 1
+ENDIF
+
+;取得難易度は高め　これだけ可愛がったら売却なんてできないはず？
+;妄信：従順Lv１０以上、調教経験１０００以上、忠誠度１０００００以上
+IF TALENT:86 == 0 && EXP:70 >=1000 && ABL:0 >= 10 && BASE:10 >= 100000
+	PRINTFORMW %CALLNAME:TARGET%'s loyalty to %CALLNAME:MASTER% became unweavering.
+	;%CALLNAME:TARGET%の%CALLNAME:MASTER%に対する忠誠は揺るぎ無いものになった
+	;PRINTFORMWと思う、多分
+	PRINTFORMW %NAME:TARGET% got 【Delusion】.
+	;は【妄信】を得た
+	PRINTL 　
+	TALENT:86 = 1
+ENDIF
+
+;---------------------------------------------------------
+;主人の素質および能力
+;---------------------------------------------------------
+@EVENTCHECK_M
+#DIM L_COUNT
+#LOCALSIZE 99
+;主人の技巧：TrainingEXPが20、100、250、400、600のたびに上昇、Lv５まで
+IF EXP:MASTER:70 >= 1800 && ABL:MASTER:2 <= 9
+	ABL:MASTER:2 = 10
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 1500 && ABL:MASTER:2 <= 8
+	ABL:MASTER:2 = 9
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 1250 && ABL:MASTER:2 <= 7
+	ABL:MASTER:2 = 8
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 1000 && ABL:MASTER:2 <= 6
+	ABL:MASTER:2 = 7
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 800 && ABL:MASTER:2 <= 5
+	ABL:MASTER:2 = 6
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 600 && ABL:MASTER:2 <= 4
+	ABL:MASTER:2 = 5
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 400 && ABL:MASTER:2 <= 3
+	ABL:MASTER:2 = 4
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 250 && ABL:MASTER:2 <= 2
+	ABL:MASTER:2 = 3
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 100 && ABL:MASTER:2 <= 1
+	ABL:MASTER:2 = 2
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ELSEIF EXP:MASTER:70 >= 20 && ABL:MASTER:2 <= 0
+	ABL:MASTER:2 = 1
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(2)% rose to {ABL:MASTER:2}
+	PRINTL 　
+ENDIF
+;主人の感覚の上昇
+FOR LOCAL,0,4
+	SIF LOCAL == 1 && TALENT:MASTER:オトコ
+		CONTINUE
+	IF EX:MASTER:LOCAL >= POWER(ABL:MASTER:(LOCAL+3),2) && ABL:MASTER:(LOCAL+3) < 10
+		ABL:MASTER:(LOCAL+3) += 1
+		PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(LOCAL+3)% rose to {ABL:MASTER:(LOCAL+3)}
+	ENDIF
+NEXT
+
+;主人の従順の上昇
+IF EXP:MASTER:愛情経験 >= EXPLV:(ABL:MASTER:従順+1) * 10 && ABL:MASTER:従順 < 10
+	ABL:MASTER:従順 += 1
+	PRINTFORMW %NAME:MASTER%'s Obedience rose to {ABL:MASTER:従順}
+ENDIF
+
+;主人の欲望の上昇
+IF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 3000 && ABL:MASTER:欲望 <= 9
+	ABL:MASTER:欲望 = 10
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 2500 && ABL:MASTER:欲望 <= 8
+	ABL:MASTER:欲望 = 9
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 2100 && ABL:MASTER:欲望 <= 7
+	ABL:MASTER:欲望 = 8
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 1700 && ABL:MASTER:欲望 <= 6
+	ABL:MASTER:欲望 = 7
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 1300 && ABL:MASTER:欲望 <= 5
+	ABL:MASTER:欲望 = 6
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 1000 && ABL:MASTER:欲望 <= 4
+	ABL:MASTER:欲望 = 5
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 700 && ABL:MASTER:欲望 <= 3
+	ABL:MASTER:欲望 = 4
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 300 && ABL:MASTER:欲望 <= 2
+	ABL:MASTER:欲望 = 3
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 100 && ABL:MASTER:欲望 <= 1
+	ABL:MASTER:欲望 = 2
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ELSEIF EXP:MASTER:絶頂経験 + EXP:MASTER:射精経験 >= 10 && ABL:MASTER:欲望 <= 0
+	ABL:MASTER:欲望 = 1
+	PRINTFORMW %NAME:MASTER%'s Desire rose to {ABL:MASTER:欲望}
+	PRINTL 　
+ENDIF
+
+;主人の奉仕精神の上昇
+IF EXP:MASTER:奉仕快楽経験 >= EXPLV:(ABL:MASTER:奉仕精神+1) * 10 && ABL:MASTER:奉仕精神 < 10
+	ABL:MASTER:奉仕精神 += 1
+	PRINTFORMW %NAME:MASTER%'s Servicing rose to {ABL:MASTER:奉仕精神}
+ENDIF
+;主人の露出癖の上昇
+IF EXP:MASTER:売春経験 + EXP:MASTER:野外露出経験 >= EXPLV:(ABL:MASTER:露出癖+1) * 10 && ABL:MASTER:露出癖 < 10
+	ABL:MASTER:露出癖 += 1
+	PRINTFORMW %NAME:MASTER%'s Exhibitionism rose to {ABL:MASTER:露出癖}
+ENDIF
+;主人の自慰中毒の上昇
+IF EXP:MASTER:自慰経験 >= EXPLV:(ABL:MASTER:自慰中毒+1) * 10 && ABL:MASTER:自慰中毒 < 10
+	ABL:MASTER:自慰中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s MasturbAddict rose to {ABL:MASTER:自慰中毒}
+ENDIF
+;主人のレズっ気の上昇
+IF EXP:MASTER:レズ経験 >= EXPLV:(ABL:MASTER:レズっ気+1) * 10 && ABL:MASTER:レズっ気 < 10
+	ABL:MASTER:レズっ気 += 1
+	PRINTFORMW %NAME:MASTER%'s Lesbianism rose to {ABL:MASTER:レズっ気}
+ENDIF
+;主人のＢＬっ気の上昇
+IF EXP:MASTER:ＢＬ経験 >= EXPLV:(ABL:MASTER:ＢＬっ気+1) * 10 && ABL:MASTER:ＢＬっ気 < 10
+	ABL:MASTER:ＢＬっ気 += 1
+	PRINTFORMW %NAME:MASTER%'s ＢＬism rose to {ABL:MASTER:ＢＬっ気}
+ENDIF
+;主人のレズ中毒の上昇
+IF EXP:MASTER:レズ経験 >= EXPLV:(ABL:MASTER:レズ中毒+1) * 15 && ABL:MASTER:自慰中毒 > ABL:MASTER:レズ中毒 && ABL:MASTER:レズ中毒 < 10
+	ABL:MASTER:レズ中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s LesbianAddict rose to {ABL:MASTER:レズ中毒}
+ENDIF
+
+;主人のＢＬ中毒の上昇
+IF EXP:MASTER:ＢＬ経験 >= EXPLV:(ABL:MASTER:ＢＬ中毒+1) * 15 && ABL:MASTER:自慰中毒 > ABL:MASTER:ＢＬ中毒 && ABL:MASTER:ＢＬ中毒 < 10
+	ABL:MASTER:ＢＬ中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s ＢＬAddict rose to {ABL:MASTER:ＢＬ中毒}
+ENDIF
+
+;主人の料理技能の上昇
+IF EXP:MASTER:外食労役経験 + EXP:MASTER:家事経験 > EXPLV:(ABL:MASTER:料理技能+1)*10 && ABL:MASTER:料理技能 < 10
+	ABL:MASTER:料理技能 += 1
+	PRINTFORMW %NAME:MASTER%'s Cooking rose to {ABL:MASTER:料理技能}
+ENDIF
+;主人の歌唱技能の上昇
+IF EXP:MASTER:歌唱経験 > EXPLV:(ABL:MASTER:歌唱技能+1)*10 && ABL:MASTER:歌唱技能 < 10
+	ABL:MASTER:歌唱技能 += 1
+	PRINTFORMW %NAME:MASTER%'s Singing rose to {ABL:MASTER:歌唱技能}
+ENDIF
+;主人の精液中毒の上昇
+IF EXP:MASTER:精液経験 > EXPLV:(ABL:MASTER:精液中毒+1)*20 && ABL:MASTER:精液中毒 < 10
+	ABL:MASTER:精液中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s SemenAddict rose to {ABL:MASTER:精液中毒}
+ENDIF
+;主人の噴乳中毒の上昇
+IF EXP:MASTER:噴乳経験 > EXPLV:(ABL:MASTER:噴乳中毒+1)*15 && ABL:MASTER:噴乳中毒 < 10
+	ABL:MASTER:噴乳中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s MilkingAddict rose to {ABL:MASTER:噴乳中毒}
+ENDIF
+;主人のセックス中毒の上昇
+IF EXP:MASTER:性交経験 > EXPLV:(ABL:MASTER:セックス中毒+1)*10 && ABL:MASTER:セックス中毒 < 10
+	ABL:MASTER:セックス中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s SexAddict rose to {ABL:MASTER:セックス中毒}
+ENDIF
+;主人の獣姦中毒の上昇
+IF EXP:MASTER:獣姦経験 > EXPLV:(ABL:MASTER:獣姦中毒+1) && ABL:MASTER:獣姦中毒 < 10
+	ABL:MASTER:獣姦中毒 += 1
+	PRINTFORMW %NAME:MASTER%'s BeastAddict rose to {ABL:MASTER:獣姦中毒}
+ENDIF
+;主人の触手中毒の上昇
+IF EXP:MASTER:触手経験 > EXPLV:(ABL:MASTER:触手中毒+1) && ABL:MASTER:触手中毒 < 10
+	ABL:MASTER:触手中毒 += 1
+	PRINTFORMW %NAME:MASTER%の触手中毒が{ABL:MASTER:触手中毒}に上がった
+ENDIF
+;主人の輪姦中毒の上昇
+IF EXP:MASTER:輪姦経験 > EXPLV:(ABL:MASTER:輪姦中毒+1) && ABL:MASTER:輪姦中毒 < 10
+	ABL:MASTER:輪姦中毒 += 1
+	PRINTFORMW %NAME:MASTER%の輪姦中毒が{ABL:MASTER:輪姦中毒}に上がった
+ENDIF
+;主人のキス中毒の上昇
+IF EXP:MASTER:キス経験 > EXPLV:(ABL:MASTER:キス中毒+1)*10 && ABL:MASTER:キス中毒 < 10
+	ABL:MASTER:キス中毒 += 1
+	PRINTFORMW %NAME:MASTER%s KissAddict rose to {ABL:MASTER:キス中毒}
+	;%NAME:MASTER%のキス中毒が{ABL:MASTER:キス中毒}に上がった
+ENDIF
+;主人のサドっ気：SadoEXPが10、20、50、100、200のたびに上昇、Lv５まで
+IF EXP:MASTER:32 >= 1000 && ABL:MASTER:10 <= 9
+	ABL:MASTER:10 = 10
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 800 && ABL:MASTER:10 <= 8
+	ABL:MASTER:10 = 9
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 600 && ABL:MASTER:10 <= 7
+	ABL:MASTER:10 = 8
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 450 && ABL:MASTER:10 <= 6
+	ABL:MASTER:10 = 7
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 300 && ABL:MASTER:10 <= 5
+	ABL:MASTER:10 = 6
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 200 && ABL:MASTER:10 <= 4
+	ABL:MASTER:10 = 5
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 100 && ABL:MASTER:10 <= 3
+	ABL:MASTER:10 = 4
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 50 && ABL:MASTER:10 <= 2
+	ABL:MASTER:10 = 3
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 20 && ABL:MASTER:10 <= 1
+	ABL:MASTER:10 = 2
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ELSEIF EXP:MASTER:32 >= 10 && ABL:MASTER:10 <= 0
+	ABL:MASTER:10 = 1
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(10)% rose to {ABL:MASTER:10}
+	PRINTL 　
+ENDIF
+
+
+;主人のマゾっ気：MasoEXPが10、20、50、100、200のたびに上昇、Lv５まで
+IF EXP:MASTER:30 >= 1000 && ABL:MASTER:9 <= 9
+	ABL:MASTER:9 = 10
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 800 && ABL:MASTER:9 <= 8
+	ABL:MASTER:9 = 9
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 600 && ABL:MASTER:9 <= 7
+	ABL:MASTER:9 = 8
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 450 && ABL:MASTER:9 <= 6
+	ABL:MASTER:9 = 7
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 300 && ABL:MASTER:9 <= 5
+	ABL:MASTER:9 = 6
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 200 && ABL:MASTER:9 <= 4
+	ABL:MASTER:9 = 5
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 100 && ABL:MASTER:9 <= 3
+	ABL:MASTER:9 = 4
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 50 && ABL:MASTER:9 <= 2
+	ABL:MASTER:9 = 3
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 20 && ABL:MASTER:9 <= 1
+	ABL:MASTER:9 = 2
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ELSEIF EXP:MASTER:30 >= 10 && ABL:MASTER:9 <= 0
+	ABL:MASTER:9 = 1
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(9)% rose to {ABL:MASTER:9}
+	PRINTL 　
+ENDIF
+
+;主人の撮影技能：FilmingEXPが10、30、60、100、150のたびに上昇、Lv５まで
+IF EXP:MASTER:62 >= 540 && ABL:MASTER:13 <= 9
+	ABL:MASTER:13 = 10
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 450 && ABL:MASTER:13 <= 8
+	ABL:MASTER:13 = 9
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 360 && ABL:MASTER:13 <= 7
+	ABL:MASTER:13 = 8
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 280 && ABL:MASTER:13 <= 6
+	ABL:MASTER:13 = 7
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 210 && ABL:MASTER:13 <= 5
+	ABL:MASTER:13 = 6
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 150 && ABL:MASTER:13 <= 4
+	ABL:MASTER:13 = 5
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 100 && ABL:MASTER:13 <= 3
+	ABL:MASTER:13 = 4
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 60 && ABL:MASTER:13 <= 2
+	ABL:MASTER:13 = 3
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 30 && ABL:MASTER:13 <= 1
+	ABL:MASTER:13 = 2
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ELSEIF EXP:MASTER:62 >= 10 && ABL:MASTER:13 <= 0
+	ABL:MASTER:13 = 1
+	PRINTFORMW %NAME:MASTER%'s %ABLNAME_E(13)% rose to {ABL:MASTER:13}
+	PRINTL 　
+ENDIF
+
+;主人の淫乱：欲望3以上+CVAB感覚合計10以上+ClimaxEXP50以上+ProstitEXP50以上orToiletEXP50以上
+IF ABL:MASTER:1 >= 3 && ABL:MASTER:3+ABL:MASTER:4+ABL:MASTER:5+ABL:MASTER:6 >= 10 && EXP:MASTER:2 >= 50 && TALENT:MASTER:淫乱 == 0 && TALENT:MASTER:娼婦 == 0
+	IF EXP:MASTER:72 >= 50 || EXP:MASTER:75 >= 50
+		PRINTFORMW %NAME:MASTER% became 【Lewd】.
+		TALENT:MASTER:淫乱 = 1
+	ENDIF
+ENDIF
+
+;主人の娼婦：淫乱、欲望5以上+CVAB感覚合計20以上+ClimaxEXP200以上+ProstitEXP100以上orToiletEXP100以上
+IF TALENT:MASTER:淫乱 && ABL:MASTER:1 >= 5 && ABL:MASTER:3+ABL:MASTER:4+ABL:MASTER:5+ABL:MASTER:6 >= 20 && EXP:MASTER:2 >= 200
+	IF EXP:MASTER:72 >= 100 || EXP:MASTER:75 >= 100
+		PRINTFORMW %NAME:MASTER%'s 【Lewd】 became 【Whore】.
+		TALENT:MASTER:淫乱 = 0
+		TALENT:MASTER:娼婦 = 1
+	ENDIF
+ENDIF
+
+;主人の絶倫：調教者のCumEXPが200以上で取得
+IF EXP:MASTER:射精経験 >= 200 && TALENT:MASTER:絶倫 == 0
+	PRINTFORMW %NAME:MASTER% gained 【Unmatched】.
+	TALENT:MASTER:絶倫 = 1
+ENDIF
+
+;主人の謎の魅力：恋慕･服従にした奴隷の数が5人以上
+IF (FLAG:30+FLAG:32) >= 5 && TALENT:MASTER:謎の魅力 == 0
+	PRINTFORMW %NAME:MASTER% got 【Mysterious charm】.
+	TALENT:MASTER:謎の魅力 = 1
+ENDIF
+
+
+;主人の人気：人気を取得した奴隷の数が5人以上
+IF TALENT:MASTER:人気 == 0 && Flag:人気取得者数 >= 5
+	PRINTFORMW %NAME:MASTER% got 【Popular】.
+	TALENT:MASTER:人気 = 1
+ENDIF
+
+;主人のＳＭ性癖　既にどちらかの素質を取得していても経験によってもう一方も取得できる　条件は厳しめ
+;主人のサド：サドっ気がLv４以上、SadoEXP300以上でサド
+IF ABL:MASTER:10 >= 4 + (TALENT:MASTER:84 * 4) && EXP:MASTER:32 >= 300 + (TALENT:MASTER:84 * 2700) && EXP:MASTER:50 >= (TALENT:MASTER:83 + TALENT:MASTER:84) * 15 && TALENT:MASTER:83 == 0
+	PRINTFORMW %NAME:MASTER% got 【Sadist】.
+	TALENT:MASTER:83 = 1
+ENDIF
+
+;主人のマゾ：マゾっ気がLv４以上、MasoEXP300以上でサド
+IF ABL:MASTER:9 >= 4 + (TALENT:MASTER:83 * 4) && EXP:MASTER:30 >= 300 + (TALENT:MASTER:83 * 2700) && EXP:MASTER:50 >= (TALENT:MASTER:83 + TALENT:MASTER:84) * 15 && TALENT:MASTER:84 == 0
+	PRINTFORMW %NAME:MASTER% got 【Masochist】.
+	TALENT:MASTER:84 = 1
+ENDIF
+
+;主人の特殊性感素質　異常経験の数に応じて４つ全て取得出来る（複数の条件を満たした場合は上から優先）
+;自慰狂い：Ｃ感覚８以上、自慰経験１０００以上、絶頂経験１５０００以上
+IF ABL:MASTER:3 >= 8 && EXP:MASTER:10 >= 1000 && EXP:MASTER:2 >= 15000 && EXP:MASTER:50 >= (TALENT:MASTER:74 + TALENT:MASTER:75 + TALENT:MASTER:76 + TALENT:MASTER:77) * 10 && TALENT:MASTER:74 == 0
+	PRINTFORMW %NAME:MASTER% got 【Masturbation mad】.
+	;は【自慰狂い】を得た
+	PRINTL 　
+	TALENT:MASTER:74 = 1
+ENDIF
+
+;セックス狂：Ｖ感覚８以上、性交経験３０００以上、絶頂経験１５０００以上
+IF ABL:MASTER:4 >= 8 && EXP:MASTER:4 >= 3000 && EXP:MASTER:2 >= 15000 && EXP:MASTER:50 >= (TALENT:MASTER:74 + TALENT:MASTER:75 + TALENT:MASTER:76 + TALENT:MASTER:77) * 10 && TALENT:MASTER:75 == 0
+	PRINTFORMW %NAME:MASTER% got 【Sex maniac】.
+	;は【セックス狂い】を得た
+	PRINTL 　
+	TALENT:MASTER:75 = 1
+ENDIF
+
+;尻穴狂い：Ａ感覚８以上、Ａ経験３０００以上、絶頂経験１５０００以上
+IF ABL:MASTER:5 >= 8 && EXP:MASTER:1 >= 3000 && EXP:MASTER:2 >= 15000 && EXP:MASTER:50 >= (TALENT:MASTER:74 + TALENT:MASTER:75 + TALENT:MASTER:76 + TALENT:MASTER:77) * 10 && TALENT:MASTER:76 == 0
+	PRINTFORMW %NAME:MASTER% got 【Anal maniac】.
+	;は【尻穴狂い】を得た
+	PRINTL 　
+	TALENT:MASTER:76 = 1
+ENDIF
+
+;淫乳：Ｂ感覚８以上、噴乳経験１０００以上、絶頂経験１５０００以上
+IF ABL:MASTER:6 >= 8 && EXP:MASTER:54 >= 1000 && EXP:MASTER:2 >= 15000 && EXP:MASTER:50 >= (TALENT:MASTER:74 + TALENT:MASTER:75 + TALENT:MASTER:76 + TALENT:MASTER:77) * 10 && TALENT:MASTER:77 == 0
+	PRINTFORMW %NAME:MASTER% got 【Boob crazy】.
+	;は【淫乳】を得た
+	PRINTL 　
+	TALENT:MASTER:77 = 1
+ENDIF
+
+
+;主人の大業物：恋慕･淫乱･服従にした奴隷の数がそれぞれ10人以上、調教者のSexEXPが1000以上で取得
+;プレイスタイルによっては無理なので陥落合計が50人以上に変更(やや難易度上昇?
+;IF TALENT:MASTER:大業物 == 0 && EXP:MASTER:性交経験 >= 1000 && FLAG:恋慕人数 >= 10 && FLAG:淫乱人数 >= 10 && FLAG:服従人数 >= 10 && (TALENT:MASTER:オトコ == 1 || TALENT:MASTER:ふたなり == 1 || TALENT:MASTER:男の娘 == 1)
+IF TALENT:MASTER:大業物 == 0 && EXP:MASTER:性交経験 >= 1000 && ( (FLAG:恋慕人数 + FLAG:淫乱人数 + FLAG:服従人数) >= 50 ) && (TALENT:MASTER:オトコ == 1 || TALENT:MASTER:ふたなり == 1 || TALENT:MASTER:男の娘 == 1)
+	PRINTFORMW %NAME:MASTER%'s penis that made many women cry out became 【Ladyｰkiller】.
+	TALENT:MASTER:大業物 = 1
+ENDIF
+
+
+VARSET LOCAL
+IF MAXBASE:MASTER:ＭＰ == 0
+	;主人の食いしばり：陥落した奴隷の数が10人以上
+	;IF (FLAG:恋慕人数+FLAG:淫乱人数+FLAG:服従人数) >= 10 && !GETBIT(FLAG:主人獲得スキル, 50)
+	;	PRINTFORMW 10人陥落ボーナス！　食いしばりを獲得できます！
+	;	SETBIT FLAG:主人獲得スキル, 50
+	;	CALL LEARN_SKILL, MASTER, [[スキル:食いしばり]]
+	;ENDIF
+	;主人の不屈の闘志：今周回陥落した奴隷の数が100人以上
+	IF (FLAG:今周回恋慕人数+FLAG:今周回淫乱人数+FLAG:今周回服従人数) >= 100 && !GETBIT(FLAG:主人獲得スキル, 51)
+		PRINTFORMW 100 surrendered bonus!　You can learn the Enduring Soul skill!
+		SETBIT FLAG:主人獲得スキル, 51
+		CALL LEARN_SKILL, MASTER, [[スキル:不屈の闘志]]
+	ENDIF
+	FOR L_COUNT, 0, 10000
+		SIF !EXISTCSV(L_COUNT, 0)
+			CONTINUE
+		SIF GETBIT(FLAG:(L_COUNT+50000) , 1) || GETBIT(FLAG:(L_COUNT+50000) , 2) || GETBIT(FLAG:(L_COUNT+50000) , 3) || GETBIT(FLAG:(L_COUNT+50000) , 4) || GETBIT(FLAG:(L_COUNT+50000) , 5) || GETBIT(FLAG:(L_COUNT+50000) , 6)
+			LOCAL:CSVABL(L_COUNT, GETNUM(ABL, "種族"), 0)++
+	NEXT
+	FOR L_COUNT, 0 ,49
+		IF MASTER_SKILL(L_COUNT) >= 0 && !GETBIT(FLAG:主人獲得スキル, L_COUNT) && LOCAL:L_COUNT >= 5
+			CALLFORM SKILL_NAME_{MASTER_SKILL(L_COUNT)}
+			PRINTFORMW You got a bonus for %STR:L_COUNT% surrendered!
+			PRINTFORMW 【%RESULTS%】 can be learned!
+			SETBIT FLAG:主人獲得スキル, L_COUNT
+			CALL LEARN_SKILL, MASTER, MASTER_SKILL(L_COUNT)
+		ENDIF
+	NEXT
+ENDIF
+@MASTER_SKILL, ARG
+#FUNCTION
+SELECTCASE ARG
+	;Human
+;	CASE 0
+;		RETURNF [[スキル:]]
+	;地母神
+	CASE 1
+		RETURNF [[スキル:ラクカジャオート]]
+	;Megami
+	CASE 2
+		RETURNF [[スキル:アドバイス]]
+	;Tyrant
+	CASE 3
+		RETURNF [[スキル:マカカジャオート]]
+	;Divine
+	CASE 4
+		RETURNF [[スキル:追撃の心得]]
+	;Yoma
+	CASE 5
+		RETURNF [[スキル:誘惑]]
+	;Fairy
+	CASE 6
+		RETURNF [[スキル:民俗学]]
+	;Brute
+	CASE 7
+		RETURNF [[スキル:コーチング]]
+	;Snake
+	CASE 8
+		RETURNF [[スキル:三分の活泉]]
+	;Beast
+	CASE 9
+		RETURNF [[スキル:タルカジャオート]]
+	;Flight
+	CASE 10
+		RETURNF [[スキル:スクカジャオート]]
+	;Foul
+	CASE 11
+		RETURNF [[スキル:食いしばり]]
+	;マシン
+	;CASE 12
+	;	RETURNF [[スキル:]]
+	;精霊
+	CASE 13
+		RETURNF [[スキル:癒しの波動]]
+	;御霊
+	;CASE 14
+	;	RETURNF [[スキル:]]
+	;鬼神
+	CASE 15
+		RETURNF [[スキル:静天の会心]]
+	;魔神
+	CASE 16
+		RETURNF [[スキル:煌天の会心]]
+;	CASE 17
+;		RETURNF [[スキル:]]
+	;堕天使
+	CASE 18
+		RETURNF [[スキル:アイテム習熟]]
+	;怪異
+	CASE 32
+		RETURNF [[スキル:サマカジャオート]]
+	;魔人
+	;CASE 42
+	;	RETURNF [[スキル:]]
+	;英雄
+	CASE 44
+		RETURNF [[スキル:装備知識Lv5]]
+	CASE 50
+		RETURNF [[スキル:不屈の闘志]]
+	CASEELSE
+		RETURNF -1
+ENDSELECT
+;---------------------------------------------------------
+;助手の素質および能力
+;---------------------------------------------------------
+@EVENTCHECK_A
+;助手の技巧：TrainingEXPが20、100、250、400、600のたびに上昇、Lv５まで
+IF EXP:ASSI:70 >= 600 && ABL:ASSI:2 <= 4
+	ABL:ASSI:2 = 5
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(2)% rose to {ABL:ASSI:2}
+	PRINTL 　
+ELSEIF EXP:ASSI:70 >= 400 && ABL:ASSI:2 <= 3
+	ABL:ASSI:2 = 4
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(2)% rose to {ABL:ASSI:2}
+	PRINTL 　
+ELSEIF EXP:ASSI:70 >= 250 && ABL:ASSI:2 <= 2
+	ABL:ASSI:2 = 3
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(2)% rose to {ABL:ASSI:2}
+	PRINTL 　
+ELSEIF EXP:ASSI:70 >= 100 && ABL:ASSI:2 <= 1
+	ABL:ASSI:2 = 2
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(2)% rose to {ABL:ASSI:2}
+	PRINTL 　
+ELSEIF EXP:ASSI:70 >= 20 && ABL:ASSI:2 <= 0
+	ABL:ASSI:2 = 1
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(2)% rose to {ABL:ASSI:2}
+	PRINTL 　
+ENDIF
+
+;助手のサドっ気：SadoEXPが10、20、50、100、200のたびに上昇、Lv５まで
+IF EXP:ASSI:32 >= 200 && ABL:ASSI:10 <= 4
+	ABL:ASSI:10 = 5
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(10)% rose to {ABL:ASSI:10}
+	PRINTL 　
+ELSEIF EXP:ASSI:32 >= 100 && ABL:ASSI:10 <= 3
+	ABL:ASSI:10 = 4
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(10)% rose to {ABL:ASSI:10}
+	PRINTL 　
+ELSEIF EXP:ASSI:32 >= 50 && ABL:ASSI:10 <= 2
+	ABL:ASSI:10 = 3
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(10)% rose to {ABL:ASSI:10}
+	PRINTL 　
+ELSEIF EXP:ASSI:32 >= 20 && ABL:ASSI:10 <= 1
+	ABL:ASSI:10 = 2
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(10)% rose to {ABL:ASSI:10}
+	PRINTL 　
+ELSEIF EXP:ASSI:32 >= 10 && ABL:ASSI:10 <= 0
+	ABL:ASSI:10 = 1
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(10)% rose to {ABL:ASSI:10}
+	PRINTL 　
+ENDIF
+
+;助手の撮影技能：FilmingEXPが10、30、60、100、150のたびに上昇、Lv５まで
+IF EXP:ASSI:62 >= 150 && ABL:ASSI:13 <= 4
+	ABL:ASSI:13 = 5
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(13)% rose to {ABL:ASSI:13}
+	PRINTL 　
+ELSEIF EXP:ASSI:62 >= 100 && ABL:ASSI:13 <= 3
+	ABL:ASSI:13 = 4
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(13)% rose to {ABL:ASSI:13}
+	PRINTL 　
+ELSEIF EXP:ASSI:62 >= 60 && ABL:ASSI:13 <= 2
+	ABL:ASSI:13 = 3
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(13)% rose to {ABL:ASSI:13}
+	PRINTL 　
+ELSEIF EXP:ASSI:62 >= 30 && ABL:ASSI:13 <= 1
+	ABL:ASSI:13 = 2
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(13)% rose to {ABL:ASSI:13}
+	PRINTL 　
+ELSEIF EXP:ASSI:62 >= 10 && ABL:ASSI:13 <= 0
+	ABL:ASSI:13 = 1
+	PRINTFORMW %NAME:ASSI%'s %ABLNAME_E(13)% rose to {ABL:ASSI:13}
+	PRINTL 　
+ENDIF
+
+;助手のサド：サドっ気がLv４以上、SadoEXP300以上でサド
+IF ABL:ASSI:10 >= 4 && EXP:ASSI:32 >= 300 && TALENT:ASSI:83 == 0 && TALENT:ASSI:84 == 0
+	PRINTFORMW %CALLNAME:ASSI% changed a bit
+	PRINTFORML %CALLNAME:ASSI% awoke to the pleasure of bullying.
+	PRINTFORMW %NAME:ASSI% got 【Sadist】.
+	TALENT:ASSI:83 = 1
+ENDIF
+
+;助手のマゾ：マゾっ気がLv４以上、MasoEXP300以上でマゾ
+IF ABL:ASSI:9 >= 4 && EXP:ASSI:30 >= 300 && TALENT:ASSI:83 == 0 && TALENT:ASSI:84 == 0
+	PRINTFORMW %CALLNAME:ASSI% changed a bit
+	PRINTFORML %CALLNAME:ASSI% awoke to the pleasure of being bullied.
+	PRINTFORMW %NAME:ASSI% got 【Masochist】.
+	PRINTL 　
+	TALENT:ASSI:84 = 1
+ENDIF
+
+
+;助手ごとのLesbianEXPもしくはＢＬEXP判定関数
+;CFLAGに格納された数値から最もLesbianEXPもしくはＢＬEXPを多く得た助手によるLesbianEXPもしくはＢＬEXPをCに格納する
+;@DECIDE_RELATION
+;C = 0
+;REPEAT 99
+;	A = 900+COUNT
+;	IF CFLAG:A > C
+;		C = CFLAG:A
+;		X = COUNT+1
+;	ENDIF
+;REND
+
+;==========================================================
+;@処女喪失
+; 処女/再生処女を喪失する。
+;<引数>
+;	ARG  - 処女/再生処女を失うキャラのキャラ登録番号
+;<戻り値>
+;	なし
+;==========================================================
+@処女喪失, ARG = -1
+;ARGがキャラ登録番号の範囲の場合何もせず戻る
+SIF ARG < 0 && ARG >= CHARANUM
+	RETURN
+
+;処女喪失フラグ
+IF TALENT:ARG:処女 == 1
+	TALENT:ARG:処女 = 0
+	CFLAG:ARG:処女喪失フラグ = 1
+ENDIF
+;再生処女喪失フラグ
+IF TALENT:ARG:再生処女 == 1
+	TALENT:ARG:再生処女 = 0
+	CFLAG:ARG:再生処女喪失フラグ = 1
+ENDIF
+
+;==========================================================
+;@処女喪失イベント
+; 処女/再生処女を喪失する。
+;<引数>
+;	ARG  - 処女/再生処女を失ったキャラのキャラ登録番号
+;	ARGS - 処女喪失の状況
+;<戻り値>
+;	なし
+;==========================================================
+@処女喪失イベント, ARG = -1, ARGS = ""
+;ARGがキャラ登録番号の範囲の場合何もせず戻る
+SIF ARG < 0 && ARG >= CHARANUM
+	RETURN
+
+IF CFLAG:ARG:処女喪失フラグ
+	CFLAG:ARG:処女喪失フラグ = 0
+	PRINTL Virginity Lost
+	SETCOLOR COLOR("red")
+	IF ARGS == ""
+		PRINTL AbnormalEXP　処女喪失 + 2
+	ELSE
+		PRINTFORML AbnormalEXP　処女喪失(%ARGS%) + 2
+	ENDIF
+	RESETCOLOR	
+	EXP:ARG:異常経験 += 2
+ELSEIF CFLAG:ARG:再生処女喪失フラグ
+	CFLAG:ARG:再生処女喪失フラグ = 0
+	PRINTL Restored Virginity Lost
+ENDIF
+

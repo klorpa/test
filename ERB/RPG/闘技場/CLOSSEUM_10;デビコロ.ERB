@@ -1,0 +1,1103 @@
+;闘技場フラグ:10	0：進行度	１：デビコロ主人公仲魔にしたか	2:脱走イベントを見たか	3:脱走イベントが進行中か否か
+;					4:スペシャルマッチ参戦したか	5:出現メッセージ表示判定用
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_10
+SELECTCASE 闘技場フラグ:10:0
+	;デビルコロシアムのランクは闘技場ランクとは無関係とする
+	CASE 0
+		IF FLAG:闘技場名声 > 20
+			RESULTS = Devil Colosseum　Beginning　Ｅ rank
+			RETURN 1
+		ENDIF
+	CASE 1
+		IF FLAG:闘技場名声 > 200
+			RESULTS = Devil Colosseum　Ｄ rank
+			IF 闘技場フラグ:10:5 == 0
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 1
+			ENDIF
+			RETURN 1
+		ENDIF
+	CASE 2
+		IF FLAG:闘技場名声 > 500
+			RESULTS = Devil Colosseum　Ｃ rank
+			IF 闘技場フラグ:10:5 == 1
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 2
+			ENDIF
+			RETURN 1
+		ENDIF
+	CASE 3
+		IF FLAG:闘技場名声 > 1300
+			RESULTS = Devil Colosseum　B rank
+			IF 闘技場フラグ:10:5 == 2
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 3
+			ENDIF
+			RETURN 1
+		ENDIF
+	CASE 4
+		IF FLAG:闘技場名声 > 2000
+			RESULTS = Devil Colosseum　A rank
+			IF 闘技場フラグ:10:5 == 3
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 4
+			ENDIF
+			RETURN 1
+		ENDIF
+	CASE 5
+		IF FLAG:闘技場名声 > 2500
+			RESULTS = Devil Colosseum　S rank　first half
+			IF 闘技場フラグ:10:5 == 4
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 5
+			ENDIF
+			RETURN 1
+		ENDIF
+	CASE 6
+		IF 闘技場フラグ:10:2 > 0 && 闘技場フラグ:10:4 == 0
+			RESULTS = Devil Colosseum　Special Match
+			IF 闘技場フラグ:10:5 == 5
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 6
+			ENDIF
+			RETURN 1
+		ELSEIF CHECK_TIMELIMIT(0,DAY > 50)
+			RESULTS = Devil Colosseum　Final
+			IF 闘技場フラグ:10:5 == 5 || 闘技場フラグ:10:5 == 6
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 7
+			ENDIF
+			RETURN 1
+		ELSE
+			RESULTS = Devil Colossuem　S rank　Latter Half
+			IF 闘技場フラグ:10:5 == 5 || 闘技場フラグ:10:5 == 6
+				LOCALS = Colloseum Match【%RESULTS%】 appeared！
+				CALL MESSAGE_B(1, LOCALS)
+				闘技場フラグ:10:5 = 7
+			ENDIF
+			RETURN 1
+		ENDIF
+ENDSELECT
+RETURN 0
+
+;====================
+;内容
+;====================
+@COLOSSEUM_10
+CALL CLOTHES_TRAIN, MASTER
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+SELECTCASE 闘技場フラグ:10:0
+	CASE 0
+		PRINTL ＞A competition where mainly demons fight、the Devil Colosseum was held
+		PRINTL ＞The prize money is very good here
+		;原作では負けても何度でも挑戦可能だが、デビコロ主人公を仲魔にしたいので設定変更
+		PRINTL ＞But、a special end has been prepared for the losers
+		PRINTL ＞Participate？
+		CALL INPUT_YN,"Yes","No"
+		IF RESULT == 0
+			PRINTL ＞Devil Colosseum
+			PRINTW ＞When you arrived at the colossuem、a man spoke
+			PRINTL Man：
+			PRINTW 「Hm？I haven't seen you here before
+			IF TEQUIP:MASTER:陰唇露出 == -1 && TEQUIP:MASTER:乳房露出 == -1
+				PRINTL 　And、what a great appearance！Aren't you completely exposed！Are you a flasher？
+				PRINTW 　You'd make a good show、if you lost on purpose、
+				PRINTW 　In front of the large colosseum audience、do you want to be sexually trained」
+			ELSEIF TEQUIP:MASTER:陰唇露出 == -1
+				PRINT 　And、what a great appearance！Your crotch is completely exposed。Are you strange in the head？
+				IF !TALENT:MASTER:オトコ && (TALENT:MASTER:謎の魅力 || TALENT:MASTER:人気)
+					PRINTL 
+					PRINTL 　Your mountain is、honestly、a treat for the eyes…」
+				ELSE
+					PRINTW 」
+				ENDIF
+			ELSEIF TEQUIP:MASTER:乳房露出 == -1 && !IS_LOOKSLIKE_MALE(MASTER)
+				PRINTW 　Wow、I can see your boobs！I have trouble looking away…」
+			ENDIF
+			PRINTW …You introduced yourself
+			PRINTL Man：
+			PRINTL 「I see、I don't know about the others、but here is a new face
+			PRINTW 　I'll leave it up to the colossuem
+			PRINTL 　My best regards。…and、let the games begin。Be cautious of having your party annihilated！
+			PRINTW 　If you lose、you'll be used as fuckmeat！Hahaha！」
+			PRINTW ＞You entered the ring
+			PRINTL ＞This is the first match。The opponent is a woman。Or is she more like a girl
+			PRINTW ＞She is quite good looking、but does she have a bruise on her cheek
+			PRINTW ＞The girl summoned demons from her COMP！
+			PRINTW ＞Demons appeared！
+			
+			;原作のＦランクボス、Ｅランクボス、主人公初期所持悪魔のうち、eraMegaten0.309修正6に存在するものを纏めて。ボスにはボスフラグ。また、原作の相性を反映
+			CALL SET_ENEMY,10,[[キャラ:バジリスク]],16,1,1
+			BASE:(CHARANUM-1):呪殺 = -100
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,8,[[キャラ:キングフロスト]],17,1,1
+			BASE:(CHARANUM-1):打撃 = 0
+			BASE:(CHARANUM-1):精神 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,9,[[キャラ:ヤヌス]],17,1,1
+			BASE:(CHARANUM-1):神経 = 0
+			BASE:(CHARANUM-1):呪殺 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,13,[[キャラ:ノッカー]],14,1,0
+			BASE:(CHARANUM-1):破魔 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,15,[[キャラ:ハイピクシー]],15,1,0
+			BASE:(CHARANUM-1):神経 = 50
+			BASE:(CHARANUM-1):破魔 = 0
+			BASE:(CHARANUM-1):呪殺 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL BATTLE_START
+			
+			PRINTW ＞Defeated the demons and won the match
+			PRINTL ＞The girl looked pale
+			PRINTW ＞She can imagine what will happen next、is she shuddering？
+			;それだけではない
+			PRINTL ＞Take her as a prize？
+			CALL INPUT_YN,"Yes","No"
+			IF RESULT
+				;原作では計4700マッカ貰える
+				PRINTL ＞You received 470 macca、while the girl was publicly raped in the colossuem
+				PRINTW ＞While hearing the screams and cries、you left the colosseum
+				闘技場フラグ:10:1 = 0
+				MONEY:1 += 470
+			ELSE
+				PRINTW ＞You asked to receive the girl as a prize
+				PRINTW ………
+				PRINTL ＞The proposal was accepted
+				PRINTW ＞After you received the girl as a prize、you left the colosseum
+				闘技場フラグ:10:1 = 1
+				;既に仲魔にいる場合名前を入力する処理を飛ばす
+				IF FINDCHARA_B([[キャラ:デビコロ主人公]]) < 0
+					CALL ADD_NEW_COMPANION,[[キャラ:デビコロ主人公]],500
+					LOCAL = GETCHARA([[キャラ:デビコロ主人公]])
+					$INPUT_LOOP_DEBIKO_NAME
+					PRINTL Please input the name of the Devil Colo protag
+					INPUTS
+					NAME:LOCAL = %RESULTS%
+					PRINTL Please input the nickname of the Devil Colo protag
+					INPUTS
+					CALLNAME:LOCAL = %RESULTS%
+					PRINTFORML Name　%NAME:LOCAL%
+					PRINTFORML Nickname　%CALLNAME:LOCAL%
+					PRINTL Is this alright？
+					CALL INPUT_YN
+					SIF RESULT == 1
+						GOTO INPUT_LOOP_DEBIKO_NAME
+				ENDIF
+			ENDIF
+			PRINTW Also、you got 50 fame。
+			FLAG:闘技場名声 += 50
+
+			闘技場フラグ:10:0 = 1
+
+		ELSE
+			闘技場フラグ:10:0 = 99
+		ENDIF
+	CASE 1
+		;原作ランクEイベントを足す
+		PRINTL ＞Devil Colosseum
+		PRINTL Ｄ rank match
+		PRINTW When you arrived at the colosseum、a man spoke
+		PRINTL Colosseum Man
+		PRINTW 「Congratulations on reaching Ｄ rank！」
+		IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+			PRINTL Colosseum Man
+			IF 闘技場フラグ:10:1
+				PRINTL 「Oh、last time、you got that girl as a prize、you came back quickly
+			ELSE
+				PRINTL 「Oh、last time、did you not take the girl you fought？
+			ENDIF
+			PRINTW 　That girl came looking fo rher missing twin brother and participated in the games
+			PRINTL 　She thought her brother was possessed by a demon
+			PRINTW 　Because low-ranked warriors can't meet high-ranked warriors、
+			;観戦すればいいんじゃ？と思ったけどそんなお金は無いんだろな
+			PRINTFORML 　If your rank is not increased、you can't see everyone in all ranks、it might be good to take her along with you \@ !IS_LOOKSLIKE_MALE(MASTER) ? miss # sir \@
+			PRINTW 　But、as for how she was wounded、her brother inflicted it when he was suddenly possessed by a demon
+			PRINTW 　I don't think that their next meeting would be a quiet one」
+		ELSEIF 闘技場フラグ:10:1
+			PRINTL Colosseum Man
+			PRINTL 「Thus、that girl you won in that last match came to look for her missing older brother、
+			PRINTW 　came to join these games。She thought her brother was possessed by a demon。
+			PRINTL 　She tried to stop her brother who suddenly changed、
+			PRINTW 　and was wounded」
+		ELSE
+		ENDIF
+		PRINTL Colosseum Man
+		PRINTW 「Oops、the game is beginning。Let's have a good match！」
+		PRINTL You entered the ring
+		PRINTW Demons appeared！
+		
+		CALL SET_ENEMY,10,[[キャラ:バフォメット]],28,1,1
+		BASE:(CHARANUM-1):破魔 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;サルタヒコが居ないのでアメノウズメで代用。代用してる悪魔は原作のが追加されたら変更するつもり
+		CALL SET_ENEMY,8,[[キャラ:アメノウズメ]],29,1,1
+		BASE:(CHARANUM-1):火炎 = 999
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		CALL BATTLE_START
+
+		PRINTW You defeated the demons and won
+		CALL デビコロ脱走イベント
+		PRINTL Colosseum Man
+		PRINTL 「Well done！That was an excellent match
+		PRINTW 　And here is your prize money」
+		PRINTW Getting 600 macca、you left the colloseum
+		MONEY:1 += 600
+
+		PRINTW Also、you got 75 fame。
+		FLAG:闘技場名声 += 75
+
+		闘技場フラグ:10:0 = 2
+
+	CASE 2
+		PRINTL ＞The Devil Colloseum
+		PRINTW Ｃ Rank Match
+		PRINTL Colosseum Man
+		PRINTL 「You did it！You have been promoted to C Rank！Frankly、I didn't think you'd do it！
+		PRINTW 　Ah yes、the Devil Colosseum will end when someone beats all competition、
+		PRINTL 　Now、in winning the games、there is a man in A rank said to be the closest
+		PRINTW 　The other day、I watched his battle、and he was unreasonably strong。Surely、if he continues winning like that
+		PRINTL 　he'll win in no time。His name…ummm…that？　I forgot it…
+		PRINTW 　…and、the match needs to start。Get fired up！」
+		PRINTL You entered the ring
+		PRINTW Demons appeared！
+
+		;ベルフェゴールが居ないので七つの大罪繋がりのリヴァイアサンの息子のタラスク。苦しい
+		CALL SET_ENEMY,7,[[キャラ:タラスク]],32,1,1
+		BASE:(CHARANUM-1):火炎 = 999
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):破魔 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;大魔宮ボスのヘカーテの代わりにヘカーテと同一視されるアルテミス。他ルートでボスはってる悪魔は原則出したくない
+		CALL SET_ENEMY,8,[[キャラ:アルテミス]],33,1,1
+		BASE:(CHARANUM-1):氷結 = 50
+		BASE:(CHARANUM-1):電撃 = 50
+		BASE:(CHARANUM-1):精神 = 999
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;真2√に出てきそうなウリエルの代わりにラグエル。主催がアレな事を考えるとウリエル出てきてもおかしくないんだけど、LV34だし
+		;↑主催がアレだし低レベルに使い走りに出されるというのもありそう。ということで4大天使は真ルートに登場次第差し替えたい
+		CALL SET_ENEMY,10,[[キャラ:ラグエル]],34,1,1
+		BASE:(CHARANUM-1):剣撃 = 999
+		BASE:(CHARANUM-1):飛具 = 999
+		BASE:(CHARANUM-1):打撃 = 999
+		BASE:(CHARANUM-1):戦技 = 999
+		BASE:(CHARANUM-1):精神 = 999
+		BASE:(CHARANUM-1):神経 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;真2√に出てきそうなラファエルの代わりにアークエンジェル
+		CALL SET_ENEMY,11,[[キャラ:アークエンジェル]],35,1,1
+		BASE:(CHARANUM-1):電撃 = 999
+		BASE:(CHARANUM-1):衝撃 = 999
+		BASE:(CHARANUM-1):神経 = 999
+		BASE:(CHARANUM-1):破魔 = 999
+		BASE:(CHARANUM-1):呪殺 = 999
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		CALL BATTLE_START
+
+		PRINTL You defeated the demons and won the match
+		CALL デビコロ脱走イベント
+		PRINTW You got 1650 macca and left the colosseum
+		MONEY:1 += 1650
+
+		PRINTW Also、you got 150 fame。
+		FLAG:闘技場名声 += 150
+
+		闘技場フラグ:10:0 = 3
+
+	CASE 3
+		PRINTL ＞The Devil Colloseum
+		PRINTL B Rank Match
+		PRINTW As usual、the colosseum man began to speak
+		PRINTL Colosseum Man
+		PRINTL 「Rank up、congratulations！Where is your margin of victory？Hahahaha！！
+		PRINTW 　…Hm？Somebody is walking over here
+		PRINTL 　…Ah、you、that A Rank guy rumored to be strong！
+		PRINTW 　You know、the one I spoke of earlier！？The guy likely to win the games！」
+		PRINTL Colosseum Warrior
+		PRINTW 「Oh、someone is talking about me。Then、speak quickly why you won't give my name」
+		PRINTL Colosseum Man
+		PRINTL 「No、I forgot your name。I hadn't finished、I hhadn't said your name、you don't understand
+		PRINTW 　If I am not mistaked、was Kawada or Nishida your name？」
+		PRINTL Colosseum Warrior
+		PRINTL 「It is Honda！Remember it well！！
+		PRINTW 　…other than that、you！」
+		PRINTW Honda spoke
+		PRINTL Honda
+		PRINTL 「In spite of being an unknown newcomer、you have been ranking up quickly！
+		PRINTW 　If you push too fast、you'll be in for a painful experience
+		PRINTL 　When you will be A rank like me one day、I shall destroy all your demons！
+		PRINTW 　No、at that time、I shall win it all！Hahahaha！！
+		PRINTL 　Well、amateurs should go home before losing their lives！
+		PRINTW 　Then、I'll go for my next battle！I'll definitely pose for a new victory！！See you！！」
+		PRINTW Honda passed by
+		PRINTL Colosseum Man
+		PRINTL 「What a noisy fellow
+		PRINTW 　…Oh、the match needs to begin soon。Don't lose！」
+		PRINTL You entered the ring
+		PRINTW Demons appeared！
+
+		CALL SET_ENEMY,7,[[キャラ:ティアマト]],45,1,1
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):破魔 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,8,[[キャラ:アスタロト]],46,1,1
+		BASE:(CHARANUM-1):氷結 = 50
+		BASE:(CHARANUM-1):電撃 = 50
+		BASE:(CHARANUM-1):精神 = 999
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;マスターテリオンの代わりに黙示録繋がりでアバドン出そうと思ったらアバドンもいないのでアバドンの原型の一つであるピュートーンを出す
+		CALL SET_ENEMY,9,[[キャラ:ピュートーン]],47,1,1
+		BASE:(CHARANUM-1):火炎 = 200
+		BASE:(CHARANUM-1):呪殺 = -100
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;ミカエルの代わりにアークエンジェルを出すともう戦ってるので代わりにモブ天使では一番格が高いソロネ
+		CALL SET_ENEMY,10,[[キャラ:ソロネ]],48,1,1
+		BASE:(CHARANUM-1):火炎 = 999
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):破魔 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,11,[[キャラ:アバドン]],49,1,1
+		BASE:(CHARANUM-1):火炎 = -50
+		BASE:(CHARANUM-1):氷結 = -50
+		BASE:(CHARANUM-1):電撃 = -50
+		BASE:(CHARANUM-1):衝撃 = -50
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):万能 = 75
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL BATTLE_START
+
+		PRINTL You defeated the demons and won the match
+		CALL デビコロ脱走イベント
+		PRINTW You got 2700 macca and left the colosseum
+		MONEY:1 += 2700
+
+		;ランダムマッチのAランクが未実装で、得られる名声がガンガン減っていく為
+		PRINTW Also、you got 675 fame。
+		FLAG:闘技場名声 += 675
+
+		闘技場フラグ:10:0 = 4
+
+	CASE 4
+		PRINTL ＞The Devil Colloseum
+		PRINTW A Rank Match。The man spoke as usual
+		PRINTL Colosseum Man
+		PRINTL 「You just keep going！！You got promoted to A Rank！Already、nobody thinks of you as just a new face！
+		PRINTW 　Well、are you so popular that your fans are coming in！？
+		PRINTFORML 　Well、your fan \@ IS_LOOKSLIKE_MALE(MASTER) ? girls # boys \@ began to fill the seats…
+		PRINTL 　Excuse me、the colosseum structure is very complicated、seen from above、it looks like a magic square
+		PRINTW 　After all、who built such a complicated structure…。Don't gget lost」
+		PRINTL Colosseum Man
+		PRINTW 「…and、the match must begin soon。The audience awaits！」
+		PRINTL You entered the ring
+		PRINTW Demons appeared！
+
+		;○○○○「Ａランクだしそろそろ本気だす」
+		
+		CALL SET_ENEMY,8,[[キャラ:アタバク]],55,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 400
+		BASE:(CHARANUM-1):飛具 = 999
+		BASE:(CHARANUM-1):精神 = 999
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,9,[[キャラ:ヴィローシャナ]],56,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 400
+		BASE:(CHARANUM-1):火炎 = 999
+		BASE:(CHARANUM-1):呪殺 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;マーラ様の代わりにちんことインド繋がりで
+		CALL SET_ENEMY,10,[[キャラ:ラーフ]],57,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 400
+		BASE:(CHARANUM-1):飛具 = 999
+		BASE:(CHARANUM-1):火炎 = 125
+		BASE:(CHARANUM-1):氷結 = 999
+		BASE:(CHARANUM-1):電撃 = 999
+		BASE:(CHARANUM-1):精神 = 999
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL BATTLE_START
+
+		PRINTW You defeated the demons and won the match
+		CALL デビコロ脱走イベント
+		PRINTL Colosseum Man
+		PRINTL 「Well done！That was a good match！
+		PRINTW 　That's right、is that noisy guy in the antechamber Honda？That guy got eaten by demons in yesterday's match
+		PRINTL 　He apparently had demons that were higher leveled than him。That's pretty dangerous、be careful
+		PRINTW 　Then、here is your prize」
+		PRINTW You got 3000 macca and left the colosseum
+		MONEY:1 += 3000
+
+		;ランダムマッチのAランクが未実装で、得られる名声がガンガン減っていく為
+		PRINTW Also、you got 490 fame。
+		FLAG:闘技場名声 += 490
+
+		闘技場フラグ:10:0 = 5
+
+	CASE 5
+		PRINTL ＞The Devil Colloseum
+		PRINTW S Rank Match
+		PRINTL Colosseum Man
+		PRINTL 「You did it！！Finally、you beat A Rank！I was excited to see you after a long time！
+		PRINTW 　Ah、that。Yesterday、I heard something、
+		PRINTL 　About this match、this is not just a match for finding the strongest
+		PRINTW 　Somehow、the sponsor is looking for the savior of mankind、
+		PRINTL 　What on earth will this savior be？
+		PRINTW 　This savior will be very rich、as for this sponsor、what is his profit？
+		PRINTL 　…and、it's time for the match。The S rank match is divided into 2 parts
+		PRINTW 　Brace yourself！The seat are filled for your match！」
+		PRINTL You entered the ring
+		PRINTW Demons appeared！
+
+		CALL SET_ENEMY,8,[[キャラ:ベルゼブブ]],65,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		BASE:(CHARANUM-1):剣撃 = 999
+		BASE:(CHARANUM-1):飛具 = 200
+		BASE:(CHARANUM-1):打撃 = 999
+		BASE:(CHARANUM-1):戦技 = 999
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;クズリュウの代わり
+		CALL SET_ENEMY,10,[[キャラ:クトゥルー]],66,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		BASE:(CHARANUM-1):精神 = 200
+		BASE:(CHARANUM-1):神経 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL BATTLE_START
+
+		PRINTL You defeated the demons and won the match
+		CALL デビコロ脱走イベント
+		PRINTW The second half will be held tomorrow。You got 4000 macca and left the colosseum
+		MONEY:1 += 4000
+
+		PRINTW Also、you got 800 fame。
+		FLAG:闘技場名声 += 800
+
+		闘技場フラグ:10:0 = 6
+
+	CASE 6
+		IF 闘技場フラグ:10:2 > 0 && 闘技場フラグ:10:4 == 0
+			PRINTW You were invited to a special match in the Devil Colloseum
+			PRINTW When you entered the ring、you saw Honda who should have died！
+			;捏造
+			PRINTL Honda？
+			PRINTL 「I was eaten by demons and died、but I am here for our match
+			PRINTW 　Dead、but still in peak form！」
+			PRINTL Honda's Ghost
+			PRINTL 「I am Divine Honda。As an S ranker、I shall wipe you from this world！
+			PRINTW 　Here I go！」
+			PRINTW Divine Honda's Ghost appeared！
+			
+			CALL SET_ENEMY,9,[[キャラ:ホンダの亡霊]],65,1,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 3000
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			;原作：攻撃魔法・万能吸収　精神系無効
+			BASE:(CHARANUM-1):剣撃 = 200
+			BASE:(CHARANUM-1):氷結 = -100
+			BASE:(CHARANUM-1):電撃 = -100
+			BASE:(CHARANUM-1):衝撃 = -100
+			BASE:(CHARANUM-1):精神 = 0
+			BASE:(CHARANUM-1):地変 = -100
+			BASE:(CHARANUM-1):重力 = -100
+			BASE:(CHARANUM-1):核熱 = -100
+			BASE:(CHARANUM-1):万能 = 50
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+				
+			CALL BATTLE_START
+			
+			PRINTW You defeated Divine Honda's Ghost
+			PRINTW You can take him as a prize、but will you？
+			CALL INPUT_YN,"Yes","No"
+			IF RESULT == 0
+				PRINT You recruited Honda's Ghost
+				CALL ADD_NEW_COMPANION,[[キャラ:ホンダの亡霊]],0
+			ELSE
+				PRINT You won 1000 macca
+				MONEY:1 += 1000
+			ENDIF
+			PRINTW  and you left the colosseum
+			PRINTW Also、you got 300 fame
+			FLAG:闘技場名声 += 300
+			
+			闘技場フラグ:10:4 = 1
+		;50日制限
+		ELSEIF CHECK_TIMELIMIT(0,DAY > 50)
+			PRINTL As the champion has won the games、the Devil Colosseum has ended
+			PRINTL It was a splendid match、the colosseum man said while crying
+			PRINTW You left the Colloseum
+			闘技場フラグ:10:0 = 99
+			RETURN 1
+		ELSE
+			PRINTL ＞The Devil Colloseum
+			PRINTL S Rank Match Second Half
+			PRINTW When you arrived at the colosseum、the usual man came to you
+			PRINTL Colosseum Man
+			PRINTW 「Hey！Listen！From that corridor、I heard a great rumor！」
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+				PRINTFORMW The man spoke to %CALLNAME:(RESULT:1)%
+				PRINTL Colosseum Man
+				PRINTL 「Somehow、the colosseum sponsor is a １４-year old like you！
+				PRINTW 　In fact、isn't that your older brother、I looked for him using the opportunities from my work、but I didn't find him
+				;設定捏造
+				PRINTL 　Besides、the sponsor has the same raven-black hair as you、and seems to be a good-looking boy
+				PRINTW 　The colosseum sponsor is likely to be your older brother。If so、you can stop looking」
+			ENDIF
+			PRINTL Colosseum Man
+			PRINTL 「Strong demons have come out for this match、as for what the sponsor is preparing、
+			PRINTW 　The sponsor is calling powerful magic to this colosseum！？
+			PRINTL 　To cal such powerful demons、he is certainly not ordinary！
+			PRINTW 　Also、they are preparing a special demon for this last match！」
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+				PRINTL 　Lookin at the injured cheek、will she be ok if she met her brother？
+				PRINTW 　As she is now、she'd die if they fought
+				PRINTW 　As it is、it may be better to forget meeting the sponsor」
+			ELSE
+				PRINTW 　If you fight、you could be killed！」
+			ENDIF
+			;@陥落作ってくれた人有難う
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2 && 陥落(RESULT:1) > 0
+				PRINTFORML %CALLNAME:(RESULT:1)% stares uneasily
+				PRINTFORMW You told %CALLNAME:(RESULT:1)% that you'll be alright
+			ELSE
+				PRINTL Do you run away？
+				CALL INPUT_YN,"Yes","No"
+				IF RESULT == 0
+					PRINTW You decided not to face this danger。You left the Colosseum
+					闘技場フラグ:10:0 = 99
+					RETURN 1
+				ELSE
+					PRINTW A powerful handsome boy。Would you catch him and hand him to Mayone？
+				ENDIF
+			ENDIF
+			PRINTW You answered that you would fight to the last
+			PRINTL Colosseum Man
+			PRINTW 「…so、you'll fight…。…and、the match will begin soon。Don't die！」
+			PRINTL You entered the ring
+			PRINTW Demons appeared！
+
+			CALL SET_ENEMY,7,[[キャラ:ツァバト]],66,0,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+			BASE:(CHARANUM-1):剣撃 = 200
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,9,[[キャラ:エロヒム]],68,0,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+			BASE:(CHARANUM-1):衝撃 = 200
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,11,[[キャラ:シャダイ]],67,0,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+			BASE:(CHARANUM-1):火炎 = 200
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL BATTLE_START
+
+			PRINTL You defeated the demons and won the match
+			PRINTW When you came back to the waiting room、the man had a different expression as he rushed to you
+			PRINTL Colosseum Man
+			PRINTL 「It's serious！The arena is in an uproar！From the sponsor、your last opponent is called 
+			IF ABL:MASTER:属性LC == 1
+				PRINT 　Lucifer
+			ELSEIF ABL:MASTER:属性LC == 2
+				PRINT 　Lucifer and Satan
+			ELSE
+				PRINT 　Satan
+			ENDIF
+			PRINTW ！
+			PRINTL 　The arena would panic should such demons be called！
+			PRINTW 　No man could win against the strongest demons…
+			PRINTL 　Far from here、the world is ok
+			PRINTW 　The sponsor is waiting for you、Ｓ rank champion、 in the ring、
+			PRINTL 　…Hm？Ah、as the S rank champion、winning this last battle
+			PRINTW 　would mean winning the entire games。Didn't I say that？
+			PRINTW 　…tch！That's not！You！You'll be kill if you fight such an opposition！
+			PRINTW 　…No、You decided to fight to the end。Then、I won't stop you anymore
+			PRINTL 　I'll sincerely support you、so do your best
+			PRINTW 　Truly、only you could equal them
+			PRINTL 　Indeed、you are the unknowing savior of humanity
+			PRINTW 　…It's about time。Please show your strength！Showtime is beginning！」
+			PRINTW You went into the ring
+			PRINTL 
+			PRINTL Moderator
+			PRINTL 「Laaaadies！And！Gentlemen！Welcome to the Devil Colosseum！
+			PRINTW 　I Winchester am your host。
+			PRINTL 　Here is the last battle of the colosseum！
+			PRINTW 　Don't miss the fight of the century！Finally、the last battle beings！」
+			PRINTL 
+			PRINTL Sponsor
+			PRINTW 「To come here fearlessly」
+			PRINTL 
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+				PRINTFORMW The sponsor looked %CALLNAME:(RESULT:1)% and spoke、
+				PRINTL 
+				PRINTL Sponsor
+				PRINTL 「Hm？I understand。So、are you a savior？I remember that wound on your cheek
+				;性転換してても判る。流石
+				PRINTW 　you are my sister、that fought the possessed me at that time」
+				PRINTL 
+				PRINTFORML %CALLNAME:(RESULT:1)%'s brother（sponsor）
+				PRINTL 「I am the absolute god、ＹＨＶＨ。With your brother、I built this colosseum、
+			ELSE
+				PRINTL Sponsor
+				PRINTL 「I am the absolute god、ＹＨＶＨ。I built this colosseum、
+			ENDIF
+			PRINTW 　I collected the MAG to summon demons
+			PRINTL 　To destroy the stupid humans who forgot to worship me
+			PRINTW 　Therefore、I shall dispose of the savior who would become the hope of humans」
+			PRINTL 
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+				PRINTL Brother（Divine ＹＨＶＨ）
+				PRINTL 「Indeed、you have slain my servants and florwed into a true savior
+				PRINTW 　But is it just a coincidence that the sister of the man I possess would become the savior of mankind？」
+			ELSE
+				PRINTL Divine ＹＨＶＨ
+				PRINTL 「I did not find a savior、but I will not ignore the power of you who has defeated my servants
+				PRINTW 　I shall deal with you」
+			ENDIF
+			PRINTL 
+			IF ABL:MASTER:属性LC == 1 || ABL:MASTER:属性LC == 2
+				PRINTL Divine ＹＨＶＨ
+				PRINTL 「Human who demanded too much of superior wisdom
+				PRINTW 　More than that、tried to approach the creator's level
+				IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+					PRINTW 　For mankind、you are the last hope。Be cursed、failed savior！」
+				ELSE
+					PRINTW 　Human、be cursed！」
+				ENDIF
+				PRINTW Divine ＹＨＶＨ summoned Tyrant Lucifer！
+				PRINTL 
+				PRINTL Tyrant Lucifer
+				PRINTL 「Koooooooo…。Someone has gathered a huge amount of living MAG in the center of this massive magic square、
+				PRINTW 　Someone has intentionally called me、a king of Hell、to this place
+				PRINTFORML 　I see、your power…\@ FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2 ? 、are you a savior of mankind # \@
+				PRINTW 　Foolish human manipulated by God
+				PRINTFORMW 　\@ FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2 ? Whether you are truly suitable as a savior # Your power \@ shall be tested…Here I go！！」
+				PRINTL 
+				
+				CALL SET_ENEMY,9,[[キャラ:ルシファー]],70,1,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 3000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				BASE:(CHARANUM-1):火炎 = 200
+				BASE:(CHARANUM-1):氷結 = 999
+				BASE:(CHARANUM-1):電撃 = 999
+				BASE:(CHARANUM-1):精神 = 999
+				;マハブフーラ	ムド	テンタラフー	メギドラオン	乱れ打ち	悪しき輝き
+				ABL:(CHARANUM-1):スキル1 = [[スキル:絶対零度]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:千年の呪怨]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:メギドラオン]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:テンタラフー]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:ファイナルヌード]]
+				ABL:(CHARANUM-1):スキル6 = [[スキル:黙示録]]
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				
+				CALL BATTLE_START
+				
+				PRINTL Tyrant Lucifer
+				PRINTL 「You are certanly a threat to the Expanse。Only God has ever defeated me in this way
+				PRINTW 　Do not believe that God is always right…」
+				PRINTW Tyrant Lucifer disappeared
+				PRINTL 
+				PRINTL Divine ＹＨＶＨ
+				PRINTW 「Kukuku…　To yield to a human。HOw low you have fallen、Lucifer」
+			ENDIF
+			IF ABL:MASTER:属性LC == 2 || ABL:MASTER:属性LC == 3
+				PRINTL Divine ＹＨＶＨ
+				PRINTL 「Demon Lord　Human　Demon…。I judge all who defy me。And those that defy God the most…
+				PRINTW 　I judge you！！」
+				PRINTW Divine ＹＨＶＨ summoned Archangel Satan！
+				PRINTL 
+				PRINTL Archangel Satan
+				PRINTL 「Guoooooo！！To call me here…
+				PRINTW 　You who have incurred the wrath of the Creator…You who shall be judged
+				PRINTL 　I'll make you expierience true fear for the first time
+				PRINTW 　Mankind has chosen the path to destruction for itself！！」
+				PRINTL 
+				
+				CALL SET_ENEMY,9,[[キャラ:サタン]],70,1,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 3000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				BASE:(CHARANUM-1):剣撃 = 999
+				BASE:(CHARANUM-1):飛具 = 200
+				BASE:(CHARANUM-1):打撃 = 999
+				BASE:(CHARANUM-1):戦技 = 999
+				BASE:(CHARANUM-1):氷結 = 0
+				BASE:(CHARANUM-1):電撃 = 0
+				BASE:(CHARANUM-1):破魔 = 999
+				BASE:(CHARANUM-1):呪殺 = 999
+				;ムド	メギドラオン	リカジャ	冥界破	ポイズンミスト	聖なる光
+				ABL:(CHARANUM-1):スキル1 = [[スキル:闇の審判]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ジハード]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:デ・クンダ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:冥界の門]]
+				ABL:(CHARANUM-1):スキル5 = 1113		;混濁の瘴気
+				ABL:(CHARANUM-1):スキル6 = [[スキル:誘惑の霧]]
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				
+				CALL BATTLE_START
+				
+				PRINTL Archangel Satan
+				PRINTW 「Rejecting God's judgement…What will mankind do…Where are they going to go…」
+				PRINTW Archangel Satan disappeared
+			ENDIF
+			PRINTW Divine ＹＨＶＨ's presence rose
+			PRINTL 
+			PRINTL Divine ＹＨＶＨ
+			PRINTL 「Cursed child。You have made the greatest mistake
+			IF ABL:MASTER:属性LC == 1
+				PRINTW 　Since you defeated Lucifer、you have antagonized all of hell
+			ELSEIF ABL:MASTER:属性LC == 2
+				PRINTW 　Since you defeated Lucifer、you have antagonized all of hell
+				PRINTL 　And since you have defeated Satan、the angels shall not relent
+			ELSE
+				PRINTW 　Because you have defeated Satan、the angels shall not relent
+			ENDIF
+			PRINTW 　War between mankind and demons has broken out、and mankind shall fall to destruction」
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+				PRINTFORMW Divine ＹＨＶＨ looked at %CALLNAME:(RESULT:1)% and began to speak
+				PRINTL 
+				PRINTL Divine ＹＨＶＨ
+				PRINTL 「Savior reunited with her brother、do you think everything went well？
+				PRINTW 　Your brother and I are already the same person。The reward you sought was fruitless
+				PRINTL 　I'll turn your only hope to despair。Rage against your fate as best you can」
+			ENDIF
+			PRINTL Divine ＹＨＶＨ
+			PRINTW 「Well、farewell」
+			PRINTL Divine ＹＨＶＨ's presence completely faded from the Colosseum
+			PRINTFORMW Afterwards、\@ FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2 ? %CALLNAME:(RESULT:1)%'s brother # the sponsor \@ fell down。He seems severely weakened
+			IF FINDCHARA_B([[キャラ:デビコロ主人公]]) == 2
+				PRINTFORMW %CALLNAME:(RESULT:1)% ran to her elder brother and hugged him
+				PRINTL 
+				PRINTFORML %CALLNAME:(RESULT:1)%'s brother
+				PRINTL 「Th-thank you…all this time…you've been searching for me…
+				PRINTW 　For this、I wanted to pay you back、but it seems I can't now…
+				PRINTW 　Though we spent little time together、you're my little sister…I'm glad…」
+				PRINTFORMW %CALLNAME:(RESULT:1)%'s brother stopped breathing
+				PRINTFORML %CALLNAME:(RESULT:1)% looked down while holding her older brother
+				PRINTFORMW %CALLNAME:(RESULT:1)% had teary eyes as she equipped her ＣＯＭＰ
+				PRINTFORML Then、a warning began to ring from %CALLNAME:(RESULT:1)%'s ＣＯＭＰ
+				PRINTW Only this sound warning of nearby demons could be heard within the Colosseum
+			ELSE
+				PRINTW …From within the Colosseum、fire began to rise
+			ENDIF
+			PRINTW ………
+			PRINTW ……
+			PRINTL The demons have begun their attack
+			PRINTW Divine ＹＨＶＨ spoke truly…
+			PRINTW Before the charging demon army、you summoned all your demons from your ＣＯＭＰ……
+			PRINTL 
+			PRINTW 　　　　　　　　―― Ending No.040 (Devil Colosseum　True end　"The night before Armageddon")
+			PRINTL 
+			FLAG:5 = 9
+			SETBIT FLAG:発見ED,40
+			CALL INPUT_SELECT, 1, "End", 2, "Begin New Game Plus"
+			IF RESULT == 1
+				QUIT
+			ELSEIF RESULT == 2
+				CALL START_NEWGAME
+				RETURN 1
+			ENDIF
+		ENDIF
+ENDSELECT
+			
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+			
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+RETURN 1
+
+
+@EVENT_COLOSSEUM_LOSE_10
+SIF 闘技場フラグ:10:3
+	CALL DEADEND
+
+SELECTCASE 闘技場フラグ:10:0
+	CASE 6
+		CALL DEADEND
+	CASEELSE
+		IF !TALENT:MASTER:オトコ || TALENT:MASTER:男の娘
+			PRINTW You were carried to the waiting room in defeat
+			PRINTL Colosseum Man
+			PRINTW 「You were defeated…」
+			PRINT The colosseum man looked at 
+			IF TEQUIP:MASTER:陰唇露出 == -1 && TEQUIP:MASTER:乳房露出 == -1
+				PRINT your bare chest and crotch
+			ELSE
+				PRINT your ripped clothing
+			ENDIF
+			PRINTW …
+			PRINTL Colosseum Man
+			PRINTW 「…まだ、経験が足りねぇな。俺が積ませてやるよ！」
+			PRINTW そう言うとコロシアムの男はあなたに覆い被さってきた…
+			PRINTW 戦闘で疲弊しているあなたは碌な抵抗もできずに犯されている…
+			PRINT そしてコロシアムの男は
+			IF TEQUIP:MASTER:陰唇露出 == -1 && TEQUIP:MASTER:乳房露出 == -1
+				PRINTW あなたを試合後のリングに連れて行くと、他のコロシアム職員達を呼び出し、
+				PRINTW 更にまだまばら残っていた観客達に呼びかけ、陵辱に加わるように促した
+				PRINTW あなたは陵辱に加わらなかった観客達の前で集団で犯されている…
+				PRINTW その中にはあなたの有様をビデオに撮っている人達も居るようだ…
+			ELSE
+				PRINTW 他のコロシアム職員達を呼び出し、陵辱に加わるように促した
+				PRINTW あなたは集団で犯されている…
+			ENDIF
+			;ゲームオーバーになるので表示のみ
+			PRINTL
+			IF !TALENT:MASTER:オトコ
+				PRINT V経験 + 10　　CreampieEXP + 10　　
+			ELSE
+				PRINT ＢＬEXP + 10　　
+			ENDIF
+			PRINTL A経験 + 10　　ClimaxEXP + 20　　
+			SIF TALENT:MASTER:オトコ || TALENT:MASTER:ふたなり
+				PRINT CumEXP + 30　　
+			PRINTL SexEXP + 10　　SemenEXP + 10　　BlowjobEXP + 10　　
+			SIF TALENT:MASTER:服従
+				PRINTL FrcMasturEXP + 5　　ServicPlsEXP + 10　　MasoEXP + 5　　UrineEXP + 1　　
+			SIF TEQUIP:MASTER:陰唇露出 == -1 && TEQUIP:MASTER:乳房露出 == -1
+				PRINT OutExposeEXP + 20　　FilmedEXP + 5　　
+			PRINTL GangbangEXP + 30
+			PRINTL 
+			PRINT FEELＣの珠 + 3000　　
+			SIF !TALENT:MASTER:オトコ
+				PRINT 快Ｖの珠 + 1000
+			PRINTL 快Ａの珠 + 1000　　快Ｂの珠 + 1000　　
+			PRINT 欲情の珠 + 1000　　屈服の珠 + 1000　　習得の珠 + 1000　　
+			SIF TALENT:MASTER:服従
+				PRINT 苦痛の珠 + 500
+			WAIT
+			PRINTL ………
+			PRINTL ……
+			PRINTW …
+			PRINTW 数日後
+			PRINTW あなたはデビルコロシアムの性処理用肉便器として調教され、設置された
+			PRINTW 便所にはあなたの仲魔達や他の敗者たちもまた設置されている…
+			PRINTW 勝者の悪魔達や、デビルコロシアムの職員達、便所の存在を知る客達によって、あなた達はひっきりなしに使用されている…
+			PRINTW 今日もまた、あなたの中に精が放たれた。あなたの体が生体ＭＡＧを吸い上げ、どこかへと送っているのを感じる…
+			PRINTW この生体ＭＡＧは一体に何に使われるのだろう？
+			PRINTW あなたはふとそう思ったが、直ぐに目の前のペニスに集中し、一心不乱に奉仕した
+			PRINTW 今のあなたは精を放たれるためだけに存在する、肉便器なのだから……
+			PRINTL
+			CALL GAME_OVER
+		ENDIF
+		RETURN 0
+ENDSELECT
+
+@デビコロ脱走イベント
+IF RAND:5 == 0 || FLAG:DEBUG
+	PRINTW On your way back to the waiting room、the colosseum staff are running around urgently
+	PRINTL Colosseum staff：
+	PRINTW 「A serious situation！！A demon has escaped from the rest area！！Please catch it！」
+	PRINTL Colosseum man：
+	PRINTL 「An escaping demon is a serious problem！
+	IF 闘技場フラグ:10:2 == 0
+		PRINTW 　Hm？Ah、this Colosseum enslaves the losers as fuckmeat
+		IF TALENT:MASTER:服従
+			PRINTW 　Still、don't lose on purpose
+		ELSE
+			PRINTW 　so、you be careful too
+		ENDIF
+		PRINT 　So、
+	ENDIF
+	PRINTW 　will you go catch it？」
+	PRINTL Will you capture the escaping demon？
+	CALL INPUT_YN,"Yes","No"
+		IF RESULT == 0
+			PRINTL Colosseum man：
+			PRINTW 「You are awesome！！Don't get careless！」
+			PRINTL ……
+			PRINTW …
+			PRINTW You quickly found the demon
+			PRINTW The cornered demon attacked！
+			
+			闘技場フラグ:10:3 = 1
+			
+			SELECTCASE 闘技場フラグ:10:0
+				CASE 1
+					;原作F。Eのアムドゥキアスは0309修正6に存在しないので、Dはエキドナなのでなし。女堕天使追加のブネを使わせて頂きました
+					CALL SET_ENEMY,9,[[キャラ:ブネ]],30,1,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				CASE 2
+					CALL SET_ENEMY,9,[[キャラ:グザファン]],36,1,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				CASE 3
+					CALL SET_ENEMY,9,[[キャラ:ムールムール]],50,1,1
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 1200
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				CASE 4
+					CALL SET_ENEMY,9,[[キャラ:ハーゲンティ]],58,1,1
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				CASE 5
+					CALL SET_ENEMY,9,[[キャラ:ロノウェ]],66,1,1
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+			ENDSELECT
+			
+			CALL BATTLE_START
+			
+			PRINTW You defeated the demon
+			PRINTW The demon gets up and approaches
+			PRINTW It asks to become yours in exchange for rescue
+			PRINTL Recruit this demon？
+			CALL INPUT_YN,"Yes","No"
+			IF RESULT == 0
+				SELECTCASE 闘技場フラグ:10:0
+					CASE 1
+						SIF FINDCHARA_B([[キャラ:ブネ]]) < 0
+							CALL ADD_NEW_COMPANION,[[キャラ:ブネ]],1000
+					CASE 2
+						SIF FINDCHARA_B([[キャラ:グザファン]]) < 0
+							CALL ADD_NEW_COMPANION,[[キャラ:グザファン]],1000
+					CASE 3
+						SIF FINDCHARA_B([[キャラ:ムールムール]]) < 0
+							CALL ADD_NEW_COMPANION,[[キャラ:ムールムール]],1000
+					CASE 4
+						SIF FINDCHARA_B([[キャラ:ハーゲンティ]]) < 0
+							CALL ADD_NEW_COMPANION,[[キャラ:ハーゲンティ]],1000
+					CASE 5
+						SIF FINDCHARA_B([[キャラ:ロノウェ]]) < 0
+							CALL ADD_NEW_COMPANION,[[キャラ:ロノウェ]],1000
+				ENDSELECT
+
+				;キャラ数上限で加入できなかった場合等を弾く
+				IF RESULT > 0
+					;どのキャラもレベル35で加入
+					BASE:(RESULT:1):LV = 35
+					BASE:(RESULT:1):ＥＸＰ = 5*34*35*36/3
+					CALL SYNC_STATUS,(RESULT:1)
+					CALL HEALTH_CHARA,(RESULT:1)
+					
+					;闘技場は相手のステータスを表示しないのでここで肉便器化
+					IF TALENT:(RESULT:1):オトコ && RAND:2 == 0
+						CALL ＴＳ処理, RESULT:1, 3
+						TALENT:(RESULT:1):処女 = 0
+						CALL ADDS_ABNORMAL_EXP , "ＴＳ" , RESULT:1
+						CALL SHOW_ABNORMAL_EXP , RESULT:1, 0
+						EXP:(RESULT:1):ＴＳ経験 += 1
+					ELSEIF TALENT:(RESULT:1):オトコ && RAND:3 == 0
+						TALENT:(RESULT:1):男の娘 = 1
+					ENDIF
+					SIF TALENT:(RESULT:1):処女
+						TALENT:(RESULT:1):処女 = 0
+					
+					ABL:(RESULT:1):従順 = 2
+					ABL:(RESULT:1):欲望 = 2
+					ABL:(RESULT:1):技巧 = 2
+					ABL:(RESULT:1):Ｃ感覚 = 2
+					SIF !TALENT:(RESULT:1):オトコ
+						ABL:(RESULT:1):Ｖ感覚 = 2
+					ABL:(RESULT:1):Ａ感覚 = 2
+					ABL:(RESULT:1):Ｂ感覚 = 2
+					
+					IF TALENT:(RESULT:1):オトコ
+						EXP:(RESULT:1):ＢＬ経験 += 闘技場フラグ:10:0 * 20 + RAND:5
+					ELSE
+						EXP:(RESULT:1):Ｖ経験 += 闘技場フラグ:10:0 * 10 + RAND:5
+						EXP:(RESULT:1):膣射経験 += 闘技場フラグ:10:0 * 5 + RAND:5
+						EXP:(RESULT:1):性交経験 += 闘技場フラグ:10:0 * 10 + RAND:5
+					ENDIF
+					SIF TALENT:(RESULT:1):オトコ || TALENT:(RESULT:1):ふたなり
+						EXP:(RESULT:1):射精経験 += 闘技場フラグ:10:0 * 10 + RAND:5
+					EXP:(RESULT:1):Ａ経験 += 闘技場フラグ:10:0 * 10 + RAND:5
+					EXP:(RESULT:1):絶頂経験 += 闘技場フラグ:10:0 * 15 + RAND:5
+					EXP:(RESULT:1):性交経験 += 闘技場フラグ:10:0 * 10 + RAND:5
+					EXP:(RESULT:1):精液経験 += 闘技場フラグ:10:0 * 20 + RAND:5
+					EXP:(RESULT:1):フェラ経験 += 闘技場フラグ:10:0 * 10 + RAND:5
+					EXP:(RESULT:1):便器経験 += 闘技場フラグ:10:0 * 25 + RAND:5
+					EXP:(RESULT:1):異常経験 = 1
+				ENDIF
+				
+				PRINTW You told the staff that you accidentally killed the demon
+				PRINTW The staff were fine with this as the demon did not escape
+				PRINTW You managed to deceive them
+			ELSE
+				PRINTW You caught the demon and delivered it to the Colosseum staff
+				PRINTFORMW You got {闘技場フラグ:10:0 * 300} macca in thanks
+				MONEY:1 += 闘技場フラグ:10:0 * 300
+			ENDIF
+
+			闘技場フラグ:10:2 += 1
+			闘技場フラグ:10:3 = 0
+		ELSE
+			PRINTL Colosseum Man：
+			PRINTW 「Well。Come back as soon as possible」
+		ENDIF
+	PRINTW You returned to the waiting room
+ENDIF
+RETURN 1

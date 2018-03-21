@@ -1,0 +1,96 @@
+;========================================
+;相性判定関数
+;ARG:1（PLAYER）→ARG（TARGET）に対する相性を返す
+;========================================
+@GET_RELATION(ARG = -1, ARG:1 = -1 , ARG:2 = -1)
+#FUNCTION
+#LOCALSIZE 2
+#DIM L_RELATION
+#DIMS L_GROUP, 10
+SIF ARG == -1
+	ARG = TARGET
+SIF ARG:1 == -1
+	ARG:1 =PLAYER
+;基礎値
+L_RELATION = 100
+;個別のNOによる定義
+IF STRFIND("_" + CSTR:ARG:相性_最高, "_" + CSVCALLNAME(NO:(ARG:1), 0)) >= 0
+	L_RELATION = 200
+ELSEIF STRFIND("_" + CSTR:ARG:相性_抜群, "_" + CSVCALLNAME(NO:(ARG:1), 0)) >= 0
+	L_RELATION = 150
+ELSEIF STRFIND("_" + CSTR:ARG:相性_良好, "_" + CSVCALLNAME(NO:(ARG:1), 0)) >= 0
+	L_RELATION = 125
+ELSEIF STRFIND("_" + CSTR:ARG:相性_不良, "_" + CSVCALLNAME(NO:(ARG:1), 0)) >= 0
+	L_RELATION = 75
+ELSEIF STRFIND("_" + CSTR:ARG:相性_最悪, "_" + CSVCALLNAME(NO:(ARG:1), 0)) >= 0
+	L_RELATION = 50
+;配偶者チェック
+ELSEIF CSV配偶者(ARG, ARG:1)
+	L_RELATION = 200
+;家族関係による相性
+ELSEIF 近親チェック(ARG , ARG:1)
+	L_RELATION = 150
+ELSE
+	;個別 × 相性グループによる相性チェック
+	IF CSTR:(ARG:1):相性グループ != ""
+		SPLIT CSTR:(ARG:1):相性グループ, "_", L_GROUP
+		FOR LOCAL, 0, RESULT
+			IF STRFIND("_" + CSTR:ARG:相性_最高, "_" + L_GROUP:LOCAL) >= 0
+				L_RELATION = 200
+			ELSEIF STRFIND("_" + CSTR:ARG:相性_抜群, "_" + L_GROUP:LOCAL) >= 0
+				L_RELATION = 150
+			ELSEIF STRFIND("_" + CSTR:ARG:相性_良好, "_" + L_GROUP:LOCAL) >= 0
+				L_RELATION = 125
+			ELSEIF STRFIND("_" + CSTR:ARG:相性_不良, "_" + L_GROUP:LOCAL) >= 0
+				L_RELATION = 75
+			ELSEIF STRFIND("_" + CSTR:ARG:相性_最悪, "_" + L_GROUP:LOCAL) >= 0
+				L_RELATION = 50
+			ENDIF
+			SIF L_RELATION != 100
+				BREAK
+		NEXT
+		;相性グループ × 相性グループ
+		IF L_RELATION == 100 && CSTR:ARG:相性グループ != ""
+			SPLIT CSTR:(ARG:1):相性グループ, "_", L_GROUP
+			FOR LOCAL, 0, RESULT
+				L_RELATION = GET_RELATION_GROUP(ARG, ARG:1, L_GROUP:LOCAL)
+				;100以外のをひいた時点でBREAK
+				SIF L_RELATION != 100
+					BREAK
+			NEXT
+		ENDIF
+	ENDIF
+ENDIF
+;主にあとから追加することになるキャラIDに対する好感度
+FOR LOCAL, 1, 21
+	SIF CFLAG:ARG:@"キャラ相性{LOCAL}" < 0
+		CONTINUE
+	IF CFLAG:ARG:@"キャラ相性{LOCAL}" == CFLAG:(ARG:1):キャラ固有の番号
+		L_RELATION = CFLAG:ARG:@"キャラ相性値{LOCAL}"
+		BREAK
+	ENDIF
+NEXT
+;第三引数を渡されている場合、属性を省略する
+SIF ARG:2 > -1
+	RETURNF L_RELATION
+;属性による相性変更
+;NはLDにたいして、変更なしだが
+;N同士でも補正が弱い
+IF ABL:ARG:属性LD == 2 && ABL:(ARG:1):属性LD == 2
+	L_RELATION += 10
+;LDは一致してると+25
+ELSEIF ABL:ARG:属性LD == ABL:(ARG:1):属性LD
+	L_RELATION += 25
+;LDはお互いに-25
+ELSEIF (ABL:ARG:属性LD == 1 && ABL:(ARG:1):属性LD == 3) || (ABL:ARG:属性LD == 3 && ABL:(ARG:1):属性LD == 1)
+	L_RELATION -= 25
+ENDIF
+
+IF ABL:ARG:属性LC == 2 && ABL:(ARG:1):属性LC == 2
+	L_RELATION += 10
+ELSEIF ABL:ARG:属性LC == ABL:(ARG:1):属性LC
+	L_RELATION += 25
+ELSEIF (ABL:ARG:属性LC == 1 && ABL:(ARG:1):属性LC == 3) || (ABL:ARG:属性LC == 3 && ABL:(ARG:1):属性LC == 1)
+	L_RELATION -= 25
+ENDIF
+RETURNF L_RELATION

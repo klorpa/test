@@ -1,0 +1,210 @@
+@CONVERT_TOUHOUOLD, ARG , ARG:1 , ARG:2 , ARG:3 = -1
+;ARG ,悪魔１
+;ARG:1　悪魔２
+;ARG:2　悪魔３
+;ARG:3　元々のRESULT
+;
+
+;LOCAL ：悪魔１種族
+;LOCAL:1 ：悪魔２種族
+;LOCAL:2 ：悪魔３種族
+;LOCAL:3 ：悪魔種族
+;LOCAL:4 ：悪魔LV
+
+#LOCALSSIZE 5
+
+;合体処理をもう一度行う
+;合体結果の種族を検索
+IF ARG:2 > 0
+	LOCAL = ABL:(ARG:0):種族
+	LOCAL:1 = ABL:(ARG:1):種族
+	LOCAL:2 = ABL:(ARG:2):種族
+	;バブルソートもどき
+	SIF LOCAL > LOCAL:1
+		SWAP LOCAL , LOCAL:1
+	SIF LOCAL:1 > LOCAL:2
+		SWAP LOCAL:1 , LOCAL:2
+	SIF LOCAL > LOCAL:1
+		SWAP LOCAL , LOCAL:1
+	CALL SEARCH_RACE, LOCAL , LOCAL:1
+	SIF RESULT == 13
+		RESULT = LOCAL
+	CALL SEARCH_RACE, MIN(RESULT , LOCAL:2), MAX(RESULT , LOCAL:2)
+	IF RESULT == 13
+		RETURN ARG:3
+	ELSE
+	
+	ENDIF
+ELSE
+	CALL SEARCH_RACE,MIN(ABL:ARG:種族,ABL:(ARG:1):種族),MAX(ABL:ARG:種族,ABL:(ARG:1):種族)
+	SIF RESULT == 13
+		RETURN ARG:3
+ENDIF
+;その種族の悪魔をリスト化 Ｄあたりにリストを入れる
+;女専用種族を男で作ろうとする場合、オトコ専用種族に変換する。
+IF RESULT == 1 && TALENT:ARG:オトコ
+	RESULT = 15
+ELSEIF RESULT == 2 && TALENT:ARG:オトコ
+	RESULT = 16
+ENDIF
+LOCAL:3 = RESULT
+	;合体不可の組み合わせなら0を返す
+SIF LOCAL:3 == 0
+	RETURN 0
+
+;作成したリストから二体の平均レベルに合わせて悪魔を選ぶ
+IF ARG:2 > 0
+	;平均に足すレベル
+	IF EQUIP:MASTER:Paracelsus == 0
+		LOCAL:4 = (CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:1),GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:2),GETNUM(BASE,"LV"),0))/3 + FUSION_PLUS_LV(3,1)
+	ELSE
+		LOCAL:4 = (BASE:ARG:LV + BASE:(ARG:1):LV + BASE:(ARG:2):LV)/3 + FUSION_PLUS_LV(3,1)
+	ENDIF
+ELSE
+	;平均に足すレベル
+	IF EQUIP:MASTER:Paracelsus == 0
+		LOCAL:4 = (CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:1),GETNUM(BASE,"LV"),0))/2 + FUSION_PLUS_LV(2,1)
+	ELSE
+		LOCAL:4 = (BASE:ARG:LV + BASE:(ARG:1):LV)/2 + FUSION_PLUS_LV(2,1)
+	ENDIF
+ENDIF
+
+;デバッグ用
+;PRINTFORML 種族 ＝ {LOCAL:3}
+;PRINTFORML 元キャラレベル ＝ {LOCAL:4}
+
+SELECTCASE LOCAL:3
+	;地母神
+	CASE 1
+		;キクリ　ＬＶ４０くらい
+			RETURN 6807	
+	;女神
+	CASE 2
+		;エリス　ＬＶ40
+			RETURN 6804
+	;魔王
+	CASE 3
+		;夢月　LV40くらい
+		SIF LOCAL:4 >= CSVBASE(6821,GETNUM(BASE,"LV"),0)
+			RETURN 6821
+		;エリー　ＬＶ25くらい
+		SIF LOCAL:4 >= CSVBASE(6820,GETNUM(BASE,"LV"),0)
+			RETURN 6820
+	;妖魔
+	CASE 5
+		;夢子　ＬＶ40くらい
+		SIF LOCAL:4 >= CSVBASE(6827,GETNUM(BASE,"LV"),0)
+			RETURN 6827	
+		;マイ　ＬＶ35くらい
+		SIF LOCAL:4 >= CSVBASE(6826,GETNUM(BASE,"LV"),0)
+			RETURN 6826	
+		;マガン　ＬＶ30
+		SIF LOCAL:4 >= CSVBASE(6803,GETNUM(BASE,"LV"),0)
+			RETURN 6803	
+		;シンギョク女　ＬＶ25
+		SIF LOCAL:4 >= CSVBASE(6801,GETNUM(BASE,"LV"),0)
+			RETURN 6801
+		;ルイズ　ＬＶ20
+		SIF LOCAL:4 >= CSVBASE(6824,GETNUM(BASE,"LV"),0)
+			RETURN 6824
+		;サラ　ＬＶ10
+			RETURN 6823
+	;妖鬼
+	CASE 7
+		;ユキ　ＬＶ35くらい
+		SIF LOCAL:4 >= CSVBASE(6825,GETNUM(BASE,"LV"),0)
+			RETURN 6825
+		;理香子　ＬＶ30くらい
+		SIF LOCAL:4 >= CSVBASE(6814,GETNUM(BASE,"LV"),0)
+			RETURN 6814
+		;エレン　ＬＶ20くらい
+		SIF LOCAL:4 >= CSVBASE(6813,GETNUM(BASE,"LV"),0)
+			RETURN 6813
+		;オレンジ　ＬＶ10くらい
+			RETURN 6818
+	;妖鳥
+	CASE 10
+		;くるみ　ＬＶ20くらい
+			RETURN 6819
+	;外道
+	CASE 11
+		;魅魔　ＬＶ35
+		SIF LOCAL:4 >= CSVBASE(6806,GETNUM(BASE,"LV"),0)
+			RETURN 6806
+		;カナ　ＬＶ20
+		SIF LOCAL:4 >= CSVBASE(6811,GETNUM(BASE,"LV"),0)
+			RETURN 6811
+
+ENDSELECT
+
+
+;コンバート先がない場合、そのまま返す
+RETURN ARG:3
+
+
+
+;=====================================================
+;美鈴＊SinGyoku女＝　SinGyoku男
+;=====================================================
+@FUSION_SPECIAL_4805_6801,ARG,ARG:1
+RETURN 6802
+
+;=====================================================
+;エリス＊サグメ＝　サリエル
+;=====================================================
+@FUSION_SPECIAL_5814_6804,ARG,ARG:1
+RETURN 6805
+
+;=====================================================
+;勇儀＊明羅＝　コンガラ
+;=====================================================
+@FUSION_SPECIAL_4859_6810,ARG,ARG:1
+RETURN 6808
+
+;=====================================================
+;造魔＊理香子＝　里香
+;=====================================================
+@FUSION_SPECIAL_4402_6814,ARG,ARG:1
+RETURN 6809
+
+;=====================================================
+;造魔＊妖夢＝　明羅
+;=====================================================
+@FUSION_SPECIAL_4402_4818,ARG,ARG:1
+RETURN 6810
+
+;=====================================================
+;造魔＊てゐ＝　小兎姫
+;=====================================================
+@FUSION_SPECIAL_4402_4826,ARG,ARG:1
+RETURN 6812
+
+;=====================================================
+;造魔＊ユキ＝　ちゆり
+;=====================================================
+@FUSION_SPECIAL_4402_6825,ARG,ARG:1
+RETURN 6815
+
+;=====================================================
+;造魔＊ちゆり＝　夢美
+;=====================================================
+@FUSION_SPECIAL_4402_6815,ARG,ARG:1
+RETURN 6816
+
+;=====================================================
+;理香子＊ちゆり＝　る～こと
+;=====================================================
+@FUSION_SPECIAL_6814_6815,ARG,ARG:1
+RETURN 6817
+
+;=====================================================
+;幽香＊夢月＝　幻月
+;=====================================================
+@FUSION_SPECIAL_4833_6821,ARG,ARG:1
+RETURN 6822
+
+;=====================================================
+;夢子＊ルイズ＝　神綺
+;=====================================================
+@FUSION_SPECIAL_6824_6827,ARG,ARG:1
+RETURN 6828

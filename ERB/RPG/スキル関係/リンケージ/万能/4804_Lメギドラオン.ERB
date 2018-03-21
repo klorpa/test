@@ -1,0 +1,219 @@
+;スキル名
+@SKILL_NAME_4804,ARG
+RESULTS = Ｌ Megidolaon
+;Ｌメギドラオン
+;　命中
+@SKILL_HITRATE_4804, ARG
+RETURN 90
+
+;　威力
+@SKILL_POWER_4804, ARG
+SIF ARG == -1 || CFLAG:ARG:単独リンケージ
+	RETURN 460
+;発動者と参加者の魔法威力の比率により、威力に補正がかかる
+RETURN 460 * (MAXBASE:ARG:魔法威力 * 2 + MAXBASE:(CFLAG:ARG:リンケージ参加者1):魔法威力 + MAXBASE:(CFLAG:ARG:リンケージ参加者2):魔法威力) / (MAXBASE:ARG:魔法威力 * 4)
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_4804,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_4804,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_4804, ARG, ARG:1
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_4804, ARG
+RETURN 30
+
+;　相性
+@SKILL_TYPE_4804,ARG
+RETURN GET_TYPE_NUM("万能")
+;　1EXTRAか2MAGICか
+
+@SKILL_DECIDE_TYPE_4804
+RETURN 1
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_4804
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_4804
+RETURN 1
+
+;　射程
+@SKILL_RANGE_4804,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_4804,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_4804
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_4804,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_4804
+RETURN 23
+
+;速度補正
+@SKILL_SPEED_4804, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_4804,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_4804
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_4804
+RETURN 0
+
+@SKILL_RANKUP_4804
+RETURN 0
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_4804,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_4804,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_4804,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_4804,ARG
+RETURN 0
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_4804,ARG,ARG:1
+CALL ATTACK_FIELD, ARG, ARG:1, 4804
+
+
+
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_4804
+PRINTL Deals severe Almighty damage to all foe. al
+
+;継承に必要な部位
+@継承部位_4804,ARG
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_4804,ARG
+CALL CHECK_COST,ARG,4804
+SIF RESULT == 0
+	RETURN 0
+RETURN 1
+;とくにない
+
+
+;=====================================================
+;リンケージ設定
+;=====================================================
+@LINKAGE_4804
+RETURN 1
+
+@参加人数_4804
+RETURN 2
+
+@参加条件表示_4804,ARG
+SELECTCASE ARG
+	CASE 1
+		PRINTFORM Hamaon or Mahamaon
+	CASE 2
+		PRINTFORM Mudoon or Mamudoon
+	CASE 3
+		PRINTFORM Mahakouha or Maeiha
+ENDSELECT
+
+@発動者条件_4804 , ARG
+;マハコウハかマハエイハを使えること
+IF HAVE_SKILL(ARG, [[スキル:マハエイハ]])
+	CALL CHECK_ACTIONABLE , ARG , [[スキル:マハエイハ]]
+	SIF RESULT
+		RETURN 1
+ENDIF
+IF HAVE_SKILL(ARG, [[スキル:マハコウハ]])
+	CALL CHECK_ACTIONABLE , ARG , [[スキル:マハコウハ]]
+	SIF RESULT
+		RETURN 1
+ENDIF
+RETURN 0
+
+
+@参加者条件_4804, ARG , ARG:1
+SIF CPOS(ARG) < 1 || CPOS(ARG) > 6
+	RETURN 0
+CALL CHECK_COST_LINCAGE, ARG, 4804, ARG:1
+SIF RESULT == 0
+	RETURN 0
+SELECTCASE ARG:1
+	CASE 1
+		;ハマオンかマハンマオンを使えること
+		IF HAVE_SKILL(ARG, [[スキル:ハマオン]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:ハマオン]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		IF HAVE_SKILL(ARG, [[スキル:マハンマオン]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:マハンマオン]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+	CASE 2
+		;ムドオンかマハムドオンを使えること
+		IF HAVE_SKILL(ARG, [[スキル:ムドオン]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:ムドオン]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		IF HAVE_SKILL(ARG, [[スキル:マハムドオン]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:マハムドオン]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+ENDSELECT
+RETURN 0
+
+@リンケージコストタイプ_4804, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 3
+	CASE 2
+		RETURN 3
+ENDSELECT
+@リンケージコスト_4804, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 30
+	CASE 2
+		RETURN 30
+ENDSELECT

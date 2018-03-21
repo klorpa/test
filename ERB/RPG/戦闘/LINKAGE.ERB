@@ -1,0 +1,204 @@
+
+
+;=================================================
+;合体スキル用関数置き場
+;================================================
+
+;=================================================
+;リンケージ使用可能判定
+;================================================
+@ACTIONABLE_LINKAGE,ARG,ARG:1
+;対象スキルがそもそもリンケージじゃなかったら帰る
+;この処理はより上の階層に逃がす予定
+TRYCCALLFORM LINKAGE_{ARG}
+	SIF RESULT == 0
+		RETURN 0
+CATCH
+	RETURN 0
+ENDCATCH
+;発動者が条件を満たしているかチェック
+CALLFORM 発動者条件_{ARG},ARG:1
+SIF RESULT == 0
+	RETURN 0
+
+;参加者の人数をチェック
+CALLFORM 参加人数_{ARG}
+LOCAL:1 = RESULT
+
+;条件を満たす参加者をDの枠に放り込む
+VARSET D , 0
+FOR LOCAL, 1 , LOCAL:1+1
+	FOR LOCAL:2 , 1 , 7
+		SIF POS(LOCAL:2) == -1
+			CONTINUE
+		;発動者は参加者になれない
+		SIF POS(LOCAL:2) == ARG:1
+			CONTINUE
+		;入力できない状態の人はそもそも無理
+		CALL INPUTABLE_CHARA , POS(LOCAL:2)
+		SIF RESULT == 0
+			CONTINUE
+		CALLFORM 参加者条件_{ARG},POS(LOCAL:2),LOCAL
+		SIF RESULT == 0
+			CONTINUE
+		;別のリンケージに参加中のキャラは弾く
+		SIF CFLAG:POS(LOCAL:2):リンケージ参加 == 1
+			CONTINUE
+		D:LOCAL |= POWER(2,LOCAL:2)
+	NEXT
+NEXT
+
+;0があると駄目
+SIF MINARRAY(D,1,LOCAL:1+1) == 0
+	RETURN 0
+
+
+
+;重複せずに全てが埋まる組み合わせがあるかをチェック
+;どうすんだこれ
+VARSET E , 0
+
+;まずLOCAL番目の条件を満たせるキャラが一人しか居ない場合、参加者LOCAL番目はそのキャラに決定
+;FOR LOCAL , 1 , LOCAL:1+1
+;	SIF C:LOCAL > 0
+;		CONTINUE
+;	FOR LOCAL:2 , 1 , 7
+;		IF D:LOCAL = POWER(2,LOCAL:2)
+;			C:LOCAL = POWER(2,LOCAL:2)
+;			;全てのDからLOCAL:2番目のビットを削除
+;			FOR LOCAL:3 , 1 , LOCAL:1+1
+;				D:(LOCAL:3) &= ~(POWER(2,LOCAL:2))
+;			NEXT
+;			GOTO LOOP
+;		ENDIF
+;	NEXT
+;NEXT
+
+FOR LOCAL:4 , 1 , 7
+	$LOOP1
+	;LOCAL番目の条件をLOCAL:4人が満たしている場合、番号の若い順に当てはめ
+	;当てはめたらまた一人からチェック
+	FOR LOCAL , 1 , LOCAL:1 + 1
+		SIF E:LOCAL > 0
+			CONTINUE
+		;人数を判定
+		LOCAL:3 = 0
+		FOR LOCAL:2 , 1 , 7
+			LOCAL:3 += GETBIT(D:LOCAL, LOCAL:2)
+		NEXT
+		;LOCAL:4人じゃなければ次へ
+		SIF LOCAL:3 != LOCAL:4
+			CONTINUE
+		FOR LOCAL:2 , 1 , 7
+			IF D:LOCAL & POWER(2,LOCAL:2)
+				E:LOCAL = POWER(2,LOCAL:2)
+				;全てのDからLOCAL:2番目のビットを削除
+				FOR LOCAL:3 , 1 , LOCAL:1+1
+					D:(LOCAL:3) &= ~(POWER(2,LOCAL:2))
+				NEXT
+				LOCAL:4 = 0
+				GOTO LOOP1
+			ENDIF
+		NEXT
+	NEXT
+NEXT
+
+
+;Eに0が残ってたら駄目
+
+SIF MINARRAY(E,1,LOCAL:1+1) == 0
+	RETURN 0
+SETBIT FLAG:(1202+ARG / 63), ARG % 63
+RETURN 1
+
+@SHOW_LINKAGE
+#LOCALSIZE 4
+#DIM TYPE, 1
+#DIM PAGE, 1
+#DIM LINE, 1
+#DIM LIST, 100
+LINE = LINECOUNT
+$START
+CLEARLINE LINECOUNT -LINE
+DRAWLINE
+FOR LOCAL, 4000 + TYPE * 40, 4000 + (TYPE+1) * 40
+	SIF !GETBIT(FLAG:(1202+LOCAL / 63), LOCAL % 63)
+		CONTINUE
+	TRYCCALLFORM SKILL_NAME_{LOCAL}
+	CATCH
+		CONTINUE
+	ENDCATCH
+	PRINTFORM [{LOCAL}] %RESULTS,20,LEFT%
+	CALLFORM 参加人数_{LOCAL}
+	FOR LOCAL:1, 1, RESULT + 2
+		SIF LOCAL:1 > 1
+			PRINT 　→　
+		CALLFORM 参加条件表示_{LOCAL}, LOCAL:1
+	NEXT
+	PRINTL 
+NEXT
+DRAWLINE
+LOCAL:1 = 0
+FOR LOCAL, 0, 21
+	SIF GET_SUCCESSION(LOCAL) == ""
+		CONTINUE
+	SIF LOCAL == TYPE
+		SETCOLOR COLOR("aqua")
+	PRINTFORM [{LOCAL,2}]%GET_SUCCESSION_E(LOCAL), 6, LEFT%
+	SIF LOCAL:1 % 7 == 6
+		PRINTL 
+	LOCAL:1++
+	RESETCOLOR
+NEXT
+DRAWLINE
+PRINTL [99] Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 99
+	RETURN
+ELSEIF RESULT >= 4000 && RESULT <= 5000
+	LOCAL = RESULT
+	IF GETBIT(FLAG:(1202+LOCAL / 63), LOCAL % 63)
+		TRYCCALLFORM SKILL_NAME_{LOCAL}
+			PRINTFORML [{LOCAL}] %RESULTS,20,LEFT%
+			PRINT 発動者 　
+			CALLFORM SKILL_COSTTYPE_{LOCAL}
+			IF RESULT == 2
+				CALLFORM SKILL_COST_{LOCAL}
+				PRINTFORM ＨＰ{RESULT,3}％　
+			ELSE
+				CALLFORM SKILL_COST_{LOCAL}
+				PRINTFORM ＭＰ{RESULT,3}　　
+			ENDIF
+			CALLFORM 参加人数_{LOCAL}
+			LOCAL:1 = RESULT + 1
+			FOR LOCAL:2, 1, LOCAL:1
+				PRINTFORM 参加者{LOCAL:2}　
+				CALLFORM リンケージコストタイプ_{LOCAL}, LOCAL:2
+				IF RESULT == 2
+					CALLFORM リンケージコスト_{LOCAL}, LOCAL:2
+					PRINTFORM ＨＰ{RESULT,3}％　
+				ELSE
+					CALLFORM リンケージコスト_{LOCAL}, LOCAL:2
+					PRINTFORM ＭＰ{RESULT,3}　　
+				ENDIF
+				IF LOCAL:1 == LOCAL:2 - 1
+					PRINTL 
+				ELSEIF LOCAL:2 == 2
+					PRINTL 
+					PRINTFORM %" "* 27%
+				ENDIF
+			NEXT
+			PRINTL 
+			;参加者が決まってなかったりして落ちるスキルがあるので…
+			;SIF FLAG:スキル属性表示設定 == 1
+			;	CALL SKILL_EXPLAIN_PERFORMANCE, LOCAL, -1
+			TRYCALLFORM SKILL_EXPLAIN_{LOCAL}
+			WAIT
+		CATCH
+		ENDCATCH
+	ENDIF
+ELSEIF RESULT >= 0 && RESULT < 21
+	TYPE = RESULT
+ENDIF
+GOTO START

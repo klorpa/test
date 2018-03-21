@@ -1,0 +1,86 @@
+;-------------------------------------------------
+;アナル舐め
+;愛撫系コマンド、レベル1
+;-------------------------------------------------
+@ACT_COM4
+PRINTL Rim Job
+TSTR:0 = アナル舐め
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 5
+DOWNBASE:TARGET:気力 += 50
+
+SOURCE:TARGET:快Ａ = 50
+SOURCE:TARGET:液体 = 50
+SOURCE:TARGET:逸脱 = 40
+SOURCE:TARGET:反感 = 30
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 50
+
+;調教者のTALENT:舌使いをみる
+SIF TALENT:PLAYER:52
+	TIMES SOURCE:TARGET:快Ａ , 1.50
+	
+;調教者のTALENT:猫舌をみる
+SIF TALENT:PLAYER:52
+	TIMES SOURCE:TARGET:快Ａ , 0.75
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＡ⇔調教者の口の汚れが移動
+CALL MOVE_STAIN("アナル", TARGET, "Mouth", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 3
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;調教者が猫舌持ちの場合は、調教者にSadoEXPを追加
+IF TALENT:PLAYER:54
+	CALL ADDS_EXP("嗜虐快楽経験", 1, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_4
+RETURN COMTYPE("愛撫系")

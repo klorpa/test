@@ -1,0 +1,128 @@
+;フラグ
+;イベントフラグ:22:0 ; 0:イベント未解決 1:協力申し出 2:顔を繋いだだけ 3:不法侵入をしただけ、4:ゆきの奴隷化
+;1，2ではエルミン学園絡みの依頼発生
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_22
+;地下鉄クリア後,SEBECビル侵入前,「御影町にて」イベント解決
+IF ダンジョンフラグ:9:1 == 1 && ダンジョンフラグ:10:0 == 0 && イベントフラグ:22:0 == 0 && (イベントフラグ:21:0 != 0 || イベントフラグ:20:0 != 0)
+	RESULTS = St. Hermelin High School 1
+	RETURN 1
+ENDIF
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_22
+PRINTFORML Visited St. Hermelin High School。
+;エリーかアヤセと平和裏に話を付けている
+IF イベントフラグ:21:0 == 3 || イベントフラグ:20:0 == 5
+	IF イベントフラグ:21:0 == 3
+;エリールート
+		PRINTL Heard about this school from Eriko Kirishima、the girl you met in the subway。
+		PRINTL After entering the passcode into the front gate。　The gate opened easily。
+		PRINTL A school girl with short hair stands in front。
+		PRINTL 「Would you wait a minute？　I want you to tell me who told you the passcode」
+		PRINTFORML It is obvious that %CALLNAME:MASTER% is not a student、she does not seem to be naive。
+		PRINTL Talked about what happened in the subway。
+		PRINTL 「‥‥I understand。　Eriko it's good to hear that Eriko is ok」
+		PRINTL The short-haired girl‥‥introduced herself as Yukino Mayuzumi‥‥relaxed and muttered。
+	ELSEIF イベントフラグ:20:0 == 5
+;アヤセルート
+		PRINTL ‥‥But、was suddenly stopped at the front gate。　It asked for a passcode、but you didn't know it。
+		PRINTL Because it could not be opened、should you leave now？ When you began to consider it、the gate suddenly opened。
+		PRINTL Standing there was a student with short-hair、and a freckled schoolgirl that you recognized、it was Ayase。
+		PRINTL 「What is it？ You should have told me if you were coming here」
+		PRINTL You seems to have appeared when Ayase was between classes。
+		PRINTL 「If Ayase's benefactor says so、it cannot be helped」
+		PRINTL And、the shot-haired girl‥‥introduced herself as Yukino Mayuzumi‥‥and relaxed a bit while muttering。
+	ENDIF
+	PRINTL 「So what do you want？　Not like an ordinary person can hang around Mikage-Cho now。If you came to help protect the school、I welcome that」
+	PRINTL Unfortunately、she would not be able to reward you in this situation、Yukino says。
+	PRINTL Though she is a student、she knows things cannot be ignored by  St. Hermelin High School now。
+	A = 0
+	CALL INPUT_YN("Offer a limited cooperation", "You have no business")
+	IF RESULT == 0
+		PRINTFORML %CALLNAME:MASTER% cannot always be here。
+		PRINTL If you offer limited cooperation、you would need to reveal the circumstances that allowed to to be here to some extent‥‥？
+		CALL INPUT_YN("There is no problem", "That is a bad idea")
+		SIF RESULT == 0
+			A = 1
+	ENDIF
+	IF A == 1
+		CALL INCREASE_LD, 8
+		PRINTFORML ‥‥Yukino listened to %CALLNAME:MASTER%'s proposal silently。
+		PRINTL 「While I'm disappointed that you can't set everyone free、I would really appreciate it」
+		PRINTL 「Because I can't answer with just my personal judgement、I'll talk to everyone。　But、I'm sure I know what the answer will be」
+		PRINTFORMW ‥‥Yukino grasped the hand that %CALLNAME:MASTER% held out
+		イベントフラグ:22:0 = 1
+	ELSE
+		PRINTL 「Oh、it is safe here for now。　You can take it easy here for a bit」
+		PRINTL You wandered the school for a bit。
+		PRINTL While nothing happened、if future business here comes up、that business will be much smoother。
+		イベントフラグ:22:0 = 2
+	ENDIF
+ELSE
+	PRINTL ‥‥But、you were suddenly stopped at the front gate。　It demanded a password、but you didn't know it。
+	PRINTL Probably to defend against demons、some defenses were set up。
+	PRINTL Even if breaking in is possible、the ability of a summoner isn't for showing off。
+	PRINTL What to do‥‥
+	CALL INPUT_YN("Look for a secret entrance", "You have no business here")
+	IF RESULT == 0
+		PRINTL ‥‥After looking back and forth、you found a damaged part of the wall in the back。
+		PRINTL It was repaired、but still easy to break。There will be a watch、but you could evade them at night
+;夜
+		IF TIME == 3
+			CALL INCREASE_LC, -4
+			PRINTL You tried to infiltrate from here。
+			PRINTL ‥‥‥‥‥‥
+			PRINTL ‥‥‥‥
+			PRINTW ‥‥
+			PRINTL You infiltrated the school。
+			PRINTL While avoiding the eyes of the students、you prowled the campus。
+			PRINTL Their security against demons is tight for amateurs。
+			PRINTL The one in charge must have excellent leadership skills。
+			PRINTL 「Wait、who are you？　You do not seem to be a demon‥‥」
+			PRINTL Your good luck couldn't last forever。
+			PRINTL You turned around to the source of the voice。
+			PRINTL A girl with short hair was there。
+			CALL INPUT_YN("Escape desparately", "Subjugate her")
+			IF RESULT == 0
+				PRINTFORML %CALLNAME:MASTER% immediately ran away。
+				PRINTL The girl pursued while shouting、but many would be sleeping at midnight、which would slow down their response。
+				PRINTFORML Though %CALLNAME:MASTER% managed to run away、St. Hermelin High School's defenses will be stengthened。
+				イベントフラグ:22:0 = 3
+			ELSE
+				CALL INCREASE_LD, -16
+				PRINTL That she thought you weren't a demon、and called out to you、She is too naive。
+				PRINTFORML %CALLNAME:MASTER% attacked her
+				PRINTL １ Persona-user　Yukino Mayuzumi appeared！
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				WAIT
+				CALL SET_ENEMY, 9, 4535, 5,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				CUSTOMDRAWLINE =
+				WAIT
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTW Yukino Mayuzumi fell down
+				PRINTFORML %CALLNAME:MASTER% carried off her body and left St. Hermelin High School。
+				CALL ADD_NEW_COMPANION,4535,100
+				イベントフラグ:22:0 = 4
+			ENDIF
+		ELSE
+			PRINTL It would be difficult to evade the sentries as expected。
+			PRINTL This should be done at night。
+		ENDIF
+	ELSE
+		PRINTL ‥‥Left because it would be troublesome。
+		PRINTL Didn't have any business here in the first place。
+	ENDIF
+ENDIF

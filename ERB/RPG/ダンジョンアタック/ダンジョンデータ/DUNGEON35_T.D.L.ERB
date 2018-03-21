@@ -1,0 +1,1964 @@
+;=======================================================================
+;ダンジョンナンバー35
+;T.D.L
+;-----------------------------------------------------------------------
+;フラグ
+;0 = 出現フラグ(敵の強さは 出現フラグ 1 * 10 + 20が基準で、フラグは1~4)
+;    このフラグはイベント10 組織からの通達によって立てられる
+;1 = エキドナイベントフラグ	 -1,エキドナ撃破, 1,ハニエル依頼保留		2,ハニエル依頼受諾		3,カテドラル侵攻保留		4,カテドラル侵攻受諾
+;2 = エキドナ友好フラグ		真の時、エンカウントがなくなる。どちらかの依頼を受けたときに立てて、殺したときに折る
+;3 = 初探索フラグ
+;3 = 快楽　ユーリア・フェテアスカ
+;4 = 
+;5 = 
+;6 = 
+;7 = 魔貨支払いの扉
+;8 = ドラゴンインストール
+;10 = 1.アイテム
+;-----------------------------------------------------------------------
+;関連他ダンジョンフラグ
+;銀座大地下道
+;ダンジョンフラグ:20:0　1 = ハニエルに協力した　2 = エキドナに協力した 4 = ヴィシュヌに協力した 8 = ラーヴァナに協力した 16 = イベントを見た
+;ダンジョンフラグ:20:6  銀座大地下道の扉突破に必要な4人の悪魔の情報の取得フラグ
+
+;その他のダンジョンフラグ
+;ダンジョンフラグ:46:2 新宿大聖堂でパズスに協力
+;ダンジョンフラグ:47:2 品川でハニエル討伐依頼を受ける
+
+;ダンジョンフラグ:(FLAG:現ダンジョン):10-13 = 1.宝箱
+;-----------------------------------------------------------------------
+;エキドナイベント
+;
+;
+;なお、ハニエル討伐依頼を受けた時点と報告した時点でそれぞれ報酬が支払われる
+;引き受けた時点の報酬は報告せずに倒した場合はもらえない
+;
+;また依頼を受けた時点でエンカウントはなくなる
+;-----------------------------------------------------------------------
+;ラッキーチェック
+;運は関係ない･･･というのが原作の仕様らしいのと
+;なんどでも発生するというのが原作の仕様らしいので
+;とはいえ、うざすぎるのでEASYは1度づつしか発生しないように
+;-----------------------------------------------------------------------
+
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_35
+;新宿大聖堂クリア
+;SIF ダンジョンフラグ:46:0 == 1
+;	RETURN 1
+;出現フラグが立てられている
+SIF ダンジョンフラグ:[[ダンジョン:T.D.L.]]:0
+	RETURN 1
+RETURN 0
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_35
+RESULTS = T.D.L.
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_35
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINT T.D.L.
+		PRINTL   １Ｆ
+	CASE 1
+		PRINT T.D.L.
+		PRINTL   ２Ｆ
+	CASE 2
+		PRINT T.D.L.
+		PRINTL   ３Ｆ
+	CASE 3
+		PRINT T.D.L.
+		PRINTL   ４Ｆ
+	CASEELSE
+		PRINTL   異界
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_35,ARG
+FLAG:現M = 0
+FLAG:現X = 17
+FLAG:現Y = 30
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_35
+IF ダンジョンフラグ:(FLAG:現ダンジョン):3++ == 0
+	CALL SHOW_PICTURE, "D"
+	CALL MESSAGE_WINDOW_D, "", "＞東京郊外にある『東京デスティニーランド』/＞かつては観光客や家族連れで賑わったテーマパークは/＞今では悪魔の居城となっていた/＞情報によれば此の地に邪龍エキドナがいるらしい"
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_35,ARG,ARG:1
+;IF FLAG:現M == 0 && ARG == 9 && ARG:1 == 12
+;	PRINTL LAIR OF THE HORRIFIC KILLER SAKAHAGI OFFICE
+;	PRINTL HOURS 9AM TO 3PM BY APPOINTMENT ONLY
+;	PRINTW THE HORRIFIC KILLER IS *ABSENCE*
+;	PRINTL 
+;	IF FINDCHARA_B(4501,1)== 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+;		PRINTW 『日本語でokと書いてあるわ』
+;	ELSEIF FINDCHARA_B(4559,1)== 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+;		PRINTW 『殺人鬼のねぐららしいです』
+;	ENDIF
+;	CLEARLINE 3
+;	IF ダンジョンフラグ:(FLAG:現ダンジョン):7 == 0
+;		RETURN 1
+;	ELSE
+;		RETURN 0
+;	ENDIF
+;ENDIF
+IF DA:ARG:(ARG:1) % 10 == 2 && DA:ARG:(ARG:1) != 2
+	CALL DOOR_35, ARG, ARG:1
+	RETURN RESULT
+ELSE
+	CALL CAN_ENTER,ARG,ARG:1
+	RETURN RESULT
+ENDIF
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_35
+SELECTCASE FLAG:現M
+	CASE 0
+	;ＴＤＬ
+		FLAG:最大X = 34
+		FLAG:最大Y = 32
+								;0000000000111111111122222222223333
+							    ;0123456789012345678901234567890123
+		CALL MAKE_FLOOR_LINE, 0,"                                  "
+		CALL MAKE_FLOOR_LINE, 1,"         1G1 4 4 4 4 121          "
+		CALL MAKE_FLOOR_LINE, 2,"           1 2 2 2 2   1          "
+		CALL MAKE_FLOOR_LINE, 3,"         B 1 1 1 1 1 A 1          "
+		CALL MAKE_FLOOR_LINE, 4,"         2 2 1 1 1 1 2 2          "
+		CALL MAKE_FLOOR_LINE, 5,"         111 1 1 1 1 111          "
+		CALL MAKE_FLOOR_LINE, 6,"           1 1 1 1 1 1            "
+		CALL MAKE_FLOOR_LINE, 7,"         a 1 1 1 1 1 1 b          "
+		CALL MAKE_FLOOR_LINE, 8,"         2 2 1 1 1 1 2 2          "
+		CALL MAKE_FLOOR_LINE, 9,"         111 1 1 1 1 111          "
+		CALL MAKE_FLOOR_LINE,10,"           1 1 1 1 1 1            "
+		CALL MAKE_FLOOR_LINE,11,"         1 1 1 1 1 1 1 1          "
+		CALL MAKE_FLOOR_LINE,12,"         2 2 G G G G 2 2          "
+		CALL MAKE_FLOOR_LINE,13,"         111 1111111 111          "
+		CALL MAKE_FLOOR_LINE,14,"         2      G      2          "
+		CALL MAKE_FLOOR_LINE,15," 121 c   1 1    9 E 1111111 1 1 1 "
+		CALL MAKE_FLOOR_LINE,16," 1 C 121111111  2 G 1111111 1 2 1 "
+		CALL MAKE_FLOOR_LINE,17," 1      11 2 1  11111111111 111 1 "
+		CALL MAKE_FLOOR_LINE,18," 11111111  1 11 11111 2   1 2   1 "
+		CALL MAKE_FLOOR_LINE,19," 1      1     1111111 1 6 1111111 "
+		CALL MAKE_FLOOR_LINE,20," 1 121L 121 L21111111 1 2 1 1   1 "
+		CALL MAKE_FLOOR_LINE,21," 1 1  2 1     1 11111 111 1 1   1 "
+		CALL MAKE_FLOOR_LINE,22," 1 2  1 123 121 11111     1 11111 "
+		CALL MAKE_FLOOR_LINE,23," 121121 1     1  2    11111     1 "
+		CALL MAKE_FLOOR_LINE,24," 1      1  1  1 111   2 2 1 12L 1 "
+		CALL MAKE_FLOOR_LINE,25," 11111111  2  1 111   1 1 1 2 2 1 "
+		CALL MAKE_FLOOR_LINE,26," 1   2  1111111 111       1 12121 "
+		CALL MAKE_FLOOR_LINE,27," 1 111  1       111       1     1 "
+		CALL MAKE_FLOOR_LINE,28," 1 1 1  1211    191   1 3 1 d1121 "
+		CALL MAKE_FLOOR_LINE,29," 1 2 1  1        2    2 2 1     1 "
+		CALL MAKE_FLOOR_LINE,30," 1 1 L  11111    1  1111111211D 1 "
+		CALL MAKE_FLOOR_LINE,31,"                 8                "
+		;a → A
+		;b → B
+		;c ←→ C
+		;d ←→ D
+		;E 運試し終了ワープ地点
+		
+		;L ラッキーチェック
+		
+		;4-1 ガイア教徒
+		;4-2 エンジェル
+		;4-3 グルル
+		;4-4 バジリスク
+	CASE 1
+	;ＴＤＬ
+		FLAG:最大X = 14
+		FLAG:最大Y = 15
+							    ;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 1111O  11111 "
+		CALL MAKE_FLOOR_LINE, 2," 1      1   1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 1   11   1 "
+		CALL MAKE_FLOOR_LINE, 4," 1 2  11    1 "
+		CALL MAKE_FLOOR_LINE, 5," 111 f1  1J 1 "
+		CALL MAKE_FLOOR_LINE, 6," L 1     1  1 "
+		CALL MAKE_FLOOR_LINE, 7," 1 1u  p 1  1 "
+		CALL MAKE_FLOOR_LINE, 8," 1     1 L  1 "
+		CALL MAKE_FLOOR_LINE, 9," 1 1   1 1  1 "
+		CALL MAKE_FLOOR_LINE,10," 1 2   1 1  2 "
+		CALL MAKE_FLOOR_LINE,11," 1111111 1  7 "
+		CALL MAKE_FLOOR_LINE,12,"         1    "
+		CALL MAKE_FLOOR_LINE,13,"      k111121 "
+		CALL MAKE_FLOOR_LINE,14,"              "
+							    ;012345678901
+
+
+	CASE 2
+	;ＴＤＬ
+		FLAG:最大X = 20
+		FLAG:最大Y = 16
+							    ;01234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                    "
+		CALL MAKE_FLOOR_LINE, 1," 12111 o11111111111 "
+		CALL MAKE_FLOOR_LINE, 2,"   q 1            1 "
+		CALL MAKE_FLOOR_LINE, 3,"     11111111111r 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1        1       1 "
+		CALL MAKE_FLOOR_LINE, 5," 2   11F  1 N111111 "
+		CALL MAKE_FLOOR_LINE, 6," 11L11    P         "
+		CALL MAKE_FLOOR_LINE, 7," 5     m    j111111 "
+		CALL MAKE_FLOOR_LINE, 8," 1     1          1 "
+		CALL MAKE_FLOOR_LINE, 9," 1     1   U1121  1 "
+		CALL MAKE_FLOOR_LINE,10," h     1     L    1 "
+		CALL MAKE_FLOOR_LINE,11,"       5     1    1 "
+		CALL MAKE_FLOOR_LINE,12,"  111S 1     11v  1 "
+		CALL MAKE_FLOOR_LINE,13,"  2    1          1 "
+		CALL MAKE_FLOOR_LINE,14,"  1    11111K  I111 "
+		CALL MAKE_FLOOR_LINE,15,"                    "
+							    ;01234567890123456789
+
+	CASE 3
+	;ＴＤＬ
+		FLAG:最大X = 20
+		FLAG:最大Y = 16
+							    ;01234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                    "
+		CALL MAKE_FLOOR_LINE, 1," 1111111L11111121 1 "
+		CALL MAKE_FLOOR_LINE, 2," 1   1  1         1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 Q 1  1       R11 "
+		CALL MAKE_FLOOR_LINE, 4," 1 1 1  1         1 "
+		CALL MAKE_FLOOR_LINE, 5," 2 1 1  111111n 1 1 "
+		CALL MAKE_FLOOR_LINE, 6," 1 1 1          2 1 "
+		CALL MAKE_FLOOR_LINE, 7,"   1 1 111111111111 "
+		CALL MAKE_FLOOR_LINE, 8," 111 M 1          1 "
+		CALL MAKE_FLOOR_LINE, 9," 2     1 4G111L11 1 "
+		CALL MAKE_FLOOR_LINE,10," 1     1   G    1 1 "
+		CALL MAKE_FLOOR_LINE,11,"       1   T    1 1 "
+		CALL MAKE_FLOOR_LINE,12," H s1111 1   V1L1 1 "
+		CALL MAKE_FLOOR_LINE,13," 1       2        1 "
+		CALL MAKE_FLOOR_LINE,14," 111111111111111i 1 "
+		CALL MAKE_FLOOR_LINE,15,"                    "
+
+		;4 - エキドナ
+	CASE 5
+	;異界(ユーリア)
+		FLAG:最大X = 7
+		FLAG:最大Y = 7
+							    ;0123456
+		CALL MAKE_FLOOR_LINE, 0,"       "
+		CALL MAKE_FLOOR_LINE, 1," 11111 "
+		CALL MAKE_FLOOR_LINE, 2," 11411 "
+		CALL MAKE_FLOOR_LINE, 3," 11111 "
+		CALL MAKE_FLOOR_LINE, 4," 11A11 "
+		CALL MAKE_FLOOR_LINE, 5," 11111 "
+		CALL MAKE_FLOOR_LINE, 6,"       "
+
+;	CASE 6
+;	;ＴＤＬ
+;		FLAG:最大X = 7
+;		FLAG:最大Y = 7
+;							    ;0123456
+;		CALL MAKE_FLOOR_LINE, 0,"       "
+;		CALL MAKE_FLOOR_LINE, 1," 11111 "
+;		CALL MAKE_FLOOR_LINE, 2," 1   1 "
+;		CALL MAKE_FLOOR_LINE, 3," 1 1 1 "
+;		CALL MAKE_FLOOR_LINE, 4," 1 2 1 "
+;		CALL MAKE_FLOOR_LINE, 5," 11111 "
+;		CALL MAKE_FLOOR_LINE, 6,"       "
+;		;SAKAHAGI
+;		CALL SET_TILE,3,3,ダンジョンフラグ:(FLAG:現ダンジョン):4,0,4
+
+;	CASE 7
+;	;ＴＤＬ
+;		FLAG:最大X = 7
+;		FLAG:最大Y = 7
+;							    ;0123456
+;		CALL MAKE_FLOOR_LINE, 0,"       "
+;		CALL MAKE_FLOOR_LINE, 1," 11111 "
+;		CALL MAKE_FLOOR_LINE, 2," 1   1 "
+;		CALL MAKE_FLOOR_LINE, 3," 1 1 1 "
+;		CALL MAKE_FLOOR_LINE, 4," 1 2 1 "
+;		CALL MAKE_FLOOR_LINE, 5," 11111 "
+;		CALL MAKE_FLOOR_LINE, 6,"       "
+;		;モト劇場
+;		CALL SET_TILE,3,3,ダンジョンフラグ:(FLAG:現ダンジョン):5,0,4
+;
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_35, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:75~99
+;LOCAL:4 イベント
+;LOCAL:8 メッセンジャー
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+IF ARG == 3
+	IF GETBIT(ダンジョンフラグ:35:(FLAG:現M+75), LOCAL:3)
+		DA:(ARG:1):(ARG:2) = 1
+	ELSE
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+	ENDIF
+	LOCAL:3++
+ENDIF
+;イベント扉
+IF ARG == 12
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:2 * 10 + 2
+	LOCAL:2++
+ENDIF
+IF ARG == 4
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+	LOCAL:4++
+	SELECTCASE DA:(ARG:1):(ARG:2) / 10
+		CASE 300
+			;エキドナ
+			SIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == -1
+				DA:(ARG:1):(ARG:2) = 1
+			
+	ENDSELECT
+ENDIF
+IF ARG == 6
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:6 * 100 + 6
+	LOCAL:6++
+ENDIF
+IF ARG == 7
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:7 * 100 + 7
+	LOCAL:7++
+ENDIF
+IF ARG == 9
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+	LOCAL:9++
+	SELECTCASE DA:(ARG:1):(ARG:2) / 10
+	ENDSELECT
+ENDIF
+
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_35, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	;ラッキーチェック
+	CASE "L"
+		RETURN 11
+	;ワープゾーン関係
+	; XY21(一通始点)　XY31(一通終点) XY41/51(相互)
+	; X-ID/Y-行き先のMAP
+	CASE "a"
+		RETURN 101
+	CASE "A"
+		RETURN 111
+	CASE "b"
+		RETURN 201
+	CASE "B"
+		RETURN 211
+	CASE "c"
+		RETURN 301
+	CASE "C"
+		RETURN 311
+	CASE "d"
+		RETURN 401
+	CASE "D"
+		RETURN 411
+	CASE "e"
+		RETURN 501
+	CASE "E"
+		RETURN 511
+	CASE "f"
+		RETURN 601
+	CASE "F"
+		RETURN 611
+	CASE "h"
+		RETURN 701
+	CASE "H"
+		RETURN 711
+	CASE "i"
+		RETURN 811
+	CASE "I"
+		RETURN 801
+	CASE "j"
+		RETURN 911
+	CASE "J"
+		RETURN 901
+	CASE "k"
+		RETURN 1001
+	CASE "K"
+		RETURN 1011
+	CASE "m"
+		RETURN 1101
+	CASE "M"
+		RETURN 1111
+	CASE "n"
+		RETURN 1211
+	CASE "N"
+		RETURN 1201
+	CASE "o"
+		RETURN 1311
+	CASE "O"
+		RETURN 1301
+	CASE "p"
+		RETURN 1401
+	CASE "P"
+		RETURN 1411
+	CASE "q"
+		RETURN 1501
+	CASE "Q"
+		RETURN 1511
+	CASE "r"
+		RETURN 1601
+	CASE "R"
+		RETURN 1611
+	CASE "s"
+		RETURN 1711
+	CASE "S"
+		RETURN 1701
+	CASE "u"
+		RETURN 1801
+	CASE "U"
+		RETURN 1811
+	CASE "v"
+		RETURN 1901
+	CASE "V"
+		RETURN 1911
+ENDSELECT
+;G イベント扉
+SIF ARGS == "G"
+	RETURN 12
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_35
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_35
+	RETURN 1
+;==========
+;イベントの処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENT_35
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y)  % 10 == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL STAIR_35
+	RETURN 1
+;==========
+;メッセンジャー
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+	CALL MESSAGE_35
+	RETURN 1
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_35,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 1
+	CALL FLOOR_35
+	RETURN RESULT
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_35
+	RETURN 1
+;========
+;罠の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 5
+;	CALL TRAP_35
+	RETURN RESULT
+;==========
+;イベントの処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENT_35
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y)  % 10 == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL STAIR_35
+	RETURN 1
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+;==========
+;メッセンジャー
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+	CALL MESSAGE_35, 1
+	RETURN 1
+ENDIF
+RETURN 0
+
+;-----------------------------------------------------------------------
+;タイルイベント
+;-----------------------------------------------------------------------
+@FLOOR_35, ARG
+#LOCALSIZE 4
+#LOCALSSIZE 2
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;通常の床(0)/一通終点(A/B/C)
+	CASE 0, 11, 21, 31
+		RETURN 0
+	;ラッキーチェック
+	CASE 1
+		;エキドナと友好的な状態の場合、ラッキーチェックしない
+		SIF ダンジョンフラグ:(FLAG:現ダンジョン):2
+			RETURN 1
+		;難易度EASYの場合、一回通ったラッキーチェックは消えるように
+		SIF FLAG:戦闘難易度 == 1 && STRFLAG_D(@"{FLAG:現M*10000+FLAG:現X*100+FLAG:現Y}", 1)
+			RETURN 1
+		IF FLAG:現X % 2
+			CALL MESSAGE_WINDOW_D, "声", "WELCOME TO/TOKYO/DESTINYLAND!!"
+			CALL MESSAGE_WINDOW_D, "声", "デスティニーランドへ/ようこそ!/ここは人の運命をためす所だよ/さあ君はどうかな？"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "声", "グワッグワッグワッ/お前の運をためしてやる/グワッグワッグワッ"
+		ENDIF
+		IF RAND:2
+			IF FLAG:現X % 2
+				CALL MESSAGE_WINDOW_D, "声", "君は運が良かったね/運さえ良ければ/この世は天国！"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "声", "グワーッ/運の良い奴め/グワッグワッグワッ/グワッグワッグワッ"
+			ENDIF
+		ELSE
+			IF FLAG:現X % 2
+				CALL MESSAGE_WINDOW_D, "声", "君は運が悪かったね/運が悪けりゃ/死ぬだけさ!"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "声", "グワッグワッ/運が悪かったな/グワッグワッグワッ"
+			ENDIF
+			SETBGCOLOR COLOR("red")
+			RESETBGCOLOR
+			SELECTCASE RAND:100
+				CASE IS < 40
+					LOCALS = 
+					LOCAL:3 = 0
+					FOR LOCAL:1, 1, 7
+						LOCAL = POS(LOCAL:1)
+						SIF LOCAL == -1
+							CONTINUE
+						SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+							CONTINUE
+						;ダメージ量
+						LOCAL:2 = MIN(BASE:LOCAL:ＨＰ - 1, RAND(1, MAXBASE:LOCAL:ＨＰ / 2))
+						LOCALS += @"TARGET:[{LOCAL:1,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　{LOCAL:2} DAMAGE！"
+						CALL VAR_HP,LOCAL,-LOCAL:2,3
+						IF ++LOCAL:3 == 4
+							CALL MESSAGE_WINDOW_D, "", LOCALS
+							LOCALS = 
+						ELSE
+							LOCALS += "/"
+						ENDIF
+					NEXT
+				CASE IS < 60
+					LOCALS = 
+					LOCAL:3 = 0
+					FOR LOCAL:1, 1, 7
+						LOCAL = POS(LOCAL:1)
+						SIF LOCAL == -1
+							CONTINUE
+						SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+							CONTINUE
+						;ダメージ量
+						LOCAL:2 = MIN(BASE:LOCAL:ＭＰ, RAND(0, MAXBASE:LOCAL:ＭＰ / 2 + 1))
+						LOCALS += @"TARGET:[{LOCAL:1,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　{LOCAL:2}の魔力を奪われた！"
+						CALL VAR_MP,LOCAL,-LOCAL:2,3
+						IF ++LOCAL:3 == 4
+							CALL MESSAGE_WINDOW_D, "", LOCALS
+							LOCALS = 
+						ELSE
+							LOCALS += "/"
+						ENDIF
+					NEXT
+				CASEELSE
+					LOCALS:1 = \@ RAND:2 ? POISON # PALYZE \@
+					LOCALS = 
+					LOCAL:3 = 0
+					FOR LOCAL:1, 1, 7
+						LOCAL = POS(LOCAL:1)
+						SIF LOCAL == -1
+							CONTINUE
+						SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+							CONTINUE
+						SIF CFLAG:LOCAL:ステート >= GET_STATE_NUM(LOCALS:1)
+							CONTINUE
+						SIF MAXBASE:LOCAL:神経 == 999
+							CONTINUE
+						;ダメージ量
+						LOCALS += @"TARGET:[{LOCAL:1,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　%LOCALS:1%"
+						CFLAG:LOCAL:ステート = GET_STATE_NUM(LOCALS:1)
+						IF ++LOCAL:3 == 4
+							CALL MESSAGE_WINDOW_D, "", LOCALS
+							LOCALS = 
+						ELSE
+							LOCALS += "/"
+						ENDIF
+					NEXT
+			ENDSELECT
+			CALL MESSAGE_WINDOW_D, "", LOCALS
+		ENDIF
+		RETURN 1
+	;ワープゾーン
+	CASEELSE
+		;ワープゾーン関係
+		;100の位がID
+		;10の位が0なら上層に、1なら下層に行く
+		LOCAL = DA:(FLAG:現X):(FLAG:現Y) / 10 % 10 ? DA:(FLAG:現X):(FLAG:現Y) -10 # DA:(FLAG:現X):(FLAG:現Y) + 10
+		LOCAL:1 = DA:(FLAG:現X):(FLAG:現Y) / 10 % 10 ? FLAG:現M - 1 # FLAG:現M + 1
+		;1Fでは階層は0となる
+		SIF FLAG:現M == 0
+			LOCAL:1 = 0
+		CALL MESSAGE_WINDOW_D, "", "＞ワープゾーンだ！"
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, LOCAL:1, LOCAL, 1
+ENDSELECT
+
+@STAIR_35
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1, DA:(FLAG:現X):(FLAG:現Y)+1001
+ELSE
+	CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1, DA:(FLAG:現X):(FLAG:現Y)-1001
+ENDIF
+
+;=======================================================================
+;扉イベント
+;=======================================================================
+@DOOR_35, ARG, ARG:1
+SELECTCASE DA:ARG:(ARG:1) / 10
+	CASE 1, 2, 3, 4, 5
+		IF FLAG:現Y < ARG:1
+			CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている"
+			RETURN 0
+		ENDIF
+	CASE 6
+		IF FLAG:現Y > ARG:1
+			CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている"
+			RETURN 0
+		ENDIF
+	CASE 300
+		IF !ダンジョンフラグ:(FLAG:現ダンジョン):0
+			CALL MESSAGE_WINDOW_D, "", "＞扉のむこうから、邪悪な気配を感じる…/＞扉をあけますか？"
+			CALL INPUT_YN_D
+			SIF RESULT == 1
+				RETURN 0
+		ENDIF
+	CASE 301
+		;エキドナが生存していて友好的でない場合は扉が開かない(=ターミナルが使えない)
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 >= 0 && !ダンジョンフラグ:(FLAG:現ダンジョン):2
+			CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている"
+			RETURN 0
+		ENDIF
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;イベントまとめ
+;=======================================================================
+@EVENT_35
+#LOCALSIZE 2
+#LOCALSSIZE 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)/10
+	CASE 0
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):8++
+			CALL MESSAGE_WINDOW_D, "", "＞何もない"
+			CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+		ELSE
+			CALL SHOW_PICTURE, "EMPTY"
+			CALL DUNGEON_WORP_ID, 5, 111, 1
+			;部屋のアナライズをとっておく
+			CALL FLOOR_ANALYZE
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞扉の先には一面の花畑が広がっていた…/＞そして、花畑には忽然と純白のドレスを身に纏った金髪の少女が待っていた"
+			CALL MESSAGE_WINDOW_D, "少女", "わたくしの名はワラキア公女ユーリア・フェテアスカ/彼の龍公の娘にしてダナーンの騎士/ここは夢と現の狭間エイニーン・ミヒン/そして貴方の墓場となる場所ですわ"
+			IF FINDCHARA_B([[キャラ:古代]],1)== 2
+				CALL MESSAGE_WINDOW_D, "古代", "待ってください、ユーリアさん"
+				CALL MESSAGE_WINDOW_D, "ユーリア", "古代ちゃん…"
+				CALL MESSAGE_WINDOW_D, "古代", "こんなのおかしいですよ/どうしてボク達が戦わなきゃいけないんですか"
+				CALL MESSAGE_WINDOW_D, "ユーリア", "わたくしとて争いを望むわけではありませんわ/ですが、人の現実を打ち壊し、神々の時代を招かねば/フィンとこの国は永遠に夢の中"
+				CALL MESSAGE_WINDOW_D, "ユーリア", "ラグナロクの成就こそが…/夢をたゆたう幻を現実にすることが出来る唯一の方法/その為ならばわたくしは全てを犠牲にしても構いませんの"
+				CALL MESSAGE_WINDOW_D, "古代", "もっと、別の方法だってあったはずです/戦うだけが解決策じゃないはずですよ"
+				CALL MESSAGE_WINDOW_D, "ユーリア", "そう出来ればよかったですわね……/されどそれは叶わぬ夢のお話/夜話（ナイト・テイル）の幕を引きましょう"
+				CALL MESSAGE_WINDOW_D, "", "＞目の前の少女は迷いを断ち切る様にして襲い掛かってきた！"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "ユーリア", "構えなさい/わたくしは無抵抗な者を嬲る趣味はありませんの/天使が勝っても、悪魔が勝っても/神話世界の到来はもはや目前"
+				CALL MESSAGE_WINDOW_D, "ユーリア", "激動の中においてこの小さな世界など/水面に浮かぶ一輪の華のようなもの…/わたくしは守らねばなりませんの、この愛すべき世界を/お喋りの時間は終りですわ"
+				CALL MESSAGE_WINDOW_D, "ユーリア", "ラグナロクにおいては強者だけが正義/汝が望みを叶えたいと望むのならば剣をとりなさい！！"
+				CALL MESSAGE_WINDOW_D, "", "＞悲しい瞳をした目の前の少女は迷いを断ち切る様にして襲い掛かってきた！"
+			ENDIF
+			CALL SET_ENEMY,9,[[キャラ:ユーリア]],40,0,1
+			CSTR:(CHARANUM-1):種族名 = 龍王
+			CSTR:(CHARANUM-1):思考パターン = 4570
+			ABL:(CHARANUM-1):スキル1 = 2400
+			ABL:(CHARANUM-1):スキル2 = 3
+			ABL:(CHARANUM-1):スキル3 = 514
+			ABL:(CHARANUM-1):スキル4 = 336
+			ABL:(CHARANUM-1):スキル5 = 534
+			ABL:(CHARANUM-1):スキル6 = 326
+			ABL:(CHARANUM-1):スキル7 = 2407
+			ABL:(CHARANUM-1):92 = 1010
+			ABL:(CHARANUM-1):93 = 100
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):速度補正 = 5
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+			MAXBASE:(CHARANUM-1):飛具 = 100
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "ユーリア", "ごめんなさい…フィン…"
+			CALL MESSAGE_WINDOW_D, "", "＞龍王 ユーリア・フェテアスカは倒れた…/＞Silver Keyを手に入れた"
+			ITEM:"Silver Key" += 1
+			CALL MESSAGE_WINDOW_D, "", "＞倒れている少女を連れ帰りますか？"
+			CALL INPUT_YN_D
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "", "＞ユーリア・フェテアスカが奴隷になった"
+				CALL ADD_NEW_COMPANION,[[キャラ:ユーリア]],500
+			ELSEIF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は立ち去る事にした…"
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "", @"＞Silver Keyが輝き%CALLNAME:MASTER%の前に道を示す/＞どうやら元の世界に戻れるようだ…"
+		ENDIF
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, 0, 511, 1
+	CASE 1
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):4++
+			CALL MESSAGE_WINDOW_D, "ガイア教徒", "さあゆけ/我らカオスの為に戦うのだ"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "ガイア教徒", "お前の魂は我らカオスに/引き寄せられたのだ！"
+			CALL INCREASE_LC, -4
+			FOR LOCAL, 1, 7
+				;主人はとばす
+				SIF POS(LOCAL) == MASTER
+					CONTINUE
+				;存在しない場所はとばす
+				SIF POS(LOCAL) < 0
+					CONTINUE
+				;行動不能なキャラは除外
+				SIF !INPUTABLEF_CHARA(POS(LOCAL))
+					CONTINUE
+				CALL CHANGE_CHARA_LC, POS(LOCAL), 255, -16
+			NEXT
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, 0, 511, 1
+	CASE 2
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):5++
+			CALL MESSAGE_WINDOW_D, "エンジェル", "もう私にはあなたに/なにかしてあげる力はありません"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "エンジェル", "私の下に/たどりついたあなたは/光の使いです……"
+			CALL INCREASE_LC, 4
+			FOR LOCAL, 1, 7
+				;主人はとばす
+				SIF POS(LOCAL) == MASTER
+					CONTINUE
+				;存在しない場所はとばす
+				SIF POS(LOCAL) < 0
+					CONTINUE
+				;行動不能なキャラは除外
+				SIF !INPUTABLEF_CHARA(POS(LOCAL))
+					CONTINUE
+				CALL CHANGE_CHARA_LC, POS(LOCAL), 255, 16
+			NEXT
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, 0, 511, 1
+	CASE 3
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):6++
+			CALL MESSAGE_WINDOW_D, "", "＞誰もいない"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "グルル", "カオスのやつら/こんなところに/閉じこめやがって"
+			CALL MESSAGE_WINDOW_D, "グルル", "ついにおれを殺しに来たのか！/殺られてたまるか！"
+			CALL MESSAGE_WINDOW_D, "", "＞Raptor グルルがあらわれた！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,[[キャラ:グルル]],36,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += MAXBASE:(CHARANUM-1):ＨＰ * 2
+				CALL SYNC_STATUS, (CHARANUM-1)
+				CALL HEALTH_CHARA, (CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+			CALL MESSAGE_WINDOW_D, "グルル", "ぐぅ……/こんなところで殺られるなんて……"
+			CALL MESSAGE_WINDOW_D, "", "＞止めを刺しますか？"
+			CALL INPUT_YN_D
+			IF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "グルル", "助けてくれるのか……/もしかしてカオスではないのか…？/だとしたら済まなかった…"
+				CALL MESSAGE_WINDOW_D, "", "＞グルルは去っていった"
+				LOCAL:1 = 1
+			ELSE
+				CALL MESSAGE_WINDOW_D, "グルル", "無念……"
+				CALL MESSAGE_WINDOW_D, "", "＞グルルに止めを刺した…"
+				LOCAL:1 = -1
+			ENDIF
+			CALL INCREASE_LD, 4 *  LOCAL:1
+			FOR LOCAL, 1, 7
+				;主人はとばす
+				SIF POS(LOCAL) == MASTER
+					CONTINUE
+				;存在しない場所はとばす
+				SIF POS(LOCAL) < 0
+					CONTINUE
+				;行動不能なキャラは除外
+				SIF !INPUTABLEF_CHARA(POS(LOCAL))
+					CONTINUE
+				CALL CHANGE_CHARA_LD, POS(LOCAL), 255, 16 * LOCAL:1
+			NEXT
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, 0, 511, 1
+	CASE 300
+		LOCAL = 0
+		SELECTCASE ダンジョンフラグ:(FLAG:現ダンジョン):1
+			;初会話
+			CASE 0
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 1
+				CALL MESSAGE_WINDOW_D, "", "＞扉は開けると/＞長大な体躯を持った悪魔が横たわっていた"
+				IF ダンジョンフラグ:47:1 == 1
+					CALL MESSAGE_WINDOW_D, "悪魔", "ほう…/貴様は品川を牛耳る憎き天使の首魁を/討った人間じゃな？"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "悪魔", "ほう…/ここまでたどり着くとは/なかなかの力を持った人間のようじゃな"
+				ENDIF
+				CALL MESSAGE_WINDOW_D, "悪魔", "わらわははるか昔/生きとし生けるものうみし/女神 エキドナであるぞよ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "このデスティニーランドは/我が身をもって/支えられておるのじゃ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "今……/法の神を信ずる者ども/世界を支配せんと/たくらんでおる"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "人々救わんが為としょうし/きゃつらは法の神地上に/おろさんとしておる"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "カテドラルはその為に用いられるのじゃ/法の神……/きゃつらの支配に/人々より苦しもう"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "信仰の名のもと/心の奥底までも/神への忠誠誓わせるのじゃ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "忠誠確かなる人間のみ選び/千年王国きずきあげる/それがきゃつらのたくらみじゃ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "かつて……/我らをふくむ多くの神々/法の神により/魔界へ堕とされた"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "そして……/古の神と人間が/ともに栄えし時代/終わりをつげた"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "神の行い……/再びくり返して良いものか"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "古の神々……/信ずるガイア教徒達/カテドラル乗っ取ろうとしておる"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "それを助ける為/わらわは……/ここまでやって来たのじゃ"
+				;大聖堂でパズスに協力or品川で討伐依頼を受けていた場合、あるいは極Lである場合
+				IF ダンジョンフラグ:46:2 == 1 || ダンジョンフラグ:[[ダンジョン:品川]]:1 == 2 || CFLAG:MASTER:秩混値 > 212
+					CALL MESSAGE_WINDOW_D, "エキドナ", "どうやら……/そなたは法の神の考えに心惹かれているようじゃな/見込みがあればと思ったが……/説得は無駄なようじゃ"
+					CALL MESSAGE_WINDOW_D, "エキドナ", "ではわらわがやつざきに/してくれようぞ！"
+					LOCAL = 1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "エキドナ", "カテドラル完成させるため/品川からメシア教徒送り込まれておる/彼ら……死ぬまで働かされ/死ねば神のもとに召されるとか"
+					CALL MESSAGE_WINDOW_D, "エキドナ", "これつかさどる天使……/品川にある"
+					;ハニエル撃破済み
+					IF ダンジョンフラグ:[[ダンジョン:品川]]:1 == -1
+						CALL MESSAGE_WINDOW_D, "エキドナ", "その天使 ハニエル/しとめたそうじゃな/ご苦労であった/受け取るがよい"
+						CALL MESSAGE_WINDOW_D, "", "＞￥300000を手に入れた"
+						MONEY:0 += 300000
+						CALL MESSAGE_WINDOW_D, "エキドナ", "さて‥…/ガイア教徒によるカテドラル乗っ取り計画が/間もなくはじまらんとしておる"
+						CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/これに力を貸してくれぬか？"
+						CALL INPUT_SELECT_D, @"[0] 力を貸す/[1] 断る%\@CFLAG:MASTER:秩混値 > 84?/[2] 戦いを挑む#\@%"
+						IF RESULT == 0
+							LOCAL = 20
+						ELSEIF RESULT == 1
+							LOCAL = 21
+						ELSE
+							CALL MESSAGE_WINDOW_D, "エキドナ", "なんと天使に続き、わらわまでも倒すというのか！/面白い！/しかしわらわとてむざむざ殺されるわけにはゆかぬ/やつざきにしてくれようぞ！"
+							LOCAL = 1
+						ENDIF
+					ELSE
+						;ハニエル討伐依頼
+						CALL MESSAGE_WINDOW_D, "エキドナ", "まずはその天使……/倒さねばならぬ"
+						CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/品川の天使倒す役目/ひきうけてくれぬか？"
+						CALL INPUT_SELECT_D, @"[0] ひきうける/[1] 断る%\@CFLAG:MASTER:秩混値 > 84?/[2] 戦いを挑む#\@%%\@(ダンジョンフラグ:20:6 && !ダンジョンフラグ:20:0) ?/[3] ギンザ大地下道の扉を開けてもらう#\@%"
+						IF RESULT == 0
+							LOCAL = 10
+						ELSEIF RESULT == 1
+							LOCAL = 11
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "エキドナ", "法の神に味方したいのか/それとも何か別の目的があるのか知らぬが/見込みがあると思ったわらわが愚かだったようじゃな/しょうがない。わらわがやつざきに/してくれようぞ！"
+							LOCAL = 1
+						ELSE
+							LOCAL = 9
+						ENDIF
+					ENDIF
+				ENDIF
+			;ハニエル依頼保留
+			CASE 1
+				CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/また来たか"
+				;大聖堂でパズスに協力or品川で討伐依頼を受けていた場合、あるいは極Lである場合
+				IF ダンジョンフラグ:46:2 == 1 || ダンジョンフラグ:[[ダンジョン:品川]]:1 == 2 || CFLAG:MASTER:秩混値 > 212
+					CALL MESSAGE_WINDOW_D, "エキドナ", "しかし、どうやら……/そなたは法の神の考えに心惹かれているようじゃな/見込みがあると思っていたが……/説得は無駄なようじゃ"
+					CALL MESSAGE_WINDOW_D, "エキドナ", "残念じゃがわらわがやつざきに/してくれようぞ！"
+					LOCAL = 1
+				ELSE
+					;ハニエル撃破済み
+					IF ダンジョンフラグ:[[ダンジョン:品川]]:1 == -1
+						CALL MESSAGE_WINDOW_D, "エキドナ", "天使 ハニエル/しとめたそうじゃな/ご苦労であった"
+						CALL MESSAGE_WINDOW_D, "エキドナ", "しかし、そなたがそのつもりなら/言うてくれれば/わらわも力を貸したものを…/まぁよい。これを受け取るがいい"
+						CALL MESSAGE_WINDOW_D, "", "＞￥300000を手に入れた"
+						MONEY:0 += 300000
+						CALL MESSAGE_WINDOW_D, "エキドナ", "さて‥…/ガイア教徒によるカテドラル乗っ取り計画が/間もなくはじまらんとしておる"
+						CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/これに力を貸してくれぬか？"
+						CALL INPUT_SELECT_D, @"[0] 力を貸す/[1] 断る%\@CFLAG:MASTER:秩混値 > 84?/[2] 戦いを挑む#\@%"
+						IF RESULT == 0
+							LOCAL = 20
+						ELSEIF RESULT == 1
+							LOCAL = 21
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "エキドナ", "なんと天使に続き、わらわまでも倒すというのか！/面白い！/しかしわらわとてむざむざ殺されるわけにはゆかぬ/やつざきにしてくれようぞ！"
+							LOCAL = 1
+						ENDIF
+					ELSE
+						CALL MESSAGE_WINDOW_D, "エキドナ", "品川の天使……/倒さねばならぬ"
+						CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/その天使倒す役目/ひきうけてくれぬか？"
+						CALL INPUT_SELECT_D, @"[0] ひきうける/[1] 断る%\@CFLAG:MASTER:秩混値 > 84?/[2] 戦いを挑む#\@%%\@(ダンジョンフラグ:20:6 && !ダンジョンフラグ:20:0) ?/[3] ギンザ大地下道の扉を開けてもらう#\@%"
+						IF RESULT == 0
+							LOCAL = 10
+						ELSEIF RESULT == 1
+							LOCAL = 11
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "エキドナ", "法の神に味方したいのか/それとも何か別の目的があるのか知らぬが/見込みがあると思ったわらわが愚かだったようじゃな/しょうがない。わらわがやつざきに/してくれようぞ！"
+							LOCAL = 1
+						ELSE
+							LOCAL = 9
+						ENDIF
+					ENDIF
+				ENDIF
+			;ハニエル依頼受諾
+			CASE 2
+				;ハニエル討伐依頼を受けていて撃破していない場合
+					;討伐していない
+					IF !ダンジョンフラグ:47:1
+						CALL MESSAGE_WINDOW_D, "エキドナ", "いまだ倒しておらぬのか/はようせねば/カテドラル/出来上がってしまうぞよ"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "エキドナ", "天使 ハニエル/しとめたそうじゃな/ご苦労であった/受け取るがよい"
+						CALL MESSAGE_WINDOW_D, "", "＞￥300000を手に入れた"
+						MONEY:0 += 300000
+						CALL MESSAGE_WINDOW_D, "エキドナ", "さて‥…/ガイア教徒によるカテドラル乗っ取り計画が/間もなくはじまらんとしておる"
+						CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/これに力を貸してくれぬか？"
+						CALL INPUT_SELECT_D, @"[0] 力を貸す/[1] 断る%\@CFLAG:MASTER:秩混値 > 84?/[2] 戦いを挑む#\@%"
+						IF RESULT == 0
+							LOCAL = 20
+						ELSEIF RESULT == 1
+							LOCAL = 21
+						ELSE
+							CALL MESSAGE_WINDOW_D, "エキドナ", "なんと天使に続き、わらわまでも倒すというのか！/面白い！/しかしわらわとてむざむざ殺されるわけにはゆかぬ/やつざきにしてくれようぞ！"
+							LOCAL = 1
+						ENDIF
+					ENDIF
+			;カテドラル侵攻保留
+			CASE 3
+				CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/覚悟は決まったか？/ガイア教徒によるカテドラル乗っ取り計画/そなたの力を貸してくれるな？"
+				CALL INPUT_SELECT_D, @"[0] 力を貸す/[1] 断る%\@CFLAG:MASTER:秩混値 > 84?/[2] 戦いを挑む#\@%"
+				IF RESULT == 0
+					LOCAL = 20
+				ELSEIF RESULT == 1
+					LOCAL = 21
+				ELSE
+					CALL MESSAGE_WINDOW_D, "エキドナ", "なんと天使に続き、わらわまでも倒すというのか！/面白い！/しかしわらわとてむざむざ殺されるわけにはゆかぬ/やつざきにしてくれようぞ！"
+					LOCAL = 1
+				ENDIF
+			;カテドラル侵攻受諾
+			CASE 4
+				CALL MESSAGE_WINDOW_D, "エキドナ", "ガイア教徒によるカテドラル乗っ取り計画が/間もなくはじまらんとしておる/急ぎギンザへと向かい/そこからカテドラルを目指すのじゃ"
+		ENDSELECT
+		;前ブロックでのLOCALの内容で分岐する
+		SELECTCASE LOCAL
+			;戦闘イベント
+			CASE 1
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ECHIDNA
+				CALL MESSAGE_WINDOW_D, "", "＞龍王 エキドナが一体出た！"
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞龍王 エキドナは力尽きた"
+				;エキドナ友好フラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):2 = 0
+				;エキドナ進行フラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = -1
+			;カテドラルの扉
+			CASE 9
+				CALL MESSAGE_WINDOW_D, "エキドナ", "カテドラルにゆくと申すのか/ならば都合が良い/わらわも彼の地に人を遣りたいと思っていたところぞよ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "とはいえ、弱き人をやっても仕方がない/まずは品川の天使を倒し/己が力を示すことじゃ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "人間よ/その天使倒す役目/ひきうけてくれるな？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					GOTO YES
+				ELSE
+					GOTO NO
+				ENDIF
+			;ハニエル受諾
+			CASE 10
+				$YES
+				CALL MESSAGE_WINDOW_D, "エキドナ", "ひきうけると申すか！/さすがわらわが/見こんだだけの事はある"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "そうじゃ/これを持っていくがよい/何かの役には立つじゃろう"
+				CALL MESSAGE_WINDOW_D, "", @"＞￥100000を手に入れた%\@ABL:MASTER:属性LC == 3 ? /＞Tokkoshoを手に入れた/＞覇王の鎧を手に入れた #\@%"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "では、頼んだぞよ"
+				MONEY:0 += 100000
+				;カオスのときはTokkoshoと覇王の鎧もついてくる
+				IF ABL:MASTER:属性LC == 3
+					CALL GET_ITEMS, "Tokkosho", 1
+					CALL GET_ITEMS, "覇王の鎧", 1
+				ENDIF
+				;エキドナ友好フラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):2 = 1
+				;エキドナ進行フラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 2
+			;ハニエル拒否
+			CASE 11
+				$NO
+				CALL MESSAGE_WINDOW_D, "エキドナ", "わらわはデスティニーランドから離れられぬ/そなたをみこんで頼みたいのじゃ/考えておくれ…"
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 1
+			;カテドラル侵攻受諾
+			CASE 20
+				CALL MESSAGE_WINDOW_D, "エキドナ", "では…カテドラルへの道を開こう/ギンザの地下に行くがよい"
+				;カオスの場合はここでTenma Helmをもらえる
+				IF ABL:MASTER:属性LC == 3
+					CALL MESSAGE_WINDOW_D, "エキドナ", "それと、これを持っていくがよい/そなたならこの兜の力ひきだせようぞ"
+					CALL MESSAGE_WINDOW_D, "", "＞Tenma Helmを手に入れた"
+					CALL GET_ITEMS, "Tenma Helm", 1
+				ENDIF
+				;エキドナ友好フラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):2 = 1
+				;エキドナ進行フラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 4
+				ダンジョンフラグ:20:0 |= 2
+			;カテドラル侵攻拒否
+			CASE 21
+				CALL MESSAGE_WINDOW_D, "エキドナ", "なに！/わらわの頼み/聞けぬと申すか！"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "今更法の神と戦うことに恐れをなしたのか？/あまりわらわをがっかりさせるでないぞ"
+				CALL MESSAGE_WINDOW_D, "エキドナ", "まぁよい…/そなたの力は本物じゃ/覚悟が決まったらまた来るがよい/それまでわらわは待つとしようぞ"
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 3
+		ENDSELECT
+	CASEELSE
+ENDSELECT
+;イベント後はMAP生成を行い、タイルを更新しておく
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+RETURN 1
+
+;=======================================================================
+;宝箱
+;=======================================================================
+@TREASURE_35, ARG
+#LOCALSIZE 1
+#LOCALSSIZE 3
+;個数,-1のとき、魔貨・0の時、\となる
+LOCAL = 1
+;IDは現M*100＋X個目の宝箱の法則でふられている
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0, 1
+		LOCALS = 罠
+		LOCALS:1 = ＨＰ
+		LOCALS:2 = 万能
+		LOCAL = 25
+ENDSELECT
+IF LOCALS == "￥"
+	CALL GET_TREASURE_MONEY, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "魔貨"
+	CALL GET_TREASURE_MONEY, 1, LOCAL, FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "MAG" || LOCALS == "ＭＡＧ"
+	CALL GET_TREASURE_MAG, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "罠" 
+	;LOCALS:1 種類 LOCAL ダメージ量or確率 LOCALS:2 相性
+	CALL GET_TREASURE_TRAP, LOCALS:1, LOCAL, GET_TYPE_NUM(LOCALS:2), FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSE
+	IF GETNUM(ITEM, LOCALS) == -1
+		PRINTL ＞アイテム名の指定が間違ってます
+		PRINTW ＞アイテムの取得処理を中断します
+	ELSE
+		CALL GET_TREASURE, GETNUM(ITEM, LOCALS), LOCAL , FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+	ENDIF
+ENDIF
+;---------------------------------------------------------------------------------------
+;メッセンジャー
+;---------------------------------------------------------------------------------------
+@TILE_MARK_COMMON_35_9, ARG, ARG:1, ARG:2
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@MESSAGE_35, ARG
+SIF ARG
+	CALL SHOW_PICTURE, "D"
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0
+		CALL MESSAGE_WINDOW_D, "男", "さあさあ/あなたも運だめし/そして/運命をうらなおう"
+		CALL MESSAGE_WINDOW_D, "男", "このおくへ進んで/行きついた先が/あなたの運命だよ"
+		CALL MESSAGE_WINDOW_D, "男", "何が出るかは/お楽しみ/お代はたったの/500魔貨だよ"
+		CALL INPUT_YN_D, "支払う", "支払わない"
+		IF RESULT == 0
+			IF MONEY:1 < 500
+				CALL SHOW_FORCEMOVE("D<2>", "D", "", "男", @"金が足りねえぞ!/なめんなよこら!")
+			ELSE
+				CALL SHOW_FORCEMOVE("UU", "D", "", "男", "４つの入口の/どこから入っても良いよ")
+				MONEY:1 -= 500
+			ENDIF
+		ELSE
+			CALL SHOW_FORCEMOVE("D<2>", "D", "", "男", "払わないなら/さよならだ")
+		ENDIF
+	CASE 1
+		CALL MESSAGE_WINDOW_D, "悪魔", @"はぁい♪/ここは大人の為の遊園地東京ディスティニーランドよ%UNICODE(0x2661)%/お兄さんもお姉さんも楽しんでいってね%UNICODE(0x2661)%"
+ENDSELECT
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_35
+RETURN 25, 22, 27, 25
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_35
+;異界
+IF FLAG:現M > 4
+	FLAG:エンカウント率 = 0
+ELSE
+	FLAG:エンカウント率 = FLAG:未遭遇歩数*5 + 5
+ENDIF
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_35
+;エキドナと友好的な状態の場合、エンカウントしない
+SIF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 1
+	RETURN 0
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_35
+;SELECTCASE イベントフラグ:17:0
+;	CASE 1
+;		RETURN CLASS_NUM_COMMON("中級")
+;	CASE 2
+		RETURN CLASS_NUM_COMMON("上級")
+;	CASE 3,4
+;		RETURN CLASS_NUM_COMMON("最上級")
+;ENDSELECT
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_35, ARG
+;SELECTCASE イベントフラグ:17:0
+;	CASE 1
+;		RETURN CLASS_NUM_COMMON("中級")
+;	CASE 2
+		RETURN CLASS_NUM_COMMON("上級")
+;	CASE 3,4
+;		RETURN CLASS_NUM_COMMON("最上級")
+;ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_35, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+	;一階
+		SELECTCASE イベントフラグ:17:0
+			CASE 1
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:マンイーター]], 28; + RAND:2 * 3
+					CASE IS < 40
+						RETURN [[キャラ:ゴルゴン]], 29; + RAND:2 * 3
+					CASE IS < 60
+						RETURN [[キャラ:トドメキ]], 28; + RAND:2 * 3
+					CASE IS < 80
+						RETURN [[キャラ:ヒノエンマ]], 29; + RAND:2 * 3
+					CASE IS < 90
+						RETURN [[キャラ:エリゴール]], 29; + RAND:2 * 3
+					CASE IS < 100
+						RETURN [[キャラ:インキュバス]], 28; + RAND:2 * 3
+				ENDSELECT
+			CASE 2
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:マンイーター]], 35; + RAND:2 * 3
+					CASE IS < 40
+						RETURN [[キャラ:くちさけ]], 38; + RAND:2 * 3
+					CASE IS < 60
+						RETURN [[キャラ:トドメキ]], 35; + RAND:2 * 3
+					CASE IS < 80
+						RETURN [[キャラ:アマゾーン]], 37; + RAND:2 * 3
+					CASE IS < 90
+						RETURN [[キャラ:イバラキドウジ]], 36; + RAND:2 * 3
+					CASE IS < 100
+						RETURN [[キャラ:インキュバス]], 35; + RAND:2 * 3
+				ENDSELECT
+			CASE 3
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:ダーキニー]], 45; + RAND:2 * 3
+					CASE IS < 40
+						RETURN [[キャラ:サキュバス]], 41; + RAND:2 * 3
+					CASE IS < 60
+						RETURN [[キャラ:ヴァンパイア]], 45; + RAND:2 * 3
+					CASE IS < 70
+						RETURN [[キャラ:アマゾーン]], 42; + RAND:2 * 3
+					CASE IS < 80
+						RETURN [[キャラ:ベルセルク]], 45; + RAND:2 * 3
+					CASE IS < 90
+						RETURN [[キャラ:イバラキドウジ]], 42; + RAND:2 * 3
+					CASE IS < 100
+						RETURN [[キャラ:インキュバス]], 40; + RAND:2 * 3
+				ENDSELECT
+			CASE 4
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:サキュバス]], 50; + RAND:2 * 3
+					CASE IS < 35
+						RETURN [[キャラ:ヴァンパイア]], 51; + RAND:2 * 3
+					CASE IS < 50
+						RETURN [[キャラ:ダッキ]], 54; + RAND:2 * 3
+					CASE IS < 65
+						RETURN [[キャラ:ランダ]], 53; + RAND:2 * 3
+					CASE IS < 90
+						RETURN [[キャラ:ベルセルク]], 48; + RAND:2 * 3
+					CASE IS < 100
+						RETURN [[キャラ:インキュバス]], 47; + RAND:2 * 3
+				ENDSELECT
+		ENDSELECT
+	CASEELSE
+	;二階、三階
+		SELECTCASE イベントフラグ:17:0
+			CASE 1
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:マンイーター]], 28; + RAND:3 * 3
+					CASE IS < 40
+						RETURN [[キャラ:ゴルゴン]], 29; + RAND:3 * 3
+					CASE IS < 60
+						RETURN [[キャラ:トドメキ]], 31; + RAND:3 * 3
+					CASE IS < 70
+						RETURN [[キャラ:くちさけ]], 32; + RAND:3 * 3
+					CASE IS < 80
+						RETURN [[キャラ:エリゴール]], 29; + RAND:3 * 3
+					CASE IS < 90
+						;10%　邪龍バジリスクLV25
+						RETURN [[キャラ:バジリスク]], 31; + RAND:3 * 3
+					CASE IS < 100
+						RETURN [[キャラ:インキュバス]], 28; + RAND:3 * 3
+				ENDSELECT
+			CASE 2
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:マンイーター]], 35; + RAND:3 * 3
+					CASE IS < 40
+						RETURN [[キャラ:くちさけ]], 38; + RAND:3 * 3
+					CASE IS < 60
+						RETURN [[キャラ:トドメキ]], 35; + RAND:3 * 3
+					CASE IS < 80
+						RETURN [[キャラ:アマゾーン]], 37; + RAND:3 * 3
+					CASE IS < 85
+						RETURN [[キャラ:イバラキドウジ]], 36; + RAND:3 * 3
+					CASE IS < 90
+						RETURN [[キャラ:ベルセルク]], 40; + RAND:3 * 3
+					CASE IS < 100
+						RETURN [[キャラ:インキュバス]], 35; + RAND:3 * 3
+				ENDSELECT
+			CASE 3
+				SELECTCASE RAND:100
+					CASE IS < 20
+						RETURN [[キャラ:ダーキニー]], 45; + RAND:3 * 3
+					CASE IS < 40
+						RETURN [[キャラ:ニュクス]], 46; + RAND:3 * 3
+					CASE IS < 60
+						RETURN [[キャラ:ヴァンパイア]], 45; + RAND:3 * 3
+					CASE IS < 70
+						RETURN [[キャラ:ダッキ]], 46; + RAND:3 * 3
+					CASE IS < 80
+						RETURN [[キャラ:ベルセルク]], 45; + RAND:3 * 3
+					CASE IS < 90
+						;10%　邪龍バジリスクLV25
+						RETURN [[キャラ:バジリスク]], 44; + RAND:3 * 3
+					CASE IS < 100
+						RETURN [[キャラ:イバラキドウジ]], 42; + RAND:3 * 3
+				ENDSELECT
+			CASE 4
+				SELECTCASE RAND:100
+					CASE IS < 15
+						;20％　妖魔サキュバスLv44（53）
+						RETURN [[キャラ:ドッペルゲンガー]], 51; + RAND:3 * 3
+					CASE IS < 35
+						RETURN [[キャラ:ランダ]], 52; + RAND:3 * 3
+					CASE IS < 50
+						RETURN [[キャラ:シャドウ]], 53; + RAND:3 * 3
+					CASE IS < 65
+						RETURN [[キャラ:ダッキ]], 50; + RAND:3 * 3
+					CASE IS < 90
+						RETURN [[キャラ:ケルヌンノス]], 52; + RAND:3 * 3
+					CASE IS < 100
+						RETURN [[キャラ:アガレス]], 53; + RAND:3 * 3
+				ENDSELECT
+		ENDSELECT
+ENDSELECT
+;=======================================================================
+;特殊調整
+;=======================================================================
+@SET_ENEMY_STATUS_35, ARG
+SELECTCASE NO:ARG
+	CASE [[キャラ:マンイーター]]
+		SIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2
+			ABL:ARG:スキル3 = [[スキル:ブレインシェイク]]
+	CASE [[キャラ:インキュバス]]
+		SIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 2
+			ABL:ARG:スキル2 = [[スキル:ザンダイン]]
+		SIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 3
+			ABL:ARG:スキル3 = [[スキル:マハ・ザンマ]]
+		SIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 4
+			ABL:ARG:スキル3 = [[スキル:マハ・ザンダイン]]
+	CASE [[キャラ:ヴァンパイア]]
+		;ムドオン
+		ABL:ARG:スキル1 = [[スキル:ムドオン]]
+		;マハエイハ
+		ABL:ARG:スキル3 = [[スキル:マハエイハ]]
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_35
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:インキュバス]] , 3 + RAND:10 , CSVBASE([[キャラ:インキュバス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ヴァンパイア]] , 3 + RAND:10 , CSVBASE([[キャラ:ヴァンパイア]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:バフォメット]] , 3 + RAND:10 , CSVBASE([[キャラ:バフォメット]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+;邪龍エキドナの思考パターン
+;--------------------------------------------------
+;ほとんど戦技の物理型
+;挑発で攻撃力を補い、フォッグブレスで回避対策＋防御を補う
+;
+;基本行動回数が2回だが、かみつきは追加で最大5回までの行動回数を得る
+;HPが減るとメガトンプレス・丸かじりの頻度が増えていく
+;戦技無効以下の相手にダメ取る手段が弱すぎるくらいなのでランダやらなんやらが出てくる
+;このレベル帯だと相当厳しい気はする
+;--------------------------------------------------
+@SET_ACTION_エキドナ, ARG
+CFLAG:ARG:ターゲット = -1
+CFLAG:ARG:入力行動 = 0
+;1ターン目は固定行動
+IF FLAG:経過ターン数 == 0
+	;行動1回目
+	IF CFLAG:ARG:行動した回数 == 0
+		CFLAG:ARG:入力行動 = [[スキル:挑発]]
+	ELSE
+		CFLAG:ARG:入力行動 = [[スキル:フォッグブレス]]
+	ENDIF
+ELSEIF CFLAG:ARG:１moreフラグ == 2
+	IF 現HP割合(ARG) > 25
+		SELECTCASE RAND:100
+			CASE IS < 15
+				CFLAG:ARG:入力行動 = [[スキル:挑発]]
+			CASE IS < 30
+				CFLAG:ARG:入力行動 = [[スキル:フォッグブレス]]
+			CASE IS < 45
+				CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+			CASE IS < 60
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+			CASEELSE
+				IF !RAND:4
+					CFLAG:ARG:入力行動 = [[スキル:石化かみつき]]
+				ELSEIF !RAND:3
+					CFLAG:ARG:入力行動 = [[スキル:毒かみつき]]
+				ELSEIF !RAND:2
+					CFLAG:ARG:入力行動 = [[スキル:マヒかみつき]]
+				ELSE
+					CFLAG:ARG:入力行動 = [[スキル:魅惑かみつき]]
+				ENDIF
+		ENDSELECT
+	ELSE
+		CFLAG:ARG:入力行動 = RAND:2 ? [[スキル:丸かじり]] # [[スキル:メガトンプレス]]
+	ENDIF
+ELSE
+	IF CFLAG:ARG:行動した回数 == 0
+		CFLAG:ARG:行動回数 = 2
+		SELECTCASE 現HP割合(ARG)
+			CASE IS > 75
+				SELECTCASE RAND:100
+					CASE IS < 20
+						CFLAG:ARG:入力行動 = [[スキル:挑発]]
+					CASE IS < 40
+						CFLAG:ARG:入力行動 = [[スキル:フォッグブレス]]
+					CASE IS < 70
+						CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+					CASEELSE
+						CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+				ENDSELECT
+			CASE IS > 50
+				SELECTCASE RAND:100
+					CASE IS < 20
+						CFLAG:ARG:入力行動 = [[スキル:挑発]]
+					CASE IS < 40
+						CFLAG:ARG:入力行動 = [[スキル:フォッグブレス]]
+					CASE IS < 60
+						CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+					CASE IS < 80
+						CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+					CASE IS < 90
+						CFLAG:ARG:入力行動 = [[スキル:丸かじり]]
+					CASEELSE
+						CFLAG:ARG:入力行動 = [[スキル:メガトンプレス]]
+				ENDSELECT
+			CASEELSE
+				SELECTCASE RAND:100
+					CASE IS < 20
+						CFLAG:ARG:入力行動 = [[スキル:挑発]]
+					CASE IS < 40
+						CFLAG:ARG:入力行動 = [[スキル:フォッグブレス]]
+					CASE IS < 50
+						CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+					CASE IS < 60
+						CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+					CASE IS < 80
+						CFLAG:ARG:入力行動 = [[スキル:丸かじり]]
+					CASEELSE
+						CFLAG:ARG:入力行動 = [[スキル:メガトンプレス]]
+				ENDSELECT
+		ENDSELECT
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE 現HP割合(ARG)
+			CASE IS > 75
+				SELECTCASE RAND:100
+					CASE IS < 40
+						CFLAG:ARG:入力行動 = 0
+					CASEELSE
+						IF !RAND:4
+							CFLAG:ARG:入力行動 = [[スキル:石化かみつき]]
+						ELSEIF !RAND:3
+							CFLAG:ARG:入力行動 = [[スキル:毒かみつき]]
+						ELSEIF !RAND:2
+							CFLAG:ARG:入力行動 = [[スキル:マヒかみつき]]
+						ELSE
+							CFLAG:ARG:入力行動 = [[スキル:魅惑かみつき]]
+						ENDIF
+						SIF RAND:2
+							CFLAG:ARG:行動回数 = MIN(CFLAG:ARG:行動回数+1, 5)
+				ENDSELECT
+			CASE IS > 50
+				SELECTCASE RAND:100
+					CASE IS < 40
+						CFLAG:ARG:入力行動 = 0
+					CASE IS < 50
+						CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+					CASE IS < 60
+						CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+					CASEELSE
+						IF !RAND:4
+							CFLAG:ARG:入力行動 = [[スキル:石化かみつき]]
+						ELSEIF !RAND:3
+							CFLAG:ARG:入力行動 = [[スキル:毒かみつき]]
+						ELSEIF !RAND:2
+							CFLAG:ARG:入力行動 = [[スキル:マヒかみつき]]
+						ELSE
+							CFLAG:ARG:入力行動 = [[スキル:魅惑かみつき]]
+						ENDIF
+						SIF RAND:2
+							CFLAG:ARG:行動回数 = MIN(CFLAG:ARG:行動回数+1, 5)
+				ENDSELECT
+			CASE IS > 50
+				SELECTCASE RAND:100
+					CASE IS < 30
+						CFLAG:ARG:入力行動 = 0
+					CASE IS < 45
+						CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+					CASE IS < 60
+						CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+					CASEELSE
+						IF !RAND:4
+							CFLAG:ARG:入力行動 = [[スキル:石化かみつき]]
+						ELSEIF !RAND:3
+							CFLAG:ARG:入力行動 = [[スキル:毒かみつき]]
+						ELSEIF !RAND:2
+							CFLAG:ARG:入力行動 = [[スキル:マヒかみつき]]
+						ELSE
+							CFLAG:ARG:入力行動 = [[スキル:魅惑かみつき]]
+						ENDIF
+						SIF RAND:2
+							CFLAG:ARG:行動回数 = MIN(CFLAG:ARG:行動回数+1, 5)
+				ENDSELECT
+			CASE IS > 50
+				SELECTCASE RAND:100
+					CASE IS < 20
+						CFLAG:ARG:入力行動 = 0
+					CASE IS < 30
+						CFLAG:ARG:入力行動 = [[スキル:毒ガスブレス]]
+					CASE IS < 40
+						CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+					CASE IS < 50
+						CFLAG:ARG:入力行動 = [[スキル:丸かじり]]
+					CASE IS < 60
+						CFLAG:ARG:入力行動 = [[スキル:メガトンプレス]]
+					CASEELSE
+						IF !RAND:4
+							CFLAG:ARG:入力行動 = [[スキル:石化かみつき]]
+						ELSEIF !RAND:3
+							CFLAG:ARG:入力行動 = [[スキル:毒かみつき]]
+						ELSEIF !RAND:2
+							CFLAG:ARG:入力行動 = [[スキル:マヒかみつき]]
+						ELSE
+							CFLAG:ARG:入力行動 = [[スキル:魅惑かみつき]]
+						ENDIF
+						SIF RAND:2
+							CFLAG:ARG:行動回数 = MIN(CFLAG:ARG:行動回数+1, 5)
+				ENDSELECT
+		ENDSELECT
+	ENDIF
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+;=================================
+;龍王ペンドラゴン　思考パターン
+;=================================
+@ENEMY_BATTLE_MESSAGE_K4570, ARG
+IF FLAG:経過ターン数 >= 3 && 現HP割合(ARG) < 30 && ダンジョンフラグ:(FLAG:現ダンジョン):8 == 0
+	IF FLAG:DEBUG
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃ドラゴンインストゥール！！　　　　　　┃
+		PRINTFORML ┃……一度言ってみたかっただけですわ　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━┛
+	ELSE
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━┓
+		PRINTFORML ┃わたくし…　　　　　　　　　　　　　┃
+		PRINTFORML ┃もうブチ切れましたわ！　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━┛
+	ENDIF
+	CFLAG:ARG:攻撃強化 += 8
+	SIF CFLAG:ARG:攻撃強化 > 32
+		CFLAG:ARG:攻撃強化 = 32
+	CFLAG:ARG:防御強化 -= 8
+	SIF CFLAG:ARG:防御強化 < -32
+		CFLAG:ARG:防御強化 = -32
+	CFLAG:ARG:魔法威力強化 += 8
+	SIF CFLAG:ARG:魔法威力強化 > 32
+		CFLAG:ARG:魔法威力強化 = 32
+	CFLAG:ARG:クリティカル強化 += 8
+	SIF CFLAG:ARG:クリティカル強化 > 8
+		CFLAG:ARG:クリティカル強化 = 8
+	CFLAG:ARG:気合フラグ = 1
+	CFLAG:ARG:集中フラグ = 1
+	ダンジョンフラグ:(FLAG:現ダンジョン):8 = 1
+	
+ELSEIF CFLAG:ARG:入力行動 == 2407
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃わたくしはこの国を守らねばなりません　　┃
+	PRINTFORML ┃ココで負けるわけにはいきませんのよ！！　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━┛
+ENDIF
+
+;龍王ペンドラゴンの思考パターン
+@SET_ACTION_4570,ARG
+;1more
+IF CFLAG:ARG:１moreフラグ == 2
+	IF CFLAG:気合フラグ == 0 && 現HP割合(ARG) < 60
+		;切り落とし
+		CALL CHECK_ACTIONABLE,ARG,534
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 534
+		CALL RANDOM_TARGET,ARG,534
+		RETURN 1
+	ELSE
+		;全力攻撃Ⅱ
+		CALL CHECK_ACTIONABLE,ARG,336
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 336
+		CALL RANDOM_TARGET,ARG,336
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:ARG:行動した回数 == 0
+	IF CFLAG:ARG:気合フラグ == 0 && 現HP割合(ARG) < 60
+		;切り落とし
+		CALL CHECK_ACTIONABLE,ARG,534
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 534
+		CALL RANDOM_TARGET,ARG,534
+		RETURN 1
+	ELSE
+		;全力攻撃Ⅱ
+		CALL CHECK_ACTIONABLE,ARG,336
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 336
+		CALL RANDOM_TARGET,ARG,336
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:ARG:行動した回数 == 1
+	IF RAND:3 == 0
+		;回転斬り
+		CALL CHECK_ACTIONABLE,ARG,3
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 3
+		CALL RANDOM_TARGET,ARG,3
+		RETURN 1
+	ELSEIF RAND:2 == 0
+		;全力攻撃Ⅱ
+		CALL CHECK_ACTIONABLE,ARG,336
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 336
+		CALL RANDOM_TARGET,ARG,336
+		RETURN 1
+	;○かじり
+	ELSE
+		CALL CHECK_ACTIONABLE,ARG,326
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 326
+		CALL RANDOM_TARGET,ARG,326
+		RETURN 1
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+@SET_ECHIDNA
+CALL SET_ENEMY,9,[[キャラ:エキドナ]],62,0,1
+CSTR:(CHARANUM -1):思考パターン = エキドナ
+ABL:(CHARANUM -1):スキル1 = [[スキル:マハ・ブフダイン]]
+ABL:(CHARANUM -1):スキル2 = [[スキル:メガトンプレス]]
+ABL:(CHARANUM -1):スキル3 = [[スキル:毒ガスブレス]]
+ABL:(CHARANUM -1):スキル4 = [[スキル:丸かじり]]
+ABL:(CHARANUM -1):スキル5 = [[スキル:石化かみつき]]
+ABL:(CHARANUM -1):スキル6 = [[スキル:マヒかみつき]]
+ABL:(CHARANUM -1):スキル7 = [[スキル:挑発]]
+ABL:(CHARANUM -1):スキル8 = [[スキル:アドバイス]]
+;フォッグブレス・魅惑かみつき・殺神
+CFLAG:(CHARANUM -1):行動回数 = 2
+CFLAG:(CHARANUM -1):速度補正 = 10
+BASE:(CHARANUM -1):力 += 15
+CFLAG:(CHARANUM -1):命中補正 = 80
+CFLAG:(CHARANUM -1):ＨＰ補正 += 4000
+CFLAG:(CHARANUM -1):ＭＰ補正 += 3000
+BASE:(CHARANUM -1):打撃 = 25
+BASE:(CHARANUM -1):戦技 = 25
+CALL SYNC_STATUS, (CHARANUM -1)
+CALL HEALTH_CHARA, (CHARANUM -1)
+;----------------------------------------------------------------
+;旧テキスト
+;----------------------------------------------------------------
+;SELECTCASE FLAG:現M
+;	CASE 1
+;		IF FLAG:現X == 18 && FLAG:現Y == 14 && ダンジョンフラグ:35:0 == 0
+;			PRINTFORML ＞ネズミの着ぐるみ…もとい悪魔がいる
+;			PRINTFORMW 「はぁい♪　ここは大人の為の遊園地東京ディスティニーランドよ%UNICODE(0x2661)%」
+;			PRINTFORMW 「お兄さんもお姉さんも楽しんでいってね%UNICODE(0x2661)%」
+;		ENDIF
+;	CASE 5
+;		IF FLAG:現X == 11 && FLAG:現Y == 9 && ダンジョンフラグ:35:0 == 0
+;			CUSTOMDRAWLINE =
+;			PRINTW 東京ディスティにーランドの最奥
+;			PRINTW 扉の向こうには長大な体躯を横たえた邪龍エキドナがいた
+;			PRINTW 
+;			PRINTW 「……わらわはエキドナ」
+;			PRINTW 「全ての母にしてもっとも古き女神よ」
+;			;ボクの名はハニエル、ボクと契約して法の守護者になってよ
+;			IF ダンジョンフラグ:47:2 == 1
+;				PRINTFORMW 「天使どもに惑わされし愚かな人間よ」
+;				PRINTFORMW 「わらわを討とうなどと片腹痛い…」
+;				PRINTFORMW 「身の程を知るが良い！！」
+;				GOTO DONADONA_01
+;			ELSE
+;				;ハニエル「ぬふぅ」
+;				IF ダンジョンフラグ:47:1 == 1
+;					PRINTFORMW 「ほう…貴様が品川を牛耳る憎き天使の首魁を討った人間か」
+;				ENDIF
+;				PRINTFORMW 「知っているか…高慢なる天使どもは思い上がり、自分達以外の神々全てを貶め千年王国を築き上げこの世界の支配者たらんとしている事を…」
+;				PRINTFORMW 「猛き人間よ、貴様ならば解るであろう」
+;				PRINTFORMW 「力こそが正義であると」
+;				PRINTFORMW 「真に強き者であれば我等と共に立ち、彼らの野望を打ち砕こうではないか」
+;				PRINTL
+;				PRINTL [0] はい
+;				PRINTL [1] いいえ
+;				$INPUT_LOOP_DONADONA
+;				INPUT
+;				IF RESULT == 0
+;					PRINTFORMW 「その言葉…しかと聞き届けたぞ」
+;					IF ダンジョンフラグ:47:1 == 0
+;						PRINTFORMW 「我等がカテドラルへ攻め込むには品川を落とさねばならぬ」
+;						PRINTFORMW 「メシア教を牛耳る天使の首魁、彼の者の首をとれば彼奴の士気も地に堕ちようぞ」
+;						PRINTFORMW 「汝が真の強者ならば容易い事であろう」
+;						PRINTFORMW 「共に神の千年王国の野望、打ち砕いてみせようぞ」
+;						;ノーマル悪魔として召還出来ますカラーーーーー！！
+;						;PRINTFORMW 「必要であればしかるべき手段にてわらわの力を求めるがよい…汝に力を貸してやろう」
+;						PRINTFORMW ＞邪龍エキドナからスキルカードを受け取った
+;						ITEM:12002 += 1
+;					ENDIF
+;					;ベス
+;					IF FINDCHARA_B(4501,1) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+;						PRINTFORML
+;						PRINTFORMW エキドナと%CALLNAME:TARGET%の契約を見届けたベスは複雑な表情を浮かべていた
+;						PRINTFORMW 『世界を救うには一度全てをリセットしなくてはならない…それが救世主様のご判断なのですね…』
+;						PRINTFORMW 『行きましょう、品川へ』
+;						PRINTFORMW ベスは自分に言い聞かせる様にして言葉を紡ぎ、拳を握り締める
+;						PRINTFORMW 強く前を向いた彼女の瞳にはもはや迷いはないようだ
+;					ENDIF
+;					;銀座フラグ
+;					ダンジョンフラグ:20:0 = 2
+;					;アスラ王曰く「強ければ正義」
+;					;言葉で語るのは真のカオスではないのぜ？
+;					;FLAG:属性固定LD = 1
+;					FLAG:属性固定LC = 3
+;					FOR LOCAL, 0, CHARANUM
+;						CALL HEALTH_CHARA, LOCAL
+;					NEXT
+;					ダンジョンフラグ:35:2 = 1
+;				ELSEIF RESULT == 1
+;					PRINTFORMW 「クックックッ…言葉は不要か」
+;					PRINTFORMW 「汝が思い、力をもって示してみせよ！！」
+;					$DONADONA_01
+;					PRINTFORML
+;					PRINTFORML 邪龍 エキドナが１体現われた！
+;					PRINTFORMW 
+;					CUSTOMDRAWLINE =
+;					WAIT 
+;					IF FLAG:周回回数 >= 1
+;						;邪龍エキドナLv53
+;						CALL SET_ENEMY,9,[[キャラ:エキドナ]],77,0,0
+;						CSTR:(CHARANUM-1):思考パターン = 707
+;						ABL:(CHARANUM-1):スキル1 = 810
+;						;○かじり
+;						ABL:(CHARANUM-1):スキル2 = 326
+;						;ラクンダ
+;						ABL:(CHARANUM-1):スキル3 = 507
+;						;マハ・ブフダイン
+;						ABL:(CHARANUM-1):スキル4 = 806
+;						;オート三種類
+;						ABL:(CHARANUM-1):スキル5 = 2414
+;						ABL:(CHARANUM-1):スキル6 = 2415
+;						ABL:(CHARANUM-1):スキル7 = 2417
+;						ABL:(CHARANUM-1):スキル8 = 205
+;						ABL:(CHARANUM-1):92 = 1010
+;						ABL:(CHARANUM-1):93 = 100
+;						CFLAG:(CHARANUM-1):行動回数 = 3
+;						CFLAG:(CHARANUM-1):速度補正 = 15
+;						CFLAG:(CHARANUM-1):ＨＰ補正 += 5000
+;						CFLAG:(CHARANUM-1):ＭＰ補正 += 9000
+;						MAXBASE:(CHARANUM-1):剣撃 = 75
+;						MAXBASE:(CHARANUM-1):戦技 = 75
+;						MAXBASE:(CHARANUM-1):氷結 = 125
+;						MAXBASE:(CHARANUM-1):水撃 = 150
+;					ELSE
+;						CALL SET_ENEMY,9,[[キャラ:エキドナ]],65,0,0
+;						CSTR:(CHARANUM-1):思考パターン = 707
+;						ABL:(CHARANUM-1):スキル1 = 810
+;						ABL:(CHARANUM-1):スキル2 = 326
+;						ABL:(CHARANUM-1):スキル3 = 507
+;						ABL:(CHARANUM-1):スキル4 = 806
+;						ABL:(CHARANUM-1):スキル5 = 2414
+;						ABL:(CHARANUM-1):スキル6 = 2415
+;						ABL:(CHARANUM-1):スキル7 = 2417
+;						ABL:(CHARANUM-1):スキル8 = 205
+;						ABL:(CHARANUM-1):92 = 1010
+;						ABL:(CHARANUM-1):93 = 100
+;						CFLAG:(CHARANUM-1):行動回数 = 2
+;						CFLAG:(CHARANUM-1):速度補正 = 10
+;						CFLAG:(CHARANUM-1):ＨＰ補正 += 5000
+;						CFLAG:(CHARANUM-1):ＭＰ補正 += 9000
+;						MAXBASE:(CHARANUM-1):剣撃 = 75
+;						MAXBASE:(CHARANUM-1):氷結 = 125
+;					ENDIF
+;					CALL SYNC_STATUS,(CHARANUM-1)
+;					CALL HEALTH_CHARA,(CHARANUM-1)
+;					CALL BATTLE_START
+;					FLAG:逃走不可フラグ = 0
+;					FLAG:会話不能フラグ = 0
+;					FLAG:先制不意打ちキャンセル = 0
+;					PRINTL
+;					PRINTL 「まさかここまでとはな…大した奴だ…」 
+;					PRINTW 邪龍 エキドナは倒れた…
+;					CUSTOMDRAWLINE =
+;					;L/Lに傾く、エキドナの依頼を受けたらD/C決定にするか？
+;					;ただし、現状だとL/Nアマテラス、D/Lハニエル、D/C人修羅君に俺はなるエキドナルート以外選べない悲劇が生まれるので他のルートも用意したい
+;					CALL INCREASE_LD, 10
+;					CALL INCREASE_LC, 50
+;					PRINTL 
+;					PRINTW エキドナにかけられていた賞金を受け取った
+;					PRINTW メシア教から口座に￥50000が支払われた
+;					CUSTOMDRAWLINE =
+;					MONEY += 50000
+;					ダンジョンフラグ:35:1 = 1
+;					DA:(FLAG:現X):(FLAG:現Y) = 1
+;					FLAG:脱出 = 1
+;				ELSE
+;					GOTO INPUT_LOOP_DONADONA
+;				ENDIF
+;			ENDIF
+;			ダンジョンフラグ:35:0 = 1
+;		ENDIF
+;	CASE 6
+;		;異界エイニーン・ミヒン
+;		IF FLAG:現X == 3 && FLAG:現Y == 3 && ダンジョンフラグ:35:3 == 0
+;			PRINTFORMW ＞扉の先には一面の花畑が広がっていた…
+;			PRINTFORMW ＞そして、花畑には忽然と純白のドレスを身に纏った金髪の少女が待っていた
+;			PRINTFORML
+;			PRINTFORMW 「わたくしの名はワラキア公女ユーリア・フェテアスカ　彼の龍公の娘にしてダナーンの騎士」
+;			PRINTFORMW 「ここは夢と現の狭間エイニーン・ミヒン　そして貴方の墓場となる場所ですわ」
+;			PRINTFORML
+;			IF FINDCHARA_B(4559,1)== 2
+;				PRINTFORMW 『待ってください、ユーリアさん』
+;				PRINTFORMW 「古代ちゃん…」
+;				PRINTFORMW 『こんなのおかしいですよ、どうしてボク達が戦わなきゃいけないんですか』
+;				PRINTFORMW 「わたくしとて争いを望むわけではありませんわ」
+;				PRINTFORMW 「ですが、人の現実を打ち壊し、神々の時代を招かねばフィンとこの国は永遠に夢の中」
+;				PRINTFORMW 「ラグナロクの成就こそが…夢をたゆたう幻を現実にすることが出来る唯一の方法」
+;				PRINTFORMW 「その為ならばわたくしは全てを犠牲にしても構いませんの」
+;				PRINTFORMW 『もっと、別の方法だってあったはずです。戦うだけが解決策じゃないはずですよ』
+;				PRINTFORMW 「そう出来ればよかったですわね……されどそれは叶わぬ夢のお話」
+;				PRINTFORMW 「夜話（ナイト・テイル）の幕を引きましょう」
+;				PRINTFORML
+;				PRINTFORMW ＞目の前の少女は迷いを断ち切る様にして襲い掛かってきた！
+;			ELSE
+;				PRINTFORMW 「構えなさい、わたくしは無抵抗な者を嬲る趣味はありませんの」
+;				PRINTFORMW 「天使が勝っても、悪魔が勝っても神話世界の到来はもはや目前」
+;				PRINTFORMW 「激動の中においてこの小さな世界など水面に浮かぶ一輪の華のようなもの…」
+;				PRINTFORMW 「わたくしは守らねばなりませんの、この愛すべき世界を」
+;				PRINTFORMW 「お喋りの時間は終りですわ」
+;				PRINTFORML
+;				PRINTFORMW 「ラグナロクにおいては強者だけが正義」
+;				PRINTFORMW 「汝が望みを叶えたいと望むのならば剣をとりなさい！！」
+;				PRINTFORML
+;				PRINTFORMW ＞悲しい瞳をした目の前の少女は迷いを断ち切る様にして襲い掛かってきた！
+;			ENDIF
+;			CALL SET_ENEMY,9,[[キャラ:ユーリア]],55,0,1
+;			CSTR:(CHARANUM-1):種族名 = 龍王
+;			CSTR:(CHARANUM-1):思考パターン = 4570
+;			ABL:(CHARANUM-1):スキル1 = 2400
+;			ABL:(CHARANUM-1):スキル2 = 3
+;			ABL:(CHARANUM-1):スキル3 = 514
+;			ABL:(CHARANUM-1):スキル4 = 336
+;			ABL:(CHARANUM-1):スキル5 = 534
+;			ABL:(CHARANUM-1):スキル6 = 326
+;			ABL:(CHARANUM-1):スキル7 = 2407
+;			ABL:(CHARANUM-1):92 = 1010
+;			ABL:(CHARANUM-1):93 = 100
+;			CFLAG:(CHARANUM-1):行動回数 = 2
+;			CFLAG:(CHARANUM-1):速度補正 = 5
+;			CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+;			CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+;			MAXBASE:(CHARANUM-1):飛具 = 100
+;		ENDIF
+;		CALL SYNC_STATUS,(CHARANUM-1)
+;		CALL HEALTH_CHARA,(CHARANUM-1)
+;		CALL BATTLE_START
+;		FLAG:逃走不可フラグ = 0
+;		FLAG:会話不能フラグ = 0
+;		FLAG:先制不意打ちキャンセル = 0
+;		PRINTL
+;		PRINTL 「ごめんなさい…フィン…」 
+;		PRINTW 龍王 ユーリア・フェテアスカは倒れた…
+;		PRINTL
+;		PRINTW ＞Silver Keyを手に入れた
+;		ITEM:5028 += 1
+;		CUSTOMDRAWLINE =
+;		PRINTL
+;		PRINTL 倒れている少女を連れ帰りますか？
+;		CALL INPUT_YN
+;		IF RESULT == 0
+;			PRINTL
+;			PRINTW ユーリア・フェテアスカが奴隷になった。
+;			CALL ADD_NEW_COMPANION,4570,500
+;		ELSEIF RESULT == 1
+;			PRINTFORMW ＞%CALLNAME:MASTER%は立ち去る事にした…。
+;		ENDIF
+;		PRINTFORML
+;		PRINTFORML ＞Silver Keyが輝き%CALLNAME:MASTER%の前に道を示す
+;		PRINTFORMW どうやら元の世界に戻れるようだ…
+;		CUSTOMDRAWLINE =
+;		ダンジョンフラグ:35:7 = 1
+;		ダンジョンフラグ:35:3 = 1
+;		FLAG:脱出 = 1
+;	CASEELSE
+;ENDSELECT

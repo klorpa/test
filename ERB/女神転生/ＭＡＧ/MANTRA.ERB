@@ -1,0 +1,1320 @@
+@SET_MANTRA_SKILL, ARG
+#DIM PAGE, 1
+#DIM 選択系統, 1
+#DIM LINE, 2
+#LOCALSIZE 3
+VARSET D, -1
+VARSET X
+PAGE = 0
+選択系統 = 0
+;スキル登録(マントラ)
+FOR LOCAL, 1, 116
+	SIF CDFLAG:ARG:マントラ:LOCAL < 10000
+		CONTINUE
+	CALL GET_MANTRA_ABILITY, LOCAL
+	FOR LOCAL:1, 3, 11
+		SIF RESULT:(LOCAL:1) < 0 
+			CONTINUE
+		D:(RESULT:(LOCAL:1)) = 1
+		CALLFORM SKILL_SUCCESSION_TYPE_{RESULT:(LOCAL:1)}
+		X:RESULT = 1
+	NEXT
+NEXT
+;スキル登録(習得スキル)
+FOR LOCAL, 1, 21
+	SIF ABL:ARG:@"初期変身悪魔習得スキル{LOCAL}" <= 0
+		CONTINUE
+	SIF ABL:ARG:@"初期変身悪魔習得LV{LOCAL}" > 0
+		CONTINUE
+	D:(ABL:ARG:@"初期変身悪魔習得スキル{LOCAL}") = 1
+	CALLFORM SKILL_SUCCESSION_TYPE_{ABL:ARG:@"初期変身悪魔習得スキル{LOCAL}"}
+	X:RESULT = 1
+NEXT
+LINE = LINECOUNT
+$START
+CLEARLINE LINECOUNT -LINE
+;表示スキル用のページ作成
+VARSET S, -1
+LOCAL:1 = 0
+FOR LOCAL, 0, 4000
+	SIF D:LOCAL == -1
+		CONTINUE
+	TRYCCALLFORM SKILL_SUCCESSION_TYPE_{LOCAL}
+	CATCH
+		CONTINUE
+	ENDCATCH
+	SIF RESULT != 選択系統
+		CONTINUE
+	S:(LOCAL:1) = LOCAL
+	LOCAL:1++
+NEXT
+DRAWLINE
+PRINTFORML %CALLNAME:ARG%
+DRAWLINE
+PRINTL □Active skills
+;所持スキル
+FOR LOCAL, 1, FLAG:スキル数+1
+	IF ABL:ARG:@"初期変身悪魔スキル{LOCAL}" == 0
+		RESULTS = EMPTY
+	ELSE
+		CALLFORM SKILL_NAME_{ABL:ARG:@"初期変身悪魔スキル{LOCAL}"}, ARG
+		;セット中のスキルは2にしておく
+		D:(ABL:ARG:@"初期変身悪魔スキル{LOCAL}") = 2
+	ENDIF
+	PRINTFORM 　[{LOCAL}]%RESULTS,20,LEFT%
+	SIF LOCAL % 4 == 0
+		PRINTL 
+NEXT
+DRAWLINE
+FOR LOCAL,PAGE*20,(PAGE+1)*30
+	IF S:LOCAL > 0
+		CALLFORM SKILL_NAME_{S:LOCAL}
+		SIF D:(S:LOCAL) == 2
+			SETCOLOR COLOR("gray")
+		PRINTFORM [{S:LOCAL+1000}] %RESULTS,20,LEFT%
+		RESETCOLOR
+	ENDIF
+	SIF LOCAL % 3 == 2
+		PRINTL
+NEXT
+SIF LINEISEMPTY()
+	PRINTL 
+DRAWLINE
+FOR LOCAL,0,21
+	;セットできるスキルが無い系統は暗く表示
+	SIF X:LOCAL == 0
+		SETCOLOR COLOR("gray")
+	PRINTFORM [{10+LOCAL}] %GET_SUCCESSION_E(LOCAL)%　　
+	RESETCOLOR
+	SIF LOCAL % 6 == 5
+		PRINTL
+NEXT
+SIF X:22 == 0
+	SETCOLOR COLOR("gray")
+PRINTFORM [32] Auto
+RESETCOLOR
+;SIF X:23 == 0
+;	SETCOLOR 0x606060
+;PRINTFORM [4023] レア
+;RESETCOLOR
+PRINTL 
+DRAWLINE
+PRINTFORMLC \@(PAGE <= 0) ? %" " * 16% # [107]Previous page\@
+PRINTLC [0]Return
+PRINTFORMLC \@(PAGE >= (LOCAL:1 - 1) / 20) ? %" " * 16% # [109]Next page\@
+PRINTL 
+PRINTFORMLC [106]Previous system
+PRINTFORMLC \@ 選択系統 == -1 ? Current system【　　】#Current system【%GET_SUCCESSION_E(選択系統)%】\@
+PRINTFORMLC [110]Next system 
+INPUT
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 0
+		;悪魔変身している場合、スキル同期を行う
+		IF CFLAG:ARG:悪魔変身
+			FOR LOCAL, 1, 9
+				ABL:ARG:@"スキル{LOCAL}" = ABL:ARG:@"初期変身悪魔スキル{LOCAL}"
+			NEXT
+		ENDIF
+		RETURN 0
+	CASE 1 TO 8
+		IF ABL:ARG:@"初期変身悪魔スキル{LOCAL}"
+			DRAWLINE
+			CALLFORM SKILL_NAME_{ABL:ARG:@"初期変身悪魔スキル{LOCAL}"}
+			PRINTFORML %RESULTS%
+			SIF FLAG:スキル属性表示設定 == 1
+				CALL SKILL_EXPLAIN_PERFORMANCE, ABL:ARG:@"初期変身悪魔スキル{LOCAL}", ARG
+			TRYCALLFORM SKILL_EXPLAIN_{ABL:ARG:@"初期変身悪魔スキル{LOCAL}"}
+			DRAWLINE
+			PRINTFORML Remove %RESULTS%?
+			CALL INPUT_YN, "Yes", "No"
+			IF RESULT == 0
+				D:(ABL:ARG:@"初期変身悪魔スキル{LOCAL}") = 1
+				ABL:ARG:@"初期変身悪魔スキル{LOCAL}" = 0
+			ENDIF
+		ENDIF
+	CASE 106
+		IF 選択系統 == 22
+			選択系統 = 20
+		ELSEIF 選択系統 == 0
+			選択系統 = 22
+		ELSE
+			選択系統--
+		ENDIF
+	CASE 110
+		IF 選択系統 == 22
+			選択系統 = 0
+		ELSEIF 選択系統 == 20
+			選択系統 = 22
+		ELSE
+			選択系統++
+		ENDIF
+				
+	CASE 1000 TO 5000
+		LOCAL -= 1000
+		IF D:LOCAL == 1
+			DRAWLINE
+			CALLFORM SKILL_NAME_{LOCAL}
+			PRINTFORML %RESULTS%
+			SIF FLAG:スキル属性表示設定 == 1
+				CALL SKILL_EXPLAIN_PERFORMANCE, LOCAL, ARG
+			TRYCALLFORM SKILL_EXPLAIN_{LOCAL}
+			DRAWLINE
+			PRINTFORML Install %RESULTS%?
+			CALL INPUT_YN, "Yes", "No"
+			IF RESULT == 0
+				LOCAL:2 = 0
+				FOR LOCAL:1, 1, FLAG:スキル数+1
+					SIF ABL:ARG:@"初期変身悪魔スキル{LOCAL:1}"
+						CONTINUE
+					LOCAL:2 = 1
+					ABL:ARG:@"初期変身悪魔スキル{LOCAL:1}" = LOCAL
+					D:LOCAL = 2
+					BREAK
+				NEXT
+				IF !LOCAL:2
+					PRINTL Please select a skill to replace
+					;入れ替えるスキルを選択してください
+					FOR LOCAL:1, 1, FLAG:スキル数+1
+						CALLFORM SKILL_NAME_{ABL:ARG:@"初期変身悪魔スキル{LOCAL:1}"}, ARG
+						PRINTFORM 　[{LOCAL:1}]%RESULTS,20,LEFT%
+						SIF LOCAL:1 % 4 == 0
+							PRINTL 
+					NEXT
+					PRINTL 　[9] Cancel
+					CALL INPUTINT(1, 2, 3, 4, 5, 6, 7, 8, 9)
+					IF RANGE(RESULT, 1, 8)
+						D:(ABL:ARG:@"初期変身悪魔スキル{RESULT}") = 1
+						D:LOCAL = 2
+						ABL:ARG:@"初期変身悪魔スキル{RESULT}" = LOCAL
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE 10 TO 32
+		選択系統 = RESULT - 10
+ENDSELECT
+GOTO START
+
+@MANTRA_BASESTATUS, ARG
+#LOCALSIZE 3
+#DIM 最大補正値, 6
+VARSET 最大補正値
+FOR LOCAL, 1, 116
+	SIF CDFLAG:ARG:マントラ:LOCAL < 10000
+		CONTINUE
+	CALL GET_MANTRA_ABILITY, LOCAL
+	FOR LOCAL:1, 1, 7
+		SIF RESULT:2 % POWER(10, LOCAL:1 + 1) / POWER(10, LOCAL:1)
+			最大補正値:(LOCAL:1 - 1) += RESULT:2 % POWER(10, LOCAL:1 + 1) / POWER(10, LOCAL:1)
+	NEXT
+	;デバッグ用数値確認
+	;TSTR = 耐力
+	;SIF RESULT:2 % POWER(10, GET_BASESTATUS_NUM(TSTR) + 1) / POWER(10, GET_BASESTATUS_NUM(TSTR))
+	;	PRINTFORML %TSTR%　%GET_MANTRA(LOCAL)%　{RESULT:2 % POWER(10, GET_BASESTATUS_NUM(TSTR) + 1) / POWER(10, GET_BASESTATUS_NUM(TSTR))}({最大補正値:(GET_BASESTATUS_NUM(TSTR)-1)})
+NEXT
+LOCAL:1 = LINECOUNT
+LOCAL:2 = CFLAG:ARG:悪魔変身
+CFLAG:ARG:悪魔変身 = 1
+$START
+CALL SYNC_STATUS,ARG
+CLEARLINE LINECOUNT - LOCAL:1
+DRAWLINE
+PRINTL □Set status
+PRINTL Avatar tuners can change the stats for their transformed form
+PRINTL It is possible to change the base abilities of the transformed form
+DRAWLINE
+PRINTL □Transformed form's stats
+FOR LOCAL, 1, FLAG:基本能力数
+	PRINTFORML    %GET_BASESTATUS_E(LOCAL),4% {MAXBASE:ARG:GET_BASESTATUS(LOCAL), 2}
+NEXT
+DRAWLINE
+PRINTL □Transformed form's base stats
+FOR LOCAL, 1, FLAG:基本能力数
+	PRINTBUTTON @"[{LOCAL}] %GET_BASESTATUS_E(LOCAL),4% {CSVBASE(CFLAG:ARG:初期リンク悪魔, GETNUM(BASE, GET_BASESTATUS(LOCAL)),0) + CFLAG:ARG:(GET_BASESTATUS(LOCAL)+"マントラ補正"),2}", LOCAL
+	PRINTFORML 　　({MAX(CSVBASE(CFLAG:ARG:初期リンク悪魔, GETNUM(BASE, GET_BASESTATUS(LOCAL)),0)-最大補正値:(LOCAL-1),1), 2} ～ {CSVBASE(CFLAG:ARG:初期リンク悪魔, GETNUM(BASE, GET_BASESTATUS(LOCAL)),0)+最大補正値:(LOCAL-1),2})
+NEXT
+DRAWLINE
+PRINTL [9] Return
+CALL INPUTINT(1,2,3,4,5,6,9)
+SELECTCASE RESULT
+	CASE 1 TO 6
+		LOCAL = RESULT
+		CALL INPUT_MANY(MAX(CSVBASE(CFLAG:ARG:初期リンク悪魔, GETNUM(BASE, GET_BASESTATUS(LOCAL)),0)-最大補正値:(LOCAL-1),1), CSVBASE(CFLAG:ARG:初期リンク悪魔, GETNUM(BASE, GET_BASESTATUS(LOCAL)),0)+最大補正値:(LOCAL-1))
+		CFLAG:ARG:(GET_BASESTATUS(LOCAL)+"マントラ補正") = RESULT - CSVBASE(CFLAG:ARG:初期リンク悪魔, GETNUM(BASE, GET_BASESTATUS(LOCAL)),0)
+	CASE 9
+		CFLAG:ARG:悪魔変身 = LOCAL:2
+		RETURN 0
+ENDSELECT
+GOTO START
+@DOWNLOAD_MANTRA, ARG = 7, ARG:1 = 7, ARG:2
+#DIM START_X
+#DIM START_Y
+#DIM CHARA, 1
+;選択中のマントラ名
+#DIMS MNAME, 1
+#DIM MNUM, 1
+;選択中のマントラの座標
+#DIM MANTRA_X
+#DIM MANTRA_Y
+#DIM MANTRA_ABLE, 120
+#DIM LINE, 1
+#DIM SKILL, 8
+#DIM MLV, 1
+#LOCALSIZE 2
+#DIM マントラ座標, 120
+#DIM PRICE
+;初めて
+IF !GETBIT(FLAG:マントラ開放度, 1)
+	SETBIT FLAG:マントラ開放度, 1
+	PRINTW Since this is your first time here, the mantra system will be explained.
+	;初回実行時につきマントラシステムの解説をします
+	PRINTW If needed, you can view it again later.
+	;なお、この解説はあとからでも見ることができます
+	CLEARLINE 2
+	CALL MANTRA_EXPLAIN
+ENDIF
+CHARA = ARG:2
+;マントラの状況登録
+VARSET MANTRA_ABLE
+IF !GETBIT(FLAG:マントラ開放度, 2)
+	LOCAL:1 = 0
+	FOR LOCAL, 20, 38
+		IF CDFLAG:CHARA:マントラ:LOCAL == 10000
+			PRINTFORMW {LOCAL}
+			LOCAL:1 = 1
+			BREAK
+		ENDIF
+	NEXT
+	IF LOCAL:1
+		CALL MESSAGE_B(2, "For mastering a mantra on the edge of the map:", "A new mantra became available!")
+		SETBIT FLAG:マントラ開放度, 2
+		CLEARLINE 4
+	ENDIF
+ENDIF
+IF GETBIT(FLAG:マントラ開放度, 2) && !GETBIT(FLAG:マントラ開放度, 3)
+	LOCAL:1 = 0
+	FOR LOCAL, 38, 98
+		IF CDFLAG:CHARA:マントラ:LOCAL == 10000
+			LOCAL:1 = 1
+			BREAK
+		ENDIF
+	NEXT
+	IF LOCAL:1
+		CALL MESSAGE_B(2, "For mastering a mantra on the edge of the map:", "A new mantra became available!")
+		SETBIT FLAG:マントラ開放度, 3
+		CLEARLINE 4
+	ENDIF
+ENDIF
+;0:非表示 1:DL不可 2:DL可能 3:DL済 4:EQUIP 5:MASTER
+;喰奴はデフォルトでDL可能にしておく
+MANTRA_ABLE:1 = 2
+;装備マントラの設定
+MANTRA_ABLE:(EQUIP:CHARA:装備マントラ) = 4
+FOR MANTRA_Y, 0, 15
+	FOR MANTRA_X, 0, 15
+		SIF GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y) == "NONE"
+			CONTINUE
+		;マントラ取得済み
+		SELECTCASE CDFLAG:CHARA:マントラ:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y))
+			CASE 10000
+				MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) = 5
+				;隣接マントラを取得可能に変更
+				IF MANTRA_Y % 2
+					SIF GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y-1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y-1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y-1)), 2)
+					SIF GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y-1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y-1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y-1)), 2)
+					SIF GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y+1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y+1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y+1)), 2)
+					SIF GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y+1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y+1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y+1)), 2)
+				ELSE
+					SIF GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y-1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y-1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y-1)), 2)
+					SIF GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y-1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y-1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y-1)), 2)
+					SIF GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y+1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y+1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y+1)), 2)
+					SIF GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y+1) != "NONE"
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y+1)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y+1)), 2)
+				ENDIF
+				SIF GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y) != "NONE"
+					MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X+1, MANTRA_Y)), 2)
+				SIF GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y) != "NONE"
+					MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X-1, MANTRA_Y)), 2)
+			CASE IS > 0
+				MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)), 3)
+			CASEELSE
+				;外端到達による開放
+				IF !GETBIT(FLAG:マントラ開放度, 2)
+					SIF GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) <= 37
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)), 1)
+				ELSEIF !GETBIT(FLAG:マントラ開放度, 3)
+					SIF GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) <= 97
+						MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)), 1)
+				ELSE
+					MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)) = MAX(MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)), 1)
+				ENDIF
+		ENDSELECT
+	NEXT
+NEXT
+MANTRA_X = ARG
+MANTRA_Y = ARG:1
+DRAWLINE
+LINE = LINECOUNT
+$START
+MNAME = %GET_MANTRA_MAPNAME(MANTRA_X, MANTRA_Y)%
+MNUM = GET_MANTRA_NUM(MNAME)
+START_Y = MANTRA_Y - 2
+CLEARLINE LINECOUNT - LINE
+FOR LOCAL:1, START_Y, START_Y+5
+	START_X = MANTRA_X - 3
+	IF MANTRA_Y % 2
+		SIF LOCAL:1 % 2 == 0
+			PRINT 　　 
+	ELSE
+		IF LOCAL:1 % 2
+			PRINT 　　 
+			START_X = MANTRA_X - 2
+		ENDIF
+	ENDIF
+	FOR LOCAL, START_X, START_X+7
+		RESETCOLOR
+		IF GET_MANTRA_MAPNAME(LOCAL, LOCAL:1) == "NONE"
+			PRINTFORM 　　　　　
+		ELSE
+			SELECTCASE MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+				CASE 0
+					PRINTFORM 　　　　　
+					CONTINUE
+				CASE 1
+					SETCOLOR COLOR("gray")
+				CASE 3
+					SETCOLOR COLOR("p-green")
+				CASE 4
+					SETCOLOR COLOR("p-red")
+				CASE 5
+					SETCOLOR COLOR("p-blue")
+			ENDSELECT
+			SIF MANTRA_X == LOCAL && MANTRA_Y == LOCAL:1
+				SETCOLOR COLOR("aqua")
+			PRINTFORM ┌──────┐
+		ENDIF
+	NEXT
+	PRINTL 
+	START_X = MANTRA_X - 3
+	IF MANTRA_Y % 2
+		SIF LOCAL:1 % 2 == 0
+			PRINT 　　 
+	ELSE
+		IF LOCAL:1 % 2
+			PRINT 　　 
+			START_X = MANTRA_X - 2
+		ENDIF
+	ENDIF
+	FOR LOCAL, START_X, START_X+7
+		RESETCOLOR
+		IF GET_MANTRA_MAPNAME(LOCAL, LOCAL:1) == "NONE"
+			PRINTFORM 　　　　　
+		ELSE
+			SELECTCASE MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+				CASE 0
+					PRINTFORM 　　　　　
+					CONTINUE
+				CASE 1
+					SETCOLOR COLOR("gray")
+				CASE 3
+					SETCOLOR COLOR("p-green")
+				CASE 4
+					SETCOLOR COLOR("p-red")
+				CASE 5
+					SETCOLOR COLOR("p-blue")
+			ENDSELECT
+			SIF MANTRA_X == LOCAL && MANTRA_Y == LOCAL:1
+				SETCOLOR COLOR("aqua")
+			PRINTFORM │   
+			PRINTBUTTON @"[{GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1)),3}]", GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+			マントラ座標:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1)) = LOCAL + LOCAL:1 * 1000
+			PRINT     │
+		ENDIF
+	NEXT
+	PRINTL 
+	START_X = MANTRA_X - 3
+	IF MANTRA_Y % 2
+		SIF LOCAL:1 % 2 == 0
+			PRINT 　　 
+	ELSE
+		IF LOCAL:1 % 2
+			PRINT 　　 
+			START_X = MANTRA_X - 2
+		ENDIF
+	ENDIF
+	FOR LOCAL, START_X, START_X+7
+		RESETCOLOR
+		IF GET_MANTRA_MAPNAME(LOCAL, LOCAL:1) == "NONE"
+			PRINTFORM 　　　　　
+		ELSE
+			SELECTCASE MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+				CASE 0
+					PRINTFORM 　　　　　
+					CONTINUE
+				CASE 1
+					SETCOLOR COLOR("gray")
+				CASE 3
+					SETCOLOR COLOR("p-green")
+				CASE 4
+					SETCOLOR COLOR("p-red")
+				CASE 5
+					SETCOLOR COLOR("p-blue")
+			ENDSELECT
+			SIF MANTRA_X == LOCAL && MANTRA_Y == LOCAL:1
+				SETCOLOR COLOR("aqua")
+			PRINTFORM │
+			; Center the text
+			IF STRLENS(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1)) % 2 == 1
+				PRINTFORM  
+			ENDIF
+
+			LOCALS = %" " * ((12 - STRLENS(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))) / 2)%
+
+			PRINTS LOCALS
+			
+			PRINTFORM %GET_MANTRA_MAPNAME(LOCAL, LOCAL:1)%
+			PRINTS LOCALS
+			PRINTFORM │
+			;IF STRLENS(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1)) == 4
+			;	PRINTFORM │  %GET_MANTRA_MAPNAME(LOCAL, LOCAL:1)%  │
+			;ELSE
+			;	PRINTFORM │%GET_MANTRA_MAPNAME(LOCAL, LOCAL:1),6,LEFT%│
+			;ENDIF
+		ENDIF
+	NEXT
+	PRINTL 
+	START_X = MANTRA_X - 3
+	IF MANTRA_Y % 2
+		SIF LOCAL:1 % 2 == 0
+			PRINT 　　 
+	ELSE
+		IF LOCAL:1 % 2
+			PRINT 　　 
+			START_X = MANTRA_X - 2
+		ENDIF
+	ENDIF
+	FOR LOCAL, START_X, START_X+7
+		RESETCOLOR
+		IF GET_MANTRA_MAPNAME(LOCAL, LOCAL:1) == "NONE"
+			PRINTFORM 　　　　　
+		ELSE
+			SELECTCASE MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+				CASE 0
+					PRINTFORM 　　　　　
+					CONTINUE
+				CASE 1
+					SETCOLOR COLOR("gray")
+				CASE 3
+					SETCOLOR COLOR("p-green")
+				CASE 4
+					SETCOLOR COLOR("p-red")
+				CASE 5
+					SETCOLOR COLOR("p-blue")
+			ENDSELECT
+			SIF MANTRA_X == LOCAL && MANTRA_Y == LOCAL:1
+				SETCOLOR COLOR("aqua")
+			SELECTCASE MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+				CASE 1
+					PRINTFORM │   DL不可   │
+				CASE 2
+					PRINTFORM │    DL可    │
+				CASE 3
+					PRINTFORM │    DL済    │
+				CASE 4
+					PRINTFORM │   EQUIP    │
+				CASE 5
+					PRINTFORM │   MASTER   │
+				CASEELSE
+					PRINTFORM │ {CDFLAG:CHARA:マントラ:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))/100,2}％ │
+			ENDSELECT
+		ENDIF
+	NEXT
+	PRINTL 
+	START_X = MANTRA_X - 3
+	IF MANTRA_Y % 2
+		SIF LOCAL:1 % 2 == 0
+			PRINT 　　 
+	ELSE
+		IF LOCAL:1 % 2
+			PRINT 　　 
+			START_X = MANTRA_X - 2
+		ENDIF
+	ENDIF
+	FOR LOCAL, START_X, START_X+7
+		RESETCOLOR
+		IF GET_MANTRA_MAPNAME(LOCAL, LOCAL:1) == "NONE"
+			PRINTFORM 　　　　　
+		ELSE
+			SELECTCASE MANTRA_ABLE:GET_MANTRA_NUM(GET_MANTRA_MAPNAME(LOCAL, LOCAL:1))
+				CASE 0
+					PRINTFORM 　　　　　
+					CONTINUE
+				CASE 1
+					SETCOLOR COLOR("gray")
+				CASE 3
+					SETCOLOR COLOR("p-green")
+				CASE 4
+					SETCOLOR COLOR("p-red")
+				CASE 5
+					SETCOLOR COLOR("p-blue")
+			ENDSELECT
+			SIF MANTRA_X == LOCAL && MANTRA_Y == LOCAL:1
+				SETCOLOR COLOR("aqua")
+			PRINTFORM └──────┘
+		ENDIF
+	NEXT
+	PRINTL 
+NEXT
+RESETCOLOR
+DRAWLINE
+PRINTFORML [{MNUM}]  %MNAME% mantra
+CALL GET_MANTRA_ABILITY, MNUM
+PRINTFORML Learning difficulty  :%"★"* RESULT%
+SELECTCASE RESULT
+	CASE 1
+		MLV = 5
+	CASE 2
+		MLV = 10
+	CASE 3
+		MLV = 20
+	CASE 4
+		MLV = 45
+	CASE 5
+		MLV = 50
+	CASE 6
+		MLV = 60
+	CASE 7
+		MLV = 70
+	CASE 8
+		MLV = 75
+	CASE 9
+		MLV = 80
+ENDSELECT
+;価格決定
+PRICE = RESULT:1
+SIF CHARA == MASTER
+	PRICE *= 5
+;素質割引
+FOR LOCAL, 3, 11
+	SIF RESULT:LOCAL <= 0
+		CONTINUE
+	CALLFORM SKILL_SUCCESSION_TYPE_{RESULT:LOCAL}
+	IF TALENT:CHARA:GET_SUCCESSION(RESULT)
+		PRICE /= 2
+		BREAK
+	ENDIF
+NEXT
+;探索中は追加コスト発生
+SIF FLAG:ショップコマンド == [[ショップ:探索]] && MANTRA_ABLE:MNUM <= 2
+	PRICE *= 2
+IF MANTRA_ABLE:MNUM <= 2 || (MANTRA_ABLE:MNUM == 3 && FLAG:ショップコマンド == [[ショップ:探索]])
+	PRINTFORML Needed ＭＡＧ:%TOSTR1000(PRICE)%
+ELSE
+	PRINTFORM Mastery　　:
+	IF MANTRA_ABLE:MNUM == 5
+		PRINTL ＭＡＳＴＥＲ
+	ELSE
+		PRINTFORML %@"{CDFLAG:CHARA:マントラ:MNUM /100}.{CDFLAG:CHARA:マントラ:MNUM %100/10}{CDFLAG:CHARA:マントラ:MNUM %1000}",5%％
+	ENDIF
+ENDIF
+PRINT Integrated skills:
+IF RESULT:3 == -1
+	PRINTL Not implemented
+ELSEIF RESULT:3 == -2
+	PRINTL Unavailable
+ELSE
+	FOR LOCAL, 0, 8
+		SKILL:LOCAL = RESULT:(LOCAL+3)
+	NEXT
+	FOR LOCAL, 0, 8
+		SIF SKILL:LOCAL == -1
+			CONTINUE
+		IF LOCAL == 4
+			PRINTL 
+			PRINT  　　　　　
+		ENDIF
+		CALLFORM SKILL_NAME_{SKILL:LOCAL}
+		PRINTFORM [{SKILL:LOCAL+1000, 4}] %RESULTS,16,LEFT%
+	NEXT
+	SIF LOCAL != 5
+		PRINTL 
+	SIF LOCAL < 5
+		PRINTL 
+ENDIF
+PRINT Stat change　:
+IF RESULT:2 > 0
+	FOR LOCAL, 1, 7
+		SIF RESULT:2 % POWER(10, LOCAL+1) / POWER(10, LOCAL) > 0
+			PRINTFORM %GET_BASESTATUS_E(LOCAL)%+{RESULT:2 % POWER(10, LOCAL+1) / POWER(10, LOCAL)}　
+	NEXT
+ELSE
+	PRINT Unavailable
+ENDIF
+PRINTL 
+DRAWLINE
+PRINTFORML %CALLNAME:CHARA%
+PRINTFORML Possessed ＭＡＧ:%TOSTR1000(BASE:CHARA:ＭＡＧ)%
+LOCAL:1 = 0
+DRAWLINE
+SELECTCASE MANTRA_ABLE:MNUM
+	CASE 1, 2
+		SIF MANTRA_ABLE:MNUM == 1 || PRICE > BASE:CHARA:ＭＡＧ
+			SETCOLOR COLOR("gray")
+		PRINTL [200] Download
+	CASE 3, 4
+		SIF MANTRA_ABLE:MNUM == 4
+			SETCOLOR COLOR("gray")
+		PRINTL [200] Install
+ENDSELECT
+RESETCOLOR
+PRINTL [ 999] Return
+PRINTL [1000] Mantra explanation
+SIF FLAG:DEBUG
+	PRINTL [900] Mantra skill check
+INPUT
+IF RESULT == 999
+	RETURN 0
+ELSEIF RESULT == 1000
+	CALL MANTRA_EXPLAIN
+ELSEIF RESULT == 200
+	SELECTCASE MANTRA_ABLE:MNUM
+		CASE 1
+			PRINTFORMW  Cannot download the %MNAME% mantra.
+		CASE 2
+			IF PRICE > BASE:CHARA:ＭＡＧ
+				PRINTW Not enough ＭＡＧ
+			ELSE
+				PRINTFORML Download the %MNAME% mantra?
+				CALL INPUT_YN, "Yes", "No"
+				IF !RESULT
+					EQUIP:CHARA:装備マントラ = MNUM
+					CDFLAG:CHARA:マントラ:MNUM = 1
+					BASE:CHARA:ＭＡＧ -= PRICE
+					PRINTFORMW  Downloaded the %MNAME% mantra.
+					CFLAG:CHARA:マントラ適性レベル = MLV
+					CLEARLINE LINECOUNT - LINE
+					RESTART
+				ENDIF
+			ENDIF
+		CASE 3
+			IF FLAG:ショップコマンド == [[ショップ:探索]]
+				IF PRICE > BASE:CHARA:ＭＡＧ
+					PRINTW Not enough ＭＡＧ.
+				ELSE
+					EQUIP:CHARA:装備マントラ = MNUM
+					PRINTFORMW  Installed the %MNAME% mantra.
+					CLEARLINE LINECOUNT - LINE
+					CFLAG:CHARA:マントラ適性レベル = MLV
+					BASE:CHARA:ＭＡＧ -= PRICE
+					RESTART
+				ENDIF
+			ELSE
+				EQUIP:CHARA:装備マントラ = MNUM
+				PRINTFORMW  Installed the %MNAME% mantra.
+				CLEARLINE LINECOUNT - LINE
+				CFLAG:CHARA:マントラ適性レベル = MLV
+				RESTART
+			ENDIF
+		CASE 4
+			PRINTFORMW The %MNAME% mantra is already installed. 
+	ENDSELECT
+ELSEIF RESULT == 900 && FLAG:DEBUG
+;	PRINTL チェックする相性を入力してください
+;	INPUTS
+;	MNAME = %RESULTS%
+	VARSET D
+	FOR LOCAL, 1, 116
+		CALL GET_MANTRA_ABILITY, LOCAL
+ 		FOR LOCAL:1, 3, 12
+			SIF RESULT:(LOCAL:1) < 0 
+				CONTINUE
+			D:(RESULT:(LOCAL:1)) = 1
+ 		NEXT
+	NEXT
+	FOR LOCAL, 0, 4000
+		SIF D:LOCAL
+			CONTINUE
+		TRYCCALLFORM 敵専用_{LOCAL}
+			SIF RESULT
+				CONTINUE
+		CATCH
+			CONTINUE
+		ENDCATCH
+		TRYCCALLFORM 継承不能_{LOCAL}
+			SIF RESULT
+				CONTINUE
+		CATCH
+		ENDCATCH
+		TRYCCALLFORM SKILL_NAME_{LOCAL}
+			PRINTFORM [{LOCAL,4}] %RESULTS,20,LEFT%
+		CATCH
+			CONTINUE
+		ENDCATCH
+		CALLFORM SKILL_RANK_{LOCAL}
+		PRINTFORML R{RESULT}
+	NEXT
+	WAIT
+ELSE
+	IF RANGE(RESULT, 1, 115) && MANTRA_ABLE:RESULT > 0
+		MANTRA_X = マントラ座標:RESULT%1000
+		MANTRA_Y = マントラ座標:RESULT/1000
+	ENDIF
+ENDIF
+GOTO START
+
+@GET_MANTRA_MAPNAME, ARG, ARG:1
+#FUNCTIONS
+#LOCALSSIZE 15
+#DIMS マントラ_A, 15
+;範囲外のものはないものとして返す
+IF !RANGE(ARG, 0, 14) || !RANGE(ARG:1, 0, 14)
+	RESULT:1 = -1
+	RETURNF "NONE"
+ENDIF
+;処理の簡略化のために一度地図を生成したら再登録はしない
+IF LOCALS == ""
+	;           0,        1 ,       2,        3,        4,        5,        6,        7,        8,        9 ,       10,       11,       12,       13,       14
+	LOCALS:0  = %"NONE/"  +"NONE/"  +"NONE/"  +"Megami/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE/"  +"破壊神/"+"NONE/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:1  = %"NONE/"  +"NONE/"  +"邪神/"  +"NONE/"  +"妃神/"  +"NONE/"  +"悪神/"  +"NONE/"  +"不動/"  +"NONE/"  +"天津神/"+"NONE/"  +"Kishin/"  +"NONE/"  +"NONE"%
+	LOCALS:2  = %"NONE/"  +"NONE/"  +"幻魔/"  +"NONE/"  +"戦姫/"  +"NONE/"  +"神獣/"  +"覇王/"  +"NONE/"  +"修羅王/"+"NONE/"  +"鬼王/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:3  = %"NONE/"  +"NONE/"  +"NONE/"  +"秘魔/"  +"NONE/"  +"天女/"  +"聖獣/"  +"御霊五/"+"荒神/"  +"猛将/"  +"NONE/"  +"戦鬼/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:4  = %"NONE/"  +"NONE/"  +"NONE/"  +"呪魔/"  +"夜魔/"  +"御霊四/"+"巫女/"  +"Beast/"  +"御霊三/"+"修羅漢/"+"闘鬼/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:5  = %"NONE/"  +"地神王/"+"Lady/"+"地祗/"  +"秘言五/"+"業魔/"  +"比丘尼/"+"秘言ニ/"+"沙門/"  +"業鬼/"  +"秘言六/"+"SkyWizard/"  +"WindGod/"  +"WindKing/"+"NONE"%
+	LOCALS:6  = %"NONE/"  +"NONE/"  +"NONE/"  +"地王/"  +"EarthTemple/"+"御霊ニ/"+"Element/"  +"修羅/"+"御霊一/"  +"Hiten/"  +"SkyDragon/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:7  = %"熾天使/"+"智天使/"+"座天使/"+"大天使/"+"秘言七/"+"EarthShrine/"+"EarthSpirit/"  +"Devourer/"  +"Dragon/"  +"DragonLord/"  +"秘言八/"+"魔将/"  +"魔帥/"  +"魔帝/"  +"Tyrant"%
+	LOCALS:8  = %"NONE/"  +"NONE/"  +"NONE/"  +"Yaksa/"  +"Angel/"  +"BoltSpirit/"  +"Protection/"  +"IceSpirit/"  +"IceDemon/"  +"IceLeader/"  +"IceWolf/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:9  = %"NONE/"  +"死神/"  +"死霊/"  +"悪霊/"  +"御霊八/"+"BoltLord/"  +"FallenHero/"  +"秘言一/"+"FireSpirit/"  +"Spirit/"  +"御霊六/"+"IceMaster/"  +"IceGod/"  +"IceKing/"+"NONE"%
+	LOCALS:10 = %"NONE/"  +"NONE/"  +"NONE/"  +"BoltEmperor/"  +"Lightning/"  +"秘言三/"+"FierceSpirit/"  +"FireDemon/"+"秘言四/"+"吉祥/"  +"明王/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:11 = %"NONE/"  +"NONE/"  +"NONE/"  +"BoltMaster/"+"NONE/"  +"和霊/"  +"Hades/"  +"御霊七/"+"FireLeader/"+"FireLord/"  +"NONE/"  +"神将/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:12 = %"NONE/"  +"NONE/"  +"BoltGod/"  +"NONE/"  +"CalmSpirit/"  +"NONE/"  +"SixRealms/"  +"ThreeWorlds/"  +"NONE/"  +"FireEmperor/"  +"NONE/"  +"成道/"  +"NONE/"  +"NONE/"  +"NONE"%
+	LOCALS:13 = %"NONE/"  +"NONE/"  +"BoltKing/"+"NONE/"  +"DeathSpirit/"  +"NONE/"  +"討竜/"  +"NONE/"  +"光神/"  +"NONE/"  +"FireGod/"  +"NONE/"  +"無色/"  +"NONE/"  +"NONE"%
+	LOCALS:14 = %"NONE/"  +"NONE/"  +"NONE/"  +"Deity/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE/"  +"NONE/"  +"FireKing/"+"NONE/"  +"NONE/"  +"NONE/"  +"NONE"%
+ENDIF
+SPLIT LOCALS:(ARG:1), "/", マントラ_A
+RETURNF マントラ_A:ARG
+
+@GET_MANTRA_ABILITY, ARG
+VARSET RESULT, -1
+SELECTCASE ARG
+	;喰奴
+	CASE 1
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:喰らいつき]], [[スキル:ひっかき]], [[スキル:かみつき]],  [[スキル:九十九針]], [[スキル:毒針]]
+		;MPテイスタ
+	;修羅
+	CASE 2
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:ヤマオロシ]], [[スキル:一文字斬り]], [[スキル:体当たり]], [[スキル:突撃]], [[スキル:雷霆蹴]], [[スキル:ショートジャブ]], [[スキル:喰い散らし]]
+		;ボディアタック/マッスルボンバー
+	;Dragon
+	CASE 3
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ザン]], [[スキル:衝撃ブレイク]], [[スキル:ガル]], [[スキル:疾風ブレイク]]
+	;IceSpirit
+	CASE 4
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ブフ]], [[スキル:氷結ブレイク]], [[スキル:アクア]], [[スキル:水撃ブレイク]]
+	;Protection
+	CASE 5
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:ディア]], [[スキル:パトラ]]
+		;デビルアナライズ
+	;EarthSpirit
+	CASE 6
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:マグナ]], [[スキル:地変ブレイク]], [[スキル:グライ]], [[スキル:重力ブレイク]]
+		;テラ/地変ブレイク
+	;Element
+	CASE 7
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:マカジャマ]], [[スキル:ハピルマ]], [[スキル:ハッピーステップ]]
+		;[[スキル:魔封ブレイク]]
+	;秘言二
+	CASE 8
+		RETURN 2, 50000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:誘惑]]
+		;守銭奴の魂
+	;沙門
+	CASE 9
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:かすみ斬り]], [[スキル:剛切断]], [[スキル:愛のムチ]], [[スキル:極楽往生破]], [[スキル:暴れまくり]], [[スキル:回し蹴り]], [[スキル:マモリクズシ]]
+		;ズンバラリン/
+	;御霊一(力+3)
+	CASE 10
+		RETURN 3, 75000, POWER(10, GET_BASESTATUS_NUM("力")) * 3, -2
+	;DragonLord
+	CASE 11
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:マハ・ザン]], [[スキル:悪魔の一喝]], [[スキル:マハ・ガル]], [[スキル:衝撃アタッカ]], [[スキル:疾風アタッカ]]
+		;衝撃ブースタ
+	;IceDemon
+	CASE 12
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:マハ・ブフ]], [[スキル:アイスブレス]], [[スキル:マハ・アクア]], [[スキル:氷結アタッカ]], [[スキル:水撃アタッカ]]
+		;/氷結ブースタ
+	;炎魔
+	CASE 13
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:アギ]], [[スキル:火炎ブレイク]], [[スキル:核熱ブレイク]]
+	;秘言一
+	CASE 14
+		RETURN 2, 50000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:サバトマ]]
+	;英霊
+	CASE 15
+		RETURN 2, 50000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:メ・ディア]], [[スキル:ポズムディ]], [[スキル:ドルミナー]]
+		;/エイクディ/催眠ガス
+	;BoltSpirit
+	CASE 16
+		RETURN 1, 10000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ジオ]], [[スキル:電撃ブレイク]]
+	;EarthShrine
+	CASE 17
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:マハ・マグナ]], [[スキル:地変アタッカ]], [[スキル:マハ・グライ]], [[スキル:重力アタッカ]]
+		;/地変ブースタ
+	;御霊ニ 魔+3
+	CASE 18
+		RETURN 3, 75000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 3, -2
+	;比丘尼
+	CASE 19
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:マヒ針]], [[スキル:シングルショット]], [[スキル:毒ひっかき]], [[スキル:マヒひっかき]], [[スキル:毒かみつき]], [[スキル:マヒかみつき]], [[スキル:コーチング]]
+		;乱心の一刀/クリティカ/代謝アクセラ/捨て身の覚悟
+	;巫女
+	CASE 20
+		RETURN 3, 100000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:散弾撃ち]], [[スキル:エンジェルアロー]], [[スキル:飛具アタッカ]], [[スキル:アドバイス]]
+		;デスシャワー/カウンタ/逃走アクセラ
+	;Beast
+	CASE 21
+		RETURN 3, 100000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:メガクロー]], [[スキル:アサルトダイブ]], [[スキル:電光石火]], [[スキル:魅惑かみつき]], [[スキル:喰いちぎり]], [[スキル:戦技アタッカ]]
+		;/APブースタ/ストマックガード 
+	;御霊三 耐力+5
+	CASE 22
+		RETURN 4, 200000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 5, -2
+		;デスシャワー/カウンタ/逃走アクセラ
+	;業鬼
+	CASE 23
+		RETURN 3, 100000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:イナズマ突き]], [[スキル:利剣乱舞]], [[スキル:両腕落とし]], [[スキル:二段突き]], [[スキル:ヒートウェイブ]], [[スキル:剣撃アタッカ]], [[スキル:一分の活泉]]
+		;紅蓮剣/鬼喰い/挑発/パニックアタッカ
+	;Hiten
+	CASE 24
+		RETURN 3, 150000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ザンマ]], [[スキル:衝撃の壁]], [[スキル:衝撃リフレクト]], [[スキル:ガルーラ]], [[スキル:大気の壁]], [[スキル:疾風リフレクト]]
+		;/カマイタチ/
+	;秘言八
+	CASE 25
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:七色煉獄波]]
+		;アボイドスリーパ/ハッピーウォーカ
+	;IceLeader
+	CASE 26
+		RETURN 3, 150000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ブフーラ]], [[スキル:氷の壁]], [[スキル:アイオンの雨]], [[スキル:氷結リフレクト]], [[スキル:アクエス]], [[スキル:水の壁]], [[スキル:水撃リフレクト]] 
+	;金剛
+	CASE 27
+		RETURN 2, 30000,  POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:プリンパ]], [[スキル:シバブー]], [[スキル:マリンカリン]], [[スキル:ポイズマ]], [[スキル:マイト]], [[スキル:淀んだ吐息]], [[スキル:精神ブレイク]], [[スキル:神経ブレイク]]
+		;[[スキル:混乱ブレイク]]
+	;秘言四
+	CASE 28
+		RETURN 3, 200000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:ライトマ]], [[スキル:リベラマ]], [[スキル:エストマ]]
+		;レベルギフト
+	;大炎魔
+	CASE 29
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:マハ・ラギ]], [[スキル:ファイアブレス]], [[スキル:フレイ]], [[スキル:火炎アタッカ]],  [[スキル:核熱アタッカ]]
+		;火炎ブースタ
+	;威霊
+	CASE 30
+		RETURN 3, 200000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:ディアラマ]], [[スキル:パララディ]], [[スキル:ペンパトラ]]
+	;秘言三
+	CASE 31
+		RETURN 3, 150000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:自爆]], [[スキル:玉砕破]]
+		;アイテムゲッタ
+	;雷王
+	CASE 32
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:マハ・ジオ]], [[スキル:電撃]], [[スキル:電撃アタッカ]]
+		;[[スキル:電撃ブースタ]]
+	;Angel
+	CASE 33
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:ハンマ]], [[スキル:コウハ]], [[スキル:破魔ブレイク]]
+	;秘言七
+	CASE 34
+		RETURN 7, 200000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:トラフーリ]], [[スキル:トラエスト]]
+		;大冷界/オートチャクラ
+	;EarthTemple
+	CASE 35
+		RETURN 3, 150000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:マグナス]], [[スキル:大地の壁]], [[スキル:地変リフレクト]], [[スキル:グライバ]], [[スキル:重力の壁]], [[スキル:重力リフレクト]]
+		;岩責め/
+	;業魔
+	CASE 36
+		RETURN 2, 100000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:タル・カジャ]], [[スキル:タル・ンダ]], [[スキル:スク・カジャ]], [[スキル:スク・ンダ]], [[スキル:一分の魔脈]]
+		;体力泥棒/MPブースタ
+	;御霊四 速+5
+	CASE 37
+		RETURN 4, 200000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 5, -2
+	;聖獣
+	CASE 38
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:アクセルクロー]], [[スキル:石化かみつき]], [[スキル:血祭り]], [[スキル:鬼喰い]], [[スキル:戦技ブレイク]]
+		;ヘルファング/まるかじり/APディバイダ
+	;御霊五 力+5
+	CASE 39
+		RETURN 4, 200000, POWER(10, GET_BASESTATUS_NUM("力")) * 5, -2
+	;荒神
+	CASE 40
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:スパイククロー]], [[スキル:桜花閃乱]], [[スキル:心の叫び]],[[スキル:暴飲暴食]], [[スキル:戦技リフレクト]]
+		;脳天割り/鉄死拳/喰らいカウンタ
+	;猛将
+	CASE 41
+		RETURN 4, 600000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:なぎ払い]], [[スキル:絶妙打]], [[スキル:ギガンフィスト]], [[スキル:怒りの鉄拳]], [[スキル:打撃ブレイク]]
+		;パワーウェイブ/HPハイブースタ
+	;修羅漢
+	CASE 42
+		RETURN 3,  150000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:ソニックパンチ]], [[スキル:サマーソルト]], [[スキル:百烈突き]], [[スキル:押し潰し]], [[スキル:ブレインシェイク]], [[スキル:弱者必滅拳]], [[スキル:打撃アタッカ]], [[スキル:治癒促進(小)]]
+		;, 黙殺/血祭り
+	;秘言六
+	CASE 43
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:追撃の心得]] 
+		;黒の食祭、チューイング、MINクリティカ
+	;天龍
+	CASE 44
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:マハ・ザンマ]], [[スキル:東衝破]], [[スキル:衝撃ドレイン]], [[スキル:マハ・ガルーラ]], [[スキル:天の旋風]], [[スキル:疾風ドレイン]]
+	;魔将
+	CASE 45
+		RETURN 5, 750000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:マルチディメンション]], [[スキル:コンセントレイト]], [[スキル:気功(小)]]
+	;氷狼
+	CASE 46
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:マハ・ブフーラ]], [[スキル:氷結ドレイン]], [[スキル:マハ・アクエス]], [[スキル:剛の波]], [[スキル:水撃ドレイン]], [[スキル:アシッドレイン]]
+	;御霊六 魔+5
+	CASE 47
+		RETURN 4, 200000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 5, -2
+	;吉祥
+	CASE 48
+		RETURN 3, 150000,  POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:子守唄]], [[スキル:高揚の歌]], [[スキル:淀んだ空気]], [[スキル:パララアイ]], [[スキル:毒ガスブレス]], [[スキル:マイトブレス]], [[スキル:精神アタッカ]], [[スキル:神経アタッカ]]
+		;有害吐息/魅了ブレイク/猛毒ブレイク
+	;炎帝
+	CASE 49
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:マハ・ラギオン]], [[スキル:止揚の赤]], [[スキル:火炎ドレイン]], [[スキル:フレイラ]], [[スキル:核熱ドレイン]]
+	;炎魔将
+	CASE 50
+		RETURN 3, 150000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:アギラオ]], [[スキル:ファイアストーム]], [[スキル:炎の壁]], [[スキル:火炎リフレクト]], [[スキル:核熱リフレクト]]
+	;御霊七 知+5
+	CASE 51
+		RETURN 4, 200000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 5, -2
+	;黄泉
+	CASE 52
+		RETURN 4, 350000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:リカーム]]
+	;和霊
+	CASE 53
+		RETURN 4, 500000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:慈愛の祈り]], [[スキル:クロズディ]], [[スキル:ドルミナー]]
+		;/カースディ/
+	;真雷
+	CASE 54
+		RETURN 3, 150000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ジオンガ]], [[スキル:放電]], [[スキル:雷の壁]], [[スキル:電撃リフレクト]]
+		;雷起/
+	;御霊八
+	CASE 55
+		RETURN 4, 200000, POWER(10, GET_BASESTATUS_NUM("運")) * 5, -2
+	;夜叉
+	CASE 56
+		RETURN 2, 30000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:ムド]], [[スキル:エイハ]], [[スキル:呪殺ブレイク]]
+		;/呪いの言霊/
+	;大天使
+	CASE 57
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:マハンマ]], [[スキル:ハマオン]], [[スキル:バイコウハ]], [[スキル:光の壁]], [[スキル:破魔アタッカ]]
+		;/破魔ストロンガ
+	;地王
+	CASE 58
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:マハ・マグナス]], [[スキル:地獄降ろし]], [[スキル:地変ドレイン]], [[スキル:マハ・グライバ]], [[スキル:重力ドレイン]]
+		;マハテラジ/
+	;秘言五
+	CASE 59
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:煌天の会心]], [[スキル:静天の会心]]
+		;白の食祭/チャクラウォーカ/MAXクリティカ
+	;夜魔
+	CASE 60
+		RETURN 3, 200000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:マカ・カジャ]], [[スキル:ラク・カジャ]], [[スキル:ラク・ンダ]]
+		;/マカジャマオン/魔力泥棒
+	;天女
+	CASE 61
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:ミドルショット]], [[スキル:連続撃ち]], [[スキル:飛具ブレイク]]
+		;痺れ針/昏睡ステップ/先制エキスパンダ/会心キャンセラ
+	;神獣
+	CASE 62
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:全力攻撃]], [[スキル:黙示録]], [[スキル:大嘗祭]], [[スキル:戦技ドレイン]]
+		;暴飲暴食/APハイブースタ/MPハイテイスタ
+	;覇王
+	CASE 63
+		RETURN 7, 1500000, POWER(10, GET_BASESTATUS_NUM("力")) * 1, [[スキル:アイアンクロウ]], [[スキル:丸かじり]], [[スキル:冥界の門]], [[スキル:殺神]],[[スキル:最後の晩餐]]
+		;ギロチンクロウ/物理ストロンガ
+	;闘鬼
+	CASE 64
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:ツインスラッシュ]], [[スキル:龍牙旋回]], [[スキル:回転斬り]], [[スキル:ベノンザッパー]], [[スキル:剣撃ブレイク]]
+		;大毒牙/まる呑み/パララアタッカ
+	;飛仙
+	CASE 65
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:ザンダイン]], [[スキル:竜巻]], [[スキル:嵐の乱舞]], [[スキル:ガルダイン]], [[スキル:衝撃ガードキル]],  [[スキル:疾風ガードキル]]
+		;竜巻地獄/衝撃ハイブースタ
+	;氷帥
+	CASE 66
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("運")) * 2, [[スキル:ブフダイン]], [[スキル:氷の乱舞]],[[スキル:絶対零度]], [[スキル:アクアダイン]], [[スキル:氷結ガードキル]],  [[スキル:水撃ガードキル]]
+		;/大寒波/氷結ハイブースタ
+	;明王
+	CASE 67
+		RETURN 4, 300000,  POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:セクシーダンス]], [[スキル:パニックボイス]], [[スキル:バリアントダンス]], [[スキル:バインドボイス]], [[スキル:パララ・ウェブ]], [[スキル:マイトマ]], [[スキル:精神リフレクト]], [[スキル:神経リフレクト]]
+		;極上の肉体/ニューロクランチ/ポイズンミスト/神経デストロイア
+	;三界
+	CASE 68
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 2, [[スキル:リカームドラ]], [[スキル:サイコバリアー]]
+		;/大往生
+	;六道
+	CASE 69
+		RETURN 6, 950000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:サマリカーム]], [[スキル:テトラジャ]]
+	;雷帝
+	CASE 70
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:マハ・ジオンガ]], [[スキル:雷の乱舞]], [[スキル:破戒の稲妻]], [[スキル:電撃ドレイン]]
+	;悪霊
+	CASE 71
+		RETURN 4, 300000, POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:マハムド]], [[スキル:バイエイハ]], [[スキル:闇の壁]], [[スキル:ペトラアイ]], [[スキル:呪殺アタッカ]]
+		;/カースエピタフ/石化光線/呪殺ストロンガ
+	;地祇
+	CASE 72
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 2, [[スキル:マグダイン]], [[スキル:グラダイン]], [[スキル:地変ガードキル]],  [[スキル:重力ガードキル]]
+		;/ヘヴィーロック/地変ハイブースタ
+	;呪魔
+	CASE 73
+		RETURN 4, 400000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:タルカジャオート]], [[スキル:スクカジャオート]], [[スキル:Rebellion]], [[スキル:勇奮の舞]], [[スキル:ダークブレス]]
+		;/サイレントハウル サイコブレス
+	;秘魔
+	CASE 74
+		RETURN 5, 750000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:マカカジャオート]], [[スキル:ラクカジャオート]], [[スキル:レボリューション]], [[スキル:二分の魔脈]], [[スキル:溶解ブレス]]
+		;ダークミラージュ/魔封デストロイア/MPハイブースタ
+	;幻魔
+	CASE 75
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:パワーブレス]], [[スキル:フォッグブレス]], [[スキル:雄叫び]]
+		;スペルグルーム/デクンダ
+	;戦姫
+	CASE 76
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:石化針]], [[スキル:夢見針]], [[スキル:天羽の舞]], [[スキル:飛具リフレクト]], [[スキル:食いしばり]], [[スキル:気合]]
+		;悩殺スラッシュ/パワーカウンタ/リスクキャンセラ
+	;妃神
+	CASE 77
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:暗波双飛爪]], [[スキル:滅殺袖箭]], [[スキル:刹那五月雨撃]], [[スキル:飛具ドレイン]], [[スキル:挑発]], [[スキル:グランドタック]]
+		;桜花閃乱/オールアタッカ/デスキャンセラ
+	;修羅王
+	CASE 78
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:奥義マモリヤブリ]], [[スキル:アカシャアーツ]], [[スキル:千烈突き]], [[スキル:打撃リフレクト]], [[スキル:治癒促進(中)]]
+		;アカシックパリツ/デモンレイヴ
+	;天津神
+	CASE 79
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:メガトンプレス]], [[スキル:八相発破]], [[スキル:メテオフィスト]], [[スキル:神等去出八百万撃]], [[スキル:打撃ドレイン]]
+		;冥界の門/HPメガブースタ
+	;戦鬼
+	CASE 80
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:唐竹割り]], [[スキル:狼牙天誅斬]], [[スキル:デスバウンド]], [[スキル:剣撃リフレクト]], [[スキル:二分の活泉]]
+		;心の叫び/パワーチャージ/物理ブレイク/丸呑みカウンタ
+	;鬼王
+	CASE 81
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:木っ端微塵斬り]], [[スキル:九十九螺旋撃]], [[スキル:灼熱車駕]], [[スキル:浮月砕破]], [[スキル:剣撃ドレイン]],
+		;大屠殺/大嘗祭/物理リフレクト/ペトラアタッカ
+	;風神
+	CASE 82
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:マハ・ザンダイン]], [[スキル:西撃破]], [[スキル:マハ・ガルダイン]], [[スキル:地の烈風]]
+		;/衝撃ストロンガ
+	;魔帥
+	CASE 83
+		RETURN 6, 1000000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 2, [[スキル:メギド]], [[スキル:気功(中)]]
+		;/ロストワード
+	;魔帝
+	CASE 84
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 2, [[スキル:メギドラ]], [[スキル:万魔の乱舞]], [[スキル:気功(大)]], [[スキル:マカラカーン]]
+		;/魔法リフレクト
+	;氷神
+	CASE 85
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("運")) * 2, [[スキル:マハ・ブフダイン]], [[スキル:マハ・アクダイン]], [[スキル:柔の波]], [[スキル:フィアトレント]]
+		;/氷結ストロンガ
+	;神将
+	CASE 86
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1 +  POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:テンタラフー]], [[スキル:キャンディボイス]], [[スキル:アラクノワイヤー]], [[スキル:ニューロクランチ]], [[スキル:永眠の誘い]], [[スキル:バイツァ・ダスト]], [[スキル:精神ガードキル]], [[スキル:神経ガードキル]]
+		;/痺れ大波動/混乱デストロイア/猛毒デストロイア
+	;成道
+	CASE 87
+		RETURN 6, 1000000, POWER(10, GET_BASESTATUS_NUM("運")) * 2, [[スキル:ファイナルヌード]], [[スキル:誘惑の霧]], [[スキル:魔界の調べ]], [[スキル:混濁の瘴気]], [[スキル:精神ドレイン]], [[スキル:神経ドレイン]], [[スキル:ブレインバースト]]
+		; [[スキル:ＢＳブレイク]] 絶世の肉体/ニガヨモギ/BSブレイク/魅了デストロイア
+	;絶焔
+	CASE 88
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("力")) * 2, [[スキル:アギダイン]], [[スキル:炎の乱舞]], [[スキル:火炎ガードキル]],  [[スキル:核熱ガードキル]]
+		;/エクスプロード/火炎ハイブースタ
+	;火神
+	CASE 89
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("力")) * 2, [[スキル:マハ・ラギダイン]], [[スキル:地獄の業火]], [[スキル:終焉の蒼]], [[スキル:フレイダイン]], [[スキル:ニュークリアミサイル]]
+		;/火炎ストロンガ
+	;祖霊 CalmSpirit
+	CASE 90
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 2, [[スキル:メ・ディアラマ]], [[スキル:ペトラディ]], [[スキル:チャムディ]]
+	;冥霊 DeathSpirit
+	CASE 91
+		RETURN 6, 1000000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 1 + POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:ディアラハン]]
+	;万雷仙 BoltMaster
+	CASE 92
+		RETURN 5, 600000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 2, [[スキル:ジオダイン]], [[スキル:散雷撃]], [[スキル:電撃ガードキル]]
+		;/ユピテルの怒り/電撃ハイブースタ
+	;雷神 BoltGod
+	CASE 93
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 2, [[スキル:マハ・ジオダイン]], [[スキル:集雷撃]], [[スキル:雷の洗礼]]
+		;/電撃ストロンガ
+	;死霊
+	CASE 94
+		RETURN 6, 500000, POWER(10, GET_BASESTATUS_NUM("運")) * 1 + POWER(10, GET_BASESTATUS_NUM("智恵")) * 1, [[スキル:ムドオン]], [[スキル:マハムドオン]], [[スキル:丑の刻参り]], [[スキル:ヘルズアイ]], [[スキル:マハエイハ]], [[スキル:呪殺ガードキル]], [[スキル:呪殺リフレクト]]
+		;丑の刻参り
+	;座天使
+	CASE 95
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1, [[スキル:マハンマオン]], [[スキル:マハコウハ]], [[スキル:破魔の雷光]], [[スキル:破魔ガードキル]], [[スキル:破魔リフレクト]]
+		;/マカンダ/マカトラ/
+	;智天使
+	CASE 96
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("運")) * 1+POWER(10, GET_BASESTATUS_NUM("智恵")) * 1, [[スキル:穢れ無き威光]], [[スキル:光の裁き]], [[スキル:破魔ドレイン]]
+		;/破魔デストロイア
+	;Lady
+	CASE 97
+		RETURN 6, 800000, POWER(10, GET_BASESTATUS_NUM("耐力")) * 2, [[スキル:マハ・マグダイン]], [[スキル:極楽降ろし]], [[スキル:マハ・グラダイン]]
+		;/地変ストロンガ
+	;地神王
+	CASE 98
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, [[スキル:大地の怒り]]
+		;Titanomachina
+	;邪神
+	CASE 99
+		RETURN 7, 1500000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:デ・カジャ]], [[スキル:デ・クンダ]], [[スキル:三分の魔脈]]
+		;ランダマイザ/MPメガブースタ
+	;Megami
+	CASE 100
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 2, [[スキル:伍絶切羽]], [[スキル:高天烈風弾]], [[スキル:テトラカーン]], [[スキル:不屈の闘志]]
+		;黙示録/ハイパーカウンタ/布陣の極意/ダブルリフレクタ
+	;悪神
+	CASE 101
+		RETURN 9, 2000000, -1, [[スキル:妬みの暴圧]], [[スキル:死蠅の葬列]]
+	;不動
+	CASE 102
+		RETURN 9, 3000000, -1, -1
+		;サードアイ/物理アブソーバ
+	;破壊神
+	CASE 103
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("耐力")) * 1, -1, [[スキル:雷震王母の蹴り]], [[スキル:曳光倶梨伽羅蹴]], [[スキル:万魔の一撃]],  [[スキル:終わる世界]],[[スキル:治癒促進(大)]]
+		;殺神/終わる世界/物理デストロイア
+	;Kishin
+	CASE 104
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("力")) * 1 + POWER(10, GET_BASESTATUS_NUM("速さ")) * 1, [[スキル:虚空斬波]], [[スキル:落陽三段撃]], [[スキル:天驚地爆断]], [[スキル:三分の活泉]]
+		;最後の晩餐/物理ドレイン
+	;風神王
+	CASE 105
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("速さ")) * 1 + POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:リムドーラ]], [[スキル:旋風陣]]
+		;ヴァーヤヴィヤ
+	;Tyrant
+	CASE 106
+		RETURN 8, 1500000, POWER(10, GET_BASESTATUS_NUM("魔力")) *2, [[スキル:メギドラオン]], [[スキル:アナザディメンション]]
+		;フルデストロイア
+	;氷神王
+	CASE 107
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("魔力")) * 1 + POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:アクアリータイド]], [[スキル:大冷界]]
+		;ニブルヘルム
+	;無色
+	CASE 108
+		RETURN 7, 1250000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1 + POWER(10, GET_BASESTATUS_NUM("運")) * 1, [[スキル:色即是空]]
+		;色即是空/BSデストロイア
+	;火神王
+	CASE 109
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("力")) * 1+POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:デッドリーバーン]], [[スキル:ヒートカイザー]]
+		;トリスアギオン
+	;光神
+	CASE 110
+		RETURN 9, 3000000, -1, -1
+		;チャトゥルプジャ/太極光輪
+	;討竜
+	CASE 111
+		RETURN 9, 2000000, -1, [[スキル:シナイの神火]]
+		;破邪の光刃
+	;Deity
+	CASE 112
+		RETURN 8, 1500000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 2, [[スキル:メ・ディアラハン]], [[スキル:アムリタ]], [[スキル:リフトマ]]
+		;メシアライザー/オートソーマ
+	;雷神王 BoltKing
+	CASE 113
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 1 + POWER(10, GET_BASESTATUS_NUM("魔力")) * 1, [[スキル:ナルカミ]], [[スキル:ナイス・ショート]]
+		;ナルカミ
+	;死神
+	CASE 114
+		RETURN 7, 1200000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 2, [[スキル:千年の呪怨]], [[スキル:闇の審判]], [[スキル:呪殺ドレイン]]
+		;/石化電波/呪殺デストロイア
+	;熾天使
+	CASE 115
+		RETURN 7, 1250000, POWER(10, GET_BASESTATUS_NUM("知恵")) * 2, [[スキル:デ・カジャ]], [[スキル:アルファブラスタ]], [[スキル:オメガクラスタ]]
+		;ザナドゥ
+ENDSELECT
+
+@MANTRA_EXPLAIN
+#LOCALSIZE 1
+DRAWLINE
+PRINTL Mantra system explanation
+DRAWLINE
+PRINTL Avatar tuners can be strengthened by the mantra system.
+PRINTL Please choose the information you want to know.
+DRAWLINE
+LOCAL = LINECOUNT
+$START
+CLEARLINE LINECOUNT - LOCAL
+CALL INPUT_SELECT(1, "ダウンロード", 2, "マントラの成長方法", 3, "Set skills", 4, "Hunting and wait skills", 5, "Set stats", 9, "End explanation")
+SELECTCASE RESULT
+	CASE 1
+		PRINTFORMW マントラのダウンロードはＭＡＧを消費して実行することができます
+		PRINTFORMW マントラＭＡＰ上でＤＬ可となっているマントラを選択してください
+		PRINTFORML なお、喰奴はそれぞれ得意な相性を持っており、
+		PRINTFORMW その相性に属するマントラはＭＡＧの消費が減少します
+		PRINTL 
+		PRINTFORMW なお、喰奴は無条件でＤＬ可となりますが
+		PRINTFORMW その他のマントラは隣接するマントラを成長させ
+		PRINTFORMW MASTERすることで初めてＤＬ可となります
+	CASE 2
+		PRINTFORMW ダウンロードしたマントラはセットすることが可能となります
+		PRINTFORMW マントラはダウンロード時に自動的にセットされますが
+		PRINTFORMW 途中で変更することも出来ます
+		PRINTFORML この時、過去にダウンロードしたことがあるマントラは
+		PRINTFORMW ＭＡＧを支払うことなくセットすることが可能です
+		PRINTL 
+		PRINTFORMW マントラを装備した状態で敵を倒すと戦闘終了時に
+		PRINTFORMW 倒した敵の強さに応じてAP(アートマポイント)が獲得されます
+		PRINTFORMW そしてマントラが一定値のAPを獲得するとMASTER状態となります
+		PRINTL 
+		PRINTFORMW マントラがMASTER状態になることで
+		PRINTFORMW 喰奴はスキルとステータスポイントを獲得し
+		PRINTFORMW スキルセットとステータスセットでセットすることができるようになります
+		PRINTL 
+		PRINTFORMW なお、マントラダウンロード時に表示される★はマントラのランクを示し
+		PRINTFORMW これが多いマントラほど成長させるためにより強い敵と戦う必要があります
+	CASE 3
+		PRINTFORMW 喰奴はMASTERしたマントラが内蔵するスキルを自由に選択してセットすることが可能です
+		PRINTFORMW スキルセットを選ぶ、スキルを入れ替えてください
+	CASE 4
+		PRINTW Hunting skills and wait skills are exclusive to avatar tuners
+		PRINTL 
+		PRINTW Hunting skills let the user devour enemies
+		PRINTW They have low power but greatly benefit from ＣＯＯＰ
+		PRINTW Also, when an enemy is defeated by a hunting skill, the user gets more AP to master the equipped mantra.
+		PRINTW You can use hunting skills to efficiently grow mantras
+		PRINTL 
+		PRINTW Wait skills allow you to change the affinities of avatar tuners
+		PRINTW The hunting element skills change the element of the hunting skills for a turn
+		PRINTW This can be used to exploit an enemy's weakness
+		PRINTL 
+		PRINTW The void skills prevent the enemy from causing damage with the related element
+		PRINTW 同様にリフレクト系統は反射、ドレイン系統は吸収します
+		PRINTW これらのスキルは１ターンの間に複数使うと消費ＭＰが加速度的に増加するので注意してください
+		PRINTL 
+		PRINTW なお、これらのスキルはＷＡＩＴから使用し、ターンを消費しません
+	CASE 5
+		PRINTW マントラを成長させることで喰奴はステータスポイントを獲得できます
+		PRINTW 喰奴はこのポイントを割り振ることで変身時のステータスを変化させられます
+		PRINTL 
+		PRINTW ステータスの増加ではなく、変化であることに注意してください
+		PRINTW 喰奴は人間時のステータスと悪魔時のステータスを別々にもっています
+		PRINTW このうち通常のレベルアップやＭＡＧ強化で自由に変えられるのは人間時のステータスです
+		PRINTL 
+		PRINTW 悪魔時のステータスは悪魔の基本ステータスの比率通りに、
+		PRINTW 人間時のステータスの合計値を割り振ったものです
+		PRINTW ステータスポイントの割り振りはこの悪魔の基本ステータスを変化させることで
+		PRINTW 結果的に人間時のステータスの合計値の割り振りの比率を変化させるというものです
+		PRINTL 
+		PRINTW 例えば魔力にステータスポイントを振った場合、魔力はあがりますが
+		PRINTW その他のステータスは少しづつさがります
+	CASE 9
+		RETURN 0
+ENDSELECT
+GOTO START

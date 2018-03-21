@@ -1,0 +1,1006 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:DUNGEON_MUFUFU.ERB
+;	Facility	:ダンジョン内性欲処理システム
+;
+;	Licence		:。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		いろいろ				新規作成
+;	002		2012/12/02		ネトリス				PALAM:欲情から『CFLAG:ダンジョン内発情用欲情値』を参照にするように変更などなど
+;													『CFLAG:ダンジョン内発情用欲情値』の上限を設定、減少時の処理をすこし調整、表示方法も数値から記号と色の変化に変更
+;													膣内とヴァギナに『汚れ:愛液』がつくように
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-----------------------------------------------------
+;性欲処理関連
+;-----------------------------------------------------
+;性欲処理の計算
+@性欲処理, ARG , ARG:1 = -1 , ARG:2 = -1
+#DIM CHARA , 1
+#DIM 元欲情 , 2
+;ARG = 処理するキャラ
+;ARG:1 = 相手
+;ARG:2 = プレイ内容（1:仲魔とセックスをする 2:仲魔に奉仕してもらう 3:この場で自慰をする 4:物陰で自慰をしてくる 5:汚れを落とす）
+;初期化
+FOR LOCAL , 0 , 1 + (ARG:1 > -1)
+	CFLAG:(ARG:LOCAL):挿入回数 = 0
+	CFLAG:(ARG:LOCAL):本番回数 = 0
+	CFLAG:(ARG:LOCAL):中出し回数 = 0
+	CFLAG:(ARG:LOCAL):アナル回数 = 0
+	CFLAG:(ARG:LOCAL):フェラ回数 = 0
+	CFLAG:(ARG:LOCAL):クリ責め回数 = 0
+	CFLAG:(ARG:LOCAL):胸責め回数 = 0
+	NOWEX:(ARG:LOCAL):Ｃ絶頂 = 0
+	NOWEX:(ARG:LOCAL):Ｖ絶頂 = 0
+	NOWEX:(ARG:LOCAL):Ａ絶頂 = 0
+	NOWEX:(ARG:LOCAL):Ｂ絶頂 = 0
+	NOWEX:(ARG:LOCAL):射精 = 0
+	NOWEX:(ARG:LOCAL):噴乳 = 0
+	TCVAR:(ARG:LOCAL):獲得自慰経験 = 0
+	元欲情:LOCAL = CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値
+	DOWNBASE:(ARG:LOCAL):体力 = 0
+	DOWNBASE:(ARG:LOCAL):気力 = 0
+NEXT
+;プレイ回数用
+LOCAL:1 = 0
+;愛撫回数計算用
+LOCAL:2 = 0
+;輪姦悪魔の番号格納用
+LOCAL:3 = 0
+;CFLAG:ダンジョン内発情用欲情値の表示用
+LOCAL:5 = 0
+;プレイ回数
+IF ARG:2 == 1
+	LOCAL:1 = 2 + (ABL:(ARG):技巧 + ABL:(ARG:1):奉仕精神)
+ELSEIF ARG:2 == 2
+	LOCAL:1 = 2 + (ABL:(ARG:1):技巧 + ABL:(ARG:1):奉仕精神) / 2
+ELSEIF ARG:2 == 3 || ARG:2 == 4
+	LOCAL:1 = 2 + ((ABL:(ARG):技巧 + ABL:(ARG):露出癖) / 2 + ABL:(ARG):自慰中毒) / 2
+ENDIF
+;絶倫をもっている場合は回数が増える
+LOCAL:1 += TALENT:ARG:絶倫 * 2
+SIF ARG:1 > 0 && TALENT:(ARG:1):絶倫
+	LOCAL:1 += 2
+;プレイ内容
+IF ARG:2 == 1
+	FOR COUNT , 0 , LOCAL:1
+		$AIBU
+		;前戯は3回まで
+		IF RAND:100 < 30 && LOCAL:2 < 3
+			FOR LOCAL , 0 , 2
+				IF HAVE_PENIS(ARG:LOCAL)
+					CFLAG:(ARG:(!LOCAL)):フェラ回数 += 1
+				ELSE
+					IF RAND:2 == 0
+						CFLAG:(ARG:LOCAL):胸責め回数 += 1
+					ELSE
+						CFLAG:(ARG:LOCAL):クリ責め回数 += 1
+					ENDIF
+				ENDIF
+			NEXT
+			LOCAL:2 += 1
+			GOTO AIBU
+		ELSEIF RAND:100 < 60
+			IF HAVE_PENIS(ARG) && HAVE_VAGINA(ARG:1)
+				CFLAG:(ARG:1):本番回数 += 1
+				CFLAG:(ARG):挿入回数 += 1
+			ELSEIF HAVE_PENIS(ARG)
+				CFLAG:(ARG:1):アナル回数 += 1
+				CFLAG:(ARG):挿入回数 += 1
+			ELSEIF HAVE_PENIS(ARG:1)
+				CFLAG:(ARG):本番回数 += 1
+				CFLAG:(ARG:1):挿入回数 += 1
+			ELSE
+				CFLAG:(ARG:1):クリ責め回数 += 1
+			ENDIF
+		ELSEIF RAND:100 < 50
+			FOR LOCAL , 0 , 2
+				IF HAVE_PENIS(ARG:LOCAL)
+					CFLAG:(ARG:(!LOCAL)):フェラ回数 += 2
+				ELSE
+					CFLAG:(ARG:LOCAL):クリ責め回数 += 2
+				ENDIF
+			NEXT
+		ELSE
+			IF HAVE_PENIS(ARG)
+				CFLAG:(ARG:1):アナル回数 += 1
+				CFLAG:(ARG):挿入回数 += 1
+			ELSEIF HAVE_PENIS(ARG:1)
+				CFLAG:(ARG):アナル回数 += 1
+				CFLAG:(ARG:1):挿入回数 += 1
+			ELSE
+				CFLAG:(ARG:1):クリ責め回数 += 1
+				CFLAG:(ARG:1):胸責め回数 += 1
+				CFLAG:(ARG):胸責め回数 += 1
+				CFLAG:(ARG):クリ責め回数 += 1
+			ENDIF
+		ENDIF
+	NEXT
+	CFLAG:ARG:中出し回数 = CFLAG:ARG:本番回数
+	CFLAG:(ARG:1):中出し回数 = CFLAG:(ARG:1):本番回数
+ELSEIF ARG:2 == 2
+	IF HAVE_PENIS(ARG)
+		CFLAG:(ARG:1):フェラ回数 += LOCAL:1
+	ELSE
+		CFLAG:(ARG):クリ責め回数 = 1 + RAND:(MAX(1, LOCAL:1 - 1))
+		CFLAG:(ARG):胸責め回数 = LOCAL:1 - CFLAG:(ARG):胸責め回数
+	ENDIF
+ELSEIF ARG:2 == 3
+	TCVAR:ARG:獲得自慰経験 += LOCAL:1
+	CFLAG:ARG:クリ責め回数 = 1 + RAND:(MAX(1 , TCVAR:ARG:獲得自慰経験 - 1))
+	CFLAG:ARG:胸責め回数 = TCVAR:ARG:獲得自慰経験 - CFLAG:ARG:クリ責め回数
+ELSEIF ARG:2 == 4
+	PRINTFORML ・
+	PRINTFORML ・・
+	PRINTFORML ・・・
+	PRINTL 
+	;輪姦確率
+	IF 危険日(ARG) >= 2
+		LOCAL:2 = 40
+	ELSEIF CFLAG:ARG:ダンジョン内発情用欲情値 >= 10000
+		LOCAL:2 = 20
+	ELSEIF CFLAG:ARG:ダンジョン内発情用欲情値 >= 5000
+		LOCAL:2 = 10
+	ELSE
+		LOCAL:2 = 1
+	ENDIF
+	;月下香の髪飾りを付けていると大幅アップ
+	SIF CFLAG:ARG:帽子 == 30
+		LOCAL:2 += 50
+	TCVAR:ARG:獲得自慰経験 = LOCAL:2 / 10 + LOCAL:1
+	CFLAG:ARG:胸責め回数 = 1 + RAND:(TCVAR:ARG:獲得自慰経験 +1)
+	CFLAG:ARG:クリ責め回数 = TCVAR:ARG:獲得自慰経験 - CFLAG:ARG:胸責め回数
+	;ダンジョン内に設定がされている場合、悪魔に輪姦される可能性がある
+	TRYCCALLFORM DUNGEON_RAPE_DEVIL_{FLAG:現ダンジョン}
+		IF RAND:100 < LOCAL:2 && !IS_LOOKSLIKE_MALE(ARG)
+			;輪姦されちゃうかも判定へ
+			CALL 性欲処理_輪姦, ARG , RESULT
+			LOCAL:3 = RESULT ;回数
+			LOCAL:4 = RESULT:1 ;人数
+		ENDIF
+	CATCH
+	ENDCATCH
+ELSEIF ARG:2 == 5
+	PALAM:ARG:潤滑 = 0
+	;膣内以外の汚れを綺麗に
+	REPEAT 8
+		SIF COUNT == 6
+			CONTINUE
+		STAIN:ARG:COUNT = 0
+	REND
+	RETURN 0
+ENDIF
+
+FOR LOCAL , 0 , 1 + (ARG:1 > -1)
+	IF TALENT:(ARG:LOCAL):オトコ == 0
+		CALL SET_STAIN("膣内" , "愛液" , (ARG:LOCAL))
+		CALL SET_STAIN("ヴァギナ" , "愛液" , (ARG:LOCAL))
+		IF CFLAG:(ARG:LOCAL):本番回数 > 0
+			CALL SET_STAIN("膣内" , "精液" , (ARG:LOCAL))
+			CALL SET_STAIN("ヴァギナ" , "精液" , (ARG:LOCAL))
+		ENDIF
+		IF CFLAG:(ARG:LOCAL):フェラ回数 > 0
+			CALL SET_STAIN("口" , "精液" , (ARG:LOCAL))
+			CALL SET_STAIN("手" , "精液" , (ARG:LOCAL))
+			SIF TEQUIP:(ARG:LOCAL):乳房露出
+				CALL SET_STAIN("胸" , "精液" , (ARG:LOCAL))
+		ENDIF
+		IF CFLAG:(ARG:LOCAL):アナル回数 > 0
+			CALL SET_STAIN("アナル" , "精液" , (ARG:LOCAL))
+		ENDIF
+		;輪姦された場合は髪も汚れる
+		SIF LOCAL:3 > 0
+			CALL SET_STAIN("髪" , "精液" , ARG)
+	ENDIF
+NEXT
+
+
+;誰が犯したか判定
+SIF LOCAL:3 > 0
+	ARG:1 = POS(14)
+
+FOR LOCAL , 0 , 1 + (ARG:1 > -1 && ARG:1 != POS(14))
+	TCVAR:(ARG:LOCAL):獲得フェラ経験 += CFLAG:(ARG:LOCAL):フェラ回数
+	SIF ARG:1 > -1 && ARG:1 != POS(14) && CFLAG:(ARG:LOCAL):陥落キャラ == CFLAG:(ARG:(!LOCAL)):キャラ固有の番号
+		TCVAR:(ARG:LOCAL):獲得奉仕快楽経験 += CFLAG:(ARG:LOCAL):フェラ回数
+	TCVAR:(ARG:LOCAL):獲得Ｖ経験 += CFLAG:(ARG:LOCAL):本番回数
+	TCVAR:(ARG:LOCAL):獲得Ａ経験 += CFLAG:(ARG:LOCAL):アナル回数
+	TCVAR:(ARG:LOCAL):獲得性交経験 += CFLAG:(ARG:LOCAL):本番回数 + CFLAG:(ARG:LOCAL):アナル回数
+	SIF ARG:1 == POS(14)
+		TCVAR:(ARG:LOCAL):獲得輪姦経験 += (LOCAL:4 > 1 ? 1 # 0)
+	SIF ARG:1 > -1 && !(TALENT:(ARG:LOCAL):獣 || TALENT:(ARG:LOCAL):鳥) && (TALENT:(ARG:(!LOCAL)):獣 || TALENT:(ARG:(!LOCAL)):鳥)
+		TCVAR:(ARG:LOCAL):獲得吸血経験 += TCVAR:(ARG:LOCAL):獲得性交経験
+	IF ARG:1 > -1 && !LOCAL:3
+		TCVAR:(ARG:LOCAL):獲得性交経験 += CFLAG:(ARG:(!LOCAL)):本番回数 + CFLAG:(ARG:(!LOCAL)):アナル回数
+	ENDIF
+	
+	;ソースの獲得
+	IF ARG:1 > -1
+		SOURCE:(ARG:LOCAL):快Ｃ += CFLAG:(ARG:LOCAL):クリ責め回数 * (200)
+		SOURCE:(ARG:LOCAL):快Ｃ += (CFLAG:(ARG:(!LOCAL)):本番回数 + CFLAG:(ARG:(!LOCAL)):アナル回数 + CFLAG:(ARG:(!LOCAL)):フェラ回数) * (250)
+		CUP:(ARG:LOCAL):快Ｃ += 300 * (CFLAG:(ARG:LOCAL):クリ責め回数 > 0)
+		SOURCE:(ARG:LOCAL):快Ｖ += CFLAG:(ARG:LOCAL):本番回数 * (250 + ABL:(ARG:LOCAL):セックス中毒 * 25)
+		CUP:(ARG:LOCAL):快Ｖ +=  + MIN(1 , CFLAG:(ARG:LOCAL):本番回数) * 350
+		SOURCE:(ARG:LOCAL):快Ａ += CFLAG:(ARG:LOCAL):アナル回数 * (250 + ABL:(ARG:LOCAL):セックス中毒 * 25)
+		CUP:(ARG:LOCAL):快Ａ +=  + MIN(1 , CFLAG:(ARG:LOCAL):アナル回数) * 350
+		SOURCE:(ARG:LOCAL):快Ｂ += CFLAG:(ARG:LOCAL):胸責め回数 * (225) + 300
+		CUP:(ARG:LOCAL):快Ｂ += 300 * (CFLAG:(ARG:LOCAL):胸責め回数 > 0)
+		SOURCE:(ARG:LOCAL):欲情 += (CFLAG:(ARG:LOCAL):フェラ回数 + CFLAG:(ARG:LOCAL):クリ責め回数 + CFLAG:(ARG:LOCAL):胸責め回数) * 25
+	;自慰用
+	ELSEIF ARG:2 == 3
+		SOURCE:(ARG:LOCAL):快Ｃ += CFLAG:(ARG:LOCAL):クリ責め回数 * (25 * (10 + ABL:(ARG:LOCAL):自慰中毒 + ABL:(ARG:LOCAL):露出癖))
+		CUP:(ARG:LOCAL):快Ｃ += 300 * (CFLAG:(ARG:LOCAL):胸責め回数 > 0)
+		SOURCE:(ARG:LOCAL):快Ｂ += CFLAG:(ARG:LOCAL):胸責め回数 * (25 * (10 + ABL:(ARG:LOCAL):自慰中毒 + ABL:(ARG:LOCAL):露出癖))
+		CUP:(ARG:LOCAL):快Ｂ += 300 * (CFLAG:(ARG:LOCAL):胸責め回数 > 0)
+		SOURCE:(ARG:LOCAL):欲情 += (CFLAG:(ARG:LOCAL):クリ責め回数 + CFLAG:(ARG:LOCAL):胸責め回数 + ABL:(ARG:LOCAL):露出癖) * 25
+	ELSEIF ARG:2 == 4
+		SOURCE:(ARG:LOCAL):快Ｃ += CFLAG:(ARG:LOCAL):クリ責め回数 * (25 * (ABL:(ARG:LOCAL):自慰中毒 + 10)) + 300 * (CFLAG:(ARG:LOCAL):クリ責め回数 > 0)
+		CUP:(ARG:LOCAL):快Ｃ += 300 * (CFLAG:(ARG:LOCAL):胸責め回数 > 0)
+		SOURCE:(ARG:LOCAL):快Ｂ += CFLAG:(ARG:LOCAL):胸責め回数 * (25 * (ABL:(ARG:LOCAL):自慰中毒 + 10)) + 300 * (CFLAG:(ARG:LOCAL):胸責め回数 > 0)
+		CUP:(ARG:LOCAL):快Ｂ += 300 * (CFLAG:(ARG:LOCAL):胸責め回数 > 0)
+		SOURCE:(ARG:LOCAL):欲情 += (CFLAG:(ARG:LOCAL):クリ責め回数 + CFLAG:(ARG:LOCAL):胸責め回数) * 25
+	ENDIF
+	
+	IF ARG:1 > -1
+		CALL TECHNIQUE_CHECK, ARG:(!LOCAL), ARG:LOCAL
+		TCVAR:(ARG:(!LOCAL)):獲得調教経験 = 0
+	ELSE
+		CALL TECHNIQUE_CHECK, ARG:LOCAL, ARG:LOCAL
+		TCVAR:(ARG:LOCAL):獲得調教経験 = 0
+		
+	ENDIF
+	CALL SOURCE_CHECK_DUNGEON , ARG:LOCAL
+NEXT
+
+IF LOCAL:3 > 0
+	TCVAR:(ARG):獲得膣射経験 += CFLAG:(ARG):中出し回数
+	TCVAR:(ARG):獲得精液経験 += CFLAG:(ARG):本番回数 + CFLAG:(ARG):アナル回数 + CFLAG:(ARG):フェラ回数
+ELSEIF ARG:1 > -1
+	SIF CFLAG:(ARG):本番回数
+		CFLAG:(ARG):中出し回数 += NOWEX:(ARG:1):射精 * CFLAG:(ARG):本番回数 / (CFLAG:(ARG):本番回数 + CFLAG:(ARG):アナル回数 + CFLAG:(ARG):フェラ回数)
+	TCVAR:(ARG):獲得膣射経験 += CFLAG:(ARG):中出し回数
+	SIF CFLAG:(ARG:1):本番回数
+		CFLAG:(ARG:1):中出し回数 += NOWEX:(ARG):射精 * CFLAG:(ARG:1):本番回数 / (CFLAG:(ARG:1):本番回数 + CFLAG:(ARG:1):アナル回数 + CFLAG:(ARG:1):フェラ回数)
+	TCVAR:(ARG:1):獲得膣射経験 += CFLAG:(ARG:1):中出し回数
+ENDIF
+PRINTL 
+
+;妊娠判定用
+FOR LOCAL , 0 , 1 + (ARG:1 > -1 && !LOCAL:3)
+	IF PREGNANCY_ABLE((ARG:LOCAL)) && TCVAR:(ARG:LOCAL):獲得膣射経験
+		IF (ARG:(!LOCAL)) == MASTER
+			CFLAG:(ARG:LOCAL):主人の中出氏による妊娠判定 = TCVAR:(ARG:LOCAL):獲得膣射経験*2
+			CHARA = MASTER
+		ELSEIF !LOCAL:3 && (ARG:(!LOCAL)) == ASSI
+			CFLAG:(ARG:LOCAL):助手の中出氏による妊娠判定 = TCVAR:(ARG:LOCAL):獲得膣射経験*2
+			CHARA = (ARG:(!LOCAL))
+		ELSEIF !LOCAL:3 && (ARG:(!LOCAL)) == TARGET
+			CFLAG:(ARG:LOCAL):奴隷の中出氏による妊娠判定 = TCVAR:(ARG:LOCAL):獲得膣射経験*2
+			CHARA = (ARG:(!LOCAL))
+		ELSEIF !LOCAL:3
+			CFLAG:(ARG:LOCAL):顧客の中出氏による妊娠判定 = TCVAR:(ARG:LOCAL):獲得膣射経験*2
+			CHARA = (ARG:(!LOCAL))
+		ELSEIF LOCAL:3 > 0
+			CFLAG:(ARG:LOCAL):顧客の中出氏による妊娠判定 = TCVAR:(ARG:LOCAL):獲得膣射経験*2
+			CHARA = -1
+		ENDIF
+		CALL PREGNANCY_CHECK, (ARG:LOCAL),
+		;妊娠
+		SIF RESULT
+			CALL SET_FATHERINFO, (ARG:LOCAL), NO:(ARG:(!LOCAL)), CHARA, NAME:(ARG:(!LOCAL))
+	ENDIF
+NEXT
+
+
+;口上呼び出し
+SWAP TARGET , ARG:1
+SWAP PLAYER , ARG
+TFLAG:イベント口上呼び出し用 = 78 + ARG:2
+IF TARGET > -1
+	IF LOCAL:3
+		TFLAG:イベント口上呼び出し用 = 85
+		CALL KOJO_TALK, TARGET ,90
+	ELSE
+		CALL KOJO_MESSAGE_EVENT
+	ENDIF
+ENDIF
+SIF ARG:2 == 1
+	TFLAG:イベント口上呼び出し用 = 83
+SIF ARG:2 == 2
+	TFLAG:イベント口上呼び出し用 = 84
+SWAP TARGET , PLAYER
+SIF TARGET > -1
+	CALL KOJO_MESSAGE_EVENT
+SWAP TARGET , PLAYER
+
+
+SWAP TARGET , ARG:1
+SWAP PLAYER , ARG
+
+
+;経験の加算と表示
+
+
+FOR LOCAL , 0 ,1 + (ARG:1 > -1 && !LOCAL:3)
+	DRAWLINE
+	PRINTFORML ＲＥＳＵＬＴ(%CALLNAME:(ARG:LOCAL)%)
+	IF CFLAG:(ARG:LOCAL):本番回数
+		IF TALENT:(ARG:LOCAL):処女
+			IF LOCAL:3
+				CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+				TALENT:(ARG:LOCAL):処女 = 0
+				DOWNBASE:(ARG:LOCAL):体力 += 500
+				DOWNBASE:(ARG:LOCAL):気力 += 500
+			ELSE
+				PRINTFORML Virginity Lost
+				TALENT:(ARG:LOCAL):処女 = 0
+				DOWNBASE:(ARG:LOCAL):体力 += 200
+				DOWNBASE:(ARG:LOCAL):気力 += 100
+			ENDIF
+		ELSEIF TALENT:(ARG:LOCAL):再生処女
+			PRINTFORML Restored Virginity Lost
+			TALENT:(ARG:LOCAL):再生処女 = 0
+			DOWNBASE:(ARG:LOCAL):体力 += 200
+			DOWNBASE:(ARG:LOCAL):気力 += 100
+		ENDIF
+	ENDIF
+	CALL SHOW_ADD_EXP, ARG:LOCAL
+	CALL SHOW_ABNORMAL_EXP, (ARG:LOCAL)
+;Stamina・気力消費
+	;ダンジョン内発情用欲情値は絶頂分減り、輪姦された場合は増える、自慰は少量減る
+	SIF ARG:2 < 3
+		CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 -= LIMIT(SUMARRAY(NOWEX:(ARG:LOCAL):0, 0, 6) * 800, 0, 6000+(250*(RAND:8+1)))
+	IF LOCAL:3 > 0
+		CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 +=SUMARRAY(NOWEX:(ARG:LOCAL):0, 0, 6) * 100
+	ELSEIF ARG:2 == 4 && LOCAL:3 == 0
+		CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 -= LIMIT(SUMARRAY(NOWEX:(ARG:LOCAL):0, 0, 6) * 300, 0, 2000+(250*(RAND:4+1)))
+	ENDIF
+	
+	;オトコの場合はCFLAG:ダンジョン内発情用欲情値は0に
+	SIF TALENT:(ARG:LOCAL):オトコ
+		CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 = 0
+		
+	IF SUMARRAY(NOWEX:(ARG:LOCAL):0, 0, 6) && LOCAL:3 == 0
+		TIMES CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 , 0.85
+	ENDIF
+	;CFLAG:ダンジョン内発情用欲情値の上限は15000
+	SIF CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 > 15000
+		CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 = 15000
+	SIF CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 < 0
+		CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 = 0
+	IF CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 != 元欲情:LOCAL
+		PRINTFORM DESIRE　
+		LOCAL:5 = MIN(15000 , 元欲情:LOCAL)
+		SETCOLOR 0x40 + (0xff - 0x40) * LOCAL:5 / 15000 , 0x40 - (0x40 * LOCAL:5 / 15000) , 0x40 + (0xff - 0x40) * LOCAL:5 / 15000
+		SETCOLOR 0xff * LOCAL:5 / 15000 , 0 , 0xff * LOCAL:5 / 15000
+		IF 元欲情:LOCAL >= 10000
+			PRINTFORM %ハート()%ＭＡＸ%ハート()%
+		ELSE
+			PRINTFORM %ハート()%
+		ENDIF
+		RESETCOLOR
+		PRINTFORM 　→　
+		LOCAL:5 = MIN(15000 , CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値)
+		SETCOLOR 0x40 + (0xff - 0x40) * LOCAL:5 / 15000 , 0x40 - (0x40 * LOCAL:5 / 15000) , 0x40 + (0xff - 0x40) * LOCAL:5 / 15000
+		SETCOLOR 0xff * LOCAL:5 / 15000 , 0 , 0xff * LOCAL:5 / 15000
+		IF CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 >= 10000
+			PRINTFORML %ハート()%ＭＡＸ%ハート()%
+		ELSE
+			PRINTFORML %ハート()%
+		ENDIF
+		RESETCOLOR
+	ELSEIF CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 >= 10000
+		PRINTFORML DESIRE　
+		LOCAL:5 = MIN(15000 , CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値)
+		SETCOLOR 0x40 + (0xff - 0x40) * LOCAL:5 / 15000 , 0x40 - (0x40 * LOCAL:5 / 15000) , 0x40 + (0xff - 0x40) * LOCAL:5 / 15000
+		SETCOLOR 0xff * LOCAL:5 / 15000 , 0 , 0xff * LOCAL:5 / 15000
+		PRINTFORML %ハート()%ＭＡＸ%ハート()%
+		RESETCOLOR
+	ENDIF
+;		PRINTFORML DESIRE(%CALLNAME:(ARG:LOCAL)%)　{元欲情:LOCAL , 6 , RIGHT}→{CFLAG:(ARG:LOCAL):ダンジョン内発情用欲情値 , 6 , RIGHT}
+	IF LOCAL:3
+		DOWNBASE:(ARG:LOCAL):体力 += (CFLAG:(ARG:LOCAL):本番回数 + CFLAG:(ARG:LOCAL):アナル回数 + CFLAG:(ARG:LOCAL):フェラ回数) * 25
+		DOWNBASE:(ARG:LOCAL):気力 += (CFLAG:(ARG:LOCAL):本番回数 + CFLAG:(ARG:LOCAL):アナル回数 + CFLAG:(ARG:LOCAL):フェラ回数) * 20 + CFLAG:(ARG:LOCAL):中出し回数 * 40
+		CALL CONTROL_MAG, ARG , (CFLAG:ARG:本番回数*2+CFLAG:ARG:アナル回数*2+CFLAG:ARG:フェラ回数*2+CFLAG:ARG:中出し回数*5)*MAXBASE:(ARG:1):LV
+		;輪姦中毒があると軽減される
+		IF ABL:(ARG:LOCAL):輪姦中毒 > 0
+			DOWNBASE:(ARG:LOCAL):体力 -= DOWNBASE:(ARG:LOCAL):体力 / (5 * ABL:(ARG:LOCAL):輪姦中毒)
+			DOWNBASE:(ARG:LOCAL):気力 -= DOWNBASE:(ARG:LOCAL):気力 / (5 * ABL:(ARG:LOCAL):輪姦中毒)
+		ENDIF
+			
+	ELSEIF GROUPMATCH(ARG:2 , 1 , 2)
+		DOWNBASE:(ARG:LOCAL):体力 += (CFLAG:(ARG:LOCAL):本番回数 + CFLAG:(ARG:LOCAL):アナル回数 + CFLAG:(ARG:LOCAL):フェラ回数 + CFLAG:(ARG:LOCAL):挿入回数) * 15
+		DOWNBASE:(ARG:LOCAL):体力 += (CFLAG:(ARG:(!LOCAL)):クリ責め回数 + CFLAG:(ARG:(!LOCAL)):胸責め回数 + CFLAG:(ARG:(LOCAL)):フェラ回数) * 10
+		DOWNBASE:(ARG:LOCAL):体力 += (CFLAG:(ARG:(LOCAL)):クリ責め回数 + CFLAG:(ARG:(LOCAL)):胸責め回数 + CFLAG:(ARG:(!LOCAL)):フェラ回数) * 2
+		
+		DOWNBASE:(ARG:LOCAL):気力 += (CFLAG:(ARG:LOCAL):本番回数 + CFLAG:(ARG:LOCAL):アナル回数 + CFLAG:(ARG:LOCAL):フェラ回数 + CFLAG:(ARG:LOCAL):挿入回数) * 5
+		DOWNBASE:(ARG:LOCAL):気力 += (CFLAG:(ARG:(!LOCAL)):クリ責め回数 + CFLAG:(ARG:(!LOCAL)):胸責め回数 + CFLAG:(ARG:(LOCAL)):フェラ回数) * 5
+		DOWNBASE:(ARG:LOCAL):気力 += (CFLAG:(ARG:(LOCAL)):クリ責め回数 + CFLAG:(ARG:(LOCAL)):胸責め回数 + CFLAG:(ARG:(!LOCAL)):フェラ回数) * 1
+		
+		
+		;ＭＡＧ移動はめんどいのでとりあえず反映させない。主人の稼いだMAGをその場で回収できちゃうのもあるので。
+	ELSE
+		DOWNBASE:(ARG:LOCAL):体力 += 20 + SUMARRAY(NOWEX:(ARG:LOCAL):0, 0, 5) * 20
+		DOWNBASE:(ARG:LOCAL):気力 += 50 + SUMARRAY(NOWEX:(ARG:LOCAL):0, 0, 5) * 20
+	ENDIF
+	IF DOWNBASE:(ARG:LOCAL):気力 > BASE:(ARG:LOCAL):気力
+		DOWNBASE:(ARG:LOCAL):体力 += (DOWNBASE:(ARG:LOCAL):気力 - BASE:(ARG:LOCAL):気力) / 2
+		DOWNBASE:(ARG:LOCAL):気力 = BASE:(ARG:LOCAL):気力
+	ENDIF
+	PRINTFORML Stamina(%CALLNAME:(ARG:LOCAL)%) {BASE:(ARG:LOCAL):体力} - {DOWNBASE:(ARG:LOCAL):体力}
+	PRINTFORML Willpower(%CALLNAME:(ARG:LOCAL)%) {BASE:(ARG:LOCAL):気力} - {DOWNBASE:(ARG:LOCAL):気力}
+	BASE:(ARG:LOCAL):体力 -= DOWNBASE:(ARG:LOCAL):体力
+	BASE:(ARG:LOCAL):気力 -= DOWNBASE:(ARG:LOCAL):気力
+	
+	SIF BASE:(ARG:LOCAL):体力 < 0
+		BASE:(ARG:LOCAL):体力 = 0
+	SIF BASE:(ARG:LOCAL):気力 < 0
+		BASE:(ARG:LOCAL):気力 = 0
+	
+
+NEXT
+
+;ＮＴＲ可能な場合
+IF FLAG:ＮＴＲ機能 && LOCAL:3 > 0
+	;淫乱度上昇
+	;浮気癖がある場合は淫乱度倍化
+	IF TALENT:ARG:浮気癖
+		CFLAG:ARG:淫乱度 += (CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + SUMARRAY(NOWEX:ARG:0, 0, 4) * 2)*2
+	ELSE
+		CFLAG:ARG:淫乱度 += CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + SUMARRAY(NOWEX:ARG:0, 0, 4) * 2
+	ENDIF
+	;好感度減少処理
+	CALL NTR_SHOOT , ARG , -1 , CFLAG:ARG:中出し回数 * 3 + SUMARRAY(NOWEX:ARG:0, 0, 4) * 5
+ENDIF
+
+CALL DELENEMY
+WAIT
+
+@性欲処理_輪姦, ARG , ARG:1
+CALL SET_ENEMY, 14, ARG:1 , RESULT:2
+
+;人数
+LOCAL:2 = RESULT:1
+;回数
+LOCAL = LOCAL:2 * (1 + RAND:(3 + ABL:POS(14):欲望 + (TALENT:POS(14):絶倫 * 3))) * (2 + ABL:POS(14):技巧 * 2)
+
+;プレイ内容
+;天使は中出しのみ
+IF STR:(ABL:(POS(14)):種族) != "Divine" || !HAVE_VAGINA(ARG)
+	CFLAG:ARG:胸責め回数 += LOCAL + RAND:LOCAL
+	CFLAG:ARG:クリ責め回数 = LOCAL + RAND:LOCAL
+	CFLAG:ARG:フェラ回数 = LOCAL + RAND:LOCAL
+	CFLAG:ARG:アナル回数 += LOCAL + RAND:LOCAL
+ELSE
+	CFLAG:ARG:本番回数 += LOCAL*2 + RAND:(LOCAL*2)
+ENDIF
+SIF HAVE_VAGINA(ARG)
+	CFLAG:ARG:本番回数 += LOCAL + RAND:LOCAL
+SIF TALENT:ARG:男の娘
+	CFLAG:ARG:アナル回数 += LOCAL + RAND:LOCAL
+
+CFLAG:ARG:中出し回数 += LIMIT(RAND:(1+CFLAG:ARG:本番回数) , CFLAG:ARG:本番回数/2, CFLAG:ARG:本番回数)
+SIF STR:(ABL:(POS(14)):種族) != "Divine"
+	CFLAG:ARG:中出し回数 = CFLAG:ARG:本番回数
+
+RETURN LOCAL , LOCAL:2
+
+
+
+;-------------------------------------------------------------
+;地の文
+;-------------------------------------------------------------
+
+
+@EVENT_MESSAGE_79
+;セックス
+CALL EVENT_MESSAGE_COMMON_DUNGEONSEX
+@EVENT_MESSAGE_80
+;奉仕
+CALL EVENT_MESSAGE_COMMON_DUNGEONSEX
+
+@EVENT_MESSAGE_85
+;輪姦
+
+PRINTFORMW %CALLNAME:TARGET%は悪魔と遭遇してしまった
+PRINTFORMW %CALLNAME:PLAYER%達による陵辱の宴が始まった…
+PRINTL 
+PRINTFORML ・・・
+PRINTFORML ・・
+PRINTFORML ・
+PRINTL 
+PRINTFORMW %CALLNAME:TARGET%が{RESULT:1}体の%CALLNAME:PLAYER%たちに犯された…
+
+CALL EVENT_MESSAGE_COMMON_DUNGEONSEX
+
+@EVENT_MESSAGE_81
+;その場で自慰
+#DIM DYNAMIC 仲魔人数
+#DIM 代表者
+FOR LOCAL , 1 , 7
+	IF POS(LOCAL) > -1
+		仲魔人数 ++
+		SIF POS(LOCAL) != TARGET
+			代表者 = POS(LOCAL)
+	ENDIF
+NEXT
+SIF TARGET != MASTER
+	代表者 = MASTER
+PRINTFORML %CALLNAME%は
+IF TALENT:淫乱 || TALENT:娼婦 || ABL:露出癖 > 5
+	IF 仲魔人数 > 1
+		PRINTFORML %CALLNAME:代表者%\@仲魔人数 > 2 ? 達 # \@に見せつけるように、
+	ELSE
+		PRINTFORML 誰かに見つかるかもしれないスリルに胸をときめかせながら、
+	ENDIF
+	IF TEQUIP:乳房露出 == -1 && TEQUIP:陰唇露出 == -1
+		PRINTFORMW 剥き出しの乳房と陰核をその場で弄り始めた…
+	ELSE
+		PRINTFORMW 身に着けている服を1枚ずつ脱ぎ捨て、その場で自らの敏感な場所を刺激し始めた…
+	ENDIF
+ELSE
+	IF 危険日(TARGET) == 2
+		PRINTFORML 牝の臭いを漂わせる秘唇を必死に手で抑えながら我慢していたが、
+		PRINTFORM 堪えきれなくなるとその場にへたり込み、
+	ELSE
+		SIF TEQUIP:乳房露出 == -1 && TEQUIP:陰唇露出 == -1
+			PRINTFORML 剥き出しの乳房や秘唇を必死に手で隠していたが、
+		PRINTFORM 急にその場にへたり込むと
+	ENDIF
+	IF TEQUIP:乳房露出 == -1 && TEQUIP:陰唇露出 == -1
+		IF 危険日(TARGET)
+			PRINTFORML 剥き出しの乳房や秘唇を隠すことすらせず、
+		ELSE
+			PRINTFORML 隠していた秘所を曝け出し、
+		ENDIF
+	ELSE
+		PRINTFORML 、服を脱ぐのすらもどかしいのか衣服の上から直接身体をまさぐり、
+	ENDIF
+	
+	SIF 仲魔人数 > 1
+		PRINTFORMW %CALLNAME:代表者%\@仲魔人数 > 2 ? 達 # \@が見ていることも忘れて、
+		
+		PRINTFORMW 一心不乱に自分の性器を弄り回した…
+ENDIF
+PRINTL
+IF NOWEX:Ｂ絶頂 + NOWEX:Ｃ絶頂 > 0
+	PRINTFORM その後、
+	SIF 仲魔人数 > 1
+		PRINTFORML %CALLNAME:代表者%\@仲魔人数 > 2 ? 達 # \@の見ている中で
+	SIF NOWEX:Ｂ絶頂 > 0
+		PRINTFORM 胸で{NOWEX:Ｂ絶頂}回
+	SIF NOWEX:Ｃ絶頂 > 0
+		PRINTFORM 、クリトリスで{NOWEX:Ｃ絶頂}回
+	PRINTFORMW 達した
+ENDIF
+
+@EVENT_MESSAGE_82
+;物陰で自慰
+#DIM DYNAMIC 仲魔人数
+FOR LOCAL , 1 , 7
+	SIF POS(LOCAL) > -1
+		仲魔人数 ++
+NEXT
+PRINTFORML %CALLNAME%は
+SIF 危険日(TARGET) == 2
+	PRINTFORM 顔を真っ赤に染めながら
+IF 仲魔人数 > 1
+	PRINTFORML 仲魔の傍を離れ、
+ELSE
+	PRINTFORML 落ち着けそうな場所を探し、
+ENDIF
+IF TALENT:淫乱 || TALENT:娼婦 || ABL:露出癖 > 5
+	PRINTFORML 誰かが来るかもしれないという期待に胸を膨らませながら、
+	PRINTFORMW 少しでも長くこの時を楽しもうと、自分の体のあちこちを丁寧にじっくりと嬲った……
+ELSEIF 危険日(TARGET) == 2
+	IF TEQUIP:乳房露出 == -1 && TEQUIP:陰唇露出 == -1
+		PRINTFORM 剥き出しの乳房や秘唇を乱暴にまさぐり、
+	ELSE
+		PRINTFORML 服を脱ぐのすらもどかしいのか衣服の上から直接身体をまさぐり、
+	ENDIF
+	PRINTFORMW 誰かに聞こえる可能性も顧みず快楽のままに嬌声をあげながら、火照る体をひたすら慰めた……
+ELSE
+	IF TEQUIP:乳房露出 == -1 && TEQUIP:陰唇露出 == -1
+		PRINTFORML 淫猥な格好に恥ずかしそうな表情を浮かべながら、曝け出された秘所に静かに手を当てると、
+	ELSE
+		PRINTFORM 服の中に静かに手を差し入れると、
+	ENDIF
+	PRINTFORMW 少しでも早く終わらせるため、自分の敏感な所を重点的に強く擦りあげた…
+ENDIF
+PRINTL
+IF (NOWEX:Ｂ絶頂 + NOWEX:Ｃ絶頂) > 0
+	PRINTFORM その後、
+	SIF NOWEX:Ｂ絶頂 > 0
+		PRINTFORM 胸で{NOWEX:Ｂ絶頂}回
+	SIF NOWEX:Ｃ絶頂 > 0
+		PRINTFORM 、クリトリスで{NOWEX:Ｃ絶頂}回
+	PRINTFORMW 達した
+ENDIF
+
+@EVENT_MESSAGE_COMMON_DUNGEONSEX
+#DIM LINE
+;何回イったか表示
+IF GROUPMATCH(TFLAG:イベント口上呼び出し用 , 79 , 80)
+	LOCAL:10 = 1 + RAND:5
+	LOCAL:11 = 11 + RAND:4
+	LOCAL:12 = 21 + RAND:4
+	LOCAL:13 = 31 + RAND:2
+	LOCAL:14 = 41 + RAND:4
+	LOCAL:15 = 51 + RAND:3
+	LOCAL:16 = 61 + RAND:3
+	IF TFLAG:イベント口上呼び出し用 == 79
+		;胸愛撫
+		IF NOWEX:TARGET:Ｂ絶頂 > 0
+			IF CFLAG:TARGET:胸責め回数 > 0
+				LOCALS:1 = 胸を{CFLAG:TARGET:胸責め回数}回愛撫され
+				LOCALS:2 = 乳房を手で{CFLAG:TARGET:胸責め回数}回揉みしだかれ
+				LOCALS:3 = 乳首を{CFLAG:TARGET:胸責め回数}回指で摘まれ
+				LOCALS:4 = 乳首を舌で{CFLAG:TARGET:胸責め回数}回転がされ
+				LOCALS:5 = 乳首を{CFLAG:TARGET:胸責め回数}回甘噛みされ
+			ELSE
+				LOCALS:1 = 胸を愛撫され
+				LOCALS:2 = 乳房を手で揉みしだかれ
+				LOCALS:3 = 乳首を指で摘まれ
+				LOCALS:4 = 乳首を舌で転がされ
+				LOCALS:5 = 乳首を甘噛みされ
+			ENDIF
+		ELSEIF NOWEX:PLAYER:Ｂ絶頂 > 0
+			IF CFLAG:PLAYER:胸責め回数 > 0
+				LOCALS:1 = 胸を{CFLAG:PLAYER:胸責め回数}回愛撫し
+				LOCALS:2 = 乳房を手で{CFLAG:PLAYER:胸責め回数}回揉みしだき
+				LOCALS:3 = 乳首を{CFLAG:PLAYER:胸責め回数}回指で摘まみ
+				LOCALS:4 = 乳首を舌で{CFLAG:PLAYER:胸責め回数}回転がし
+				LOCALS:5 = 乳首を{CFLAG:PLAYER:胸責め回数}回甘噛みし
+			ELSE
+				LOCALS:1 = 胸を愛撫し
+				LOCALS:2 = 乳房を手で揉みしだき
+				LOCALS:3 = 乳首を指で摘まみ
+				LOCALS:4 = 乳首を舌で転がし
+				LOCALS:5 = 乳首を甘噛みし
+			ENDIF
+		ENDIF
+		;クリ愛撫
+		IF NOWEX:TARGET:Ｃ絶頂 > 0
+			IF CFLAG:TARGET:クリ責め回数 > 0
+				LOCALS:11 = クリトリスを{CFLAG:TARGET:クリ責め回数}回摘まれ
+				LOCALS:12 = クリトリスを指先で{CFLAG:TARGET:クリ責め回数}回弾かれ
+				LOCALS:13 = 陰核を指先で{CFLAG:TARGET:クリ責め回数}回こねられ
+				LOCALS:14 = クリトリスを舌先で{CFLAG:TARGET:クリ責め回数}回転がされ
+			ELSE
+				LOCALS:11 = クリトリスを摘まれ
+				LOCALS:12 = クリトリスを指先で弾かれ
+				LOCALS:13 = 陰核を指先でこねられ
+				LOCALS:14 = クリトリスを舌先で転がされ
+			ENDIF
+		ELSEIF NOWEX:PLAYER:Ｃ絶頂 > 0
+			IF CFLAG:PLAYER:クリ責め回数 > 0
+				LOCALS:11 = クリトリスを{CFLAG:PLAYER:クリ責め回数}回摘まれ
+				LOCALS:12 = クリトリスを指先で{CFLAG:PLAYER:クリ責め回数}回弾かれ
+				LOCALS:13 = 陰核を指先で{CFLAG:PLAYER:クリ責め回数}回こねられ
+				LOCALS:14 = クリトリスを舌先で{CFLAG:PLAYER:クリ責め回数}回転がされ
+			ELSE
+				LOCALS:11 = クリトリスを摘まれ
+				LOCALS:12 = クリトリスを指先で弾かれ
+				LOCALS:13 = 陰核を指先でこねられ
+				LOCALS:14 = クリトリスを舌先で転がされ
+			ENDIF
+		ENDIF
+	ELSE
+		;胸愛撫
+		IF NOWEX:PLAYER:Ｂ絶頂 > 0
+			IF CFLAG:PLAYER:胸責め回数 > 0
+				LOCALS:1 = 胸を{CFLAG:PLAYER:胸責め回数}回愛撫し
+				LOCALS:2 = 乳房を手で{CFLAG:PLAYER:胸責め回数}回揉みしだき
+				LOCALS:3 = 乳首を{CFLAG:PLAYER:胸責め回数}回指で摘み
+				LOCALS:4 = 乳首を舌で{CFLAG:PLAYER:胸責め回数}回転がし
+				LOCALS:5 = 乳首を{CFLAG:PLAYER:胸責め回数}回甘噛みし
+			ELSE
+				LOCALS:1 = 胸を愛撫し
+				LOCALS:2 = 乳房を手で揉みしだき
+				LOCALS:3 = 乳首を指で摘み
+				LOCALS:4 = 乳首を舌で転がし
+				LOCALS:5 = 乳首を甘噛みし
+			ENDIF
+		ELSEIF NOWEX:TARGET:Ｂ絶頂 > 0
+			IF CFLAG:TARGET:胸責め回数 > 0
+				LOCALS:1 = 胸を{CFLAG:TARGET:胸責め回数}回愛撫し
+				LOCALS:2 = 乳房を手で{CFLAG:TARGET:胸責め回数}回揉みしだき
+				LOCALS:3 = 乳首を{CFLAG:TARGET:胸責め回数}回指で摘み
+				LOCALS:4 = 乳首を舌で{CFLAG:TARGET:胸責め回数}回転がし
+				LOCALS:5 = 乳首を{CFLAG:TARGET:胸責め回数}回甘噛みし
+			ELSE
+				LOCALS:1 = 胸を愛撫し
+				LOCALS:2 = 乳房を手で揉みしだき
+				LOCALS:3 = 乳首を指で摘み
+				LOCALS:4 = 乳首を舌で転がし
+				LOCALS:5 = 乳首を甘噛みし
+			ENDIF
+		ENDIF
+		;クリ愛撫
+		IF NOWEX:PLAYER:Ｃ絶頂 > 0
+			IF CFLAG:PLAYER:クリ責め回数 > 0
+				LOCALS:11 = クリトリスを{CFLAG:PLAYER:クリ責め回数}回摘み
+				LOCALS:12 = クリトリスを指先で{CFLAG:PLAYER:クリ責め回数}回弾き
+				LOCALS:13 = 陰核を指先で{CFLAG:PLAYER:クリ責め回数}回こね回し
+				LOCALS:14 = クリトリスを舌先で{CFLAG:PLAYER:クリ責め回数}回転がし
+			ELSE
+				LOCALS:11 = クリトリスを摘み
+				LOCALS:12 = クリトリスを指先で弾き
+				LOCALS:13 = 陰核を指先でこね回し
+				LOCALS:14 = クリトリスを舌先で転がし
+			ENDIF
+		ELSEIF NOWEX:TARGET:Ｃ絶頂 > 0
+			IF CFLAG:TARGET:クリ責め回数 > 0
+				LOCALS:11 = クリトリスを{CFLAG:TARGET:クリ責め回数}回摘み
+				LOCALS:12 = クリトリスを指先で{CFLAG:TARGET:クリ責め回数}回弾き
+				LOCALS:13 = 陰核を指先で{CFLAG:TARGET:クリ責め回数}回こね回し
+				LOCALS:14 = クリトリスを舌先で{CFLAG:TARGET:クリ責め回数}回転がし
+			ELSE
+				LOCALS:11 = クリトリスを摘み
+				LOCALS:12 = クリトリスを指先で弾き
+				LOCALS:13 = 陰核を指先でこね回し
+				LOCALS:14 = クリトリスを舌先で転がし
+			ENDIF
+		ENDIF
+	ENDIF
+	;セックス
+	;PLAYER→TARGET
+	IF CFLAG:TARGET:本番回数
+		LOCALS:21 = と抱き合うようにしながら{CFLAG:TARGET:本番回数}回交わり
+		LOCALS:22 = に膣奥を小突かれる後背位で{CFLAG:TARGET:本番回数}回戦され
+		LOCALS:23 = に抱きかかえられながら{CFLAG:TARGET:本番回数}回、情を交わし
+		LOCALS:24 = と{CFLAG:TARGET:本番回数}回愛を交わし
+	ELSEIF CFLAG:PLAYER:本番回数
+		LOCALS:21 = と抱き合うようにしながら{CFLAG:PLAYER:本番回数}回犯され
+		LOCALS:22 = に攻められる形の後背位で{CFLAG:PLAYER:本番回数}回戦され
+		LOCALS:23 = は%CALLNAME:TARGET%を押し倒し貪る様に{CFLAG:PLAYER:本番回数}回、情を交わし
+		LOCALS:24 = と{CFLAG:PLAYER:本番回数}回愛を交わし
+	ENDIF
+	;アナルセックス
+ 	IF CFLAG:TARGET:アナル回数
+		LOCALS:31 = にアヌスを{CFLAG:TARGET:アナル回数}回貫かれ
+		LOCALS:32 = にアヌスを{CFLAG:TARGET:アナル回数}回犯され
+	ELSEIF CFLAG:PLAYER:アナル回数
+		LOCALS:31 = にアヌスを{CFLAG:PLAYER:アナル回数}回貫かれ
+		LOCALS:32 = にアヌスを{CFLAG:PLAYER:アナル回数}回犯され
+	ENDIF
+	;フェラ前文
+	;LOCALS:41 = のそそり立つ%CALLNAME:(PLAYER)%のペニスを咥え
+	LOCALS:41 = のそそり立つペニスを咥え
+	LOCALS:42 = に上目遣いをしながらペニスに舌を這わせ
+	LOCALS:43 = のペニスをくわえ込むと目を閉じて丹念に
+	LOCALS:44 = のペニスを咥え、カリ首を舌でなぞる様に
+	;フェラ後文
+	LOCALS:51 = 奉仕した
+	LOCALS:52 = 口で奉仕した
+	LOCALS:53 = 口腔奉仕をした
+	;お掃除フェラ
+	IF CFLAG:TARGET:フェラ回数 > 0 && LOCAL == 1
+		LOCALS:61 = %CALLNAME:TARGET%は%CALLNAME:(PLAYER)%のペニスを口に咥え、丁寧に精液を舐め取っている
+		LOCALS:62 = %CALLNAME:TARGET%は%CALLNAME:(PLAYER)%のペニスに付いた汚れを舐め取り、嬉しそうに飲み込んだ
+		LOCALS:63 = %CALLNAME:TARGET%は%CALLNAME:(PLAYER)%のペニスを咥えると尿道に残った精液を吸い上げ、美味しそうに飲み干した
+	ELSEIF CFLAG:PLAYER:フェラ回数 > 0 && LOCAL == 1
+		LOCALS:61 = %CALLNAME:PLAYER%は%CALLNAME:(TARGET)%のペニスを口に咥え、丁寧に精液を舐め取っている
+		LOCALS:62 = %CALLNAME:PLAYER%は%CALLNAME:(TARGET)%のペニスに付いた汚れを舐め取り、嬉しそうに飲み込んだ
+		LOCALS:63 = %CALLNAME:PLAYER%は%CALLNAME:(TARGET)%のペニスを咥えると尿道に残った精液を吸い上げ、美味しそうに飲み干した
+	ENDIF
+	;絶頂（あなた）
+	IF TFLAG:イベント口上呼び出し用 == 79
+		LOCALS:71 = 昇りつめた
+		LOCALS:72 = 絶頂を迎えた
+		LOCALS:73 = アクメを迎えた
+		LOCALS:74 = オーガズムに達した
+	ELSE
+		LOCALS:71 = イかせた
+		LOCALS:72 = 絶頂させた
+		LOCALS:73 = アクメを晒させた
+		LOCALS:74 = オーガズムに達させた
+	ENDIF
+ELSE
+	LOCAL:10 = 1 + RAND:5
+	LOCAL:11 = 11 + RAND:4
+	LOCAL:12 = 21 + RAND:5
+	LOCAL:13 = 31
+	LOCAL:14 = 41 + RAND:5
+	LOCAL:15 = 51 + RAND:5
+	LOCAL:16 = 61 + RAND:3
+	;胸愛撫（輪姦）
+	LOCALS:1 = 乳房を乱暴に{CFLAG:TARGET:胸責め回数}回揉まれ
+	LOCALS:2 = 乳首を{CFLAG:TARGET:胸責め回数}回強く摘まれ
+	LOCALS:3 = 乳房を{CFLAG:TARGET:胸責め回数}回いいように弄ばれ
+	LOCALS:4 = 乳首を指先でねちっこく{CFLAG:TARGET:胸責め回数}回転がされ
+	LOCALS:5 = 乳房を{CFLAG:TARGET:胸責め回数}回強く吸われ
+	;クリ愛撫（輪姦）
+	LOCALS:11 = クリトリスを{CFLAG:TARGET:クリ責め回数}回摘まれ
+	LOCALS:12 = クリトリスを指先で{CFLAG:TARGET:クリ責め回数}回弾かれ
+	LOCALS:13 = 陰核を指先で{CFLAG:TARGET:クリ責め回数}回こねられ
+	LOCALS:14 = クリトリスを舌先で{CFLAG:TARGET:クリ責め回数}回転がされ
+	;セックス（輪姦）
+	LOCALS:21 = の肉棒で{CFLAG:TARGET:本番回数}回犯され
+	LOCALS:22 = に後ろから尻を乱暴に掴まれたまま、ケモノのように{CFLAG:TARGET:本番回数}回犯され
+	LOCALS:23 = の肉棒で膣内を{CFLAG:TARGET:本番回数}回蹂躙され
+	LOCALS:24 = に両脚を広げられながら抱え上げられたまま{CFLAG:TARGET:本番回数}回辱められ
+	LOCALS:25 = に無理やり抱きしめられ、唇を奪われながら{CFLAG:TARGET:本番回数}回弄ばれ
+	;アナルセックス（輪姦）
+	LOCALS:31 = のペニスでアヌスを{CFLAG:TARGET:アナル回数}回犯され
+	;フェラ前文
+	LOCALS:41 = にペニスを口内に捻じ込まれ
+	LOCALS:42 = にフェラチオを強制され
+	LOCALS:43 = に剛直を喉奥まで突き入れられ
+	LOCALS:44 = のペニスを咥えさせられ、涙を流しながら
+	LOCALS:45 = にアタマを掴まれ、揺さぶられながら
+	;フェラ後文
+	LOCALS:51 = 奉仕させられた
+	LOCALS:52 = 口の中を陵辱された
+	LOCALS:53 = 口内を犯された
+	LOCALS:54 = 喉奥に精液を流し込まれた
+	LOCALS:55 = 口内で射精された
+	;お掃除フェラ
+	LOCALS:61 = %CALLNAME:TARGET%は%CALLNAME:(PLAYER)%の精液で汚れた肉棒をむりやり口で綺麗にさせられている
+	LOCALS:62 = %CALLNAME:(PLAYER)%が放心状態の%CALLNAME:TARGET%の口内にペニスを突き入れ、腰を動かして汚れを落している
+	LOCALS:63 = %CALLNAME:TARGET%は%CALLNAME:(PLAYER)%にお掃除フェラを強制されている
+	;絶頂（輪姦）
+	LOCALS:71 = イかされてしまった
+	LOCALS:72 = 絶頂を迎えてしまった
+	LOCALS:73 = アクメを迎え、アヘ顔を晒した
+	LOCALS:74 = オーガズムに達し、媚びた声を上げてしまった
+ENDIF
+
+
+PRINTL 
+LINE = LINECOUNT
+
+;PRINTFORML {CFLAG:TARGET:胸責め回数}
+;PRINTFORML TARGET:Ｂ絶頂 {NOWEX:TARGET:Ｂ絶頂}
+;PRINTFORML TARGET:Ｂ絶頂 {NOWEX:TARGET:Ｃ絶頂}
+;PRINTFORML PLAYER:Ｂ絶頂 {NOWEX:PLAYER:Ｂ絶頂}
+;PRINTFORML PLAYER:Ｂ絶頂 {NOWEX:PLAYER:Ｃ絶頂}
+;前戯
+SIF SUMARRAY(NOWEX:TARGET:0, 0, 4) > 0 || CFLAG:TARGET:中出し回数 > 0 || CFLAG:TARGET:フェラ回数
+	PRINTFORM %CALLNAME:TARGET%は
+;PLAYER→TARGET
+IF (NOWEX:TARGET:Ｂ絶頂 + NOWEX:TARGET:Ｃ絶頂) > 0
+	PRINTFORM %CALLNAME:(PLAYER)%に
+	;どこで何回イッた
+	SIF NOWEX:TARGET:Ｂ絶頂 > 0
+		PRINTFORMW %LOCALS:(LOCAL:10)%、{NOWEX:TARGET:Ｂ絶頂}回%LOCALS:(71+RAND:4)%
+	SIF NOWEX:TARGET:Ｂ絶頂 > 0 && NOWEX:TARGET:Ｃ絶頂 > 0
+		PRINTFORM さらに、
+	SIF NOWEX:TARGET:Ｃ絶頂 > 0
+		PRINTFORMW %LOCALS:(LOCAL:11)%、{NOWEX:TARGET:Ｃ絶頂}回%LOCALS:(71+RAND:4)%
+;PLAYER←TARGET
+ELSEIF (NOWEX:PLAYER:Ｂ絶頂 + NOWEX:PLAYER:Ｃ絶頂) > 0
+	PRINTFORM %CALLNAME:(PLAYER)%の
+	;どこで何回イッた
+	SIF NOWEX:PLAYER:Ｂ絶頂 > 0
+		PRINTFORMW %LOCALS:(LOCAL:10)%、{NOWEX:PLAYER:Ｂ絶頂}回%LOCALS:(71+RAND:4)%
+	SIF NOWEX:PLAYER:Ｂ絶頂 > 0 && NOWEX:PLAYER:Ｃ絶頂 > 0
+		PRINTFORM さらに、
+	SIF NOWEX:PLAYER:Ｃ絶頂 > 0
+		PRINTFORMW %LOCALS:(LOCAL:11)%、{NOWEX:PLAYER:Ｃ絶頂}回%LOCALS:(71+RAND:4)%
+ENDIF
+
+;フェラ
+;PLAYER→TARGET
+IF CFLAG:TARGET:フェラ回数 > 0
+	LOCAL = 0
+	PRINTL 
+	SIF LINE < LINECOUNT - 1
+		PRINTFORM %CALLNAME:TARGET%は
+	;誰に
+	PRINTFORM %CALLNAME:PLAYER%%LOCALS:(LOCAL:14)%、
+	;お掃除フェラ分岐
+	IF CFLAG:TARGET:フェラ回数 >= 2 && RAND:2 == 0
+		PRINTFORMW {CFLAG:TARGET:フェラ回数-1}回%LOCALS:(LOCAL:15)%
+		LOCAL = 1
+	ELSE
+		PRINTFORMW {CFLAG:TARGET:フェラ回数}回%LOCALS:(LOCAL:15)%
+	ENDIF
+;PLAYER←TARGET
+ELSEIF CFLAG:PLAYER:フェラ回数 > 0
+	LOCAL = 0
+	PRINTL 
+	SIF LINE < LINECOUNT - 1
+		PRINTFORM %CALLNAME:PLAYER%は
+	;誰に
+	PRINTFORM %CALLNAME:TARGET%%LOCALS:(LOCAL:14)%、
+	;お掃除フェラ分岐
+	IF CFLAG:PLAYER:フェラ回数 >= 2 && RAND:2 == 0
+		PRINTFORMW {CFLAG:PLAYER:フェラ回数-1}回%LOCALS:(LOCAL:15)%
+		LOCAL = 1
+	ELSE
+		PRINTFORMW {CFLAG:PLAYER:フェラ回数}回%LOCALS:(LOCAL:15)%
+	ENDIF
+ENDIF
+
+;本番
+;PLAYER→TARGET
+IF CFLAG:TARGET:本番回数 || CFLAG:TARGET:アナル回数
+	PRINTL  
+	SIF LINE < LINECOUNT - 1
+		PRINTFORM その後、
+	IF (NOWEX:TARGET:Ｖ絶頂 + NOWEX:TARGET:Ａ絶頂) > 0
+		;Ｖ絶頂
+		SIF NOWEX:TARGET:Ｖ絶頂 > 0
+		PRINTFORMW %CALLNAME:PLAYER%%LOCALS:(LOCAL:12)%、{NOWEX:TARGET:Ｖ絶頂}回%LOCALS:(71+RAND:4)%
+		SIF LINE < LINECOUNT - 2 && NOWEX:TARGET:Ａ絶頂 > 0
+
+			PRINTFORM さらに、
+		;Ａ絶頂
+		SIF NOWEX:TARGET:Ａ絶頂 > 0
+			PRINTFORMW %CALLNAME:PLAYER%%LOCALS:(LOCAL:13)%、{NOWEX:TARGET:Ａ絶頂}回%LOCALS:(71+RAND:4)%
+	ELSEIF CFLAG:TARGET:本番回数 && CFLAG:TARGET:アナル回数
+		PRINTFORMW %CALLNAME:PLAYER%%LOCALS:(LOCAL:12)%、さらに%CALLNAME:PLAYER%%LOCALS:(LOCAL:13)%た
+	ELSEIF CFLAG:TARGET:本番回数
+		LOCAL:12 = 22 + RAND:3
+		PRINTFORMW %CALLNAME:PLAYER%%LOCALS:(LOCAL:12)%た
+	ELSEIF CFLAG:TARGET:アナル回数
+		PRINTFORMW %CALLNAME:PLAYER%%LOCALS:(LOCAL:13)%た 
+	ENDIF
+;PLAYER←TARGET
+ELSEIF CFLAG:PLAYER:本番回数 || CFLAG:PLAYER:アナル回数
+	PRINTL  
+	SIF LINE < LINECOUNT - 1
+		PRINTFORM その後、
+	IF (NOWEX:PLAYER:Ｖ絶頂 + NOWEX:PLAYER:Ａ絶頂) > 0
+		;Ｖ絶頂
+		SIF NOWEX:PLAYER:Ｖ絶頂 > 0
+		PRINTFORMW %CALLNAME:PLAYER%%LOCALS:(LOCAL:12)%、{NOWEX:PLAYER:Ｖ絶頂}回%LOCALS:(71+RAND:4)%
+		SIF LINE < LINECOUNT - 2 && NOWEX:PLAYER:Ａ絶頂
+			PRINTFORM さらに、
+		;Ａ絶頂
+		SIF NOWEX:PLAYER:Ａ絶頂 > 0
+		PRINTFORMW %CALLNAME:TARGET%%LOCALS:(LOCAL:13)%、{NOWEX:PLAYER:Ａ絶頂}回%LOCALS:(71+RAND:4)%
+	ELSEIF CFLAG:PLAYER:本番回数 && CFLAG:PLAYER:アナル回数
+		PRINTFORMW %CALLNAME:TARGET%%LOCALS:(LOCAL:12)%、さらに%CALLNAME:TARGET%%LOCALS:(LOCAL:13)%た
+	ELSEIF CFLAG:PLAYER:本番回数
+		LOCAL:12 = 22 + RAND:3
+		PRINTFORMW %CALLNAME:TARGET%%LOCALS:(LOCAL:12)%た
+	ELSEIF CFLAG:TARGET:アナル回数
+		PRINTFORMW %CALLNAME:TARGET%%LOCALS:(LOCAL:13)%た 
+	ENDIF
+ENDIF
+
+;事後中出し
+;PLAYER→TARGET
+IF CFLAG:TARGET:中出し回数 > 0
+	PRINTFORML 
+	SIF LINE < LINECOUNT - 1
+		PRINTFORM そして
+	IF CFLAG:PLAYER:PTフラグ
+		PRINTFORMW %CALLNAME:TARGET%の膣内が%CALLNAME:PLAYER%の精液で{CFLAG:TARGET:中出し回数}度満たされた
+	ELSE
+		PRINTFORMW %CALLNAME:TARGET%の膣内に%CALLNAME:PLAYER%の子種が{CFLAG:TARGET:中出し回数}回注ぎ込まれてしまった
+	ENDIF
+;PLAYER←TARGET
+ELSEIF CFLAG:PLAYER:中出し回数 > 0
+	PRINTFORML 
+	SIF LINE < LINECOUNT - 1
+		PRINTFORM そして
+	IF CFLAG:PLAYER:PTフラグ
+		PRINTFORMW %CALLNAME:PLAYER%の膣内が%CALLNAME:TARGET%の精液で{CFLAG:PLAYER:中出し回数}度満たされた
+	ELSE
+		PRINTFORMW %CALLNAME:PLAYER%の膣内に%CALLNAME:TARGET%の子種が{CFLAG:PLAYER:中出し回数}回注ぎ込まれてしまった
+	ENDIF
+ENDIF
+
+;事後お掃除
+IF CFLAG:TARGET:フェラ回数 > 0 && LOCAL == 1
+	PRINTL 
+	PRINTFORMW %LOCALS:(LOCAL:16)%
+;PLAYER←TARGET
+ELSEIF CFLAG:PLAYER:フェラ回数 > 0 && LOCAL == 1
+	PRINTL 
+	PRINTFORMW %LOCALS:(LOCAL:16)%
+ENDIF
+
+
+
+
+
+
+
+

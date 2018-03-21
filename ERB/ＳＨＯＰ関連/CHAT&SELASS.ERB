@@ -1,0 +1,234 @@
+
+@SHOPCOMABLE_108
+RESULTS = Change Partner
+LOCAL:1 = 0
+FOR LOCAL,1,CHARANUM
+	SIF LOCAL == MASTER || LOCAL == TARGET
+		CONTINUE
+	SIF CFLAG:LOCAL:この場に居ないフラグ >= 1
+		CONTINUE
+	SIF CFLAG:LOCAL:労役フラグ == 3
+			CONTINUE
+	SIF ((TALENT:LOCAL:妊娠 && CFLAG:LOCAL:出産予定日 - 2 <= DAY) || TALENT:LOCAL:育児中) && FLAG:出産機能ONOFF == 1
+		CONTINUE
+	LOCAL:1 += 1
+NEXT
+IF LOCAL:1 >= 1
+	RETURN 1
+ENDIF
+RETURN 0
+
+@SHOPCOMABLE_109
+RESULTS = Change Assistant
+;助手可能キャラがいるなら
+SIF CHARANUM < 2
+	RETURN 0
+LOCAL:1 = 0
+FOR LOCAL,1,CHARANUM
+	SIF CFLAG:LOCAL:この場に居ないフラグ >= 1
+		CONTINUE
+	SIF CFLAG:LOCAL:労役フラグ == 3
+		CONTINUE
+	SIF ((TALENT:LOCAL:妊娠 && CFLAG:LOCAL:出産予定日 - 2 <= DAY) || TALENT:LOCAL:育児中) && FLAG:出産機能ONOFF == 1
+		CONTINUE
+	SIF CFLAG:LOCAL:売却可能 < 2
+		CONTINUE
+	LOCAL:1 += 1
+NEXT
+IF LOCAL:1 >= 1
+	RETURN 1
+ENDIF
+RETURN 0
+
+@PARTNER_ABLE, ARG
+#FUNCTION
+;主人は除外
+SIF ARG == MASTER
+	RETURNF 0
+;労役中キャラは除外
+SIF CFLAG:ARG:労役フラグ == 3
+	RETURNF 0
+SIF ((TALENT:ARG:妊娠 && CFLAG:ARG:出産予定日 - 2 <= DAY) || TALENT:ARG:育児中) && FLAG:出産機能ONOFF == 1
+	RETURNF 0
+;失踪中などこの場にいないなら除外
+SIF CFLAG:ARG:この場に居ないフラグ
+	RETURNF 0
+RETURNF 1
+
+
+@SHOP_COM_108
+PRINTL
+CUSTOMDRAWLINE =
+;キャラリストを表示
+CALL INPUT_CHARA_LIST("Who will be the partner?", "CASTING_SHOPCOM_108")
+SIF RESULT == 1000
+	RETURN 0
+TARGET = RESULT
+SIF TARGET == ASSI
+	ASSI = -1
+
+@CASTING_SHOPCOM_108
+;主人は除外
+SIF !PARTNER_ABLE(COUNT)
+	RETURN 0
+SIF CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+RETURN 1
+
+@ASSI_ABLE, ARG
+#FUNCTION
+SIF MARK:ARG:反発刻印 > 0
+	RETURNF 0
+;主人は除外
+SIF ARG == MASTER
+	RETURNF 0
+;労役中キャラは除外
+SIF CFLAG:ARG:労役フラグ == 3
+	RETURNF 0
+SIF ((TALENT:ARG:妊娠 && CFLAG:ARG:出産予定日 - 2 <= DAY) || TALENT:ARG:育児中) && FLAG:出産機能ONOFF == 1
+	RETURNF 0
+;失踪中などこの場にいないなら除外
+SIF CFLAG:ARG:この場に居ないフラグ
+	RETURNF 0
+;助手可能でないものは除外
+SIF CFLAG:ARG:売却可能 < 2
+	RETURNF 0
+RETURNF 1
+@SHOP_COM_109
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, 0
+A = 0
+REPEAT CHARANUM
+	SIF !ASSI_ABLE(COUNT)
+		CONTINUE
+	SIF CFLAG:COUNT:フィルタリングフラグ
+		CONTINUE
+	Q:A = COUNT
+	LOCAL:2 = A
+	A += 1
+	MARK:COUNT:98 = 1
+REND
+
+$PRINT_LIST
+CALL ASSI_LIST
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1001]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:2 - 1) / リスト表示数()) ? %" " * 16% # [1009]Next page\@
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1001
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:2 - 1) / リスト表示数()
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ELSEIF RESULT == 0
+	ASSI = -1
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+	GOTO INPUT_LOOP
+ELSEIF MARK:RESULT:98 == 0
+	GOTO INPUT_LOOP
+ENDIF
+
+ASSI = RESULT
+CALL ASSI_CHANGE
+;ISASSI:ASSI = 1
+IF ASSI == TARGET
+	TARGET = -1
+	FLAG:996 = -1
+ENDIF
+
+
+
+;-------------------------------------------------
+;助手可能キャラ一覧の表示処理
+;-------------------------------------------------
+@ASSI_LIST
+DRAWLINE
+PRINTFORM \@(ASSI >= 0) ? %CALLNAME:ASSI% is your # You don't have an\@
+PRINTL  assistant right now.
+PRINTFORML Who shall be your assistant? (★:Current assistant ☆:Partner) ＜page.{P + 1}＞
+;誰を助手にしますか？(現在の助手は☆、現在の調教対象は★) ＜page.{P + 1}＞
+DRAWLINE
+PRINTL   [ 0]No assistant
+DRAWLINE
+REPEAT リスト表示数()
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF LOCAL == 0
+		CONTINUE
+
+	IF LOCAL == ASSI
+		PRINT ★
+	ELSEIF LOCAL == TARGET
+		PRINT ☆
+	ELSE
+		PRINT 　
+	ENDIF
+	CALL ARRANGE_CHARALIST, LOCAL
+	IF !ISASSI:LOCAL
+		PRINT [Inexperienced] 
+		;[未経験] 
+	ELSEIF LOCAL == ASSI
+		PRINT 　　　　
+	ELSE
+		PRINT [Former assistant] 
+		;[元助手] 
+	ENDIF
+	PRINTFORM TechniqueLv{ABL:LOCAL:技巧} 
+	IF TALENT:LOCAL:オトコ
+		PRINTFORM ＢＬism   Lv{ABL:LOCAL:ＢＬっ気} ＢＬ addict   Lv{ABL:LOCAL:ＢＬ中毒} 
+	ELSE
+		PRINTFORM Lesbianism Lv{ABL:LOCAL:レズっ気} Lesbian addict Lv{ABL:LOCAL:レズ中毒} 
+	ENDIF
+	PRINTFORM 撮影技能Lv{ABL:LOCAL:撮影技能} 
+	IF TALENT:LOCAL:両刀
+		PRINT Bisexual
+	ELSE
+		PRINT 
+	ENDIF
+	IF TALENT:LOCAL:治療
+		PRINT Treatment
+	ELSE
+		PRINT 
+	ENDIF
+	IF TALENT:LOCAL:鼓舞
+		PRINT Inspiring
+	ELSE
+		PRINT 
+	ENDIF
+	IF TALENT:LOCAL:謎の魅力
+		PRINT Strange Charm
+		;謎力
+	ELSE
+		PRINT 
+	ENDIF
+	IF TALENT:LOCAL:魅惑
+		PRINT Captivating
+	ELSE
+		PRINT 
+	ENDIF
+	IF TALENT:LOCAL:調合知識
+		PRINT Mixing Knowlegde
+		;調合
+	ELSE
+		PRINT 　　
+	ENDIF
+	PRINTL 
+
+REND
+

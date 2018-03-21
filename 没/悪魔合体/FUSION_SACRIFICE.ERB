@@ -1,0 +1,165 @@
+;イケニエ合体用処理を記述したファイルです
+
+
+@FUSION_SACRIFICE
+;LOCAL:1、LOCAL:2　Zoma、素材の登録番号
+LOCAL:1 = -1
+LOCAL:2 = -1
+$START_FUSION
+LOCAL:6 = 0
+
+;キャラリストを表示
+
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:3に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	;素材は契約済みで無い、Zoma以外の悪魔に限る
+	SIF (契約(COUNT) > 0 || (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 44)) && LOCAL:1 > -1 
+		CONTINUE
+	;一体目は契約済みのZoma以外の悪魔であること
+	SIF LOCAL:1 == -1 && (ABL:COUNT:種族 == 45 || ABL:COUNT:種族 == 0 || 契約(COUNT) == 0)
+		CONTINUE
+	SIF COUNT == LOCAL:1 || COUNT == LOCAL:2
+		CONTINUE
+	SIF CFLAG:COUNT:労役フラグ == 3
+		CONTINUE
+	SIF CFLAG:COUNT:合体不可
+		CONTINUE
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:5 = A
+
+$PRINT_LIST
+DRAWLINE
+IF LOCAL:1 > -1
+	PRINTFORML 生贄に捧げる悪魔を選んでください　＜page.{P}＞
+ELSE
+	PRINTFORML 生贄を与える悪魔を選んでください　＜page.{P}＞
+ENDIF
+DRAWLINE
+CALL SHOW_CHARA_LIST
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1001]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:5 - 1) / 20) ? %" " * 16% # [1009]Next page\@
+SIF LOCAL:1 > -1
+	PRINTFORML 選択悪魔:%CALLNAME:(LOCAL:1)%
+SIF LOCAL:2 > -1
+	PRINTFORML 生贄:%CALLNAME:(LOCAL:2)%
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	IF LOCAL:1 > -1
+		LOCAL:1 = -1
+		GOTO START_FUSION
+	ELSE
+		RETURN 0
+	ENDIF
+ELSEIF RESULT == 1001
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:5 - 1) / 20
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+
+
+IF LOCAL:1 > 0
+	LOCAL:2 = RESULT
+	
+	;取得する経験値を計算
+	LOCAL:4 = CFLAG:(LOCAL:2):初期LV
+	LOCAL:3 = BASE:(LOCAL:2):ＥＸＰ - 5*(LOCAL:4-1)*(LOCAL:4+1)*(LOCAL:4)/3
+	SIF BASE:(LOCAL:1):LV > LOCAL:4
+		LOCAL:3 /= (BASE:(LOCAL:1):LV - LOCAL:4)/4+1
+	SIF BASE:(LOCAL:1):LV < LOCAL:4
+		LOCAL:3 *= POWER(2, MIN(( LOCAL:4 - BASE:(LOCAL:1):LV)/4,4))
+	TIMES LOCAL:3 , 0.70
+	;取得するＭＡＧを記録
+	LOCAL:4 = BASE:(LOCAL:2):ＭＡＧ
+	
+	CUSTOMDRAWLINE =
+	PRINTFORML %CALLNAME:(LOCAL:1)% LV{MAXBASE:(LOCAL:1):LV}({BASE:(LOCAL:1):LV})
+	PRINTFORML 　　　　ＥＸＰ:＋{MAX(LOCAL:3,0)}　　ＭＡＧ：＋{LOCAL:4}
+	PRINTFORML 　　　　素質変更：{BASE:(LOCAL:2):忠誠度/200}ポイント
+	CUSTOMDRAWLINE =
+	;合体結果のステータスを表示
+	;U = LOCAL:1
+	;PRINTFORML %STR:(ABL:U:80)%　　%CALLNAME:U%　　
+	;CALL SHOW_INFO_PAGE_2
+	;CUSTOMDRAWLINE =
+	
+	
+	;合体するかどうか　→　合体実行（実際には既に終わっている）
+	PRINTL 以上の結果になりますがよろしいですか？ [0]Yes [1]No
+
+	CALL INPUT_YN,"Yes","No",2
+
+	IF RESULT == 1
+		RESTART
+	ENDIF
+	
+;	;作成時のセリフを表示
+;	TRYCCALLFORM FUSION_MESSAGE_K{NO:(LOCAL:1)},LOCAL:3
+;	
+;	
+;	
+;	CATCH
+;		TRYCALLFORM FUSION_MESSAGE_PUB{ABL:(LOCAL:1):会話タイプ},LOCAL:3
+;	ENDCATCH
+;	
+;	;ここに忠誠度による素質変化とか予定
+;	CALL MAKE_TALENT,LOCAL:3,(BASE:(LOCAL:1):忠誠度+BASE:(LOCAL:2):忠誠度)
+;	BASE:(LOCAL:3):忠誠度 = MAX(100,RESULT/2)
+;	
+;	PRINTFORMW %STR:(ABL:(LOCAL:3):種族)% %CALLNAME:(LOCAL:3)%が仲魔になった。
+	
+	;経験値加算
+	BASE:(LOCAL:1):ＥＸＰ += LOCAL:3
+	CALL CHECK_LEVEL_UP,LOCAL:1
+	;ＭＡＧ加算
+	BASE:(LOCAL:1):ＭＡＧ += LOCAL:4
+	;忠誠度による素質変更後、忠誠度を加算する
+	CALL MAKE_TALENT,LOCAL:1,BASE:(LOCAL:2):忠誠度
+	BASE:(LOCAL:1):忠誠度 += MIN(BASE:(LOCAL:2):忠誠度,RESULT)
+	
+	;手紙システム
+	CALL FUSION_LETTER,LOCAL:2,6
+	
+	;合体素材の悪魔を消去
+	CALL キャラ削除, LOCAL:2
+	RETURN 0
+ELSE
+	LOCAL:1 = RESULT
+ENDIF
+
+GOTO START_FUSION
+
+
+
+
+
+
+
+
+
+

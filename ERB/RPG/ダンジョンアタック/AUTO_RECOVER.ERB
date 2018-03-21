@@ -1,0 +1,598 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:AUTO_RECOVER.ERB
+;	Facility	:オートリカバー。
+;
+;	Licence		:。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/11/20		旅人					魔法での状態異常回復が機能していないのを修正
+;			2011/11/21		旅人					上記修正の不具合を修正
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+
+;オートリカバー
+;配置中の仲魔のＨＰを魔法・アイテムを使用して自動回復する
+;原作の挙動は知らない
+
+;未完成部分
+;・ソースきたない
+;・ＣＯＭＰ内の仲魔の魔法をどうするか
+;
+
+@AUTO_RECOVER
+IF GETBIT(FLAG:オートリカバー設定1, 3) == 1
+	PRINTL Auto-Recover？
+	CALL INPUT_YN, "YES", "NO"
+	SIF RESULT == 1
+		RETURN 1
+ENDIF
+;バステ・死亡回復
+IF GETBIT(FLAG:オートリカバー設定1, 1) == 1 || GETBIT(FLAG:オートリカバー設定1, 2) == 1
+	;LOCAL 魔法とアイテムのうち、どちらか片方を試したか
+	LOCAL = 0
+	RESULT = 2
+	WHILE 1
+		;回復が必要な対象がいないなら終了
+		IF RESULT == 0
+			BREAK
+		;MP、アイテム切れなどで回復できなかった
+		ELSEIF RESULT == 1
+			;もう片方も試してみる、両方やってみてだめだったら終了
+			IF LOCAL == 1
+				BREAK
+			ELSE
+				LOCAL = 1
+			ENDIF
+		;回復を実行した
+		ELSE
+			LOCAL = 0
+		ENDIF
+		;魔法とアイテムのうち、コンフィグで設定したほうから試してみる。片方試した後だったらもう片方を。
+		IF (GETBIT(FLAG:オートリカバー設定1, 0) == 0 && LOCAL == 0) || (GETBIT(FLAG:オートリカバー設定1, 0) == 1 && LOCAL == 1)
+			CALL AUTO_RECOVER_MAGIC_STATE
+		ELSE
+			CALL AUTO_RECOVER_ITEM_STATE
+		ENDIF
+	WEND
+ENDIF
+;HP回復
+IF GETBIT(FLAG:オートリカバー設定1, 0) == 0
+	CALL AUTO_RECOVER_MAGIC_HP
+	SIF RESULT == 1
+		CALL AUTO_RECOVER_ITEM_HP
+ELSE
+	CALL AUTO_RECOVER_ITEM_HP
+	SIF RESULT == 1
+		CALL AUTO_RECOVER_MAGIC_HP
+ENDIF
+PRINTW Auto-Recovery End
+
+
+;LOCAL:1 回復対象ポジション
+;LOCAL:5 使用キャラ番号
+;LOCAL:6 使用スキル番号
+;LOCAL:7 効率
+;LOCAL:8 回復対象ステート
+;LOCAL:11 使用スキル効果範囲 1~6 19で味方全体
+;---- EDIT 002 DEL START -------------------------
+;;RESULT= 0:回復対象なし 1:回復不能 2:回復した
+;---- EDIT 002 DEL END ---------------------------
+@AUTO_RECOVER_MAGIC_STATE
+;魔法で回復
+;回復対象を配置中メンバー全員から
+LOCAL:1 = -1
+LOCAL:5 = -1
+LOCAL:7 = 0
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	LOCAL = FLAG:LOCALS
+	;EMPTY
+	IF LOCAL < 0
+		CONTINUE
+	;回復不要ならとばす
+	ELSEIF CFLAG:LOCAL:ステート == 0
+		CONTINUE
+	;死亡
+	ELSEIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+		SIF GETBIT(FLAG:オートリカバー設定1, 2) == 0
+			CONTINUE
+	;それ以外のバステ
+	ELSE
+		SIF GETBIT(FLAG:オートリカバー設定1, 1) == 0
+			CONTINUE
+	ENDIF
+	LOCAL:1 = COUNT+1
+	LOCAL:8 = CFLAG:LOCAL:ステート
+	BREAK
+REND
+IF LOCAL:1 == -1
+	;回復必要メンバーがいないので終了
+	RETURN 0
+ENDIF
+;　使用者を配置中メンバー全員から
+;　　最もMP効率のいい手段を選択
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	LOCAL = FLAG:LOCALS
+	;EMPTY
+	SIF LOCAL < 0
+		CONTINUE
+	;命令不可ならとばす
+	CALL INPUTABLE_CHARA, LOCAL
+	SIF RESULT == 0
+		CONTINUE
+	;MPが設定より少ないならとばす
+	SIF BASE:(LOCAL):ＭＰ == 0 || (BASE:(LOCAL):ＭＰ * 100 / MAXBASE:(LOCAL):ＭＰ) <= PART_VAR_READ(FLAG:オートリカバー設定3, 3, 0)
+		CONTINUE
+	;全習得済みスキルの中から回復魔法選ぶ
+	FOR COUNT:1, 1, FLAG:スキル数+1
+		LOCALS = スキル{COUNT:1}
+		IF ABL:(LOCAL):LOCALS > 0
+			;非戦闘時に使えない場合無視
+			TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{ABL:(LOCAL):LOCALS}
+				SIF RESULT == 0
+					CONTINUE
+				;特技の場合無視
+				CALLFORM SKILL_DECIDE_TYPE_{ABL:(LOCAL):LOCALS}
+				SIF RESULT != 2
+					CONTINUE
+				;---- EDIT 002 DEL START -------------------------
+				;;回復魔法でない場合無視
+				;CALLFORM SKILL_EFECT_{ABL:(LOCAL):LOCALS}
+				;SIF RESULT != 2
+				;	CONTINUE
+				;---- EDIT 002 DEL END ---------------------------
+				;---- EDIT 002 ADD START -------------------------
+				;状態回復魔法でない場合無視
+				CALLFORM SKILL_EFECT_{ABL:(LOCAL):LOCALS}
+				SIF RESULT != 5
+					CONTINUE
+				;---- EDIT 002 ADD END ---------------------------
+				;発動可能？（MP、CLOSE等）
+				CALL CHECK_ACTIONABLE, LOCAL, ABL:(LOCAL):LOCALS
+				SIF RESULT == 0
+					CONTINUE
+				;回復対象のステートを治せるか
+				RESULT = 0
+				TRYCALLFORM SKILL_CURE_STATE_{ABL:(LOCAL):LOCALS}, LOCAL:8
+				SIF RESULT == 0
+					CONTINUE
+				;消費MP取得
+				CALLFORM SKILL_COST_{ABL:(LOCAL):LOCALS}
+				LOCAL:3 = RESULT
+				CALLFORM SKILL_SPHERE_{ABL:(LOCAL):LOCALS}
+				;---- EDIT 002 ADD START -------------------------
+				;特定のスキルはオートからは除外
+				SELECTCASE ABL:(LOCAL):LOCALS
+					;- 流石にこれは任意使用の方が良い気がする
+					CASE [[スキル:リカームドラ]]
+						CONTINUE
+				ENDSELECT
+				;---- EDIT 002 ADD END ---------------------------
+
+				;単体なら対象のポジション番号を
+				IF RESULT == 1
+					;---- EDIT 002 DEL START -------------------------
+					;LOCAL:10 = LOCAL:1
+					;---- EDIT 002 DEL END ---------------------------
+					;---- EDIT 002 ADD START -------------------------
+					;特定のスキルのみ、"使用スキル効果範囲"を個別に変換
+					;(@ACTION_FIELD_X内の処理が、通常の状態回復と違う為)
+					SELECTCASE ABL:(LOCAL):LOCALS
+						CASE [[スキル:リカーム]]
+							LOCAL:10 = POS(LOCAL:1)
+						CASE [[スキル:サマリカーム]]
+							LOCAL:10 = POS(LOCAL:1)
+						;上記以外
+						CASEELSE
+							;対象のポジション番号を
+							LOCAL:10 = LOCAL:1
+					ENDSELECT
+					;---- EDIT 002 ADD END ---------------------------
+				;全体
+				ELSEIF RESULT == 3
+					LOCAL:10 = 19
+					;何人治せるかかぞえる
+					LOCAL:4 = 0
+					;---- EDIT 002 MOD START -------------------------
+					;FOR COUNT:2, 1, 6
+					FOR COUNT:2, 1, 7
+					;---- EDIT 002 MOD END ---------------------------
+						LOCALS:1 = ポジション{COUNT:2}
+						LOCAL:2 = FLAG:(LOCALS:1)
+						;EMPTY
+						SIF LOCAL:2 < 0
+							CONTINUE
+						;回復不要ならスルー
+						SIF CFLAG:(LOCAL:2):ステート == 0
+							CONTINUE
+						CALLFORM SKILL_CURE_STATE_{ABL:(LOCAL):LOCALS}, CFLAG:(LOCAL:2):ステート
+						SIF RESULT == 0
+							CONTINUE
+						LOCAL:4 += 1
+					NEXT
+					;最低一人はいるはず
+					LOCAL:3 /= LOCAL:4
+				;例外
+				ELSE
+					CONTINUE
+				ENDIF
+				;もっとも効率がよい(消費MP÷回復人数が少ない)ものを覚えておく
+				;---- EDIT 002 MOD START -------------------------
+				;IF LOCAL:7 > LOCAL:3
+				IF LOCAL:7 < LOCAL:3
+				;---- EDIT 002 MOD END ---------------------------
+					LOCAL:5 = LOCAL
+					LOCAL:6 = ABL:(LOCAL):LOCALS
+					LOCAL:7 = LOCAL:3
+					LOCAL:11 = LOCAL:10
+				ENDIF
+;---- EDIT 002 ADD START ------------------------- デバッグ用
+;				PRINTFORML デバッグ ABL:(LOCAL):LOCALS:{ABL:(LOCAL):LOCALS} LOCAL:8:{LOCAL:8} GET_STATE(LOCAL:8):%GET_STATE(LOCAL:8)%
+;				PRINTFORML デバッグ LOCAL:7:{LOCAL:7} LOCAL:3:{LOCAL:3}
+;---- EDIT 002 ADD END ---------------------------
+			CATCH
+				;未実装は無視
+				CONTINUE
+			ENDCATCH
+		ENDIF
+	NEXT
+REND
+;誰も回復使えないなら終了
+IF LOCAL:5 == -1
+	RETURN 1
+ENDIF
+
+SETCOLOR 0x33ffcc
+PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+PRINTFORM ┃[{CFLAG:(LOCAL:5):ポジション,2}] %CALLNAME:(LOCAL:5),21,LEFT%┃　┃
+CALLFORM SKILL_NAME_{LOCAL:6}, LOCAL:5
+PRINTFORML %RESULTS,40,LEFT%┃
+PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+RESETCOLOR
+;もっとも効率がよい(消費MP÷回復人数が少ない)もので回復実行
+CALL PAY_COST, LOCAL:5, LOCAL:6
+CALLFORM ACTION_FIELD_{LOCAL:6}, LOCAL:5, LOCAL:11
+;---- EDIT 002 DE; START -------------------------
+;RETURN 2
+;---- EDIT 002 DE; END ---------------------------
+;---- EDIT 002 ADD START -------------------------
+;最初に戻る
+RESTART
+;---- EDIT 002 ADD END ---------------------------
+
+
+
+@AUTO_RECOVER_ITEM_STATE
+;LOCAL:1 回復対象ポジション
+;LOCAL:5 使用アイテム番号
+;LOCAL:8 回復対象ステート
+;LOCAL:9 スルーされたキャラがいるか
+LOCAL:1 = -1
+LOCAL:9 = 0
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	LOCAL = FLAG:LOCALS
+	;EMPTY
+	IF LOCAL < 0
+		CONTINUE
+	;回復不要ならとばす
+	ELSEIF CFLAG:LOCAL:ステート == 0
+		CONTINUE
+	;死亡
+	ELSEIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+		SIF GETBIT(FLAG:オートリカバー設定1, 2) == 0
+			CONTINUE
+		IF ITEM:[[アイテム:RevivalBead]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 6)
+			;道返玉は控えにも使えるのでポジション番号ではなくキャラ番号で
+			CALLFORM ACTION_FIELD_{[[アイテム:RevivalBead]]+2000},0, LOCAL
+			RETURN 2
+		ENDIF
+		IF ITEM:[[アイテム:BalmOfLife]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 7)
+			CALLFORM ACTION_FIELD_{[[アイテム:BalmOfLife]]+2000},0, LOCAL
+			RETURN 2
+		ENDIF
+	;それ以外のバステ
+	ELSE
+		SIF GETBIT(FLAG:オートリカバー設定1, 1) == 0
+			CONTINUE
+		SELECTCASE GET_STATE(CFLAG:LOCAL:ステート)
+			CASE "POISON"
+				IF ITEM:[[アイテム:Dis-Poison]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 4)
+					CALLFORM ACTION_FIELD_{[[アイテム:Dis-Poison]]+2000},0, COUNT+1
+					RETURN 2
+				ENDIF
+			CASE "PALYZE"
+				IF ITEM:[[アイテム:Dis-Paralyze]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 4)
+					CALLFORM ACTION_FIELD_{[[アイテム:Dis-Paralyze]]+2000},0, COUNT+1
+					RETURN 2
+				ENDIF
+			CASE "CHARM"
+				IF ITEM:[[アイテム:Dis-Charm]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 4)
+					CALLFORM ACTION_FIELD_{[[アイテム:Dis-Charm]]+2000},0, COUNT+1
+					RETURN 2
+				ENDIF
+			CASE "STONE"
+				IF ITEM:[[アイテム:Dis-Stone]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 4)
+					CALLFORM ACTION_FIELD_{[[アイテム:Dis-Stone]]+2000},0, COUNT+1
+					RETURN 2
+				ENDIF
+			CASE "CLOSE"
+				IF ITEM:[[アイテム:Dis-Close]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 4)
+					CALLFORM ACTION_FIELD_{[[アイテム:Dis-Close]]+2000},0, COUNT+1
+					RETURN 2
+				ENDIF
+			CASE "HAPPY", "BIND", "PANIC", "SLEEP"
+				IF ITEM:[[アイテム:SacredWater]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 5)
+					CALLFORM ACTION_FIELD_{[[アイテム:SacredWater]]+2000},0, COUNT+1
+					RETURN 2
+				ENDIF
+			CASEELSE
+		ENDSELECT
+	ENDIF
+	;回復できなかったフラグ
+	LOCAL:9 = 1
+REND
+;回復できなかったキャラが一人でもいる
+IF LOCAL:9 == 1
+	RETURN 1
+;全員回復不要
+ELSE
+	RETURN 0
+ENDIF
+
+@AUTO_RECOVER_ITEM_HP
+;最も（回復量÷値段）が高いアイテムで回復
+;LOCAL:1 回復対象ポジション
+;LOCAL:5 使用アイテム番号
+;LOCAL:6 効率
+;LOCAL:8 回復対象ダメージ
+LOCAL:1 = -1
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	LOCAL = FLAG:LOCALS
+	;EMPTY
+	SIF LOCAL < 0
+		CONTINUE
+	;回復不要ならとばす
+	SIF BASE:LOCAL:ＨＰ * 100 / MAXBASE:LOCAL:ＨＰ >= PART_VAR_READ(FLAG:オートリカバー設定3, 3, 1)
+		CONTINUE
+	;死亡はとばす
+	SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+		CONTINUE
+	LOCAL:1 = COUNT+1
+	LOCAL:8 = MAXBASE:(LOCAL):ＨＰ - BASE:(LOCAL):ＨＰ
+	BREAK
+REND
+IF LOCAL:1 == -1
+	;回復必要メンバーがいないので終了
+;	PRINTFORML DEBUG:回復必要メンバーがいないので終了
+	RETURN 0
+ENDIF
+;PRINTFORML DEBUG:回復対象ポジション:{LOCAL:1}
+LOCAL:5 = -1
+LOCAL:6 = 0
+;Medecine
+;持ってる？
+IF ITEM:[[アイテム:Medicine]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 0)
+	;回復量:30
+	;コスト（￥換算）:50
+	LOCAL:7 = MIN(30, LOCAL:8) * 10000 / 50
+	;効率最高なら登録
+	IF LOCAL:6 < LOCAL:7
+		LOCAL:5 = [[アイテム:Medicine]]
+		LOCAL:6 = LOCAL:7
+	ENDIF
+ENDIF
+
+;Life stone
+IF ITEM:[[アイテム:Life stone]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 1)
+	;回復量:25%
+	;コスト（￥換算）:500
+	LOCAL:7 = MIN(MAXBASE:(LOCAL):ＨＰ/4, LOCAL:8) * 10000 / 500
+	;効率最高なら登録
+	IF LOCAL:6 < LOCAL:7
+		LOCAL:5 = [[アイテム:Life stone]]
+		LOCAL:6 = LOCAL:7
+	ENDIF
+ENDIF
+
+;OxBezoar
+IF ITEM:[[アイテム:OxBezoar]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 2)
+	;回復量:200
+	;コスト（￥換算）:2000
+	LOCAL:7 = MIN(200, LOCAL:8) * 10000 / 2000
+	;効率最高なら登録
+	IF LOCAL:6 < LOCAL:7
+		LOCAL:5 = [[アイテム:OxBezoar]]
+		LOCAL:6 = LOCAL:7
+	ENDIF
+ENDIF
+
+;Bead
+IF ITEM:[[アイテム:Bead]] > PART_VAR_READ(FLAG:オートリカバー設定2, 2, 3)
+	;回復量:100%
+	;コスト（￥換算）:10000
+	LOCAL:7 = LOCAL:8 * 10000 / 10000
+	;効率最高なら登録
+	IF LOCAL:6 < LOCAL:7
+		LOCAL:5 = [[アイテム:Bead]]
+		LOCAL:6 = LOCAL:7
+	ENDIF
+ENDIF
+
+IF LOCAL:5 == -1
+;	PRINTFORML DEBUG:使用可能アイテムがないので終了
+	RETURN 1
+ENDIF
+
+;最も（回復量÷値段）が高いアイテムで回復
+CALLFORM ACTION_FIELD_{LOCAL:5+2000},0, LOCAL:1
+;最初に戻る
+RESTART
+
+;LOCAL:1 回復対象ポジション
+;LOCAL:5 使用キャラ番号
+;LOCAL:6 使用スキル番号
+;LOCAL:7 効率
+;LOCAL:8 回復対象ダメージ
+;LOCAL:11 使用スキル効果範囲 1~6 19で味方全体
+@AUTO_RECOVER_MAGIC_HP
+;魔法で回復
+;回復対象を配置中メンバー全員から
+LOCAL:1 = -1
+LOCAL:5 = -1
+LOCAL:7 = 0
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	LOCAL = FLAG:LOCALS
+	;EMPTY
+	SIF LOCAL < 0
+		CONTINUE
+	;回復不要ならとばす
+	SIF BASE:LOCAL:ＨＰ * 100 / MAXBASE:LOCAL:ＨＰ >= PART_VAR_READ(FLAG:オートリカバー設定3, 3, 1)
+		CONTINUE
+	;死亡はとばす
+	SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+		CONTINUE
+	LOCAL:1 = COUNT+1
+	LOCAL:8 = MAXBASE:(LOCAL):ＨＰ - BASE:(LOCAL):ＨＰ
+	BREAK
+REND
+IF LOCAL:1 == -1
+	;回復必要メンバーがいないので終了
+;	PRINTFORML DEBUG:回復必要メンバーがいないので終了
+	RETURN 0
+ENDIF
+;PRINTFORML DEBUG:回復対象ポジション:{LOCAL:1}
+;　使用者を配置中メンバー全員から
+;　　最もMP効率のいい手段を選択
+REPEAT 6
+	LOCALS = ポジション{COUNT+1}
+	LOCAL = FLAG:LOCALS
+	;EMPTY
+	SIF LOCAL < 0
+		CONTINUE
+	;命令不可ならとばす
+	CALL INPUTABLE_CHARA, LOCAL
+	SIF RESULT == 0
+		CONTINUE
+	;MPが設定より少ないならとばす
+	SIF BASE:(LOCAL):ＭＰ == 0 || (BASE:(LOCAL):ＭＰ * 100 / MAXBASE:(LOCAL):ＭＰ) <= PART_VAR_READ(FLAG:オートリカバー設定3, 3, 0)
+		CONTINUE
+	;全習得済みスキルの中から回復魔法選ぶ
+	FOR COUNT:1, 1, FLAG:スキル数+1
+		LOCALS = スキル{COUNT:1}
+		IF ABL:(LOCAL):LOCALS > 0
+			;非戦闘時に使えない場合無視
+			TRYCCALLFORM SKILL_ACTIONABLE_FIELD_{ABL:(LOCAL):LOCALS}
+				SIF RESULT == 0
+					CONTINUE
+				;特技の場合無視
+				CALLFORM SKILL_DECIDE_TYPE_{ABL:(LOCAL):LOCALS}
+				SIF RESULT != 2
+					CONTINUE
+				;回復魔法でない場合無視
+				CALLFORM SKILL_EFECT_{ABL:(LOCAL):LOCALS}
+				SIF RESULT != 2
+					CONTINUE
+				;発動可能？（MP、CLOSE等）
+				CALL CHECK_ACTIONABLE, LOCAL, ABL:(LOCAL):LOCALS
+				SIF RESULT == 0
+					CONTINUE
+				;威力と消費MP取得
+				CALLFORM SKILL_POWER_{ABL:(LOCAL):LOCALS}
+				LOCAL:3 = RESULT
+				CALLFORM SKILL_COST_{ABL:(LOCAL):LOCALS}
+				LOCAL:4 = RESULT
+				;コピペ
+				CALLFORM SKILL_NAME_{ABL:(LOCAL):LOCALS}
+				SELECTCASE RESULTS
+					CASE "ディア", "ディアラマ"
+						;回復量ORダメージの小さい方を回復量とする
+						LOCAL:3 = MIN((LOCAL:3 * (BASE:(LOCAL):16/4+(BASE:(LOCAL):15 / 8+10)) /50), LOCAL:8)
+						LOCAL:10 = LOCAL:1
+					CASE "ディアラハン"
+						LOCAL:3 = LOCAL:8
+						LOCAL:10 = LOCAL:1
+					CASE "メ・ディア", "メ・ディアラマ"
+						LOCAL:3 = LOCAL:3 * (BASE:(LOCAL):16/4+(BASE:(LOCAL):15 / 8+10)) /50
+						LOCAL:9 = 0
+						FOR COUNT:2, 1, 6
+							LOCALS:1 = ポジション{COUNT:2}
+							LOCAL:2 = FLAG:(LOCALS:1)
+							;死んでるならスルー
+							SIF LOCAL:2 == -1
+								CONTINUE
+							SIF GET_STATE(CFLAG:(LOCAL:2):ステート) == "DYING"
+								CONTINUE
+							;回復不要ならスルー
+							SIF BASE:(LOCAL:2):ＨＰ >= MAXBASE:(LOCAL:2):ＨＰ
+								CONTINUE
+							;回復量ORダメージの小さい方を回復量とする
+							LOCAL:9 += MIN(LOCAL:3, MAXBASE:(LOCAL:2):ＨＰ - BASE:(LOCAL:2):ＨＰ)
+						NEXT
+						;回復量の合計
+						LOCAL:3 = LOCAL:9
+						LOCAL:10 = 19
+					CASE "メ・ディアラハン"
+						LOCAL:9 = 0
+						FOR COUNT:2, 1, 6
+							LOCALS:1 = ポジション{COUNT:2}
+							LOCAL:2 = FLAG:(LOCALS:1)
+							;死んでるならスルー
+							SIF LOCAL:2 == -1
+								CONTINUE
+							SIF GET_STATE(CFLAG:(LOCAL:2):ステート) == "DYING"
+								CONTINUE
+							;回復不要ならスルー
+							SIF BASE:(LOCAL:2):ＨＰ >= MAXBASE:(LOCAL:2):ＨＰ
+								CONTINUE
+							;ダメージを回復量とする
+							LOCAL:9 += MAXBASE:(LOCAL:2):ＨＰ - BASE:(LOCAL:2):ＨＰ
+						NEXT
+						;回復量の合計
+						LOCAL:3 = LOCAL:9
+						LOCAL:10 = 19
+					CASEELSE
+						CONTINUE
+				ENDSELECT
+				LOCAL:3 *= 100
+				LOCAL:3 = LOCAL:3 / LOCAL:4
+				;もっとも効率がよい(回復量÷消費MPが多い)ものを覚えておく
+				IF LOCAL:7 < LOCAL:3
+					LOCAL:5 = LOCAL
+					LOCAL:6 = ABL:(LOCAL):LOCALS
+					LOCAL:7 = LOCAL:3
+					LOCAL:11 = LOCAL:10
+				ENDIF
+			CATCH
+				;未実装は無視
+				CONTINUE
+			ENDCATCH
+		ENDIF
+	NEXT
+REND
+;誰も回復使えないなら終了
+IF LOCAL:5 == -1
+;	PRINTFORML DEBUG:回復実行可能メンバーがいないので終了
+	RETURN 1
+ENDIF
+;PRINTFORML DEBUG:使用スキル番号：{LOCAL:6} 使用者キャラ番号：{LOCAL:5} 効率：{LOCAL:7} Target:{LOCAL:11}
+
+SETCOLOR 0x33ffcc
+PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+PRINTFORM ┃[{CFLAG:(LOCAL:5):ポジション,2}] %CALLNAME:(LOCAL:5),21,LEFT%┃　┃
+CALLFORM SKILL_NAME_{LOCAL:6}, LOCAL:5
+PRINTFORML %RESULTS,40,LEFT%┃
+PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+RESETCOLOR
+;もっとも効率がよい(回復量÷消費MPが多い)もので回復実行
+CALL PAY_COST, LOCAL:5, LOCAL:6
+CALLFORM ACTION_FIELD_{LOCAL:6}, LOCAL:5, LOCAL:11
+;最初に戻る
+RESTART

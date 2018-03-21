@@ -1,0 +1,198 @@
+;露出癖の可否
+@ISABLUP8
+;恋慕、親愛、淫乱、娼婦はMAXLV10
+IF ABL:8 >= 10
+	RETURN 0
+ELSEIF ABL:8 >= 5 && !陥落(TARGET) && TARGET != MASTER
+	RETURN 0
+ENDIF
+
+CALL DECIDE_ABLUP8
+
+IF Z == 0
+	RETURN 0
+ELSE
+	RETURN 1
+ENDIF
+
+
+;Exhibitionism
+@ABLUP8
+$ABLUP_LOOP
+
+DRAWLINE
+IF ABL:8 >= 10
+	PRINTW The abiltiy has been MAXed already.
+	RETURN 0
+ELSEIF ABL:8 >= 5 && !陥落(TARGET) && TARGET != MASTER
+	PRINTW The abiltiy has been MAXed already.
+	RETURN 0
+ENDIF
+
+CALL DECIDE_ABLUP8
+
+;ＬＶ３から４に上げるときはAbnormalEXP必要（素質：[目立ちたがり]なら無視できる）
+IF ABL:8 == 3 && TALENT:28 == 0
+	PRINTS EXPNAME_E(50)
+	PRINTL  required
+;ＬＶ４から５に上げるときはAbnormalEXP3以上必要（素質：[目立ちたがり]なら無視できる）
+ELSEIF ABL:8 == 4 && TALENT:28 == 0
+	PRINTS EXPNAME_E(50)
+	PRINTL 3 or higher required
+;ＬＶ８から９に上げるときはAbnormalEXP5以上必要（素質：[目立ちたがり]なら無視できる）
+ELSEIF ABL:8 == 8 && TALENT:28 == 0
+	PRINTS EXPNAME_E(50)
+	PRINTL 5 or higher required
+ENDIF
+
+;欲望が必要
+PRINTS ABLNAME_E(1)
+PRINTV ABL:8 + 1
+PRINTL LV or higher required
+
+PRINT [0] - 
+PRINTS PALAMNAME_E(9)
+PRINT  Orbs×
+PRINTV A
+IF ABL:8 < 2
+	PRINT , 
+	PRINTS EXPNAME_E(2)
+	PRINTV 1
+	PRINT  required
+ELSE
+	PRINT , 
+	PRINTS EXPNAME_E(11)
+	PRINTV 1
+	PRINT  required
+ENDIF
+PRINT ....
+
+IF I == 0
+	PRINT ＯＫ
+ELSE
+	SIF I & 1
+		PRINT Not Enough Orbs 
+	SIF I & 2
+		PRINT Not Enough EXP 
+	SIF I & 4
+		PRINT Missing Ability
+ENDIF
+PRINTL 
+
+
+IF Z == 0
+	WAIT
+	RETURN
+ENDIF
+
+PRINTLC [100] - Quit
+PRINTFORMLC   %" " * 42%
+PRINTLC [200] - Auto-Upgrade ability
+
+
+INPUT
+IF (RESULT < 0 || RESULT > 0) && RESULT != 100 && RESULT != 200
+	RESTART
+ELSEIF I != 0 && RESULT == 0
+	PRINTL Conditions are not met
+	RETURN 0
+ELSEIF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 200
+	CALL AUTOMAX, 8
+	RETURN 0
+ENDIF
+
+ABL:8 += 1
+
+IF RESULT == 0
+	JUEL:9 -= A
+ENDIF
+
+PRINTS ABLNAME_E(8)
+PRINT  ability level became 
+PRINTV ABL:8
+PRINTW .
+GOTO ABLUP_LOOP
+
+;露出癖LVUP判定
+@DECIDE_ABLUP8
+;条件別にＯＫかダメかを記録する
+I = 0
+J = 0
+K = 0
+;能力アップ可能なら1にする
+Z = 0
+
+IF ABL:8 == 0
+	A = 100
+ELSEIF ABL:8 == 1
+	A = 1000
+ELSEIF ABL:8 == 2
+	A = 5000
+ELSEIF ABL:8 == 3
+	A = 15000
+ELSEIF ABL:8 == 4
+	A = 35000
+ELSEIF ABL:8 == 5
+	A = 35000
+ELSEIF ABL:8 == 6
+	A = 35000
+ELSEIF ABL:8 == 7
+	A = 35000
+ELSEIF ABL:8 == 8
+	A = 35000
+ELSEIF ABL:8 == 9
+	A = 35000
+ENDIF
+
+;一線越えない
+IF TALENT:27 && (TALENT:3 == 0 && TALENT:4 == 0 && TALENT:5 == 0 && 陥落() < 2)
+	TIMES A , 2.00
+ENDIF
+
+;欲望が露出癖＋１レベルでないといけない
+IF ABL:1 < ABL:8+1
+	;欲望が不足
+	I |= 4
+ENDIF
+
+;ＬＶ３から４に上げるときはAbnormalEXP必要（素質：[目立ちたがり]なら無視できる）
+IF ABL:8 == 3 && TALENT:28 == 0
+	IF EXP:50 == 0
+		;AbnormalEXPが不足
+		I |= 2
+	ENDIF
+;ＬＶ４から５に上げるときはAbnormalEXP3以上必要（素質：[目立ちたがり]なら無視できる）
+ELSEIF ABL:8 == 4 && TALENT:28 == 0
+	IF EXP:50 < 3
+		;AbnormalEXPが不足
+		I |= 2
+	ENDIF
+;ＬＶ８から９に上げるときはAbnormalEXP5以上必要（素質：[目立ちたがり]なら無視できる）
+ELSEIF ABL:8 == 8 && TALENT:28 == 0
+	IF EXP:50 < 5
+		;AbnormalEXPが不足
+		I |= 2
+	ENDIF
+ENDIF
+
+;恥情の珠で上げる
+SIF JUEL:9 < A
+	I |= 1
+IF ABL:8 < 2
+	;ClimaxEXPが必要
+	SIF EXP:2 == 0
+		I |= 2
+ELSE
+	;FrcMasturEXPが必要
+	SIF EXP:11 == 0
+		I |= 2
+ENDIF
+
+IF I == 0
+	Z = 1
+ENDIF
+
+RETURN 1
+

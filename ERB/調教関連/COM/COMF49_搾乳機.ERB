@@ -1,0 +1,164 @@
+;-------------------------------------------------
+;搾乳器
+;道具使用コマンド、レベル3
+;-------------------------------------------------
+@COMNAME49
+IF TEQUIP:搾乳機
+	RESULTS = Remove milker
+	;搾乳機解除
+ELSE
+	RESULTS = Milker
+	;搾乳機
+ENDIF
+@ACT_COM49
+
+IF TEQUIP:25
+	PRINTL Tentacle milking
+	;触手搾乳
+	TSTR:0 = 触手搾乳
+	SELECTCOM = 165
+ELSE
+	PRINTL Milker
+	;搾乳機
+	TSTR:0 = 搾乳機
+ENDIF
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:17 == 0
+	TEQUIP:17 = 1
+	;触手搾乳は触手の汚れを追加
+	IF TEQUIP:25
+		CALL SET_STAIN("胸", "粘液", TARGET)
+	ENDIF
+ELSE
+	TEQUIP:17 = 0
+ENDIF
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 50
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:道具快Ｂ = 200
+SOURCE:TARGET:痛み = 100
+SOURCE:TARGET:中毒充足 = 100
+SOURCE:TARGET:露出 = 30
+SOURCE:TARGET:屈従 = 100
+SOURCE:TARGET:逸脱 = 100
+SOURCE:TARGET:反感 = 100
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 100
+
+;中毒による中毒充足のソースは先に処理しておく
+;噴乳中毒を見る
+IF ABL:19 == 0
+	TIMES SOURCE:TARGET:中毒充足 , 0.00
+ELSEIF ABL:19 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.30
+ELSEIF ABL:19 == 2
+	TIMES SOURCE:TARGET:中毒充足 , 0.60
+ELSEIF ABL:19 == 3
+	TIMES SOURCE:TARGET:中毒充足 , 0.90
+ELSEIF ABL:19 == 4
+	TIMES SOURCE:TARGET:中毒充足 , 1.20
+ELSEIF ABL:19 == 5
+	TIMES SOURCE:TARGET:中毒充足 , 1.50
+ELSEIF ABL:19 == 6
+	TIMES SOURCE:TARGET:中毒充足 , 1.80
+ELSEIF ABL:19 == 7
+	TIMES SOURCE:TARGET:中毒充足 , 2.10
+ELSEIF ABL:19 == 7
+	TIMES SOURCE:TARGET:中毒充足 , 2.40
+ELSEIF ABL:19 == 9
+	TIMES SOURCE:TARGET:中毒充足 , 3.00
+ELSEIF ABL:19 >= 10
+	TIMES SOURCE:TARGET:中毒充足 , 5.00
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;触手搾乳なら、触手体液が胸に付く
+SIF TEQUIP:25
+	CALL SET_STAIN("胸", "粘液", TARGET)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;触手召喚時、TentacleEXPのリセットをする
+;SIF TEQUIP:25 == 1
+;	T = 0
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM49
+;搾乳器装備中
+IF TEQUIP:25
+	PRINTL ＜Tentacle milking＞
+	;触手搾乳中
+ELSE
+	PRINTL ＜Equipped milker＞
+	;搾乳器装備中
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+DOWNBASE:TARGET:体力 += 25
+DOWNBASE:TARGET:気力 += 50
+
+SOURCE:TARGET:道具快Ｂ += 100
+SOURCE:TARGET:痛み += 50
+SOURCE:TARGET:中毒充足 += 50
+SOURCE:TARGET:露出 += 15
+SOURCE:TARGET:屈従 += 50
+SOURCE:TARGET:逸脱 += 50
+SOURCE:TARGET:反感 += 50
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;TentacleEXP加算
+SIF TEQUIP:25 == 1
+	CALL ADDS_EXP("触手経験", 1, TARGET)
+;	T += 1
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_49
+RETURN COMTYPE("道具系")
+
+

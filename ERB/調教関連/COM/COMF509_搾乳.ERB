@@ -1,0 +1,91 @@
+;-------------------------------------------------
+;搾乳
+;愛撫系派生コマンド
+;-------------------------------------------------
+@ACT_COM509
+PRINTL Milking
+TSTR:0 = 搾乳
+;SELECTCOM = 509
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 20
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:快Ｂ = 100
+SOURCE:TARGET:情愛 = 40
+SOURCE:TARGET:露出 = 100
+SOURCE:TARGET:不潔 = 50
+SOURCE:TARGET:反感 = 100
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 100
+
+;調教者が［幼稚］か［幼児退行］
+IF TALENT:PLAYER:150 || TALENT:PLAYER:151
+	TIMES SOURCE:TARGET:快Ｂ , 1.20
+	TIMES SOURCE:TARGET:情愛 , 1.20
+ENDIF
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＢ⇔調教者の指の汚れが移動
+CALL MOVE_STAIN("胸", TARGET, "手", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 7
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+;	PRINTS EXPNAME:23
+;	PRINTL +1
+	CALL ADDS_EXP("愛情経験", 1, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 1
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_509
+RETURN COMTYPE("派生系")
+
+

@@ -1,0 +1,203 @@
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_5
+;IF (闘技場フラグ:4:0 == 1 || 闘技場フラグ:3:0 == 1) && 闘技場フラグ:5:0 == 0
+;	IF GETCHARA(4507) > -1 || FLAG:34507 > 0
+IF FLAG:闘技場ランク == 1 && FLAG:闘技場名声 >= 150
+			RESULTS = Rank Ｄ　ＶＳ　Messiah
+			RETURN 1
+;	ELSE
+;		RESULTS = 試合ランクＤ　ＶＳ ゲーム機型ＣＯＭＰ使い
+;		RETURN 1
+;	ENDIF
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@COLOSSEUM_5
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+PRINTW ＞A man with a COMP and tall gelled hair in a protector entered the ring with a fearless smile.
+PRINTL Man：
+PRINTL 「You have often come here without running away」
+PRINTW 「My name is Messiah Daleth.Don't think a dirty Dark Summoner can win against against me, the messiah」
+PRINTL
+PRINTL Daleth：
+PRINTW 「I am the Messiah! Prepared to be defeated in the Messiah's name!」
+PRINTL
+PRINTW 1 Messiah Daleth and 5 demons appeared!
+
+CUSTOMDRAWLINE =
+WAIT
+;ダレス
+CALL SET_ENEMY,14,4213,25,0,1
+CFLAG:(CHARANUM-1):行動回数 = 2
+CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+;コッパテング
+CALL SET_ENEMY,13,451,22,0,
+CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+ABL:(CHARANUM-1):スキル1 = 105
+ABL:(CHARANUM-1):スキル2 = 1005
+ABL:(CHARANUM-1):スキル3 = 0
+ABL:(CHARANUM-1):スキル4 = 402
+ABL:(CHARANUM-1):スキル5 = 501
+ABL:(CHARANUM-1):スキル6 = 1902
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+;ロア
+CALL SET_ENEMY,9,257,21,0,
+CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+ABL:(CHARANUM-1):スキル1 = 1402
+ABL:(CHARANUM-1):スキル2 = 0
+ABL:(CHARANUM-1):スキル3 = 805
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+;イソラ
+CALL SET_ENEMY,15,461,23,0,
+CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+ABL:(CHARANUM-1):スキル2 = 805
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+;アークエンジェル
+CALL SET_ENEMY,8,359,24,0,
+CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+ABL:(CHARANUM-1):スキル1 = 9
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+;オニ
+CALL SET_ENEMY,10,654,23,0,
+CFLAG:(CHARANUM-1):ＨＰ補正 += 100
+ABL:(CHARANUM-1):スキル1 = 0
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL BATTLE_START
+CUSTOMDRAWLINE =
+PRINTW Messiah Daleth and the demons were defeated.
+
+PRINTL
+PRINTFORMW 「Sh-shit...impossible, this...loss!?」
+PRINTFORMW 「uu, grk...this grudge, I'll never forget it...!?」
+PRINTFORMW ＞As you left for the exit Daleth shouted at your back
+PRINTFORMW 「W-what...?」
+PRINTFORMW ＞A great number of strong and lecherous demons entered the arena and surrounded the loser, Daleth...
+PRINTFORMW 「What, you!?　What are you doing!?」
+PRINTFORMW 「......H-hey, that rod is going where......are you joking?」
+PRINTFORMW 「Wait!Wait!I'm not!We are men!」
+PRINTFORMW 「Quit!Stop!　Stay away!I don't like guys like that!」
+PRINTFORMW 「......aaaaaaaaaaaaaaaaaah!!」
+PRINTL
+PRINTW ・・・
+PRINTW ・・
+PRINTW ・
+PRINTL
+
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+PRINTW ＞Turning from the Daleth's screams, you got ￥50000 and left
+PRINTW got 125 fame
+MONEY += 50000
+FLAG:名声 += 125
+闘技場フラグ:5:0 = 1
+
+FLAG:闘技場名声 += 125
+FLAG:闘技場ランク = 2
+SAVESTR:ランダム対戦チーム =
+CALL SELECT_COLOSSEUM_RANDOMBATTLE
+
+
+PRINTW For winning in the Colloseum, you may now enter Ginza.
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+RETURN 1
+
+@SET_ACTION_XXXX,ARG
+IF CFLAG:ARG:行動した回数 == 0
+	IF RESULT == 1
+		;回転斬り
+		IF RAND:2 == 0
+			CFLAG:ARG:入力行動 = 3
+			CALL RANDOM_TARGET,ARG,3
+		;アカシャアーツ
+		ELSE
+			
+			CFLAG:ARG:入力行動 = 215
+			CALL RANDOM_TARGET,ARG,215
+		ENDIF
+	ELSE
+		GOTO DECIDE_ACTION
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+@SET_ACTION_4507,ARG
+IF CFLAG:ARG:行動した回数 == 0
+	CALL CHECK_ACTIONABLE,ARG,1623
+	IF RESULT == 1
+		CFLAG:(CHARANUM-1):速度補正 = 12
+		CFLAG:ARG:入力行動 = 1623
+		CALL RANDOM_TARGET,ARG,1623
+	ELSE
+		GOTO DECIDE_ACTION
+	ENDIF
+
+ELSE
+	CFLAG:(CHARANUM-1):速度補正 = 0
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+

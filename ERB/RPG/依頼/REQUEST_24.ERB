@@ -1,0 +1,203 @@
+
+;====================
+;条件
+;====================
+@PLAYABLE_REQUEST_24
+IF FLAG:調教師名声 > 99 && FLAG:ＮＴＲ機能
+	RESULTS = 好事家の依頼
+	RETURN 1
+ENDIF
+RETURN 0
+
+;====================
+;説明
+;====================
+@EXPLAIN_REQUEST_24
+	PRINTL 
+	PRINTFORML 贔屓にして貰っている好事家から連絡が入った
+	PRINTFORML %CALLNAME:MASTER%に頼みたいことがあるらしい
+	PRINTL 
+;====================
+;内容
+;====================
+@REQUEST_24
+E = 0
+IF RAND:3 == 0
+	PRINTL ＞内容を聞きたいと伝えると、さっそくやってきた。
+	PRINTL 
+	PRINTL 太った好事家:
+	PRINTW 「やぁ、いつもイイ奴隷を卸して貰って悪いね」
+	PRINTW 「おかげで使う牝穴に不自由しなくて助かってるよ」
+	PRINTW 「それで今回なんだがね」
+	PRINTW 「最近、寝取り…というのかね？それにハマッテいてね、ブフフフ」
+	PRINTW 「好きな男の居るオンナを犯したいのだよ」
+	PRINTW 「適当な所から奪ってもいいんだが、クズノハに嗅ぎつけられると厄介でな」
+	PRINTW 「キミ程の腕ならわけないだろう？」
+	PRINTW 「ぜひ、頼みたいんだが…」
+	A = 0
+	CALL INPUT_YN("依頼を受ける", "断る")
+	IF RESULT == 0
+		PRINTFORML 「受けてくれるかね！いやあ、よかったよ。ブフフフ」
+		PRINTFORML 「では、早速受け取りたいのだが…」
+	ELSE
+		GOTO SKIP_KOUZUKA
+	ENDIF
+ELSEIF RAND:3 == 1
+	E = 1
+	PRINTL ＞内容を聞きたいと伝えると、さっそくやってきた。
+	PRINTL 
+	PRINTL 初老の好事家:
+	PRINTW 「久方振りかな？変わりないようじゃのう」
+	PRINTW 「ヌシの活躍は耳に入っておるよ」
+	PRINTW 「で、依頼の内容なんじゃが…」
+	PRINTW 「近々行う宴席で使う娼婦が足りなくての、ぜひヌシに用意して欲しいのじゃが…」
+	A = 0
+	CALL INPUT_YN("依頼を受ける", "断る")
+	IF RESULT == 0
+		PRINTFORML 「受けてくれるか！すまんな」
+		PRINTFORML 「して、奴隷の質なんじゃが」
+		PRINTFORML 「まず娼婦である事」
+		PRINTFORMW 「あと乳はでかい方がよいのう、ホッホッホッ」
+	ELSE
+		GOTO SKIP_KOUZUKA
+	ENDIF
+ELSE
+	E = 2
+	PRINTL ＞内容を聞きたいと伝えると、さっそくやってきた。
+	PRINTL 
+	PRINTL 温厚そうな好事家:
+	PRINTW 「おお、調教師殿。いつも世話になって済まないね～」
+	PRINTW 「君の仕込む奴隷は質が良くて助かっているよ～」
+	PRINTW 「折り入って頼みがあるんだけどね～」
+	PRINTW 「実はうちのペロにお嫁さんがほしいんだよね～」
+	PRINTW 「前の子が壊れちゃってね～、うちのペロはなかなか激しいからね～」
+	PRINTW 「で、新しいのが欲しいんだが頼まれてくれるかな～？」
+	A = 0
+	CALL INPUT_YN("依頼を受ける", "断る")
+	IF RESULT == 0
+		PRINTFORML 「受けてくれますか！よかったよ～」
+		PRINTFORML 「実は仕込みに注文をつけたいんだよ～」
+		PRINTFORML 「いつも通り『隷属』で『マゾ』がいいな～」
+		PRINTFORML 「あと、胸が小さくて小柄な方が良いな～」
+		PRINTFORMW 「在庫あるかな～」
+	ELSE
+		GOTO SKIP_KOUZUKA
+	ENDIF
+
+ENDIF
+
+CALL INPUT_CHARA_LIST("誰を売りますか？", "CASTING_REQUEST_24")
+IF RESULT == 1000
+	GOTO SKIP_KOUZUKA
+ELSE
+	;売却処理
+	LOCAL:1 = TARGET
+	LOCAL:2 = ASSI
+	TARGET = RESULT
+ENDIF
+;売却確認
+PRINTFORML %NAME:TARGET%を売却しますか？ 
+
+CALL INPUT_YN
+
+SELECTCASE RESULT
+	CASE 0
+		;売却時のイベント口上
+		TFLAG:13 = 18
+		FLAG:(30000+NO:TARGET) += 1
+		;売却額
+		IF LOCAL:3 == 0
+			W = 0
+			PRINTFORML %CALLNAME:MASTER%は%NAME:TARGET%の写真を太った好事家に渡した
+			PRINTFORML 「この娘かね？ん～、中々いいカラダをしているね～」
+			PRINTFORML 「すまないが少し…味見をさせて貰っても良いかね？」
+			PRINTFORMW 太った好事家を部屋へ案内すると%NAME:TARGET%の助けを求める声が響き渡った
+			PRINTFORML ・
+			PRINTFORML ・・
+			PRINTFORML ・・・
+			PRINTFORMW 「いやあ、実に良いね！気に入ったよ、ブフフフ」
+			PRINTFORML 「で報酬なんだがね、面白いものが手に入ってね」
+			PRINTFORML 「触手エネルギーの込められた魔石だ。魔貨と一緒に受け取ってくれ」
+			PRINTFORMW 「またよろしく頼むよ、調教師殿。ブフフフぅ」
+			IF TALENT:TARGET:恋慕
+				X = 4
+			ELSEIF TALENT:TARGET:親愛
+				X = 2
+			ELSE
+				X = 1
+			ENDIF
+		ELSEIF LOCAL:3 == 1
+			PRINTFORML %CALLNAME:MASTER%は%NAME:TARGET%を初老の好事家の前につれて来た
+			PRINTFORML 「ふむ、これならば先方も喜ぶじゃろう」
+			PRINTFORML 「相変わらず良い腕をしておるのう、ホッホッホッ」
+			PRINTFORML 「これは報酬じゃ、少ないが受け取ってくれ」
+			PRINTFORMW 「では、またの」
+		ELSEIF LOCAL:3 == 2
+			PRINTFORML %CALLNAME:MASTER%はリードをつけた%NAME:TARGET%を温厚そうな好事家の前につれて来た
+			PRINTFORML 「お～、この娘ですか」
+			PRINTFORML 「うんうん、これならうちのペロも気に入るだろうね～」
+			PRINTFORML 「では、これ少ないけど報酬です～。」
+			PRINTFORMW 「またよろしく頼みますね～。ほら%NAME:TARGET%、キミの旦那様に会わせてあげるよ～」
+			PRINTFORMW 温厚そうな好事家は嬉しそうにリード引いて去っていった
+		ENDIF
+		IF LOCAL:3 == 1
+			X = 1	
+			W = 2000
+		ELSEIF LOCAL:3 == 2
+			X = 1	
+			W = 3000
+		ENDIF
+
+			FLAG:触手エネルギー += MAXBASE:TARGET:ＭＡＧ / X
+			MONEY:1 += 1000 + W
+			FLAG:調教師名声 += 30
+			PRINTFORMW 報酬として{1000 + W}魔貨と触手エネルギー{MAXBASE:TARGET:ＭＡＧ / X}Fを手に入れた
+		Z = TARGET
+		CALL キャラ削除, Z
+	
+		FLAG:奴隷売却総数 += 1
+		FLAG:奴隷売却数 += 1
+		;フォーメーション再読み込み
+		CALL REFRESH_POS
+	
+
+		;主人の属性値変動
+		CALL INCREASE_LD,-10
+		CALL SYNC_STATUS,MASTER
+		RETURN 1
+	CASE 1
+		TARGET = LOCAL:1
+		GOTO SKIP_KOUZUKA
+ENDSELECT
+		$SKIP_KOUZUKA
+		IF LOCAL:3 == 0
+			PRINTFORML 「そ、そうかね。まあ、都合が悪いのなら仕方ないな」
+			PRINTFORMW 「では、次の商品も楽しみにしているよ、ブフフウ」
+		ELSEIF LOCAL:3 == 1
+			PRINTFORML 「むっ？品切れか。まあ、いきなりじゃったからな。ホッホッホッ」
+			PRINTFORMW 「また、改めて依頼させてもらうよ」
+		ELSEIF LOCAL:3 == 2
+			PRINTFORML 「えっ？在庫切れですか？いやあ、突然でしたからね～」
+			PRINTFORMW 「じゃあ、うちのペロのお嫁さんはまた今度だね～」
+		ENDIF
+DRAWLINE
+PRINTL 
+
+@CASTING_REQUEST_24
+SIF !GET_CHARASELLABLE(COUNT)
+	RETURN 0
+SIF E == 0 && !(TALENT:COUNT:恋慕 || TALENT:COUNT:親愛)
+	RETURN 0
+SIF E == 1 && !TALENT:COUNT:娼婦
+	RETURN 0
+SIF E == 1 && !(TALENT:COUNT:巨乳 || TALENT:COUNT:爆乳)
+	RETURN 0
+SIF E == 2 && !TALENT:COUNT:隷属
+	RETURN 0
+SIF E == 2 && !TALENT:COUNT:マゾ
+	RETURN 0
+SIF E == 2 && !TALENT:COUNT:小柄体型
+	RETURN 0
+SIF E == 2 && !TALENT:COUNT:貧乳
+	RETURN 0
+RETURN 1

@@ -1,0 +1,84 @@
+;通常攻撃
+;スキルのテンプレートになっています
+
+; スキル名
+@SKILL_NAME_2428, ARG
+RESULTS = Healing Wave
+
+; 1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2428
+RETURN 0
+; どちらでもない
+
+; 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復、6自動効果
+@SKILL_EFECT_2428
+RETURN 6
+
+; 継承タイプ
+@SKILL_SUCCESSION_TYPE_2428
+RETURN 22
+; 何でもおｋ
+
+; スキル変化？用ランク
+@SKILL_RANK_2428
+RETURN 9
+
+; 説明文の表示
+@SKILL_EXPLAIN_2428
+PRINTL Auto：Heal all allies' ＨＰ by ５％ at the end of battle、ＭＡＧ is consumed。
+
+@SKILL_ACTIONABLE_BATTLE_2428
+RETURN 0
+
+; スキル効果の実装部分
+; BATTLE.ERBに追記するには煩雑であるため分離
+; ARGは癒しの波動実行キャラのChara Num
+; 処理の流れ
+;  1.MAG消費量を計算するためにループを回す
+;  2.MAGが足りてれば消費して回復処理へ移る
+; 消費量はとりあえず中治癒促進に準拠。6名分だとえらいこっちゃ
+; GOTOは避けたかったがさらに切り出すのも何だしなあ
+@SKILL_2428_EXEC_HEALING, ARG
+#LOCALSIZE 3
+; 初期化処理
+VARSET LOCAL, 0
+FOR LOCAL:2, 1, 7
+	; 着目ポジションのキャラを取得
+	LOCAL = POS(LOCAL:2)
+	; ポジションにキャラが存在していて、生存しておりかつHPが満タンでない
+	SIF LOCAL > -1 && GET_STATE(CFLAG:LOCAL:ステート) != "DYING" && BASE:LOCAL:ＨＰ < MAXBASE:LOCAL:ＨＰ
+		LOCAL:1 += MAXBASE:LOCAL:ＨＰ/20 * BASE:LOCAL:LV
+NEXT
+IF LOCAL:1 > 0 && CFLAG:ARG:ＭＡＧ自己消費 == 0 && ABL:ARG:種族 != 0 && ABL:ARG:種族 != 45
+	IF BASE:MASTER:ＭＡＧ >= LOCAL:1
+		PRINTFORML %CALLNAME:ARG,20%'s Healing Wave healed someone(Your MAG was used)
+		CALL CONTROL_MAG, MASTER, -LOCAL:1
+		GOTO HEALING_EXEC_2428
+	ELSEIF BASE:ARG:ＭＡＧ >= LOCAL:1
+		PRINTFORML %CALLNAME:ARG,20%'s Healing Wave healed someone(%CALLNAME:ARG%'s MAG was used)
+		CALL CONTROL_MAG, ARG, -LOCAL:1
+		GOTO HEALING_EXEC_2428
+	ENDIF
+ELSEIF LOCAL:1 > 0 && BASE:ARG:ＭＡＧ >= LOCAL:1
+	PRINTFORML %CALLNAME:ARG,20%'s Healing Wave healed someone(%CALLNAME:ARG%'s MAG was used)
+	CALL CONTROL_MAG, ARG, -LOCAL:1
+	GOTO HEALING_EXEC_2428
+ENDIF
+GOTO FUNCTION_END_2428
+
+$HEALING_EXEC_2428
+FOR LOCAL:2, 1, 7
+	; 着目ポジションのキャラを取得
+	LOCAL = POS(LOCAL:2)
+	; ポジションにキャラが存在していて、生存しておりかつHPが満タンでない
+	SIF LOCAL > -1 && GET_STATE(CFLAG:LOCAL:ステート) != "DYING" && BASE:LOCAL:ＨＰ < MAXBASE:LOCAL:ＨＰ
+		CALL VAR_HP, LOCAL, MAX(MAXBASE:LOCAL:ＨＰ/20, 1), 3
+NEXT
+
+$FUNCTION_END_2428
+RETURN 0
+
+;継承に必要な部位
+@継承部位_2428,ARG
+RETURN 1
+

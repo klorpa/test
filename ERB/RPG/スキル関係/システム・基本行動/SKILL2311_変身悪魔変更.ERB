@@ -1,0 +1,171 @@
+;ＣＨＡＮＧＥ
+;システム用スキルです
+
+;スキル名
+@SKILL_NAME_2311,ARG
+RESULTS = 変身悪魔変更
+
+;　命中
+@SKILL_HITRATE_2311, ARG
+RETURN 0
+
+;　威力
+@SKILL_POWER_2311, ARG
+RETURN 0
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2311,ARG
+RETURN 0
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2311,ARG
+RETURN 0
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2311, ARG
+RETURN 1
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2311,ARG
+RETURN 0
+
+;　相性
+@SKILL_TYPE_2311,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2311
+RETURN 0
+;どちらでもない
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2311
+RETURN 1
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2311
+RETURN 4
+
+;　射程
+@SKILL_RANGE_2311,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2311,ARG
+RETURN 1
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2311
+RETURN 4
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2311
+RETURN 0
+;継承不可
+
+;速度補正
+@SKILL_SPEED_2311, ARG = -1
+RETURN 10
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2311,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2311
+RETURN 1
+
+;スキル変化？用ランク
+@SKILL_RANK_2311
+RETURN 0
+;変化不可
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@CASTING_LINK_DEVIL
+;Human・造間・半魔は無理
+SIF (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 == 45 || ABL:COUNT:種族 == 36)
+	RETURN 0
+SIF CFLAG:COUNT:被リンクフラグ > -1
+	RETURN 0
+SIF TALENT:COUNT:非戦闘員
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF CFLAG:COUNT:PTフラグ == 0
+	RETURN 0
+RETURN 1
+
+@UP_PRINT_ACTION_2311
+	PRINTFORM Who do you want to link with?
+	;誰とリンクする？　
+	SIF A > リスト表示数()
+		PRINTFORM ＜page.{P + 1}/{A / リスト表示数() + 1}＞
+	PRINTL
+DRAWLINE
+PRINTFORML 　　　[1001]Default: %CSVNAME(CFLAG:Z:初期リンク悪魔,0)%
+;Current
+
+@CASTING_RESULT_ACTION_2311 , ARG
+SIF ARG == 1001
+	RETURN 1001 , 0
+RETURN ARG , 1
+
+@ACTION_2311,ARG,ARG:1
+#LOCALSIZE 1
+SWAP Z , ARG
+;キャラリストを表示・選択
+CALL INPUT_CHARA_LIST("Who do you want to link with?", "CASTING_LINK_DEVIL" , "UP_PRINT_ACTION_2311" , , "CASTING_RESULT_ACTION_2311")
+;誰とリンクする？
+SWAP Z , ARG
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1001
+
+	SIF CFLAG:ARG:悪魔変身 == 1
+		CALL ACTION_2310 , ARG , 0
+	IF FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+		CFLAG:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):被リンクフラグ = -1
+		CFLAG:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):被変身フラグ = 0
+	ENDIF
+	CFLAG:ARG:リンク悪魔 = -1
+	;CFLAG:ARG:悪魔変身 = 0
+	RETURN 0
+ENDIF
+LOCAL = RESULT
+IF FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+	CFLAG:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):被リンクフラグ = -1
+	CFLAG:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):被変身フラグ = 0
+ENDIF
+
+;変身している場合変身解除
+SIF CFLAG:ARG:悪魔変身 == 1
+	CALL ACTION_2310 , ARG , 0
+
+CFLAG:LOCAL:被リンクフラグ = CFLAG:ARG:キャラ固有の番号
+CFLAG:LOCAL:被変身フラグ = 0
+CFLAG:ARG:リンク悪魔 = CFLAG:LOCAL:キャラ固有の番号
+;CFLAG:ARG:悪魔変身 = 0
+;スキルを復元
+;FOR LOCAL,1, FLAG:スキル数 + 1
+;	ABL:ARG:("スキル" + TOSTR(LOCAL)) = ABL:ARG:("人間時スキル" + TOSTR(LOCAL))
+;NEXT
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2311
+PRINTL Change the transformation devil.
+;変身する悪魔を変更する。
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2311,ARG
+RETURN 1
+;とくにない
+

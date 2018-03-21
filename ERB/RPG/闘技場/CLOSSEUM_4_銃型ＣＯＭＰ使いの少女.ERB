@@ -1,0 +1,129 @@
+;
+;;====================
+;;条件
+;;====================
+;@PLAYABLE_COLOSSEUM_4
+;;IF 闘技場フラグ:3:0 == 0 && 闘技場フラグ:4:0 == 0
+;IF FLAG:闘技場ランク == 0 && FLAG:闘技場名声 >= 10
+;	RESULTS = 試合ランクＥ　ＶＳ Gun型ＣＯＭＰ使いの少女
+;	RETURN 1
+;ENDIF
+;RETURN 0
+;
+;
+;;====================
+;;内容
+;;====================
+;@COLOSSEUM_4
+;FLAG:逃走不可フラグ = 1
+;FLAG:会話不能フラグ = 1
+;FLAG:先制不意打ちキャンセル = 1
+;CUSTOMDRAWLINE =
+;PRINTW ＞コロシアムのリングの上で、小柄な少女が震えている
+;PRINTW ＞観客席にひしめき合う悪魔や悪趣味な人間達の野次に萎縮してしまっているようだ
+;PRINTW (ダメ……しっかりしなきゃ。ここで負けたら、ベールや刹那が…)
+;PRINTFORMW ＞少女は口を固く結ぶと、両手に持つGun型ＣＯＭＰを%CALLNAME:MASTER%へと向けた
+;PRINTW 「コール！」
+;PRINTL
+;PRINTW デビルチルドレン 未来が１体と仲魔達が５体出た！
+;
+;CUSTOMDRAWLINE =
+;WAIT
+;CALL SET_ENEMY,14,[[キャラ:未来]],17,0,1
+;CSTR:(CHARANUM-1):思考パターン = 4504
+;CALL SYNC_STATUS,(CHARANUM-1)
+;CALL HEALTH_CHARA,(CHARANUM-1)
+;
+;CALL SET_ENEMY,13,[[キャラ:ピクシー]],12,0,0
+;ABL:(CHARANUM-1):スキル1 = 404
+;ABL:(CHARANUM-1):スキル2 = 902
+;CALL SYNC_STATUS,(CHARANUM-1)
+;CALL HEALTH_CHARA,(CHARANUM-1)
+;
+;CALL SET_ENEMY,15,[[キャラ:ピクシー]],12,0,0
+;ABL:(CHARANUM-1):スキル1 = 404
+;ABL:(CHARANUM-1):スキル2 = 902
+;CALL SYNC_STATUS,(CHARANUM-1)
+;CALL HEALTH_CHARA,(CHARANUM-1)
+;
+;CALL SET_ENEMY,8,[[キャラ:エンジェル]],11,0,0
+;ABL:(CHARANUM-1):スキル1 = 404
+;ABL:(CHARANUM-1):スキル3 = 1002
+;CALL SYNC_STATUS,(CHARANUM-1)
+;CALL HEALTH_CHARA,(CHARANUM-1)
+;
+;CALL SET_ENEMY,9,[[キャラ:ベール]],18,0,0
+;ABL:(CHARANUM-1):スキル3 = 506
+;ABL:(CHARANUM-1):スキル4 = 904
+;CALL SYNC_STATUS,(CHARANUM-1)
+;CALL HEALTH_CHARA,(CHARANUM-1)
+;
+;CALL SET_ENEMY,10,[[キャラ:エンジェル]],11,0,0
+;ABL:(CHARANUM-1):スキル1 = 404
+;ABL:(CHARANUM-1):スキル3 = 1002
+;CALL SYNC_STATUS,(CHARANUM-1)
+;CALL HEALTH_CHARA,(CHARANUM-1)
+;
+;CALL BATTLE_START
+;CUSTOMDRAWLINE =
+;PRINTW 「ごめ…ね……ベール…せつ……な……」
+;PRINTW 賞品として気絶した少女と一風変わったグリフォンを受け取り、
+;PRINTW 少女の仲魔達が公開陵辱を受けているリングを後にした。
+;PRINTW 要 未来が奴隷になった。
+;CALL ADD_NEW_COMPANION,4504,500
+;PRINTW グリフォンのベールが仲魔になった。
+;CALL ADD_NEW_COMPANION,865,200,1
+;CALL MESSAGE_COMP_OVER
+;FLAG:10865 = 1
+;
+;CUSTOMDRAWLINE =
+;WAIT
+;FLAG:逃走不可フラグ = 0
+;FLAG:会話不能フラグ = 0
+;FLAG:先制不意打ちキャンセル = 0
+;PRINTW ￥37500を賞金として受け取った
+;PRINTW 未来の持っていたCOMPを解析して、インストールソフト【BookOfRaziel】を手に入れた
+;ITEM:BookOfRaziel = 1
+;MONEY += 37500
+;闘技場フラグ:4:0 = 1
+;
+;PRINTW コロシアムでの成績が評価され、コロシアム内のダンジョンを探索する権利を与えられ、名声80を得た。
+;FLAG:名声 += 80
+;FLAG:闘技場名声 += 80
+;FLAG:闘技場ランク = 1
+;SAVESTR:ランダム対戦チーム =
+;CALL SELECT_COLOSSEUM_RANDOMBATTLE
+;
+;FOR LOCAL,0,CHARANUM
+;	CALL HEALTH_CHARA,LOCAL
+;NEXT
+;
+;
+;;未来の思考パターン
+;@SET_ACTION_4504,ARG
+;;味方の中で一番ＨＰが低く、かつ飛具相性が1未満or999ではないキャラにＧＵＮ攻撃
+;
+;;全員の中で一番ＨＰが低いキャラクターを狙う
+;CFLAG:ARG:入力行動 = 2101
+;CFLAG:ARG:ターゲット = -1
+;FOR LOCAL,1,7
+;	LOCALS = ポジション{LOCAL}
+;	SIF FLAG:LOCALS == -1
+;		CONTINUE
+;	SIF CFLAG:(FLAG:LOCALS):ステート >= GET_STATE_NUM("STONE")
+;		CONTINUE
+;	SIF MAXBASE:(FLAG:LOCALS):飛具 < 1 || MAXBASE:(FLAG:LOCALS):飛具 == 999
+;		CONTINUE
+;	IF FLAG:LOCALS > -1 && CFLAG:ARG:ターゲット == -1 
+;		CFLAG:ARG:ターゲット = LOCAL
+;		CONTINUE
+;	ENDIF
+;	IF FLAG:LOCALS > -1 && BASE:(FLAG:LOCALS):ＨＰ < BASE:((POS(CFLAG:ARG:ターゲット))):ＨＰ
+;		CFLAG:ARG:ターゲット = LOCAL
+;	ENDIF
+;NEXT
+;
+;IF CFLAG:ARG:ターゲット == -1
+;	CFLAG:ARG:入力行動 = -1
+;	CFLAG:ARG:防御フラグ = 1
+;ENDIF

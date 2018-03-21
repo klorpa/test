@@ -1,0 +1,1075 @@
+
+;=======================================================================
+;異界化ビル
+;ボス・
+;ダンジョンナンバー82
+;
+;
+;
+;フラグ
+;ダンジョンフラグ:82:1	ショウジの状態（-1以下は救出済み、1-9:捕獲前、10-19:捕獲済み、20-29:輪姦中（ボスいる）、30-39:輪姦中（ボスいない）、40-49:崩壊マグロ化、50-59:便器化）
+;ダンジョンフラグ:82:2	ショウジ同行（0:してない、1:救出、2:入手）
+;ダンジョンフラグ:82:3	ショウジを見たことあるか（0:ない、1:ある）
+;ダンジョンフラグ:82:4	ショウジの場所（0:未設定、1:候補1(4F)、2:候補2(5F)、3:候補3(6F)、4:候補4(6F)、5:捕獲済み）
+;ダンジョンフラグ:82:5	クリアフラグ
+;ダンジョンフラグ:82:6	ショウジ救出時の状態（0:無事、1:Ｖ済み、2:ＶＡ済み、3:ＶＡフェラ済み、4:ＶＡフェラ輪姦済み、5:ＶＡフェラ輪姦、崩壊済み、6:ＶＡフェラ輪姦、崩壊、肉便器）
+;ダンジョンフラグ:82:7	
+;ダンジョンフラグ:82:8	１Ｆにボスいないフラグ（0:いる、1:いない）
+;ダンジョンフラグ:82:9	依頼状況（0:未達成、1:手に入れた）
+;ダンジョンフラグ:82:10	ボス悪魔状況（0:生存、1:倒した）
+;ダンジョンフラグ:82:11	雑魚悪魔状況（0:生存、1:倒した）
+
+;CFLAG:イベント加入のまとめ
+;0:無事、1:Ｖ済み、2:ＶＡ済み、3:ＶＡフェラ済み、4:ＶＡフェラ輪姦済み、5:ＶＡフェラ輪姦、崩壊済み、6:ＶＡフェラ輪姦、崩壊、肉便器済み
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_82
+;依頼フラグ:29:0 = 1
+;依頼を受けているか終了済み
+IF 依頼フラグ:29:0 == 1 || 依頼フラグ:29:0 == 2
+	RETURN 1
+ENDIF
+RETURN 0
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_82
+RESULTS = Differentiated Building
+;異界化ビル
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_82
+PRINT Differentiated Building 
+;異界化ビル
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL １Ｆ
+	CASE 1
+		PRINTL ２Ｆ
+	CASE 2
+		PRINTL ３Ｆ
+	CASE 3
+		PRINTL ４Ｆ
+	CASE 4
+		PRINTL ５Ｆ
+	CASE 5
+		PRINTL ６Ｆ
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_82, ARG
+FLAG:現M = 0
+FLAG:現X = 8
+FLAG:現Y = 13
+;CALL AUTOMAP
+RETURN 0
+
+;=======================================================================
+;攻略開始時のイベント
+;=======================================================================
+@EVENT_DUNGEON_START_82
+
+;ショウジの状態
+IF ダンジョンフラグ:82:1 > -1 && 依頼フラグ:29:0 == 1
+	PRINTL 　
+	SELECTCASE DAY - STRFLAG_NUM_REQ("ビル内部状況変化" , , , , 29)
+		;要調整
+		;３日以内は捕獲前（本当は７日としたいがさすがにありえないので）
+		;０～３日目
+		CASE IS <= 3
+			PRINTW You entered the differentiated building.
+			;異界化したビルへと侵入した
+			PRINTW Shoji should be here somewhere. If you find her, you can complete the request...
+			;このビルのどこかにショウジがいる、彼女を見つけることが依頼完了につながるはずだ……
+			
+			;ショウジの状態、捕獲前へ
+			ダンジョンフラグ:82:1 = 1
+		;４日目に捕獲されてレイプイベント
+		CASE IS <= 4
+			PRINTW Some time has passed since you took this request.
+			;依頼を受けてからだいぶ時間が過ぎてしまった
+			PRINTW Where is Shoji?
+			;ショウジはどこにいるのだろうか？
+			
+			;ショウジの状態、捕獲へ
+			ダンジョンフラグ:82:1 = 10
+			;１Ｆにボスいないフラグオンへ
+			ダンジョンフラグ:82:8 = 1
+		;５日目に輪姦される（ボスいる）
+		CASE IS <= 5
+			;ショウジを見たことある
+			IF ダンジョンフラグ:82:3 == 1
+				PRINTW この前は撤退してきてしまったが、ショウジはどうなっているだろうか？
+				PRINTW Anyway, you have to find the information to finish the request.
+				;なんとしてでも依頼の品は見つけなければならない……
+			ELSE
+				PRINTW Some time has passed since you took this request.
+				PRINTW Where is Shoji?
+			ENDIF
+			
+			;ショウジの状態、輪姦中１へ
+			ダンジョンフラグ:82:1 = 20
+			;１Ｆにボスいないフラグオンへ
+			ダンジョンフラグ:82:8 = 1
+		;６日に輪姦される（ボスいない）
+		CASE IS <= 6
+			;ショウジを見たことある
+			IF ダンジョンフラグ:82:3 == 1
+				PRINTW この前は撤退してきてしまったが、ショウジはどうなっているだろうか？
+				PRINTW Anyway, you have to find the information to finish the request.
+			ELSE
+				PRINTW Some time has passed since you took this request.
+				PRINTW Where is Shoji?
+			ENDIF
+			
+			;ショウジの状態、輪姦中２へ
+			ダンジョンフラグ:82:1 = 30
+			;１Ｆにボスいないフラグオンへ
+			ダンジョンフラグ:82:8 = 1
+		;７、８日目は崩壊輪姦
+		CASE IS == 7
+			;ショウジを見たことある
+			IF ダンジョンフラグ:82:3 == 1
+				PRINTW この前は撤退してきてしまったが、ショウジはどうなっているだろうか？
+				PRINTW Anyway, you have to find the information to finish the request.
+			ELSE
+				PRINTW Some time has passed since you took this request.
+				PRINTW Where is Shoji?
+			ENDIF
+			
+			;ショウジの状態、崩壊マグロ化へ
+			ダンジョンフラグ:82:1 = 40
+			;１Ｆにボスいないフラグオンへ
+			ダンジョンフラグ:82:8 = 1
+		;７、８日目は崩壊輪姦
+		CASE IS == 8
+			;ショウジを見たことある
+			IF ダンジョンフラグ:82:3 == 1
+				PRINTW この前は撤退してきてしまったが、ショウジはどうなっているだろうか？
+				PRINTW Anyway, you have to find the information to finish the request.
+			ELSE
+				PRINTW Some time has passed since you took this request.
+				PRINTW Where is Shoji?
+			ENDIF
+			
+			;７日目に見てなければショウジの状態、崩壊マグロ化へ
+			IF ダンジョンフラグ:82:1 != 41
+				ダンジョンフラグ:82:1 = 40
+			ENDIF
+			;１Ｆにボスいないフラグオンへ
+			ダンジョンフラグ:82:8 = 1
+		;それ以後は便器化
+		CASEELSE
+			;ショウジを見たことある
+			IF ダンジョンフラグ:82:3 == 1
+				PRINTW この前は撤退してきてしまったが、ショウジはどうなっているだろうか？
+				PRINTW Anyway, you have to find the information to finish the request.
+			ELSE
+				PRINTW Some time has passed since you took this request.
+				PRINTW Where is Shoji?
+			ENDIF			
+			;ショウジの状態、便器化へ
+			ダンジョンフラグ:82:1 = 50
+			;１Ｆにボスいないフラグオンへ
+			ダンジョンフラグ:82:8 = 1
+	ENDSELECT
+ENDIF
+
+;ショウジの場所
+;ダンジョン進入時に候補場所にランダムで配置、処理が面倒なために捕獲される場所は固定とする。
+;逃げてる状態か捕獲後で依頼中
+IF (ダンジョンフラグ:82:1 > -1 && ダンジョンフラグ:82:1 <= 50) && 依頼フラグ:29:0 == 1
+	;捕獲される前
+	IF ダンジョンフラグ:82:1 > -1 && ダンジョンフラグ:82:1 < 10
+		IF RAND:4 == 0
+			;候補1(4F)
+			ダンジョンフラグ:82:4 = 1
+		ELSEIF RAND:3 == 0
+			;候補2(5F)
+			ダンジョンフラグ:82:4 = 2
+		ELSEIF RAND:2 == 0
+			;候補3(5F)
+			ダンジョンフラグ:82:4 = 3
+		ELSE
+			;候補4(6F)
+			ダンジョンフラグ:82:4 = 4
+		ENDIF
+	;捕獲後
+	ELSEIF ダンジョンフラグ:82:1 >= 10 || ダンジョンフラグ:82:1 < 50
+		;捕獲場所
+		ダンジョンフラグ:82:4 = 5
+		
+	;便器化後
+	ELSEIF ダンジョンフラグ:82:1 == 50
+		;捕獲場所
+		ダンジョンフラグ:82:4 = 5
+		
+	ENDIF
+ENDIF
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_82
+PRINTL 　
+;ショウジ同行中なら同行を解除する
+IF ダンジョンフラグ:82:2 == 1
+	PRINTL 　
+	PRINTW You escourted Shoji outside and to a safe place.
+	;ショウジを安全な場所まで送り届けわかれた
+	
+	
+	
+	
+	ダンジョンフラグ:82:2 = 0
+ELSEIF ダンジョンフラグ:82:2 == 2
+	PRINTL 　
+	PRINTW You brought the captured Shoji to your office.
+	;連れ帰ったショウジを奴隷として事務所に監禁しました
+	
+	ダンジョンフラグ:82:2 = 0
+ENDIF
+
+;ダンジョン脱出時、クリアフラグが立っておらず、依頼品を入手済みならクリアフラグを立てて賞金と名声を得ます。
+IF ダンジョンフラグ:82:5 == 0 && ダンジョンフラグ:82:9 == 1
+	PRINTL 　
+	PRINTW For completing the request, you where paid ￥30000 and your fame increased by 20.
+	;依頼を完了したことにより、口座に￥30000が支払われ、名声20を得た
+	
+	MONEY += 30000
+	FLAG:名声 += 20
+	
+	;クリアフラグ
+	ダンジョンフラグ:82:5 = 1
+	;依頼終了
+	依頼フラグ:29:0 = 2
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_82, ARG, ARG:1
+SELECTCASE DA:ARG:(ARG:1)
+ENDSELECT
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内、3～9が代入されているマスに、個別の番号を与える処理を実行します。
+;この処理を行った後、これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合、「2番のマップ＝３Ｆで、左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚、0～2はどのマップにも大量に設置されるので、ここでは基本的に個別の番号を与えません。
+
+
+@MAKE_FLOOR_82
+SELECTCASE FLAG:現M
+	CASE 0
+	;１階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 16 
+							;	  01234567890
+		CALL MAKE_FLOOR_LINE, 0, "           "
+		CALL MAKE_FLOOR_LINE, 1, "           "
+		CALL MAKE_FLOOR_LINE, 2, "  1111111  "
+		CALL MAKE_FLOOR_LINE, 3, "  2     2  "
+		CALL MAKE_FLOOR_LINE, 4, "  6 4 111  "
+		CALL MAKE_FLOOR_LINE, 5, "    1 2    "
+		CALL MAKE_FLOOR_LINE, 6, "  12111 1  "
+		CALL MAKE_FLOOR_LINE, 7, "  1     1  "
+		CALL MAKE_FLOOR_LINE, 8, "  1111111  "
+		CALL MAKE_FLOOR_LINE, 9, "        2  "
+		CALL MAKE_FLOOR_LINE,10, "  4111121  "
+		CALL MAKE_FLOOR_LINE,11, "  4     1  "
+		CALL MAKE_FLOOR_LINE,12, "  42E   1  "
+		CALL MAKE_FLOOR_LINE,13, "        8  "
+		CALL MAKE_FLOOR_LINE,14, "           "
+		CALL MAKE_FLOOR_LINE,15, "           "
+		
+		;ボス移動済み
+		CALL SET_TILE, 2 , 10 , ダンジョンフラグ:82:8 , 1 , 1
+		CALL SET_TILE, 2 , 11 , ダンジョンフラグ:82:8 , 1 , 1
+		CALL SET_TILE, 2 , 12 , ダンジョンフラグ:82:8 , 1 , 1
+		
+		;ボス倒してる
+		CALL SET_TILE, 2 , 10 , ダンジョンフラグ:82:10 , 1 , 1
+		CALL SET_TILE, 2 , 11 , ダンジョンフラグ:82:10 , 1 , 1
+		CALL SET_TILE, 2 , 12 , ダンジョンフラグ:82:10 , 1 , 1
+		
+	CASE 1
+	;２階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 16 
+							;	  01234567890
+		CALL MAKE_FLOOR_LINE, 0, "           "
+		CALL MAKE_FLOOR_LINE, 1, "           "
+		CALL MAKE_FLOOR_LINE, 2, "  411 621  "
+		CALL MAKE_FLOOR_LINE, 3, "    1   1  "
+		CALL MAKE_FLOOR_LINE, 4, "  7 111 1  "
+		CALL MAKE_FLOOR_LINE, 5, "  2 1 2 1  "
+		CALL MAKE_FLOOR_LINE, 6, "  1 1 1 1  "
+		CALL MAKE_FLOOR_LINE, 7, "  1 2 1 2  "
+		CALL MAKE_FLOOR_LINE, 8, "  111 111  "
+		CALL MAKE_FLOOR_LINE, 9, "        2  "
+		CALL MAKE_FLOOR_LINE,10, "  1111111  "
+		CALL MAKE_FLOOR_LINE,11, "  1     1  "
+		CALL MAKE_FLOOR_LINE,12, "  12E 321  "
+		CALL MAKE_FLOOR_LINE,13, "           "
+		CALL MAKE_FLOOR_LINE,14, "           "
+		CALL MAKE_FLOOR_LINE,15, "           "
+		
+	CASE 2
+	;３階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 16 
+							;	  01234567890
+		CALL MAKE_FLOOR_LINE, 0, "           "
+		CALL MAKE_FLOOR_LINE, 1, "           "
+		CALL MAKE_FLOOR_LINE, 2, "  11127 1  "
+		CALL MAKE_FLOOR_LINE, 3, "  1     1  "
+		CALL MAKE_FLOOR_LINE, 4, "  12111 1  "
+		CALL MAKE_FLOOR_LINE, 5, "      1 1  "
+		CALL MAKE_FLOOR_LINE, 6, "  126 121  "
+		CALL MAKE_FLOOR_LINE, 7, "  1     1  "
+		CALL MAKE_FLOOR_LINE, 8, "  1111111  "
+		CALL MAKE_FLOOR_LINE, 9, "  2     2  "
+		CALL MAKE_FLOOR_LINE,10, "  1211111  "
+		CALL MAKE_FLOOR_LINE,11, "  1   2 2  "
+		CALL MAKE_FLOOR_LINE,12, "  12E 1 4  "
+		CALL MAKE_FLOOR_LINE,13, "           "
+		CALL MAKE_FLOOR_LINE,14, "           "
+		CALL MAKE_FLOOR_LINE,15, "           "
+		
+	CASE 3
+	;４階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 16 
+							;	  01234567890
+		CALL MAKE_FLOOR_LINE, 0, "           "
+		CALL MAKE_FLOOR_LINE, 1, "           "
+		CALL MAKE_FLOOR_LINE, 2, "  421 621  "
+		CALL MAKE_FLOOR_LINE, 3, "    1   1  "
+		CALL MAKE_FLOOR_LINE, 4, "  1111111  "
+		CALL MAKE_FLOOR_LINE, 5, "  2     1  "
+		CALL MAKE_FLOOR_LINE, 6, "  1 7 111  "
+		CALL MAKE_FLOOR_LINE, 7, "  1 2 2 1  "
+		CALL MAKE_FLOOR_LINE, 8, "  111 4 1  "
+		CALL MAKE_FLOOR_LINE, 9, "  2 1   2  "
+		CALL MAKE_FLOOR_LINE,10, "  1 12111  "
+		CALL MAKE_FLOOR_LINE,11, "  1   1 2  "
+		CALL MAKE_FLOOR_LINE,12, "  12E 1 3  "
+		CALL MAKE_FLOOR_LINE,13, "           "
+		CALL MAKE_FLOOR_LINE,14, "           "
+		CALL MAKE_FLOOR_LINE,15, "           "
+		
+		;ショウジ救出済み
+		CALL SET_TILE, 6 , 8 , ダンジョンフラグ:82:1 , -1 , 1
+		
+	CASE 4
+	;５階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 16 
+							;	  01234567890
+		CALL MAKE_FLOOR_LINE, 0, "           "
+		CALL MAKE_FLOOR_LINE, 1, "           "
+		CALL MAKE_FLOOR_LINE, 2, "  11127 4  "
+		CALL MAKE_FLOOR_LINE, 3, "  2 1   2  "
+		CALL MAKE_FLOOR_LINE, 4, "  6 11111  "
+		CALL MAKE_FLOOR_LINE, 5, "      2    "
+		CALL MAKE_FLOOR_LINE, 6, "  121 111  "
+		CALL MAKE_FLOOR_LINE, 7, "  1   1 2  "
+		CALL MAKE_FLOOR_LINE, 8, "  1111111  "
+		CALL MAKE_FLOOR_LINE, 9, "  2     2  "
+		CALL MAKE_FLOOR_LINE,10, "  1 11111  "
+		CALL MAKE_FLOOR_LINE,11, "  1   1    "
+		CALL MAKE_FLOOR_LINE,12, "  12E 124  "
+		CALL MAKE_FLOOR_LINE,13, "           "
+		CALL MAKE_FLOOR_LINE,14, "           "
+		CALL MAKE_FLOOR_LINE,15, "           "
+		
+		;ショウジ救出済み
+		CALL SET_TILE, 8 , 2 , ダンジョンフラグ:82:1 , -1 , 1
+		CALL SET_TILE, 8 , 12 , ダンジョンフラグ:82:1 , -1 , 1
+		
+	CASE 5
+	;６階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 16 
+							;	  01234567890
+		CALL MAKE_FLOOR_LINE, 0, "           "
+		CALL MAKE_FLOOR_LINE, 1, "           "
+		CALL MAKE_FLOOR_LINE, 2, "  12111 1  "
+		CALL MAKE_FLOOR_LINE, 3, "      111  "
+		CALL MAKE_FLOOR_LINE, 4, "  7 121 1  "
+		CALL MAKE_FLOOR_LINE, 5, "  2 1   1  "
+		CALL MAKE_FLOOR_LINE, 6, "  1 1 421  "
+		CALL MAKE_FLOOR_LINE, 7, "  111   1  "
+		CALL MAKE_FLOOR_LINE, 8, "  1 12111  "
+		CALL MAKE_FLOOR_LINE, 9, "  2    2   "
+		CALL MAKE_FLOOR_LINE,10, "  1211111  "
+		CALL MAKE_FLOOR_LINE,11, "  1     1  "
+		CALL MAKE_FLOOR_LINE,12, "  12E 421  "
+		CALL MAKE_FLOOR_LINE,13, "           "
+		CALL MAKE_FLOOR_LINE,14, "           "
+		CALL MAKE_FLOOR_LINE,15, "           "
+		
+		;ショウジ救出済み
+		CALL SET_TILE, 6 , 6 , ダンジョンフラグ:82:1 , -1 , 1
+		
+	CASE 10
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+;ARG:1、ARG:2はそれぞれX座標とY座標
+;ARGはその座標に現在代入されている番号
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内、3～9が代入されているマスに、個別の番号を与える処理を実行します。
+;この処理を行った後、これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合、「2番のマップ＝３Ｆで、左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚、0～2はどのマップにも大量に設置されるので、ここでは基本的に個別の番号を与えません。
+;
+;何個目のARGタイプのマスなのか、は左上の(0,0)から右まで探し、その後一つ下の段に移って同様に探す、というのを右下まで繰り返して数えます。
+@MAKE_FLOOR_LINE_COMMON_82, ARG, ARG:1, ARG:2
+#LOCALSIZE 10
+;LOCAL:0～9 それぞれ何個目のARGなのかを記憶しています
+;LOCAL:3 宝箱→使用フラグはダンジョンフラグ:70~74
+;指定された座標が(0,0)である場合、つまり新しいマップを読み込んだ時はLOCALを消去します
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		;宝箱は多くの場合、開けたフラグが立っていると床を代入します
+		;そのマップでどの宝箱を開けたかは、そのマップの宝箱管理用変数の何番目のビットが立っているかで判断します
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4 TO 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:ARG * 10 + ARG
+		LOCAL:ARG++
+	
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;TILE_MARK_COMMON_{FLAG:現ダンジョン}_X
+;=======================================================================
+;ARG:1、ARG:2がX座標とY座標
+;ARGはそこに代入されている値
+;RESULTSに代入した文字がマップに表示されますが、必ず全角1文字分になるようにしてください。そうでないと表示が崩れます。
+
+;イベントタイル特殊表示
+;末尾の_4はイベントであることを示す4
+@TILE_MARK_COMMON_82_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;メッセンジャーを緑色で"ｍ"と表示
+	CASE 0 , 100 , 200 , 300
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASEELSE
+		;特に設定しない場合、"！"と表示されます
+		RETURN 1
+ENDSELECT
+
+;特殊タイルの表示
+;末尾の_9は特殊タイルであることを示す9
+@TILE_MARK_COMMON_82_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;CASE 400
+		
+		
+	CASEELSE
+		;特に設定しない場合、"■"が表示されます
+		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_82
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+;% 10は10で割ったあまり、つまり下一桁がでてきます
+;そして、下一桁はタイルの種類を表す
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_82
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_82
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_82
+	RETURN RESULT
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;１Ｆイベント
+		CASE 0
+			;オンナ悪魔達
+			CALL DUNGEON_82_ETC03
+		CASE 1
+			;１～３日目、ボス
+			CALL DUNGEON_82_BOSS_1F_1
+		CASE 2
+			;１～３日目、ボス
+			CALL DUNGEON_82_BOSS_1F_3
+		CASE 3
+			;１～３日目、ボス
+			CALL DUNGEON_82_BOSS_1F_2
+		;２Ｆイベント
+		CASE 100
+			;オンナ悪魔、古風
+			CALL DUNGEON_82_ETC04
+		;CASE 101
+			
+		;３Ｆイベント
+		CASE 200
+			;人の臭い
+			;マッド悪魔
+			CALL DUNGEON_82_ETC02
+		;４Ｆイベント
+		CASE 300
+			;食料庫
+			;若者とケダモノ
+			CALL DUNGEON_82_ETC01
+		CASE 301
+			;ショウジの居場所候補1
+			;いる
+			IF ダンジョンフラグ:82:4 == 1
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+				;だれもいない……
+			ENDIF
+		;５Ｆイベント
+		CASE 400
+			;ショウジの居場所候補2
+			;いる
+			IF ダンジョンフラグ:82:4 == 2
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+		CASE 401
+			;ショウジの居場所候補3
+			;いる
+			IF ダンジョンフラグ:82:4 == 3
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+		;６Ｆイベント
+		CASE 500
+			;ショウジの居場所候補4、捕獲場所
+			;いる
+			IF ダンジョンフラグ:82:4 == 4
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			;捕獲
+			ELSEIF ダンジョンフラグ:82:4 == 5
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+		CASE 501
+			;ボスの部屋
+			CALL DUNGEON_82_BOSS_ROOM
+			
+	ENDSELECT
+ELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_82,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_82
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_82
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_82
+	RETURN RESULT
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;１Ｆイベント
+		CASE 0
+			;オンナ悪魔達
+			CALL DUNGEON_82_ETC03
+			RETURN 0
+		CASE 1
+			;１～３日目、ボス
+			CALL DUNGEON_82_BOSS_1F_1
+			RETURN 0
+		CASE 2
+			;１～３日目、ボス
+			CALL DUNGEON_82_BOSS_1F_3
+			RETURN 0
+		CASE 3
+			;１～３日目、ボス
+			CALL DUNGEON_82_BOSS_1F_2
+			RETURN 0
+		;２Ｆイベント
+		CASE 100
+			;オンナ悪魔、古風
+			CALL DUNGEON_82_ETC04
+			RETURN 0
+		;CASE 101
+			
+		;３Ｆイベント
+		CASE 200
+			;人の臭い
+			;ガキ系、マッド悪魔
+			CALL DUNGEON_82_ETC02
+			RETURN 0
+		;４Ｆイベント
+		CASE 300
+			;食料庫
+			;若者とケダモノ
+			CALL DUNGEON_82_ETC01
+			RETURN 0
+		CASE 301
+			;ショウジの居場所候補1
+			;いる
+			IF ダンジョンフラグ:82:4 == 1
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+			RETURN 0
+		;５Ｆイベント
+		CASE 400
+			;ショウジの居場所候補2
+			;いる
+			IF ダンジョンフラグ:82:4 == 2
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+			RETURN 0
+		CASE 401
+			;ショウジの居場所候補3
+			;いる
+			IF ダンジョンフラグ:82:4 == 3
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+			RETURN 0
+		;６Ｆイベント
+		CASE 500
+			;ショウジの居場所候補4、捕獲場所
+			;いる
+			IF ダンジョンフラグ:82:4 == 4
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			;捕獲
+			ELSEIF ダンジョンフラグ:82:4 == 5
+				CALL DUNGEON_82_SYOUZI
+				
+				;ショウジ同行中なら脱出する
+				IF ダンジョンフラグ:82:2 == 1 || ダンジョンフラグ:82:2 == 2
+					FLAG:脱出 = 1
+				ENDIF
+			ELSE
+				PRINTW There is no-one here...
+			ENDIF
+			RETURN 0
+		CASE 501
+			;ボスの部屋
+			CALL DUNGEON_82_BOSS_ROOM
+			RETURN 0
+	ENDSELECT
+ENDIF
+RETURN 0
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_82
+SELECTCASE FLAG:現M
+	CASE 0 , 1 , 2 , 3 , 4 , 5
+		FLAG:エンカウント率 = FLAG:未遭遇歩数 * 5
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数 * 5
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_82
+RETURN 20, 20, 25, 35
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_82
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;RETURN X でXが種類の数になります
+;あまりいろんなのが混ざっているとCOOPがとりにくくなったり
+;敵の攻撃属性が多くなる傾向にあるので、
+;種類の数は1・2種類を主体に時々3種類くらいを基本にするのが望ましいと思われます
+;=======================================================================
+@CLASS_NUM_82
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 4 , 5
+		SELECTCASE RAND:100
+			CASE IS < 35
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+ENDSELECT
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお、ここで帰った数字は下限を種族数、上限を10として自動的に調整されます
+;=======================================================================
+@ENEMY_NUM_82, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+		RETURN RAND(ARG, ARG*2+1)
+	CASE 1 , 2
+		RETURN RAND(ARG, ARG*2+2)
+	CASE 3 ,4 , 5
+		RETURN RAND(ARG, ARG*2+3)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_82, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE RAND:100
+			CASE IS < 30
+				RETURN [[キャラ:イーリス]],15
+			CASE IS < 35
+				RETURN [[キャラ:イーリス]],16
+			CASE IS < 65
+				RETURN [[キャラ:エンプーサ]],17
+			CASE IS < 70
+				RETURN [[キャラ:エンプーサ]],18
+			CASE IS < 80
+				RETURN [[キャラ:イッポンダタラ]],15
+			CASE IS < 90
+				RETURN [[キャラ:イッポンダタラ]],16
+			CASE IS < 95
+				RETURN [[キャラ:キヨヒメ]],17
+			CASE IS < 100
+				RETURN [[キャラ:キヨヒメ]],18
+		ENDSELECT
+	CASE 1
+		SELECTCASE RAND:100
+			CASE IS < 30
+				RETURN [[キャラ:イーリス]],16
+			CASE IS < 35
+				RETURN [[キャラ:イーリス]],17
+			CASE IS < 65
+				RETURN [[キャラ:エンプーサ]],18
+			CASE IS < 70
+				RETURN [[キャラ:エンプーサ]],19
+			CASE IS < 80
+				RETURN [[キャラ:イッポンダタラ]],16
+			CASE IS < 90
+				RETURN [[キャラ:イッポンダタラ]],17
+			CASE IS < 95
+				RETURN [[キャラ:キヨヒメ]],18
+			CASE IS < 100
+				RETURN [[キャラ:キヨヒメ]],19
+		ENDSELECT
+	CASE 2
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:イッポンダタラ]],17
+			CASE IS < 25
+				RETURN [[キャラ:イッポンダタラ]],18
+			CASE IS < 40
+				RETURN [[キャラ:グルル]],19
+			CASE IS < 50
+				RETURN [[キャラ:グルル]],20
+			CASE IS < 65
+				RETURN [[キャラ:ノズチ]],19
+			CASE IS < 75
+				RETURN [[キャラ:ノズチ]],20
+			CASE IS < 90
+				RETURN [[キャラ:ジャックランタン]],20
+			CASE IS < 100
+				RETURN [[キャラ:ジャックランタン]],20
+		ENDSELECT
+	CASE 3
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:イッポンダタラ]],18
+			CASE IS < 25
+				RETURN [[キャラ:イッポンダタラ]],19
+			CASE IS < 40
+				RETURN [[キャラ:グルル]],20
+			CASE IS < 50
+				RETURN [[キャラ:グルル]],21
+			CASE IS < 65
+				RETURN [[キャラ:ノズチ]],20
+			CASE IS < 75
+				RETURN [[キャラ:ノズチ]],21
+			CASE IS < 90
+				RETURN [[キャラ:ジャックランタン]],20
+			CASE IS < 100
+				RETURN [[キャラ:ジャックランタン]],21
+		ENDSELECT
+	CASE 4
+		SELECTCASE RAND:100
+			CASE IS < 10
+				RETURN [[キャラ:イッポンダタラ]],19
+			CASE IS < 20
+				RETURN [[キャラ:イッポンダタラ]],19
+			CASE IS < 30
+				RETURN [[キャラ:グルル]],21
+			CASE IS < 40
+				RETURN [[キャラ:グルル]],22
+			CASE IS < 50
+				RETURN [[キャラ:ノズチ]],21
+			CASE IS < 60
+				RETURN [[キャラ:ノズチ]],22
+			CASE IS < 70
+				RETURN [[キャラ:ジャックランタン]],21
+			CASE IS < 80
+				RETURN [[キャラ:ジャックランタン]],22
+			CASE IS < 90
+				RETURN [[キャラ:コッパテング]],19
+			CASE IS < 100
+				RETURN [[キャラ:コッパテング]],20
+		ENDSELECT
+	CASE 5
+		SELECTCASE RAND:100
+			CASE IS < 10
+				RETURN [[キャラ:イッポンダタラ]],19
+			CASE IS < 20
+				RETURN [[キャラ:イッポンダタラ]],19
+			CASE IS < 30
+				RETURN [[キャラ:グルル]],22
+			CASE IS < 40
+				RETURN [[キャラ:グルル]],23
+			CASE IS < 50
+				RETURN [[キャラ:ノズチ]],22
+			CASE IS < 60
+				RETURN [[キャラ:ノズチ]],23
+			CASE IS < 70
+				RETURN [[キャラ:ジャックランタン]],22
+			CASE IS < 80
+				RETURN [[キャラ:ジャックランタン]],23
+			CASE IS < 90
+				RETURN [[キャラ:コッパテング]],21
+			CASE IS < 100
+				RETURN [[キャラ:コッパテング]],22
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_82
+#LOCALSIZE 3
+LOCAL = FLAG:現M + 70
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+	;２Ｆ
+	CASE 100
+		CALL GET_TREASURE, [[アイテム:BalmOfLife]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;４Ｆ
+	CASE 300
+		CALL GET_TREASURE_MONEY, 1 , 200 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+;上り階段処理
+@UPSTAIRS_82
+;SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+;	;IDで分岐
+;	;１Ｆ上り階段
+;	CASE 0
+;			;@DUNGEON_UPSTAIRS_ID , 階段を進んだ先のマップ番号 , 移動先のタイルのID
+;			;２Ｆ＝マップ番号1番の0番目の下り階段 = 1 * 1000 + 0 * 10 + 7 = 1007へと飛ぶ
+;			CALL DUNGEON_UPSTAIRS_ID, 1 , 1007
+;	CASE 100
+;			CALL DUNGEON_UPSTAIRS_ID, 2 , 2007
+;	CASE 200
+;			CALL DUNGEON_UPSTAIRS_ID, 3 , 3007
+;	CASE 300
+;			CALL DUNGEON_UPSTAIRS_ID, 4 , 4007
+;	CASEELSE
+;ENDSELECT
+
+;入り組んだダンジョンで階段がたくさん入り乱れている状態であれば、上記のように階段毎に指定してあげる必要があります。
+;しかしこのエコービルは1つのマップに上り階段が１つ、下り階段が１つ、上の階に進む＝マップ番号が一つ増えるという構造になっています
+;なので、下記のように書けば一行で済みます
+CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , (FLAG:現M + 1) * 1000 + 7
+RETURN 1
+
+;下り階段処理
+@DOWNSTAIRS_82
+;上り階段同様に、エコービルは下り階段も1行で記述できます
+CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , (FLAG:現M - 1) * 1000 + 6
+RETURN 1
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+;ARGはそのエレベーターのタイル
+@DUNGEON_ELEVATOR_82, ARG
+;RESULT:1～5にエレベータが存在するマップの番号を代入し、RESULTS:1～5には表示したい名称を代入、RETURNでは-1を返しておく
+RESULT:1 = 0
+RESULT:2 = 1
+RESULT:3 = 2
+RESULT:4 = 3
+RESULT:5 = 4
+RESULT:6 = 5
+RESULTS:1 = １Ｆ
+RESULTS:2 = ２Ｆ
+RESULTS:3 = ３Ｆ
+RESULTS:4 = ４Ｆ
+RESULTS:5 = ５Ｆ
+RESULTS:6 = ６Ｆ
+RETURN -1
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_82
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0 , 1 
+		RETURN [[キャラ:ガキ]] , 3 + RAND:10 , CSVBASE([[キャラ:ガキ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2 ,3 ,4 ,5 ,
+		RETURN [[キャラ:ジャックランタン]] , 3 + RAND:10 , CSVBASE([[キャラ:ジャックランタン]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT

@@ -1,0 +1,695 @@
+;-------------------------------------------
+;ランダムキャラ作成
+;引数はタイプ, LV, 性別
+;-------------------------------------------
+@MAKE_RANDOM_CHARA, ARG = -1, ARG:1 = 5, ARG:2 = -1
+#DIM CHARA, 1
+#DIM TYPE, 1
+#LOCALSIZE 6
+#LOCALSSIZE 2
+VARSET RESULT
+VARSET RESULTS
+;-------------------------
+;キャラの決定
+;-------------------------
+WHILE !EXISTCSV(ARG, 0)
+	ARG = RAND(4901, 4910)
+WEND
+;-------------------------
+;キャラ追加
+;-------------------------
+CALL ADD_NEW_COMPANION, ARG, 200
+;キャラが作成出来ない場合は帰る
+SIF RESULT == 0
+	RETURN 0
+CHARA = RESULT:1
+;デバッグ中は即戦闘参加出来るように変更
+SIF FLAG:DEBUG
+	CFLAG:CHARA:戦闘参加不可能 = 0
+;-------------------------
+;性別
+;ランダムの場合、オトコ40%　男の娘4%　女55%　ふたなり1%
+;-------------------------
+IF ARG:2 >= 0
+	SELECTCASE ARG:2
+		CASE 1
+			TALENT:CHARA:オトコ = 1
+		CASE 2
+			TALENT:CHARA:オトコ = 1
+			TALENT:CHARA:男の娘 = 1
+		CASE 3
+			TALENT:CHARA:ふたなり = 1
+	ENDSELECT
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 40
+			TALENT:CHARA:オトコ = 1
+		CASE IS < 44
+			TALENT:CHARA:オトコ = 1
+			TALENT:CHARA:男の娘 = 1
+		CASE IS < 45
+			TALENT:CHARA:ふたなり = 1
+	ENDSELECT
+ENDIF
+
+;-------------------------
+;Stamina・気力
+;-------------------------
+CALLFORM RANDOMCHARA_{ARG}, "体力", CHARA
+BASE:CHARA:体力 = RESULT / 100 * 100
+MAXBASE:CHARA:体力 = BASE:CHARA:体力
+CALLFORM RANDOMCHARA_{ARG}, "気力", CHARA
+BASE:CHARA:気力 = RESULT / 100 * 100
+MAXBASE:CHARA:気力 = BASE:CHARA:気力
+;-------------------------
+;属性
+;-------------------------
+CALLFORM RANDOMCHARA_{ARG}, "属性", CHARA
+CFLAG:CHARA:善悪値 = RESULT
+CFLAG:CHARA:秩混値 = RESULT:1
+;-------------------------
+;種族
+;-------------------------
+ABL:CHARA:種族 = 0
+;-------------------------
+;戦闘素質
+;-------------------------
+VARSET RESULTS
+CALLFORM RANDOMCHARA_{ARG}, "戦闘素質", CHARA
+LOCAL = 0
+WHILE RESULTS:LOCAL != ""
+	TALENT:CHARA:(RESULTS:LOCAL) = RESULT:LOCAL
+	LOCAL++
+WEND
+;-------------------------
+;ステータス
+;-------------------------
+BASE:CHARA:LV = ARG:1
+BASE:CHARA:ＥＸＰ = 5*(ARG:1-1)*(ARG:1+1)*(ARG:1)/3
+;ステ合計基準値
+LOCAL:1 = ARG:1 * 3 / 2 + 18
+CALLFORM RANDOMCHARA_{ARG}, "初期ステータス比率", CHARA
+LOCAL:2 = SUMARRAY(RESULT, 0, 6)
+LOCAL:3 = 0
+FOR LOCAL, 0, 6
+	BASE:CHARA:GET_BASESTATUS(LOCAL+1) = LOCAL:1 * RESULT:LOCAL / LOCAL:2
+	LOCAL:3 += BASE:CHARA:GET_BASESTATUS(LOCAL+1)
+NEXT
+;切り捨てられたぶんをランダムに追加
+WHILE LOCAL:1 > LOCAL:3
+	BASE:CHARA:GET_BASESTATUS(RAND(1,7)) += 1
+	LOCAL:3++
+WEND
+;一定回数でランダム移動
+FOR LOCAL, 0, LOCAL:1 / 8
+	LOCAL:2 = RAND(1,7)
+	SIF BASE:CHARA:GET_BASESTATUS(LOCAL:2) <= 1
+		CONTINUE
+	BASE:CHARA:GET_BASESTATUS(RAND(1,7)) += 1
+	BASE:CHARA:GET_BASESTATUS(LOCAL:2) -= 1
+NEXT
+;---------------------------------------------
+;リンク悪魔
+;---------------------------------------------
+CALLFORM RANDOMCHARA_{ARG}, "リンク悪魔", CHARA
+CFLAG:CHARA:初期リンク悪魔 = RESULT
+;リンク悪魔があるときのATTACK設定;後から変更も出来るしとりあえず無難な打撃相性に
+IF RESULT
+	ABL:CHARA:初期リンク悪魔攻撃相性 = 2
+	ABL:CHARA:初期リンク悪魔最低攻撃回数 = 1
+	ABL:CHARA:初期リンク悪魔最大攻撃回数 = 1
+	ABL:CHARA:初期リンク悪魔射程 = 1
+	ABL:CHARA:初期リンク悪魔攻撃範囲 = 1
+ENDIF
+;-------------------------
+;スキル
+;COUNT配列にスキルを入れたのち
+;覚えられるか見て落としこむ
+;-------------------------
+VARSET COUNT
+LOCAL:1 = 0
+;ペルソナ使いはスキルを得ない
+IF !TALENT:CHARA:ペルソナ使い
+	;喰奴は下記スキルが入る
+	IF TALENT:CHARA:喰奴
+		COUNT = [[スキル:喰らいつき]]
+		COUNT:1 = [[スキル:喰い散らし]]
+		COUNT:2 = [[スキル:大嘗祭]]
+		COUNT:3 = [[スキル:最後の晩餐]]
+		LOCAL:1 = 4
+	ENDIF
+	CALLFORM RANDOMCHARA_{ARG}, "スキル", CHARA
+	LOCAL = 0
+	WHILE RESULT:LOCAL
+		COUNT:(LOCAL:1) = RESULT:LOCAL
+		LOCAL++
+		LOCAL:1++
+	WEND
+	;喰奴・シフターは初期悪魔のスキルをいれていく
+	IF TALENT:CHARA:喰奴 || TALENT:CHARA:デビルシフター
+		FOR LOCAL, 1, FLAG:スキル数 + 1
+			LOCAL:2 = CSVABL(CFLAG:CHARA:初期リンク悪魔, GETNUM(ABL, @"スキル{LOCAL}"), 0)
+			SIF !LOCAL:2
+				CONTINUE
+			TRYCCALLFORM 敵専用_{LOCAL:2}
+				SIF RESULT
+					CONTINUE
+			CATCH
+			ENDCATCH
+			COUNT:(LOCAL:1) = LOCAL:2
+			LOCAL:1++
+		NEXT
+		FOR LOCAL, 1, 20
+			LOCAL:2 = CSVABL(CFLAG:CHARA:初期リンク悪魔, GETNUM(ABL, @"習得スキル{LOCAL}"), 0)
+			SIF !LOCAL:2
+				CONTINUE
+			TRYCCALLFORM 敵専用_{LOCAL:2}
+				SIF RESULT
+					CONTINUE
+			CATCH
+			ENDCATCH
+			COUNT:(LOCAL:1) = LOCAL:2
+			LOCAL:1++
+		NEXT
+	ENDIF
+	LOCAL = 0
+	LOCAL:3 = 1
+	;ランクの低い順に並べ替えていく
+	WHILE LOCAL:1
+		IF COUNT:(LOCAL+1) == 0
+			LOCAL = 0
+			LOCAL:1--
+		ENDIF
+		LOCAL:3 = 0
+		CALLFORM SKILL_RANK_{COUNT:(LOCAL:1)}
+		LOCAL:4 = RESULT
+		CALLFORM SKILL_RANK_{COUNT:(LOCAL:1+1)}
+		SIF RESULT < LOCAL:4
+			SWAP COUNT:LOCAL, COUNT:(LOCAL:1+1)
+		LOCAL++
+	WEND
+	FOR LOCAL, 1, 4
+		IF COUNT:LOCAL
+			LOCALS = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@スキル{LOCAL}
+			ABL:CHARA:LOCALS = COUNT:LOCAL
+		ENDIF
+	NEXT
+	LOCAL:1 = BASE:CHARA:LV+RAND:4
+	FOR LOCAL, 1, 21
+		IF COUNT:(LOCAL + 3)
+			LOCALS = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@習得スキル{LOCAL}
+			LOCALS:1 = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@習得LV{LOCAL}
+			ABL:CHARA:LOCALS = COUNT:(LOCAL+3)
+			CALLFORM SKILL_RANK_{COUNT:(LOCAL+3)}
+			ABL:CHARA:(LOCALS:1) = MAX(RESULT * 4 + RAND:4, LOCAL:1 + RAND(1, 4))
+			LOCAL:1 = ABL:CHARA:(LOCALS:1)
+		ENDIF
+	NEXT
+ENDIF
+;-------------------------
+;相性
+;-------------------------
+FOR LOCAL, 0, FLAG:相性数+1
+	CALLFORM RANDOMCHARA_{ARG}, "相性", CHARA, LOCAL
+	BASE:CHARA:GET_TYPE(LOCAL) = RESULT
+NEXT
+;-------------------------
+;素質
+;素質は優先テーブル内から3つとる
+;-------------------------
+VARSET RESULT
+CALLFORM RANDOMCHARA_{ARG}, "素質", CHARA
+;優先されている数を調べる
+LOCAL:1 = 1
+FOR LOCAL, 0, 50
+	SIF !RESULT:(LOCAL:1)
+		CONTINUE
+	LOCAL:1++
+NEXT
+FOR LOCAL, 0, LOCAL:1
+	SWAP RESULT:LOCAL, RESULT:(RAND:(LOCAL:1))
+NEXT
+;優先を保存
+FOR LOCAL, 0, 3
+	SIF TALENTNAME:(RESULT:LOCAL) == ""
+		CONTINUE
+	SIF !RESULT:LOCAL
+		CONTINUE
+	LOCAL:(LOCAL+3) = RESULT:LOCAL
+NEXT
+VARSET RESULT
+CALLFORM RANDOMCHARA_{ARG}, "除外素質", CHARA
+LOCAL:1 = 0
+;素質はランダムで5%の確率で発現
+FOR LOCAL, 10, 137
+	;デフォルトでの除外素質
+	SIF GROUPMATCH(TALENTNAME:LOCAL, "", "弱味", "嫉妬", "即落ち", "自慰狂い", "セックス狂", "尻穴狂い", "淫乳", "猫舌", "妄信", "狐", "妖狐", "謎の魅力", "吸血鬼", "サド", "マゾ")
+		CONTINUE
+	;体型関係はここでは除外
+	SIF GROUPMATCH(TALENTNAME:LOCAL, "小柄体型", "大柄", "巨体", "貧乳", "絶壁", "巨乳", "爆乳")
+		CONTINUE
+	;優先は判定しない
+	SIF GROUPMATCH(LOCAL, LOCAL:1, LOCAL:2, LOCAL:3)
+		CONTINUE
+	;除外素質
+	SIF MATCH(RESULT, LOCAL)
+		CONTINUE
+	TALENT:CHARA:LOCAL = RAND:100 > 95
+	;発現素質数をカウント
+	LOCAL:1++
+NEXT
+
+;この時点での発現素質を調整
+;LOCAL:2 = RAND(3, 6)
+SELECTCASE RAND:10
+	;殆どの場合 発現素質を3～5個に減らす
+	CASE IS < 5
+		LOCAL:2 = RAND(3, 6)
+	;20%　発現素質を3～10個に減らす
+	CASE IS < 8
+		LOCAL:2 = RAND(3, 11)
+	;10%　フィーバー 3～25
+	CASE IS < 9
+		LOCAL:2 = RAND(3, 26)
+ENDSELECT
+WHILE LOCAL:2 < MATCH(TALENT:CHARA:0, 1, 10, 137)
+	LOCAL = RAND(10, 137)
+	SIF !TALENT:CHARA:LOCAL
+		CONTINUE
+	TALENT:CHARA:LOCAL = 0
+	LOCAL:1--
+WEND
+;退避しておいた優先素質をつける
+FOR LOCAL, 3, 6
+	SIF TALENTNAME:(LOCAL:LOCAL) == ""
+		CONTINUE
+	SIF !LOCAL:LOCAL
+		CONTINUE
+	TALENT:CHARA:(LOCAL:LOCAL) = 1
+NEXT
+
+;両立不能な素質を削っていく
+;処理が怪しいので旧来処理はコメントアウト
+;地味に1グループずつ処理する方式に変更
+;LOCAL = 0
+;SPLIT "臆病_気丈/素直_反抗的/生意気_大人しい/プライド高い_プライド低い/無関心_好奇心/楽観的_悲観的/抑圧_解放/恥じらい_恥薄い/濡れやすい_濡れにくい/習得早い_習得遅い/汚臭鈍感_汚臭敏感/快感に素直_快感の否定/Ｃ鈍感_Ｃ敏感/Ｖ鈍感_ＶSensitive/ＡInsensitive_ＡSensitive/ＢSensitive_ＢInsensitive/回復早い_回復遅い/貞操観念_貞操無頓着", "/", RESULTS
+;WHILE RESULTS:LOCAL != ""
+;	LOCAL++
+;	SPLIT RESULTS:LOCAL, "_", LOCALS
+;	IF !TALENT:CHARA:LOCALS || TALENT:CHARA:(LOCALS:1)
+;		LOCAL++
+;		CONTINUE
+;	ENDIF
+;	IF GROUPMATCH(GETNUM(TALENT, LOCALS), LOCAL:3, LOCAL:4, LOCAL:5)
+;		TALENT:CHARA:(LOCALS:1) = 0
+;	ELSEIF GROUPMATCH(GETNUM(TALENT, LOCALS:1), LOCAL:3, LOCAL:4, LOCAL:5)
+;		TALENT:CHARA:LOCALS = 0
+;	ELSE
+;		IF RAND:2
+;			TALENT:CHARA:LOCALS = 0
+;		ELSE
+;			TALENT:CHARA:(LOCALS:1) = 0
+;		ENDIF
+;	ENDIF
+;	LOCAL++
+;WEND
+IF TALENT:CHARA:臆病 == 1 && TALENT:CHARA:気丈 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:臆病 = 1
+		TALENT:CHARA:気丈 = 0
+	ELSE
+		TALENT:CHARA:臆病 = 0
+		TALENT:CHARA:気丈 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:素直 == 1 && TALENT:CHARA:反抗的 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:素直   = 1
+		TALENT:CHARA:反抗的 = 0
+	ELSE
+		TALENT:CHARA:素直   = 0
+		TALENT:CHARA:反抗的 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:生意気 == 1 && TALENT:CHARA:大人しい == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:生意気   = 1
+		TALENT:CHARA:大人しい = 0
+	ELSE
+		TALENT:CHARA:生意気   = 0
+		TALENT:CHARA:大人しい = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:プライド高い == 1 && TALENT:CHARA:プライド低い == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:プライド高い = 1
+		TALENT:CHARA:プライド低い = 0
+	ELSE
+		TALENT:CHARA:プライド高い = 0
+		TALENT:CHARA:プライド低い = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:無関心 == 1 && TALENT:CHARA:好奇心 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:無関心 = 1
+		TALENT:CHARA:好奇心 = 0
+	ELSE
+		TALENT:CHARA:無関心 = 0
+		TALENT:CHARA:好奇心 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:楽観的 == 1 && TALENT:CHARA:悲観的 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:楽観的 = 1
+		TALENT:CHARA:悲観的 = 0
+	ELSE
+		TALENT:CHARA:楽観的 = 0
+		TALENT:CHARA:悲観的 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:抑圧 == 1 && TALENT:CHARA:解放 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:抑圧 = 1
+		TALENT:CHARA:解放 = 0
+	ELSE
+		TALENT:CHARA:抑圧 = 0
+		TALENT:CHARA:解放 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:恥じらい == 1 && TALENT:CHARA:恥薄い == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:恥じらい = 1
+		TALENT:CHARA:恥薄い   = 0
+	ELSE
+		TALENT:CHARA:恥じらい = 0
+		TALENT:CHARA:恥薄い   = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:濡れやすい == 1 && TALENT:CHARA:濡れにくい == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:濡れやすい = 1
+		TALENT:CHARA:濡れにくい = 0
+	ELSE
+		TALENT:CHARA:濡れやすい = 0
+		TALENT:CHARA:濡れにくい = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:習得早い == 1 && TALENT:CHARA:習得遅い == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:習得早い = 1
+		TALENT:CHARA:習得遅い = 0
+	ELSE
+		TALENT:CHARA:習得早い = 0
+		TALENT:CHARA:習得遅い = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:汚臭鈍感 == 1 && TALENT:CHARA:汚臭敏感 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:汚臭鈍感 = 1
+		TALENT:CHARA:汚臭敏感 = 0
+	ELSE
+		TALENT:CHARA:汚臭鈍感 = 0
+		TALENT:CHARA:汚臭敏感 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:快感に素直 == 1 && TALENT:CHARA:快感の否定 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:快感に素直 = 1
+		TALENT:CHARA:快感の否定 = 0
+	ELSE
+		TALENT:CHARA:快感に素直 = 0
+		TALENT:CHARA:快感の否定 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:Ｃ鈍感 == 1 && TALENT:CHARA:Ｃ敏感 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:Ｃ鈍感 = 1
+		TALENT:CHARA:Ｃ敏感 = 0
+	ELSE
+		TALENT:CHARA:Ｃ鈍感 = 0
+		TALENT:CHARA:Ｃ敏感 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:Ｖ鈍感 == 1 && TALENT:CHARA:Ｖ敏感 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:Ｖ鈍感 = 1
+		TALENT:CHARA:Ｖ敏感 = 0
+	ELSE
+		TALENT:CHARA:Ｖ鈍感 = 0
+		TALENT:CHARA:Ｖ敏感 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:Ａ鈍感 == 1 && TALENT:CHARA:Ａ敏感 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:Ａ鈍感 = 1
+		TALENT:CHARA:Ａ敏感 = 0
+	ELSE
+		TALENT:CHARA:Ａ鈍感 = 0
+		TALENT:CHARA:Ａ敏感 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:Ｂ敏感 == 1 && TALENT:CHARA:Ｂ鈍感 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:Ｂ敏感 = 1
+		TALENT:CHARA:Ｂ鈍感 = 0
+	ELSE
+		TALENT:CHARA:Ｂ敏感 = 0
+		TALENT:CHARA:Ｂ鈍感 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:回復早い == 1 && TALENT:CHARA:回復遅い == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:回復早い = 1
+		TALENT:CHARA:回復遅い = 0
+	ELSE
+		TALENT:CHARA:回復早い = 0
+		TALENT:CHARA:回復遅い = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:貞操観念 == 1 && TALENT:CHARA:貞操無頓着 == 1
+	IF RAND:2 == 0
+		TALENT:CHARA:貞操観念   = 1
+		TALENT:CHARA:貞操無頓着 = 0
+	ELSE
+		TALENT:CHARA:貞操観念  = 0
+		TALENT:CHARA:貞操無頓着 = 1
+	ENDIF
+ENDIF
+IF TALENT:CHARA:両刀 && (TALENT:CHARA:男嫌い || TALENT:CHARA:女嫌い)
+	IF GROUPMATCH(TALENT:CHARA:両刀, LOCAL:3, LOCAL:4, LOCAL:5)
+		TALENT:CHARA:男嫌い = 0
+		TALENT:CHARA:女嫌い = 0
+	ELSEIF GROUPMATCH(TALENT:CHARA:男嫌い, LOCAL:3, LOCAL:4, LOCAL:5) || GROUPMATCH(TALENT:CHARA:女嫌い, LOCAL:3, LOCAL:4, LOCAL:5)
+		TALENT:CHARA:両刀 = 0
+	ELSE
+		IF RAND:2
+			TALENT:CHARA:両刀 = 0
+		ELSE
+			TALENT:CHARA:男嫌い = 0
+			TALENT:CHARA:女嫌い = 0
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------
+;処女
+;-------------------
+CALLFORM RANDOMCHARA_{ARG}, "処女", CHARA
+IF RESULT == 0
+	TALENT:CHARA:処女 = !RAND:5
+ELSE
+	TALENT:CHARA:処女 = RESULT == 1 ? 1 # 0
+ENDIF
+;-------------------
+;体型・胸・形質
+;-------------------
+CALLFORM RANDOMCHARA_{ARG}, "胸サイズ", CHARA
+IF RESULT == 0
+	SELECTCASE RAND:100
+		CASE IS < 5
+			TALENT:CHARA:絶壁 = 1
+		CASE IS < 25
+			TALENT:CHARA:貧乳 = 1
+		CASE IS < 45
+			TALENT:CHARA:巨乳 = 1
+		CASE IS < 50
+			TALENT:CHARA:爆乳 = 1
+	ENDSELECT
+ELSE
+	SELECTCASE RESULT
+		CASE 1
+			TALENT:CHARA:絶壁 = 1
+		CASE 2
+			TALENT:CHARA:貧乳 = 1
+		CASE 4
+			TALENT:CHARA:巨乳 = 1
+		CASE 5
+			TALENT:CHARA:爆乳 = 1
+	ENDSELECT
+ENDIF
+CALLFORM RANDOMCHARA_{ARG}, "体型", CHARA
+IF RESULT == 0
+	SELECTCASE RAND:100
+		CASE IS < 15
+			TALENT:CHARA:小柄体型 = 1
+		CASE IS < 30
+			TALENT:CHARA:大柄 = 1
+		CASE IS < 35
+			TALENT:CHARA:巨体 = 1
+	ENDSELECT
+ELSE
+	SELECTCASE RESULT
+		CASE 1
+			TALENT:CHARA:小人体型 = 1
+		CASE 2
+			TALENT:CHARA:小柄体型 = 1
+		CASE 4
+			TALENT:CHARA:大柄 = 1
+		CASE 5
+			TALENT:CHARA:巨体 = 1
+	ENDSELECT
+ENDIF
+CALLFORM RANDOMCHARA_{ARG}, "肉体部位", CHARA
+IF RESULT == 0
+	TALENT:CHARA:頭 = 1
+	TALENT:CHARA:目 = 1
+	TALENT:CHARA:口 = 1
+	TALENT:CHARA:腕 = 1
+	TALENT:CHARA:足 = 1
+ENDIF
+;オトコの場合の調整
+IF IS_MALE(CHARA)
+	TALENT:CHARA:処女 = 0
+	CFLAG:CHARA:元胸サイズ = BUST(CHARA)
+	TALENT:CHARA:絶壁 = 0
+	TALENT:CHARA:貧乳 = 0
+	TALENT:CHARA:巨乳 = 0
+	TALENT:CHARA:爆乳 = 0
+	SWAP TALENT:CHARA:Ｖ敏感,CFLAG:CHARA:元Ｖ敏感
+ENDIF
+
+;-------------------
+;ABL
+;-------------------
+FOR LOCAL, 0, 50
+	CALLFORM RANDOMCHARA_{ARG}, "ABL", CHARA, LOCAL
+	ABL:CHARA:LOCAL = RESULT
+NEXT
+;一部ABLの調整
+ABL:CHARA:Ｖ感覚 *= !TALENT:CHARA:処女 * !IS_MALE(CHARA)
+ABL:CHARA:レズっ気 *= !IS_MALE(CHARA)
+ABL:CHARA:レズ中毒 *= !IS_MALE(CHARA)
+ABL:CHARA:ＢＬっ気 *= IS_MALE(CHARA)
+ABL:CHARA:ＢＬ中毒 *= IS_MALE(CHARA)
+;-------------------
+;EXP
+;-------------------
+FOR LOCAL, 0, 100
+	CALLFORM RANDOMCHARA_{ARG}, "EXP", CHARA, LOCAL
+	EXP:CHARA:LOCAL = RESULT
+NEXT
+;一部EXPの調整
+EXP:CHARA:Ｖ経験 = !TALENT:CHARA:処女 * MAX(EXP:CHARA:Ｖ経験, ABL:CHARA:Ｖ感覚*10) * !IS_MALE(CHARA)
+EXP:CHARA:Ａ経験 = MAX(EXP:CHARA:Ａ経験, ABL:CHARA:Ａ感覚*10)
+EXP:CHARA:射精経験 *= IS_MALE(CHARA)
+EXP:CHARA:性交経験 = RAND(EXP:CHARA:Ｖ経験, EXP:CHARA:Ｖ経験 + EXP:CHARA:Ａ経験+1)
+EXP:CHARA:自慰経験 = MAX(EXP:CHARA:自慰経験, ABL:CHARA:自慰中毒*50)
+EXP:CHARA:膣射経験 = MIN(EXP:CHARA:膣射経験, EXP:CHARA:射精経験, EXP:CHARA:性交経験)
+EXP:CHARA:奉仕快楽経験 = MAX(EXP:CHARA:奉仕快楽経験, ABL:CHARA:奉仕精神*20)
+EXP:CHARA:レズ経験 = MAX(EXP:CHARA:レズ経験, ABL:CHARA:レズっ気*10+ABL:CHARA:レズ中毒*20)*!IS_MALE(CHARA)
+EXP:CHARA:ＢＬ経験 = MAX(EXP:CHARA:ＢＬ経験, ABL:CHARA:ＢＬっ気*10+ABL:CHARA:ＢＬ中毒*20)*IS_MALE(CHARA)
+SIF IS_MALE(CHARA)
+	EXP:CHARA:フェラ経験 = MAX(EXP:CHARA:フェラ経験, EXP:CHARA:ＢＬ経験)
+EXP:CHARA:苦痛快楽経験 = MAX(EXP:CHARA:苦痛快楽経験, ABL:CHARA:マゾっ気*20)
+EXP:CHARA:嗜虐快楽経験 = MAX(EXP:CHARA:嗜虐快楽経験, ABL:CHARA:サドっ気*20)
+
+;-------------------
+;衣装
+;-------------------
+FOR LOCAL, 0, 12
+	CALLFORM RANDOMCHARA_{ARG}, GET_CLOTHESNAME(LOCAL), CHARA
+	CFLAG:CHARA:GET_CLOTHESNAME(LOCAL) = RESULT
+	CFLAG:CHARA:("初期"+GET_CLOTHESNAME(LOCAL)) = RESULT
+NEXT
+;-------------------------
+;口上タイプ決定
+;とりあえず悪魔汎用口上を使用しています
+;-------------------------
+CALLFORM RANDOMCHARA_{ARG}, "会話タイプ", CHARA
+IF  RESULT == 0
+		IF IS_MALE(CHARA)
+			SELECTCASE RAND:4
+				CASE 0
+					ABL:CHARA:会話タイプ = 316
+				CASE 1
+					ABL:CHARA:会話タイプ = 317
+				CASE 2
+					ABL:CHARA:会話タイプ = 318
+				CASE 3
+					ABL:CHARA:会話タイプ = 324
+			ENDSELECT
+		ELSE
+			SELECTCASE RAND:6
+				CASE 0
+					ABL:CHARA:会話タイプ = 302
+				CASE 1
+					ABL:CHARA:会話タイプ = 303
+				CASE 2
+					ABL:CHARA:会話タイプ = 304
+				CASE 3
+					ABL:CHARA:会話タイプ = 305
+				CASE 4
+					ABL:CHARA:会話タイプ = 306
+				CASE 5
+					ABL:CHARA:会話タイプ = 307
+			ENDSELECT
+		ENDIF
+ELSE
+	SELECTCASE RESULT
+		CASE 1
+			ABL:CHARA:会話タイプ = 302
+		CASE 2
+			ABL:CHARA:会話タイプ = 303
+		CASE 3
+			ABL:CHARA:会話タイプ = 304
+		CASE 4
+			ABL:CHARA:会話タイプ = 305
+		CASE 5
+			ABL:CHARA:会話タイプ = 306
+		CASE 6
+			ABL:CHARA:会話タイプ = 307
+		CASE 7
+			ABL:CHARA:会話タイプ = 316
+		CASE 8
+			ABL:CHARA:会話タイプ = 317
+		CASE 9
+			ABL:CHARA:会話タイプ = 329
+		CASE 10
+			ABL:CHARA:会話タイプ = 318
+		CASE 11
+			ABL:CHARA:会話タイプ = 324
+	ENDSELECT
+ENDIF
+;-------------------------
+;名前・呼び方
+;-------------------------
+CALLFORM RANDOMCHARA_{ARG}, "名前", CHARA
+NAME:CHARA = %RESULTS%
+CALLFORM RANDOMCHARA_{ARG}, "愛称", CHARA
+CALLNAME:CHARA = %RESULTS%
+CALLFORM RANDOMCHARA_{ARG}, "一人称", CHARA
+CSTR:CHARA:一人称 = %RESULTS%
+CALLFORM RANDOMCHARA_{ARG}, "二人称", CHARA
+CSTR:CHARA:二人称 = %RESULTS%
+;-------------------
+;解説
+;-------------------
+VARSET RESULTS
+CALLFORM RANDOMCHARA_{ARG}, "解説", CHARA
+FOR LOCAL, 1, 21
+	CSTR:CHARA:@"解説{LOCAL}" = %RESULTS:(LOCAL-1)%
+NEXT
+
+CALL SYNC_STATUS, CHARA
+CALL HEALTH_CHARA, CHARA
+;CALL MESSAGE_B(1, @"%CALLNAME:CHARA%を作成しました")
+RETURN 1, CHARA, ARG

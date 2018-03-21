@@ -1,0 +1,1113 @@
+;--------------------------------------------------
+;@KOJO_MESSAGE_COM関係（をキャラ番号に置換）
+;コマンド実行時に出力されます
+;--------------------------------------------------
+@KOJO_MESSAGE_COM_K4518
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+IF ASSIPLAY
+	CALL TRAIN_MESSAGE
+	RETURN 0
+ENDIF
+;とりあえず触手もスキップしておく
+IF TEQUIP:Tentacles
+	CALL TRAIN_MESSAGE
+	RETURN 0
+ENDIF
+;ボールギャグ着用時には地の文を表示して口上をスキップする
+IF TEQUIP:"Ball gag" &&  SELECTCOM != 107
+	CALL TRAIN_MESSAGE
+	RETURN 0
+ENDIF
+
+;TRAINNAMEの配列の範囲外の数字がSELECTCOMに格納されている場合、口上をスキップする
+IF SELECTCOM >= VARSIZE("TRAINNAME")
+	CALL TRAIN_MESSAGE
+	RETURN 0
+ENDIF
+
+;--------------------------------------------------
+;特定キャラが助手、主人時に特殊キャラ口上を呼び出す(Y1を特定キャラ、4518を奴隷のキャラ番号に置換）
+;--------------------------------------------------
+;IF NO:MASTER == Y1
+;	CALL KOJO_MESSAGE_COM_PY1_K4518
+;	RETURN 0
+;ENDIF
+;IF ASSI > 0 && ASSIPLAY
+;	IF NO:ASSI == Y1
+;		CALL KOJO_MESSAGE_COM_PY1_K4518
+;		RETURN 0
+;	ENDIF
+;ENDIF
+;頻度判定めんどすぎなので申し訳程度に機能残してばっさり
+;口上ないので、自動喘ぎに飛ばすようにしとく
+IF 陥落(TARGET)
+	IF RESULTS == "Affection"
+		;とりあえず、なしよりはいいだろうし暫定的に陥落前に飛ばしとく
+		;CALL KOJO_MESSAGE_COM_K4518_LOVE
+		CALL KOJO_MESSAGE_COM_K4518_BASE
+	ELSEIF RESULTS == "Lewd"
+		CALL KOJO_MESSAGE_COM_K4518_LEWD
+	ELSE
+		CALL KOJO_MESSAGE_COM_K4518_OBEY
+	ENDIF
+ELSE
+	CALL KOJO_MESSAGE_COM_K4518_BASE
+ENDIF
+@KOJO_MESSAGE_COM_K4518_BASE
+;-------------------------------------------------
+;コマンド実行時のセリフ
+;-------------------------------------------------
+;=================================================
+;愛撫系コマンド
+;=================================================
+;キスするまでキスさせないことに
+SELECTCASE TRAINNAME:SELECTCOM
+	CASE "愛撫"
+		;CALL TRAIN_MESSAGE
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			PRINTFORMW %CALLNAME:MASTER%を睨む%CALLNAME:TARGET%を組み伏せると、その体に手を伸ばした…
+			PRINTFORMW 「あっ…！　ちょっとどこ触ってるの！？」
+			PRINTFORMW 「バカっ！　エッチ！　変態っ！」
+		;2回目以降
+		ELSE
+			IF ABL:Ｃ感覚 + ABL:Ｂ感覚 > 4
+				IF MARK:屈服刻印 == 3
+					IF PLAY_KISS(PLAYER, TARGET) && RAND:2
+						IF RAND:2
+							PRINTFORMW キスをしながら、未発達な体を丹念に愛撫した……
+							PRINTFORMW 「ん…もっとキスして…すごくいいから…んんっ」
+						ELSE
+							PRINTFORMW %CALLNAME:MASTER%の唇を求める%CALLNAME:TARGET%にキスしてやりながら、優しく全身を愛撫した……
+							PRINTFORMW 「ん…ちゅ…はぁ…あぁ…ふわふわするよぉ…」
+						ENDIF
+					ELSEIF !RAND:3
+						PRINTFORMW %CALLNAME:MASTER%は笑みを浮かべると、%CALLNAME:TARGET%の敏感なところを優しく、丁寧に撫ぜてやった……
+						PRINTFORMW 「あ…はぁ、そこもっと…気持ちいいよぉ…ふぁぁ」
+					ELSEIF RAND:2
+						PRINTFORMW 期待に満ちた眼差しで%CALLNAME:MASTER%を見つめる%CALLNAME:TARGET%の体に手を伸ばした……
+						PRINTFORM 「んん…優しくて…あぁ、ご主人様ぁ…
+						CALL HEARTBW
+					ELSE
+						PRINTFORMW %CALLNAME:MASTER%にしっかりと抱きついてくる%CALLNAME:TARGET%の未発達な体を丹念に愛撫した……
+						PRINTFORMW 「ぁ…ん…もっと、もっと…いっぱいあかりを可愛がって…んん、ぁ…ふぁ…」
+						PRINTFORMW %CALLNAME:TARGET%はふれられるたびに、嬌声をあげ、さらに%CALLNAME:MASTER%にまわした腕の力を強めてくる……
+					ENDIF
+				ELSE
+					;キスをする場合
+					IF PLAY_KISS(PLAYER, TARGET) && GET_COMFLAG(GETNUM(TRAINNAME, "キスする"))
+						PRINTFORM キスをしながら
+					ENDIF
+					PRINTFORM %CALLNAME:TARGET%の
+					;小柄体型
+					SIF TALENT:100
+						PRINT 未発達な
+					;触手の有無で分岐
+					IF TEQUIP:25
+						PRINTW 体を触手が弄んでいる……
+					ELSE
+						PRINTW 体を丹念に愛撫した……
+					ENDIF
+					IF RAND:2
+						PRINTFORMW 「いや…そんなとこ触っちゃ…だめ…んん…ふぁ…」
+						PRINTFORMW はじめは拒もうとしていた%CALLNAME:TARGET%だが、撫でられるたびに力を失い、今ではなすがままだ……
+					ELSE
+						PRINTFORMW 「ん…く…気持ちよくなんかぁ、ぁん…」
+						PRINTFORMW 嬌声をあげる%CALLNAME:TARGET%の瞳、潤み、熱っぽい……
+					ENDIF
+				ENDIF
+			ELSE
+				IF MARK:屈服刻印 == 3
+					PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%の愛撫に大人しく身を委ねている…
+					IF !RAND:3
+						PRINTFORMW 「あっ、んっ…いまちょっとぴりって…」
+						PRINTFORMW 「なんだか…少し…怖い…」
+					ELSEIF RAND:2
+						PRINTFORMW 「あ…そんなところ…んっ…」
+					ELSE
+						PRINTFORMW 「んくっ…いっ…あ…続けて…」
+						PRINTFORMW 「なんだか、だんだんよくなってきたきがするから…」
+					ENDIF
+				ELSE
+					PRINTFORMW %CALLNAME:MASTER%を睨みつける%CALLNAME:TARGET%を組み伏せると、無理やり愛撫した……
+					IF !RAND:3
+						PRINTFORMW 「また、変なとこ触って！　変態！　死んじゃえ！」
+					ELSEIF RAND:2
+						PRINTFORMW 「くすぐったいし、気持ち悪いからやめてよっ！」
+					ELSE
+						PRINTFORMW 「こんなの気持よくなんてないんだから、はやくやめてよ！」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "クンニ"
+		CALL TRAIN_MESSAGE
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			PRINTFORMW 「えっ…なにするつもり！？」
+			PRINTFORMW 「やだっ…！　信じらんない！？」
+		ELSE
+			IF MARK:屈服刻印 == 3
+				IF ABL:Ｃ感覚 > 2
+					IF !RAND:3
+						PRINTFORM 「あっ、あっ、そこはぁ…
+						CALL HEARTBW
+						PRINTFORM 「気持良すぎておかしくなっちゃうよぉ
+						CALL HEARTBW
+					ELSEIF RAND:2
+						PRINTFORMW 「やっ…そんな音立てちゃ…んんっ…だめだよぉ…」
+					ELSE
+						PRINTFORMW 「そんなっ…がくがくしちゃう…あはっ…」
+						PRINTFORMW 「や、ほんとに…ふぁぁ…」
+					ENDIF
+				ELSE
+					IF !RAND:3
+						PRINTFORMW 「やっ…もうご主人様…やっぱりこれ恥ずかしいよ」
+					ELSEIF RAND:2
+						PRINTFORMW 「ん…あ…ふぅ、そんなになめられたらなんか変な気分に…」
+					ELSE
+						PRINTFORMW 「あぅ…こんなところ汚いのに……でも、ちょっと嬉しいかな…ふふ」
+					ENDIF
+				ENDIF
+			ELSE
+				IF ABL:Ｃ感覚 > 2
+					IF !RAND:3
+						PRINTFORMW 「あ…ふぁ、やだ…声がでちゃう…あっ…ん…」
+					ELSEIF RAND:2
+						PRINTFORMW 「こんなの…こんなの変態なのに…気持ち悪いのに…どうして…んんっ、あっ…ん…」
+					ELSE
+						PRINTFORMW 「やっ、だめぇ…こんなのおかしいよぉ…ひぁ…」
+					ENDIF
+				ELSE
+					IF !RAND:3
+						PRINTFORMW 「お願いだからやめてっ、こんなの恥ずかしくいよっ」
+					ELSEIF RAND:2
+						PRINTFORMW 「いやぁ、気持ち悪いよぉ…」
+					ELSE
+						PRINTFORMW 「なんで、こんなとこ舐めれるの？」
+						PRINTFORMW 「汚いのに、頭おかしいよっ」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "アナル愛撫", "アナル舐め"
+		CALL TRAIN_MESSAGE
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			IF TRAINNAME:SELECTCOM == "アナル愛撫"
+				IF GET_COMFLAG(GETNUM(TRAINNAME, "アナル愛撫")) || GET_COMFLAG(GETNUM(TRAINNAME, "アナルバイブ"))
+					PRINTFORMW 「う…、また…、え、今度は触るだけ…？」
+					PRINTFORMW 「それなら…っていやいや、おかしいよ！　やめてよ！」
+				ELSE
+					PRINTFORMW 「なにしようとしてるの？」
+					PRINTFORMW あかりは%CALLNAME:MASTER%が尻に手を伸ばすのでキョトンとしている
+					PRINTFORMW 「え、お尻…？　どーいうこ…いたっ…！」
+					PRINTFORMW 「やだっ、やめてよ！？　意味わかんないよ！」
+				ENDIF
+			ELSE
+				IF GET_COMFLAG(GETNUM(TRAINNAME, "アナル愛撫")) || GET_COMFLAG(GETNUM(TRAINNAME, "アナルバイブ"))
+					PRINTFORMW 「え…お尻？　またお尻になにかするの？」
+					PRINTFORMW 「え、舐める…？　うそでしょ？」
+					PRINTFORMW 「うそ、絶対嘘に決まってる！　そうでしょ！？　やだぁ！」
+				ELSE
+					PRINTFORMW 「なに！？…お尻の穴になにかが…」
+					PRINTFORMW 「もしかして、舐めたの！？」
+					PRINTFORMW 「まさかっ、そんなの、そんなのありえないよね…あっまたっ…やだぁ！」
+				ENDIF
+			ENDIF
+		ELSE
+			IF ABL:Ａ感覚 > 2
+				IF MARK:屈服刻印 == 3
+					IF RAND:2
+						IF TRAINNAME:SELECTCOM == "アナル愛撫"
+							IF RAND:2
+								PRINTFORMW 「なんでっ…、なんで、お尻ってこんなに気持ちいいのっ！？」
+								PRINTFORMW 「こんなの…全然知らなかったよ…ああっ！」
+							ELSE
+								PRINTFORMW 「あっ…ふぁ…ねぇ、なんで…そんなにうれしそうな顔するの？」
+								PRINTFORMW 「あかりがお尻いじられて、気持ちよくなってるのがそんなに嬉しいの？　あっ…んっ…」
+							ENDIF
+						ELSE
+							IF RAND:2
+								PRINTFORMW 「んっ…ねぇっ、なんでこんなところ舐めれるの？」
+								PRINTFORMW 「ん、嫌じゃないよ。ちょっとは嫌だけど…」
+								PRINTFORMW 「でも、なんだか舐めてくれるのが少し嬉しくて…あふっ」
+							ELSE
+								PRINTFORMW 「ねぇ…お尻の穴なんて汚いのに…舐めるの嫌じゃないの？」
+								PRINTFORMW 「ううん、嫌じゃないならいいんだけど…」
+							ENDIF
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「あぁ…いいよぉ…
+							CALL HEARTBW
+							PRINTFORMW 「ねぇ、もっともっとお願い…
+							CALL HEARTBW
+						ELSEIF RAND:2
+							PRINTFORMW 「こんなのやっぱりおかしいよぉ…」
+							PRINTFORMW 「でも、こんなにいいなら…おかしくても…ふぁぁ
+							CALL HEARTBW
+						ELSE
+							PRINTFORMW 「あっ…んんっ…ふぁっ…」
+							PRINTFORMW 「やめないでぇ。もっと激しくしてぇ…」
+						ENDIF
+					ENDIF
+				ELSE
+					IF RAND:4
+						IF TRAINNAME:SELECTCOM == "アナル愛撫"
+							PRINTFORMW 「やっ…そんなもぞもぞさせないで…」
+							PRINTFORMW 「なんか、変な気持ちになっちゃう…」
+						ELSE
+							PRINTFORMW 「ねぇっ、こんなところ舐めなくていいよぉ…」
+							PRINTFORMW 「そんなことされても嬉しくも気持よくもないからぁ」
+						ENDIF
+					ELSEIF !RAND:3
+						PRINTFORMW 「んくっ…ねぇ、こんなのやめてよぉ」
+						PRINTFORMW 「もっと他のことならしてもいいから…お願い」
+					ELSEIF RAND:2
+						PRINTFORMW 「んぐっ…お願い…もっと優しく…」
+					ELSE
+						PRINTFORMW 「あっ…んんっ、いまちょっとよかったかも…」
+						PRINTFORMW 「うん…もうちょっとなら続けてもいいよ…」
+					ENDIF
+				ENDIF
+			ELSE
+				IF ABL:Ａ感覚 > 2
+					IF RAND:4
+						IF TRAINNAME:SELECTCOM == "アナル愛撫"
+							PRINTFORMW 「うっ…んっ…ばかっこんなので気持ちよくならないよ…」
+							PRINTFORMW 「だから…そんな激しくしちゃ…ひぁっ…あっ…」
+						ELSE
+							PRINTFORMW 「こんなことしたって気持よくなんか…気持よくなんか…んぁっ…」
+							PRINTFORMW 「やだ…もうやめてよぉ…」
+						ENDIF
+					ELSEIF !RAND:3
+						PRINTFORMW 「やだっ！　やめてよぉ！」
+						PRINTFORMW 「あかり、これ以上おかしくされるのはいやだよぉ！」
+					ELSEIF RAND:2
+						PRINTFORMW 「あっ、んふっ…やだっ、なんで声が…」
+						PRINTFORMW 「やだ…こんなのやだよぉ」
+					ELSE
+						PRINTFORMW 「はぁ、んっ…違う。違うよ。今のは違うんだからっ…！」
+					ENDIF
+				ELSE
+					IF RAND:4
+						IF TRAINNAME:SELECTCOM == "アナル愛撫"
+							PRINTFORMW 「こんなの痛いし、気持ち悪いしっ…！」
+							PRINTFORMW 「絶対絶対許さないんだからっ！」
+						ELSE
+							PRINTFORMW 「なんでこんなところ舐めれる！？」
+							PRINTFORMW 「ばかっへんたいっしんじゃえっ！」
+						ENDIF
+					ELSEIF !RAND:3
+						PRINTFORMW 「またおしりを…へんたいっ、へんたいっ…！」
+						PRINTFORMW 「へんたいをうつさないでよっ！」
+					ELSEIF RAND:2
+						PRINTFORMW 「本気でこんなことして気持ちよくなると思ってるの！？」
+						PRINTFORMW 「こんなことしてないで病院にいきなよ！」
+					ELSE
+						PRINTFORMW 「やだよ…やめてよ！」
+						PRINTFORMW 「なんだかよくわからないけど、すっごくいやなんだからっ」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "胸愛撫", "乳首責め", "胸揉み"
+		CALL TRAIN_MESSAGE
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			PRINTFORML 「やだっ…！　ちょっと何するつもり！？」
+			PRINTFORMW %CALLNAME:TARGET%は胸を手で隠し、%CALLNAME:MASTER%から逃げようと後ずさる
+			PRINTFORMW %CALLNAME:MASTER%はそれを無理やり組み敷いて、胸に手を伸ばした…
+			PRINTFORMW 「やだっ、やだよっ。やめてよっ。こんな…」
+			CALL SET_COMFLAG(GETNUM(TRAINNAME, "胸愛撫"))
+			CALL SET_COMFLAG(GETNUM(TRAINNAME, "乳首責め"))
+			CALL SET_COMFLAG(GETNUM(TRAINNAME, "胸揉み"))
+		;2回目以降
+		ELSE
+			IF MARK:屈服刻印 == 3
+				IF ABL:Ｂ感覚 > 2
+					IF !RAND:3
+						IF TRAINNAME:SELECTCOM == "乳首責め"
+							PRINTFORMW 「だめ…乳首いじめちゃっ…ああっ…！」
+						ELSEIF TRAINNAME:SELECTCOM == "胸揉み"
+							PRINTFORMW 「こんなに小さいのに…揉んでて楽しい？」
+							PRINTFORMW 「なんていうか、その物足りなくない？」
+							PRINTFORMW 「あっ…ふぁ、そんな強く揉んじゃっ…や…ぁ…」
+						ELSE
+							PRINTFORMW 「ぁ…ん…そんな風にされたら、なんだか変な気分になっちゃ…あぁっ…」
+							PRINTFORMW あかりは喘ぎながら、熱っぽい目で胸をまさぐる%CALLNAME:MASTER%を見つめている…
+						ENDIF
+					ELSEIF RAND:2
+						PRINTFORMW 「胸すごく感じるよぉ…ん…はぁ…」
+					ELSE
+						PRINTFORMW 「あっ…んんっ、はぁ…」
+						PRINTFORMW 「もっと激しくてもいいからつづけて…」
+					ENDIF
+				ELSE
+					PRINTFORMW 「んっ…もう、こんな小さな胸なのに…」
+					PRINTFORMW 「あ…やめないで…ご主人様にこのまましてほしい……」
+				ENDIF
+			ELSE
+				IF ABL:Ｂ感覚 > 2
+					IF !RAND:3
+						IF TRAINNAME:SELECTCOM == "乳首責め"
+							PRINTFORMW 「あっ…だめっ…！　なんかぴりときてっ…んぁっ！」
+						ELSEIF TRAINNAME:SELECTCOM == "胸揉み"
+							PRINTFORMW 「ん…はぁ…」
+							PRINTFORMW %CALLNAME:TARGET%は目をトロンとさせ、されるがままになっている…
+						ELSE
+							PRINTFORMW 「や…ん…そんな優しく触られたら…んん…」
+						ENDIF
+					ELSEIF RAND:2
+						PRINTFORMW 「あふ…手つきがやらしすぎるよぉ…」
+					ELSE
+						PRINTFORMW 「こんなので気持よくなんか…あっ…んくっ…」
+					ENDIF
+				ELSE
+					IF !RAND:3
+						IF TRAINNAME:SELECTCOM == "乳首責め"
+							PRINTFORMW 「いたっ…乳首なんかつまんで何かんがえてるの！？」
+						ELSEIF TRAINNAME:SELECTCOM == "胸揉み"
+							PRINTFORMW 「……こんな小さな胸揉んで楽しいの？」
+						ELSE
+							PRINTFORMW 「……にやにやして、そんなに胸触れて嬉しいの？」
+						ENDIF
+					ELSEIF RAND:2
+						PRINTFORMW 「やだっ…！　触らないでよ…！」
+						PRINTFORMW 「あかりの胸はおまえなんかに触らせるためにあるんじゃないっ！」
+					ELSE
+						PRINTFORMW 「もしかして…小さいほうがいいとか…？」
+						PRINTFORMW 「……変態っ！　死ねっ！」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "自慰", "胸自慰"
+		;CALL TRAIN_MESSAGE
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			PRINTFORMW 自慰するように命じると%CALLNAME:TARGET%は目を白黒させた…
+			PRINTFORMW 「オナニー？」
+			PRINTFORMW 「し、知ってはいるけど、したことは……え、やってみせろって」
+			PRINTFORMW 「やだよ！　そんなことするのも恥ずかしいのに…！」
+			;淫乱ルート
+			IF MARK:屈服刻印 && GET_MARK_WAY(MARK:屈服刻印) == 2
+				PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%にオナニーの気持よさを説明してみた…
+				PRINTFORMW 「うー…そんなこと言われたって…」
+				PRINTFORMW 「でも、お前にされるくらいなら…」
+			;服従ルート
+			ELSEIF MARK:屈服刻印 && GET_MARK_WAY(MARK:屈服刻印) == 3
+				PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%に向かって、手をふりあげてみせた…
+				PRINTFORMW 「きゃっ…やめてよ…」
+				PRINTFORMW 「わかったよ。わかったから…だから…ね」
+			ELSE
+				PRINTFORMW 「うぅ…でも、やだっていっても聞いてくれないよね…」
+				PRINTFORMW 「……やるから、今日はもうひどいことしないでね」
+			ENDIF
+			PRINTFORMW あかりは覚悟を決めると、おずおずと自分を慰めはじめた…
+			CALL SET_COMFLAG(GETNUM(TRAINNAME, "胸自慰"))
+			CALL SET_COMFLAG(GETNUM(TRAINNAME, "自慰"))
+		ELSE
+			IF MARK:屈服刻印 == 3
+				IF !RAND:3
+					PRINTFORMW 「もう…またあかりが一人してるところがみたいの？」
+					PRINTFORMW 「……ほんと、恥ずかしいのに仕方ないなぁ」
+					PRINTFORMW %CALLNAME:TARGET%は嬉しそうに微笑むと、自分を慰め始めた…
+				ELSEIF RAND:2
+					PRINTFORMW 「ん…するのはいいけど…えっとその…」
+					PRINTFORMW 「あんまり見ないでね…」
+					PRINTFORML 「いや、見るのはわかってるけど…それでも…」
+					PRINTFORMW %CALLNAME:TARGET%はそういって恥ずかしそうに微笑むと、自分を慰め始めた…
+				ELSE
+					PRINTFORMW %CALLNAME:TARGET%は指示を受けると素直に自慰を始めた…
+					PRINTFORMW 「ん…くぅ…ん…はぁ…」
+					PRINTFORMW %CALLNAME:TARGET%は喘ぎながら、%CALLNAME:TARGET%に熱っぽい目視線を投げかけている…
+				ENDIF
+			ELSE
+				;欲望でみてみることに
+				IF ABL:欲望 > 2
+					IF !RAND:3
+						PRINTFORMW 「ふん、お前にやられるぐらいなら、自分でしたほうがましだもん」
+						PRINTFORMW %CALLNAME:TARGET%はそう言って舌を出すと自慰を始めた…
+					ELSEIF RAND:2
+						CALL TRAIN_MESSAGE
+						PRINTFORMW 「ん…はぁ…ふぁ…んんっ…」
+						PRINTFORMW %CALLNAME:TARGET%は最初こそ、%CALLNAME:MASTER%の視線を気にしてたが、
+						PRINTFORMW すぐに自慰に没頭し、快楽を貪欲に貪っている…
+					ELSE
+						CALL TRAIN_MESSAGE
+						PRINTFORMW 「あっ…んんっ…ん…はぁ…」
+						PRINTFORMW %CALLNAME:TARGET%は自分を慰めながら物欲しそうな目で%CALLNAME:MASTER%を見ている…
+					ENDIF
+				ELSE
+					CALL TRAIN_MESSAGE
+					IF RAND:2
+						PRINTFORMW 「…女の子にこんなことさせるなんてほんと最低」
+						PRINTFORMW 「死んじゃえばいいのに…」
+					ELSE
+						PRINTFORMW 「…あかりは正義の味方なのに」
+						PRINTFORMW 「よりによってこんな……もう嫌……」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+;=================================================
+;コミュニケーション系コマンド
+;=================================================
+;実際は愛撫でまずキスされてんだけど
+	CASE "キスする"
+		;CALL TRAIN_MESSAGE
+		IF !GET_COMFLAG(SELECTCOM)
+			IF MARK:屈服刻印 == 3
+				PRINTFORML 「え…キス…？　う…うん…いいよ…んっ…えっ…あっ！」
+				PRINTFORMW 大人しくキスを受け入れた%CALLNAME:TARGET%であったが、舌を差し入れると急に顔を離した…
+				PRINTFORMW 「い、いま、なんかにゅって…え、キスって舌をいれるものなの？」
+				PRINTFORMW 「うん、わかった。今度は大丈夫だから、続きを…んんっ…ちゅ…ん…」
+			ELSE
+				PRINTFORML 「え…まさか…や、やめてよっ…んんっ…！」
+				PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%をひきはがそうと腕に力をこめる
+				PRINTFORML 「んっ…んんーっ…んっ…ぷはぁ…」
+				PRINTFORMW しかし、%CALLNAME:MASTER%を引きはがせるわけもなく、いいようにされやっと解放された
+				PRINTFORML 「……うぐ」
+				PRINTFORMW %CALLNAME:TARGET%は文句をいうのも忘れ，目に涙を浮かべている…
+			ENDIF
+		ELSE
+			IF MARK:屈服刻印 == 3
+				IF !RAND:3
+					PRINTFORMW %CALLNAME:TARGET%の口腔を隅々まで舐め回すと、%CALLNAME:TARGET%も積極的に舌を絡めてきた……
+					PRINTFORML 「ん…ちゅ…んん、ぷはぁ…」
+					PRINTFORMW 唇を離すと、%CALLNAME:TARGET%は頬を紅潮させ、%CALLNAME:MASTER%を見つめてくる…
+					PRINTFORMW 「ね、ぎゅっとして、なんだかこうしてるとすごく抱きしめて欲しくなるの…」
+					PRINTFORMW 「で、それからまたキスして…いいでしょ…んんっ…」
+				ELSEIF RAND:2
+					PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%としっかり舌を絡めあうと、長いキスをした…
+					PRINTFORMW 「ん…んんっ…ちゅ…はぁ、あっ…やめちゃやだ…もっとしようよ…んんっ…ん…」
+				ELSE
+					PRINTFORMW 唇を合わせると、さっそく%CALLNAME:TARGET%が舌をさし込んできた……
+					PRINTFORMW %CALLNAME:MASTER%はそれを舌で絡めとり、優しく愛撫してやった……
+					PRINTFORMW 「くぅ…ん、ちゅ…ちゅる…ぷはぁ…」
+					PRINTFORMW 「はぁ…すごい。キスでこんなに気持よくなれるんだ…」
+				ENDIF
+			ELSE
+				IF ABL:従順 > 2
+					PRINTFORMW %CALLNAME:MASTER%が舌をさしいれると、%CALLNAME:TARGET%もおずおずと舌を絡ませてきた…
+					IF RAND:2
+						PRINTFORMW 「んっ…んぁ、ん…はぁ…もう…終わり？」
+						PRINTFORMW あかりの目はとろんとしている…
+					ELSE
+						PRINTFORMW 「あふ…、こんなに必死にべろべろとあかりの口の中をなめまわして…美味しいの？」
+					ENDIF
+				ELSE
+					PRINTFORMW %CALLNAME:MASTER%をきっと睨む%CALLNAME:TARGET%を無理やり抱き寄せてキスをした…
+					IF RAND:3
+						PRINTFORMW 「ん…ぐぐっ…んっ…ぷはぁ」
+						PRINTFORMW 「そんなにあかりとキスできて嬉しいの？　変態っ、ロリコンっ！」
+					ELSEIF RAND:2
+						PRINTFORMW 「あぅ…キスされるだけでも嫌なのに、なんで唾なんか飲ませられるの…」
+					ELSE
+						PRINTFORMW 「うげぇ…また，舌いれられた…気持ち悪い…」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+;=================================================
+;道具使用コマンド
+;=================================================
+
+;=================================================
+;セックス系コマンド
+;=================================================
+	CASE "正常位", "後背位", "対面座位", "背面座位", "騎乗位"
+		CALL TRAIN_MESSAGE
+		IF TALENT:処女
+			IF MARK:屈服刻印 == 3
+				IF TRAINNAME:SELECTCOM == "騎乗位"
+					PRINTFORMW 「あぅ…覚悟はできてたけど…、ほんとにしなきゃだめ…？」
+					PRINTFORMW 「……その初めてくらいは優しくしてほしいなぁって」
+					PRINTFORMW 「うん、でもご主人様がそうして欲しいっていうなら頑張る」
+					PRINTFORMW %CALLNAME:TARGET%はそう言って覚悟を決めると、自ら%CALLNAME:MASTER%の上に腰を降ろした…
+				ELSE
+					PRINTFORMW 「うん…覚悟はできてたよ」
+					PRINTFORMW 「でも、やっぱり怖いよ…ご主人様…」
+					PRINTFORMW 「ね、あかりも頑張るけど、優しくしてね…」
+					PRINTFORMW そう言うと、%CALLNAME:TARGET%は身を強ばらせながらも、%CALLNAME:MASTER%に体を委ねてきた…
+				ENDIF
+			ELSE
+				IF TRAINNAME:SELECTCOM == "騎乗位"
+					PRINTFORMW 「え…、自分から入れろって…」
+					PRINTFORMW 「そ、そんなことできるわけないよ！」
+					PRINTFORMW 「ね、冗談でしょ？」
+					PRINTFORMW %CALLNAME:TARGET%は涙をにじませ、尋ねるが%CALLNAME:MASTER%は冷たく首を振った…
+					PRINTFORMW 「あぅ…こんなの…やだ…、もっと素敵な…うぅぐす…」
+					PRINTFORMW %CALLNAME:TARGET%は逆らっても無駄なことを悟ると泣きながら、命令に従った…、
+				ELSE
+					PRINTFORMW 「え、まさか…」
+					PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%のただならぬ様子に怯えている
+					PRINTFORMW 「あ、あかりはまだ子供だよ。ね、無理だよ…」
+					PRINTFORMW 「お願い、もう生意気言わないし、なんでもいうこと聞くから、やめて！」
+					PRINTFORMW %CALLNAME:TARGET%は涙を浮かべ懇願してくるが、%CALLNAME:MASTER%は構わない…
+					PRINTFORMW 「やだよぉ…あっ…うぐっ…」
+				ENDIF
+			ENDIF
+		;初回
+		ELSEIF !GET_COMFLAG(SELECTCOM)
+			IF TRAINNAME:SELECTCOM == "正常位"
+				IF MARK:屈服刻印 == 3
+					PRINTFORMW 「ん、これ、いいね…ご主人様がみえて安心できるよ」
+					PRINTFORMW 「うん、このままあかりを一杯かわいがって…」
+				ELSE
+					PRINTFORMW 「好きなようにしたら」
+					PRINTFORMW 「どうせあかりじゃ、あんたをどうにもできないんだから」
+					PRINTFORMW %CALLNAME:TARGET%は投げやりな様子で%CALLNAME:MASTER%を受け入れた…
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "後背位"
+				IF MARK:屈服刻印 == 3
+					PRINTFORMW 「え、四つん這いにって…こう？」
+					PRINTFORMW 「あぅ…恥ずかしいけど…なにを…ひゃ！？」
+					PRINTFORML 「だ、だめだよぉ。こんな格好で…あっ、ふぁっ」
+					PRINTFORML %CALLNAME:TARGET%はびっくりしてもがいたが、%CALLNAME:MASTER%が抑えつけ、
+					PRINTFORMW 腰を動かし始めると、行為を受けいれ、おとなしくなった…
+				ELSE
+					PRINTFORMW 「やだっ、やめてよっ！」
+					PRINTFORMW 「こんな格好でなんて！」
+					PRINTFORMW 「せめて、もっと普通に優しくしてよ！」
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "対面座位"
+				IF MARK:屈服刻印 == 3
+					PRINTFORM 「ん…
+					CALL HEARTBW
+					PRINTFORMW %CALLNAME:TARGET%はじゃれつくように%CALLNAME:MASTER%の胸に顔をすりつけている…
+					PRINTFORMW 「えへ…中も外もぴったりくっついて、楽しいね…あんっ」
+					PRINTFORMW 嬉しそうにそう言う%CALLNAME:TARGET%に、%CALLNAME:MASTER%は腰を揺らして答えてやった
+				ELSE
+					PRINTFORMW 「え、抱き合ってするって、やだよ！」
+					PRINTFORMW 「あかりはあんたなんかと抱き合いたくなんかないんだから」
+					PRINTFORML 「あ、ちょっとやめっ！」
+					PRINTFORMW %CALLNAME:MASTER%は嫌がる%CALLNAME:TARGET%を無理やり抱き寄せ、座らせた…
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "背面座位"
+				IF MARK:屈服刻印 == 3
+					PRINTFORMW 「えっと、ここに座るのね。わかった」
+					PRINTFORML 「で、これでどうするの？　ご主人様も見えないし、動きにくいし、なんだかいまいち…」
+					PRINTFORMW %CALLNAME:TARGET%がそう不満そうに呟いたので、胸に手を伸ばして、少々乱暴にまさぐってやる
+					PRINTFORML 「きゃっ、あふ…ん…」
+					PRINTFORMW 気持よさそうに声を出すので、続けて腰の方も動かしてやる…
+					PRINTFORM 「あっ…んんっ、ふぁ…、こんな…やっぱりご主人様、えっちだよぉ…
+					CALL HEARTBW
+				ELSE
+					PRINTFORML 「う…座ったけど…」
+					PRINTFORMW %CALLNAME:TARGET%は体を硬くしている…
+					PRINTFORMW %CALLNAME:MASTER%はそんな%CALLNAME:TARGET%の胸に手を伸ばし、腰を揺らし始める…
+					PRINTFORMW 「あ…やっぱり…どうせこういうえっちなことすると思ってたんだっ」
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "騎乗位"
+				IF MARK:屈服刻印 == 3
+					PRINTFORMW 「うん、わかった。これであかりが動けばいいんだよね？」
+					PRINTFORMW 「ふふ、それじゃあ、任せといて、あかり頑張ってご主人様を気持よくするよ」
+					PRINTFORMW %CALLNAME:TARGET%は笑みを浮かべ、腰を振り始めた…
+				ELSE
+					PRINTFORMW 「動くのはわかったけど…うー…」
+					PRINTFORMW 「あーもういいや、どうとでもなれ」
+					PRINTFORMW %CALLNAME:TARGET%はヤケクソ気味に、腰を振り始めた…
+				ENDIF
+			ENDIF
+		ELSE
+			IF TRAINNAME:SELECTCOM == "正常位"
+				IF MARK:屈服刻印 == 3
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「もっと、もっとっいっぱい突いてぇ」
+							PRINTFORMW 「すごく、気持ちいいからぁ！」
+						ELSEIF RAND:2
+							PRINTFORMW 「んんっ…はぁ…すごく気持よくて…」
+							PRINTFORMW 「それになんだか幸せ…ふぁっ…」
+						ELSE
+							PRINTFORMW 「あかりも頑張るね…」
+							PRINTFORMW 「ご主人様に気持ちよくなってほしいから…」
+							PRINTFORML %CALLNAME:TARGET%は、突き込みにあわせて、
+							PRINTFORMW 腰をくねらせ、必死に気持よくさせようとしている…
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「ん…くぅ…はぁ…なんだか胸があったかいよぉ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「はぁ、なんかこういうふうにされるのって安心できる」
+							PRINTFORMW 「やっぱり、ご主人様の顔が見れるからかな…？」
+							PRINTFORMW そう言って、%CALLNAME:TARGET%は微笑んだ…
+						ELSE
+							PRINTFORMW 「そ、その、あんまり激しくしないで……」
+							PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%を大人しく受け入れてはいるものの、その表情は少し硬い…
+						ENDIF
+					ENDIF
+				ELSE
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「やぁ、おかしいよぉ。なんでこんなやつにこんなことされてるのに…ひぁっ…ん…」
+						ELSEIF RAND:2
+							PRINTFORMW 「あ、だめぇ…そんな優しくされたら…あぁっ…」
+						ELSE
+							PRINTFORMW 「んん…あっ、もっとぉ……ふぁっ……」
+							PRINTFORMW %CALLNAME:TARGET%は快感のあまり、自分が甘えた声をだしていることにも気づいていないようだ…
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「ぐ…うっ…」
+							PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%と目があわないように顔を背けている…
+						ELSEIF RAND:2
+							PRINTFORMW 「くそっ、離せぇっ…」
+							PRINTFORMW 「お前なんかにっ…！」
+							PRINTFORMW %CALLNAME:TARGET%は抑えつけから逃れようともがいている…
+						ELSE
+							PRINTFORMW 「……にやにやして、気持ち悪い」
+							PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%を憎々しげに睨んでいる。
+						ENDIF
+					ENDIF
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "後背位"
+				IF MARK:屈服刻印 == 3
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「ん…くぅ、奥に当たって…はぁっ…いいよぉ…」
+						ELSEIF RAND:2
+							PRINTFORM 「やぁ、だめぇ…
+							CALL HEARTBW
+							PRINTFORM 「こんなに激しすぎてぇ…
+							CALL HEARTBW
+						ELSE
+							PRINTFORMW 「……もっと、もっとおもいっきり激しくしてぇ」
+							PRINTFORMW 「すっごく感じちゃうからぁ！」
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「ん…なんかこれ、変態チックだよね…」
+						ELSEIF RAND:2
+							PRINTFORMW 「また、これ…？　まぁご主人様がしたいんならいいんだけど…」
+						ELSE
+							PRINTFORMW 「あう…嫌じゃないけど…、やっぱり、これ恥ずかしいよ」
+						ENDIF
+					ENDIF
+				ELSE
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「ふぁ…あかり、犬じゃない…のに…くぅっ、んっ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「やっ…奥に当たって…んんっ…！」
+						ELSE
+							PRINTFORMW 「あっ…はぁっ…んっくぅ…うん…」
+							PRINTFORMW %CALLNAME:TARGET%はシーツを掴み、必死に喘ぎ声を押し殺そうとしている…
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「やっぱり、やだっ！　こんなのっ…あぅっ、うぐっ…」
+							PRINTFORMW %CALLNAME:MASTER%は暴れる%CALLNAME:TARGET%を無理やり抑えつけ、犯し続けた…
+						ELSEIF RAND:2
+							PRINTFORMW 「ふざけないでよっ！」
+							PRINTFORMW 「こんなの犬みたいな格好させて何が楽しいのっ！？」
+						ELSE
+							PRINTFORMW 「やだっ！　これっ、なんかこわいよぉっ！」
+						ENDIF
+					ENDIF
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "対面座位"
+				IF MARK:屈服刻印 == 3
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3 && PLAY_KISS(PLAYER, TARGET) && GET_COMFLAG(GETNUM(TRAINNAME, "キスする"))
+							PRINTFORMW 「んんっ…ちゅ…ふぁ、すごい。とろけちゃう…」
+							PRINTFORMW 「ね、もっとキスしよ…あかり、もっともっととろけたいよぉ…んちゅ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「ねぇっ、ぎゅっとしてっ…痛いくらいにお願いっ…！」
+							PRINTFORMW 「もっともっと、ご主人様を感じたいのっ！」
+						ELSE
+							PRINTFORMW 「ん、あかりも頑張って動くから…って、んんっ…ああっ」
+							PRINTFORMW 「や、そんな、激しくしちゃっ…ふぁっ…あかり動けなっちゃうよぉ…」
+						ENDIF
+					ELSE
+						IF !RAND:3 && PLAY_KISS(PLAYER, TARGET) && GET_COMFLAG(GETNUM(TRAINNAME, "キスする"))
+							PRINTFORMW 「んっ…ちゅ、ちゅぷ…は…ん…」
+							PRINTFORML %CALLNAME:MASTER%が少し、俯いて頭を下げると
+							PRINTFORMW %CALLNAME:TARGET%は背を伸ばし、激しく唇に吸いついてきた…
+						ELSEIF RAND:2
+							PRINTFORMW 「んっ…お願い、しっかり抱きしめて…あったかくて気持いいから…」
+						ELSE
+							PRINTFORMW 「んんっ…あっ…んっ…」
+							PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%にしっかりと抱きつき、胸に顔をうずめている…
+							PRINTFORMW 苦しそうに吐き出される吐息がこそばゆい…
+						ENDIF
+					ENDIF
+				ELSE
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3 && PLAY_KISS(PLAYER, TARGET) && GET_COMFLAG(GETNUM(TRAINNAME, "キスする"))
+							PRINTFORMW 「ふぁっ、やっ…んんっ…ちゅっ…」
+							PRINTFORMW 「ぷはっ…だめ、口の中までおかさ…んんっ…ちゅ…あっ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「んっ、あっ、こ、こっちを見るなっ…！」
+							PRINTFORMW 「あかり、気持よくなってなんかぁっ…！」
+							PRINTFORMW %CALLNAME:TARGET%はそういって、%CALLNAME:MASTER%から顔を反らせている…
+						ELSE
+							PRINTFORMW 「あっ…ふぁっ、や、そんなずんずんしちゃっ…あふぅ」
+							PRINTFORMW %CALLNAME:TARGET%は力が、喘ぎながら%CALLNAME:MASTER%にしがみついてきた…
+						ENDIF
+					ELSE
+						IF !RAND:3 && PLAY_KISS(PLAYER, TARGET) && GET_COMFLAG(GETNUM(TRAINNAME, "キスする"))
+							PRINTFORMW 「あっ…ちょっと、やだっ、やめてっ…ん…ちゅ…」
+							PRINTFORMW 「んんッ…はぁっ、こんなことして、キスまでして…！」
+						ELSEIF RAND:2
+							PRINTFORMW 「ぐっ…んっ…」
+							PRINTFORMW %CALLNAME:TARGET%を俯き、%CALLNAME:MASTER%の顔を見ないようにしている…
+						ELSE
+							PRINTFORMW 「うー、ひっつくな！　気持ち悪いっ！」
+						ENDIF
+					ENDIF
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "背面座位"
+				IF MARK:屈服刻印 == 3
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「んぅ……あっ……もっといっぱい…激しくっ…」
+							PRINTFORMW 「ご主人さまぁ、このままあかりをいっぱい気持よくしてぇっ…！」
+						ELSEIF RAND:2
+							PRINTFORML 「やん、またそんなところ…ご主人様えっちすぎるよぉ…
+							CALL HEARTBW
+							PRINTFORML 「そんなにされたら、あかり…また…ふぁぁ…
+							CALL HEARTBW
+						ELSE
+							PRINTFORMW 「ん…あったかい…それにどきどきしてるのがわかる…」
+							PRINTFORMW 「あかりもこれすきだから…このまま気持よくして…んふっ」
+							PRINTFORMW %CALLNAME:TARGET%は背中をぴったりと押し付け、微笑みかけてきた
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「う…くぅ…くるし…けど…」
+							PRINTFORMW 「大丈夫だから、ご主人様の思うとおりに…んくっ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「……これってだっこだよね？」
+							PRINTFORMW 「なんか、子供になっちゃったみたい、こんなえっちなことしてるのに…ちょっと変な気分…」
+						ELSE
+							PRINTFORMW 「……ん……はぁ、すごいなぁ」
+							PRINTFORMW 「あ、いや、大きいのがしっかりとはいるんだなぁって」
+							PRINTFORMW %CALLNAME:TARGET%はそう言って、結合部をしげしげと眺めている
+						ENDIF
+					ENDIF
+				ELSE
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「んんっ、そんな色んなところさわられたらっ、あっ…！」
+							PRINTFORMW 愛撫するたびに%CALLNAME:TARGET%のヴァギナはペニスを強く絞めつけてくる…
+							PRINTFORMW 「いやっ、中で大きくっ…んんっ、あぁっ！」
+						ELSEIF RAND:2
+							PRINTFORMW 「くぅ、ら、乱暴にしないでっ…」
+							PRINTFORMW 「や、そんなっ、だめぇ！」
+						ELSE
+							PRINTFORMW 「ひゃっ、そんな突き上げないでっ！」
+							PRINTFORMW 「ふぁっ、いじらないでっ、だめっ、だめだよぉ！　ひぁぁ！」
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「あぅっ…こんなふうにあかりをいじくりまわして面白いの！？」
+							PRINTFORMW 「あんたみたいなへんたい、死んじゃえばいいのにっ！」
+						ELSEIF RAND:2
+							PRINTFORMW 「や、ちょっと…！　どこ触って！」
+							PRINTFORMW 「ばか！　えっち！　すけべっ！」
+						ELSE
+							PRINTFORMW 「は…ぅ…くるし……」
+							PRINTFORMW 「うぁっ…どこ触って…！」
+						ENDIF
+					ENDIF
+				ENDIF
+			ELSEIF TRAINNAME:SELECTCOM == "騎乗位"
+				IF MARK:屈服刻印 == 3
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「んふ、こうしてご主人様を見下ろすのってなんだか気持ちいい」
+							PRINTFORM 「このまま、あかりが気持よくしてあげるね…
+							CALL HEARTBW
+						ELSEIF RAND:2
+							PRINTFORMW 「あっ、ふぁっ、やっぱりすごくいいよぉ…」
+							PRINTFORMW 「ねぇっ、ご主人様も、一緒に気持ちよくなってぇ！」
+						ELSE
+							PRINTFORMW 「や…あぁ…そんなつきあげちゃだめだよぉ」
+							PRINTFORMW 「あかりがご主人様を犯してあげたいのにぃ、ふぁ、ぁぁ」
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「んんっ、あっ…ご主人様のが大きく…」
+							PRINTFORM 「感じてくれてるんだぁ…
+							CALL HEARTBW
+						ELSEIF RAND:2
+							PRINTFORMW 「くぅ…ん…はぁ、はいったぁ…」
+							PRINTFORMW 「それじゃあ、いっぱい動くから、覚悟してねっ」
+						ELSE
+							PRINTFORMW 「ん…頑張るから、気持ちよくなってくれると嬉しいな…」
+						ENDIF
+					ENDIF
+				ELSE
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「やっ、またおおきくっ…！」
+							PRINTFORMW 「なんでこんな、んくっ、あぁっ…！」
+						ELSEIF RAND:2
+							PRINTFORMW 「ひぁっ…そんなっ、つきあげちゃだめっ」
+							PRINTFORMW 「あかりまで…はぁ…んんっ…！」
+						ELSE
+							PRINTFORMW 「んっ…はぁ…楽しんでなんかっ…」
+							PRINTFORMW 「ただ、早く終わらせたいから頑張ってるだけで、ふぁっ…」
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「ぐ……ニヤニヤ笑って…」
+							PRINTFORMW 「こんなことさせてっ、そんなに楽しいっていうのっ…！」
+						ELSEIF RAND:2
+							PRINTFORMW 「ん、ひぅ…やっぱり苦しい…」
+							PRINTFORMW 「う…わかってるよ。やらなきゃいけないんでしょ…く…ん…」
+						ELSE
+							PRINTFORMW 「あっ…う…持よくしてやりたくなんかないのにっ…！」
+							PRINTFORMW 「ちくしょう…ちくしょうっ…」
+							PRINTFORMW %CALLNAME:TARGET%は悔しそうに呟きながら腰をふっている…
+						ENDIF
+					ENDIF
+				ENDIF
+			;共通
+			ELSE
+				IF MARK:屈服刻印 == 3
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「んっ…あっ…もっとぉ…もっと欲しいよぉ」
+						ELSEIF RAND:2
+							PRINTFORMW 「あっ…んっ…すごいっ…ご主人様のすごいよぉっ」
+						ELSE
+							PRINTFORMW 「ご主人様ぁ。いっぱいしてぇ」
+							PRINTFORMW 「あかりもがんばるからぁ」
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「あ…う…ご主人様、お願い優しくして…」
+							PRINTFORMW 「そうしたら、あかりもよくなれそうな気がするから…んっ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「ん…く…ふぅ…」
+							PRINTFORMW あかりは目を瞑り、息を殺して、じっと耐えている……
+						ELSE
+							PRINTFORMW 「ん…ぐぅ…くるし…あんまり激しくしないで…」
+							PRINTFORMW 「あかりもがんばるから…」
+						ENDIF
+					ENDIF
+				ELSE
+					IF ABL:Ｖ感覚 > 2
+						IF !RAND:3
+							PRINTFORMW 「あっ…ひぁっ、なんでっ、こんなの嫌なのに…嫌なはずなのにっ…はぁっ…」
+						ELSEIF RAND:2
+							PRINTFORMW 「だめ…だめだよ…あかりはまだ子供なんだから…」
+							PRINTFORMW 「こんな、こんなの…ふぁ…ぁん…」
+						ELSE
+							PRINTFORMW 「あ…ふぁ…だめ、こんなにされたら…」
+							PRINTFORMW 「なんだか、ふぁっとして…あぁっ…」
+						ENDIF
+					ELSE
+						IF !RAND:3
+							PRINTFORMW 「う…ぐ…苦しいよぉ…もうやめてよぉ。お願い…」
+						ELSEIF RAND:2
+							PRINTFORMW 「あかりはこんなことしたくないのに…」
+							PRINTFORMW 「ぜったい、ぜったい、許さないんだから」
+						ELSE
+							PRINTFORMW 「お願い、もうやめてよぉ……」
+							PRINTFORMW 「あかり、こんなの嫌だよぉ……」
+						ENDIF
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+;=================================================
+;奉仕系コマンド
+;=================================================
+	CASE "手淫"
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			IF MARK:屈服刻印 == 3
+				PRINTFORMW %CALLNAME:TARGET%はおずおずと%CALLNAME:MASTER%の股間へと手を伸ばした…
+				PRINTFORMW 「あ、びくって…さわられるだけでも、感じてるの？」
+				PRINTFORMW 「ふーん、そうなんだ。それじゃあ、こすってあげたらもっといいってことだよね」
+				PRINTFORMW 「ふふ、あかり、頑張るね！」
+			ELSE
+				PRINTFORMW 「こんなの…さわるのなんて嫌だよ……っていっても聞いてくれないんだよね…はぁ…」
+				PRINTFORMW %CALLNAME:TARGET%は溜息をつくと、恐る恐る%CALLNAME:MASTER%の股間へと手を伸ばした…
+				PRINTFORMW 「きゃっ！？」
+				PRINTFORMW 触れられたペニスが跳ねるのを見て、%CALLNAME:TARGET%は慌てて、手をひっこめる
+				PRINTFORMW 「はぁ、びっくりした…もう動くなら動くっていってよ。もう…」
+			ENDIF
+		ELSE
+			CALL TRAIN_MESSAGE
+			IF MARK:屈服刻印 == 3
+				IF ABL:奉仕精神 > 2
+					IF !RAND:3
+						PRINTFORMW 「ねぇ…ご主人様もあかりにさわってもらうほうが気持ちいいの？」
+						PRINTFORMW 「そうだったら、嬉しいな…」
+					ELSEIF RAND:2
+						PRINTFORMW 「ふふ、もうご主人様のがちがちだよ」
+						PRINTFORMW 「これって、期待してくれてるってことだよね？」
+						PRINTFORMW 「んふ、あかり、がんばっちゃうよ」
+					ELSE
+						PRINTFORMW 「ここをこうするのがいいんだよね？」
+						PRINTFORMW 「ぴくぴく跳ねるからすぐわかるよ」
+						PRINTFORMW 「ほんと、この子可愛いね…」
+					ENDIF
+				ELSE
+					IF !RAND:3
+						PRINTFORMW 「ふふ、さわってあげるとぴくぴく動いておもしろい」
+						PRINTFORMW 「ご主人様もさわられると、感じちゃうんだね」
+					ELSEIF RAND:2
+						PRINTFORMW 「かちかちではちきれちゃいそうで、苦しそう…」
+						PRINTFORMW 「がんばってすっきりさせるね……」
+					ELSE
+						PRINTFORMW 「ん…、うまくできてるのかな？」
+						PRINTFORMW 「あかり、上手になりたいから、だめだったら遠慮無く言ってね」
+					ENDIF
+				ENDIF
+			ELSE
+				IF !RAND:3
+					PRINTFORMW 「こんなのあかりがやらなくても…自分で出来るのに…」
+					PRINTFORMW 「なんでわざわざあかりにやらせるかなぁ…」
+				ELSEIF RAND:2
+					PRINTFORMW 「また、ぴくって……もう、大人しくしててよ……気持ち悪い……」
+				ELSE
+					PRINTFORMW 「……」
+					PRINTFORMW %CALLNAME:TARGET%は黙々とペニスを扱いている……
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "フェラチオ"
+		;初回
+		IF !EXP:フェラ経験
+			IF MARK:屈服刻印 == 3
+				PRINTFORMW 「え、口で？」
+				PRINTFORMW %CALLNAME:TARGET%は指示を聞いて、目を白黒させた
+				PRINTFORMW 「……うん、わかった。気持いいんだよね？」
+				PRINTFORMW そして、%CALLNAME:MASTER%の目を覗きこみ、小さく頷き、承諾した…
+				PRINTFORMW 「そ、それじゃあ、いただきます…でいいのかな？」
+				PRINTFORMW %CALLNAME:TARGET%は恐る恐るペニスを口に含むが、その目に嫌悪の色はない…
+			ELSE
+				PRINTFORMW 「え、口で？」
+				PRINTFORMW %CALLNAME:TARGET%は指示を聞いて、目を白黒させた
+				PRINTFORML あまりのことに、何を言われたのかちょっと理解できなかったようだが、
+				PRINTFORMW 気を取り直すと、慌てて、食って掛かってきた……
+				PRINTFORMW 「ば、ばかじゃないの！？　そんなの舐めろってっ！？」
+				PRINTFORMW 「さすがに冗談で、まさか本気じゃないよね…！？」
+				PRINTFORMW %CALLNAME:MASTER%は首を振り、再度、しっかりと指示を伝えた…
+				PRINTFORMW 「うぅ……ほんとにやらなきゃいけないの……？」
+				PRINTFORMW %CALLNAME:TARGET%はもう怒るのを忘れて、涙目で%CALLNAME:MASTER%を見つめた……
+				PRINTFORMW 「……病気になったりしないよね。はむ……」
+				PRINTFORML そして、%CALLNAME:MASTER%が指示を撤回しそうにないことを
+				PRINTFORMW 見て取ると諦めて、ペニスを口に含んだ…
+			ENDIF
+		ELSE
+			CALL TRAIN_MESSAGE
+			IF MARK:屈服刻印 == 3
+				IF ABL:奉仕精神 > 2
+					IF !RAND:3
+						PRINTFORMW 「ちゅ…ん、ふ、んんっ…ふぅ…」
+						PRINTFORMW %CALLNAME:TARGET%は熱心にペニスを舐めまわしながら、ねだるような目で%CALLNAME:MASTER%を見つめている…
+						PRINTFORMW %CALLNAME:MASTER%が少し苦笑しながら、頭を撫でてやると、%CALLNAME:TARGET%は嬉しそうに目を細めた…
+					ELSEIF RAND:2
+						PRINTFORMW 「あかり、口でするのも好きだよ」
+						PRINTFORM 「頑張ってるときに、上を見ると、ご主人様が可愛い顔してるのが見えるから…
+						CALL HEARTBW
+					ELSE
+						PRINTFORMW 「ふふ、今日も元気だね」
+						PRINTFORMW 「じゃあ、今からあかりがいっぱいいっぱい可愛がってあげる…んっ…じゅる…」
+					ENDIF
+				ELSE
+					IF !RAND:3
+						PRINTFORMW 「そうだ。上手く出来たら、頭を撫でてよ」
+						PRINTFORMW 「あかり、がんばるからいいでしょ。ふふ」
+					ELSEIF RAND:2
+						PRINTFORMW 「もう、こんなことさせたがるって絶対変態だよね」
+						PRINTFORMW 「でも、いいよ…あかり、ご主人様のためなら嫌じゃないから…はむ…ん…」
+					ELSE
+						PRINTFORMW 「ん…じゅぷ…んっ…」
+						PRINTFORMW 熱心にペニスを愛撫する%CALLNAME:TARGET%の頭を軽く撫でてやる…
+						PRINTFORMW すると、%CALLNAME:TARGET%は微かに体を震わせ、より一層に熱心に愛撫を続けた…
+					ENDIF
+				ENDIF
+			ELSE
+				IF !RAND:3
+					PRINTFORMW 「……ぷ、はぁ、気持よさそうな顔して」
+					PRINTFORMW 「あかり、こんなことに慣れるの嫌だよ……」
+				ELSEIF RAND:2
+					PRINTFORMW 「ん…ぷは…まだ…？　疲れてきたよ……」
+				ELSE
+					PRINTFORMW 「う……くそぅ……」
+					PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:MASTER%を睨みつけると、嫌そうにペニスを口に含んだ…
+				ENDIF
+			ENDIF
+		ENDIF
+	;デフォで技巧4が条件なのでABL条件は省く
+	CASE "パイズリ"
+		CALL TRAIN_MESSAGE
+		;想定してないサイズが来た場合ははじく
+		SIF !TALENT:貧乳
+			RETURN 0
+		;初回
+		IF !GET_COMFLAG(SELECTCOM)
+			IF MARK:屈服刻印 == 3
+				PRINTFORMW 「え、胸で…？　でも、あかりのは……はぁ……」
+				PRINTFORMW %CALLNAME:TARGET%は自分の平らな胸を見て、ため息を付いた
+				PRINTFORMW 「あ、でも、こういうことして欲しいってことはあかりの胸で興奮したってことだよね」
+				PRINTFORMW 「そっか、あかりでも気持ちよく出来るんだ。うん、がんばろっ」
+				PRINTFORMW %CALLNAME:TARGET%は顔を輝かせると、%CALLNAME:MASTER%の指示に従って愛撫を始めた…
+			ELSE
+				PRINTFORMW 「えーっと、どういうこと…？　というかもしかして嫌味？」
+				PRINTFORMW %CALLNAME:MASTER%の注文に、%CALLNAME:TARGET%は疑問符を浮かべている…
+				PRINTFORMW そんな%CALLNAME:TARGET%に構わず、ペニスを胸に押し付けた
+				PRINTFORMW 「うー…やっぱり本気なんだ。はぁ…わかったよ…」
+				PRINTFORMW 「やるけど、気持よくなくても文句言わないでよ」
+			ENDIF
+		ELSE
+			IF MARK:屈服刻印 == 3
+				IF !RAND:3
+					PRINTFORMW 「あっ、やだ、動かないで」
+					PRINTFORM 「そんな風に擦り付けられたら、あかりも変な気分になっちゃうよぉ…
+					CALL HEARTBW
+				ELSEIF RAND:2
+					PRINTFORMW 「んっ…はぁ、おちんちんが胸にあたってっ…なんだかっ…」
+					PRINTFORMW 「くっ、んんっ、はぁっ、ご主人様も、ご主人様も気持ちいいよねッ？」
+				ELSE
+					PRINTFORMW 「んしょ…、んしょ…、どんどん硬くなってきてる…」
+					PRINTFORMW 「こんな小さな胸なのに…んふ…」
+				ENDIF
+			ELSE
+				IF !RAND:3
+					PRINTFORMW 「はぁ…よくわからないけど、こういうのっておっきなひとにやってもらうもんじゃないの？」
+					PRINTFORMW 「小さいほうがいいとか、気持ち悪いというか、いい迷惑だよ……」
+				ELSEIF RAND:2
+					PRINTFORMW 「ん…しょ…はぁ…もうやだ…なんであかりこんなことしてるんだろ…」
+				ELSE
+					PRINTFORMW 「はぁ…ほんとにこんなのできもちいいの？」
+					PRINTFORMW 「疲れるし、ばかばかしいし……正直嫌なんだけどなぁ……」
+				ENDIF
+			ENDIF
+		ENDIF
+;=================================================
+;SM系コマンド
+;=================================================
+
+;=================================================
+;助手によるコマンド、及びレズプレイ
+;=================================================
+
+;=================================================
+;ハードな調教コマンド
+;=================================================
+
+;=================================================
+;触手系コマンド
+;=================================================
+
+;=================================================
+;特殊コマンド
+;=================================================
+
+;=================================================
+;500番台,派生コマンド
+;=================================================
+	CASEELSE
+		CALL TRAIN_MESSAGE
+ENDSELECT

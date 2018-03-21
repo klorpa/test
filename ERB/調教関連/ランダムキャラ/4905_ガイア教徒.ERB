@@ -1,0 +1,375 @@
+;ARGは生成キャラの登録番号
+@RANDOMCHARA_4905, ARGS, ARG, ARG:1
+#LOCALSSIZE 1
+SELECTCASE ARGS
+	CASE "一人称"
+		RESULTS = \@IS_MALE(ARG) ? オレサマ#アタイ\@
+	CASE "二人称"
+		RESULTS = %CALLNAME:MASTER%
+	CASE "体力"
+		RETURN RAND(1200, 2400)
+	CASE "気力"
+		RETURN RAND(800, 1500)
+	CASE "属性"
+		RETURN RAND(50, 120), RAND(0, 85)
+	CASE "種族"
+		RETURN 0
+	CASE "戦闘素質"
+;デビルシフター、モヒカン系、忍者系、破戒僧系で大別 非戦闘員は存在しない
+		SELECTCASE RAND:10
+			CASE IS < 3
+				RESULTS = デビルシフター
+				RETURN 1
+			CASE IS < 5
+				RESULTS = サクセサー
+				RESULTS:1 = ガンスリンガー
+				RESULTS:2 = 道具知識
+				RETURN 1, 1, 3
+			CASE IS < 7
+				RESULTS = 異能者
+				RESULTS:1 = 道具知識
+				RETURN 1, 1
+			CASEELSE
+				RESULTS = サマナー
+				RESULTS:1 = 異能者
+				RETURN 1, 1
+		ENDSELECT
+	CASE "リンク悪魔"
+		IF TALENT:ARG:デビルシフター == 1
+			IF TALENT:ARG:オトコ == 1
+				SELECTCASE RAND:5
+					CASE 0
+						RETURN [[キャラ:スライム]]
+					CASE 1
+						RETURN [[キャラ:ジャックフロスト]]
+					CASE 2
+						RETURN [[キャラ:オニ]]
+					CASE 3
+						RETURN [[キャラ:インキュバス]]
+					CASE 4
+						RETURN [[キャラ:イヌガミ]]
+				ENDSELECT
+			ELSE
+				SELECTCASE RAND:5
+					CASE 0
+						RETURN [[キャラ:ボディコニアン]]
+					CASE 1
+						RETURN [[キャラ:ピクシー]]
+					CASE 2
+						RETURN [[キャラ:ユキジョロウ]]
+					CASE 3
+						RETURN [[キャラ:サキュバス]]
+					CASE 4
+						RETURN [[キャラ:ネコマタ]]
+				ENDSELECT
+			ENDIF
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE "初期ステータス比率"
+		RETURN 10, 10, 8, 7, 7, 5
+	CASE "スキル"
+		SIF TALENT:ARG:異能者 == 0
+			RETURN 0
+		SELECTCASE RAND:4
+			CASE 0
+				RESULT = [[スキル:突撃]]
+				RESULT:1 = [[スキル:暴れまくり]]
+				RESULT:2 = [[スキル:回し蹴り]]
+			CASE 1
+				RESULT = [[スキル:イナズマ突き]]
+				RESULT:1 = [[スキル:ベノンザッパー]]
+				RESULT:2 = [[スキル:回転斬り]]
+			CASE 2
+				RESULT = [[スキル:ジオ]]
+				RESULT:1 = [[スキル:ジオンガ]]
+				RESULT:2 = [[スキル:ジオダイン]]
+			CASE 3
+				RESULT = [[スキル:ザン]]
+				RESULT:1 = [[スキル:ザンマ]]
+				RESULT:2 = [[スキル:ザンダイン]]
+		ENDSELECT
+		SELECTCASE RAND:4
+			CASE 0
+				RESULT:3 = [[スキル:シバブー]]
+				RESULT:4 = [[スキル:ポイズマ]]
+				RESULT:5 = [[スキル:マカジャマ]]
+				RESULT:6 = [[スキル:マカラカーン]]
+			CASE 1
+				RESULT:3 = [[スキル:ハピルマ]]
+				RESULT:4 = [[スキル:ドルミナー]]
+				RESULT:5 = [[スキル:治癒促進(小)]]
+				RESULT:6 = [[スキル:タル・ンダ]]
+			CASE 2
+				RESULT:3 = [[スキル:自爆]]
+				RESULT:4 = [[スキル:食いしばり]]
+				RESULT:5 = [[スキル:電撃]]
+				RESULT:6 = [[スキル:デ・カジャ]]
+			CASE 3
+				RESULT:3 = [[スキル:テトラカーン]]
+				RESULT:4 = [[スキル:ムド]]
+				RESULT:5 = [[スキル:マハムド]]
+				RESULT:6 = [[スキル:ムドオン]]
+		ENDSELECT
+		RESULT:7 = [[スキル:毒針]]
+		RESULT:8 = [[スキル:マヒ針]]
+		RESULT:9 = [[スキル:夢見針]]
+		RETURN RESULT
+	CASE "相性"
+		SELECTCASE GET_TYPE(ARG:1)
+			CASE "破魔"
+				RETURN 0
+			CASEELSE
+				RETURN 100
+		ENDSELECT
+	CASE "素質"
+		RETURN GETNUM(TALENT, "狂気"), GETNUM(TALENT, "発情可"), GETNUM(TALENT, "解放"), GETNUM(TALENT, "針さばき"), GETNUM(TALENT, "両刀"), GETNUM(TALENT, "汚臭鈍感"), GETNUM(TALENT, "快感に素直")
+	CASE "除外素質"
+		RETURN GETNUM(TALENT, "貞操観念"), GETNUM(TALENT, "痛みに弱い"), GETNUM(TALENT, "臆病"),GETNUM(TALENT, "献身的")
+	;処女は特別 0はランダム(20%), 1なら処女, 2なら非処女
+	CASE "処女"
+		IF RAND:30 == 0
+			RETURN 1
+		ELSE
+			RETURN 2
+		ENDIF
+	;戻り値は0:ランダム 1:小人体型 2:小柄体型 4:大柄 5:巨体
+	CASE "体型"
+		RETURN 0
+	;戻り値は0:ランダム 1:絶壁　2:貧乳　3:並　4:巨乳　5:爆乳
+	CASE "胸"
+		RETURN 0
+	;通常の人間と肉体部位が違う場合はここで直接代入してください
+	CASE "肉体部位"
+		RETURN 0
+	CASE "ABL"
+		SELECTCASE ABLNAME:(ARG:1)
+			CASE "従順", "欲望", "技巧"
+				RETURN !RAND:3+!RAND:5
+			CASE "Ｃ感覚", "Ｖ感覚", "Ｂ感覚"
+				RETURN !RAND:3
+			CASE "マゾっ気", "露出癖", "奉仕精神"
+				RETURN !RAND:5
+			CASE "サドっ気"
+				RETURN !RAND:4 * !ABL:ARG:マゾっ気
+			CASE "Ａ感覚", "自慰中毒", "精液中毒", "レズっ気", "ＢＬっ気", "セックス中毒"
+				RETURN !RAND:10
+		ENDSELECT
+	;EXPはABLが1以上ある場合、ある程度調整される(ただし、ABL0の時は調整が動かないので適当に初期値をきめてください)
+	CASE "EXP"
+		;全く手付かずの場合
+		SIF !GROUPMATCH(1, !TALENT:ARG:処女, ABL:ARG:Ｃ感覚, ABL:ARG:Ｖ感覚, ABL:ARG:Ａ感覚, ABL:ARG:Ｂ感覚, ABL:ARG:技巧)
+			RETURN 0
+		SELECTCASE EXPNAME:(ARG:1)
+			CASE "Ｖ経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "Ａ経験"
+				RETURN RAND(0, 20) * !RAND:5
+			CASE "絶頂経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "射精経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "性交経験"
+				RETURN 0
+			CASE "膣射経験"
+				RETURN EXP:ARG:射精経験/2*EXP:ARG:性交経験 > 0
+			CASE "自慰経験"
+				RETURN RAND(0, 20)
+			CASE "調教自慰経験"
+				RETURN 0
+			CASE "精液経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "奉仕快楽経験"
+				RETURN 0
+			CASE "フェラ経験"
+				RETURN RAND(0, 10) * RAND:2
+			CASE "愛情経験"
+				RETURN 0
+			CASE "苦痛快楽経験"
+				RETURN RAND(0, 20) * !RAND:4
+			CASE "放尿経験"
+				RETURN 0
+			CASE "嗜虐快楽経験"
+				RETURN RAND(0, 10) * !RAND:4
+			CASE "野外露出経験"
+				RETURN 0
+			CASE "レズ経験"
+				RETURN RAND(0, 20) * !RAND:4
+			CASE "ＢＬ経験"
+				RETURN RAND(0, 20) * !RAND:4
+			CASE "異常経験"
+				RETURN 0
+			CASE "緊縛経験"
+				RETURN RAND(0, 10) * EXP:ARG:苦痛快楽経験 > 0
+		ENDSELECT
+	CASE "帽子"
+		IF RAND:5
+			RETURN 0
+		ELSE
+			RETURN [[衣装:帽子]]
+		ENDIF
+	CASE "服"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:上着]]
+		ELSE
+			IF RAND:2
+				RETURN 0
+			ELSE
+				RETURN [[衣装:和服]]
+			ENDIF
+		ENDIF
+	CASE "下衣"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:ズボン]]
+		ELSE
+			LOCALS = 服
+			IF CFLAG:ARG:LOCALS == 0
+				RETURN 0
+			ELSE
+				RETURN [[衣装:袴]]
+			ENDIF
+		ENDIF
+	CASE "全身服"
+		LOCALS = 服
+		IF CFLAG:ARG:LOCALS == 0
+			RETURN [[衣装:ボンテージスーツ]]
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE "手"
+		RETURN 0
+	CASE "下着（上）"
+		IF IS_MALE(ARG)
+			RETURN 0
+		ELSE
+			LOCALS = 服
+			IF CFLAG:ARG:LOCALS == 0
+				RETURN [[衣装:ブラジャー(黒)]]
+			ELSE
+				RETURN [[衣装:さらし]]
+			ENDIF
+		ENDIF
+	CASE "下着（下）"
+		IF IS_MALE(ARG)
+			IF RAND:5
+				RETURN [[衣装:トランクス]]
+			ELSE
+				RETURN [[衣装:褌]]
+			ENDIF
+		ELSE
+			LOCALS = 服
+			IF CFLAG:ARG:LOCALS == 0
+				RETURN [[衣装:パンティ(黒)]]
+			ELSE
+				RETURN 0
+			ENDIF
+		ENDIF
+	CASE "全身下着"
+		RETURN 0
+	CASE "靴下"
+		LOCALS = 服
+		IF CFLAG:ARG:LOCALS == 0
+			RETURN [[衣装:靴下]]
+		ELSE
+			RETURN [[衣装:足袋]]
+		ENDIF
+	CASE "靴"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:下駄]]
+		ELSE
+			LOCALS = 服
+			IF CFLAG:ARG:LOCALS == 0
+				RETURN [[衣装:ブーツ]]
+			ELSE
+				RETURN [[衣装:草鞋]]
+			ENDIF
+		ENDIF
+	;悪魔汎用使用しています0:ランダム 1:女_子供　2:女_少女　3:女_若者　4:女_大人　5:女_淑女　6:女_古風　7:男_若者　8:男_大人　9:獣_ケダモノ
+	CASE "会話タイプ"
+		SIF TALENT:ARG:狂気 == 1 && TALENT:ARG:デビルシフター == 1
+				RETURN 9
+		IF TALENT:ARG:オトコ == 0
+			SELECTCASE RAND:4
+				CASE 0
+					RETURN 2
+				CASE 1
+					RETURN 3
+				CASE 2
+					RETURN 4
+				CASE 3
+					RETURN 6
+			ENDSELECT
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE "名前"
+		IF TALENT:ARG:爆乳 == 1
+			RESULTS = 魔乳の
+		ELSEIF TALENT:ARG:巨乳 == 1
+			RESULTS = 魅惑の
+		ELSEIF TALENT:ARG:狂気 == 1
+			RESULTS = 狂気の
+		ELSE
+			RESULTS = クールな
+		ENDIF
+		IF TALENT:ARG:デビルシフター == 1
+			RESULTS += "ガイアーズ"
+		ELSEIF TALENT:ARG:サマナー == 1
+			RESULTS += "破戒僧"
+		ELSEIF TALENT:ARG:異能者 == 1
+			IF TALENT:ARG:オトコ == 1
+				RESULTS += "アサシン"
+			ELSE
+				RESULTS += "クノイチ"
+			ENDIF
+		ELSE
+			RESULTS += "ガイア教徒"
+		ENDIF
+	CASE "愛称"
+		IF TALENT:ARG:爆乳 == 1
+			RESULTS = 魔乳の
+		ELSEIF TALENT:ARG:巨乳 == 1
+			RESULTS = 魅惑の
+		ELSEIF TALENT:ARG:狂気 == 1
+			RESULTS = 狂気の
+		ELSE
+			RESULTS = クールな
+		ENDIF
+		IF TALENT:ARG:デビルシフター == 1
+			RESULTS += "ガイアーズ"
+		ELSEIF TALENT:ARG:サマナー == 1
+			RESULTS += "破戒僧"
+		ELSEIF TALENT:ARG:異能者 == 1
+			IF TALENT:ARG:オトコ == 1
+				RESULTS += "アサシン"
+			ELSE
+				RESULTS += "クノイチ"
+			ENDIF
+		ELSE
+			RESULTS += "ガイア教徒"
+		ENDIF
+	CASE "解説"
+		RESULTS = TOKYOを中心に拡がっている新興宗教ガイア教の信者。
+		IF TALENT:ARG:デビルシフター
+			RESULTS:1 = 悪魔の力を信じるあまり、自らが悪魔になる方法を身につけてしまったようだ
+		ELSEIF TALENT:ARG:ガンスリンガー
+			RESULTS:1 = 力だけが全てと信じ、一切のルールに縛られない無法者である
+		ELSEIF TALENT:ARG:サマナー
+			RESULTS:1 = 悪魔に宗旨替えした元聖職者である
+		ELSE
+			RESULTS:1 = 暗殺を生業とする忍者集団の一員であり、ガイア教団の暗部を支えてきた
+		ENDIF
+		RESULTS:2 = 　
+		RESULTS:3 = (以下Wikipediaより抜粋)
+		RESULTS:4 = ガイア教団は秩序や階級に囚われず、自然と一体化することを重要視している
+		RESULTS:5 = 差別も区別もなく、管理を否定し全てのものと共存しようとしている
+		RESULTS:6 = そのため現実的かつ実利的で、力のない者に価値を見出さず救いの手を差し伸べない
+		RESULTS:7 = 基本的に実力至上主義の団体で、自由はあるが秩序は存在していない
+		RESULTS:8 = 悪魔の存在を許容し共生していくことを考えているため、メシア教とは真っ向から対立している
+		RESULTS:9 = 混沌を重んじるというところからくるのかヤクザや反社会的な人物も多く、
+		RESULTS:10 = 口調や物腰は荒々しく乱暴で暴力を振るうことも躊躇しない
+		RESULTS:11 = 教徒の中には暗殺を生業とする者もいる。
+	;最後に呼び出すので何らかの調整が必要な場合はここで
+	CASE "最終調整"
+		RETURN 0
+ENDSELECT

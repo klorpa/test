@@ -1,0 +1,192 @@
+
+;スキル名
+@SKILL_NAME_2934,ARG
+RESULTS = 「Purely Bullet Hell」
+;純符「ﾋﾟｭｱﾘｰﾊﾞﾚｯﾄﾍﾙ」
+SIF  GETBIT (FLAG:カスタムゲーム画面,1)
+	RESULTS = 純符「ピュアリーバレットヘル」
+
+;　命中
+@SKILL_HITRATE_2934, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_2934, ARG
+RETURN 240
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2934,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2934,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2934, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2934,ARG
+RETURN 50
+
+;　相性 攻撃相性のうち、もっともダメージが高くなるものになる
+;クレセントミラーノコピペ
+@SKILL_TYPE_2934, ARG
+#LOCALSSIZE 19
+#LOCALSIZE 4
+SIF ARG == -1
+	RETURN GET_TYPE_NUM("万能")
+SIF CFLAG:ARG:ターゲット > 16 || CFLAG:ARG:ターゲット < 1
+	RETURN GET_TYPE_NUM("万能")
+LOCAL = POS(CFLAG:ARG:ターゲット)
+SIF LOCAL < 0
+	RETURN GET_TYPE_NUM("万能")
+LOCAL:2 = -1000
+LOCALS = 万能
+LOCALS:1 = 剣撃
+LOCALS:2 = 飛具
+LOCALS:3 = 打撃
+LOCALS:4 = 戦技
+LOCALS:5 = 火炎
+LOCALS:6 = 氷結
+LOCALS:7 = 電撃
+LOCALS:8 = 衝撃
+LOCALS:9 = 神経
+LOCALS:10 = 精神
+LOCALS:11 = 破魔
+LOCALS:12 = 呪殺
+LOCALS:13 = 地変
+LOCALS:14 = 水撃
+LOCALS:15 = 疾風
+LOCALS:16 = 重力
+LOCALS:17 = 核熱
+LOCALS:18 = 万能
+
+FOR LOCAL:1, 1, 18
+	;判定用に数値を仕舞う。反射は-200扱い
+	LOCAL:3 = MAXBASE:LOCAL:(LOCALS:(LOCAL:1)) == 999 ? -200 # MAXBASE:LOCAL:(LOCALS:(LOCAL:1))
+	LOCAL:3 = CFLAG:LOCAL:(LOCALS:(LOCAL:1)+"無効化回数") ? 0 # LOCAL:3
+	IF LOCAL:3 > LOCAL:2
+		LOCAL:2 = LOCAL:3
+		LOCALS = %LOCALS:(LOCAL:1)%
+	ENDIF
+NEXT
+RETURN GET_TYPE_NUM(LOCALS)
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2934
+RETURN 1
+;魔法
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2934
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2934
+RETURN 1
+
+;　射程
+@SKILL_RANGE_2934,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2934,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2934
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_2934,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ,継承不能
+@SKILL_SUCCESSION_TYPE_2934
+RETURN 20
+
+@継承不能_2934
+RETURN 1
+;核熱
+
+;速度補正
+@SKILL_SPEED_2934, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2934,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2934
+RETURN 0
+
+;スキル変化？用ランク,もちろん不可
+@SKILL_RANK_2934
+RETURN 15
+
+@SKILL_RANKUP_2934
+RETURN 0
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_2934,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_2934,ARG
+RETURN 0
+
+;基礎値高いけど上限は低め
+@SKILL_ADDTIONAL_BASE_RATE_2934,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_2934,ARG
+RETURN 0
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_2934, ARG, ARG:1
+IF CFLAG:ARG:ポジション < 7
+	LOCAL:1 = 7
+	LOCAL:2 = 17 
+ELSE
+	LOCAL:1 = 1
+	LOCAL:2 = 7
+ENDIF
+FOR LOCAL, LOCAL:1, LOCAL:2
+	LOCALS = ポジション{LOCAL}
+	;#;PRINTFORML FLAG:LOCALS = {FLAG:LOCALS}
+	SIF FLAG:LOCALS < 0
+		CONTINUE
+	SIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+		CONTINUE
+	CFLAG:ARG:ターゲット = LOCAL
+	CALL ATTACK_SINGLE, ARG, FLAG:LOCALS, 2934
+NEXT
+CFLAG:ARG:ターゲット = CFLAG:ARG:ポジション < 7 ? 22 # 19
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2934
+PRINTL Omni-directional bullets born out of pure spiritual power, the purest form of bullet hell.
+PRINTL Medium magical attack to all enemies, always striking using each foe's weakest affinity.
+PRINTL Spell Card of Jirae Junko.
+
+;継承に必要な部位
+@継承部位_2934,ARG
+RETURN 1
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2934,ARG
+RETURN 1
+;とくにない

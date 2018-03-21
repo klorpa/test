@@ -1,0 +1,262 @@
+;-------------------------------------------------
+;野外プレイ
+;特殊なコマンド
+;-------------------------------------------------
+@COMNAME184
+RESULTS = Outdoors Play
+SIF TEQUIP:29
+	RESULTS = Move Location
+;ビット説明
+;TEUIP:29
+;廃ビル=1
+;森林=2
+;公園=4
+;川辺=8
+
+@ACT_COM184
+PRINT Current location:[
+;現在の場所：
+IF TEQUIP:29 == 0
+	PRINT Home
+	;自宅
+ELSE
+	IF TEQUIP:29 & 1
+		PRINT Empty Building
+		;廃ビル
+	ENDIF
+	IF TEQUIP:29 & 2
+		PRINT Forest
+		;森林
+	ENDIF
+	IF TEQUIP:29 & 4
+		PRINT Park
+		;公園
+	ENDIF
+	IF TEQUIP:29 & 8
+		PRINT Riverside
+		;川辺
+	ENDIF
+ENDIF
+PRINTL ]
+PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%を……
+PRINTFORMW 
+IF TEQUIP:29 == 0
+	PRINTL [0]廃ビルに連れて行く
+	PRINTL [1]森林に連れて行く
+	PRINTL [2]公園に連れて行く
+	PRINTL [3]川辺に連れて行く
+ELSE
+	IF TEQUIP:29 & 1
+		PRINTL [0]廃ビルから帰る
+		PRINTL [1]森林に連れて行く
+		PRINTL [2]公園に連れて行く
+		PRINTL [3]川辺に連れて行く
+	ENDIF
+	IF TEQUIP:29 & 2
+		PRINTL [0]廃ビルに連れて行く
+		PRINTL [1]森林から帰る
+		PRINTL [2]公園に連れて行く
+		PRINTL [3]川辺に連れて行く
+	ENDIF
+	IF TEQUIP:29 & 4
+		PRINTL [0]廃ビルに連れて行く
+		PRINTL [1]森林に連れて行く
+		PRINTL [2]公園から帰る
+		PRINTL [3]川辺に連れて行く
+	ENDIF
+	IF TEQUIP:29 & 8
+		PRINTL [0]廃ビルに連れて行く
+		PRINTL [1]森林に連れて行く
+		PRINTL [2]公園に連れて行く
+		PRINTL [3]川辺から帰る
+	ENDIF
+ENDIF
+PRINTL [100] 移動をやめる
+
+PRINTL 
+
+$INPUT_LOOP
+INPUT
+
+SIF (RESULT < 0 || RESULT > 3) && RESULT != 100
+	GOTO INPUT_LOOP
+
+X = RESULT
+
+;屋外への出入り
+;終了時は修正なし
+IF (TEQUIP:29 & 1 && X == 0) || (TEQUIP:29 & 2 && X == 1) || (TEQUIP:29 & 4 && X == 2) || (TEQUIP:29 & 8 && X == 3)
+	PRINTL 野外プレイ(帰宅)
+	TSTR:0 = 野外プレイ(帰宅)
+	TEQUIP:29 = 0
+	TEQUIP:45 = 0
+	TEQUIP:46 = 0
+	TEQUIP:47 = 0
+	;口上→総括Ｍ→個別セルコム
+	;CALL KOJO_MESSAGE_COM
+	RETURN 1
+;移動キャンセル時も修正なし。
+ELSEIF RESULT == 100
+	PRINTFORML %CALLNAME:MASTER%は、場所の移動をやめた。
+	RETURN 1
+ELSE
+	TEQUIP:29 = 1
+	TEQUIP:45 = 0
+	TEQUIP:46 = 0
+	TEQUIP:47 = 0
+ENDIF
+
+TEQUIP:29 = 0
+	TEQUIP:45 = 0
+	TEQUIP:46 = 0
+	TEQUIP:47 = 0
+
+
+IF X == 0
+	TFLAG:73 = 1
+	CALL ACT_COM184_B
+ELSEIF X == 1
+	TFLAG:73 = 2
+	CALL ACT_COM184_F
+ELSEIF X == 2
+	TFLAG:73 = 3
+	CALL ACT_COM184_P
+ELSEIF X == 3
+	TFLAG:73 = 4
+	CALL ACT_COM184_U
+ENDIF
+
+RETURN 1
+
+;-------------------------------------------------
+;野外調教追加処理
+;-------------------------------------------------
+@EQUIP_COM184
+
+IF SELECTCOM == 184
+	PRINTL
+	PRINTFORM %CALLNAME:TARGET%は所在無さそうに周囲を見回している。
+	PRINTL
+ELSEIF TEQUIP:46 == 0
+	IF RAND:100 > 15 + ABL:露出癖
+		PRINTL
+		PRINTFORM 相変わらず、
+		IF TEQUIP:45 == 0
+			PRINTL 周囲に人の気配は無い。
+		ELSEIF TEQUIP:45 == 1
+			PRINTL 近くから、誰かの歩く足音が聞こえてくる。
+			DOWNBASE:TARGET:気力 += 50
+			SOURCE:TARGET:恐れ += 200
+			SOURCE:TARGET:露出 += 400
+			SOURCE:TARGET:逸脱 += 60
+			SOURCE:TARGET:反感 += 150
+		ENDIF
+		PRINTFORMW %CALLNAME:TARGET%は\@(ABL:露出癖 >= 3) ? なんだか少しつまらなさそうだ # いつ誰が来るか気が気でない\@。
+		PRINTL
+	ELSE
+		TEQUIP:45 += 1
+		PRINTL
+		IF TEQUIP:45 == 0
+			PRINTL 周囲に人の気配は無い。
+		ELSEIF TEQUIP:45 == 1
+			PRINTL 近くから、誰かの歩く足音が聞こえてくる。
+			PRINTFORMW %CALLNAME:TARGET%\@(ABL:露出癖 >= 3) ? の瞳は期待と恥ずかしさで潤んでいる。 # は恐怖と恥ずかしさのあまり、思わず体を硬直させた。\@
+			DOWNBASE:TARGET:気力 += 50
+			SOURCE:TARGET:恐れ += 200
+			SOURCE:TARGET:露出 += 400
+			SOURCE:TARGET:逸脱 += 60
+			SOURCE:TARGET:反感 += 150
+		ELSE
+			PRINTFORMW ふと気づけば、誰かが%CALLNAME:TARGET%の事を見つめている。
+			PRINTL 
+			PRINTFORMW %CALLNAME:TARGET%は思わず\@(ABL:露出癖 >= 3) ? 期待に満ちた視線をそちらへ送った。 # 視線をそらした。\@
+			DOWNBASE:TARGET:気力 += 100
+			SOURCE:TARGET:恐れ += 300
+			SOURCE:TARGET:露出 += 600
+			SOURCE:TARGET:逸脱 += 100
+			SOURCE:TARGET:反感 += 200
+		ENDIF
+		IF TEQUIP:45 == 2
+			IF RAND:2
+				PRINTFORML 発見した誰かは%CALLNAME:TARGET%達の姿と行為を見ると、
+				PRINTW 素っ頓狂な声を上げて逃げ出してしまった。
+				TEQUIP:45 = 0
+			ELSE
+				PRINTFORM %CALLNAME:TARGET%を発見した
+				IF TALENT:オトコ == 0 || TALENT:男の娘 == 1
+					PRINT 彼らは
+				ELSE
+					PRINT 彼女らは
+				ENDIF
+				PRINTFORML 食い入るように%CALLNAME:TARGET%の痴態を見つめはじめた。
+				PRINTFORMW %CALLNAME:TARGET%は思わず\@(ABL:露出癖 >= 3) ? とても嬉しそうに笑った。 # 今にも泣き出しそうだ。\@
+				TEQUIP:46 += 1
+			ENDIF
+		ENDIF
+	ENDIF
+ELSE
+	DOWNBASE:TARGET:気力 += 100 + (TEQUIP:46 * 10)
+	SOURCE:TARGET:恐れ *= 100 + (TEQUIP:47 * 10)
+	SOURCE:TARGET:露出 *= 100 + (TEQUIP:46 * 10)
+	SOURCE:TARGET:逸脱 *= 100 + (TEQUIP:46 * 10)
+	SOURCE:TARGET:反感 *= 100 + (TEQUIP:46 * 10)
+	
+	SOURCE:TARGET:恐れ /= 100
+	SOURCE:TARGET:露出 /= 100
+	SOURCE:TARGET:逸脱 /= 100
+	SOURCE:TARGET:反感 /= 100
+	
+	SOURCE:TARGET:恐れ += 300
+	SOURCE:TARGET:欲情 += ABL:露出癖 * TEQUIP:46 * TEQUIP:47
+	SOURCE:TARGET:露出 += 600
+	SOURCE:TARGET:逸脱 += 100
+	SOURCE:TARGET:反感 += 200
+	SIF RAND:2
+		TEQUIP:46 += RAND:3
+	SIF TEQUIP:46 >= 100
+		TEQUIP:46 = 100
+	TEQUIP:47 += RAND:30
+	SIF TEQUIP:47 >= 100
+		TEQUIP:47 = 100
+	IF TEQUIP:47 <= 20
+		PRINTFORMW 発見した誰かは食い入るように%CALLNAME:TARGET%の痴態を見つめている。
+	ELSEIF TEQUIP:47 <= 60
+		PRINTFORMW 発見した誰かはかなり興奮した様子で%CALLNAME:TARGET%の痴態を見つめている。
+	ENDIF
+	IF ABL:露出癖 >= 3 && !TALENT:恥じらい
+		A = RAND:3
+		IF PALAM:6 >= PALAMLV:8
+			PRINTFORMW %CALLNAME:TARGET%はあまりにも感じすぎて、まともに現状を把握できないようだ。
+		ELSEIF A == 0
+			PRINTFORMW %CALLNAME:TARGET%は見られるのが嬉しいのか、それに手を振って応えた。
+		ELSEIF A == 1
+			PRINTFORMW %CALLNAME:TARGET%が恥じらいの表情を見せると、周囲はさらに色めきたった。
+		ELSEIF A == 2
+			PRINTFORMW %CALLNAME:TARGET%は見られて感じているのか、さらに顔を紅潮させた。
+		ENDIF
+	ELSE
+		PRINTFORMW %CALLNAME:TARGET%は必死に恥ずかしさをこらえている。
+	ENDIF
+ENDIF
+
+IF TEQUIP:乳首露出 == -1 || TEQUIP:陰唇露出 == -1 || TEQUIP:臀部露出 == -1
+	CALL ADDS_EXP("野外露出経験", 1, TARGET)
+;	PRINTFORML OutExposeEXP + 1
+ENDIF
+IF TEQUIP:MASTER:乳首露出 == -1 || TEQUIP:MASTER:陰唇露出 == -1 || TEQUIP:MASTER:臀部露出 == -1
+	CALL ADDS_EXP("野外露出経験", 1, MASTER)
+;	PRINTFORML OutExposeEXP + 1(%CALLNAME:MASTER%)
+ENDIF
+IF ASSI > 0
+	IF TEQUIP:ASSI:乳首露出 == -1 || TEQUIP:ASSI:陰唇露出 == -1 || TEQUIP:ASSI:臀部露出 == -1
+		CALL ADDS_EXP("野外露出経験", 1, ASSI)
+	;	PRINTFORML OutExposeEXP + 1(%CALLNAME:ASSI%)
+	ENDIF
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_184
+RETURN COMTYPE("特殊コマンド系")
+

@@ -1,0 +1,2535 @@
+;=============================================================================
+;娘パッチの諸処理
+;=============================================================================
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SYSTEM_DAUGHTER.ERB
+;	Facility	:子供の作成処理
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/27		P						初期リンク悪魔周辺の処理変更
+;	003		2011/01/31		P						遺伝処理の整理及び・変更
+;	004		2011/02/01		P						003のバグ修正
+;	005		2011/02/04		迷走中の人				狐・妖狐・吸血鬼の引継ぎを可能に。胸のサイズ変更時に処女化する可能性があったのを修正
+;	006		2011/02/04		P						子供の体力気力の算出式を変更
+;	007		2011/02/06		Rsp暇人					サマナー・道具知識のLv制とアイテム習熟実装に対応。
+;	008		2011/02/11		P						父親の名前の取り方を変更/体力気力決定式のミスを修正
+;	009		2011/02/11		Rsp暇人					相性決定別案の記述ミスを修正。バステ耐性の引き継ぎ方法を変更。人間以外は非戦闘員にならないようにする
+;	010		2011/03/02		P						父親判定時に親が触手である場合も、エラーオチしていたのを修正
+;	011		2011/03/28		P						一部の素質の遺伝を変更
+;	012		2011/06/20		P						戦闘素質の遺伝処理を変更
+;	013		2011/06/27		P						遺伝時の除外処理を変更しつつ、敵専用スキルを除外/習得スキルからも継承するように
+;													仕送りにランダム幅を持たせる
+;													容量がオーバーする場合も子供の調教を可能にし、ストレージにおくるように
+;													痛みに弱いと強いを排他に
+;													相矛盾する性格素質を持つ([賢い][愚鈍]とか)・ペニスがないのに[大業物]が付く等の問題を修正
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;-------------------------------------------------
+;子供誕生判定処理
+;他に呼び出すこともないようだし、この場合、飛ばすより一本道でやったほうが流れを把握しやすいと思うので
+;-------------------------------------------------
+@DAUGHTER_CHECK, 育ての親
+#DIM DYNAMIC 育ての親, 1
+#DIM DYNAMIC 母親, 1
+#DIM DYNAMIC 父親, 1
+;急成長するか、それは娘か息子かなどを判定します。
+;ARGは育ての親の登録番号
+TFLAG:600 = 0
+SIF MONEY <= 50000
+	CFLAG:育ての親:娘教育 = 0
+母親 = FINDCHARA_ID(CFLAG:育ての親:娘の産みの親の固有番号親)
+父親 = FINDCHARA_ID(CFLAG:育ての親:父親の固有番号親)
+
+;産んだ子供の数をサーチした産みの親に追加
+SIF 母親 != -1
+	CFLAG:母親:第何子まで産んだか += 1
+SIF 父親 >= 0
+	CFLAG:父親:第何子まで産んだか += 1
+
+;-------------------------------------------------
+;子供の性別を判定
+;男×女　男の娘×男→男:女：男の娘 = 4:5:1
+;男の娘×女 = 男の娘:女 = 5:5
+;女×女 = 女
+;男の娘 × 男の娘 = 男の娘
+;-------------------------------------------------
+FLAG:娘性別判定処理 = 0
+IF 母親 >= 0
+	IF 父親 >= 0
+		LOCAL:3 = TALENT:父親:オトコ + TALENT:母親:男の娘
+	ELSEIF CFLAG:育ての親:父親の固有番号親 == -1 && CFLAG:育ての親:妊娠確定後の父親の判定 > -1
+		LOCAL:3 = CSVTALENT(CFLAG:育ての親:妊娠確定後の父親の判定, GETNUM(TALENT, "オトコ"),0) + CSVTALENT(CFLAG:育ての親:妊娠確定後の父親の判定, GETNUM(TALENT, "男の娘"),0)
+	ELSE
+		LOCAL:3 = 1
+	ENDIF
+	IF TALENT:母親:男の娘
+		;男の娘
+		SELECTCASE LOCAL:3
+			;女
+			CASE 0
+				FLAG:娘性別判定処理 = 1 + RAND:2 * 2
+			;男
+			CASE 1
+				FLAG:娘性別判定処理 = 1 + RAND:2
+				SIF !RAND:10 && FLAG:娘性別判定処理 == 2
+					FLAG:娘性別判定処理 = 3
+			;男の娘
+			CASE 2
+				FLAG:娘性別判定処理 = 3
+		ENDSELECT
+	ELSE
+		;女
+		SELECTCASE LOCAL:3
+			;女
+			CASE 0
+				FLAG:娘性別判定処理 = 2
+			;男
+			CASE 1
+				FLAG:娘性別判定処理 = 1 + RAND:2
+				SIF !RAND:10 && FLAG:娘性別判定処理 == 2
+					FLAG:娘性別判定処理 = 3
+			;男の娘
+			CASE 2
+				FLAG:娘性別判定処理 = 1 + RAND:2 * 2
+		ENDSELECT
+	ENDIF
+	;-------------------------------------------------
+	;子供の種族を判定
+	;-------------------------------------------------
+	IF 父親 >= 0
+		;父親健在の場合はそのまま使う
+		LOCAL:3 = ABL:父親:種族
+	ELSE
+		;父親不在だが、キャラ番号は持っている
+		IF CFLAG:育ての親:父親の固有番号親 == -1 && CFLAG:育ての親:妊娠確定後の父親の判定 >= 0
+			LOCAL:3 = CSVABL(CFLAG:育ての親:妊娠確定後の父親の判定, GETNUM(ABL, "種族"),0)
+		;親が触手の場合は、母親と同一種族として扱う
+		ELSEIF CFLAG:育ての親:父親の固有番号親 == -2
+			LOCAL:3 = ABL:母親:種族
+		;その他は人間として扱う
+		ELSE
+			LOCAL:3 = 0
+		ENDIF
+	ENDIF
+	;父親がKyojinの場合人間として扱う
+	SIF LOCAL:3 == 31
+		LOCAL:3 = 0
+	SELECTCASE ABL:母親:種族
+		;Human
+		CASE 0
+			SELECTCASE LOCAL:3
+				;Human
+				CASE 0
+					FLAG:娘種族判定処理 = 0
+				;Zoma
+				CASE 45
+					FLAG:娘種族判定処理 = 0
+				;悪魔
+				CASEELSE
+					;HalfDemon
+					FLAG:娘種族判定処理 = 36
+			ENDSELECT
+		;Kyojin
+		CASE 31
+			SELECTCASE LOCAL:3
+				;Human
+				CASE 0
+					FLAG:娘種族判定処理 = 0
+				;Zoma
+				CASE 45
+					FLAG:娘種族判定処理 = 0
+				;悪魔
+				CASEELSE
+					;HalfDemon
+					FLAG:娘種族判定処理 = 36
+			ENDSELECT
+		;Zoma
+		CASE 45
+			SELECTCASE LOCAL:3
+				;Human
+				CASE 0
+					FLAG:娘種族判定処理 = 0
+				;Zoma
+				CASE 45
+					;怪異
+					FLAG:娘種族判定処理 = 32
+				;悪魔
+				CASEELSE
+					FLAG:娘種族判定処理 = LOCAL:3
+			ENDSELECT
+		;悪魔
+		CASEELSE
+			SELECTCASE LOCAL:3
+				;Human
+				CASE 0
+					;HalfDemon
+					FLAG:娘種族判定処理 = 36
+				;Zoma
+				CASE 45
+					FLAG:娘種族判定処理 = LOCAL:3
+				;悪魔
+				CASEELSE
+					FLAG:娘種族判定処理 = RAND:2 ? ABL:母親:種族 # LOCAL:3
+			ENDSELECT
+	ENDSELECT
+ENDIF
+IF CFLAG:育ての親:娘の産みの親のキャラ番号親 != -1 && TALENT:MASTER:禁断の知識 && CHARANUM < 200
+	IF FLAG:娘性別判定処理 == 2
+		PRINTFORML %CALLNAME:育ての親%'s daughter has grown up to the point of being able to be trained.
+	ELSE
+		PRINTFORML %CALLNAME:育ての親%'s son has grown up to the point of being able to be trained.
+	ENDIF
+	PRINTFORMW Keep this child for training?
+	PRINTL [0]Yes [1]No
+	$INPUT_DAUGHTER
+	INPUT
+	IF RESULT == 0
+		LOCAL:2 = -1
+		;父親がいない場合
+		IF 父親 == -1
+			;父親のNOを保持していればそのキャラを生成する
+			IF CFLAG:育ての親:妊娠確定後の父親の判定 >= 0
+				ADDCHARA CFLAG:育ての親:妊娠確定後の父親の判定
+				LOCAL:2 = CHARANUM - 1
+				父親 = LOCAL:2
+				;顧客異能者
+				IF CFLAG:育ての親:父親の固有番号親 == -3
+					LOCAL:4 = 1
+					FOR LOCAL:3, 1 , 20
+						IF ABL:(LOCAL:2):("習得スキル"+TOSTR(LOCAL:3))
+							ABL:(LOCAL:2):("スキル"+TOSTR(LOCAL:4)) = ABL:(LOCAL:2):("習得スキル"+TOSTR(LOCAL:3))
+							LOCAL:4++
+						ENDIF
+						SIF LOCAL:4 == 9
+							BREAK
+					NEXT
+				ENDIF
+			;いない場合は自分自身と判定させる
+			ELSE
+				父親 = 母親
+			ENDIF
+		ENDIF
+		CALL DAUGHTER_BIRTH, 育ての親, 母親, 父親
+		;キャラ作成していたときはDEL
+		IF LOCAL:2 > -1
+			父親 = -1
+			DELCHARA LOCAL:2
+		ENDIF
+	ELSEIF RESULT == 1
+		CALL SON_BIRTH, 育ての親, 母親
+	ELSE
+		GOTO INPUT_DAUGHTER
+	ENDIF
+ELSEIF CFLAG:育ての親:娘の産みの親のキャラ番号親 != -1
+;条件を満たさなくても産んだ子供の数は増える
+	PRINTFORML %CALLNAME:育ての親%'s child rapidly grew up into an adult.
+	CALL SON_BIRTH, 育ての親, 母親
+ENDIF
+;育ての親のフラグリセット
+CFLAG:育ての親:出産日 = 0
+CFLAG:育ての親:父親の固有番号親 = 0
+CFLAG:育ての親:娘の産みの親のキャラ番号親 = 0
+CFLAG:育ての親:娘の産みの親の固有番号親 = 0
+SIF CFLAG:育ての親:娘教育 == 1
+	MONEY -= 50000
+CFLAG:育ての親:娘教育 = 0
+
+;-------------------------------------------------
+;男の子誕生処理
+;-------------------------------------------------
+@SON_BIRTH, 育ての親, 母親
+#DIM DYNAMIC 育ての親, 1
+#DIM DYNAMIC 母親, 1
+#DIM DYNAMIC 父親, 1
+;産んだ子供の数+1
+IF 母親 == -1
+	PRINTFORMW %CALLNAME:育ての親%'s adoptive child grew up and went out looking for the biological parent.
+	RETURN 0
+ELSE
+	PRINTFORMW After thanking you for their upbringing, the child went out to live their life...
+	;仕送り人数増加
+	CFLAG:母親:仕送り時してくれる人数親 += 1
+ENDIF
+
+;-------------------------------------------------
+;女の子誕生処理
+;-------------------------------------------------
+@DAUGHTER_BIRTH, 育ての親, 母親, 父親
+#DIM DYNAMIC 育ての親, 1
+#DIM DYNAMIC 母親, 1
+#DIM DYNAMIC 父親, 1
+;もう産みの親がいない場合、娘を加えることはできない
+IF 母親 == -1
+	PRINTFORMW However %CALLNAME:育ての親%'s adoptive child ran out looking for their biological parent.
+	RETURN 1
+ENDIF
+LOCAL:10 = TARGET
+
+$DAUGHTER_BIRTH_TW
+IF 母親 == CFLAG:MASTER:キャラ固有の番号 || 父親 == CFLAG:MASTER:キャラ固有の番号
+	CALL ADD_NEW_COMPANION,3501,500
+ELSE
+	CALL ADD_NEW_COMPANION,3502,500
+ENDIF
+TARGET = RESULT:1
+
+CALL DAUGHTER_TALENT_SET2, 育ての親, 母親, 父親
+
+;フラグ立て
+CFLAG:娘の誕生日 = CFLAG:育ての親:出産日
+CFLAG:娘の産みの親のキャラ番号娘 = NO:母親
+CFLAG:娘の育ての親のキャラ番号娘 = NO:育ての親
+CFLAG:娘が母の第何子か娘 = CFLAG:母親:第何子まで産んだか
+CFLAG:娘の父親のキャラ番号娘 = CFLAG:育ての親:111
+SIF 父親 >= 0
+	CFLAG:娘が父の第何子か = CFLAG:父親:第何子まで産んだか
+CFLAG:娘の産みの親の固有番号娘 = CFLAG:母親:キャラ固有の番号
+CFLAG:娘の育ての親の固有番号娘 = CFLAG:育ての親:キャラ固有の番号
+CFLAG:娘の父親の固有番号娘 = CFLAG:母親:父親の固有番号親
+CFLAG:娘の世代娘 = CFLAG:母親:娘の世代娘+ 1
+;相性設定
+CALL SET_RELATION, TARGET
+
+PRINTFORMW You chose to keep %CALLNAME:育ての親%'s child for training.
+PRINTFORML Will you name %CALLNAME:育ての親%'s child?
+PRINTL [0] Random name
+PRINTL [1] Directly input name
+$INPUT_LOOP_A
+INPUT
+;嫁に任せる
+IF RESULT ==0
+	CALL DAUGHTER_NAME, 育ての親, 母親, 父親
+	PRINTFORM %CALLNAME:育ての親%'s child was named 
+	PRINTFORM %CALLNAME%. 
+	PRINTL 
+ELSEIF RESULT == 1
+	PRINTL Please input a name
+	INPUTS
+	NAME:TARGET = %RESULTS%
+	CALLNAME:TARGET = %RESULTS%
+	PRINTFORMW Name set to %RESULTS%.
+	;registered
+ELSE
+	PRINTL Please provide a valid input
+	GOTO INPUT_LOOP_A
+ENDIF
+
+PRINTL Add a nickname?
+PRINTL [0] Yes
+PRINTL [1] No
+$INPUT_LOOP_B
+INPUT
+IF RESULT == 0
+	PRINTL Please input a nickname
+	INPUTS
+	CALLNAME:TARGET = %RESULTS%
+	PRINTFORMW Nickname set to %RESULTS%.
+	;registered
+ELSEIF RESULT != 1
+	PRINTL Please provide a valid input
+	GOTO INPUT_LOOP_B
+ENDIF
+IF CFLAG:育ての親:父親の固有番号親 == -2
+	CSTR:解説1 = The rapidily grown child of %CALLNAME:母親% and a tentacle.
+	;急激に成長した%CALLNAME:母親%と触手の子。
+ELSEIF CFLAG:育ての親:父親の固有番号親 >= 0 && CFLAG:育ての親:妊娠確定後の父親の判定 >= 0
+	CSTR:解説1 = The rapidily grown child of %CALLNAME:母親% and %CALLNAME:父親%.
+	;急激に成長した%CALLNAME:母親%と%CALLNAME:父親%の子。
+ELSE
+	CSTR:解説1 = The rapidily grown child of %CALLNAME:母親%.
+	;急激に成長した%CALLNAME:母親%の子。
+ENDIF
+
+IF ABL:種族 == 32
+	CSTR:解説2 = %HE_SHE(TARGET,2)% seems to be some kind of demon.
+	;何らかの悪魔の一種のようだ
+ELSEIF TALENT:人修羅
+	CSTR:解説2 = %HE_SHE(TARGET,2)% seems to be some kind of demon.
+	;何らかの魔人の一種のようだ
+ELSEIF ABL:種族 == 36
+	CSTR:解説2 = %HE_SHE(TARGET,2)% is a mixture of human and demon blood, with unknown powers.
+	;人と悪魔の混血で未知の力を秘めているようだ
+ELSEIF ABL:種族 == 0
+	CSTR:解説2 = %HE_SHE(TARGET,2)% is a human, although not an ordinary one.
+	;異能を持つ人間のようだ
+ELSE
+	CSTR:解説2 = %HE_SHE(TARGET,2)% is the same race as %HIS_HER(TARGET)% parents.
+	;親と同じ種族のようだ
+ENDIF
+CALL DAUGHTER_CHILDNUMBER(CFLAG:母親:第何子まで産んだか)
+CSTR:母 = %CALLNAME:母親%(%RESULTS% child)
+;%CALLNAME:母親%(第{CFLAG:母親:第何子まで産んだか}子)
+;IDを持つ親ならここで取る
+IF CFLAG:育ての親:父親の固有番号親 >= 0
+	CALL DAUGHTER_CHILDNUMBER(CFLAG:父親:第何子まで産んだか)
+	CSTR:父 = %CALLNAME:父親%(%RESULTS% child)
+	;%CALLNAME:父親%(第{CFLAG:父親:第何子まで産んだか}子)
+;名称を保持している場合はそこからとる
+ELSEIF STRLENS(CSTR:育ての親:父親名称)
+	CSTR:父 = %CSTR:育ての親:父親名称%
+;保持していない場合はCSVからとる
+ELSEIF CFLAG:育ての親:妊娠確定後の父親の判定 >= 0
+	CSTR:父 = %CSVCALLNAME(CFLAG:育ての親:妊娠確定後の父親の判定, 0)%
+ELSEIF CFLAG:育ての親:父親の固有番号親 == -2
+	CSTR:父 = Tentacles
+ELSE
+	CSTR:父 = unknown
+	;不明
+ENDIF
+;次回のために消しておく
+CSTR:育ての親:父親名称 = 
+IF TALENT:母親:子供
+	CSTR:母祖父 = %CSTR:母親:父%
+	CSTR:母祖母 = %CSTR:母親:母%
+ELSE
+	CSTR:母祖父 = unknown
+	CSTR:母祖母 = unknown
+ENDIF
+IF CFLAG:育ての親:父親の固有番号親 >= 0
+	IF TALENT:父親:子供
+		CSTR:父祖父 = %CSTR:父親:父%
+		CSTR:父祖母 = %CSTR:父親:母%
+	ELSE
+		CSTR:父祖父 = unknown
+		CSTR:父祖母 = unknown
+	ENDIF
+ELSE
+	CSTR:父祖父 = unknown
+	CSTR:父祖母 = unknown
+ENDIF
+CALL ADD_NEW_RELATIVE(TARGET,母親,父親)
+CSTR:一人称 = %CSTR:母親:一人称%
+TARGET = LOCAL:10
+;-------------------------------------------------
+;仕送り
+;-------------------------------------------------
+@REMITTANCE
+#LOCALSIZE 3
+;仕送り人数総数をカウント
+LOCAL = 0
+LOCAL:1 = 0
+FOR LOCAL:2, 0, CHARANUM
+	SIF CFLAG:(LOCAL:2):仕送り時してくれる人数親 == 0
+		CONTINUE
+	IF CFLAG:(LOCAL:2):引継ぎ回数 && FLAG:5 < 9
+		LOCAL:1 += CFLAG:(LOCAL:2):仕送り時してくれる人数親
+	ELSE
+		LOCAL += CFLAG:(LOCAL:2):仕送り時してくれる人数親
+	ENDIF
+NEXT
+;0人なら帰れ
+SIF LOCAL+LOCAL:1 <= 0
+	RETURN 0
+DRAWLINE
+PRINTFORM %CALLNAME:MASTER%'s child
+SIF LOCAL+LOCAL:1 > 1
+	PRINT ren
+;人数×￥500
+LOCAL *= 500
+LOCAL:1 *= 10
+;75%~125%でランダムをかける
+;ランダムの種として主人の経験値とDAYを用いる
+LOCAL:2 = MAX(1, (LOCAL + MIN(1000,LOCAL:1)) * ((BASE:MASTER:ＥＸＰ / (DAY+1)) % 50 + 75) / 100)
+MONEY += LOCAL:2
+PRINTFORMW  sent back ￥{LOCAL:2}.
+
+;-------------------------------------------------
+;娘に遺伝しない素質消去処理
+;仕様していないようなのでコメントアウト
+;-------------------------------------------------
+;@DAUGHTER_TALENT_SET
+;;親が再生処女の可能性もあるので念のため
+;TALENT:処女 = 1
+;TALENT:再生処女 = 0
+;;小人体型の場合、小柄体型を消す
+;SIF TALENT:小人体型
+;	TALENT:小柄体型 = 0
+;
+;;オトコ,ふたなり,早漏,遅漏,母乳体質
+;TALENT:オトコ = 0
+;TALENT:ふたなり = 0
+;TALENT:母乳体質 = 0
+;
+;;性別処理
+;IF FLAG:娘性別判定処理 == 1
+;	TALENT:処女 = 0
+;	TALENT:オトコ = 1
+;	TALENT:男の娘 = 0
+;	CFLAG:元性別 = 1
+;ELSEIF FLAG:娘性別判定処理 == 2
+;	TALENT:処女 = 1
+;	TALENT:オトコ = 0
+;	TALENT:男の娘 = 0
+;	CFLAG:元性別 = 2
+;ELSEIF FLAG:娘性別判定処理 == 3
+;	TALENT:処女 = 0
+;	TALENT:オトコ = 1
+;	TALENT:男の娘 = 1
+;	CFLAG:元性別 = 1
+;ENDIF
+;
+;;一部遺伝しない素質
+;;最初からついているものと矛盾する(＝打ち消して付かない)
+;;濡れやすい,習得早い,音感,料理得意
+;IF TALENT:濡れやすい
+;	TALENT:濡れやすい = 1
+;	TALENT:濡れにくい = 0
+;ENDIF
+;IF TALENT:習得早い
+;	TALENT:習得早い = 1
+;	TALENT:習得遅い = 0
+;ENDIF
+;
+;;知識がない([針さばき]や[大甲斐性]等は才能とする)
+;;貞操観念,貞操無頓着,調合知識,禁断の知識,妖精知識,淫具知識,治療
+;;教育者,調理名人,工作名人,報道者,魔術技能,超常目算
+;IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:Virturous == 0
+;	TALENT:Virturous = 0
+;ELSE
+;	TALENT:Virturous = 1
+;ENDIF
+;IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:貞操無頓着 == 0
+;	TALENT:貞操無頓着 = 0
+;ELSE
+;	TALENT:貞操無頓着 = 1
+;ENDIF
+;IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:調合知識 == 0
+;	TALENT:調合知識 = 0
+;ELSE
+;	TALENT:調合知識 = 1
+;ENDIF
+;IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:禁断の知識 == 0
+;	TALENT:禁断の知識 = 0
+;ELSE
+;	TALENT:禁断の知識 = 1
+;ENDIF
+;
+;;後天的なもの([おもらし癖][キス魔]は幼児なので除く)
+;;弱味,媚薬中毒,パイパン,精愛味覚,人気
+;TALENT:弱味 = 0
+;TALENT:人気 = 0
+;
+;FOR LOCAL:5, 0, 7
+;	TALENT:(LOCAL:5+3) = 0
+;NEXT
+;TALENT:妊娠 = 0
+;TALENT:育児中 = 0
+;TALENT:母性 = 0
+;TALENT:妻 = 0
+;TALENT:夫 = 0
+;TALENT:淫魔 = 0
+;TALENT:玩具 = 0
+;TALENT:自慰狂い = 0
+;TALENT:セックス狂 = 0
+;TALENT:尻穴狂い = 0
+;TALENT:淫乳 = 0
+;IF ABL:種族 == 0
+;	TALENT:獣 = 0
+;	TALENT:鳥 = 0
+;	TALENT:爬虫類 = 0
+;	TALENT:魚 = 0
+;	TALENT:不定形 = 0
+;	TALENT:頭 = 1
+;	TALENT:目 = 1
+;	TALENT:口 = 1
+;	TALENT:腕 = 1
+;	TALENT:足 = 1
+;ENDIF
+;;娘の胸の大きさ(基本的1ランクダウン)
+;TALENT:絶壁 = 0
+;TALENT:貧乳 = 0
+;TALENT:巨乳 = 0
+;TALENT:爆乳 = 0
+;IF TALENT:(ARG:1):絶壁 || TALENT:(ARG:1):貧乳
+;	TALENT:絶壁 = 1
+;ELSEIF TALENT:(ARG:1):爆乳
+;	TALENT:巨乳 = 1
+;ELSEIF TALENT:(ARG:1):巨乳 == 0
+;	TALENT:貧乳 = 1
+;ENDIF
+;
+;IF TALENT:オトコ == 1
+;	CFLAG:元胸サイズ = 3
+;	SIF TALENT:絶壁 == 1
+;	CFLAG:元胸サイズ = 1
+;	SIF TALENT:貧乳 == 1
+;	CFLAG:元胸サイズ = 2
+;	SIF TALENT:巨乳 == 1
+;	CFLAG:元胸サイズ = 4
+;	TALENT:絶壁 = 1
+;	TALENT:貧乳 = 0
+;	TALENT:巨乳 = 0
+;ENDIF
+;
+;TALENT:幼児／幼児退行 = 1
+;TALENT:幼稚 = 1
+;MARK:6 = 1
+;-------------------------------------------------
+;娘の名前
+;-------------------------------------------------
+@DAUGHTER_NAME, 育ての親, 母親, 父親
+#DIM DYNAMIC 育ての親, 1
+#DIM DYNAMIC 母親, 1
+#DIM DYNAMIC 父親, 1
+#DIMS DYNAMIC 命名, 1
+TFLAG:600 += 1
+CALL CREATE_RANDOM_NAME_IF, "", 育ての親, 母親, 父親
+命名 = %RESULTS%
+TFLAG:600 -= 1
+IF STRCOUNT( 命名, " " ) == 1
+	CALLNAME = %AUTO_SPLIT( 命名, " ", 1 )%
+ELSEIF STRCOUNT( 命名, "・" ) == 1
+	CALLNAME = %AUTO_SPLIT( 命名, "・", 0 )%
+ELSE
+	CALLNAME = %命名%
+ENDIF
+IF 母親 == MASTER || 父親 == MASTER
+	IF TALENT:オトコ == 0
+		NAME = %命名%(娘)
+	ELSE
+		NAME = %命名%(息子)
+	ENDIF
+ELSE
+	NAME = %命名%(子)
+ENDIF
+
+;-------------------------------------------------
+;娘の諸能力決定関数(双方の親から素質加味)
+;-------------------------------------------------
+@DAUGHTER_TALENT_SET2, ARG, ARG:1, ARG:2
+#LOCALSIZE 300
+VARSET LOCAL
+;-------------------------------------------------
+;似ている親の選定
+;-------------------------------------------------
+;LOCAL = 精子提供者と生みの親のうちの、似ているほうのキャラ登録番号
+;LOCAL:1 = 似ていない方の親の登録番号
+
+;キャラ固有IDをそのまま格納。LOCALが-1の時は未決
+;父親不在の場合は必ず母親に似る
+IF RAND:2 == 0 || CFLAG:ARG:父親の固有番号親 < 0
+	LOCAL = ARG:1
+	LOCAL:1 = ARG:2
+ELSE
+	LOCAL = ARG:2
+	LOCAL:1 = ARG:1
+ENDIF
+PRINTFORML %CALLNAME:(ARG:1)%'s child with \@STRLENS(CSTR:(ARG:1):父親名称)?%CSTR:(ARG:1):父親名称%#%CALLNAME:(ARG:2)%\@.
+;%CALLNAME:(ARG:1)%と\@STRLENS(CSTR:(ARG:1):父親名称)?%CSTR:(ARG:1):父親名称%#%CALLNAME:(ARG:2)%\@の子供
+;-------------------------------------------------
+;Stamina・気力の設定
+;-------------------------------------------------
+MAXBASE:体力 = (MIN(MAXBASE:LOCAL:体力,2000) + LIMIT((MAXBASE:LOCAL:体力 - 2000), 1, 8000) / 4 + MAX((MAXBASE:LOCAL:体力 - 10000), 1) / 10) * 70
+IF CFLAG:ARG:父親の固有番号親 < -2
+	MAXBASE:体力 += 600
+ELSE
+	MAXBASE:体力 += (MIN(MAXBASE:(LOCAL:1):体力,2000) + LIMIT((MAXBASE:(LOCAL:1):体力 - 2000), 1, 8000) / 4 + MAX((MAXBASE:(LOCAL:1):体力 - 10000), 1) / 10) * 30
+ENDIF
+TIMES MAXBASE:体力 , 0.80
+;この時点で100倍にされているので1/100倍に、さらに1/100倍してから100倍することで下二桁を切り捨てる
+MAXBASE:体力 = MAX(MAXBASE:体力 / 10000, 10) * 100
+;気力の決定 MAG強化の1/10が元々の気力に追加される形で、似ている方と似ていない方で7:3で追加する
+MAXBASE:気力 = (MIN(MAXBASE:LOCAL:気力,2000) + LIMIT((MAXBASE:LOCAL:気力 - 2000), 1, 8000) / 4 + MAX((MAXBASE:LOCAL:気力 - 10000), 1) / 10) * 70
+IF CFLAG:ARG:父親の固有番号親 < -2
+	MAXBASE:気力 += 600
+ELSE
+	MAXBASE:気力 += (MIN(MAXBASE:(LOCAL:1):気力,2000) + LIMIT((MAXBASE:(LOCAL:1):気力 - 2000), 1, 8000) / 4 + MAX((MAXBASE:(LOCAL:1):気力 - 10000), 1) / 10) * 30
+ENDIF
+TIMES MAXBASE:気力 , 0.80
+MAXBASE:気力 = MAX(MAXBASE:気力 / 10000, 10) * 100
+BASE:体力 = MAXBASE:体力
+BASE:気力 = MAXBASE:気力
+
+;-------------------------------------------------
+;基本ステータスの設定
+;-------------------------------------------------
+BASE:LV = 1
+BASE:ＥＸＰ = 0
+BASE:ＭＡＧ = 0
+BASE:忠誠度 = LIMIT((BASE:LOCAL:忠誠度 * 3 + BASE:(LOCAL:1):忠誠度 * 2) / 10, ABL:LOCAL:従順*70+ABL:(LOCAL:1):従順*30, ABL:LOCAL:従順*350 + ABL:(LOCAL:1):従順*150)
+;基本ステータスは3
+FOR LOCAL:2, 1, 7
+	BASE:GET_BASESTATUS(LOCAL:2) = 3
+NEXT
+;---- EDIT 004 DEL START -------------------------
+;教育者の基本ステータス追加を廃止
+;---- EDIT 004 DEL END   -------------------------
+;-------------------------------------------------
+;MAG強化引継ぎ
+;似ている方の親の30%　似ていない方の親20%、教育者の10%
+;-------------------------------------------------
+FOR LOCAL:2, 1, 7
+	LOCALS = %GET_BASESTATUS(LOCAL:2)%強化回数
+	CFLAG:LOCALS = CFLAG:LOCAL:LOCALS * 3
+	;---- EDIT 004 MOD START -------------------------
+	;父親の判定がCを見たままだったのを修正
+	SIF CFLAG:ARG:妊娠確定後の父親の判定 >= 0
+		CFLAG:LOCALS += CFLAG:(LOCAL:1):LOCALS * 2
+	;---- EDIT 004 MOD END   -------------------------
+	;---- EDIT 004 ADD START -------------------------
+	SIF CFLAG:ARG:娘教育 == 1
+		CFLAG:LOCALS += CFLAG:ARG:LOCALS * 1
+	;---- EDIT 004 ADD END   -------------------------
+	CFLAG:LOCALS /= 10
+	CFLAG:能力強化回数 += CFLAG:LOCALS
+NEXT
+;-------------------------------------------------
+;相性の決定
+;-------------------------------------------------
+GOTO 相性決定別案
+
+;基本値決定　反射は-100扱いで平均をとる
+FOR LOCAL:2, 0, FLAG:相性数-1
+	LOCAL:3 = BASE:(ARG:1):GET_TYPE(LOCAL:2) == 999 ? -100 # BASE:(ARG:1):GET_TYPE(LOCAL:2)
+	LOCAL:4 = BASE:(ARG:2):GET_TYPE(LOCAL:2) == 999 ? -100 # BASE:(ARG:2):GET_TYPE(LOCAL:2)
+	BASE:GET_TYPE(LOCAL:2) = (LOCAL:3+LOCAL:4) / 2
+NEXT
+
+;最大で5回、相性の変化が入る。
+FOR LOCAL:2, 0, 5
+	SELECTCASE RAND:100
+		CASE IS < 4
+			BASE:GET_TYPE(RAND:(FLAG:相性数)) -= 50
+		CASE IS < 19
+			BASE:GET_TYPE(RAND:(FLAG:相性数)) -= 25
+		CASE IS < 39
+			BASE:GET_TYPE(RAND:(FLAG:相性数)) += 25
+		CASE IS < 49
+			BASE:GET_TYPE(RAND:(FLAG:相性数)) += 50
+	ENDSELECT
+NEXT
+
+;万能は100確定
+BASE:万能 = 100
+
+;範囲外の数値をまるめつつ、弱点の数をカウント
+LOCAL:3 = 0
+FOR LOCAL:2, 0, FLAG:相性数-1
+	BASE:GET_TYPE(LOCAL:2) = BASE:GET_TYPE(LOCAL:2) > 999 ? 998 # BASE:GET_TYPE(LOCAL:2)
+	BASE:GET_TYPE(LOCAL:2) = BASE:GET_TYPE(LOCAL:2) < -100 ? 999 # BASE:GET_TYPE(LOCAL:2)
+	SIF BASE:GET_TYPE(LOCAL:2) > 100 && BASE:GET_TYPE(LOCAL:2) < 999
+		LOCAL:3++
+NEXT
+
+;弱点が4個以下の場合、4個になるまで弱点を追加
+WHILE LOCAL:3 < 4
+	LOCAL:2 = RAND:(FLAG:相性数-1)
+	IF BASE:GET_TYPE(LOCAL:2) == 999 || BASE:GET_TYPE(LOCAL:2) <= 100
+		BASE:GET_TYPE(LOCAL:2) = 100 + (RAND:4 + 1) * 25
+		LOCAL:3++ 
+	ENDIF
+WEND
+
+
+$相性決定別案
+
+VARSET Z,0
+LOCAL:5 = 0
+;基本値決定　70％で似ている親から、30％で似てない親から受け継ぐ。発現してない親の弱点をここで記録
+FOR LOCAL:2, 0, FLAG:相性数-1
+	LOCAL:3 = LOCAL
+	LOCAL:4 = LOCAL:1
+	SIF RAND:100 < 30
+		SWAP LOCAL:3,LOCAL:4
+	BASE:GET_TYPE(LOCAL:2) = BASE:(LOCAL:3):GET_TYPE(LOCAL:2) == 999 ? -100 # BASE:(LOCAL:3):GET_TYPE(LOCAL:2)
+	IF BASE:GET_TYPE(LOCAL:2) < 101 && BASE:(LOCAL:4):GET_TYPE(LOCAL:2) > 100 && BASE:(LOCAL:4):GET_TYPE(LOCAL:2) < 999
+		Z:(LOCAL:5) = LOCAL:2
+		Z:(FLAG:相性数+LOCAL:5) = BASE:(LOCAL:4):GET_TYPE(LOCAL:2)
+		LOCAL:5 ++
+	ENDIF
+NEXT
+
+;最大で5回、相性の変化が入る。100％の相性は変化しないし、弱点と耐性が入れ替わることもない
+FOR LOCAL:2, 0, 5
+	LOCAL:3 = RAND:(FLAG:相性数)
+	SELECTCASE RAND:100
+		CASE IS < 5
+			BASE:GET_TYPE(LOCAL:3) -= (BASE:GET_TYPE(LOCAL:3)-100) * 100 / 100
+		CASE IS < 25
+			BASE:GET_TYPE(LOCAL:3) -= (BASE:GET_TYPE(LOCAL:3)-100) * 50 / 100
+		CASE IS < 45
+			BASE:GET_TYPE(LOCAL:3) += (BASE:GET_TYPE(LOCAL:3)-100) * 50 / 100
+		CASE IS < 50
+			BASE:GET_TYPE(LOCAL:3) += (BASE:GET_TYPE(LOCAL:3)-100) * 100 / 100
+	ENDSELECT
+NEXT
+
+;万能は100確定
+BASE:万能 = 100
+
+LOCAL:3 = 0
+LOCAL:4 = 0
+
+;範囲外の数値をまるめつつ、無効以上・弱点の数をカウント
+FOR LOCAL:2, 0, FLAG:相性数-1
+	IF BASE:GET_TYPE(LOCAL:2) > 100
+		LOCAL:3++
+	ELSEIF BASE:GET_TYPE(LOCAL:2) < 1
+		LOCAL:4++
+	ENDIF
+	SELECTCASE BASE:GET_TYPE(LOCAL:2)
+	CASE IS > 999
+		BASE:GET_TYPE(LOCAL:2) = 995
+	CASE IS < -99
+		BASE:GET_TYPE(LOCAL:2) = 999
+	CASE 101 TO 104
+		BASE:GET_TYPE(LOCAL:2) = 105
+	CASEELSE
+ 		BASE:GET_TYPE(LOCAL:2) = BASE:GET_TYPE(LOCAL:2) / 5 * 5
+ 	ENDSELECT
+ NEXT
+
+;弱点が（無効以上の1.5倍）個以下の場合、2～4個になるまで発現していない親の弱点を追加
+IF LOCAL:3 + LOCAL:5 >= LIMIT(LOCAL:4 * 150 / 100,2,4)
+	WHILE LOCAL:3 < LIMIT(LOCAL:4 * 150 / 100,2,4)
+		LOCAL:6 = RAND:(LOCAL:5)
+		LOCAL:2 = Z:(LOCAL:6)
+		IF BASE:GET_TYPE(LOCAL:2) == 999 || BASE:GET_TYPE(LOCAL:2) <= 100
+			BASE:GET_TYPE(LOCAL:2) = Z:(FLAG:相性数+LOCAL:6)
+			LOCAL:3++
+		ENDIF
+	WEND
+ELSE
+	FOR LOCAL:6,0,LOCAL:5
+		LOCAL:2 = Z:(LOCAL:6)
+		BASE:GET_TYPE(LOCAL:2) = Z:(FLAG:相性数+LOCAL:6)
+		LOCAL:3++
+	NEXT
+	;両親の弱点全て引き継いでも規定値を超えない場合、ランダムで弱点をつける
+	WHILE LOCAL:3 < LIMIT(LOCAL:4 * 150 / 100,2,4)
+		LOCAL:2 = RAND:(FLAG:相性数-1)
+		IF BASE:GET_TYPE(LOCAL:2) == 999 || BASE:GET_TYPE(LOCAL:2) <= 100
+			BASE:GET_TYPE(LOCAL:2) = 100 + (RAND:4 + 1) * 25
+			LOCAL:3++ 
+		ENDIF
+	WEND
+ENDIF
+;-------------------------------------------------
+;バステ耐性の決定　70％で似ている親から、30％で似てない親から受け継ぐ
+;-------------------------------------------------
+FOR LOCAL:2, 0, FLAG:ステート数
+	LOCAL:3 = LOCAL
+	SIF RAND:100 < 30
+		LOCAL:3 = LOCAL:1
+	BASE:GET_STATE(LOCAL:2) = LIMIT(BASE:(LOCAL:3):GET_TYPE(LOCAL:2), -100, 999)
+NEXT
+
+;-------------------------------------------------
+;肉体部位・特徴などの継承
+;-------------------------------------------------
+;肉体部位の継承 似ている方の親のは確定、似ていない方は1/3の確率で追加判定
+FOR LOCAL:2, GETNUM(TALENT, "頭"), GETNUM(TALENT, "剣撃")
+	TALENT:(LOCAL:2) = (TALENT:LOCAL:(LOCAL:2) + (TALENT:(LOCAL:1):(LOCAL:2) && RAND:3) > 0)
+NEXT
+;種族・形質決定(この時点では一度全部突っ込む)
+FOR LOCAL:2, GETNUM(TALENT,"サクセサー"), GETNUM(TALENT,"霊媒体質")+1
+	TALENT:(LOCAL:2) = TALENT:(LOCAL):(LOCAL:2) ? TALENT:(LOCAL):(LOCAL:2) # TALENT:(LOCAL:1):(LOCAL:2)
+NEXT
+
+;Human顧客が親の場合、素質を見る
+SELECTCASE CFLAG:ARG:父親の固有番号親
+	CASE -3
+		TALENT:異能者 = 1
+	CASE -4
+		TALENT:非戦闘員 = 1
+	CASE -5
+		TALENT:サクセサー = 1
+	CASE -6
+		TALENT:ペルソナ使い = 1
+	CASE -7
+		TALENT:ペルソナ使い = 2
+	CASE -8
+		TALENT:デビルシフター = 1
+ENDSELECT
+
+SIF ABL:LOCAL:種族 == 45 || ABL:(LOCAL:1):種族 == 45 || TALENT:LOCAL:達人 || TALENT:(LOCAL:1):達人
+	TALENT:異能者 = 1
+
+;サマナーは別枠で継承判定
+SIF TALENT:(LOCAL:1):サマナー && !RAND:3
+	TALENT:サマナー = TALENT:(LOCAL:1):サマナー
+SIF TALENT:(LOCAL):サマナー && !RAND:3
+	TALENT:サマナー = TALENT:(LOCAL):サマナー
+
+;道具知識は似ている親のLv+似てない親のLv*0.4（どっちか持ってたら最低1）
+IF TALENT:道具知識
+	TALENT:道具知識 = LIMIT((TALENT:(LOCAL):道具知識 * 10 + TALENT:(LOCAL:1):道具知識 * 4) / 10,1,3)
+ENDIF
+
+;アイテム習熟は両親が持ってた場合そのまま、片親だけなら道具知識のLv+1
+IF TALENT:アイテム習熟 && (TALENT:(LOCAL):アイテム習熟 == 0 || TALENT:(LOCAL:1):アイテム習熟 == 0)
+	TALENT:アイテム習熟 = 0
+	TALENT:道具知識 = MIN(TALENT:道具知識+1,3)
+ENDIF
+
+ABL:種族 = FLAG:娘種族判定処理
+
+;調整するまで封印
+TALENT:喰奴 = 0
+;LOCAL配列の解放
+VARSET LOCAL, 0, 90, 101
+;この時点でHalfDemonの場合
+IF ABL:種族 == 36
+	;シフター・喰奴
+	IF (TALENT:デビルシフター || TALENT:喰奴) && RAND:2
+		ABL:種族 = 0
+		;TALENT:デビルシフター = 0
+		;TALENT:喰奴 = 0
+		TALENT:サクセサー = 0
+		TALENT:ガンスリンガー = 0
+		TALENT:道具知識 = 0
+		TALENT:ペルソナ使い = 0
+		TALENT:異能者 = 0
+		TALENT:非戦闘員 = 0
+		TALENT:霊媒体質 = 0
+	;HalfDemon
+	ELSE
+		TALENT:デビルシフター = 0
+		TALENT:喰奴 = 0
+		TALENT:異能者 = 0
+		TALENT:ペルソナ使い = 0
+		TALENT:サクセサー = 0
+		TALENT:ガンスリンガー = 0
+		TALENT:道具知識 = 0
+		TALENT:サマナー = 0
+		TALENT:非戦闘員 = 0
+		TALENT:霊媒体質 = 0
+	ENDIF
+	;それ以外で人間
+ELSEIF ABL:種族 == 0
+	LOCAL:5 = 0
+	;90台の配列に持っている戦闘素質を記録していく
+	IF TALENT:デビルシフター > 0
+		LOCAL:(LOCAL:5+90)= GETNUM(TALENT, "デビルシフター")
+		LOCAL:5++
+	ENDIF
+	IF TALENT:喰奴 > 0
+		LOCAL:(LOCAL:5+90)= GETNUM(TALENT, "喰奴")
+		LOCAL:5++
+	ENDIF
+	IF TALENT:ペルソナ使い > 0
+		LOCAL:(LOCAL:5+90)= GETNUM(TALENT, "ペルソナ使い")
+		LOCAL:5++
+	ENDIF
+	IF TALENT:異能者 > 0
+		LOCAL:(LOCAL:5+90)= GETNUM(TALENT, "異能者")
+		LOCAL:5++
+	ENDIF
+	;道具知識
+	IF GROUPMATCH(1 , TALENT:道具知識 >= 3, TALENT:サクセサー > 0, TALENT:ガンスリンガー > 0) > 1
+		LOCAL:(LOCAL:5+90)= 999
+		LOCAL:5++
+	ENDIF
+	IF TALENT:非戦闘員 > 0
+		LOCAL:(LOCAL:5+90)= GETNUM(TALENT, "非戦闘員")
+		LOCAL:5++
+	ENDIF
+	;この時点で素質がない場合は非戦闘員確定
+	IF LOCAL:5 == 0
+		TALENT:非戦闘員 = 1
+	ELSE
+		;LOCAL:90に残す素質をいれ、それ以外を消していく
+		LOCAL:90 = LOCAL:(90+RAND:(LOCAL:5))
+		SELECTCASE LOCAL:90
+			CASE GETNUM(TALENT, "デビルシフター")
+				;TALENT:デビルシフター = 0
+				TALENT:喰奴 = 0
+				TALENT:異能者 = 0
+				TALENT:ペルソナ使い = 0
+				TALENT:サクセサー = 0
+				TALENT:ガンスリンガー = 0
+				TALENT:道具知識 = 0
+				TALENT:サマナー = 0
+				TALENT:非戦闘員 = 0
+				TALENT:霊媒体質 = 0
+			CASE GETNUM(TALENT, "喰奴")
+				TALENT:デビルシフター = 0
+				;TALENT:喰奴 = 0
+				TALENT:異能者 = 0
+				TALENT:ペルソナ使い = 0
+				TALENT:サクセサー = 0
+				;TALENT:ガンスリンガー = 0
+				TALENT:道具知識 = 0
+				TALENT:サマナー = 0
+				TALENT:非戦闘員 = 0
+				TALENT:霊媒体質 = 0
+			CASE GETNUM(TALENT, "異能者")
+				TALENT:デビルシフター = 0
+				TALENT:喰奴 = 0
+				;TALENT:異能者 = 0
+				TALENT:ペルソナ使い = 0
+				TALENT:ガンスリンガー = 0
+				TALENT:非戦闘員 = 0
+				;TALENT:道具知識 = 0
+				;TALENT:サマナー = 0
+				;TALENT:霊媒体質 = 0
+				;異能者はサマナー・道具知識1・霊媒体質・サクセサーのいずれかを継承可能
+				VARSET LOCAL, 0, 90, 101
+				LOCAL:5 = 91
+				IF TALENT:サマナー
+					LOCAL:(LOCAL:5) = 1
+					LOCAL:5++
+				ENDIF
+				IF TALENT:道具知識
+					LOCAL:(LOCAL:5) = 2
+					LOCAL:5++
+				ENDIF
+				IF TALENT:サクセサー
+					LOCAL:(LOCAL:5) = 3
+					LOCAL:5++
+				ENDIF
+				IF TALENT:霊媒体質
+					LOCAL:(LOCAL:5) = 4
+					LOCAL:5++
+				ENDIF
+				TALENT:サマナー = 0
+				TALENT:道具知識 = 0
+				TALENT:サクセサー = 0
+				TALENT:霊媒体質 = 0
+				SELECTCASE LOCAL:(RAND(90, LOCAL:5))
+					CASE 1
+						TALENT:サマナー = 1
+					CASE 2
+						TALENT:道具知識 = 1
+					CASE 3
+						TALENT:サクセサー = 1
+					CASE 4
+						TALENT:霊媒体質 = 1
+				ENDSELECT
+			CASE GETNUM(TALENT, "ペルソナ使い")
+				TALENT:デビルシフター = 0
+				TALENT:喰奴 = 0
+				TALENT:異能者 = 0
+				;TALENT:ペルソナ使い = 0
+				;TALENT:サクセサー = 0
+				TALENT:ガンスリンガー = 0
+				TALENT:道具知識 = MAX(TALENT:道具知識, 1)
+				TALENT:サマナー = MAX(TALENT:サマナー, 1)
+				TALENT:非戦闘員 = 0
+				;ペルソナ使いはサマナー・道具知識1・霊媒体質・サクセサー・非戦闘員のいずれかを継承可能
+				VARSET LOCAL, 0, 90, 101
+				LOCAL:5 = 91
+				IF TALENT:サマナー
+					LOCAL:(LOCAL:5) = 1
+					LOCAL:5++
+				ENDIF
+				IF TALENT:道具知識
+					LOCAL:(LOCAL:5) = 2
+					LOCAL:5++
+				ENDIF
+				IF TALENT:サクセサー
+					LOCAL:(LOCAL:5) = 3
+					LOCAL:5++
+				ENDIF
+				IF TALENT:霊媒体質
+					LOCAL:(LOCAL:5) = 4
+					LOCAL:5++
+				ENDIF
+				IF TALENT:非戦闘員
+					LOCAL:(LOCAL:5) = 5
+					LOCAL:5++
+				ENDIF
+				TALENT:サマナー = 0
+				TALENT:道具知識 = 0
+				TALENT:サクセサー = 0
+				TALENT:霊媒体質 = 0
+				TALENT:非戦闘員 = 0
+				SELECTCASE LOCAL:(RAND(90, LOCAL:5))
+					CASE 1
+						TALENT:サマナー = 1
+					CASE 2
+						TALENT:道具知識 = 1
+					CASE 3
+						TALENT:サクセサー = 1
+					CASE 4
+						TALENT:霊媒体質 = 1
+					CASE 5
+						TALENT:非戦闘員 = 1
+				ENDSELECT
+			CASE 999
+				TALENT:デビルシフター = 0
+				TALENT:喰奴 = 0
+				TALENT:異能者 = 0
+				TALENT:ペルソナ使い = 0
+				;TALENT:サクセサー = 0
+				;TALENT:ガンスリンガー = 0
+				;TALENT:道具知識 = 0
+				;TALENT:サマナー = 0
+				TALENT:非戦闘員 = 0
+				TALENT:霊媒体質 = 0
+			CASE GETNUM(TALENT, "非戦闘員")
+				TALENT:デビルシフター = 0
+				TALENT:喰奴 = 0
+				TALENT:異能者 = 0
+				;ペルソナ使い非戦闘員はペルソナ使いの方でのみ扱う
+				TALENT:ペルソナ使い = 0
+				TALENT:サクセサー = 0
+				TALENT:ガンスリンガー = 0
+				TALENT:道具知識 = 0
+				TALENT:サマナー = 0
+				;TALENT:非戦闘員 = 0
+				;TALENT:霊媒体質 = 0
+		ENDSELECT
+	ENDIF
+;悪魔
+ELSE
+	;一応、人間用の素質を潰しておく
+	TALENT:デビルシフター = 0
+	TALENT:喰奴 = 0
+	TALENT:サクセサー = 0
+	TALENT:ガンスリンガー = 0
+	TALENT:道具知識 = 0
+	TALENT:ペルソナ使い = 0
+	TALENT:異能者 = 0
+	TALENT:サマナー = 0
+	TALENT:非戦闘員 = 0
+	TALENT:霊媒体質 = 0
+ENDIF
+;容量を越える場合は自動的にストレージに送る
+SIF FLAG:ＣＯＭＰ容量 < NUM_NAKAMA() + ソフト容量() && (ABL:種族 == 0 || ABL:種族 > 45)
+	CFLAG:RESULT:所属ＣＯＭＰ = -1
+;-------------------------------------------------
+;Humanは破魔無効/他ノーマル
+;-------------------------------------------------
+IF ABL:種族 == 0
+	FOR LOCAL:5, 0, 19
+		BASE:GET_TYPE(LOCAL:5) = 100
+		SIF LOCAL:5 == 10
+			BASE:GET_TYPE(LOCAL:5) = 0
+	NEXT
+ENDIF
+;-------------------------------------------------
+;属性の決定
+;-------------------------------------------------
+
+;Human顧客の場合は大きくランダムが絡む
+IF CFLAG:ARG:父親の固有番号親 < -2
+	CFLAG:善悪値 = LIMIT((CFLAG:LOCAL:善悪値*3 + RAND:255 * 2) / 5, 0 ,255)
+	CFLAG:秩混値 = LIMIT((CFLAG:LOCAL:秩混値*3 + RAND:255 * 2) / 5, 0, 255)
+ELSE
+	CFLAG:善悪値 = LIMIT((CFLAG:LOCAL:善悪値*3 + CFLAG:(LOCAL:1):善悪値*2) / 5, 0, 255)
+	CFLAG:秩混値 = LIMIT((CFLAG:LOCAL:秩混値*3 + CFLAG:(LOCAL:1):秩混値*2) / 5, 0, 255)
+ENDIF
+;受胎アイテムの追加
+IF RAND:2 == 0
+	IF CFLAG:善悪値 > 170
+		ABL:受胎アイテム = 1052
+	ELSEIF CFLAG:善悪値 > 84
+		ABL:受胎アイテム = 1001
+	ELSE
+		ABL:受胎アイテム = 1053
+	ENDIF
+ELSE
+	IF CFLAG:秩混値 > 170
+		ABL:受胎アイテム = 1050
+	ELSEIF CFLAG:秩混値 > 84
+		ABL:受胎アイテム = 1001
+	ELSE
+		ABL:受胎アイテム = 1051
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;スキル継承
+;両親・教育者のスキルのうち、部位が対応しているものを
+;全てCOUNT配列に記録後、ランク順に再配置
+;0~3を初期スキルと登録後、残りスキルを習得スキルにいれる。
+;なお、習得レベルはランク*4+RAND:4となる
+;複数習得可なスキルでも、引き継ぐのは１つだけ
+;-------------------------------------------------
+
+LOCAL:3 = 0
+VARSET COUNT
+;ペルソナ使いと喰奴はスキルの継承処理を行わない
+IF !TALENT:ペルソナ使い && !TALENT:喰奴
+	;COUNT配列に覚えられるスキルをいれていく
+	FOR LOCAL:4, 0, 3
+		;似ている親
+		IF LOCAL:4 == 0
+			LOCAL:2 = LOCAL
+		;似ていない親
+		ELSEIF LOCAL:4 == 1
+			LOCAL:2 = LOCAL:1
+		;教育者
+		ELSE
+			SIF !CFLAG:ARG:娘教育
+				CONTINUE
+			LOCAL:2 = ARG
+		ENDIF
+		;ペルソナ使いからは継承できない
+		SIF TALENT:(LOCAL:2):ペルソナ使い
+			CONTINUE
+		;喰奴からは継承できない
+		SIF TALENT:(LOCAL:2):喰奴
+			CONTINUE
+		;達人からは継承できない
+		SIF TALENT:(LOCAL:2):達人
+			CONTINUE
+		;LOCAL:6にスキルを入れる
+		FOR LOCAL:5, 1, FLAG:スキル数 + 21
+			IF LOCAL:5 <= FLAG:スキル数
+				LOCAL:6 = ABL:(LOCAL:2):@"スキル{LOCAL:5}"
+			ELSE
+				;教育者は現在持っているスキルのみ
+				SIF LOCAL:4 == 2
+					CONTINUE
+				LOCAL:6 = ABL:(LOCAL:2):@"習得スキル{LOCAL:5-FLAG:スキル数}"
+			ENDIF
+			;スキルがなかったら中断
+			SIF LOCAL:6 == 0
+				CONTINUE
+			;似ている親以外からは継承不能スキルを引き継げない
+			IF LOCAL:4 || LOCAL:4 == 2
+				RESULT = 0
+				CALLFORM SKILL_SUCCESSION_TYPE_{LOCAL:6}
+				SIF RESULT == 23
+					CONTINUE
+				RESULT = 0
+				TRYCALLFORM 継承不能_{LOCAL:6}
+				SIF RESULT
+					CONTINUE
+			ENDIF
+			;継承部位チェック
+			TRYCCALLFORM 継承部位_{LOCAL:6}, TARGET
+				SIF !RESULT
+					CONTINUE
+			CATCH
+			ENDCATCH
+			;敵専用チェック
+			TRYCCALLFORM 敵専用_{LOCAL:6}
+				SIF RESULT
+					CONTINUE
+			CATCH
+			ENDCATCH
+			;重複チェック
+			SIF MATCH(COUNT, LOCAL:6)
+				CONTINUE
+			COUNT:(LOCAL:3) = LOCAL:6
+			LOCAL:3++
+		NEXT
+	NEXT
+	LOCAL:2 = 0
+	LOCAL:5 = 1
+	;ランクの低い順に並べ替えていく
+	WHILE LOCAL:3
+		IF COUNT:(LOCAL:2+1) == 0
+			LOCAL:2 = 0
+			LOCAL:3--
+		ENDIF
+		LOCAL:5 = 0
+		CALLFORM SKILL_RANK_{COUNT:(LOCAL:2)}
+		LOCAL:4 = RESULT
+		CALLFORM SKILL_RANK_{COUNT:(LOCAL:2+1)}
+		SIF RESULT < LOCAL:4
+			SWAP COUNT:(LOCAL:2), COUNT:(LOCAL:2+1)
+		LOCAL:2++
+	WEND
+	FOR LOCAL:2, 0, 4
+		SIF COUNT:(LOCAL:2)
+			ABL:("スキル"+TOSTR(LOCAL:2+1)) = COUNT:(LOCAL:2)
+	NEXT
+	LOCAL:3 = 5
+	FOR LOCAL:2, 1, 21
+		IF COUNT:(LOCAL:2 + 3)
+			ABL:("習得スキル"+TOSTR(LOCAL:2)) = COUNT:(LOCAL:2+3)
+			CALLFORM SKILL_RANK_{COUNT:(LOCAL:2+3)}
+			;LOCAL:3を利用して同レベルにスキルが来ることを防ぐ
+			LOCAL:3 = MAX(RESULT * 4 + RAND:4, LOCAL:3+1)
+			ABL:("習得LV"+TOSTR(LOCAL:2)) = LOCAL:3
+		ENDIF
+	NEXT
+ENDIF
+;-------------------------------------------------
+;初期リンク悪魔の設定
+;-------------------------------------------------
+IF TALENT:デビルシフター == 1 || TALENT:喰奴 >= 1
+	;Human顧客が親の場合、ここで初期リンク悪魔の設定とスキルの追加を行う
+	IF CFLAG:ARG:父親の固有番号親 == -8 && TALENT:デビルシフター && !TALENT:LOCAL:デビルシフター
+		SELECTCASE CFLAG:善悪値
+			CASE IS > 170
+				SELECTCASE CFLAG:秩混値
+					;L-L
+					CASE IS > 170
+						CFLAG:初期リンク悪魔 = [[キャラ:サラスヴァティ]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ディア]]
+						ABL:初期変身悪魔スキル2 = [[スキル:夢見針]]
+						ABL:初期変身悪魔スキル3 = [[スキル:マカ・カジャ]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:慈愛の祈り]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:ディアラハン]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:リカーム]]
+					;L-N
+					CASE IS > 84
+						CFLAG:初期リンク悪魔 = [[キャラ:スカアハ]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ラク・ンダ]]
+						ABL:初期変身悪魔スキル2 = [[スキル:ザン]]
+						ABL:初期変身悪魔スキル3 = [[スキル:クロズディ]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:アドバイス]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:雄叫び]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:刹那五月雨撃]]
+					;L-C
+					CASEELSE
+						CFLAG:初期リンク悪魔 = [[キャラ:キクリヒメ]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ムド]]
+						ABL:初期変身悪魔スキル2 = [[スキル:ディア]]
+						ABL:初期変身悪魔スキル3 = [[スキル:リカーム]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:マハ・ブフ]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:セクシーダンス]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:闇の審判]]
+				ENDSELECT
+			CASE IS > 84
+				SELECTCASE CFLAG:秩混値
+					;N-L
+					CASE IS > 170
+						CFLAG:初期リンク悪魔 = [[キャラ:エンジェル]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ハンマ]]
+						ABL:初期変身悪魔スキル2 = [[スキル:ガル]]
+						ABL:初期変身悪魔スキル3 = [[スキル:ディア]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:エンジェルアロー]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:穢れ無き威光]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:メ・ディアラマ]]
+					;N-N
+					CASE IS > 84
+						CFLAG:初期リンク悪魔 = [[キャラ:ジャックフロスト]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ディア]]
+						ABL:初期変身悪魔スキル2 = [[スキル:ブフ]]
+						ABL:初期変身悪魔スキル3 = [[スキル:パトラ]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:アトミック・ブフーラ]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:ブフダイン]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:アイスブレス]]
+					;N-C
+					CASEELSE
+						CFLAG:初期リンク悪魔 = [[キャラ:モコイ]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ジオ]]
+						ABL:初期変身悪魔スキル2 = [[スキル:ショートジャブ]]
+						ABL:初期変身悪魔スキル3 = [[スキル:トラフーリ]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:モコイブーメラン]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:スクカジャオート]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:スク・カジャ]]
+				ENDSELECT
+			CASEELSE
+				SELECTCASE CFLAG:秩混値
+					;D-L
+					CASE IS > 170
+						CFLAG:初期リンク悪魔 = [[キャラ:モー・ショボー]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ディア]]
+						ABL:初期変身悪魔スキル2 = [[スキル:自爆]]
+						ABL:初期変身悪魔スキル3 = [[スキル:ザン]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:玉砕破]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:ザンマ]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:マハ・ザンマ]]
+					;D-N
+					CASE IS > 84
+						CFLAG:初期リンク悪魔 = [[キャラ:ゾンビちゃん]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ひっかき]]
+						ABL:初期変身悪魔スキル2 = [[スキル:治癒促進(小)]]
+						ABL:初期変身悪魔スキル3 = [[スキル:食いしばり]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:不屈の闘志]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:セクシーダンス]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:三分の活泉]]
+					;D-C
+					CASEELSE
+						CFLAG:初期リンク悪魔 = [[キャラ:リリム]]
+						ABL:初期変身悪魔スキル1 = [[スキル:ラク・ンダ]]
+						ABL:初期変身悪魔スキル2 = [[スキル:マリンカリン]]
+						ABL:初期変身悪魔スキル3 = [[スキル:ジオ]]
+						ABL:初期変身悪魔習得スキル1 = [[スキル:セクシーダンス]]
+						ABL:初期変身悪魔習得スキル2 = [[スキル:ファイナルヌード]]
+						ABL:初期変身悪魔習得スキル3 = [[スキル:マハムド]]
+				ENDSELECT
+		ENDSELECT
+		FOR LOCAL:2, 1, 4
+			CALLFORM SKILL_RANK_{ABL:("初期変身悪魔習得スキル"+TOSTR(LOCAL:2))}
+			ABL:("初期変身悪魔習得LV"+TOSTR(LOCAL:2)) = RESULT * 4
+		NEXT
+	ELSE
+		LOCAL:3 = -1
+		;どちらかの親が悪魔の場合
+		SIF GET_DEVIL(ARG:1) || GET_DEVIL(ARG:2)
+			CFLAG:初期リンク悪魔 = GET_DEVIL(ARG:1) ? NO:(ARG:1) # NO:(ARG:2)
+		;どちらの親もあくまでなかったか、親である悪魔が子供であった場合
+		IF CFLAG:初期リンク悪魔 == 0 || CFLAG:初期リンク悪魔 == 3501 || CFLAG:初期リンク悪魔 == 3502
+			IF (TALENT:(ARG:2):喰奴 || TALENT:(ARG:2):デビルシフター) && (TALENT:(ARG:1):喰奴 || TALENT:(ARG:1):デビルシフター)
+				LOCAL:3 = RAND:2 ? ARG:1 # ARG:2
+			ELSEIF TALENT:(ARG:2):喰奴 || TALENT:(ARG:2):デビルシフター
+				LOCAL:3 = ARG:2
+			ELSE
+				LOCAL:3 = ARG:1
+			ENDIF
+			;親の悪魔を引き継ぐ
+			CFLAG:初期リンク悪魔 = CFLAG:(LOCAL:3):初期リンク悪魔
+		ENDIF
+		;攻撃相性→最大命中率
+		;悪魔のほうは悪魔のCSVを、親がシフター・喰奴ならそのまま取る
+		;ただし、親が子供である場合はリンク悪魔のCSVを見に行く
+		FOR LOCAL:4, 186, 194
+			IF LOCAL:3 >= 0
+				LOCAL:2 = ABL:(LOCAL:3):(LOCAL:4)
+			ELSE
+				LOCAL:2 = LOCAL:4 > 190 ? CSVABL(CFLAG:初期リンク悪魔, LOCAL:4+4, 0) # CSVABL(CFLAG:初期リンク悪魔, LOCAL:4-100, 0)
+			ENDIF
+			ABL:(LOCAL:4) = LOCAL:2
+		NEXT
+		;悪魔形質を引き継ぐ場合はスキルをリンク悪魔側に移す
+		IF LOCAL:3 == -1
+			FOR LOCAL:2, 1, FLAG:スキル数+1
+				LOCALS = スキル{LOCAL:2}
+				LOCALS:1 = 初期変身悪魔スキル{LOCAL:2}
+				ABL:(LOCALS:1) = ABL:LOCALS
+			NEXT
+			FOR LOCAL:2, 1, 21
+				LOCALS = 初期変身悪魔習得スキル{LOCAL:2}
+				LOCALS:1 = 習得スキル{LOCAL:2}
+				LOCALS:2 = 初期変身悪魔習得LV{LOCAL:2}
+				LOCALS:3 = 習得LV{LOCAL:2}
+				ABL:LOCALS = ABL:(LOCALS:1)
+				ABL:(LOCALS:2) = ABL:(LOCALS:3)
+			NEXT
+		;シフター形質を引き継ぐ時は親からスキルを引継ぎ
+		ELSE
+			FOR LOCAL:2, 201, 241
+				ABL:(LOCAL:2) = ABL:(LOCAL:3):(LOCAL:2)
+			NEXT
+			FOR LOCAL:2, 241, 281
+				ABL:(LOCAL:2) = NO:(LOCAL:3) == 3501 || NO:(LOCAL:3)== 3502 ? CSVABL(CFLAG:初期リンク悪魔, LOCAL:2, 0) # CSVABL(NO:(LOCAL:3), LOCAL:2, 0)
+			NEXT
+		ENDIF
+	ENDIF
+	;仕様上、シフター・喰奴の人間形態は初期以外でスキルを持つ手段がないのでそれに準ずる
+	FOR LOCAL:2, 1, 21
+		SIF LOCAL <= FLAG:スキル数
+			ABL:("スキル"+TOSTR(LOCAL:2)) = 0
+		ABL:("習得スキル"+TOSTR(LOCAL:2)) = 0
+		ABL:("習得LV"+TOSTR(LOCAL:2)) = 0
+	NEXT
+	ABL:スキル9 = 2310
+	ABL:スキル10 = 2311
+ENDIF
+;-------------------------------------------------
+;継承素質の決定
+;-------------------------------------------------
+;Humanでない場合は継承素質の決定
+;Humanは素質なしなのでそれに準ずる
+IF ABL:種族 > 0
+	;継承素質に数値を入れていく
+	FOR LOCAL:2, 0, 20
+		;二桁目までに継承タイプの番号を入れとく
+		COUNT:(LOCAL:2) = LOCAL:2
+		SIF TALENT:LOCAL:GET_SUCCESSION(LOCAL:2)
+			COUNT:(LOCAL:2) += 300
+		SIF TALENT:(LOCAL:1):GET_SUCCESSION(LOCAL:2)
+			COUNT:(LOCAL:2) += 200
+		SIF CFLAG:ARG:娘教育 == 1 && TALENT:ARG:GET_SUCCESSION(LOCAL:2)
+			COUNT:(LOCAL:2) += 100
+	NEXT
+	;一度ランダムに並び変える
+	FOR LOCAL:2, 0 , 20
+		SWAP COUNT:(RAND:20), COUNT:(RAND:20)
+	NEXT
+	;数値の大きい順に並び替える
+	FOR LOCAL:3, 0 , 20
+		FOR LOCAL:2, 0 , 19
+			SIF COUNT:(LOCAL:2) < COUNT:(LOCAL:2+1)
+				SWAP COUNT:(LOCAL:2), COUNT:(LOCAL:2+1)
+		NEXT
+	NEXT
+	;3個までは確定、あとは10%
+	FOR LOCAL:2, 0, 10
+		SIF (LOCAL:2 < 3 || RAND:10 == 0) && COUNT:(LOCAL:2)/100
+			TALENT:GET_SUCCESSION(COUNT:(LOCAL:2)%100) = 1
+	NEXT
+ENDIF
+;-------------------------------------------------
+;攻撃タイプなどの決定
+;-------------------------------------------------
+ABL:会話タイプ = ABL:LOCAL:会話タイプ
+ABL:会話タイプ = ABL:LOCAL:会話タイプ
+ABL:攻撃相性 = ABL:LOCAL:攻撃相性
+ABL:最低攻撃回数 = ABL:LOCAL:最低攻撃回数
+ABL:最大攻撃回数 = ABL:LOCAL:最大攻撃回数
+ABL:射程 = ABL:LOCAL:射程
+ABL:攻撃範囲 = ABL:LOCAL:攻撃範囲
+ABL:追加効果 = ABL:LOCAL:追加効果
+ABL:追加効果相性 = ABL:LOCAL:追加効果相性
+ABL:追加効果命中率 = ABL:LOCAL:追加効果命中率
+ABL:追加効果最大命中率 = ABL:LOCAL:追加効果最大命中率
+IF ABL:種族 == 0
+	BASE:CP = 0
+	MAXBASE:CP = 0
+ELSE
+	BASE:CP = 1
+	MAXBASE:CP = 1
+ENDIF
+;-------------------------------------------------
+;従順の決定
+;-------------------------------------------------
+;従順の処理、双方の親の反発刻印が少ないほど最初から従順
+ABL:従順 = 2 - MARK:LOCAL:3
+SIF ABL:従順 < 0
+	ABL:従順 = 0
+ABL:従順 += 1 - MARK:(LOCAL:1):3 / 2
+SIF ABL:従順 < 0
+	ABL:従順 = 0
+
+;-------------------------------------------------
+;素質遺伝
+;-------------------------------------------------
+;性格素質の継承
+FOR LOCAL:2, 201, 209
+	TALENT:(LOCAL:2) = (TALENT:LOCAL:(LOCAL:2) * RAND:2 + TALENT:(LOCAL:1):(LOCAL:2) * RAND:2 + !RAND:10)
+NEXT
+;性格素質は3個まで
+WHILE MATCH(TALENT, 1, 201, 209) > 3
+	TALENT:(RAND:9+201) = 0
+WEND
+;素質遺伝
+FOR LOCAL:5, 10, 137
+	SIF !STRLENS(TALENTNAME:(LOCAL:5))
+		CONTINUE
+	;Human顧客が相手の場合、ランダム発現が増える
+	IF CFLAG:ARG:父親の固有番号親 < -2
+		SELECTCASE RAND:100
+			CASE IS < 90
+				TALENT:(LOCAL:5) = TALENT:LOCAL:(LOCAL:5)
+			CASE IS < 95
+				TALENT:(LOCAL:5) = 1
+			CASEELSE
+				TALENT:(LOCAL:5) = 0
+		ENDSELECT
+	ELSE
+		SELECTCASE RAND:100
+			CASE IS < 64
+				TALENT:(LOCAL:5) = TALENT:LOCAL:(LOCAL:5)
+			CASE IS < 96
+				TALENT:(LOCAL:5) = TALENT:(LOCAL:1):(LOCAL:5)
+			CASE IS < 98
+				TALENT:(LOCAL:5) = 1
+			CASEELSE
+				TALENT:(LOCAL:5) = 0
+		ENDSELECT
+	ENDIF
+NEXT
+;両立不能な素質を削っていく
+IF TALENT:臆病 && TALENT:気丈
+	IF RAND:2
+		TALENT:臆病 = 0
+	ELSE
+		TALENT:気丈 = 0
+	ENDIF
+ENDIF
+IF TALENT:素直 && TALENT:反抗的
+	IF RAND:2
+		TALENT:素直 = 0
+	ELSE
+		TALENT:反抗的 = 0
+	ENDIF
+ENDIF
+IF TALENT:生意気 && TALENT:大人しい
+	IF RAND:2
+		TALENT:生意気 = 0
+	ELSE
+		TALENT:大人しい = 0
+	ENDIF
+ENDIF
+IF TALENT:プライド高い && TALENT:プライド低い
+	IF RAND:2
+		TALENT:プライド高い = 0
+	ELSE
+		TALENT:プライド低い = 0
+	ENDIF
+ENDIF
+IF TALENT:無関心 && TALENT:好奇心
+	IF RAND:2
+		TALENT:無関心 = 0
+	ELSE
+		TALENT:好奇心 = 0
+	ENDIF
+ENDIF
+IF TALENT:楽観的 && TALENT:悲観的
+	IF RAND:2
+		TALENT:楽観的 = 0
+	ELSE
+		TALENT:悲観的 = 0
+	ENDIF
+ENDIF
+IF TALENT:抑圧 && TALENT:解放
+	IF RAND:2
+		TALENT:抑圧 = 0
+	ELSE
+		TALENT:解放 = 0
+	ENDIF
+ENDIF
+IF TALENT:恥じらい && TALENT:恥薄い
+	IF RAND:2
+		TALENT:恥じらい = 0
+	ELSE
+		TALENT:恥薄い = 0
+	ENDIF
+ENDIF
+IF TALENT:濡れやすい && TALENT:濡れにくい
+	IF RAND:2
+		TALENT:濡れやすい = 0
+	ELSE
+		TALENT:濡れにくい = 0
+	ENDIF
+ENDIF
+IF TALENT:習得早い && TALENT:習得遅い
+	IF RAND:2
+		TALENT:習得遅い = 0
+	ELSE
+		TALENT:習得早い = 0
+	ENDIF
+ENDIF
+IF TALENT:汚臭鈍感 && TALENT:汚臭敏感
+	IF RAND:2
+		TALENT:汚臭鈍感 = 0
+	ELSE
+		TALENT:汚臭敏感 = 0
+	ENDIF
+ENDIF
+IF TALENT:快感に素直 && TALENT:快感の否定
+	IF RAND:2
+		TALENT:快感の否定 = 0
+	ELSE
+		TALENT:快感に素直 = 0
+	ENDIF
+ENDIF
+IF TALENT:両刀 && (TALENT:男嫌い || TALENT:女嫌い)
+	IF RAND:2
+		TALENT:両刀 = 0
+	ELSE
+		TALENT:男嫌い = 0
+		TALENT:女嫌い = 0
+	ENDIF
+ENDIF
+IF TALENT:Ｃ敏感 && TALENT:Ｃ鈍感
+	IF RAND:2
+		TALENT:Ｃ鈍感 = 0
+	ELSE
+		TALENT:Ｃ敏感 = 0
+	ENDIF
+ENDIF
+IF TALENT:Ｖ鈍感 && TALENT:Ｖ敏感
+	IF RAND:2
+		TALENT:Ｖ鈍感 = 0
+	ELSE
+		TALENT:Ｖ敏感 = 0
+	ENDIF
+ENDIF
+IF TALENT:Ａ敏感 && TALENT:Ａ鈍感
+	IF RAND:2
+		TALENT:Ａ鈍感 = 0
+	ELSE
+		TALENT:Ａ敏感 = 0
+	ENDIF
+ENDIF
+IF TALENT:Ｂ敏感 && TALENT:Ｂ鈍感
+	IF RAND:2
+		TALENT:Ｂ鈍感 = 0
+	ELSE
+		TALENT:Ｂ敏感 = 0
+	ENDIF
+ENDIF
+IF TALENT:痛みに弱い && TALENT:痛みに強い
+	IF RAND:2
+		TALENT:痛みに弱い = 0
+	ELSE
+		TALENT:痛みに強い = 0
+	ENDIF
+ENDIF
+IF TALENT:回復早い && TALENT:回復遅い
+	IF RAND:2
+		TALENT:回復遅い = 0
+	ELSE
+		TALENT:回復早い = 0
+	ENDIF
+ENDIF
+IF TALENT:スレンダー && TALENT:むちむち
+	IF RAND:2
+		TALENT:スレンダー = 0
+	ELSE
+		TALENT:むちむち = 0
+	ENDIF
+ENDIF
+
+;相矛盾する性格素質を持たないように
+IF TALENT:友愛 && TALENT:獰猛
+	IF RAND:2
+		TALENT:友愛 = 0
+	ELSE
+		TALENT:獰猛 = 0
+	ENDIF
+ENDIF
+IF TALENT:友愛 && TALENT:残虐
+	IF RAND:2
+		TALENT:友愛 = 0
+	ELSE
+		TALENT:残虐 = 0
+	ENDIF
+ENDIF
+IF TALENT:友愛 && TALENT:狡猾
+	IF RAND:2
+		TALENT:友愛 = 0
+	ELSE
+		TALENT:狡猾 = 0
+	ENDIF
+ENDIF
+IF TALENT:獰猛 && TALENT:狡猾
+	IF RAND:2
+		TALENT:獰猛 = 0
+	ELSE
+		TALENT:狡猾 = 0
+	ENDIF
+ENDIF
+IF TALENT:高慢 && TALENT:冷静
+	IF RAND:2
+		TALENT:高慢 = 0
+	ELSE
+		TALENT:冷静 = 0
+	ENDIF
+ENDIF
+IF TALENT:獰猛 && TALENT:冷静
+	IF RAND:2
+		TALENT:獰猛 = 0
+	ELSE
+		TALENT:冷静 = 0
+	ENDIF
+ENDIF
+IF TALENT:愚鈍 && TALENT:狡猾
+	IF RAND:2
+		TALENT:愚鈍 = 0
+	ELSE
+		TALENT:狡猾 = 0
+	ENDIF
+ENDIF
+IF TALENT:愚鈍 && TALENT:賢い
+	IF RAND:2
+		TALENT:愚鈍 = 0
+	ELSE
+		TALENT:賢い = 0
+	ENDIF
+ENDIF
+
+IF TALENT:大業物 && !TALENT:オトコ&& !TALENT:ふたなり
+	TALENT:大業物 = 0
+ENDIF
+
+IF TALENT:オトコ && TALENT:パイパン
+	TALENT:パイパン = 0
+ENDIF
+
+;処女。再生処女の場合もあるので直接代入
+TALENT:処女 = 1
+TALENT:再生処女 = 0
+
+TALENT:大柄 = 0
+TALENT:巨体 = 0
+TALENT:小柄体型 = 1
+
+;小人体型の場合、小柄体型を消す
+IF TALENT:LOCAL:小人体型
+	TALENT:小人体型 = 1
+	TALENT:小柄体型 = 0
+ENDIF
+;オトコ,ふたなり,早漏,遅漏,母乳体質
+TALENT:オトコ = 0
+TALENT:ふたなり = 0
+TALENT:母乳体質 = 0
+;性別処理
+IF FLAG:娘性別判定処理 == 1
+	TALENT:処女 = 0
+	TALENT:オトコ = 1
+	TALENT:男の娘 = 0
+	CFLAG:元性別 = 1
+ELSEIF FLAG:娘性別判定処理 == 2
+	TALENT:処女 = 1
+	TALENT:オトコ = 0
+	TALENT:男の娘 = 0
+	CFLAG:元性別 = 2
+ELSEIF FLAG:娘性別判定処理 == 3
+	TALENT:処女 = 0
+	TALENT:オトコ = 1
+	TALENT:男の娘 = 1
+	CFLAG:元性別 = 1
+ENDIF
+;一部遺伝しない素質。最初からついているものと矛盾する(＝打ち消して付かない)
+;しかし似ていない方の親も同じ素質を保持していれば遺伝する
+;濡れやすい
+IF TALENT:濡れやすい
+	TALENT:濡れにくい = 0
+	SIF TALENT:(LOCAL:1):濡れやすい == 0
+		TALENT:濡れやすい = 0
+ENDIF
+;習得早い
+IF TALENT:習得早い
+	TALENT:習得遅い = 0
+	SIF TALENT:(LOCAL:1):習得早い == 0
+		TALENT:習得早い = 0
+ENDIF
+
+;知識がない([針さばき]や[大甲斐性]等は才能とする)
+;貞操観念,貞操無頓着,調合知識,禁断の知識,
+IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:貞操観念 == 0
+	TALENT:貞操観念 = 0
+ELSE
+	TALENT:貞操観念 = 1
+ENDIF
+IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:貞操無頓着 == 0
+	TALENT:貞操無頓着 = 0
+ELSE
+	TALENT:貞操無頓着 = 1
+ENDIF
+IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:調合知識 == 0
+	TALENT:調合知識 = 0
+ELSE
+	TALENT:調合知識 = 1
+ENDIF
+IF CFLAG:ARG:娘教育 == 0 || TALENT:ARG:禁断の知識 == 0
+	TALENT:禁断の知識 = 0
+ELSE
+	TALENT:禁断の知識 = 1
+ENDIF
+;20%で大業物が残る
+SIF TALENT:"大業物" && RAND:5
+	TALENT:"大業物" = 0
+
+;後天的なもの(おもらし癖,キス魔は幼児なので除く)
+;弱味,人気
+TALENT:弱味 = 0
+TALENT:人気 = 0
+
+FOR LOCAL:5, 0, 7
+	TALENT:(LOCAL:5+3) = 0
+NEXT
+;取得できるキャラ自体存在しないので
+TALENT:謎の魅力 = 0
+TALENT:妄信 = 0
+TALENT:即落ち = 0
+TALENT:嫉妬 = 0
+
+TALENT:妊娠 = 0
+TALENT:育児中 = 0
+TALENT:母性 = 0
+TALENT:妻 = 0
+TALENT:夫 = 0
+TALENT:淫魔 = 0
+TALENT:玩具 = 0
+TALENT:自慰狂い = 0
+TALENT:セックス狂 = 0
+TALENT:尻穴狂い = 0
+TALENT:淫乳 = 0
+TALENT:サド = 0
+TALENT:マゾ = 0
+IF ABL:種族 == 0
+	TALENT:獣 = 0
+	TALENT:鳥 = 0
+	TALENT:爬虫類 = 0
+	TALENT:魚 = 0
+	TALENT:不定形 = 0
+	TALENT:頭 = 1
+	TALENT:目 = 1
+	TALENT:口 = 1
+	TALENT:腕 = 1
+	TALENT:足 = 1
+ELSE
+	TALENT:ゾンビ = TALENT:LOCAL:ゾンビ ? 1 # 0
+	TALENT:天使 = TALENT:LOCAL:天使 ? 1 # 0
+	TALENT:堕天使 = TALENT:LOCAL:堕天使 ? 1 # 0
+	TALENT:獣 = TALENT:LOCAL:獣 ? 1 # 0
+	TALENT:鳥 = TALENT:LOCAL:鳥 ? 1 # 0
+	TALENT:爬虫類 = TALENT:LOCAL:爬虫類 ? 1 # 0
+	TALENT:魚 = TALENT:LOCAL:魚 ? 1 # 0
+	TALENT:不定形 = TALENT:LOCAL:不定形 ? 1 # 0
+ENDIF
+TALENT:狐 = TALENT:LOCAL:狐 ? 1 # 0
+TALENT:妖狐 = TALENT:LOCAL:妖狐 ? 1 # 0
+TALENT:吸血鬼 = TALENT:LOCAL:吸血鬼 ? 1 # 0
+TALENT:猫舌 = TALENT:LOCAL:猫舌 ? 1 # 0
+SIF CFLAG:ARG:父親の固有番号親 == -2
+	TALENT:触手 = 1
+;サドマゾ処理部
+;一旦娘のサドマゾ素質を初期化
+TALENT:サド = 0
+TALENT:マゾ = 0
+LOCAL:4 = 0
+;両親のサドマゾ傾向から娘のサドマゾを決定する
+;LOCAL:4が正の値＝サド傾倒、負の値＝マゾ傾倒
+FOR LOCAL:5, 0, 2
+	IF LOCAL:5 == 0
+		LOCAL:2 = LOCAL
+	ELSE
+		LOCAL:2 = LOCAL:1
+	ENDIF
+
+	;初期値は親のABL:サド - ABL:マゾ
+	LOCAL:3 = ABL:(LOCAL:2):サドっ気 - ABL:(LOCAL:2):マゾっ気
+
+	;サド
+	SIF TALENT:(LOCAL:2):サド
+		LOCAL:3 += 2
+	;マゾ
+	SIF TALENT:(LOCAL:2):マゾ
+		LOCAL:3 -= 2
+
+	;似ている方の親の影響を強くする
+	SIF LOCAL:5 == 0
+		TIMES LOCAL:3 , 1.50
+
+	LOCAL:4 += LOCAL:3
+NEXT
+
+;正の値か負の値かでサドマゾをそれぞれ付加。ただし絶対値3以下の時は何もしない
+IF LOCAL:4 > 3
+	ABL:サドっ気 += LOCAL:4 - 3
+ELSEIF LOCAL:4 < -3
+	ABL:マゾっ気 -= LOCAL:4 + 3
+ENDIF
+SIF ABL:サドっ気 >= 5
+	ABL:サドっ気 = 5
+SIF ABL:マゾっ気 >= 5
+	ABL:マゾっ気 = 5
+
+;胸サイズ決定(サドマゾのように胸サイズ参照する)
+;一旦乳サイズリセット
+TALENT:絶壁 = 0
+TALENT:貧乳 = 0
+TALENT:巨乳 = 0
+TALENT:爆乳 = 0
+TALENT:魔乳 = 0
+
+LOCAL:4 = 0
+FOR LOCAL:5, 0, 2
+	LOCAL:3 = 0
+	IF LOCAL:5 == 0
+		LOCAL:2 = LOCAL
+	ELSE
+		LOCAL:2 = LOCAL:1
+	ENDIF
+
+	;親が男なら処理スキップ
+	SIF TALENT:(LOCAL:2):オトコ
+		CONTINUE
+
+	;絶壁
+	SIF TALENT:(LOCAL:2):絶壁
+		LOCAL:3 -= 3
+	;貧乳
+	SIF TALENT:(LOCAL:2):貧乳
+		LOCAL:3 -= 2
+	;巨乳
+	SIF TALENT:(LOCAL:2):巨乳
+		LOCAL:3 += 2
+	;爆乳
+	SIF TALENT:(LOCAL:2):爆乳
+		LOCAL:3 += 3
+	;魔乳
+	SIF TALENT:(LOCAL:2):魔乳
+		LOCAL:3 += 4
+
+	;似ている方の親の影響を大きくする
+	SIF LOCAL:5 == 0
+		TIMES LOCAL:3 , 1.70
+
+	LOCAL:4 += LOCAL:3
+NEXT
+
+;LOCAL:2の値が正なら最初から大きめ、負なら小さめ。基本的に控えめになる
+;1以上3以下なら普乳
+;4以上ならロリ巨乳
+IF LOCAL:4 >= 4
+	TALENT:巨乳 = 1
+;-4以下なら絶壁
+ELSEIF LOCAL:4 <= -4
+	TALENT:絶壁 = 1
+;0以下なら貧乳
+ELSEIF LOCAL:4 <= 0
+	TALENT:貧乳 = 1
+ENDIF
+IF TALENT:オトコ == 1
+	CFLAG:元胸サイズ = 3
+	SIF TALENT:絶壁 == 1
+	CFLAG:元胸サイズ = 1
+	SIF TALENT:貧乳 == 1
+	CFLAG:元胸サイズ = 2
+	SIF TALENT:巨乳 == 1
+	CFLAG:元胸サイズ = 4
+	TALENT:絶壁 = 1
+	TALENT:貧乳 = 0
+	TALENT:巨乳 = 0
+ENDIF
+TALENT:幼児／幼児退行 = 1
+TALENT:幼稚 = 1
+TALENT:子供 = 1
+MARK:6 = 1
+;素質の数を調整
+LOCAL:2 = 6 + RAND:5
+;10～137の素質はこ合計6~10個まで
+WHILE MATCH(TALENT, 1 , 10, 137) > LOCAL:2
+	TALENT:(10 + RAND:128) = 0
+WEND
+
+;-------------------------------------------------
+;王族・名家・落胤の引き継ぎ処理
+;-------------------------------------------------
+IF ARG:2 >= 0
+	IF TALENT:LOCAL:落胤 == 2 || TALENT:(LOCAL:1):落胤 == 2
+		TALENT:落胤 = 2
+	ELSEIF TALENT:LOCAL:落胤 == 1 || TALENT:(LOCAL:1):落胤 == 1
+		TALENT:落胤 = 1
+	ELSEIF TALENT:LOCAL:王族 || TALENT:(LOCAL:1):王族
+		TALENT:王族 = 1
+	ELSEIF TALENT:LOCAL:名家 || TALENT:(LOCAL:1):名家
+		TALENT:名家 = 1
+	ENDIF
+ELSEIF ARG:2 < 0
+	IF TALENT:LOCAL:落胤 == 2
+		TALENT:落胤 = 2
+	ELSEIF TALENT:LOCAL:落胤 == 1
+		TALENT:落胤 = 1
+	ELSEIF TALENT:LOCAL:王族
+		TALENT:落胤 = 2
+	ELSEIF TALENT:LOCAL:名家
+		TALENT:落胤 = 1
+	ENDIF
+ENDIF
+;王族・名家・落胤なら王族 > 名家 > 落胤
+IF TALENT:王族 && TALENT:名家
+	TALENT:名家 = 0
+ENDIF
+IF TALENT:王族 && TALENT:落胤
+	TALENT:落胤 = 0
+ENDIF
+IF TALENT:名家 && TALENT:落胤
+	TALENT:落胤 = 0
+ENDIF
+;母親が妻でないと落胤
+IF ARG:2 >= 0 && (TALENT:(ARG:1):王族 || TALENT:(ARG:2):王族) && TALENT:(ARG:1):妻 == 0
+	TALENT:王族 = 0
+	TALENT:落胤 = 2
+ELSEIF ARG:2 >= 0 && (TALENT:(ARG:1):名家 || TALENT:(ARG:2):名家) && TALENT:(ARG:1):妻 == 0
+	TALENT:名家 = 0
+	TALENT:落胤 = 1
+ENDIF
+
+;-------------------------------------------------
+;外見・スリーサイズの遺伝
+;-------------------------------------------------
+U = ARG:1
+CALL DAUGHTER_3SIZE
+CALL DAUGHTER_APPEARANCE
+U = 0
+CALL CALC_TAIJU()
+CALL DEFINITE_KOSINIKU()
+
+;女ふたなり
+IF TALENT:オトコ == 0
+	;帽子
+	IF RAND:4 == 0
+		;リボン
+		CFLAG:初期帽子 = 5
+	ELSEIF RAND:3 == 0
+		;帽子
+		CFLAG:初期帽子 = 8
+	ELSEIF RAND:2 == 0
+		;カチューシャ
+		CFLAG:初期帽子 = 11
+	ELSE
+		;何もなし
+		CFLAG:初期帽子 = 0
+	ENDIF
+	;服＆下衣or全身服
+	IF RAND:2 == 0
+		;全身服
+		IF RAND:4 == 0
+			;長着
+			CFLAG:初期全身服 = 301
+		ELSEIF RAND:3 == 0
+			;ワンピース
+			CFLAG:初期全身服 = 303
+		ELSEIF RAND:2 == 0
+			;ドレス
+			CFLAG:初期全身服 = 304
+		ELSE
+			;ローブ
+			CFLAG:初期全身服 = 302
+		ENDIF
+	ELSE
+		;服
+		IF RAND:6 == 0
+			;上着
+			CFLAG:初期服 = 101
+		ELSEIF RAND:5 == 0
+			;セーラー服
+			CFLAG:初期服 = 102
+		ELSEIF RAND:4 == 0
+			;ブラウス
+			CFLAG:初期服 = 107
+		ELSEIF RAND:3 == 0
+			;タンクトップ
+			CFLAG:初期服 = 108
+		ELSEIF RAND:2 == 0
+			;キャミソール
+			CFLAG:初期服 = 117
+		ELSE
+			;Tシャツ
+			CFLAG:初期服 = 124
+		ENDIF
+		;下衣
+		IF RAND:4 == 0
+			;スカート
+			CFLAG:初期下衣 = 201
+		ELSEIF RAND:3 == 0
+			;ズボン
+			CFLAG:初期下衣 = 204
+		ELSEIF RAND:2 == 0
+			;ショートパンツ
+			CFLAG:初期下衣 = 216
+		ELSE
+			;ミニスカート
+			CFLAG:初期下衣 = 207
+		ENDIF
+	ENDIF
+	;下着（上）
+	IF RAND:4 == 0
+		;ブラ
+		CFLAG:初期下着（上） = 501
+	ELSEIF RAND:3 == 0
+		;スポーツブラ
+		CFLAG:初期下着（上） = 502
+	ELSEIF RAND:2 == 0
+		;レース付き
+		CFLAG:初期下着（上） = 507
+	ELSE
+		;マイクロブラ
+		CFLAG:初期下着（上） = 505
+	ENDIF
+	;下着（下）
+	IF RAND:4 == 0
+		;パンティ
+		CFLAG:初期下着（下） = 602
+	ELSEIF RAND:3 == 0
+		;レース付き
+		CFLAG:初期下着（下） = 611
+	ELSEIF RAND:2 == 0
+		;スパッツ
+		CFLAG:初期下着（下） = 616
+	ELSE
+		;縞パン
+		CFLAG:初期下着（下） = 617
+	ENDIF
+	;靴下
+	IF RAND:4 == 0
+		;靴下
+		CFLAG:初期靴下 = 801
+	ELSEIF RAND:3 == 0
+		;ハイソックス
+		CFLAG:初期靴下 = 802
+	ELSEIF RAND:2 == 0
+		;ニーソ
+		CFLAG:初期靴下 = 803
+	ELSE
+		;ガーター
+		CFLAG:初期靴下 = 805
+	ENDIF
+	;靴
+	IF RAND:4 == 0
+		;ブーツ
+		CFLAG:初期靴 = 901
+	ELSEIF RAND:3 == 0
+		;革靴
+		CFLAG:初期靴 = 909
+	ELSEIF RAND:2 == 0
+		;パンプス
+		CFLAG:初期靴 = 911
+	ELSE
+		;サンダル
+		CFLAG:初期靴 = 903
+	ENDIF
+	;上着
+	IF RAND:4 == 0
+		;パーカー
+		CFLAG:初期上着 = 1013
+	ELSEIF RAND:3 == 0
+		;ジャケット
+		CFLAG:初期上着 = 1014
+	ELSEIF RAND:2 == 0
+		;カーディガン
+		CFLAG:初期上着 = 1005
+	ELSE
+		;何もなし
+		CFLAG:初期上着 = 0
+	ENDIF
+;男の娘
+ELSEIF TALENT:男の娘 == 1
+	;帽子
+	IF RAND:4 == 0
+		;リボン
+		CFLAG:初期帽子 = 5
+	ELSEIF RAND:3 == 0
+		;帽子
+		CFLAG:初期帽子 = 8
+	ELSEIF RAND:2 == 0
+		;フード
+		CFLAG:初期帽子 = 6
+	ELSE
+		;何もなし
+		CFLAG:初期帽子 = 0
+	ENDIF
+	;服＆下衣
+	;服
+	IF RAND:4 == 0
+		;上着
+		CFLAG:初期服 = 101
+	ELSEIF RAND:3 == 0
+		;Yシャツ
+		CFLAG:初期服 = 121
+	ELSEIF RAND:2 == 0
+		;ランニング
+		CFLAG:初期服 = 110
+	ELSE
+		;タートルネック
+		CFLAG:初期服 = 111
+	ENDIF
+	;下衣
+	IF RAND:3 == 0
+		;ミニスカート
+		CFLAG:初期下衣 = 207
+	ELSEIF RAND:2 == 0
+		;ショートパンツ
+		CFLAG:初期下衣 = 216
+	ELSE
+		;ズボン
+		CFLAG:初期下衣 = 204
+	ENDIF
+	;下着（上）
+	IF RAND:4 == 0
+		;マイクロブラ
+		CFLAG:初期下着（上） = 505
+	ELSEIF RAND:3 == 0
+		;ブラ
+		CFLAG:初期下着（上） = 501
+	ELSEIF RAND:2 == 0
+		;スポブラ
+		CFLAG:初期下着（上） = 502
+	ELSE
+		;何もなし
+		CFLAG:初期下着（上） = 0
+	ENDIF
+	;下着（下）
+	IF RAND:3 == 0
+		;トランクス
+		CFLAG:初期下着（下） = 606
+	ELSEIF RAND:2 == 0
+		;パンティ
+		CFLAG:初期下着（下） = 602
+	ELSE
+		;レース付き
+		CFLAG:初期下着（下） = 611
+	ENDIF
+	;靴下
+	IF RAND:3 == 0
+		;靴下
+		CFLAG:初期靴下 = 801
+	ELSEIF RAND:2 == 0
+		;ハイソックス
+		CFLAG:初期靴下 = 802
+	ELSE
+		;何もなし
+		CFLAG:初期靴下 = 0
+	ENDIF
+	;靴
+	IF RAND:4 == 0
+		;スニーカー
+		CFLAG:初期靴 = 908
+	ELSEIF RAND:3 == 0
+		;ブーツ
+		CFLAG:初期靴 = 901
+	ELSEIF RAND:2 == 0
+		;革靴
+		CFLAG:初期靴 = 909
+	ELSE
+		;シューズ
+		CFLAG:初期靴 = 915
+	ENDIF
+	;上着
+	IF RAND:4 == 0
+		;ボレロ
+		CFLAG:初期上着 = 1001
+	ELSEIF RAND:3 == 0
+		;パーカー
+		CFLAG:初期上着 = 1013
+	ELSEIF RAND:2 == 0
+		;ベスト
+		CFLAG:初期上着 = 1019
+	ELSE
+		;何もなし
+		CFLAG:初期上着 = 0
+	ENDIF
+;男
+ELSEIF TALENT:オトコ == 1
+	;帽子
+	IF RAND:4 == 0
+		;フード
+		CFLAG:初期帽子 = 6
+	ELSEIF RAND:3 == 0
+		;帽子
+		CFLAG:初期帽子 = 8
+	ELSEIF RAND:2 == 0
+		;ヘアバンド
+		CFLAG:初期帽子 = 12
+	ELSE
+		;何もなし
+		CFLAG:初期帽子 = 0
+	ENDIF
+	;服＆下衣
+	;服
+	IF RAND:4 == 0
+		;上着
+		CFLAG:初期服 = 101
+	ELSEIF RAND:3 == 0
+		;Yシャツ
+		CFLAG:初期服 = 121
+	ELSEIF RAND:2 == 0
+		;ランニング
+		CFLAG:初期服 = 110
+	ELSE
+		;タートルネック
+		CFLAG:初期服 = 111
+	ENDIF
+	;下衣
+	IF RAND:2 == 0
+		;ズボン
+		CFLAG:初期下衣 = 204
+	ELSE
+		;ショートパンツ
+		CFLAG:初期下衣 = 216
+	ENDIF
+	;下着（上）
+		CFLAG:初期下着（上） = 0
+	;下着（下）
+	IF RAND:2 == 0
+		;トランクス
+		CFLAG:初期下着（下） = 606
+	ELSE
+		;ブーメラン
+		CFLAG:初期下着（下） = 607
+	ENDIF
+	;靴下
+	IF RAND:3 == 0
+		;靴下
+		CFLAG:初期靴下 = 801
+	ELSEIF RAND:2 == 0
+		;ハイソックス
+		CFLAG:初期靴下 = 802
+	ELSE
+		;何もなし
+		CFLAG:初期靴下 = 0
+	ENDIF
+	;靴
+	IF RAND:4 == 0
+		;スニーカー
+		CFLAG:初期靴 = 908
+	ELSEIF RAND:3 == 0
+		;ブーツ
+		CFLAG:初期靴 = 901
+	ELSEIF RAND:2 == 0
+		;革靴
+		CFLAG:初期靴 = 909
+	ELSE
+		;シューズ
+		CFLAG:初期靴 = 915
+	ENDIF
+	;上着
+	IF RAND:7 == 0
+		;パーカー
+		CFLAG:初期上着 = 1013
+	ELSEIF RAND:6 == 0
+		;ジャージ
+		CFLAG:初期上着 = 1017
+	ELSEIF RAND:5 == 0
+		;ベスト
+		CFLAG:初期上着 = 1019
+	ELSEIF RAND:4 == 0
+		;白衣
+		CFLAG:初期上着 = 1006
+	ELSEIF RAND:3 == 0
+		;ジャケット
+		CFLAG:初期上着 = 1014
+	ELSEIF RAND:2 == 0
+		;スーツ
+		CFLAG:初期上着 = 1021
+	ELSE
+		;何もなし
+		CFLAG:初期上着 = 0
+	ENDIF
+ENDIF
+;その他
+IF RAND:8 == 0
+	;眼鏡
+	CFLAG:初期その他 = 1103
+ELSEIF RAND:7 == 0
+	;マフラー
+	CFLAG:初期その他 = 1105
+ELSEIF RAND:6 == 0
+	;ヘッドフォン
+	CFLAG:初期その他 = 1109
+ELSEIF RAND:5 == 0
+	;ネクタイ
+	CFLAG:初期その他 = 1112
+ELSEIF RAND:4 == 0
+	;リボンネクタイ
+	CFLAG:初期その他 = 1113
+ELSEIF RAND:3 == 0
+	;ベルト
+	CFLAG:初期その他 = 1107
+ELSEIF RAND:2 == 0
+	;チョーカー
+	CFLAG:初期その他 = 1110
+ELSE
+	;何もなし
+	CFLAG:初期その他 = 0
+ENDIF
+CALL CLOTHES_INITIALIZE,TARGET
+CALL SYNC_STATUS,TARGET
+
+;-------------------------------------------------
+;子供成長汎用処理
+;-------------------------------------------------
+@CHILD_GROWTH
+DRAWLINE
+IF MARK:COUNT:6 >= 1 && TALENT:COUNT:幼児／幼児退行
+	PRINTFORML Some time has passed since %CALLNAME:COUNT% was born...
+	PRINTFORML %CALLNAME:COUNT% grew out of being an [Infant].
+	TALENT:COUNT:幼児／幼児退行 = 0
+	X = 0
+	IF RAND:4 == 0
+		X = 1
+	ELSE
+		TALENT:COUNT:小柄体型 = 0
+		PRINTL Lost [Small figure].
+	ENDIF
+	IF X == 1 || RAND:5 == 0
+		X = 1
+	ELSE
+		TALENT:COUNT:幼稚 = 0
+		PRINTL Lost [Childlike].
+	ENDIF
+	;PRINTW を失った
+	;胸の成長は1段階アップに変更。[爆乳]のときのみ変化なし
+	IF TALENT:COUNT:爆乳 == 0 && TALENT:COUNT:オトコ == 0
+		PRINTW In addition, breast development has begun.
+		;胸も成長して
+		;[絶壁]の場合
+		IF TALENT:COUNT:絶壁
+			TALENT:COUNT:絶壁 = 0
+			X = 109
+		;[貧乳]の場合
+		ELSEIF TALENT:COUNT:貧乳
+			TALENT:COUNT:貧乳 = 0
+			X = 0
+		;[巨乳]の場合
+		ELSEIF TALENT:COUNT:巨乳
+			TALENT:COUNT:巨乳 = 0
+			X = 112
+		;[普乳]の場合
+		ELSE
+			X = 111
+		ENDIF
+		PRINTFORMW Her breasts have become [\@(X == 0) ? Normal sized # %TALENTNAME_E(X)%\@]
+		;普乳	になった
+		SIF X != 0
+			TALENT:COUNT:X = 1
+	ENDIF
+	TALENT:COUNT:少年／少女 = 1
+	PRINTFORM By now, %CALLNAME:COUNT% looks like a 
+	;年頃になり、
+	IF TALENT:COUNT:オトコ
+		PRINTW [Boy].
+		;[少年]になった
+	ELSEIF TALENT:COUNT:男の娘
+		PRINTW quite feminie [Boy].
+		;少女のような[少年]になった
+	ELSE
+		PRINTW [Girl].
+		;[少女]になった
+	ENDIF
+	;[少年／少女]になった
+	;幼児→未成年に成長したことを示す
+	MARK:COUNT:6 = 1
+ENDIF
+
+@CHILD_GROWTH2
+DRAWLINE
+;未成年→大人フラグ
+IF MARK:COUNT:6 >= 1 && TALENT:COUNT:少年／少女
+	TALENT:COUNT:少年／少女 = 0
+	PRINTFORML A lot of time has passed since %CALLNAME:COUNT% was born....
+	;%CALLNAME:COUNT%が生まれてから、多くの時が経った………
+	PRINTFORM %CALLNAME:COUNT% has become an adult and no longer is a
+	;%CALLNAME:COUNT%は一人前に成長し、
+		IF TALENT:COUNT:オトコ || TALENT:COUNT:男の娘
+		PRINTW [Boy].
+		;[少年]を失った
+	ELSE
+		PRINTW [Girl].
+		;[少女]を失った
+	ENDIF
+	;未成年→成人に成長したことを示す（成長終了）
+	MARK:COUNT:6 = 0
+ENDIF
+
+;-------------------------------------------------
+;母親にスリーサイズが設定されている場合、それを元に娘のスリーサイズを設定
+;SHOW_STATUS.ERBで幼児→未成年に成長になるまでは表に出ないようにしておく
+;-------------------------------------------------
+@DAUGHTER_3SIZE
+IF (!TALENT:オトコ || TALENT:男の娘)
+	IF BASE:U:24 > 0 && BASE:U:25 > 0 && BASE:U:26 > 0 && BASE:U:27 > 0
+;身長
+		BASE:24 = BASE:U:24 - 10 + RAND(15)
+		SIF BASE:24 < 150 && !TALENT:小柄体型
+			BASE:24 = 150 + RAND(5)
+;バスト
+		BASE:25 = MIN(BASE:U:25 , BASE:U:24 * 3 / 5) - 5 + RAND(9)
+;ウエスト
+		BASE:26 = BASE:U:26 - 3 + RAND(7)
+;ヒップ
+		BASE:27 = BASE:U:27 - 5 + RAND(9)
+	ENDIF
+ELSE
+	IF BASE:U:24 > 0
+		BASE:24 = BASE:U:24 - 10 + RAND(15)
+		SIF BASE:24 < 165 && !TALENT:小柄体型
+			BASE:24 = 165 + RAND(10)
+	ENDIF
+ENDIF
+;母親の外見設定を引き継ぐ処理
+;引き継ぐのは髪の色・瞳の色・肌の色
+@DAUGHTER_APPEARANCE
+IF CFLAG:U:髪の色 > 0
+	CFLAG:髪の色 = CFLAG:U:髪の色
+ENDIF
+IF CFLAG:U:瞳の色 > 0
+	CFLAG:瞳の色 = CFLAG:U:瞳の色
+ENDIF
+IF CFLAG:U:肌の色 > 0
+	CFLAG:肌の色 = CFLAG:U:肌の色
+ENDIF
+
+@DAUGHTER_CHILDNUMBER,ARG
+SELECTCASE ARG
+	CASE 1
+		RESULTS = 1st
+	CASE 2
+		RESULTS = 2nd
+	CASE 3
+		RESULTS = 3rd
+	CASEELSE
+		RESULTS = {ARG}th
+ENDSELECT
+	
+
+

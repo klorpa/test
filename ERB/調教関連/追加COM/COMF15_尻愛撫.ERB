@@ -1,0 +1,124 @@
+;-------------------------------------------------
+;尻愛撫
+;愛撫系コマンド　レベル2
+;-------------------------------------------------
+
+;-------------------------------------------------
+;コマンド実行判定
+;-------------------------------------------------
+@CHECK_COM_ABLE15
+;尻愛撫実行判定
+SIF !USE_HAND(PLAYER)
+	RETURN 0
+
+RETURN 1
+
+@ACT_COM15
+PRINTL Rub Butt
+TSTR:0 = 尻愛撫
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 5
+DOWNBASE:TARGET:気力 += 30
+
+SOURCE:TARGET:情愛 = 75
+SOURCE:TARGET:性行動 = 30
+SOURCE:TARGET:露出 = 10
+SOURCE:TARGET:反感 = 20
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 20
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 3
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 2
+
+RETURN 1
+
+@MESSAGE_COM15
+PRINTFORM %CALLNAME:TARGET%の
+;下衣または全身服を着ている
+IF TEQUIP:82 || TEQUIP:83
+	IF TEQUIP:82
+		CALL CLOTHES_NAME,2,TARGET
+	ELSE
+		CALL CLOTHES_NAME,3,TARGET
+	ENDIF
+	IF RAND:2 == 0
+		PRINT に手を潜り込ませ、
+			IF TALENT:小柄体型
+				PRINT 小さなお尻を
+			ELSE
+				PRINT ハリのある尻を
+			ENDIF
+	ELSE
+		PRINT ごしに尻肉を掴み、
+	ENDIF
+;下着（下）または全身下着を着ている
+ELSEIF TEQUIP:86 || TEQUIP:87
+	IF TEQUIP:86
+		CALL CLOTHES_NAME,6,TARGET
+	ELSE
+		CALL CLOTHES_NAME,7,TARGET
+	ENDIF
+	IF RAND:2 == 0
+		PRINT を食い込ませ、尻肉を
+	ELSE
+		PRINT の上からお尻を掴み、
+	ENDIF
+ELSE
+	IF RAND:2 == 0
+		PRINT 尻たぶを掴み、
+	ELSE
+		IF TALENT:小柄体型
+			PRINT 可愛いお尻を
+		ELSE
+			PRINT 肉付きのいい尻を
+		ENDIF
+	ENDIF
+ENDIF
+IF RAND:2 == 0
+	PRINTW 揉みしだいた…
+ELSE
+	PRINTW 撫で回した…
+ENDIF
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_15
+RETURN COMTYPE("愛撫系")
+

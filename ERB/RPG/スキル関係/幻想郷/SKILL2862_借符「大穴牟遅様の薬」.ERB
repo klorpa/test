@@ -1,0 +1,236 @@
+;通常攻撃
+;スキルのテンプレートになっています
+
+;スキル名
+@SKILL_NAME_2862,ARG
+RESULTS = "Vulnerary of Ohnamuji-sama"
+SIF  GETBIT (FLAG:カスタムゲーム画面,1)
+	RESULTS = Owing Sign "Vulnerary of Ohnamuji-sama"
+
+;　命中
+@SKILL_HITRATE_2862, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_2862, ARG
+RETURN 200
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2862,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2862,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2862, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2862,ARG
+RETURN 10
+
+;　相性
+@SKILL_TYPE_2862,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2862
+RETURN 1
+;EXTRA
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2862
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2862
+RETURN 2
+
+;　射程
+@SKILL_RANGE_2862,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2862,ARG
+RETURN 1
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2862
+RETURN 2
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_2862,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2862
+RETURN 4
+;回復
+
+;速度補正
+@SKILL_SPEED_2862, ARG = -1
+RETURN 2
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2862,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2862
+RETURN 1
+
+;スキル変化？用ランク
+@SKILL_RANK_2862
+RETURN 10
+
+@SKILL_RANKUP_2862
+RETURN 0
+
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_2862,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_2862,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_2862,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_2862,ARG
+RETURN 0
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_2862,ARG,ARG:1
+LOCAL = POS(ARG:1)
+
+;支払い発生フラグ
+LOCAL:1 = 0
+
+;コスト支払い
+;CALL VAR_MP,ARG,-15,0
+IF MONEY >= 500 || CFLAG:ARG:PTフラグ == 0
+	;回復
+	IF MAXBASE:LOCAL:ＨＰ > BASE:LOCAL:ＨＰ
+		LOCAL:1 = 1
+		CALL ALL_HEAL, POS(ARG:1), 0, 1
+;		PRINTFORMW 　　TARGET:[{ARG:1,2}] %CALLNAME:(LOCAL),20,LEFT%　>>>>>>　{MAXBASE:LOCAL:ＨＰ - BASE:LOCAL:ＨＰ}回復
+;		CALL VAR_HP,LOCAL,MAXBASE:LOCAL:ＨＰ,3
+	ENDIF
+
+	;状態異常回復
+;	CALL SKILL_CURE_STATE_2862,CFLAG:LOCAL:ステート
+	CALL ALL_CURE_STATE, POS(ARG:1), 0, 1
+	IF RESULT == 1
+		LOCAL:1 = 1
+;		PRINTFORML 　　TARGET:[{LOCAL:9,2}] %CALLNAME:(LOCAL),20,LEFT%　>>>>>>　さらに状態回復！
+;		CFLAG:LOCAL:ステート = 0
+;		CFLAG:LOCAL:ステート経過ターン = 0
+	ENDIF
+	;支払い
+	IF CFLAG:ARG:PTフラグ > 0 && LOCAL:1 == 1
+		PRINTFORMW ￥{MAX(500, MONEY / 500)}が財布から消滅した…
+		MONEY -= MAX(500, MONEY / 500)
+	ENDIF
+	SIF LOCAL:1 == 0
+		PRINTFORMW 　　TARGET:[{ARG:1,2}] %CALLNAME:(LOCAL),20,LEFT%　>>>>>>　回復する必要がなかった！
+ELSE
+
+PRINTFORMW 　　けちな　はいきょうしゃめ　でていけ！
+
+ENDIF
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;====================================================
+;戦闘中以外での実行
+;====================================================
+@ACTION_FIELD_2862,ARG,ARG:1
+LOCAL = POS(ARG:1)
+
+;支払い発生フラグ
+LOCAL:1 = 0
+
+;コスト支払い
+;CALL VAR_MP,ARG,-15,0
+IF MONEY >= 500
+	;回復
+	IF MAXBASE:LOCAL:ＨＰ > BASE:LOCAL:ＨＰ
+		LOCAL:1 = 1
+		CALL ALL_HEAL, POS(ARG:1), 0
+;		PRINTFORMW 　　TARGET:[{ARG:1,2}] %CALLNAME:(LOCAL),20,LEFT%　>>>>>>　{MAXBASE:LOCAL:ＨＰ - BASE:LOCAL:ＨＰ}回復
+;		CALL VAR_HP,LOCAL,MAXBASE:LOCAL:ＨＰ,3
+	ENDIF
+
+	;状態異常回復
+;	CALL SKILL_CURE_STATE_2862,CFLAG:LOCAL:ステート
+	CALL ALL_CURE_STATE, POS(ARG:1), 0
+	IF RESULT == 1
+		LOCAL:1 = 1
+;		PRINTFORML 　　TARGET:[{LOCAL:9,2}] %CALLNAME:(LOCAL),20,LEFT%　>>>>>>　さらに状態回復！
+;		CFLAG:LOCAL:ステート = 0
+;		CFLAG:LOCAL:ステート経過ターン = 0
+	ENDIF
+	;支払い
+	IF LOCAL:1 == 1
+		PRINTFORMW ￥{MAX(500, MONEY / 500)}が財布から消滅していた…
+		MONEY -= MAX(500, MONEY / 500)
+	ENDIF
+	SIF LOCAL:1 == 0
+		PRINTFORMW 　　TARGET:[{ARG:1,2}] %CALLNAME:(LOCAL),20,LEFT%　>>>>>>　回復する必要がなかった！
+ELSE
+
+PRINTFORMW 　　けちな　はいきょうしゃめ　でていけ！
+
+ENDIF
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2862
+PRINTL Uses a borrowed medicine to completely restores an ally's HP and heals them from all status effects.
+PRINTFORML Since the skill uses a borrowed medicine, you will also lose ￥{MAX(500, MONEY / 500)} as the cost.
+PRINTL Spell Card of UMA Inaba Tewi
+
+;継承に必要な部位
+@継承部位_2862,ARG
+RETURN 1
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2862,ARG
+SIF CFLAG:ARG:PTフラグ == 0
+	RETURN 1
+SIF MONEY:1 < 500
+	RETURN 0
+RETURN 1
+
+;何のバッドステータスを治せるか
+;@SKILL_CURE_STATE_2862,ARG
+;SELECTCASE GET_STATE(ARG)
+;	CASE "FLY","GOOD","DYING","ORGY","HEAT"
+;		RETURN 0
+;	CASEELSE
+;		RETURN 1
+;ENDSELECT
+
+;このスキルの使用料金を求める関数
+;@KAKAKU_ONAMUTHI
+;RESULT = MAX(500, MONEY:1 / 100)

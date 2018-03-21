@@ -1,0 +1,824 @@
+
+;=======================================================================
+;エコービル
+;ボス・ドウマン
+;ダンジョンナンバー1　ＭＡＰ0~2
+;フラグ
+;ダンジョンフラグ:1:1  クリアフラグ
+;ダンジョンフラグ:1:10 最初のダークサマナーとの会話フラグ
+;ダンジョンフラグ:1:11 ドウマン撃破フラグ
+;ダンジョンフラグ:1:12 ターミナル解放フラグ
+;ダンジョンフラグ:1:13 エレベータのドア解放用変数(ビット演算)
+;ダンジョンフラグ:1:14 ４Ｆのダークサマナーとの会話フラグ
+;ダンジョンフラグ:1:70 １Ｆの宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:1:71 ２Ｆの宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:1:72 ３Ｆの宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:1:73 ４Ｆの宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:1:74 ５Ｆの宝箱管理用変数（ビット演算）
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_1
+;特になし
+RETURN 1
+
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_1
+RESULTS = Echo Building
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_1
+PRINT Echo Building 
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL １Ｆ
+	CASE 1
+		PRINTL ２Ｆ
+	CASE 2
+		PRINTL ３Ｆ
+	CASE 3
+		PRINTL ４Ｆ
+	CASE 4
+		PRINTL ５Ｆ
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_1,ARG
+FLAG:現M = 0
+FLAG:現X = 5
+FLAG:現Y = 7
+;CALL AUTOMAP
+
+;=======================================================================
+;攻略開始時のイベント
+;=======================================================================
+@EVENT_DUNGEON_START_1
+;１Ｆのエレベーターの扉を開けておく
+SETBIT ダンジョンフラグ:(FLAG:現ダンジョン):13 , 0
+
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_1
+;ダンジョン脱出時、クリアフラグが立っておらず、ドウマンを撃破済みならクリアフラグを立てて賞金と名声を得ます。
+;また、同時にターミナルに立ち寄った事にしておきます
+IF !ダンジョンフラグ:1:1 && ダンジョンフラグ:1:11
+	CALL SHOW_PICTURE, "D"
+	CALL MESSAGE_WINDOW_D, "", @"＞For defeating Douman, you got ￥25000 and 20 fame.%\@ダンジョンフラグ:1:12?#/＞A terminal was opened, you can now go to the Shinjuku Hygenic Hospital.\@%"
+	MONEY += 25000
+	FLAG:名声 += 20
+	ダンジョンフラグ:1:1 = 1
+	ダンジョンフラグ:1:12 = 1
+ENDIF
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_1,ARG,ARG:1
+;ARG、ARG:1はそれぞれ対象のマスのX、Y座標を表しています。
+;このダンジョンではエレベーターの扉が一度右側から開けておかないと左側からは開けられない、という処理に使用しています。
+;どのマップでも座標(2,7)がエレベータの扉。ダンジョンフラグ:1:13 ＝ エレベータフラグ管理用変数の{現在のマップ番号}番目のビットが立っていなければ開けられるかどうかの判定を行う
+IF ARG == 2 && ARG:1 == 7 && !GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):13 , FLAG:現M) 
+	;西からは開けられない
+	IF FLAG:現X < ARG
+		CALL MESSAGE_WINDOW_D, "", "＞The door is shut/＞It can only be opened from the other side"
+		RETURN 0
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞The door was opened"
+		SETBIT ダンジョンフラグ:(FLAG:現ダンジョン):13 , FLAG:現M
+		;ここでそのまま下の処理に移って通させてもいいのですが、個人的にここで一度切ってもう一度入力させてからエレベーターに乗せた方がなんとなく良かったので
+		RETURN 0
+	ENDIF
+ENDIF
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_1
+SELECTCASE FLAG:現M
+	CASE 0
+	;１階
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+
+;X座標をこんな形でふっとくと、見やすいかもしれません
+;								      ↓
+;								           1         2
+;								 012345678901234567890
+		CALL MAKE_FLOOR_LINE,0, "         "
+		CALL MAKE_FLOOR_LINE,1, " 3211111 "
+		CALL MAKE_FLOOR_LINE,2, "   1   1 "
+		CALL MAKE_FLOOR_LINE,3, " 41426 1 "
+		CALL MAKE_FLOOR_LINE,4, "   1   1 "
+		CALL MAKE_FLOOR_LINE,5, " 3211111 "
+		CALL MAKE_FLOOR_LINE,6, "   1 2 1 "
+		CALL MAKE_FLOOR_LINE,7, " E21 8 1 "
+		CALL MAKE_FLOOR_LINE,8, "         "
+		;左下、座標(1,7)の"E"はエレベーターを表しています。
+		;このように数字の代わりにEを記述した場合、「-29」が代入されて共通のエレベーターイベントが設置されている物と扱われます。
+		;詳しくはSET_DUNGEON.ERB内の@DEFINE_TILESとSYSTEM_DUNGEON.ERB内の@DUNGEON_ATTACKをお読みください
+		
+		
+		
+	CASE 1
+	;２階
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								 012345678
+		CALL MAKE_FLOOR_LINE,0, "         "
+		CALL MAKE_FLOOR_LINE,1, " 123 624 "
+		CALL MAKE_FLOOR_LINE,2, " 1     1 "
+		CALL MAKE_FLOOR_LINE,3, " 123 721 "
+		CALL MAKE_FLOOR_LINE,4, " 1     1 "
+		CALL MAKE_FLOOR_LINE,5, " 1111124 "
+		CALL MAKE_FLOOR_LINE,6, "       1 "
+		CALL MAKE_FLOOR_LINE,7, " E211411 "
+		CALL MAKE_FLOOR_LINE,8, "         "
+		
+	CASE 2
+	;３階
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								 012345678
+		CALL MAKE_FLOOR_LINE,0, "         "
+		CALL MAKE_FLOOR_LINE,1, " 32127 1 "
+		CALL MAKE_FLOOR_LINE,2, "   1   1 "
+		CALL MAKE_FLOOR_LINE,3, " 3 126 1 "
+		CALL MAKE_FLOOR_LINE,4, " 2 1   1 "
+		CALL MAKE_FLOOR_LINE,5, " 1111121 "
+		CALL MAKE_FLOOR_LINE,6, "       1 "
+		CALL MAKE_FLOOR_LINE,7, " E211111 "
+		CALL MAKE_FLOOR_LINE,8, "         "
+	CASE 3
+	;４階
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								 012345678
+		CALL MAKE_FLOOR_LINE,0, "         "
+		CALL MAKE_FLOOR_LINE,1, " 321 621 "
+		CALL MAKE_FLOOR_LINE,2, "   1   4 "
+		CALL MAKE_FLOOR_LINE,3, " 321 721 "
+		CALL MAKE_FLOOR_LINE,4, "   1   1 "
+		CALL MAKE_FLOOR_LINE,5, " 3211121 "
+		CALL MAKE_FLOOR_LINE,6, "       1 "
+		CALL MAKE_FLOOR_LINE,7, " E211111 "
+		CALL MAKE_FLOOR_LINE,8, "         "
+		
+		
+		
+		
+	CASE 4
+	;５階
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+;								 012345678
+		CALL MAKE_FLOOR_LINE,0, "         "
+		CALL MAKE_FLOOR_LINE,1, " 3 127 T "
+		CALL MAKE_FLOOR_LINE,2, " 2 1   2 "
+		CALL MAKE_FLOOR_LINE,3, " 1 111 1 "
+		CALL MAKE_FLOOR_LINE,4, " 1   1 1 "
+		CALL MAKE_FLOOR_LINE,5, " 111 1 1 "
+		CALL MAKE_FLOOR_LINE,6, "   1 2 1 "
+		CALL MAKE_FLOOR_LINE,7, " E211111 "
+		CALL MAKE_FLOOR_LINE,8, "         "
+		;※座標(7,1)の"T"はターミナルを表しています。
+		;このように数字の代わりにTを記述した場合、「-9」が代入されて共通のターミナルイベントが設置されている物と扱われます。
+		;詳しくはSET_DUNGEON.ERB内の@DEFINE_TILESとSYSTEM_DUNGEON.ERB内の@DUNGEON_ATTACKをお読みください
+		
+		;ドウマン撃破後にターミナルを訪れてないとターミナル訪問用のイベントを設置します
+		CALL SET_TILE, 7 , 1 , ダンジョンフラグ:1:12 , 0 , 4009
+		
+		
+		;イベントの設置
+		;１Ｆのノッカー（スキルカードの持ち主）同様、特定の条件を満たしている場合のイベントとして、
+		;ボス悪魔であるドウマンを設置します。
+		;@SET_TILE,X座標, Y座標, 使用するフラグ, フラグがいくつのときにタイルを設置するか, 設置するタイル
+		;つまり、これはX座標7、Y座標1の位置に、ダンジョンフラグ:1:11(ドウマン撃破フラグ)が0のときのみ、IDが400番の、4（イベント）を置く
+		;この4004は マップ番号である4*1000 + タイルの種類を表す4で構成されています。
+		CALL SET_TILE, 7 , 1 , ダンジョンフラグ:1:11 , 0 , 4004
+		
+		;なお、ダンジョンフラグ:1:11はダンジョンフラグ:{FLAG:現ダンジョン}:11や、ダンジョンフラグ:[[ダンジョン:エコービル]]:11という記述もできます
+		;基本的には前者推奨、ダンジョンの外やほかのダンジョンからフラグを見たいときは後者もいいでしょう
+	CASEELSE
+
+
+
+
+
+ENDSELECT
+;参考例:半角スペース（壁）は0でも記述可能,見やすさの好みで0と使い分ける
+;		CALL MAKE_FLOOR_LINE,0, "000000000"
+;		CALL MAKE_FLOOR_LINE,1, "032111110"
+;		CALL MAKE_FLOOR_LINE,2, "000100010"
+;		CALL MAKE_FLOOR_LINE,3, "041426010"
+;		CALL MAKE_FLOOR_LINE,4, "000100010"
+;		CALL MAKE_FLOOR_LINE,5, "032111110"
+;		CALL MAKE_FLOOR_LINE,6, "000102010"
+;		CALL MAKE_FLOOR_LINE,7, "0E2108010"
+;		CALL MAKE_FLOOR_LINE,8, "000000000"
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+;ARG:1、ARG:2はそれぞれX座標とY座標
+;ARGはその座標に現在代入されている番号
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内、3～9が代入されているマスに、個別の番号を与える処理を実行します。
+;この処理を行った後、これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合、「2番のマップ＝３Ｆで、左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚、0～2はどのマップにも大量に設置されるので、ここでは基本的に個別の番号を与えません。
+;
+;何個目のARGタイプのマスなのか、は左上の(0,0)から右まで探し、その後一つ下の段に移って同様に探す、というのを右下まで繰り返して数えます。
+@MAKE_FLOOR_LINE_COMMON_1, ARG, ARG:1, ARG:2
+#LOCALSIZE 10
+;LOCAL:0～9 それぞれ何個目のARGなのかを記憶しています
+;LOCAL:3 宝箱→使用フラグはダンジョンフラグ:70~74
+;指定された座標が(0,0)である場合、つまり新しいマップを読み込んだ時はLOCALを消去します
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		;宝箱は多くの場合、開けたフラグが立っていると床を代入します
+		;そのマップでどの宝箱を開けたかは、そのマップの宝箱管理用変数の何番目のビットが立っているかで判断します
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+			;特殊処理
+			;１Ｆ1番目の宝箱を取ると、そこには0024を代入(ノッカー)
+			SIF FLAG:現M == 0 && LOCAL:3 == 1
+				DA:(ARG:1):(ARG:2) = 24
+				
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4 TO 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:ARG * 10 + ARG
+		LOCAL:ARG++
+	
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;TILE_MARK_COMMON_{FLAG:現ダンジョン}_X
+;=======================================================================
+;ARG:1、ARG:2がX座標とY座標
+;ARGはそこに代入されている値
+;RESULTSに代入した文字がマップに表示されますが、必ず全角1文字分になるようにしてください。そうでないと表示が崩れます。
+
+;イベントタイル特殊表示
+;末尾の_4はイベントであることを示す4
+@TILE_MARK_COMMON_1_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;メッセンジャーを緑色で"ｍ"と表示
+	CASE 0 TO 2 , 100 , 101 , 102 , 300
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASEELSE
+		;特に設定しない場合、"！"と表示されます
+		RETURN 1
+ENDSELECT
+
+;特殊タイルの表示
+;末尾の_9は特殊タイルであることを示す9
+@TILE_MARK_COMMON_1_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;５Ｆに設置されたターミナル
+	CASE 400
+		RESULTS = Ｔ
+	CASEELSE
+		;特に設定しない場合、"■"が表示されます
+		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_1
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+;% 10は10で割ったあまり、つまり下一桁がでてきます
+;そして、下一桁はタイルの種類を表す
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_1
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_1
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_1
+	RETURN RESULT
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;１Ｆイベント
+		CASE 0
+			CALL MESSAGE_WINDOW_D, "Fairy Pixie", "Hey hey old lady!/I've seen some summoners recently."
+			CALL MESSAGE_WINDOW_D, "Yoma Apsaras", "That is so? By approaching and using TALK, they seem to gather demons./But because you are still small, you mustn't follow them even if they call you./And I'm a young lady."
+			CALL MESSAGE_WINDOW_D, "Fairy Pixie", "We can now be summoned by a ＣＯＭＰ!/The power of science is wonderful! Yeah, old lady!"
+			CALL MESSAGE_WINDOW_D, "Yoma Apsaras", "Is that so?/I don't understand technology very well./And I am a young lady."
+		CASE 1
+			CALL MESSAGE_WINDOW_D, "Rookie Dark Summoner", "I heard that there was a bounty on a demon and came here/Even if you recruit a demon through TALK, you cannot summon them if ＭＡＧ is too low……/If there is not enough ＭＡＧ、your demons will collapse"
+			
+		CASE 2
+			CALL MESSAGE_WINDOW_D, "Fairy Knocker", "Uhhh heey!/Don't know what to do with that skill card?/You can install the skill in Enhance Demon[122], if you've got the ＭＡＧ/You can learn new skills……/Damn！ That guy I stole from appeared！"
+		;２Ｆイベント
+		CASE 100
+			CALL MESSAGE_WINDOW_D, "Dark Summoner", "Do you use ＤＥＶＩＬ－ＣＯＯＰ?/If you hit a demon's weakness, you can follow up with your summoned demons./But... only demons with similar alignment with you can cooperate./Watch out!"
+		CASE 101
+			CALL MESSAGE_WINDOW_D, "Flight Harpy", "ohhh... Pixie is so cute and scary...//Also、when under SHOCK、all attacks are critical、and frost attacks like bufu do double damage…"
+			CALL MESSAGE_WINDOW_D, "Flight Harpy", "…That is similar to bufu attacks inflicting FREEZE/Someone like me who is weak to shock must GUARD top avoid this/Hey、please do not tell anyone？"
+		CASE 102
+			CALL MESSAGE_WINDOW_D, "Dark Summoner", "I heard that the demons in this area have the materials for synthesis./I knew that from that synthesis guide that i won from the Macca Lottery./If you collect the synthesis materials here, you can create a Headset."
+		;４Ｆイベント
+		CASE 300
+			;ドウマン撃破済み
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):11
+				CALL MESSAGE_WINDOW_D, "Dark Summoner", "Whaa!?/You managed to defeat the bounty!?"
+				CALL MESSAGE_WINDOW_D, "Dark Summoner", "Oh shit, i would have gotten the money if i had more demons!"
+			;一度話しかけた事がある
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):12
+				CALL MESSAGE_WINDOW_D, "Dark Summoner", "Wall of Water stopps fire attacks……/Must I fuse a demon for it……"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "Dark Summoner", "Tch……I made a mistake/My zombies were all burned together…"
+				CALL MESSAGE_WINDOW_D, "Dark Summoner", "……Are you planning to go on ahead？ Stop/There is a demon with a bounty on the top floop/You do not want to be burned by his flames"
+				ダンジョンフラグ:(FLAG:現ダンジョン):12 = 1
+			ENDIF
+	ENDSELECT
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_1,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_1
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_1
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_1
+	RETURN RESULT
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+		;１Ｆイベント
+		CASE 1
+			IF ダンジョンフラグ:1:10 == 0
+				CALL MESSAGE_WINDOW_D, "Rookie Dark Summoner", "I heard there was a bounty on a demon and came here/Even if you recruit a demon with TALK、you cannot summon if you do not have enough money……/If you do not have enough ＭＡＧ、your demons will collapse/……Well if you want to talk to me again, choose [5]Check"
+				ダンジョンフラグ:1:10 = 1
+				RETURN 1
+			ENDIF
+			RETURN 0
+		;５Ｆ
+		CASE 400
+			;現在地をターミナルに
+			DA:(FLAG:現X):(FLAG:現Y) = 4009
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞A suspicious man is conduction some sort of ceremony."
+			CALL MESSAGE_WINDOW_D, "Man", "My brethren! Come forth from the depths of the abyss!"
+			CALL MESSAGE_WINDOW_D, "Man", "...Eh!?/What are you doing here!? Since you have seen our ceremony, i cannot allow you to leave this place alive!!/However, fighting in this room would be bad so I'll push you out first."
+			CALL SHOW_FORCEMOVE("D<2>", "D", "", , @"＞%CALLNAME:MASTER% was pushed out of the room by an unseen power!")
+			CALL MESSAGE_WINDOW_D, "Man", "Now we can fight to our hearts content!/Demon user, curse you misfortune to come across me: Ashiya Douman!"
+			CALL MESSAGE_WINDOW_D, "", "/＞１超人 Douman appeared!/" , , , , , , , , , "CENTER"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9,[[キャラ:ドウマン]],10,0,1
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			ABL:(CHARANUM-1):アイテム1 = 10704
+			ABL:(CHARANUM-1):入手確率1 = 100
+			ABL:(CHARANUM-1):アイテム2 = 10901
+			ABL:(CHARANUM-1):入手確率2 = 100
+			
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)		
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "/＞Meta Douman ran out of energy/" , , , , , , , , , "CENTER"
+			ダンジョンフラグ:1:11 = 1
+			RETURN 1
+	ENDSELECT
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) %10 == 9
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+		CASE 400
+			IF ダンジョンフラグ:1:11 && !ダンジョンフラグ:1:12
+				CALL MESSAGE_WINDOW_D, "", "＞You unlocked the terminal and could now go to the Shinjuku Hygenic Hospital"
+				ダンジョンフラグ:1:12 = 1
+				DA:(FLAG:現X):(FLAG:現Y) = -9
+			ENDIF
+			CALL DUNGEON_TERMINAL
+			RETURN 1
+	ENDSELECT
+ENDIF
+RETURN 0
+
+
+
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_1
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 2 , 3
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 4
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_1
+RETURN 5, 3, 9, 10
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_1
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	IF RAND:3 == 1
+		ABL:(CHARANUM-1):アイテム2 = 1415
+		ABL:(CHARANUM-1):入手確率2 = 8
+	ELSEIF RAND:2 == 1
+		ABL:(CHARANUM-1):アイテム2 = 1416
+		ABL:(CHARANUM-1):入手確率2 = 8
+	ELSE
+		ABL:(CHARANUM-1):アイテム2 = 1417
+		ABL:(CHARANUM-1):入手確率2 = 8
+	ENDIF
+	
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;RETURN X でXが種類の数になります
+;あまりいろんなのが混ざっているとCOOPがとりにくくなったり
+;敵の攻撃属性が多くなる傾向にあるので、
+;種類の数は1・2種類を主体に時々3種類くらいを基本にするのが望ましいと思われます
+;=======================================================================
+@CLASS_NUM_1
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 4
+		SELECTCASE RAND:100
+			CASE IS < 35
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお、ここで帰った数字は下限を種族数、上限を10として自動的に調整されます
+;
+;エコービルは最初のダンジョンということで少なめで、最大でも6体ということに
+;=======================================================================
+@ENEMY_NUM_1, ARG
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		;1~2あるいは2~4
+		RETURN RAND(ARG, ARG*2+1)
+	CASE 1 , 2
+		;1~3あるいは2~5
+		RETURN RAND(ARG, ARG*2+2)
+	CASE 4
+		;1~4あるいは2~6
+		RETURN RAND(ARG, ARG*2+3)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_1, ARG
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		SELECTCASE RAND:100
+			CASE IS < 20
+				;20%でピクシー
+				;RETURN [登場悪魔のキャラ番号], LV　となっています
+				RETURN 501, 3
+				;参考例　以下の記述でも動きます。数字を指定するのと文字列を指定するのは好みでどうぞ
+				;なお、文字列指定は予め、_Rename.csvで登録していないと無理です。ｃｓｖを見てみましょう
+				;RETURN [[キャラ:ピクシー]],3
+			CASE IS < 35
+				;15%でハーピー
+				RETURN [[キャラ:ハーピー]],4
+			CASE IS < 50
+				;15%でゾンビちゃん
+				RETURN [[キャラ:ゾンビちゃん]],4
+			CASE IS < 65
+				;15%でアプサラス
+				RETURN [[キャラ:アプサラス]],5
+			CASE IS < 74
+				;9%でノッカー
+				RETURN [[キャラ:ノッカー]],4
+			CASE IS < 83
+				;9%でゾンビドッグ
+				RETURN 1083, 1
+			CASE IS < 92
+				;9%でチョンチョン
+				RETURN [[キャラ:チョンチョン]],4
+			CASE IS < 100
+				;8%でガキ
+				RETURN [[キャラ:ガキ]],4
+		ENDSELECT
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 14
+				;14%でピクシー
+				RETURN [[キャラ:ピクシー]],3
+			CASE IS < 28
+				;14%でハーピー
+				RETURN [[キャラ:ハーピー]],4
+			CASE IS < 42
+				;14%でゾンビちゃん
+				RETURN [[キャラ:ゾンビちゃん]],4
+			CASE IS < 56
+				;14%でアプサラス
+				RETURN [[キャラ:アプサラス]],5
+			CASE IS < 61
+				;7%でピクシーランク１
+				RETURN [[キャラ:ピクシー]],6
+			CASE IS < 64
+				;3%でハーピーランク１
+				RETURN [[キャラ:ハーピー]],7
+			CASE IS < 67
+				;3%でゾンビちゃんランク１
+				RETURN [[キャラ:ゾンビちゃん]],7
+			CASE IS < 70
+				;3%でノッカーランク１
+				RETURN [[キャラ:ノッカー]],7
+			CASE IS < 73
+				;3%でガキランク１
+				RETURN [[キャラ:ガキ]],7
+			CASE IS < 76
+				;3%でチョンチョンランク１
+				RETURN [[キャラ:チョンチョン]],7
+			CASE IS < 83
+				;7%でコボルト
+				RETURN [[キャラ:コボルト]],5
+			CASE IS < 86
+				;3%でゾンビドッグ
+				RETURN 1083, 1
+			CASE IS < 100
+				;14%でカハク
+				RETURN [[キャラ:カハク]],7
+		ENDSELECT
+	CASE 4
+		SELECTCASE RAND:100
+			CASE IS < 10
+				;10%でピクシーランク１
+				RETURN [[キャラ:ピクシー]],7
+			CASE IS < 20
+				;10%でハーピーランク１
+				RETURN [[キャラ:ハーピー]],7
+			CASE IS < 30
+				;10%でゾンビちゃんランク１
+				RETURN [[キャラ:ゾンビちゃん]],7
+			CASE IS < 40
+				;10%でアプサラスランク1
+				RETURN [[キャラ:アプサラス]],7
+			CASE IS < 50
+				;10%でピクシーランク２
+				RETURN [[キャラ:ピクシー]],9
+			CASE IS < 60
+				;10%でチョンチョンランク１
+				RETURN [[キャラ:チョンチョン]],7
+			CASE IS < 70
+				;10%でノッカーランク1
+				RETURN [[キャラ:ノッカー]],7
+			CASE IS < 80
+				;10%でゾンビくん
+				RETURN [[キャラ:ゾンビくん]],7
+			CASE IS < 90
+				;10%でコボルト
+				RETURN [[キャラ:コボルト]],7
+			CASE IS < 100
+				;10%でカハク
+				RETURN [[キャラ:カハク]],7
+		ENDSELECT
+ENDSELECT
+
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_1
+#LOCALSIZE 3
+;宝箱のフラグ管理用変数の番号
+LOCAL = FLAG:現M + 70
+;そのマップの何番目の宝箱か
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+
+;/10はIDを10で割る。つまり、下一桁をなくして、二桁目と三桁目を二桁の数字として取り出している
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+	CASE 0
+		;@GET_TREASURE,アイテム番号 , 入手個数 , ダンジョンナンバー , 開けた時に操作する変数の番号 , 変数に立てるビット
+		;[[アイテム:Medecine]]は_Rename.csvによって1001番が置換されて渡されます。これは傷薬のアイテム番号です。
+		;そしてその個数が1個、ダンジョンナンバーは宝箱あけるときはよそのダンジョンをあけることがないだろうのでFLAG:現ダンジョンが無難です
+		;LOCALはこの場合マップ番号の0+70で70が代入されています。そして、LOCAL:1にはこの宝箱がこのマップで何番目の宝箱か、つまり0が入っています
+		;このように記述すると、宝箱を開けた場合ダンジョンフラグ:1(エコービルの番号):70 の0番目のビットが立ちます。
+		;MAPをつくるときにこの宝箱はダンジョンフラグ:1(エコービル):70の0番目のビットが立っていない時しか置かないことになってるので、宝箱を開けるとこれで消えます
+		CALL GET_TREASURE, [[アイテム:Medicine]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 1
+		CALL GET_TREASURE, [[アイテム:スキルカード【ヤマオロシ】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+		DA:(FLAG:現X):(FLAG:現Y) = 24
+	;百の位が1になりました。
+	;これで以下の二つの宝箱はマップ番号1＝エコービル２Ｆの0番目、1番目の宝箱という事になります
+	CASE 100
+		CALL GET_TREASURE, [[アイテム:スキルカード【アクア】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 101
+		CALL GET_TREASURE, [[アイテム:Queen Bute]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 200
+		;罠箱
+		;@GET_TREASURE_TRAP , 罠の種類 , ダメージ量or確率 , 相性番号 , ダンジョンナンバー , 開けた時に操作する変数の番号 , 変数に立てるビット
+		;第一引数が"ＨＰ"か"ＭＰ"なら最大値に対する第二引数％の割合ダメージを、
+		;バッドステータス名であれば第二引数％の確率でそのバッドステータスになります。この場合、第三引数の番号の相性に対する耐性で確率が変化します
+		;この箱は味方全員のHPを25%減らす罠です。
+		CALL GET_TREASURE_TRAP, "ＨＰ", 25 , GET_TYPE_NUM("万能") , FLAG:現ダンジョン, LOCAL , LOCAL:1
+		
+	CASE 201
+		;@MAGIC_BOX , 指定する月齢 , 月齢が正しい時のアイテム、月齢が正しくない時のアイテム , 入手個数 , ダンジョンナンバー , 開けた時に操作する変数の番号 , 変数に立てるビット
+		;現在の月齢によって手に入るアイテムの変わる箱です。
+		;この場合、月齢8＝満月である場合に宝玉が1個手に入り、そうでない場合魔石1個が手に入ります
+		
+		CALL MAGIC_BOX , 8 , [[アイテム:Bead]] , [[アイテム:Life stone]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+		
+	CASE 300
+		CALL GET_TREASURE, [[アイテム:スキルカード【グライ】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 301
+		;@GET_TREASURE_MONEY ,￥or魔貨 , 入手額 , ダンジョンナンバー , 開けた時に操作する変数の番号 , 変数に立てるビット
+		;第一引数が0なら￥、1なら魔貨を入手します
+		;この宝箱には￥1000が入っています
+		CALL GET_TREASURE_MONEY, 0 , 1000 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 302
+		;@GET_TREASURE_MAG ,  , 入手量 , ダンジョンナンバー , 開けた時に操作する変数の番号 , 変数に立てるビット
+		;この宝箱には500MAGが入っています
+		CALL GET_TREASURE_MAG, , 500 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 400
+		CALL GET_TREASURE, [[アイテム:Have-not Ring]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+		
+;	CASE 3
+;		CALL GET_TREASURE,5000,2,FLAG:現ダンジョン,3
+	;なお、1001は[[アイテム:Medecine]]という記述も可能です
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+;上り階段処理
+@UPSTAIRS_1
+;SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+;	;IDで分岐
+;	;１Ｆ上り階段
+;	CASE 0
+;			;@DUNGEON_UPSTAIRS_ID , 階段を進んだ先のマップ番号 , 移動先のタイルのID
+;			;２Ｆ＝マップ番号1番の0番目の下り階段 = 1 * 1000 + 0 * 10 + 7 = 1007へと飛ぶ
+;			CALL DUNGEON_UPSTAIRS_ID, 1 , 1007
+;	CASE 100
+;			CALL DUNGEON_UPSTAIRS_ID, 2 , 2007
+;	CASE 200
+;			CALL DUNGEON_UPSTAIRS_ID, 3 , 3007
+;	CASE 300
+;			CALL DUNGEON_UPSTAIRS_ID, 4 , 4007
+;	CASEELSE
+;ENDSELECT
+
+;入り組んだダンジョンで階段がたくさん入り乱れている状態であれば、上記のように階段毎に指定してあげる必要があります。
+;しかしこのエコービルは1つのマップに上り階段が１つ、下り階段が１つ、上の階に進む＝マップ番号が一つ増えるという構造になっています
+;なので、下記のように書けば一行で済みます
+CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , (FLAG:現M + 1) * 1000 + 7
+RETURN 1
+
+;下り階段処理
+@DOWNSTAIRS_1
+;上り階段同様に、エコービルは下り階段も1行で記述できます
+CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , (FLAG:現M - 1) * 1000 + 6
+RETURN 1
+
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+;ARGはそのエレベーターのタイル
+@DUNGEON_ELEVATOR_1, ARG
+;RESULT:1～5にエレベータが存在するマップの番号を代入し、RESULTS:1～5には表示したい名称を代入、RETURNでは-1を返しておく
+RESULT:1 = 0
+RESULT:2 = 1
+RESULT:3 = 2
+RESULT:4 = 3
+RESULT:5 = 4
+RESULTS:1 = １Ｆ
+RESULTS:2 = ２Ｆ
+RESULTS:3 = ３Ｆ
+RESULTS:4 = ４Ｆ
+RESULTS:5 = ５Ｆ
+RETURN -1
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_1
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:ガキ]] , 3 + RAND:10 , CSVBASE([[キャラ:ガキ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:コボルト]] , 3 + RAND:10 , CSVBASE([[キャラ:コボルト]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:ゾンビくん]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビくん]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+

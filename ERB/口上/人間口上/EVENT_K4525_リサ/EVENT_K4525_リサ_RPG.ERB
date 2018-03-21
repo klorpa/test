@@ -1,0 +1,167 @@
+@BATTLE_MESSAGE_K4525, ARG,ARG:1 = 0
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = EMPTY
+;タイプ取得
+CALLFORM SKILL_EFECT_{LOCAL}
+IF LOCAL == 0
+	IF RAND:3 == 0
+		LOCALS = アチョー！
+	ELSEIF RAND:2 == 0
+		LOCALS = いっくよー！
+	ELSE
+		LOCALS = はいっ！
+	ENDIF
+ELSEIF LOCAL == [[スキル:ＧＵＮ]]
+	IF RAND:3 == 0
+		LOCALS = やぁっ！
+	ELSEIF RAND:2 == 0
+		LOCALS = やっちゃうよー！
+	ELSE
+		LOCALS = いっけぇェェ！
+	ENDIF
+ELSEIF LOCAL == [[スキル:フォーミーラバー]]
+	LOCALS = フォーミィラバー！
+;攻撃
+ELSEIF RESULT == 1 && RAND:3 == 0
+	CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+	IF RAND:3 == 0
+		LOCALS = てやぁっ！
+	ELSEIF RAND:2 == 0
+		LOCALS = 強いの、いくよっ！
+	ELSE
+		LOCALS = ホアッチョー！！
+	ENDIF
+;回復
+ELSEIF RESULT == 2 && RAND:3 == 0
+	IF CFLAG:ARG:ターゲット > 6
+		LOCALS = みんな！
+	ELSE
+		LOCALS = だいじょうぶ！？
+	ENDIF
+;状態変化
+;ELSEIF RESULT == 3
+	IF CFLAG:ARG:ターゲット > 6
+		LOCALS = うっわ…
+	ELSE
+		LOCALS = マジ…？
+	ENDIF
+;特殊
+;ELSEIF RESULT == 4
+	IF CFLAG:ARG:ターゲット > 6
+		LOCALS = これで！
+	ELSE
+		LOCALS = いくよー！！
+	ENDIF
+;状態回復
+;ELSEIF RESULT == 5
+	IF CFLAG:ARG:ターゲット > 6
+		LOCALS = みんな！
+	ELSE
+		LOCALS = しっかりして！
+	ENDIF
+ELSE
+	IF RAND:3 == 0
+		LOCALS = ホアチョー！
+	ELSEIF RAND:2
+		LOCALS = ペルソナ！
+	ELSE
+		LOCALS = カゥメンア！
+	ENDIF
+ENDIF
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+@BATTLE_EVENT_K4525, ARG, ARG:1, ARG:2
+SIF ARG < 0 && NO:ARG != 4525
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:4 == 0
+			LOCALS = 考えるな、感じろ！　ってことで！
+		ELSEIF RAND:3 == 0
+			LOCALS = いっくよー！　みんなぁ！
+		ELSEIF RAND:2 == 0
+			LOCALS = やってやろうじゃん！
+		ELSE
+			LOCALS = 行っちゃうよー！
+		ENDIF
+	CASE 2
+		LOCALS = 好呀！　わたしもやっちゃうよー！
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+			LOCALS = フン、いい気味～
+		;弱点をついた。つまりCOOP発動
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+				LOCALS = ファーンナ…やな感じ…
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+			LOCALS = ふん、どんなもんよ！
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 25
+			LOCALS = 続けて、いくよっ♪
+		ELSEIF ダメージ割合(ARG:1, ARG:2) <= 0
+			LOCALS = やってらんないって感じ…
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			IF RAND:2
+				LOCALS = 土に帰るの…
+			ELSE
+				LOCALS = ソーリーア…ごめん…みんな
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			LOCALS = し、死んじゃうよぉ
+		;無効
+		ELSEIF ARG:2 == 0
+			IF RAND:2
+				LOCALS = 無駄なのに、馬鹿みたい♪
+			ELSE
+				LOCALS = 無駄無駄ァ♪　ってね！
+			ENDIF
+		;吸収
+		ELSEIF ARG:2 < 0
+			LOCALS = トォチェ♪　ごちそさまっ♪
+		ENDIF
+	CASE 15
+		LOCALS = アイヤー！？　そんなぁ…
+	CASE 16
+		LOCALS = ホィサムロ！　わざわざありがとー♪
+	CASE 17
+		LOCALS = ケッヘイ！　もー怒った！
+	CASE 18
+		LOCALS = お前の攻撃は見切った…！　なんてね♪
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+@EVOLUTE_PERSONA_K4525,ARG
+IF CFLAG:ARG:ペルソナ強化フラグ == 1
+	PRINTFORMW 「リサ・シルバーマン、彼女のあなたの力になりたいという想いに」
+	PRINTFORMW 「常に彼女の傍に寄り添ってきたペルソナが応えようとしているようですぞ」
+	PRINTFORMW 「我が手助けし、ペルソナの新たな力を引き出してみせましょう」
+	PRINTL
+	PRINTW
+	PRINTW ペルソナ「エロス」は、ペルソナ「エロス・改」に生まれ変わった…
+ELSE
+	PRINTFORMW 「リサ・シルバーマン、以前彼女の想いに応えたペルソナですが」
+	PRINTFORMW 「彼女のさらなる成長と想いに、またペルソナも新たな力を得ようとしているようです」
+	PRINTFORMW 「いままた我が手助けし、ペルソナの更なる力を引き出してみせましょう」
+	PRINTL
+	PRINTW
+	PRINTW ペルソナ「エロス・改」は、ペルソナ「ヴィーナス」に生まれ変わった…
+ENDIF

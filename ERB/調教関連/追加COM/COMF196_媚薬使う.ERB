@@ -1,0 +1,81 @@
+;-------------------------------------------------
+;媚薬
+;特殊コマンド
+;-------------------------------------------------
+
+@CHECK_COM_ABLE196
+
+;媚薬実行判定
+;アイテムを持っているか、アイテムなし設定か触手調教中でないとダメ
+SIF !EXIST_ITEM(41) && TEQUIP:25 == 0
+	RETURN 0
+
+;薬毒耐性だとダメ
+SIF TALENT:PLAYER:56
+	RETURN 0
+RETURN 1
+
+@ACT_COM196
+PRINTL Use Aphrodesiac
+TSTR:0 = 媚薬使う
+;CALL KOJO_MESSAGE_COM
+
+SIF TEQUIP:25 == 0
+	ITEM:41 -= 1
+
+TEQUIP:PLAYER:26 = 1
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+LOSEBASE:0 += 10
+LOSEBASE:1 += 10
+
+SOURCE:4 = 10
+SOURCE:13 = 10
+SOURCE:17 = 10
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:40%+{A}
+;	PRINTFORML %EXPNAME:40%(調教者)+{A}
+;	EXP:40 += A
+;	EXP:PLAYER:40 += A
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:41%+{A}
+;	PRINTFORML %EXPNAME:41%(調教者)+{A}
+;	EXP:41 += A
+;	EXP:PLAYER:41 += A
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	
+	
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+@MESSAGE_COM196
+;触手召喚中
+IF TEQUIP:25
+	PRINTFORML 催淫効果のある液体が触手から染み出してきた
+ELSE
+	PRINTFORML %CALLNAME:PLAYER%は媚薬を飲んだ
+ENDIF
+PRINTFORMW %CALLNAME:PLAYER%は荒い息をついて肌を紅潮させている……
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_196
+RETURN COMTYPE("対調教者道具系")
+

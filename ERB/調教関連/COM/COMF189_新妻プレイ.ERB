@@ -1,0 +1,81 @@
+;-------------------------------------------------
+;新妻プレイ
+;特殊コマンド
+;-------------------------------------------------
+@COMNAME189
+RESULTS = Bride play
+SIF TEQUIP:33
+	RESULTS = Stop Bride play
+@ACT_COM189
+PRINTL Bride play
+;新妻プレイ
+TSTR:0 = 新妻プレイ
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理　装備時はソース、経験の加算は行わない
+IF TEQUIP:33 == 1
+	TEQUIP:33 = 0
+ELSE
+	TEQUIP:33 = 1
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM189
+;新妻プレイ
+
+;助手調教時は、エプロンを解除して関数終了
+IF ASSIPLAY
+	TEQUIP:33 = 0
+	RETURN 0
+ENDIF
+
+PRINTL ＜During Bride Play＞
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 20
+DOWNBASE:TARGET:気力 += 20
+
+SOURCE:TARGET:情愛 += 1000
+SOURCE:TARGET:恭順 += 5000
+SOURCE:TARGET:逸脱 += 500
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;LoveEXP
+;PRINTFORML %EXPNAME:23%＋１
+CALL ADDS_EXP("愛情経験", 1, TARGET)
+;PRINTFORML LoveEXP(主人)＋１
+CALL ADDS_EXP("愛情経験", 1, MASTER)
+
+
+;依存度補正値(主人かつ恋慕で2、親愛で4）
+IF TALENT:3 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ELSEIF TALENT:6 && ASSIPLAY == 0
+	TFLAG:30 += 4
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_189
+RETURN COMTYPE("特殊コマンド系")
+
+

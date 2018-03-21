@@ -1,0 +1,1037 @@
+;0　低命中＋必中の凶悪コンボ対策
+;1　コスト種類
+;2　効果強度
+;3　射程
+;4　命中　兼　能力上昇攻撃
+;5　連続攻撃最大数
+;6　連続攻撃最小数
+;7　クリティカル 兼　能力上昇防御
+;8　属性　兼　能力上昇命中
+;9　対象
+;10　範囲
+;11　異常　兼　能力上昇回避
+;12　異常属性　兼　能力上昇魔法威力
+;13　異常発生　兼　能力上昇魔法効果
+;14　・方向性
+;15　種別
+;16　・消費MP
+;17　単体連続攻撃最大数
+;18　単体連続攻撃最小数
+;19　初回かどうか　兼　いろいろべんりなやつ
+;20～　そもそも使えない
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_45
+;メガテン系イベント以外不許可の場合
+SIF GETBIT(FLAG:EXTRAイベント設定, 0) == 0
+	RETURN 0
+
+RESULTS = オリジナルスキルセッティング
+RETURN 1
+
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_45
+PRINTFORML ようこそ、ここでは貴方のオリジナルスキルの性能を設定することができます
+PRINTFORML ではまず、スキルの方向性を選択してください
+$PATTERN_RETURN
+PRINTFORML 注：方向性を変更すると、全ての設定が初期化されます
+PRINTFORM 現在
+	SIF イベントフラグ:45:14 == 0
+		PRINTFORML 「攻撃」
+	SIF イベントフラグ:45:14 == 1
+		PRINTFORML 「回復」
+	SIF イベントフラグ:45:14 == 2
+		PRINTFORML 「状態異常」
+	SIF イベントフラグ:45:14 == 3
+		PRINTFORML 「能力変動」
+PRINTL [0]攻撃系 [1]回復系
+PRINTL [2]状態異常系 
+;[3]能力変動系
+PRINTL [4]オリジナルスキルを使わない
+$INPUT_LOOP
+INPUT
+IF RESULT > 5 || RESULT < 0
+	GOTO INPUT_LOOP
+ELSEIF RESULT == 5
+	PRINTFORML オリジナルスキルを使用しなくする場合も、設定が初期化されます
+	PRINTFORML よろしいですか？
+	PRINTL [0]はい
+	PRINTL [1]いいえ
+	$INPUT_LOOP_KAKUNIN
+	INPUT
+	IF RESULT > 1 || RESULT < 0
+		GOTO INPUT_LOOP_KAKUNIN
+	ELSEIF RESULT == 0
+		PRINTFORML 了解いたしました
+		PRINTFORML 使用不可に設定し、スキル設定を終了します
+		イベントフラグ:45:19 = 0
+		GOTO END
+	ELSEIF RESULT == 1
+		PRINTFORML では、傾向設定にまで戻ります
+		GOTO PATTERN_RETURN
+	ENDIF
+ELSEIF イベントフラグ:45:14 != RESULT || イベントフラグ:45:19 == 0
+	イベントフラグ:45:14 = RESULT
+	イベントフラグ:45:0 = 0
+	IF BASE:MASTER:ＭＰ < 1
+		イベントフラグ:45:1 = 2
+	ELSE
+		イベントフラグ:45:1 = 3
+	ENDIF
+	イベントフラグ:45:2 = 0
+	イベントフラグ:45:3 = 3
+;能力変化系の時は0にする
+	IF イベントフラグ:45:14 == 3
+		イベントフラグ:45:4 = 0
+	ELSE
+		イベントフラグ:45:4 = 100
+	ENDIF
+	イベントフラグ:45:5 = 1
+	イベントフラグ:45:6 = 1
+	イベントフラグ:45:16 = 0
+	イベントフラグ:45:17 = 1
+	イベントフラグ:45:18 = 1
+	イベントフラグ:45:7 = 0
+	イベントフラグ:45:8 = 0
+;回復の時はとりあえず味方対象
+	IF イベントフラグ:45:14 == 1
+		イベントフラグ:45:9 = 2
+	ELSE
+		イベントフラグ:45:9 = 1
+	ENDIF
+	イベントフラグ:45:10 = 1
+	イベントフラグ:45:11 = 0
+	イベントフラグ:45:12 = 0
+	イベントフラグ:45:13 = 0
+	イベントフラグ:45:15 = 2
+	イベントフラグ:45:19 = 1
+
+ENDIF
+PRINTFORML 方向性を決定しました
+PRINTFORML 次に、性能を設定してください
+PRINTFORML 高性能にする程、消費コストは増加していきます
+PRINTFORML あんまりやりすぎると発動出来なくなりますよ？
+$INPUT_LOOP2
+PRINTFORM 現在コスト「{イベントフラグ:45:16}」 現在方向性
+	SIF イベントフラグ:45:14 == 0
+		PRINTFORML 「攻撃」
+	SIF イベントフラグ:45:14 == 1
+		PRINTFORML 「回復」
+	SIF イベントフラグ:45:14 == 2
+		PRINTFORML 「状態異常」
+	SIF イベントフラグ:45:14 == 3
+		PRINTFORML 「能力変動」
+PRINTFORML [0]スキル名　現在「%CSTR:MASTER:199%」
+PRINTFORM [1]コストの種類　現在
+SIF イベントフラグ:45:1 == 2
+	PRINTFORML 「HP」
+SIF イベントフラグ:45:1 == 3
+	PRINTFORML 「MP」
+SIF イベントフラグ:45:14 != 2
+	PRINTFORML [2]効果強度　現在「{イベントフラグ:45:2}」
+IF イベントフラグ:45:14 != 1 
+	PRINTFORM [3]射程　現在
+	SIF イベントフラグ:45:3 == 1
+		PRINTFORML 「S」
+	SIF イベントフラグ:45:3 == 2
+		PRINTFORML 「M」
+	SIF イベントフラグ:45:3 == 3
+		PRINTFORML 「L」
+ENDIF
+IF イベントフラグ:45:14 == 0
+	PRINTFORML [4]命中率　現在「{イベントフラグ:45:4}％」
+	PRINTFORM [5]連撃回数　現在「{イベントフラグ:45:6}～{イベントフラグ:45:5}回」　
+	SIF イベントフラグ:45:10 > 5
+		PRINTFORM [6]連撃集束率　現在「単体に対するＨＩＴ数{イベントフラグ:45:18}～{イベントフラグ:45:17}回」
+	PRINTFORML
+	PRINTFORML [7]クリティカル率　現在「{イベントフラグ:45:7}％」
+ENDIF
+IF イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 3
+	PRINTFORM [8]属性　現在「
+IF イベントフラグ:45:8 == 0 && イベントフラグ:45:14 == 0
+	PRINT 剣撃
+ELSEIF イベントフラグ:45:8 == 1 && イベントフラグ:45:14 == 0
+	PRINT 飛具
+ELSEIF イベントフラグ:45:8 == 2 && イベントフラグ:45:14 == 0
+	PRINT 打撃
+ELSEIF イベントフラグ:45:8 == 3 && イベントフラグ:45:14 == 0
+	PRINT 戦技
+ELSEIF イベントフラグ:45:8 == 4 && イベントフラグ:45:14 == 0
+	PRINT 火炎
+ELSEIF イベントフラグ:45:8 == 5 && イベントフラグ:45:14 == 0
+	PRINT 氷結
+ELSEIF イベントフラグ:45:8 == 6 && イベントフラグ:45:14 == 0
+	PRINT 電撃
+ELSEIF イベントフラグ:45:8 == 7 && イベントフラグ:45:14 == 0
+	PRINT 衝撃
+ELSEIF イベントフラグ:45:8 == 8 && イベントフラグ:45:14 == 0
+	PRINT 神経
+ELSEIF イベントフラグ:45:8 == 9 && イベントフラグ:45:14 == 0
+	PRINT 精神
+ELSEIF イベントフラグ:45:8 == 10 && イベントフラグ:45:14 == 0
+	PRINT 破魔
+ELSEIF イベントフラグ:45:8 == 11 && イベントフラグ:45:14 == 0
+	PRINT 呪殺
+ELSEIF イベントフラグ:45:8 == 12 && イベントフラグ:45:14 == 0
+	PRINT 地変
+ELSEIF イベントフラグ:45:8 == 13 && イベントフラグ:45:14 == 0
+	PRINT 水撃
+ELSEIF イベントフラグ:45:8 == 14 && イベントフラグ:45:14 == 0
+	PRINT 疾風
+ELSEIF イベントフラグ:45:8 == 15 && イベントフラグ:45:14 == 0
+	PRINT 重力
+ELSEIF イベントフラグ:45:8 == 16 && イベントフラグ:45:14 == 0
+	PRINT 核熱
+ELSEIF イベントフラグ:45:8 == 17 && イベントフラグ:45:14 == 0
+	PRINT 万能
+ENDIF
+SIF イベントフラグ:45:4 == 1
+	PRINT 攻撃
+SIF イベントフラグ:45:7 == 1
+	PRINT 防御
+SIF イベントフラグ:45:8 == 1
+	PRINT 命中
+SIF イベントフラグ:45:11 == 1
+	PRINT 回避
+SIF イベントフラグ:45:12 == 1
+	PRINT 魔法威力
+SIF イベントフラグ:45:12 == 1
+	PRINT 魔法効果
+	PRINTFORML 」
+ENDIF
+
+IF イベントフラグ:45:14 != 9
+;!= 1
+	PRINTFORM [9]対象　現在
+	SIF イベントフラグ:45:9 == 1
+		PRINTFORML 「敵」
+	SIF イベントフラグ:45:9 == 2
+		PRINTFORML 「味方」
+ENDIF
+
+PRINTFORM [10]範囲　現在「
+SIF イベントフラグ:45:10 == 1
+	PRINTFORM 単体
+SIF イベントフラグ:45:10 == 2
+	PRINTFORM 一列範囲
+SIF イベントフラグ:45:10 == 3
+	PRINTFORM 全体範囲
+SIF イベントフラグ:45:10 == 4
+	PRINTFORM 敵味方全体
+SIF イベントフラグ:45:10 == 5
+	PRINTFORM 拡散
+SIF イベントフラグ:45:10 == 6
+	PRINTFORM 単体(一列ランダム)
+SIF イベントフラグ:45:10 == 7
+	PRINTFORM 単体(全体ランダム)
+PRINTFORML 」
+IF イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2
+	PRINTFORM [11]発生状態異常　現在「
+IF イベントフラグ:45:11 == 1
+	PRINTFORM POISON
+ELSEIF イベントフラグ:45:11 == 2
+	PRINTFORM PALYZE
+ELSEIF イベントフラグ:45:11 == 3
+	PRINTFORM CHARM
+ELSEIF イベントフラグ:45:11 == 4
+	PRINTFORM FREEZE
+ELSEIF イベントフラグ:45:11 == 5
+	PRINTFORM SHOCK
+ELSEIF イベントフラグ:45:11 == 6
+	PRINTFORM STONE
+ELSEIF イベントフラグ:45:11 == 7
+	PRINTFORM DYING
+ELSE
+	PRINTFORM 無
+ENDIF
+	PRINTFORM 」　
+	PRINTFORM [12]状態異常属性　現在「
+IF イベントフラグ:45:12 == 0 
+	PRINT 剣撃
+ELSEIF イベントフラグ:45:12 == 1 
+	PRINT 飛具
+ELSEIF イベントフラグ:45:12 == 2 
+	PRINT 打撃
+ELSEIF イベントフラグ:45:12 == 3 
+	PRINT 戦技
+ELSEIF イベントフラグ:45:12 == 4 
+	PRINT 火炎
+ELSEIF イベントフラグ:45:12 == 5 
+	PRINT 氷結
+ELSEIF イベントフラグ:45:12 == 6 
+	PRINT 電撃
+ELSEIF イベントフラグ:45:12 == 7 
+	PRINT 衝撃
+ELSEIF イベントフラグ:45:12 == 8 
+	PRINT 神経
+ELSEIF イベントフラグ:45:12 == 9 
+	PRINT 精神
+ELSEIF イベントフラグ:45:12 == 10 
+	PRINT 破魔
+ELSEIF イベントフラグ:45:12 == 11 
+	PRINT 呪殺
+ELSEIF イベントフラグ:45:12 == 12 
+	PRINT 地変
+ELSEIF イベントフラグ:45:12 == 13 
+	PRINT 水撃
+ELSEIF イベントフラグ:45:12 == 14 
+	PRINT 疾風
+ELSEIF イベントフラグ:45:12 == 15 
+	PRINT 重力
+ELSEIF イベントフラグ:45:12 == 16 
+	PRINT 核熱
+ELSEIF イベントフラグ:45:12 == 17 
+	PRINT 万能
+ENDIF
+	PRINTFORM 」　　
+	PRINTFORML [13]状態異常発動率　現在「{イベントフラグ:45:13}％」
+ENDIF
+PRINTFORM [14]スキル種別　現在
+SIF イベントフラグ:45:15 == 1
+	PRINTFORML 「物理」
+SIF イベントフラグ:45:15 == 2
+	PRINTFORML 「魔法」
+PRINTL [15]方向性を選びなおす
+PRINTL [16]スキル選択時の文章
+PRINTL [17]スキル使用時の文章
+PRINTL [18]設定終了
+INPUT
+
+IF RESULT == 0
+	PRINTFORML 「スキル名」
+	PRINTFORML 完全な趣味の領域です。お好きにどうぞ
+	$INPUT_LOOP_NAME
+	PRINTFORML 名前を入力してください
+	INPUTS
+	CSTR:MASTER:199 = %RESULTS%
+	PRINTFORML %CSTR:MASTER:199%でよろしいですか？
+	PRINTL [0]はい
+	PRINTL [1]いいえ
+	$INPUT_LOOP_NAME2
+	INPUT
+	IF RESULT == 0
+		GOTO INPUT_LOOP2
+	ELSEIF RESULT == 1
+		PRINTFORML では改めて、お気の召す名をどうぞ
+		GOTO INPUT_LOOP_NAME
+	ELSE
+		GOTO INPUT_LOOP_NAME2
+	ENDIF
+ELSEIF RESULT == 1
+	PRINTFORML 「コストの種類」
+	PRINTFORML HPを支払うかMPを支払うか選べます
+	PRINTFORML HPの消費量はMPの二倍となります
+	PRINTL [2]HP
+	PRINTL [3]MP
+	$INPUT_LOOP_COST
+	INPUT
+	SIF RESULT != 2 && RESULT != 3
+		GOTO INPUT_LOOP_COST
+	イベントフラグ:45:1 = RESULT
+ELSEIF RESULT == 2 && イベントフラグ:45:14 != 2
+	PRINTFORML 「効果強度」
+	IF イベントフラグ:45:14 == 0
+		PRINTFORML 単純な攻撃力です
+		PRINTFORML 一定以上伸ばすと、指数関数的にコストが上昇し出します
+		PRINTFORML 負の値では、逆に対象を回復させますが
+		PRINTFORML コストの計算には絶対値を使用するので御注意ください
+		PRINTFORML 大体100で小、200で中、300で大ダメージと表記されます
+	ELSEIF イベントフラグ:45:14 == 1
+		PRINTFORML 単純な回復力です
+		PRINTFORML 一定以上伸ばすと、指数関数的にコストが上昇し出します
+		PRINTFORML 高レベルではディアラハンの下位互換になります
+		PRINTFORML 負の値では、逆に対象にダメージを与えますが
+		PRINTFORML コストの計算には絶対値を使用するので御注意ください
+		PRINTFORML 大体100で小、200で中、300で大回復と表記されます
+	ELSEIF イベントフラグ:45:14 == 3
+		PRINTFORML 単純な効力です
+		PRINTFORML 数値「2」に付き1段階分能力が変動します
+		PRINTFORML 絶対値に応じ、指数関数的にコストが上昇します
+		PRINTFORML 対象が敵なのに能力を上げたり、味方なのに下げたりといったことがないよう御注意ください
+	ENDIF
+	CALL INPUT_MANY(-66535,65535)
+	イベントフラグ:45:2 = RESULT
+ELSEIF RESULT == 3 && イベントフラグ:45:14 != 1 
+	PRINTFORML 「射程」
+	PRINTFORML 攻撃が届く範囲です。
+	PRINTFORML 短いほどコストが減少しますが、劇的な変化はありません
+	PRINTFORML 攻撃範囲が全体の場合、射程によるコスト減少は発生しません
+	PRINTL [1]S
+	PRINTL [2]M
+	PRINTL [3]L
+	$INPUT_LOOP_RANGE
+	INPUT
+	SIF RESULT < 1  || RESULT > 3
+		GOTO INPUT_LOOP_RANGE
+	イベントフラグ:45:3 = RESULT
+ELSEIF RESULT == 4 && イベントフラグ:45:14 == 0
+	PRINTFORML 「命中率」
+	PRINTFORML 攻撃の命中率です。
+	PRINTFORML 命中率とコストは正比例するため、コストに及ぼす影響が特に大きいです
+	PRINTFORML 主人公が必中状態のときに限り、命中率の影響が半減しますので御注意ください
+	CALL INPUT_MANY(1,100)
+	イベントフラグ:45:4 = RESULT
+ELSEIF RESULT == 5 && イベントフラグ:45:14 == 0
+	PRINTFORML 「連撃回数」
+	PRINTFORML どれだけ攻撃が連続で発動するかの値です。
+	SIF イベントフラグ:45:10 > 5
+		PRINTFORM 集中率にもよりますが、比較的
+	PRINTFORML 大きな効果をコストに与えます
+	PRINTFORML あまり多くすると酷いことになりますのでご注意ください
+	PRINTFORML 最大値を入力してください
+	CALL INPUT_MANY(1,65535)
+	イベントフラグ:45:5 = RESULT
+	SIF イベントフラグ:45:5 < イベントフラグ:45:17
+		イベントフラグ:45:17 = イベントフラグ:45:5
+	SIF イベントフラグ:45:5 < イベントフラグ:45:18
+		イベントフラグ:45:18 = イベントフラグ:45:5
+	PRINTFORML 最低値を入力してください
+	CALL INPUT_MANY(0,イベントフラグ:45:5)
+	イベントフラグ:45:6 = RESULT
+ELSEIF RESULT == 6 && イベントフラグ:45:14 == 0 && イベントフラグ:45:10 > 5
+	PRINTFORML 「連撃集中率」
+	PRINTFORML 連続攻撃が一体の敵に命中する回数の、最大値と最低値です
+	PRINTFORML 回数にもよりますが、比較的大きな効果をコストに与えます
+	PRINTFORML 最大値を入力してください
+	
+	CALL INPUT_MANY(1,イベントフラグ:45:5)
+	イベントフラグ:45:17 = RESULT
+	PRINTFORML 最低値を入力してください
+	CALL INPUT_MANY(1,イベントフラグ:45:17)
+	イベントフラグ:45:18 = RESULT
+ELSEIF RESULT == 7 && イベントフラグ:45:14 == 0
+	PRINTFORML 「クリティカル率」
+	PRINTFORML クリティカルの発動率です
+	CALL INPUT_MANY(0,100)
+	イベントフラグ:45:7 = RESULT
+ELSEIF RESULT == 8 && (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 3)
+	PRINTFORML 「属性」
+	IF イベントフラグ:45:14 == 3
+		PRINTFORML 変動させる能力です
+		PRINTFORML ラスタキャンディじみたことも出来ますが、コストが膨れ上がります
+		PRINTL [0]もういい
+		PRINTL [1]攻撃
+		PRINTL [2]防御
+		PRINTL [3]命中
+		PRINTL [4]回避
+		PRINTL [5]魔法威力
+		PRINTL [6]魔法効果
+		PRINTL [7]リセット
+		$INPUT_LOOP_NOURYOKU
+		PRINTFORM 現在の干渉能力「
+SIF イベントフラグ:45:4 == 1
+	PRINT 攻撃
+SIF イベントフラグ:45:7 == 1
+	PRINT 防御
+SIF イベントフラグ:45:8 == 1
+	PRINT 命中
+SIF イベントフラグ:45:11 == 1
+	PRINT 回避
+SIF イベントフラグ:45:12 == 1
+	PRINT 魔法威力
+SIF イベントフラグ:45:13 == 1
+	PRINT 魔法効果
+		PRINTFORML 」
+		INPUT
+		IF RESULT == 0 
+			GOTO NOURYOKU_NO_END
+		ELSEIF RESULT == 1 
+			イベントフラグ:45:4 = 1
+		ELSEIF RESULT == 2
+			イベントフラグ:45:7 = 1
+		ELSEIF RESULT == 3
+			イベントフラグ:45:8 = 1
+		ELSEIF RESULT == 4 
+			イベントフラグ:45:11 = 1
+		ELSEIF RESULT == 5
+			イベントフラグ:45:12 = 1
+		ELSEIF RESULT == 6 
+			イベントフラグ:45:13 = 1
+		ELSEIF RESULT == 7
+			イベントフラグ:45:4 = 0
+			イベントフラグ:45:7 = 0
+			イベントフラグ:45:8 = 0
+			イベントフラグ:45:11 = 0
+			イベントフラグ:45:12 = 0
+			イベントフラグ:45:13 = 0
+		ENDIF
+		GOTO INPUT_LOOP_NOURYOKU
+	ENDIF
+	PRINTFORML 属性です
+	PRINTFORML 核熱と万能に限り、わずかにコストが重くなります
+	PRINTFORML 
+	PRINTL [0]剣撃
+	PRINTL [2]飛具
+	PRINTL [2]打撃
+	PRINTL [3]戦技
+	PRINTL [4]火炎
+	PRINTL [5]氷結
+	PRINTL [6]電撃
+	PRINTL [7]衝撃
+	PRINTL [8]神経
+	PRINTL [9]精神
+	PRINTL [10]破魔
+	PRINTL [11]呪殺
+	PRINTL [12]地変
+	PRINTL [13]水撃
+	PRINTL [14]疾風
+	PRINTL [15]重力
+	PRINTL [16]核熱
+	PRINTL [17]万能
+	$INPUT_LOOP_ELEMENT
+	INPUT
+	SIF RESULT < 0  || RESULT > 17
+		GOTO INPUT_LOOP_ELEMENT
+	イベントフラグ:45:8 = RESULT
+$NOURYOKU_NO_END
+ELSEIF RESULT == 9
+; && イベントフラグ:45:14 != 1
+	PRINTFORML 「対象」
+	PRINTFORML 効果を与える相手です
+	PRINTFORML 間違えて味方をぶん殴ったり敵を強化したりしないよう御注意ください
+	PRINTFORM 現在対象：
+	SIF イベントフラグ:45:9 == 1
+		PRINTFORM 敵
+	SIF イベントフラグ:45:9 == 2
+		PRINTFORM 味方
+	PRINTFORML 
+	PRINTL [1]敵
+	PRINTL [2]味方
+	$INPUT_LOOP_TARGET
+	INPUT
+	SIF RESULT < 1  || RESULT > 2
+		GOTO INPUT_LOOP_TARGET
+	イベントフラグ:45:9 = RESULT
+ELSEIF RESULT == 10
+	PRINTFORML 「範囲」
+	PRINTFORML 効果範囲です
+	IF イベントフラグ:45:14 == 0
+		PRINTFORML 敵味方両方の場合、コストが減少します
+		PRINTFORML 拡散はコスト上昇がキツいので御注意ください
+		PRINTFORML ランダム系統の選択肢は「その中からランダムに選んで」攻撃します
+		PRINTFORML コスト上昇は存在せず、連続攻撃と組むことで真価を発揮します
+	ENDIF
+	PRINTL [1]単体
+	PRINTL [2]一列範囲
+	PRINTL [3]全体範囲
+	IF イベントフラグ:45:14 == 0
+		PRINTL [4]敵味方全体
+		PRINTL [5]拡散
+		PRINTL [6]単体(一列ランダム)
+		PRINTL [7]単体(全体タンダム)
+	ENDIF
+	$INPUT_LOOP_BOM
+	INPUT
+	SIF RESULT < 1  || RESULT > 7 || ( RESULT > 3 && イベントフラグ:45:14 != 0)
+		GOTO INPUT_LOOP_BOM
+	イベントフラグ:45:10 = RESULT
+ELSEIF RESULT == 11 && (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2)
+	PRINTFORML 「発生状態異常」
+	PRINTFORML 相手に付与する状態異常です
+	PRINTFORML 石化・即死はコスト増加が他に比べ大きいです
+	PRINTL [0]無
+	PRINTL [1]POISON
+	PRINTL [2]PALYZE
+	PRINTL [3]CHARM
+	PRINTL [4]FREEZE
+	PRINTL [5]SHOCK
+	PRINTL [6]STONE
+	PRINTL [7]DYING
+	$INPUT_LOOP_ADD
+	INPUT
+	SIF RESULT < 0  || RESULT > 7
+		GOTO INPUT_LOOP_ADD
+	イベントフラグ:45:11 = RESULT
+ELSEIF RESULT == 12 && (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2)
+	PRINTFORML 「状態異常属性」
+	PRINTFORML 状態異常を付与する属性です
+	PRINTFORML 例えば、状態異常属性が火炎のスキルでで火炎弱点の敵に攻撃すると、状態異常を付与しやすくなります。
+	PRINTFORML 核熱と万能に限り、わずかにコストが重くなります
+	PRINTL [0]剣撃
+	PRINTL [1]飛具
+	PRINTL [2]打撃
+	PRINTL [3]戦技
+	PRINTL [4]火炎
+	PRINTL [5]氷結
+	PRINTL [6]電撃
+	PRINTL [7]衝撃
+	PRINTL [8]神経
+	PRINTL [9]精神
+	PRINTL [10]破魔
+	PRINTL [11]呪殺
+	PRINTL [12]地変
+	PRINTL [13]水撃
+	PRINTL [14]疾風
+	PRINTL [15]重力
+	PRINTL [16]核熱
+	PRINTL [17]万能
+	$INPUT_LOOP_ADDELEMENT
+	INPUT
+	SIF RESULT < 0  || RESULT > 17
+		GOTO INPUT_LOOP_ADDELEMENT
+	イベントフラグ:45:12 = RESULT
+ELSEIF RESULT == 13 && (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2)
+	PRINTFORML 「状態異常発動率」
+	PRINTFORML 状態異常を付与する"基準"の確率です
+	PRINTFORML 大体同格の相手に付与できる確率であり、格下にはこれより効きやすくなりますが、逆もまたしかりです
+	PRINTFORML 100％にこだわるとコストが重くなりますので御注意ください
+	CALL INPUT_MANY(0,100)
+	イベントフラグ:45:13 = RESULT
+ELSEIF RESULT == 14
+	PRINTFORML 「スキル種別」
+	PRINTFORML 技が物理系か魔法系かです
+	PRINTFORML 脳筋なのに魔法系能力に依存させたりしないように御注意ください
+	PRINTL [1]物理
+	PRINTL [2]魔法
+	$INPUT_LOOP_DAMAGETYPE
+	INPUT
+	SIF RESULT < 1  || RESULT > 2
+		GOTO INPUT_LOOP_DAMAGETYPE
+	イベントフラグ:45:15 = RESULT
+ELSEIF RESULT == 15
+	GOTO PATTERN_RETURN
+ELSEIF RESULT == 16
+	PRINTFORML 「スキル選択時の文章」
+	PRINTFORML 完全な趣味の領域です。お好きにどうぞ
+	$INPUT_LOOP_NAME3
+	PRINTFORML 文章を入力してください
+	INPUTS
+	CSTR:MASTER:197 = %RESULTS%
+	PRINTFORML %CSTR:MASTER:197%でよろしいですか？
+	PRINTL [0]はい
+	PRINTL [1]いいえ
+	INPUT
+	IF RESULT == 0
+		GOTO INPUT_LOOP2
+	ELSEIF RESULT == 1
+		PRINTFORML では改めて、お気の召す名をどうぞ
+		GOTO INPUT_LOOP_NAME3
+	ELSE
+		GOTO INPUT_LOOP_NAME3
+	ENDIF
+ELSEIF RESULT == 17
+	PRINTFORML 「スキル使用時の文章」
+	PRINTFORML 完全な趣味の領域です。お好きにどうぞ
+	$INPUT_LOOP_NAME4
+	PRINTFORML 文章を入力してください
+	INPUTS
+	CSTR:MASTER:198 = %RESULTS%
+	PRINTFORML %CSTR:MASTER:198%でよろしいですか？
+	PRINTL [0]はい
+	PRINTL [1]いいえ
+	INPUT
+	IF RESULT == 0
+		GOTO INPUT_LOOP2
+	ELSEIF RESULT == 1
+		PRINTFORML では改めて、お気の召す名をどうぞ
+		GOTO INPUT_LOOP_NAME4
+	ELSE
+		GOTO INPUT_LOOP_NAME4
+	ENDIF
+ELSEIF RESULT == 18
+	PRINTFORM %CSTR:MASTER:199%は
+	IF イベントフラグ:45:14 == 2
+		CALL SHOPCOM_EVENT_45_SKILL_MIRUYO2
+	ELSEIF イベントフラグ:45:14 == 3
+		CALL SHOPCOM_EVENT_45_SKILL_MIRUYO3
+	ELSE
+		CALL SHOPCOM_EVENT_45_SKILL_MIRUYO
+	ENDIF
+	PRINTFORML スキルです
+	PRINTL [0]これでいい
+	PRINTL [1]こんなんじゃだめ
+	$INPUT_LOOP_ENDCHOISE
+	INPUT
+	IF RESULT == 0
+		PRINTFORML お疲れ様でした
+		GOTO END
+	ELSEIF RESULT == 1
+		PRINTFORML では、お気に召すまでどうぞ
+	ELSE
+		GOTO INPUT_LOOP_ENDCHOISE
+	ENDIF
+ENDIF
+
+;まず威力分の計算　絶対値を使う　さらにクリティカル率も加算　能力変動は上昇がキツい
+ABS イベントフラグ:45:2
+IF イベントフラグ:45:14 == 3
+	イベントフラグ:45:16 = RESULT * RESULT
+ELSE
+	イベントフラグ:45:16 = (RESULT / 30) + (RESULT * RESULT / 5000)+ イベントフラグ:45:7
+ENDIF
+
+;状態異常分の加算
+IF イベントフラグ:45:11 > 0 && イベントフラグ:45:14 != 3
+	IF イベントフラグ:45:11 < 6
+		イベントフラグ:45:19 = 10 * イベントフラグ:45:13
+	ELSEIF イベントフラグ:45:11 == 6
+		イベントフラグ:45:19 = 15 * イベントフラグ:45:13
+	ELSEIF イベントフラグ:45:11 == 7
+		イベントフラグ:45:19 = 20 * イベントフラグ:45:13
+	ENDIF
+	イベントフラグ:45:19 /= 100
+	イベントフラグ:45:16 += イベントフラグ:45:19
+	イベントフラグ:45:19 = 1
+ENDIF
+
+;変動させる能力によるコスト加算 命中と回避はコスト上昇が少ない
+IF イベントフラグ:45:14 == 3
+	SIF イベントフラグ:45:4
+		イベントフラグ:45:19 += 2
+	SIF イベントフラグ:45:7
+		イベントフラグ:45:19 += 2
+	SIF イベントフラグ:45:8
+		イベントフラグ:45:19 ++
+	SIF イベントフラグ:45:11
+		イベントフラグ:45:19 ++
+	SIF イベントフラグ:45:12
+		イベントフラグ:45:19 += 2
+	SIF イベントフラグ:45:13
+		イベントフラグ:45:19 += 2
+	イベントフラグ:45:16 *= イベントフラグ:45:19 - 1
+	イベントフラグ:45:16 /= 2
+
+	イベントフラグ:45:19 = 1
+ENDIF
+
+;命中補正
+IF イベントフラグ:45:14 == 0
+	イベントフラグ:45:0 = イベントフラグ:45:16
+	イベントフラグ:45:0 *= (100 + イベントフラグ:45:4) / 2
+	イベントフラグ:45:0 /= 100
+
+	イベントフラグ:45:16 *= イベントフラグ:45:4
+;別々にやらないと四捨五入？が発生して計算がブレイクする
+	イベントフラグ:45:16 /= 100
+ENDIF
+
+;上の時点でコストを0に出来る問題対策
+SIF イベントフラグ:45:16 == 0
+	イベントフラグ:45:16 ++
+
+;連続攻撃補正
+IF イベントフラグ:45:10 > 5
+	イベントフラグ:45:16 *= (イベントフラグ:45:5 + イベントフラグ:45:6 + イベントフラグ:45:17 + イベントフラグ:45:18)
+	イベントフラグ:45:16 /= 4
+	イベントフラグ:45:0 *= (イベントフラグ:45:5 + イベントフラグ:45:6 + イベントフラグ:45:17 + イベントフラグ:45:18)
+	イベントフラグ:45:0 /= 4
+ELSE
+	イベントフラグ:45:16 *= (イベントフラグ:45:5 + イベントフラグ:45:6)
+	イベントフラグ:45:16 /= 2
+	イベントフラグ:45:0 *= (イベントフラグ:45:5 + イベントフラグ:45:6)
+	イベントフラグ:45:0 /= 2
+ENDIF
+;攻撃範囲による補正　敵味方全体はコスト減少
+IF イベントフラグ:45:10 == 2
+	イベントフラグ:45:16 *= 4
+	イベントフラグ:45:16 /= 3
+	イベントフラグ:45:0 *= 4
+	イベントフラグ:45:0 /= 3
+ELSEIF イベントフラグ:45:10 == 3
+	イベントフラグ:45:16 *= 3
+	イベントフラグ:45:16 /= 2
+	イベントフラグ:45:0 *= 3
+	イベントフラグ:45:0 /= 2
+ELSEIF イベントフラグ:45:10 == 4
+	イベントフラグ:45:16 *= 3
+	イベントフラグ:45:16 /= 4
+	イベントフラグ:45:0 *= 3
+	イベントフラグ:45:0 /= 4
+ELSEIF イベントフラグ:45:10 == 5
+	イベントフラグ:45:16 *= 2
+	イベントフラグ:45:0 *= 2
+ENDIF
+
+;能力変動系は範囲変更のコスト二倍
+SIF イベントフラグ:45:10 != 1 && イベントフラグ:45:14 == 3
+	イベントフラグ:45:16 *= 2
+
+;射程補正　全体攻撃ではボーナス無し
+IF イベントフラグ:45:10 != 3 && イベントフラグ:45:10 != 4
+	IF イベントフラグ:45:3 == 1
+		イベントフラグ:45:16 *= 4
+		イベントフラグ:45:16 /= 5
+		イベントフラグ:45:0 *= 4
+		イベントフラグ:45:0 /= 5
+	ELSEIF イベントフラグ:45:3 == 2
+		イベントフラグ:45:16 *= 9
+		イベントフラグ:45:16 /= 10
+		イベントフラグ:45:0 *= 9
+		イベントフラグ:45:0 /= 10
+	ENDIF
+ENDIF
+;HPを支払う場合は二倍
+IF イベントフラグ:45:1 == 2
+	イベントフラグ:45:16 *= 2
+	イベントフラグ:45:0 *= 2
+ENDIF
+;万能及び核熱属性補正　
+IF イベントフラグ:45:8 >= 16
+	イベントフラグ:45:16 += 10
+	イベントフラグ:45:0 += 10
+ENDIF
+IF イベントフラグ:45:12 >= 16
+	イベントフラグ:45:16 += 5
+	イベントフラグ:45:0 += 10
+ENDIF
+GOTO INPUT_LOOP2
+$END
+
+;====================
+;スキル見るよ
+;====================
+@SHOPCOM_EVENT_45_SKILL_MIRUYO
+SIF (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2) && イベントフラグ:45:3 == 1 && イベントフラグ:45:10 != 4 && (イベントフラグ:45:9 == 3 || イベントフラグ:45:9 == 4)
+	PRINTFORM 近距離の
+SIF (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2) && イベントフラグ:45:3 == 2 && イベントフラグ:45:10 != 4 && (イベントフラグ:45:9 == 3 || イベントフラグ:45:9 == 4)
+	PRINTFORM 中距離の
+IF イベントフラグ:45:10 == 4
+	PRINTFORM 敵味方全体
+ELSE
+	IF イベントフラグ:45:9 == 1
+		PRINTFORM 敵
+	ELSEIF イベントフラグ:45:9 == 2
+		PRINTFORM 味方
+	ENDIF
+	IF イベントフラグ:45:10 == 1
+		PRINTFORM 単体
+	ELSEIF イベントフラグ:45:10 == 2
+		PRINTFORM 一列
+	ELSEIF イベントフラグ:45:10 == 3
+		PRINTFORM 全体
+	ELSEIF イベントフラグ:45:10 == 5
+		PRINTFORM 単体とその周囲
+	ELSEIF イベントフラグ:45:10 == 6
+		PRINTFORM 一列からランダムに選んだ対象
+	ELSEIF イベントフラグ:45:10 == 7
+		PRINTFORM 全体からランダムに選んだ対象
+	ENDIF
+	
+ENDIF
+;回復かダメージによって変わる助詞
+PRINTFORM \@ イベントフラグ:45:14 == 0 || (イベントフラグ:45:14 == 1 && イベントフラグ:45:1 < 0) ? へ # を \@
+IF  イベントフラグ:45:5 != 1 && イベントフラグ:45:6 == イベントフラグ:45:5
+	PRINTFORM {イベントフラグ:45:5}回
+ELSEIF イベントフラグ:45:5 != 1
+	PRINTFORM {イベントフラグ:45:6}～{イベントフラグ:45:5}回
+ENDIF
+;属性表示　回復スキルのときは表示しない
+IF イベントフラグ:45:8 == 0 && イベントフラグ:45:14 == 0
+	PRINT 剣撃
+ELSEIF イベントフラグ:45:8 == 1 && イベントフラグ:45:14 == 0
+	PRINT 飛具
+ELSEIF イベントフラグ:45:8 == 2 && イベントフラグ:45:14 == 0
+	PRINT 打撃
+ELSEIF イベントフラグ:45:8 == 3 && イベントフラグ:45:14 == 0
+	PRINT 戦技
+ELSEIF イベントフラグ:45:8 == 4 && イベントフラグ:45:14 == 0
+	PRINT 火炎
+ELSEIF イベントフラグ:45:8 == 5 && イベントフラグ:45:14 == 0
+	PRINT 氷結
+ELSEIF イベントフラグ:45:8 == 6 && イベントフラグ:45:14 == 0
+	PRINT 電撃
+ELSEIF イベントフラグ:45:8 == 7 && イベントフラグ:45:14 == 0
+	PRINT 衝撃
+ELSEIF イベントフラグ:45:8 == 8 && イベントフラグ:45:14 == 0
+	PRINT 神経
+ELSEIF イベントフラグ:45:8 == 9 && イベントフラグ:45:14 == 0
+	PRINT 精神
+ELSEIF イベントフラグ:45:8 == 10 && イベントフラグ:45:14 == 0
+	PRINT 破魔
+ELSEIF イベントフラグ:45:8 == 11 && イベントフラグ:45:14 == 0
+	PRINT 呪殺
+ELSEIF イベントフラグ:45:8 == 12 && イベントフラグ:45:14 == 0
+	PRINT 地変
+ELSEIF イベントフラグ:45:8 == 13 && イベントフラグ:45:14 == 0
+	PRINT 水撃
+ELSEIF イベントフラグ:45:8 == 14 && イベントフラグ:45:14 == 0
+	PRINT 疾風
+ELSEIF イベントフラグ:45:8 == 15 && イベントフラグ:45:14 == 0
+	PRINT 重力
+ELSEIF イベントフラグ:45:8 == 16 && イベントフラグ:45:14 == 0
+	PRINT 核熱
+ELSEIF イベントフラグ:45:8 == 17 && イベントフラグ:45:14 == 0
+	PRINT 万能
+ENDIF
+SIF イベントフラグ:45:14 == 0
+	PRINT 相性で
+
+ABS イベントフラグ:45:2
+IF RESULT < 200 
+	PRINTFORM 小
+ELSEIF RESULT < 300
+	PRINTFORM 中
+ELSEIF RESULT < 400
+	PRINTFORM 大
+ELSEIF RESULT >= 400
+	PRINTFORM 特大
+ENDIF
+PRINTFORM \@ イベントフラグ:45:14 == 0 || (イベントフラグ:45:14 == 1 && イベントフラグ:45:2 < 0) ? ダメージを与え # 回復させ \@
+
+IF イベントフラグ:45:11 == 1
+	PRINTFORM POISONを付与す
+ELSEIF イベントフラグ:45:11 == 2
+	PRINTFORM PALYZEを付与す
+ELSEIF イベントフラグ:45:11 == 3
+	PRINTFORM CHARMを付与す
+ELSEIF イベントフラグ:45:11 == 4
+	PRINTFORM FREEZEを付与す
+ELSEIF イベントフラグ:45:11 == 5
+	PRINTFORM SHOCKを付与す
+ELSEIF イベントフラグ:45:11 == 6
+	PRINTFORM STONEを付与す
+ELSEIF イベントフラグ:45:11 == 7
+	PRINTFORM DYINGを付与す
+ENDIF
+PRINTFORM る
+SIF イベントフラグ:45:15 == 1
+	PRINTFORM 物理
+SIF イベントフラグ:45:15 == 2
+	PRINTFORM 魔法
+PRINTFORM \@ イベントフラグ:45:14 == 0 || (イベントフラグ:45:14 == 1 && イベントフラグ:45:2 < 0) ? 攻撃 # 的治療 \@を行う
+
+;====================
+;スキル見るよ状態異常版
+;====================
+@SHOPCOM_EVENT_45_SKILL_MIRUYO2
+SIF (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2) && イベントフラグ:45:3 == 1 && イベントフラグ:45:10 != 4
+	PRINTFORM 近距離の
+SIF (イベントフラグ:45:14 == 0 || イベントフラグ:45:14 == 2) && イベントフラグ:45:3 == 2 && イベントフラグ:45:10 != 4
+	PRINTFORM 中距離の
+
+IF イベントフラグ:45:9 == 1
+	PRINTFORM 敵
+ELSEIF イベントフラグ:45:9 == 2
+	PRINTFORM 味方
+ENDIF
+
+IF イベントフラグ:45:10 == 1
+	PRINTFORM 単体
+ELSEIF イベントフラグ:45:10 == 2
+	PRINTFORM 一列
+ELSEIF イベントフラグ:45:10 == 3
+	PRINTFORM 全体
+ENDIF
+	
+PRINTFORM に
+;属性表示
+IF イベントフラグ:45:12 == 0 
+	PRINT 剣撃
+ELSEIF イベントフラグ:45:12 == 1 
+	PRINT 飛具
+ELSEIF イベントフラグ:45:12 == 2 
+	PRINT 打撃
+ELSEIF イベントフラグ:45:12 == 3 
+	PRINT 戦技
+ELSEIF イベントフラグ:45:12 == 4 
+	PRINT 火炎
+ELSEIF イベントフラグ:45:12 == 5 
+	PRINT 氷結
+ELSEIF イベントフラグ:45:12 == 6 
+	PRINT 電撃
+ELSEIF イベントフラグ:45:12 == 7 
+	PRINT 衝撃
+ELSEIF イベントフラグ:45:12 == 8 
+	PRINT 神経
+ELSEIF イベントフラグ:45:12 == 9 
+	PRINT 精神
+ELSEIF イベントフラグ:45:12 == 10 
+	PRINT 破魔
+ELSEIF イベントフラグ:45:12 == 11 
+	PRINT 呪殺
+ELSEIF イベントフラグ:45:12 == 12 
+	PRINT 地変
+ELSEIF イベントフラグ:45:12 == 13 
+	PRINT 水撃
+ELSEIF イベントフラグ:45:12 == 14 
+	PRINT 疾風
+ELSEIF イベントフラグ:45:12 == 15 
+	PRINT 重力
+ELSEIF イベントフラグ:45:12 == 16 
+	PRINT 核熱
+ELSEIF イベントフラグ:45:12 == 17 
+	PRINT 万能
+ENDIF
+PRINT 相性で
+
+IF イベントフラグ:45:11 == 1
+	PRINTFORM POISONを付与す
+ELSEIF イベントフラグ:45:11 == 2
+	PRINTFORM PALYZEを付与す
+ELSEIF イベントフラグ:45:11 == 3
+	PRINTFORM CHARMを付与す
+ELSEIF イベントフラグ:45:11 == 4
+	PRINTFORM FREEZEを付与す
+ELSEIF イベントフラグ:45:11 == 5
+	PRINTFORM SHOCKを付与す
+ELSEIF イベントフラグ:45:11 == 6
+	PRINTFORM STONEを付与す
+ELSEIF イベントフラグ:45:11 == 7
+	PRINTFORM DYINGを付与す
+ENDIF
+PRINTFORM る
+SIF イベントフラグ:45:15 == 1
+	PRINTFORM 物理
+SIF イベントフラグ:45:15 == 2
+	PRINTFORM 魔法
+PRINTFORML 攻撃を行う
+;====================
+;スキル見るよ能力変化版
+;====================
+@SHOPCOM_EVENT_45_SKILL_MIRUYO3
+	IF イベントフラグ:45:9 == 1
+		PRINTFORM 敵
+	ELSEIF イベントフラグ:45:9 == 2
+		PRINTFORM 味方
+	ENDIF
+	IF イベントフラグ:45:10 == 1
+		PRINTFORM 単体
+	ELSEIF イベントフラグ:45:10 == 2
+		PRINTFORM 一列
+	ELSEIF イベントフラグ:45:10 == 3
+		PRINTFORM 全体
+	ENDIF
+	
+PRINTFORM の
+IF イベントフラグ:45:4 == 1 && イベントフラグ:45:7 == 1 && イベントフラグ:45:8 == 1 && イベントフラグ:45:11 == 1 && イベントフラグ:45:12 == 1 && イベントフラグ:45:13 == 1 
+	PRINT 全能力
+ELSE
+	SIF イベントフラグ:45:4 == 1
+		PRINT 攻撃
+	SIF イベントフラグ:45:4 == 1 && (イベントフラグ:45:7 == 1 || イベントフラグ:45:8 == 1 || イベントフラグ:45:11 == 1 || イベントフラグ:45:12 == 1 || イベントフラグ:45:13 == 1) 
+		PRINT と
+	SIF イベントフラグ:45:7 == 1
+		PRINT 防御
+	SIF イベントフラグ:45:7 == 1 && (イベントフラグ:45:8 == 1 || イベントフラグ:45:11 == 1 || イベントフラグ:45:12 == 1 || イベントフラグ:45:13 == 1) 
+		PRINT と
+	SIF イベントフラグ:45:8 == 1
+		PRINT 命中
+	SIF イベントフラグ:45:8 == 1 && (イベントフラグ:45:11 == 1 || イベントフラグ:45:12 == 1 || イベントフラグ:45:13 == 1) 
+		PRINT と
+	SIF イベントフラグ:45:11 == 1
+		PRINT 回避
+	SIF イベントフラグ:45:11 == 1 && (イベントフラグ:45:12 == 1 || イベントフラグ:45:13 == 1 ) 
+		PRINT と
+	SIF イベントフラグ:45:12 == 1
+		PRINT 魔法威力
+	SIF  イベントフラグ:45:12 == 1 && イベントフラグ:45:13 == 1 
+		PRINT と
+	SIF イベントフラグ:45:13 == 1
+		PRINT 魔法効果
+ENDIF
+
+PRINT を
+
+ABS イベントフラグ:45:2
+IF RESULT > 3 && RESULT < 6
+	PRINTFORM 大きく
+ELSEIF RESULT > 5
+	PRINTFORM 非常に大きく
+ENDIF
+PRINTFORM \@ イベントフラグ:45:2 > 0 ? 上昇 # 下降 \@
+
+PRINTFORML させる

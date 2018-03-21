@@ -1,0 +1,261 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx_yyy.ERB
+;	Facility	:依頼:060(真IV) １
+;				 REQUEST_60のサブファイル。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20130630		真IVイベント作りたい人	作成開始
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【フラグついて】
+; フラグは下記のみ使用。
+;
+;
+; FLAG:真IV進行度 = 000;初回
+; 終了後　100 or 101
+;
+;-------------------------------------------------------------------------------
+
+;===============================================================================
+;
+;===============================================================================
+
+
+;====================
+;内容
+;====================
+@REQUEST_60_1
+;-----------------------------
+;- 処理開始
+;-----------------------------
+		;- 初回
+		PRINTFORMW ＞Tokyo ― Sky Tree.
+		PRINTFORMW ＞It's a landmark that was constructed in 2012. A tall narrow black tower with no lights.
+		PRINTFORMW ＞Something surrounds it like ivy.
+		PRINTFORMW ＞Even though access to the tower is limited, it would be difficult to hide this.
+		PRINTFORMW ＞It seems this has to be solved quickly indeed.
+		PRINTFORML  （ Attention：When you take this request, time will pass ）
+		PRINTFORMW
+
+		CALL INPUT_YN("Enter the tower", "Go back to prepare")
+		IF RESULT == 0
+			FLAG:真IV進行度 = 100
+			PRINTFORMW ＞%CALLNAME:MASTER% entered the tower...
+		ELSE
+			PRINTFORMW ＞When you are ready, come back here.
+			PRINTFORMW ......
+			PRINTFORMW ....
+			PRINTFORMW ...
+			RETURN
+		ENDIF
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞The tower interior is dim, but you should be fine without a flashlight.
+		PRINTFORMW ＞Despite the disturbance, the elevator is active.
+		PRINTFORMW ＞It can be used for this investigation.
+		PRINTFORML .....
+		PRINTFORML ....
+		PRINTFORMW ...
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞%CALLNAME:MASTER% arrived at the observatory.
+		PRINTFORMW ＞...Although the structure is somewhat affected by the pocket dimension, it hasn't become a maze yet.
+		PRINTFORMW ＞...There are many statues of people in agony.
+		PRINTFORMW ＞They must have been petrified by a demon.
+		PRINTFORMW ＞The incident must have happened quickly, since a considerable number of humans have been affected.
+		PRINTFORMW ＞You carefully continue the search.
+		PRINTFORMW ＞...Soon, you find another elevator.
+		PRINTFORMW ＞A female demon with a humans face and a snakes body blocked the way.
+		PRINTFORMW ＞『Hm, have materials for a new statue arrived?』
+		PRINTFORMW ＞『What kind of figure shall is sculpt you into....Looking up, hands raised to the heavens shall do!』
+		PRINTFORMW ＞『And the expression shall be one of despair and agony!!』
+		PRINTFORMW 
+		PRINTFORMW Tyrant Medusa appeared!
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		CALL SET_ENEMY, 9, [[キャラ:メデューサ]], 25, 0, 1
+		LOCAL = CHARANUM -1
+		LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+		CALL SET_BATTLE_STATUS(LOCAL, 60 * LOCAL:1, "ＨＰ")
+		CALL SET_BATTLE_STATUS(LOCAL, 10 * LOCAL:1, "ＭＰ")
+		CSTR:LOCAL:思考パターン = MEDOUSA_IV
+		ABL:LOCAL:スキル4 = [[スキル:マハエイハ]]
+		ABL:LOCAL:スキル5 = [[スキル:子守唄]]
+		ABL:LOCAL:スキル6 = [[スキル:マハ・ラギオン]]
+		ABL:LOCAL:スキル7 = [[スキル:暴れまくり]]
+		ABL:LOCAL:追加効果命中率 = 30
+		ABL:LOCAL:追加効果最大命中率 = 60
+		ABL:LOCAL:最大攻撃回数 = 5
+		CFLAG:LOCAL:行動回数 = 2
+		CALL SYNC_STATUS, LOCAL
+		CALL HEALTH_CHARA, LOCAL
+;- 戦闘前処理
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+
+;- 戦闘開始
+		CALL BATTLE_START
+
+;- 戦闘終了
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		
+		CUSTOMDRAWLINE =
+		PRINTFORMW ＞Medusa collapsed...
+		CUSTOMDRAWLINE =
+		PRINTFORMW ＞And, the elevator behind it seems to be moving to this floor.
+		PRINTFORMW ＞Maybe the culprit of this incident is inside?
+		PRINTFORMW ＞You decided to see for yourself.
+		PRINTFORMW ＞%CALLNAME:MASTER% hid in an ambush position and waited.
+		PRINTFORML .....
+		PRINTFORML ...
+		PRINTFORMW ..
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞Three youths exited the elevator after it arrived.
+		PRINTFORMW ＞They all had matching blue coats and wore a swords on their waists.
+		PRINTFORMW ＞Looking at them, they could have been residents of some anachronistic Medieval fantasy, 
+		PRINTFORMW ＞if it where not for their as COMPs, shining on their arms.
+		PRINTFORMW ＞Unusally, they seem surprised at the view of Tokyo from the observatory.
+		PRINTFORMW ＞...While you have surprise on your side, it might be difficult to take on three summoners.
+		PRINTFORMW ＞Also, as they are not confused at Medusa being gone, they are probably not the ones who put Medusa there.
+		PRINTFORMW ＞This could indicate they aren't the culprits of this incident.
+		PRINTFORMW ＞What will you do?
+		CALL INPUT_YN("Call out to them", "Watch them")
+		IF RESULT == 0
+			FLAG:真IV進行度 += 1
+			PRINTFORMW ＞%CALLNAME:MASTER% came out of hiding and called out to them.
+			PRINTFORMW 『....Unclean One?　What business do you have with us?』
+			PRINTFORMW ＞Acting as a mediator for their group of 3, a earnest boy with an Afro called out to you.
+			PRINTFORMW ＞...However, what does Unclean One mean?
+			PRINTFORMW 『Are you not a magician of legend?』
+			PRINTFORMW ＞A coarse boy with short hair exposed his curiosity as he spoke.
+			PRINTFORMW ＞But his meaning is still hard to understand.
+			PRINTFORMW 『Jonathan, Walter, control yourselves.　Can't you see you're confusing them?』
+			PRINTFORMW 『...Ahem, excuse me. We are samurai of the Eastern Kingdom of Mikado.』
+			PRINTFORMW 『I am Isabeau, this place...』
+			PRINTFORMW ＞A short-haired girl named Isabeau calmed them in a refined tone.
+			PRINTFORMW ＞She is a good-looking dignified girl with sexy legs visible under her coat.
+			PRINTFORMW ＞First though, you came to talk.　You introduced yourself.
+			PRINTFORML .....
+			PRINTFORML ....
+			PRINTFORMW ...
+			PRINTFORMW ＞After conversing for a bit, you were able to get some information.
+			PRINTFORMW ＞Firstly, the boy with an afro is Jonathan, the coarse boy is Walter, and the young lady with short-hair is Isabeau.
+			PRINTFORMW ＞On the other end of this elevator is the 「Eastern Country of Mikado」 and they are 「samurai」 from there.
+			PRINTFORMW ＞They came here to hunt for the 「Black Samurai」 that has caused trouble in the Eastern Kingdom of Mikado.
+			PRINTFORMW ＞They came here to hunt for the 「Black Samurai」 that has caused trouble in the Eastern Kingdom of Mikado.
+			PRINTFORMW ＞They don't seem to be lying....And the pocket dimension wouldn't dissolve with their deaths.
+			PRINTFORMW ＞....But this imformation is apparently important. The　Phantom Sociey must know of this.
+			PRINTFORMW ＞%CALLNAME:MASTER% said farewells to the samurai.
+			PRINTFORMW ＞The samurai went to Ueno.
+		ELSE
+			PRINTFORMW ＞%CALLNAME:MASTER% decided to keep watching the 3 people from hiding.
+			PRINTFORMW ＞Eventually they left, and %CALLNAME:MASTER% entered the elevator.
+			PRINTFORMW ＞....Started the elevator
+			PRINTFORMW ＞On the other side of the elevator was a contruction site, but when walking further, a natural cave is reached.
+			PRINTFORMW ＞While some demons appeared, they where no threat.
+			PRINTFORMW ＞Traversed the cave while defeating demons..
+			PRINTFORML ......
+			PRINTFORML ....
+			PRINTFORMW ...
+			PRINTFORMW ＞Your first impression of it was 「a world of swords and magic」.
+			PRINTFORMW ＞At least, this pastoral landscape cannot be Tokyo.
+			PRINTFORMW ＞%CALLNAME:MASTER% stealthily checked out the area.
+			PRINTFORML .....
+			PRINTFORML ...
+			PRINTFORMW ..
+			PRINTFORMW ＞....It seems this is a monarchy called the 「Eastern Kingdom of Mikado」, that is at a medieval level of technology.
+			PRINTFORMW ＞However, they are not without high-tech artifacts, which are referred to as「mystic relics」 here.
+			PRINTFORMW ＞Using COMPs, their soldiers called 「samurai」 summon demons....
+			PRINTFORMW ＞...This could be a parallel world.　Phantom Society should know of this.
+		ENDIF
+		PRINTFORMW .....
+		PRINTFORMW ...
+		PRINTFORMW ...
+		PRINTFORMW The incident wasn't resolved but you may have accomplished something more important.
+		PRINTFORMW In the future, the Phantom Society will attempt to make contact with the Eastern Kingdom of Mikado.
+		PRINTFORMW You got ￥50000 for the information.
+		PRINTL 
+		PRINTL 
+
+		MONEY += 50000
+
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_60_FLAG_RESET
+		;- 依頼:ターンの終了
+		CALL REQUEST_60_TURN_END
+		
+		
+@SET_ACTION_MEDOUSA_IV, ARG
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+SIF CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ == 0
+	CFLAG:ARG:行動回数 = 2 + RAND:3
+;1more時
+IF CFLAG:ARG:１moreフラグ == 2
+	SELECTCASE RAND:100
+		CASE IS < 40
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASE IS < 80
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギオン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:ペトラアイ]]
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 < 2
+	SELECTCASE RAND:100
+		CASE IS < 30
+			CFLAG:ARG:入力行動 = [[スキル:暴れまくり]]
+		CASE IS < 45
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASE IS < 60
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギオン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:ペトラアイ]]
+	ENDSELECT
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 50
+			CFLAG:ARG:入力行動 = 0
+		CASE IS < 75
+			CFLAG:ARG:入力行動 = [[スキル:子守唄]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:巻きつき]]
+	ENDSELECT
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+
+
+
+
+
+
+
+
+
+

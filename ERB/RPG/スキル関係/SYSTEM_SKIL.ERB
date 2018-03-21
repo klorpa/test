@@ -1,0 +1,686 @@
+;==========================================================
+;スキル基本性能説明
+;==========================================================
+;@SKILL_EXPLAIN_PERFORMANCE(ARG:0, ARG:1 = -1)
+@SKILL_EXPLAIN_PERFORMANCE(ARG:0, ARG:1)
+#DIMS CONST EFFECT = "？？？", "Attack", "Recovery", "Status infliction", "Special", "Status recovery", "Auto"
+;"？？？", "攻撃", "回復", "状態変化", "特殊", "状態回復", "Auto"
+#LOCALSIZE 10
+;現時点では、手を入れないと表示詐欺になるスキルがパッチでそれなりにある状況なのでキャラ渡しは一時封印
+;リンケージの説明も手を入れないと落ちるものがパッチであるので一時封印中
+;そのうち表示情報増やして追加効果とか確率とか入れたい気はするけど、親切過ぎるのも考え物なんだろうか？
+;ARG:1 = -1				;強制-1化を除外
+LOCAL:2 = RESULT		;RESULT保護
+スキル属性表示中 = 1	;うまく表示出来ないスキルはこの情報見て回避したいけど、未対応なら以下のでっち上げで回避を試みる
+;スキル属性表示中で判定しないと表示詐欺になるであろうスキルの目安
+;・威力がリンケージ参加者で変動するスキルのうち、単独リンケージの場合の判定がないスキル
+;・ランダム属性のスキル
+;・敵の状態等により、相性や威力が変化するスキル
+;・拡散フラグを用途外利用しているスキル(現ＨＰ割合や残ＭＰを見ている場合が多い)
+
+;念の為、キャラ情報渡された場合は未対応を考慮して各情報をでっち上げる
+IF ARG:1 >= 0
+	;リンケージの場合は基本的に参加者取れないと思うので、単独リンケージの値を表示
+	LOCAL:3 = CFLAG:(ARG:1):単独リンケージ
+	CFLAG:(ARG:1):単独リンケージ = 1
+	;ターゲットが影響するスキルは表示詐欺だけど手抜きで。ポジションが絡むので、必ずいるMASTERを指定
+	LOCAL:4 = CFLAG:(ARG:1):ターゲット
+	CFLAG:(ARG:1):ターゲット = CFLAG:MASTER:ポジション
+	FOR LOCAL:0, 1, 6	;これも表示詐欺だけど手抜きで。全部自分
+		LOCAL:(LOCAL:0 + 2) = CFLAG:(ARG:1):@"リンケージ参加者{LOCAL:0}"
+		CFLAG:(ARG:1):@"リンケージ参加者{LOCAL:0}" = ARG:1
+	NEXT
+	;拡散フラグの用途外利用には全く対応できないので、そういうスキルも表示詐欺になる
+ENDIF
+
+;最初に種別
+TRYCCALLFORM SKILL_EFECT_{ARG:0}
+	LOCAL:0 = RESULT
+	PRINTFORM Type:\@ INRANGE(LOCAL:0, 1, 6) ? %EFFECT:(LOCAL:0)% # %EFFECT:0% \@
+	;相性表示
+	IF GROUPMATCH(LOCAL:0, 1, 3)
+		CALLFORM SKILL_TYPE_{ARG:0}, ARG:1
+		PRINTFORM 　Element:%GET_TYPE_E(RESULT)%
+	ENDIF
+	;範囲表示
+	TRYCALLFORM SKILL_SPHERE_{ARG:0}, ARG:1
+	PRINT 　Range:
+	SELECTCASE RESULT
+		CASE 1
+			PRINTFORM Unit
+		CASE 2
+			PRINTFORM 1Line
+		CASE 3
+			PRINTFORM 2Lines
+		CASE 4
+			PRINTFORM Everyone
+			;敵味方
+		CASEELSE
+			PRINT None
+	ENDSELECT
+	;威力表示
+	IF INRANGE(LOCAL:0, 1, 3)
+		CALLFORM SKILL_POWER_{ARG:0}, ARG:1
+		PRINTFORM 　Power:{RESULT}
+	ENDIF
+	;回数表示
+	IF INRANGE(LOCAL:0, 1, 3)
+		CALLFORM SKILL_MINATTACKNUMBER_{ARG:0},ARG:1
+		PRINTFORM 　Hits:{RESULT}～
+		CALLFORM SKILL_MAXATTACKNUMBER_{ARG:0},ARG:1
+		PRINTFORM {RESULT}
+	ENDIF
+	IF LOCAL:0 != 6
+		;消費表示
+		CALLFORM SKILL_COSTTYPE_{ARG:0}, ARG:1
+		IF RESULT == 2
+			CALLFORM SKILL_COST_{ARG:0}, ARG:1
+			PRINTFORM 　Consumption:ＨＰ{RESULT}％
+			;消費：
+		ELSEIF RESULT == 3
+			CALLFORM SKILL_COST_{ARG:0}, ARG:1
+			PRINTFORM 　Consumption:{RESULT}ＭＰ
+		ENDIF
+	;	;範囲取得しておく
+	;	CALLFORM SKILL_SPHERE_{ARG}, ARG:1
+	;	LOCAL:1 = RESULT
+	ENDIF
+	;物理/魔法ダメージ表示
+	IF INRANGE(LOCAL:0, 1, 3)
+		CALLFORM SKILL_DAMAGETYPE_{ARG:0}
+		PRINTFORM 　%(RESULT == 1 ? "Physical" # "Magical")%
+		; Removed 算出： from the last line "物理" # "魔法"
+	ENDIF
+	PRINTL 
+CATCH
+	;ひょっとしたらSKILL_EFECTが無いスキルがあるかもしれない
+	[IF_DEBUG]
+		PRINTFORMW 例外：{ARG}番のスキルの基本性能説明を行おうとしました。
+		PRINTFORMW 関数@SKILL_EFECT_{ARG}が見つかりません。
+		PRINTFORMW 未実装のスキルを習得している可能性があります。
+	[ENDIF]
+ENDCATCH
+
+;キャラ情報渡された場合はここで各情報を戻す
+IF ARG:1 >= 0
+	CFLAG:(ARG:1):単独リンケージ = LOCAL:3
+	CFLAG:(ARG:1):ターゲット     = LOCAL:4
+	FOR LOCAL:0, 1, 6
+		CFLAG:(ARG:1):@"リンケージ参加者{LOCAL:0}" = LOCAL:(4 + LOCAL:0)
+	NEXT
+ENDIF
+スキル属性表示中 = 0	;スキル属性表示終了
+RETURN LOCAL:2
+
+;==========================================================
+;スキルカードシステム
+;スキルカード一覧表示
+;==========================================================
+@SHOW_SKILL_CARD
+#DIM 選択スキル
+#DIM 選択スキル系統
+#DIM ページ
+#DIM ライン
+#LOCALSIZE 2
+
+REDRAW 0
+選択スキル系統 = -1
+選択スキル = -1
+ページ = 0
+ライン = LINECOUNT
+CALL スキルカード在庫確認()
+FOR LOCAL, 0, 24
+	X:LOCAL = Z:LOCAL
+NEXT
+
+
+$START
+CLEARLINE LINECOUNT - ライン
+CUSTOMDRAWLINE =
+IF 選択スキル > -1
+	CALLFORM SKILL_NAME_{選択スキル}(1)
+	PRINTFORML 【%RESULTS%】
+	;PRINTFORML 【%SKILL_NAME_F(選択スキル)%】
+	SIF FLAG:スキル属性表示設定 == 1
+		CALL SKILL_EXPLAIN_PERFORMANCE, 選択スキル, -1
+	TRYCALLFORM SKILL_EXPLAIN_{選択スキル}
+ELSE
+	PRINTFORML \@ 選択スキル系統 == -1 ? Which type of skill card do you want to inspect? # Which skill description do you want to see? \@
+	;\@ 選択スキル系統 == -1 ? どの系統のスキルカードを確認しますか？ # どのスキルの説明を見ますか？ \@
+	PRINTL
+ENDIF
+DRAWLINE
+IF 選択スキル系統 > -1
+	FOR LOCAL, ページ*20 , (ページ+1)*20
+		IF S:LOCAL > 0
+			CALLFORM SKILL_NAME_{S:LOCAL}
+			IF GETBIT(FLAG:カスタムゲーム画面,1)
+				PRINTFORM [{S:LOCAL,4}] %RESULTS,38,LEFT% × {ITEM:(10000+S:LOCAL),3}\@ABLE_MAKESKILLCARD(S:LOCAL)?　Copyable　#　　　　　\@
+				;複製可
+			ELSE
+				PRINTFORM [{S:LOCAL,4}] %RESULTS,20,LEFT% × {ITEM:(10000+S:LOCAL),3}\@ABLE_MAKESKILLCARD(S:LOCAL)?　Copyable　#　　　　　\@
+			ENDIF
+			RESETCOLOR
+		ENDIF
+		SIF LOCAL % 2 == 1
+			PRINTL
+	NEXT
+ELSE
+	PRINTFORM %"\n" * 10%
+ENDIF
+DRAWLINE
+FOR LOCAL,0,24
+	;使えるカードが無い系統は暗く表示
+	SIF LOCAL == 21
+		CONTINUE
+	IF LOCAL == 選択スキル系統
+		SETCOLOR COLOR("水色")
+	ELSEIF X:LOCAL == 0
+		SETCOLOR 0x606060
+	ENDIF
+	;IF LOCAL == 22
+	;	PRINTFORM [4022] Auto
+	;ELSEIF LOCAL == 23
+	;	PRINTFORML [4023] レア
+	;ELSE
+	PRINTFORM [{4000+LOCAL}] %GET_SUCCESSION_E(LOCAL)%　　
+	;ENDIF
+	RESETCOLOR
+	SIF LOCAL % 6 == 5 || LOCAL == 20
+		PRINTL
+NEXT
+DRAWLINE
+PRINTFORMLC \@(ページ <= 0) ? %" " * 16% # [3007]Previous page\@
+PRINTLC [0]Return
+PRINTFORMLC \@(ページ >= (LOCAL:1 - 1) / 20) ? %" " * 16% # [3009]Next page\@
+PRINTL 
+PRINTFORMLC [3004]Previcous system
+;[3004]前の系統
+PRINTFORMLC Current system【\@ 選択スキル系統 == -1 ? ---- #%GET_SUCCESSION_E(選択スキル系統)%\@】
+;現在の系統
+PRINTFORMLC [3006]Next system
+;次の系統
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 0
+	REDRAW 1
+	RETURN 0
+;系統選択
+ELSEIF RESULT >= 4000 && RESULT <= 4023
+	ページ = 0
+	選択スキル系統 = RESULT - 4000
+	CALL スキルカード在庫確認(選択スキル系統, , 1)
+	LOCAL:1 = RESULT
+	GOTO START
+;系統送り
+ELSEIF RESULT == 3004 || RESULT == 3006
+	ページ = 0
+	選択スキル系統 += (RESULT == 3004 ? -1 # 1)
+	SIF 選択スキル系統 == 21
+		選択スキル系統 += (RESULT == 3004 ? -1 # 1)
+	IF 	選択スキル系統 < 0
+		選択スキル系統 = 0
+	ELSEIF 選択スキル系統 > 23
+		選択スキル系統 = 23
+	ENDIF
+	
+	CALL スキルカード在庫確認(選択スキル系統, , 1)
+	LOCAL:1 = RESULT
+	GOTO START
+;ページ操作
+ELSEIF (RESULT == 3007 && ページ> 0) || (RESULT == 3009 && ページ < (LOCAL:1 -1) / 20)
+	ページ += (RESULT == 3007 ? -1 # 1)
+	GOTO START
+ELSEIF !RANGE(RESULT , 0 , VARSIZE("ITEM") - 10001) || MATCH(S,RESULT) == -1 || ITEM:(10000+RESULT) < 1
+	CLEARLINE 1
+	GOTO INPUT_LOOP_1
+ENDIF
+選択スキル = RESULT
+GOTO START
+
+
+;==============================================================
+;スキル習得用・リスト表示
+;==============================================================
+@SHOW_LEARN_SKILL(ARG)
+#LOCALSIZE 6
+LOCAL:3 = LINECOUNT
+IF !LOCAL:5
+	LOCAL:4 = CURRENTREDRAW()
+	SIF LOCAL:4 != 2
+		REDRAW 2
+	LOCAL:5 = 1
+ENDIF
+PRINTL What type of skill should be learned?
+CALL スキルカード在庫確認(, ARG)
+FOR LOCAL, 0, 21
+	SIF FLAG:ショップコマンド == [[ショップ:仲魔強化]] && !TALENT:ARG:GET_SUCCESSION(LOCAL)
+		SETCOLOR 0xDDDDDD
+	SIF FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] && !TALENT:ARG:GET_SUCCESSION(LOCAL)
+		SETCOLOR STRFLAG_EV("初期ペルソナスキル習得", 0, [[イベント:ペルソナ]]) ? 0xDDDDDD # 0x404040
+	SIF !Z:LOCAL	;使えるカードが無い系統は暗く表示
+		SETCOLOR 0x606060
+	IF FLAG:ショップコマンド == [[ショップ:仲魔強化]]
+		PRINTFORM [{LOCAL, 2}] %GET_SUCCESSION_E(LOCAL)%　\@ TALENT:ARG:GET_SUCCESSION(LOCAL) ? ○ # △ \@　
+	ELSEIF FLAG:ショップコマンド == [[ショップ:ベルベットルーム]]
+		IF STRFLAG_EV("初期ペルソナスキル習得", 0, [[イベント:ペルソナ]])
+			PRINTFORM [{LOCAL, 2}] %GET_SUCCESSION_E(LOCAL)%　\@ TALENT:ARG:GET_SUCCESSION(LOCAL) ? ○ # △ \@　
+		ELSE
+			PRINTFORM [{LOCAL, 2}] %GET_SUCCESSION_E(LOCAL)%　\@ TALENT:ARG:GET_SUCCESSION(LOCAL) ? ○ # × \@　
+		ENDIF
+	ELSE
+		PRINTFORM [{LOCAL,2}] %GET_SUCCESSION_E(LOCAL)%　　
+	ENDIF
+	PRINTFORM \@ LOCAL % 6 == 5 ? \n # \@
+	RESETCOLOR
+NEXT
+SETCOLOR Z:22 ? GETCOLOR() # 0x606060
+PRINT [22] Auto
+RESETCOLOR
+IF FLAG:ショップコマンド == [[ショップ:仲魔強化]]
+	SETCOLOR Z:23 ? GETCOLOR() # 0x606060
+	PRINTFORM 　[23] Rare
+	RESETCOLOR
+ENDIF
+PRINTFORML \n[100]Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	SIF LOCAL:4 != 2
+		REDRAW LOCAL:4
+	LOCAL:5 = 0
+	RETURN 0
+{
+ELSEIF !INRANGE(RESULT, 0, 23) || RESULT == 21 || (FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] && RESULT == 23) || 
+	(FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] && RESULT != 22 && !TALENT:ARG:GET_SUCCESSION(RESULT) && 
+	!STRFLAG_EV("初期ペルソナスキル習得", 0, [[イベント:ペルソナ]]))
+}
+	CLEARLINE 1
+	GOTO INPUT_LOOP
+ENDIF
+
+RESULT:10 = RESULT
+
+CALL スキルカード在庫確認(RESULT:10, ARG)
+LOCAL:1 = RESULT
+IF !LOCAL:1
+	CLEARLINE 1
+	REUSELASTLINE You don't have a skill card of this kind.
+	;カードを所持していません
+	GOTO INPUT_LOOP
+ENDIF
+
+;Sの中身を表示
+P = 0
+LOCAL:2 = LINECOUNT
+$PRINT_LIST
+CLEARLINE LINECOUNT - LOCAL:2
+DRAWLINE
+FOR LOCAL, P * 20, (P + 1) * 20
+	IF S:LOCAL > 0 && ITEM:(10000 + S:LOCAL)
+		CALLFORM SKILL_NAME_{S:LOCAL}
+		PRINTFORM [{S:LOCAL, 4}] %RESULTS, 20, LEFT% × {ITEM:(10000 + S:LOCAL), 3}　　\@ LOCAL & 1 ? \n # \@
+	ENDIF
+NEXT
+PRINTFORM \@ LINEISEMPTY() ? # \n \@
+PRINTFORM \@ P && P == (LOCAL:1 - 1) / 20 ? %"\n" * MAX(0, 11 + LOCAL:2 - LINECOUNT)% # \@
+DRAWLINE
+PRINTFORMLC \@ P > 0 ? [3007]Previous page # %" " * 16% \@
+PRINTLC [0]Return
+PRINTFORMLC \@ P < (LOCAL:1 - 1) / 20 ? [3009]Next page # %" " * 16% \@
+PRINTL 
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 0
+	CLEARLINE LINECOUNT - LOCAL:3
+	RESTART
+ELSEIF RESULT == 3007 && P > 0
+	P--
+	GOTO PRINT_LIST
+ELSEIF RESULT == 3009 && P < (LOCAL:1 - 1) / 20
+	P++
+	GOTO PRINT_LIST
+ELSEIF RESULT < 0 || !MATCH(S, RESULT, 0, LOCAL:1) || !ITEM:(10000 + RESULT)
+	CLEARLINE 1
+	GOTO INPUT_LOOP_1
+ENDIF
+SIF LOCAL:4 != 2
+	REDRAW LOCAL:4
+LOCAL:5 = 0
+RETURN RESULT
+
+
+;==========================================
+;邪教の館・スキルカード作成
+;==========================================
+@CASTING_MAKE_SKILLCARD
+SIF ABL:COUNT:種族 == 0 || NO:COUNT == 4509
+	RETURN 0
+;妊娠か忠誠度2000以上必要
+SIF (TALENT:COUNT:妊娠 == 0 || TALENT:COUNT:崩壊) && BASE:COUNT:忠誠度 < 500
+	RETURN 0
+;妊娠消えたりで面倒
+SIF ((TALENT:COUNT:妊娠 && CFLAG:COUNT:出産予定日 - 2 <= DAY) || TALENT:COUNT:育児中) && FLAG:出産機能ONOFF == 1
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+@MAKE_SKILLCARD
+;LOCAL FOR用
+;LOCAL:1 作成する悪魔
+;LOCAL:2 作成するスキルの習得番号
+;LOCAL:5 ページ管理用
+;LOCAL:7 スキルカード化可能スキルの個数
+
+;LOCAL:8-12 増加するストレス値
+
+;キャラリストを表示・選択
+CALL INPUT_CHARA_LIST("Please choose a demon to create a skill card", "CASTING_MAKE_SKILLCARD")
+SIF RESULT == 1000
+	RETURN 0
+LOCAL:1 = RESULT
+
+DRAWLINE
+
+VARSET S,-1
+LOCAL:7 = 0
+FOR LOCAL,1,FLAG:スキル数+1
+	SIF ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL)) == 0
+		CONTINUE
+	;ランク0は弾く
+	CALLFORM SKILL_RANK_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL))}
+	SIF RESULT == 0
+		CONTINUE
+	;継承不能スキルは弾く
+	TRYCCALLFORM 継承不能_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL))}
+		SIF RESULT
+			CONTINUE
+	CATCH
+	ENDCATCH
+	S:(LOCAL) = ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL))
+	LOCAL:7 += 1
+NEXT
+IF LOCAL:7 == 0
+	PRINTFORMW There are no skills, so none can be extracted.
+	CLEARLINE 2
+	RESTART
+ENDIF
+
+$PRINT_SKILLLIST
+;名前とスキルリスト表示
+DRAWLINE
+PRINTFORML □%CALLNAME:(LOCAL:1)% skills：
+FOR LOCAL,1,FLAG:スキル数+1
+	SIF S:LOCAL == -1
+		SETCOLOR 0x404040
+	IF GETBIT(FLAG:カスタムゲーム画面,1)
+		IF ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL)) > 0
+			CALLFORM SKILL_NAME_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL))},LOCAL:1
+			PRINTFORM 　[{LOCAL}]%RESULTS,38,LEFT%
+		ENDIF
+		SIF LOCAL == 3 || LOCAL == 6 || LOCAL == 8
+			PRINTL
+	ELSE
+		IF ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL)) > 0
+			CALLFORM SKILL_NAME_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL))},LOCAL:1
+			PRINTFORM 　[{LOCAL}]%RESULTS,20,LEFT%
+		ENDIF
+		SIF LOCAL % 4 == 0
+			PRINTL
+	ENDIF
+	RESETCOLOR
+NEXT
+DRAWLINE
+PRINTL [0]Return
+
+$INPUT_LOOP_2
+INPUT
+IF RESULT == 0
+	RESTART
+ELSEIF RESULT < 0 || RESULT > 8 || S:RESULT == -1
+	GOTO INPUT_LOOP_2
+ENDIF
+
+LOCAL:2 = RESULT
+
+;ランクを取得
+;CALLFORM SKILL_RANK_{S:(LOCAL:2)}
+;RESULT:1 = 
+
+DRAWLINE
+CALLFORM SKILL_NAME_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL:2))}, LOCAL:1
+CALLFORM SKILL_SUCCESSION_TYPE_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL:2))}
+PRINTFORML 【%GET_SUCCESSION_E(RESULT)%】 %RESULTS%
+SIF FLAG:スキル属性表示設定 == 1
+	CALL SKILL_EXPLAIN_PERFORMANCE, ABL:(LOCAL:1):@"スキル{LOCAL:2}", LOCAL:1
+TRYCALLFORM SKILL_EXPLAIN_{ABL:(LOCAL:1):("スキル" + TOSTR(LOCAL:2))}
+DRAWLINE
+IF ITEM:(10000+S:(LOCAL:2))
+	LOCAL:4 = GETCOLOR()
+	SETCOLOR COLOR("PASTEL-RED")
+	PRINTFORML ※You already have {ITEM:(10000+S:(LOCAL:2))} of this skill card
+	SETCOLOR LOCAL:4
+ENDIF
+IF ABLE_MAKESKILLCARD(S:(LOCAL:2))
+	LOCAL:4 = GETCOLOR()
+	SETCOLOR COLOR("PASTEL-BLUE")
+	PRINTL ※このスキルカードは時間城で複製可能です
+	;This skill card can be duplicated in the time castle
+	SETCOLOR LOCAL:4
+ENDIF
+PRINTFORML Currently, you can create skill cards in the following ways:　(Loyalty{BASE:(LOCAL:1):忠誠度,6})
+DRAWLINE
+SIF BASE:(LOCAL:1):忠誠度 >= (4+CFLAG:(LOCAL:1):スキル抽出回数)*250
+	PRINTFORML [1] Skill extraction (costs {(2+CFLAG:(LOCAL:1):スキル抽出回数)*250} loyalty and the demon forgets this skill)
+SIF BASE:(LOCAL:1):忠誠度 >= 500
+	PRINTL [2] Sacrifice the demon
+SIF TALENT:(LOCAL:1):妊娠 && TALENT:(LOCAL:1):崩壊 == 0
+	PRINTL [3] Sacrifice unborn child ([Pregnancy] is lost, stress and fatique increase)
+DRAWLINE
+PRINTL [0] Return
+$INPUT_LOOP_3
+INPUT
+IF RESULT == 0
+	GOTO PRINT_SKILLLIST
+ELSEIF RESULT == 1 && BASE:(LOCAL:1):忠誠度 >= (4+CFLAG:(LOCAL:1):スキル抽出回数)*250
+	PRINTFORML Extract a skill card from  %CALLNAME:(LOCAL:1)%?
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		GOTO PRINT_SKILLLIST
+	CALLFORM SKILL_NAME_{S:(LOCAL:2)}
+	PRINTFORMW Extracted the skill card %RESULTS% from %CALLNAME:(LOCAL:1)%.
+	BASE:(LOCAL:1):忠誠度 -= (2+CFLAG:(LOCAL:1):スキル抽出回数)*250
+	ABL:(LOCAL:1):("スキル"+TOSTR(LOCAL:2)) = 0
+	CFLAG:(LOCAL:1):スキル抽出回数 += 1
+	ITEM:(10000+S:(LOCAL:2)) += 1
+	;装備知識スキルが削除対象で装備知識スキル系をまったく所持していない場合は装備を解除する
+	CALL SKILL_EQUIPTHEORY_DEL_SKILL, LOCAL:1, LOCAL:2
+ELSEIF RESULT == 2 && BASE:(LOCAL:1):忠誠度 >= 500
+	PRINTFORML Turn %CALLNAME:(LOCAL:1)% into a skill card?
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		GOTO PRINT_SKILLLIST
+	CALLFORM SKILL_NAME_{S:(LOCAL:2)}
+	PRINTFORMW %CALLNAME:(LOCAL:1)% was turned into the skill-card %RESULTS%.
+	;手紙システム
+	CALL FUSION_LETTER,LOCAL:1,2
+;	SIF CFLAG:(LOCAL:1):ポジション > 0
+;		CALL REMOVE_POSITION,CFLAG:(LOCAL:1):ポジション
+;	DELCHARA LOCAL:1
+	CALL キャラ削除, LOCAL:1
+;	FOR LOCAL, 0 , 4
+;		IF TARGET:LOCAL > LOCAL:1
+;			TARGET:LOCAL -= 1
+;		ELSEIF TARGET:LOCAL == LOCAL:1
+;			TARGET:LOCAL = -1
+;		ENDIF
+;		IF ASSI:LOCAL > LOCAL:1
+;			ASSI:LOCAL -= 1
+;		ELSEIF ASSI:LOCAL == LOCAL:1
+;			ASSI:LOCAL = -1
+;		ENDIF
+;	NEXT
+	
+	;フォーメーション再読み込み
+;	CALL REFRESH_POS
+
+	;主人の属性値変動
+	CALL INCREASE_LD,-5
+	CALL SYNC_STATUS,MASTER
+	ITEM:(10000+S:(LOCAL:2)) += 1
+ELSEIF RESULT == 3 && TALENT:(LOCAL:1):妊娠 && TALENT:(LOCAL:1):崩壊 == 0
+	PRINTFORML %CALLNAME:(LOCAL:1)%'s unborn child will be turned into a skill card. Are you sure?
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		GOTO PRINT_SKILLLIST
+	CALLFORM SKILL_NAME_{S:(LOCAL:2)}
+	PRINTFORML %CALLNAME:(LOCAL:1)%'s unborn child has been turned into the skill-card %RESULTS%.
+	PRINTFORMW %CALLNAME:(LOCAL:1)% is no longer [Pregnant] and can become pregnant again.
+	ITEM:(10000+S:(LOCAL:2)) += 1
+;	LOCAL:3 = TARGET
+;	TARGET = LOCAL:2
+	TALENT:(LOCAL:1):153 = 0
+	CFLAG:(LOCAL:1):発情妊娠 = 0
+	;妊娠イベントで減った体力の最大値が回復（少なめ）
+	;MAXBASE:(LOCAL:1):0 += 300
+	;胸の縮小処理を実行
+	PRINTW With the end of the pregnancy, the breast size has decreased.
+	C = LOCAL:1
+	CALL REVERSE_B_SIZE
+	CALL CLEAR_FLAG
+		
+	;ストレス値の補正の決定
+	;ABL:従順をみる
+	LOCAL:8 = ABL:(LOCAL:1):従順 * 5
+
+	E = 100
+	;陥落素質を見る
+	SIF TALENT:(LOCAL:1):恋慕
+		E = 90
+	SIF TALENT:(LOCAL:1):3 && CFLAG:(LOCAL:1):111 == MASTER
+		E = 120
+	SIF TALENT:(LOCAL:1):4
+		E = 80
+	SIF TALENT:(LOCAL:1):5
+		E = 60
+	SIF TALENT:(LOCAL:1):親愛
+		E = 85
+	SIF TALENT:(LOCAL:1):6 && CFLAG:(LOCAL:1):111 == MASTER
+		E = 135
+	SIF TALENT:(LOCAL:1):7
+		E = 60
+	SIF TALENT:(LOCAL:1):8
+		E = 40
+	SIF TALENT:(LOCAL:1):9
+		E = 0
+
+	F = (90- LOCAL:8)*E/10000
+
+	CFLAG:(LOCAL:1):10 += F
+	BASE:(LOCAL:1):0 = 10
+	RESULT = (LOCAL:1)
+	IF CFLAG:(LOCAL:1):10 >= 100 && TALENT:(LOCAL:1):9 == 0 && (LOCAL:1) != MASTER
+		IF 陥落(LOCAL:1) > 0
+			IF (CFLAG:(LOCAL:1):ストレス値 -99) * 100 <= BASE:(LOCAL:1):忠誠度
+				PRINTFORMW %CALLNAME:(LOCAL:1)% seems to be very stressed from this experience...
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s loyalty has decreased by {(CFLAG:(LOCAL:1):ストレス値 -99) * 100}.
+				BASE:(LOCAL:1):忠誠度 -= (CFLAG:(LOCAL:1):ストレス値 -99) * 100
+				CFLAG:(LOCAL:1):ストレス値 = 99
+			ENDIF
+		ELSE
+			IF (CFLAG:(LOCAL:1):ストレス値 -99) * 500 <= BASE:(LOCAL:1):忠誠度
+				PRINTFORMW %CALLNAME:(LOCAL:1)% seems to be very stressed from this experience...
+				PRINTFORMW %CALLNAME:(LOCAL:1)%'s loyalty has decreased by{(CFLAG:(LOCAL:1):ストレス値 -99) * 500}.
+				BASE:(LOCAL:1):忠誠度 -= (CFLAG:(LOCAL:1):ストレス値 -99) * 500
+				CFLAG:(LOCAL:1):ストレス値 = 99
+			ENDIF
+		ENDIF
+	ENDIF
+	SIF CFLAG:(LOCAL:1):10 >= 100 && TALENT:(LOCAL:1):9 == 0
+		CALL COLLAPSE_MIND_ITEM, LOCAL:1
+
+	PRINTFORMW %NAME:((LOCAL:1))%'s body is very exhausted from the ordeal.
+	;PRINTFORMW 少し休ませたほうがよさそうだ
+	;休憩フラグを立てる
+	;FLAG:0 = 1
+	;BEGIN TURNEND
+	CALL INCREASE_LD,-5
+	CALL SYNC_STATUS,MASTER
+	;装備知識スキルが削除対象で装備知識スキル系をまったく所持していない場合は装備を解除する
+	CALL SKILL_EQUIPTHEORY_DEL_SKILL, LOCAL:1, LOCAL:2
+ELSE
+	GOTO INPUT_LOOP_3
+ENDIF
+RESTART
+
+;==========================================
+;スキルカード一覧用 スキルカード在庫確認
+;==========================================
+@スキルカード在庫確認, ARG = -1, ARG:1 = -1, ARG:2
+;継承タイプ=ARGのスキルカードの所持を調べ、所持していたらS:に代入
+;ARG が指定されていない場合、各継承タイプの所持種類数をZ:に代入して返す
+;ARG:1 が指定されている場合、ARG:1の習得できるスキルのみを調べる
+;ARG:2 が真の場合スキルカードが作成出来る場合も判定を通す
+;なお、継承不能スキルは継承タイプ23として扱う
+SIF ARG:1 >= CHARANUM
+	ARG:1 = -1
+
+VARSET S,-1
+VARSET Z,0
+LOCAL:1 = 0
+LOCAL:2 = 0
+;Sに選択した系統のスキルを代入
+FOR LOCAL, 1 ,3000
+	;Gun～システム系はスキップ
+	SIF LOCAL == 2101
+		LOCAL = 2400
+	;所持していないカードをまず弾く
+	;ただしARG:2が真の場合はカード作成可能な場合も通す
+	IF ARG:2
+		SIF (ITEM:(10000+LOCAL) < 1) && !ABLE_MAKESKILLCARD(LOCAL)
+			CONTINUE
+	ELSE
+		SIF (ITEM:(10000+LOCAL) < 1)
+			CONTINUE
+	ENDIF
+	
+	;スキル所持による判定
+	;ARG:1>=0なら、ARG:1のキャラが持ってて重複習得上限に達したスキルは弾く
+	IF ARG:1 > -1 && HAVE_SKILL(ARG:1 , LOCAL)
+		TRYCCALLFORM 重複習得数_{LOCAL}
+			SIF HAVE_SKILL_OVERLAP(ARG:1,LOCAL) + 1 > RESULT
+				CONTINUE
+		CATCH
+			CONTINUE
+		ENDCATCH
+	ENDIF
+	
+	;継承タイプによる判定
+	RESULT = 0
+	;まず継承不能スキルかチェック
+	TRYCALLFORM 継承不能_{LOCAL}
+	IF RESULT
+		SIF ARG > -1 && ARG != 23
+			CONTINUE
+		LOCAL:2 = 23
+	ELSE
+		TRYCCALLFORM SKILL_SUCCESSION_TYPE_{LOCAL}
+			LOCAL:2 = RESULT
+			SIF RESULT != ARG && ARG > -1
+				CONTINUE
+		CATCH
+			CONTINUE
+		ENDCATCH
+	ENDIF
+	CALLFORM SKILL_RANK_{LOCAL}
+	SIF RESULT <= 0 || RESULT > 15
+		CONTINUE
+	S:(LOCAL:1) = LOCAL
+	LOCAL:1 += 1
+	Z:(LOCAL:2) += 1
+NEXT
+RETURN LOCAL:1

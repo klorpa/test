@@ -1,0 +1,392 @@
+@REVERSE_LOOKUP_DEVIL
+PRINTL どの種族の悪魔を逆引きしますか？
+FOR LOCAL,1,17
+	PRINTFORMLC [{LOCAL,2}] %STR:LOCAL,6,LEFT%
+NEXT
+PRINTFORMLC [{18,2}] %STR:18,6,LEFT%
+
+PRINTL 
+DRAWLINE
+PRINTFORML [100] \@(FLAG:悪魔逆引き設定) ? 　 # ＞ \@ 性転換後の素材を含める
+PRINTFORML [200] \@(FLAG:悪魔逆引き設定) ? ＞ # 　 \@ 性転換後の素材を含めない
+PRINTL [0] Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT == 100
+	FLAG:悪魔逆引き設定 = 0
+	RESTART
+ELSEIF RESULT == 200
+	FLAG:悪魔逆引き設定 = 1
+	RESTART
+ENDIF
+
+CALL MAKE_RLD_LIST,RESULT,2,0
+
+IF RESULT == 0
+	PRINTL 該当する悪魔は登録されていません
+	GOTO INPUT_LOOP
+ENDIF
+
+;件数保存
+LOCAL:1 = RESULT
+
+CALL PRINT_RLD_LIST
+
+PRINTL どの悪魔を逆引きしますか？
+PRINTL [0] Return
+$INPUT_LOOP2
+INPUT
+IF RESULT == 0
+	RESTART
+;入力チェック
+ELSEIF RESULT < 0 || RESULT > LOCAL:1
+	GOTO INPUT_LOOP2
+ENDIF
+
+;目的の悪魔番号
+LOCAL:2 = E:(RESULT-1)
+
+;性別を保存
+LOCAL:3 = CSVTALENT(LOCAL:2,GETNUM(TALENT,"オトコ"),0)
+
+;種族を保存
+LOCAL:4 = CSVABL(LOCAL:2,GETNUM(ABL,"種族"),0)
+
+IF LOCAL:4 == 13
+	CALL PRINT_RLD_ELEMENT,LOCAL:2
+	RESTART
+ENDIF
+
+;合体結果の検索用リストを作成
+CALL MAKE_RACE_LIST,LOCAL:4,LOCAL:3
+
+;検索用種族
+SELECTCASE LOCAL:4
+	CASE 15
+		LOCAL:6 = 1
+	CASE 16
+		LOCAL:6 = 2
+	CASE 18
+		LOCAL:6 = 4
+	CASEELSE
+		LOCAL:6 = LOCAL:4
+ENDSELECT
+
+;組み合わせ数カウンター
+LOCAL:9 = 0
+
+;種族組み合わせを検索
+FOR LOCAL,1,19
+	;精霊合体は除外
+	SIF LOCAL == 13
+		LOCAL++
+	;ひとつめのリスト作成フラグ
+	LOCAL:11 = 0
+	FOR LOCAL:5,LOCAL,19
+		;精霊合体は除外
+		SIF LOCAL:5 == 13
+			LOCAL:5++
+		;合体結果の種族を検索
+		CALL SEARCH_RACE,LOCAL,LOCAL:5
+		IF RESULT == LOCAL:6
+			;ひとつめの種族リストを作成
+			IF LOCAL:11 != 1
+				IF FLAG:悪魔逆引き設定
+					IF LOCAL:3
+						;男性悪魔のみ
+						CALL MAKE_RLD_LIST,LOCAL,0,1
+					ELSE
+						;女性悪魔のみ
+						CALL MAKE_RLD_LIST,LOCAL,0,2
+					ENDIF
+				ELSE
+					;制限なし
+					CALL MAKE_RLD_LIST,LOCAL,0,0
+				ENDIF
+				LOCAL:11 = 1
+			ENDIF
+			;ふたつめの種族リストを作成
+			IF FLAG:悪魔逆引き設定
+				IF LOCAL:3
+					;男性悪魔のみ
+					CALL MAKE_RLD_LIST,LOCAL:5,1,1
+				ELSE
+					;女性悪魔のみ
+					CALL MAKE_RLD_LIST,LOCAL:5,1,2
+				ENDIF
+			ELSE
+				;制限なし
+				CALL MAKE_RLD_LIST,LOCAL:5,1,0
+			ENDIF
+			;とりあえず総当り(だっせー
+			FOR LOCAL:7,0,5000
+				SIF E:(LOCAL:7) == -1
+					BREAK
+				FOR LOCAL:8,0,5000
+					SIF F:(LOCAL:8) == -1
+						BREAK
+					;合体結果
+					CALL OUTPUT_DEVIL,(CSVBASE(E:(LOCAL:7),GETNUM(BASE,"LV"),0) + CSVBASE(F:(LOCAL:8),GETNUM(BASE,"LV"),0))/2,3
+
+					IF RESULT == LOCAL:2
+						;該当ありの組み合わせと判明
+						G:(LOCAL:9) = LOCAL
+						H:(LOCAL:9) = LOCAL:5
+						LOCAL:7 = 5000
+						LOCAL:8 = 5000
+						LOCAL:9++
+					ENDIF
+				NEXT
+			NEXT
+		ENDIF
+	NEXT
+NEXT
+
+;精霊合体検索
+CALL LOOKUP_ELEMENT_FUSION,LOCAL:2
+IF RESULT > 0
+	G:(LOCAL:9) = LOCAL:4
+	H:(LOCAL:9) = 13
+	LOCAL:9++
+ENDIF
+
+IF LOCAL:9 == 0
+	PRINTL 該当する合体結果は見つかりませんでした
+	RESTART
+ENDIF
+
+$RESEARCH
+PRINTL どの組み合わせで検索しますか？
+FOR LOCAL,0,LOCAL:9
+	PRINTFORML [{LOCAL+1,2,RIGHT}] %STR:(G:LOCAL),6,LEFT%× %STR:(H:LOCAL),6,LEFT%
+NEXT
+DRAWLINE
+PRINTL [0] Return
+$INPUT_LOOP3
+INPUT
+IF RESULT == 0
+	RESTART
+ELSEIF RESULT > LOCAL:9
+	GOTO INPUT_LOOP3
+ENDIF
+LOCAL = RESULT - 1
+
+;ひとつめの種族リストを作成
+IF FLAG:悪魔逆引き設定
+	IF LOCAL:3
+		;男性悪魔のみ
+		CALL MAKE_RLD_LIST,G:LOCAL,0,1
+	ELSE
+		;女性悪魔のみ
+		CALL MAKE_RLD_LIST,G:LOCAL,0,2
+	ENDIF
+ELSE
+	;制限なし
+	CALL MAKE_RLD_LIST,G:LOCAL,0,0
+ENDIF
+;ふたつめの種族リストを作成
+IF FLAG:悪魔逆引き設定
+	IF LOCAL:3
+		;男性悪魔のみ
+		CALL MAKE_RLD_LIST,H:LOCAL,1,1
+	ELSE
+		;女性悪魔のみ
+		CALL MAKE_RLD_LIST,H:LOCAL,1,2
+	ENDIF
+ELSE
+	;制限なし
+	CALL MAKE_RLD_LIST,H:LOCAL,1,0
+ENDIF
+
+LOCAL:11 = G:LOCAL
+LOCAL:12 = H:LOCAL
+
+FOR LOCAL,0,5000
+	SIF E:LOCAL == -1
+		BREAK
+	FOR LOCAL:1,0,5000
+		SIF F:(LOCAL:1) == -1
+			BREAK
+		IF LOCAL:12 == 13
+			CALL RESULT_ELEMENT_FUSION,E:LOCAL,F:(LOCAL:1)
+		ELSE
+			CALL OUTPUT_DEVIL,(CSVBASE(E:LOCAL,GETNUM(BASE,"LV"),0) + CSVBASE(F:(LOCAL:1),GETNUM(BASE,"LV"),0))/2,3
+		ENDIF
+
+		IF RESULT == LOCAL:2
+
+			LOCALS = \@ CSVCSTR(E:LOCAL,GETNUM(CSTR,"種族名"),0) != "" ? %CSVCSTR(E:LOCAL,GETNUM(CSTR,"種族名"),0)% # %STR:(CSVABL(E:LOCAL,GETNUM(ABL,"種族"),0))% \@
+			LOCALS:1 = \@ CSVCSTR(F:(LOCAL:1),GETNUM(CSTR,"種族名"),0) != "" ? %CSVCSTR(F:(LOCAL:1),GETNUM(CSTR,"種族名"),0)% # %STR:(CSVABL(F:(LOCAL:1),GETNUM(ABL,"種族"),0))% \@
+
+			PRINTFORM %LOCALS,6,LEFT%%CSVNAME(E:LOCAL,0),16,LEFT% Lv{CSVBASE(E:LOCAL,GETNUM(BASE,"LV"),0),3,RIGHT} × 
+			PRINTFORML %LOCALS:1,6,LEFT%%CSVNAME(F:(LOCAL:1),0),16,LEFT% Lv{CSVBASE(F:(LOCAL:1),GETNUM(BASE,"LV"),0),3,RIGHT}
+		ENDIF
+	NEXT
+NEXT
+
+DRAWLINE
+PRINTL 以上の組み合わせが見つかりました
+SIF FLAG:悪魔逆引き設定 == 0
+	PRINTL ※ 注意！　目的の悪魔と性別が異なる素材は、性転換後に使用してください
+WAIT
+DRAWLINE
+GOTO RESEARCH
+
+;種族別悪魔リスト作成
+;ARG = 種族番号
+;ARG:1 = 0
+;　Eにリストを作成
+;ARG:1 = 1
+;　Fにリストを作成
+;ARG:1 = 2
+;　Eにリストを作成(特殊合体のみの悪魔を除外)
+;ARG:2 = 0
+;　性別は問わない
+;ARG:2 = 1
+;　男性悪魔のみ
+;ARG:2 = 2
+;　女性悪魔のみ
+@MAKE_RLD_LIST,ARG,ARG:1,ARG:2
+IF ARG:1 == 0 || ARG:1 == 2
+	VARSET E, -1
+ELSEIF ARG:1 == 1
+	VARSET F, -1
+ELSE
+	RETURN -1
+ENDIF
+
+;ヒット件数
+LOCAL:2 = 0
+
+FOR LOCAL,1,5001
+	IF EXISTCSV(LOCAL,0) && CSVABL(LOCAL,GETNUM(ABL,"種族"),0) == ARG
+		CALL CHECK_FUSION_ABLE,LOCAL
+		SIF RESULT == 0
+			CONTINUE
+		SIF ARG:1 == 2 && CSVCFLAG(LOCAL,(GETNUM(CFLAG,"特殊合体のみ")),0) == 1
+			CONTINUE
+		SIF ARG:2 == 1 && CSVTALENT(LOCAL,GETNUM(TALENT,"オトコ"),0) != 1
+			CONTINUE
+		SIF ARG:2 == 2 && CSVTALENT(LOCAL,GETNUM(TALENT,"オトコ"),0) != 0
+			CONTINUE
+		LOCAL:2++
+		FOR LOCAL:10,0,(LOCAL:2)
+			IF ARG:1 == 1
+				IF F:(LOCAL:10) == -1
+					F:(LOCAL:10) = LOCAL
+				ELSEIF CSVBASE(LOCAL,GETNUM(BASE,"LV"),0) <= CSVBASE(F:(LOCAL:10),GETNUM(BASE,"LV"),0)
+					CONTINUE
+				ELSE 
+					FOR LOCAL:20,(LOCAL:2+1),LOCAL:10,-1
+						SIF F:(LOCAL:20-1) > -1
+							F:(LOCAL:20) = F:(LOCAL:20-1)
+					NEXT
+					F:(LOCAL:10) = LOCAL
+					BREAK
+				ENDIF
+			ELSE
+				IF E:(LOCAL:10) == -1
+					E:(LOCAL:10) = LOCAL
+				ELSEIF CSVBASE(LOCAL,GETNUM(BASE,"LV"),0) <= CSVBASE(E:(LOCAL:10),GETNUM(BASE,"LV"),0)
+					CONTINUE
+				ELSE 
+					FOR LOCAL:20,(LOCAL:2+1),LOCAL:10,-1
+						SIF E:(LOCAL:20-1) > -1
+							E:(LOCAL:20) = E:(LOCAL:20-1)
+					NEXT
+					E:(LOCAL:10) = LOCAL
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+NEXT
+
+RETURN LOCAL:2
+
+;合体可能チェック
+@CHECK_FUSION_ABLE,ARG
+SIF CSVCFLAG(ARG,(GETNUM(CFLAG,"合体条件有り")),0) == 1 && FLAG:(10000+ARG) == 0
+	RETURN 0
+;アナライズ 0％の悪魔は検索出来ない
+SIF FLAG:(20000 + ARG) == 0
+	RETURN 0
+RETURN 1
+
+@PRINT_RLD_LIST
+;配列Eの中身を表示
+IF E:0 < 0
+	PRINTL 該当する悪魔は登録されていません
+	RETURN 0
+ENDIF
+
+DRAWLINE
+PRINTFORML □%STR:(CSVABL(E:0,GETNUM(ABL,"種族"),0))%
+DRAWLINE
+
+FOR LOCAL,0,5000
+	SIF E:LOCAL < 0
+		BREAK
+	LOCAL:3 = CSVBASE(E:LOCAL,GETNUM(BASE,"LV"),0)
+	PRINTFORM [{LOCAL+1,3}] %CSVNAME(E:LOCAL,0),20,LEFT% Lv
+	SIF LOCAL:3 < 10
+		PRINT  
+	SIF LOCAL:3 < 100
+		PRINT  
+	PRINTFORML {LOCAL:3}
+NEXT
+DRAWLINE
+
+@PRINT_RLD_ELEMENT,ARG
+SELECTCASE ARG
+	CASE 1201,1203
+		;シルフ、ノーム
+		PRINTL [ 1]Tyrant　× Tyrant
+		PRINTL [ 2]Divine　× Divine
+		PRINTL [ 3]Fairy　× Fairy
+		PRINTL [ 4]Beast　× Beast
+		PRINTL [ 5]Flight　× Flight
+		PRINTL [ 6]Foul　× Foul
+	CASE 1202,1204
+		;ウンディーネ、サラマンダー
+		PRINTL [ 1]Lady× Lady
+		PRINTL [ 2]Megami　× Megami
+		PRINTL [ 3]Yoma　× Yoma
+		PRINTL [ 4]Brute　× Brute
+		PRINTL [ 5]Snake　× Snake
+		PRINTL [ 6]Kishin　× Kishin
+		PRINTL [ 7]Deity　× Deity
+	CASEELSE
+		PRINTL 該当する合体結果は見つかりませんでした
+		RETURN 0
+ENDSELECT
+DRAWLINE
+PRINTL 以上の組み合わせが見つかりました
+SIF FLAG:悪魔逆引き設定 == 0
+	PRINTL ※ 注意！　目的の悪魔と性別が異なる素材は、性転換後に使用してください
+WAIT
+
+@LOOKUP_ELEMENT_FUSION,ARG
+;引数：悪魔番号
+;戻り値：精霊合体で目的の悪魔が作れるかどうか(0=作成不可 1=作成可能
+;目的の悪魔の種族リストを作成
+CALL MAKE_RLD_LIST,CSVABL(ARG,GETNUM(ABL,"種族"),0),0
+;精霊リストを作成
+CALL MAKE_RLD_LIST,13,1
+FOR LOCAL,0,5000
+	SIF F:LOCAL < 0
+		RETURN 0
+	FOR LOCAL:1,0,5000
+		SIF E:(LOCAL:1) < 0
+			BREAK
+		CALL RESULT_ELEMENT_FUSION,E:(LOCAL:1),F:LOCAL
+		IF RESULT == ARG
+			RETURN 1
+		ELSE
+			CONTINUE
+		ENDIF
+	NEXT
+NEXT
+

@@ -1,0 +1,112 @@
+;====================
+;関連フラグリスト
+;====================
+;依頼フラグ:70:0 進行度フラグ 0:開始 1:アイン捕獲 2:第一研究所潜入済み 3:第二研究所潜入済み 4:ファントムにアインの所有を認められた 5:アインを拉致された 6:アインの居場所が分かった
+;							  7:アインを救出した 8:ルート決定 9:ルートクリア
+;							  99:アイン殺害or実験台(=ルート終了)
+;依頼フラグ:70:1 ガイア教施設調査でアインを連れてきたか 0:連れてきた 1:連れてこなかった
+;依頼フラグ:70:2 ガイア教施設調査(2)でアインを連れてきたか 0:連れてきた 1:連れてこなかった
+;依頼フラグ:70:3 最終ルート 1:LAW 2:NEWTRAL 3:CHAOS
+;====================
+;条件
+;====================
+
+
+@PLAYABLE_REQUEST_70
+
+IF FLAG:名声 >= 500 && 依頼フラグ:70:0 == 0
+	RESULTS = Experimental subject capture request
+	RETURN 1
+;アインが出撃不能な状態を除く
+ELSEIF (GETCHARA(4766) > 0 && CFLAG:GETCHARA(4766):戦闘参加不可能 < 1) == 0
+	RETURN 0
+	
+ELSEIF 依頼フラグ:70:0 == 1 && BASE:MASTER:LV > 29
+	RESULTS = Gaean Facility investigation
+	RETURN 1
+	
+ELSEIF 依頼フラグ:70:0 == 2
+	RESULTS = Infiltrating a Gaean Temple
+	RETURN 1
+
+ELSEIF 依頼フラグ:70:0 == 3 && BASE:MASTER:LV > 44
+	RESULTS = Chimera project
+	RETURN 1
+	
+ELSEIF 依頼フラグ:70:0 == 4
+	RESULTS = Temple Knight raid
+	RETURN 1
+
+ELSEIF 依頼フラグ:70:0 == 5
+	RESULTS = Camp investigation report
+	RETURN 1
+	
+ELSEIF 依頼フラグ:70:0 == 7
+	RESULTS = Time of decision
+	RETURN 1
+ELSEIF 依頼フラグ:70:0 == 8 && 依頼フラグ:70:3 == 1
+	RESULTS = The gates of God's Kingdom are always open
+	RETURN 1
+ELSEIF 依頼フラグ:70:0 == 8 && 依頼フラグ:70:3 == 2
+	RESULTS = Going one's own path
+	RETURN 1
+ELSEIF 依頼フラグ:70:0 == 8 && 依頼フラグ:70:3 == 3
+	RESULTS = Oath to Great Demon King Lucifer
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+@EXPLAIN_REQUEST_70
+IF 依頼フラグ:70:0 == 0
+	CALL EXPLAIN_REQUEST_70_1
+ELSEIF 依頼フラグ:70:0 == 1
+	CALL EXPLAIN_REQUEST_70_2
+ELSEIF 依頼フラグ:70:0 == 2
+	CALL EXPLAIN_REQUEST_70_3
+ELSEIF 依頼フラグ:70:0 == 3
+	CALL EXPLAIN_REQUEST_70_4
+ELSEIF 依頼フラグ:70:0 == 4
+	CALL EXPLAIN_REQUEST_70_5
+ELSEIF 依頼フラグ:70:0 == 5
+	CALL EXPLAIN_REQUEST_70_6
+ELSEIF 依頼フラグ:70:0 == 7
+	CALL EXPLAIN_REQUEST_70_7
+ELSEIF 依頼フラグ:70:0 == 8
+	CALL EXPLAIN_REQUEST_70_8
+ENDIF
+
+@REQUEST_70
+IF 依頼フラグ:70:0 == 0
+	CALL REQUEST_70_1
+ELSEIF 依頼フラグ:70:0 == 1
+	CALL REQUEST_70_2
+ELSEIF 依頼フラグ:70:0 == 2
+	CALL REQUEST_70_3
+ELSEIF 依頼フラグ:70:0 == 3
+	CALL REQUEST_70_4
+ELSEIF 依頼フラグ:70:0 == 4
+	CALL REQUEST_70_5
+ELSEIF 依頼フラグ:70:0 == 5
+	CALL REQUEST_70_6
+ELSEIF 依頼フラグ:70:0 == 7
+	CALL REQUEST_70_7
+ELSEIF 依頼フラグ:70:0 == 8
+	CALL REQUEST_70_8
+ENDIF
+CALL FLAG_RESET,70,3
+
+;=================================================
+;   sub REQUEST_70_DAY_END
+;=================================================
+;   依頼:一日の終了
+;-------------------------------------------------
+@REQUEST_70_DAY_END
+
+PRINTFORMW The day has ended.
+
+;- 朝になる処理
+FLAG:休憩フラグ = 3
+BEGIN TURNEND
+RETURN
+

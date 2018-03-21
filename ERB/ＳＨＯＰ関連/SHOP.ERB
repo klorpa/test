@@ -1,0 +1,709 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SHOP.ERB
+;	Facility	:SHOP画面の処理など
+;
+;	Licence		:。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX			N鳥					新規作成
+;	002		2011/01/15			P					ダンジョン内調教においてASSIを排除する条件を追加
+;	003		2011/01/15			P					トリッシュのフラグ操作のタイミングをダンジョン脱出から日付変更に
+;	004		2011/01/15			Ｎ鳥				DEBUG用ショップコマンドを通常時非表示にしておくための処理を追加
+;	005		2011/02/14			P					ダンジョンイベントなどが出現時に告知するように
+;	006		2011/04/25			P					控えの表示形式を変更しつつ、色々変更
+;	007		2011/04/27			Ｎ鳥				ダンジョン内セーブロード後の探索終了時に衣装を保存するようにに
+;	006		2011/05/09			P					TARGETの危険日表示が間違っていたのを修正
+;	008		2013/11/30			ひみつ				危険日/発情中表示のコード圧縮。ハートマークで表示がずれるのを気合で修正
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+
+
+
+@EVENTSHOP
+#PRI
+;FOR LOCAL,0,CHARANUM
+;	CALL SYNC_STATUS,LOCAL
+;NEXT
+FLAG:ウィンドウメッセージスキップ = 0
+
+IF FLAG:ショップコマンド == 101
+	;フロアデータを作り直す
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	CALL DUNGEON_ATTACK
+	;---- EDIT 015 ADD START -------------------------
+	;探索に参加可能なキャラの衣装を保存
+	FOR LOCAL , 0 , CHARANUM
+		SIF CFLAG:LOCAL:戦闘参加不可能 == 1
+			CONTINUE
+		SIF (ABL:LOCAL:種族 == 0 || CFLAG:LOCAL:召喚不可 || CFLAG:LOCAL:所属ＣＯＭＰ == -1) && CFLAG:LOCAL:PTフラグ == 1
+			CONTINUE
+		CALL CLOTHES_TRAIN,LOCAL,1
+	NEXT
+	;---- EDIT 015 ADD END   -------------------------
+	;---- EDIT 002 ADD START -------------------------
+	;ここに来れないASSI及び健在でないASSIを排除する
+	IF FLAG:ダンジョン内調教 == 1
+		FLAG:ダンジョン内調教助手退避 = ASSI
+		SIF ASSI >= 0 && ABL:ASSI:種族 == 0 && CFLAG:ASSI:PTフラグ == 1
+			ASSI = -1
+		SIF ASSI >= 0 && GET_STATE(CFLAG:ASSI:ステート) != "GOOD"
+			ASSI = -1
+		BEGIN TRAIN
+	ENDIF
+	;---- EDIT 002 ADD END   -------------------------
+	;---- EDIT 003 ADD START -------------------------
+	;SIF FLAG:ダンジョン内調教 == 1
+	;	BEGIN TRAIN
+	FLAG:脱出 = 0
+;	SIF FLAG:トリッシュの泉利用回数
+;		FLAG:トリッシュの泉利用回数 = 1
+;	SIF FLAG:トリッシュ調教 >= 0
+;		FLAG:トリッシュ調教 = 0
+;	SIF FLAG:トリッシュ調教 == -1
+;		FLAG:トリッシュ調教 = -2
+	;---- EDIT 003 ADD END   -------------------------
+	FLAG:ショップコマンド = 0
+	FLAG:ソーマギフト = 0
+	FLAG:BeadChainギフト = 0
+	FOR LOCAL,0,CHARANUM
+		SIF CFLAG:LOCAL:悪魔変身 == 1
+			CALL ACTION_2310 , LOCAL , 0
+	NEXT
+	BEGIN TURNEND
+ENDIF
+
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:悪魔変身 == 1
+		CALL ACTION_2310 , LOCAL , 0
+NEXT
+FLAG:ショップコマンド = 0
+
+;-------------------------------------------------
+;売り物やショップコマンド表示
+;EVENTSHOPの実行終了後やロードやショップへRETURNしてくると実行される
+;∴セーブデータ互換などはここで行うと良い
+;訂正：@EVENTLOADの方が利便性が高い
+;-------------------------------------------------
+
+@SHOW_SHOP
+
+;---- EDIT 005 ADD START -------------------------
+FOR LOCAL, 1, 100
+	TRYCCALLFORM PREREQUISITE_DUNGEON_{LOCAL}
+		IF RESULT
+			CALLFORM GET_DUNGEON_NAME_{LOCAL}
+			IF LOCAL <= 63
+				SIF GETBIT(FLAG:ダンジョン出現1,LOCAL)
+					CONTINUE
+				SETBIT FLAG:ダンジョン出現1,LOCAL
+			ELSE
+				SIF GETBIT(FLAG:ダンジョン出現2,LOCAL - 64)
+					CONTINUE
+				SETBIT FLAG:ダンジョン出現2,LOCAL - 64
+			ENDIF
+			RESULTS = Dungeon 【%RESULTS%】 Appeared!
+			CALL MESSAGE_B(1, RESULTS)
+		ENDIF
+	CATCH
+	ENDCATCH
+NEXT
+FOR LOCAL, 1, 100
+	TRYCCALLFORM PLAYABLE_COLOSSEUM_{LOCAL}
+		IF RESULT
+			IF LOCAL <= 63
+				SIF GETBIT(FLAG:闘技場出現1,LOCAL)
+					CONTINUE
+				SETBIT FLAG:闘技場出現1,LOCAL
+			ELSE
+				SIF GETBIT(FLAG:闘技場出現2,LOCAL - 64)
+					CONTINUE
+				SETBIT FLAG:闘技場出現2,LOCAL - 64
+			ENDIF
+			RESULTS = Arena Match 【%RESULTS%】 Appeared!
+			CALL MESSAGE_B(1, RESULTS)
+		ENDIF
+	CATCH
+		
+	ENDCATCH
+NEXT
+FOR LOCAL, 1, 100
+	TRYCCALLFORM PLAYABLE_EVENT_{LOCAL}
+		IF RESULT
+			IF LOCAL <= 63
+				SIF GETBIT(FLAG:イベント出現1,LOCAL)
+					CONTINUE
+				SETBIT FLAG:イベント出現1,LOCAL
+			ELSE
+				SIF GETBIT(FLAG:イベント出現2,LOCAL - 64)
+					CONTINUE
+				SETBIT FLAG:イベント出現2,LOCAL - 64
+			ENDIF
+			RESULTS = Event 【%RESULTS%】 Appeared!
+			CALL MESSAGE_B(1, RESULTS)
+		ENDIF
+	CATCH
+	ENDCATCH
+NEXT
+FOR LOCAL, 1, 100
+	TRYCCALLFORM PLAYABLE_REQUEST_{LOCAL}
+		IF RESULT
+			IF LOCAL <= 63
+				SIF GETBIT(FLAG:依頼出現1,LOCAL)
+					CONTINUE
+				SETBIT FLAG:依頼出現1,LOCAL
+			ELSE
+				SIF GETBIT(FLAG:依頼出現2,LOCAL - 64)
+					CONTINUE
+				SETBIT FLAG:依頼出現2,LOCAL - 64
+			ENDIF
+			RESULTS = Request 【%RESULTS%】 Appeared!
+			CALL MESSAGE_B(1, RESULTS)
+		ENDIF
+	CATCH
+		
+	ENDCATCH
+NEXT
+CALL CHECK_TARGET_PAYMENT()
+;---- EDIT 005 ADD END   -------------------------
+CUSTOMDRAWLINE =
+LOCAL:1 = 0
+VARSET TFLAG, 0, 100, 1000
+SIF FLAG:控え表示位置 == 0 && FLAG:控え利用設定 < 2
+	CALL SHOW_SUB_TARGET
+;ショップ画面の描写
+CALL SHOW_SHOP_INFO
+
+CALL ENTRY_EQUIPMENT_COMPENDIUM
+
+FOR LOCAL, 100, 1000
+	RESULTS = 
+	TRYCCALLFORM SHOPCOMABLE_{LOCAL}
+		IF RESULT > 0
+			TFLAG:LOCAL = 1
+			IF RESULTS != ""
+					PRINTFORMLC [{LOCAL}] - %RESULTS%
+			ENDIF
+		ELSEIF RESULT == -1
+;			LOCAL:1 -= 1
+		ELSE
+			SETCOLOR 0x404040
+			IF LOCAL == 777 && FLAG:周回回数 == 0
+				PRINTFORMLC [???] - ？？？？？
+			ELSEIF LOCAL == 555 && FLAG:5 == 9
+				PRINTFORMLC [---] - ＥＭＰＴＹ
+			ELSE
+				PRINTFORMLC [{LOCAL}] - %RESULTS%
+			ENDIF
+			RESETCOLOR
+		ENDIF
+		IF RESULT >= 0
+			LOCAL:1 += 1
+			SIF LOCAL:1 % SHOPPRINTCPL() == 0
+				PRINTL 
+		ENDIF
+	CATCH
+		
+	ENDCATCH
+	IF LOCAL == 199 || LOCAL == 400
+		IF LOCAL:1 % SHOPPRINTCPL() > 0
+			LOCAL:1 = 0
+			PRINTL
+		ENDIF
+	ENDIF
+NEXT
+IF FLAG:控え表示位置 == 2 && FLAG:控え利用設定 < 2
+	SIF !LINEISEMPTY()
+		PRINTL
+	DRAWLINE
+	CALL SHOW_SUB_TARGET
+ENDIF
+;-------------------------------------------------
+;ショップコマンド実行
+;-------------------------------------------------
+@USERSHOP
+;デバッグモードON/OFF
+IF RESULT == 121162
+	IF FLAG:DEBUG == 0
+		PRINTFORML Debug mode turned ON
+		FLAG:DEBUG = 1
+	ELSEIF FLAG:DEBUG == 1
+		PRINTFORML Debug mode turned OFF
+		FLAG:DEBUG = 0
+	ENDIF
+ELSEIF RESULT >= 1000 || RESULT < 0
+	RETURN 0
+ELSEIF TFLAG:RESULT
+	FLAG:ショップコマンド = RESULT
+	TRYCALLFORM SHOP_COM_{RESULT}
+	FLAG:ショップコマンド = 0
+ELSE
+	RETURN 0
+ENDIF
+
+FOR LOCAL,0,CHARANUM
+	CALL SYNC_STATUS,LOCAL
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+
+
+
+;-------------------------------------------------
+;ショップ画面の描写
+;-------------------------------------------------
+@SHOW_SHOP_INFO
+
+LOCALS =Day {DAY} \(%AUTO_SPLIT("Morning,Daytime,Evening,Night",",",TIME)%)　%WEEKDAY(DAY%7)%
+PRINTFORM %LOCALS,26,LEFT% 
+
+IF FLAG:月齢 != 0 && FLAG:月齢 != 8
+	LOCALS = {FLAG:月齢}/8 \@ FLAG:月齢ベクトル == 0 ? ＹＯＵＮＧ # ＯＬＤ \@ ＭＯＯＮ
+ELSE
+	LOCALS = \@ FLAG:月齢 == 8 ? ＦＵＬＬ ＭＯＯＮ # ＮＥＷ ＭＯＯＮ\@
+ENDIF
+PRINTFORM %LOCALS,26,LEFT%
+
+;SIF FLAG:5 == 0 && FLAG:調教難易度 > 1
+	PRINTFORML Goal Amount:￥%TOSTR(MONEY:2, "#,###")%
+	;目標金額
+DRAWLINE
+SIF FLAG:カスタムゲーム画面
+	PRINT  
+IF TARGET >= 0
+	LOCALS = \@ CFLAG:TARGET:戦闘参加不可能 == -1 ? Target # Partner\@:%NAME:TARGET%
+	IF FLAG:カスタムゲーム画面
+		PRINTFORM %LOCALS,45,LEFT%
+	ELSE
+		PRINTFORM %LOCALS,41,LEFT%
+	ENDIF
+	CALL SHOP_危険日表示(TARGET)
+	PRINT  
+	PRINTBUTTON "[108] Change", 108
+	PRINTL
+	SIF FLAG:カスタムゲーム画面
+		PRINT 　
+	PRINT STAM 
+	CALL PRINT_COLORBAR, BASE:TARGET:体力, MAXBASE:TARGET:体力, 46, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("赤"), RESULT:1
+	PRINTFORML  ({BASE:TARGET:体力, 5}/{MAXBASE:0, 5})
+ELSE
+	SETCOLOR COLOR("light-gray")
+	PRINTFORM Partner:%"ＥＭＰＴＹ",40,LEFT%
+	PRINTBUTTON "[108] Change", 108
+	PRINTL 
+	SIF FLAG:カスタムゲーム画面
+		PRINT 　
+	PRINT STAM 
+	CALL PRINT_COLORBAR, 0, 1, 46, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("赤"), RESULT:1
+	PRINTFORML  ({0, 5}/{0, 5})
+	RESETCOLOR
+ENDIF
+FOR LOCAL, 0, CHARANUM
+	SIF !ASSI_ABLE(LOCAL)
+		CONTINUE
+	SIF CFLAG:LOCAL:フィルタリングフラグ
+		CONTINUE
+	TFLAG:109 = 1
+	BREAK
+NEXT
+SIF FLAG:カスタムゲーム画面
+	PRINT  
+IF ASSI > 0
+	IF FLAG:カスタムゲーム画面
+		PRINTFORM Assistant:%NAME:ASSI,39,LEFT%
+	ELSE
+		PRINTFORM Assistant:%NAME:ASSI,35,LEFT%
+	ENDIF
+	CALL SHOP_危険日表示(ASSI)
+	PRINT  
+	SIF !TFLAG:109
+		SETCOLOR COLOR("light-gray")
+	PRINTBUTTON "[109] Change", 109
+	PRINTL 
+	RESETCOLOR
+	SIF FLAG:カスタムゲーム画面
+		PRINT 　
+	PRINT STAM 
+	CALL PRINT_COLORBAR, BASE:ASSI:体力, MAXBASE:ASSI:体力, 46, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("赤"), RESULT:1
+	PRINTFORML  ({BASE:ASSI:体力, 5}/{MAXBASE:ASSI:0, 5})
+ELSE
+	SETCOLOR COLOR("light-gray")
+	PRINTFORM Assistant:%"ＥＭＰＴＹ",46,LEFT%
+	SIF TFLAG:109
+		RESETCOLOR
+	PRINTBUTTON "[109] Change", 109
+	PRINTL 
+	SETCOLOR COLOR("light-gray")
+	SIF FLAG:カスタムゲーム画面
+		PRINT 　
+	PRINT STAM 
+	CALL PRINT_COLORBAR, 0, 1, 46, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("赤"), RESULT:1
+	PRINTFORML  ({0, 5}/{0, 5})
+	RESETCOLOR
+ENDIF
+DRAWLINE
+SIF FLAG:控え表示位置 == 1 && FLAG:控え利用設定 < 2
+	CALL SHOW_SUB_TARGET
+;SIF MASTER >= 0
+;	PRINTFORML %CALLNAME:MASTER%:LV{BASE:MASTER:30,3,LEFT}　　MAG:{BASE:MASTER:8,8}/{MAXBASE:MASTER:8,8}
+;FOR LOCAL, 0, 4
+;	IF TARGET:LOCAL >= 0
+;		IF LOCAL == 0
+;			SIF TARGET == -1
+;				CONTINUE
+;			PRINTFORM パートナー：%NAME:TARGET%
+;		ELSE
+;			SIF FINDCHARA_ID(TARGET:LOCAL) == -1
+;				CONTINUE
+;			PRINTFORM 予備パートナー{LOCAL}：%NAME:FINDCHARA_ID(TARGET:LOCAL)%
+;		ENDIF
+;		LOCAL:1 = LOCAL? FINDCHARA_ID(TARGET:LOCAL) # TARGET
+;		SELECTCASE 危険日(LOCAL:1)
+;			CASE 1
+;				SETCOLOR 0xCC33FF
+;					CALL HEARTB
+;				PRINTFORM 危険日
+;					CALL HEARTB
+;				RESETCOLOR
+;			CASE 2
+;				SETCOLOR 0xCC33FF
+;					CALL HEARTB
+;				PRINTFORM 発情中
+;					CALL HEARTB
+;				RESETCOLOR
+;			CASE 3,-2
+;				SETCOLOR 0xCC33FF
+;					CALL HEARTB
+;				PRINTFORM 発情中
+;					CALL HEARTB
+;				RESETCOLOR
+;		ENDSELECT
+;		PRINTL
+;		CALL LIFE_BAR, LOCAL
+;	ENDIF
+;NEXT
+;SIF ASSI >= 0
+;	PRINTFORM （助手：%NAME:ASSI%）
+;
+;PRINTL
+
+LOCALS = 『%CSTR:MASTER:種族名%』 %NAME:MASTER%
+PRINTFORM %LOCALS,41,LEFT%
+CALL SHOP_危険日表示(MASTER)
+PRINTL
+IF MASTER >= 0
+	SIF FLAG:カスタムゲーム画面
+		PRINT 　
+	PRINT ＭＡＧ 
+	CALL PRINT_COLORBAR, BASE:MASTER:ＭＡＧ, MAXBASE:MASTER:ＭＡＧ, 44, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("紫"), RESULT:1
+	IF FLAG:カスタムゲーム画面
+		PRINTFORML  (%TOSTR(BASE:MASTER:ＭＡＧ, "#,##0")%/%TOSTR(MAXBASE:MASTER:ＭＡＧ, "#,###")%)
+	ELSE
+		PRINTFORML  (%TOSTR(BASE:MASTER:ＭＡＧ, "#,##0"),10%/%TOSTR(MAXBASE:MASTER:ＭＡＧ, "#,###"),10%)
+	ENDIF
+ENDIF
+
+;ＣＯＭＰ 
+LOCAL:0 = 68
+LOCAL:1 = NUM_NAKAMA()
+LOCAL:2 = ソフト容量()
+LOCAL:3 = FLAG:ＣＯＭＰ容量 - LOCAL:1 - LOCAL:2
+LOCAL:5 = LOCAL:1 + LOCAL:2 + ABS(LOCAL:3)
+LOCAL:4 = LOCAL:0 - LOCAL:5 
+IF LOCAL:5 > LOCAL:0
+	LOCAL:1 = LOCAL:1 ? MAX(1, LOCAL:1 * (LOCAL:0 + 1) / LOCAL:5) # 0
+	LOCAL:2 = LOCAL:2 ? MAX(1, LOCAL:2 * (LOCAL:0 + 1) / LOCAL:5) # 0
+	LOCAL:3 = LOCAL:3 > 0 ? MAX(1, LOCAL:3 * (LOCAL:0 + 1) / LOCAL:5) # LOCAL:3
+	LOCAL:3 = LOCAL:3 < 0 ? MIN(-1, LOCAL:3 * (LOCAL:0 + 1) / LOCAL:5) # LOCAL:3
+	LOCAL:4 = 0
+	$MIJIKASHI
+	IF LOCAL:1 + LOCAL:2 + ABS(LOCAL:3) < LOCAL:0
+		LOCAL:(FINDELEMENT(LOCAL, MAXARRAY(LOCAL, 1, 4), 1, 4)) ++
+		GOTO MIJIKASHI
+	ENDIF
+	$NAGASHI
+	IF LOCAL:1 + LOCAL:2 + ABS(LOCAL:3) > LOCAL:0
+		LOCAL:(FINDELEMENT(LOCAL, MAXARRAY(LOCAL, 1, 4), 1, 4)) --
+		GOTO NAGASHI
+	ENDIF
+ENDIF
+SIF FLAG:カスタムゲーム画面
+	PRINT  
+PRINTFORM ＣＯＭＰ 
+SIF LOCAL:1 + LOCAL:2
+	CALL PRINT_COLORBAR, LOCAL:1, LOCAL:1 + LOCAL:2, LOCAL:1 + LOCAL:2, UNICODE(0x258B), UNICODE(0x258B), 0x502020, 0x205020
+SIF LOCAL:3 >= 0 && LOCAL:3 + LOCAL:4
+	CALL PRINT_COLORBAR, LOCAL:3, LOCAL:3 + LOCAL:4, LOCAL:3 + LOCAL:4, UNICODE(0x258B), UNICODE(0x258B), 0x7070C0, GETBGCOLOR()
+SIF LOCAL:3 < 0 && -LOCAL:3 + LOCAL:4
+	CALL PRINT_COLORBAR, - LOCAL:3, - LOCAL:3 + LOCAL:4, - LOCAL:3 + LOCAL:4, UNICODE(0x258B), UNICODE(0x258B), COLOR("gray"), GETBGCOLOR()
+PRINTL
+SIF FLAG:カスタムゲーム画面
+	PRINT 　
+;仲魔：
+LOCALS = Befriended Demons:{NUM_NAKAMA()}　Software:{ソフト容量()}　ＣＯＭＰ CAP:{FLAG:ＣＯＭＰ容量}　//
+PRINTFORM %LOCALS,52,LEFT%
+PRINTFORM Money：￥%TOSTR(MONEY, "#,##0")% / %TOSTR(MONEY:1, "#,##0")% Macca
+;所持金
+PRINTL
+
+CUSTOMDRAWLINE =
+@SHOW_SUB_TARGET
+#DIM CHARA, 1
+PRINTBUTTON @"[{500}] Toggle Display ", 500
+IF !FLAG:控え格納
+	PRINTBUTTON @"[{501}] 1 Row ", 501
+	PRINTBUTTON @"[{502}] 2 Rows ", 502
+	PRINTBUTTON @"[{503}] 3 Rows ", 503
+	PRINTBUTTON @"[{504}] Position ", 504
+ENDIF
+	PRINTPLAIN 　現在の月齢：
+IF FLAG:月齢 != 0 && FLAG:月齢 != 8
+	PRINTFORML {FLAG:月齢}/8 \@ FLAG:月齢ベクトル == 0 ? ＹＯＵＮＧ # ＯＬＤ \@ ＭＯＯＮ
+ELSE
+	PRINTFORML \@ FLAG:月齢 == 8 ? ＦＵＬＬ ＭＯＯＮ # ＮＥＷ ＭＯＯＮ\@
+ENDIF
+;PRINTL 
+DRAWLINE
+TFLAG:500 = 1
+TFLAG:501 = 1
+TFLAG:502 = 1
+TFLAG:503 = 1
+TFLAG:504 = 1
+SKIPDISP FLAG:控え格納
+IF FLAG:カスタムゲーム画面
+	FOR LOCAL:1, 0, 3
+		FOR LOCAL, LOCAL:1*3+1, LOCAL:1*3+4
+			CHARA = FINDCHARA_ID(TARGET:LOCAL)
+			;マスターと失踪者とIDがないキャラはここで外す
+			IF CHARA < 0 || CFLAG:CHARA:この場に居ないフラグ || CHARA == MASTER
+			;IF CHARA < 0 || CFLAG:CHARA:この場に居ないフラグ
+				TARGET:LOCAL = -1
+				SETCOLOR COLOR("light-gray")
+				PRINTFORM %@"{LOCAL}.ＥＭＰＴＹ",42,LEFT%
+				RESETCOLOR
+			ELSE
+				PRINTFORM %@"{LOCAL}."+NAME:CHARA,36,LEFT%
+				CALL SHOP_危険日表示(CHARA)
+			ENDIF
+			PRINTS \@ LOCAL % 3 ? │ # \@
+		NEXT
+		PRINTL 
+		FOR LOCAL, LOCAL:1*3+1, LOCAL:1*3+4
+			CHARA = FINDCHARA_ID(TARGET:LOCAL)
+			IF CHARA >= 0
+				PRINT  　　 
+				CALL PRINT_COLORBAR, BASE:CHARA:体力, MAXBASE:CHARA:体力, 21, UNICODE(0x2584), UNICODE(0x2584), BARCOLORSET("赤"), RESULT:1
+				PRINTFORM  ({BASE:CHARA:体力,5}/{MAXBASE:CHARA:体力,5}) 
+			ELSE
+				SETCOLOR COLOR("light-gray")
+				PRINT  　　 
+				CALL PRINT_COLORBAR, 0, 1, 21, UNICODE(0x2584), UNICODE(0x2584), BARCOLORSET("赤"), RESULT:1
+				PRINTFORM  (    0/    0) 
+				RESETCOLOR
+			ENDIF
+			SIF LOCAL % 3 > 0
+				PRINT │
+		NEXT
+		PRINTL 
+		FOR LOCAL, LOCAL:1*3+1, LOCAL:1*3+4
+			CHARA = FINDCHARA_ID(TARGET:LOCAL)
+			IF CHARA < 0 || TARGET == CHARA || !PARTNER_ABLE(CHARA)
+				SETCOLOR COLOR("light-gray")
+			ELSE
+				TFLAG:(510+LOCAL) = 1
+			ENDIF
+			PRINTBUTTON @" 　　　　[{510+LOCAL}] TRNG ", 510+LOCAL
+			;調教
+			RESETCOLOR
+			IF CHARA <= 0 || ASSI == CHARA || !ASSI_ABLE(CHARA)
+				SETCOLOR COLOR("light-gray")
+			ELSE
+				TFLAG:(520+LOCAL) = 1
+			ENDIF
+			PRINTBUTTON @"[{520+LOCAL}] ASST ", 520+LOCAL
+			;助手
+			RESETCOLOR
+			PRINTBUTTON @"[{530+LOCAL}] CHNG ", 530+LOCAL
+			TFLAG:(530+LOCAL) = 1
+			SIF LOCAL % 3 > 0
+				PRINT │
+		NEXT
+		PRINTL 
+		IF LOCAL:1 == 2
+			DRAWLINE
+		ELSE
+			DRAWLINE
+			;PRINTFORML %"─"*17 + "┼" + "─"*17 +"┼" + "─"*17%
+		ENDIF
+		SIF LOCAL:1 == FLAG:控え表示人数
+			BREAK
+	NEXT
+ELSE
+	FOR LOCAL:1, 0, 3
+		FOR LOCAL, LOCAL:1*3+1, LOCAL:1*3+4
+			CHARA = FINDCHARA_ID(TARGET:LOCAL)
+			;マスターと失踪者とIDがないキャラはここで外す
+			IF CHARA < 0 || CFLAG:CHARA:この場に居ないフラグ || CHARA == MASTER
+			;IF CHARA < 0 || CFLAG:CHARA:この場に居ないフラグ
+				TARGET:LOCAL = -1
+				SETCOLOR COLOR("light-gray")
+				PRINTFORM %@"No.{LOCAL}:ＥＭＰＴＹ",34,LEFT%
+				RESETCOLOR
+			ELSE
+				PRINTFORM %@"No.{LOCAL}:"+NAME:CHARA,24,LEFT%
+				CALL SHOP_危険日表示(CHARA)
+			ENDIF
+			PRINTS \@ LOCAL % 3 ? │ # \@
+		NEXT
+		PRINTL 
+		FOR LOCAL, LOCAL:1*3+1, LOCAL:1*3+4
+			CHARA = FINDCHARA_ID(TARGET:LOCAL)
+			IF CHARA >= 0
+				PRINT STAM 
+				CALL PRINT_COLORBAR, BASE:CHARA:体力, MAXBASE:CHARA:体力, 14, UNICODE(0x2584), UNICODE(0x2584), BARCOLORSET("赤"), RESULT:1
+				PRINTFORM  ({BASE:CHARA:体力,5}/{MAXBASE:CHARA:体力,5}) 
+			ELSE
+				SETCOLOR COLOR("light-gray")
+				PRINT STAM 
+				CALL PRINT_COLORBAR, 0, 1, 14, UNICODE(0x2584), UNICODE(0x2584), BARCOLORSET("赤"), RESULT:1
+				PRINTFORM  (    0/    0) 
+				RESETCOLOR
+			ENDIF
+			SIF LOCAL % 3 > 0
+				PRINT │
+		NEXT
+		PRINTL 
+		FOR LOCAL, LOCAL:1*3+1, LOCAL:1*3+4
+			CHARA = FINDCHARA_ID(TARGET:LOCAL)
+			IF CHARA < 0 || TARGET == CHARA || !PARTNER_ABLE(CHARA)
+				SETCOLOR COLOR("light-gray")
+			ELSE
+				TFLAG:(510+LOCAL) = 1
+			ENDIF
+			PRINTBUTTON @" [{510+LOCAL}] TRNG ", 510+LOCAL
+			;調教
+			RESETCOLOR
+			IF CHARA <= 0 || ASSI == CHARA || !ASSI_ABLE(CHARA)
+				SETCOLOR COLOR("light-gray")
+			ELSE
+				TFLAG:(520+LOCAL) = 1
+			ENDIF
+			PRINTBUTTON @"[{520+LOCAL}] ASST ", 520+LOCAL
+			; 助手
+			RESETCOLOR
+			PRINTBUTTON @"[{530+LOCAL}] CHNG ", 530+LOCAL
+			;変更
+			TFLAG:(530+LOCAL) = 1
+			SIF LOCAL % 3 > 0
+				PRINT │
+		NEXT
+		PRINTL 
+		IF LOCAL:1 == 2
+			DRAWLINE
+		ELSE
+			DRAWLINE
+			;PRINTFORML %"─"*17 + "┼" + "─"*17 +"┼" + "─"*17%
+		ENDIF
+		SIF LOCAL:1 == FLAG:控え表示人数
+			BREAK
+	NEXT
+ENDIF
+SKIPDISP 0
+
+@SHOP_COM_500
+INVERTBIT FLAG:控え格納, 0
+@SHOP_COM_501
+FLAG:控え表示人数 = 0
+@SHOP_COM_502
+FLAG:控え表示人数 = 1
+@SHOP_COM_503
+FLAG:控え表示人数 = 2
+@SHOP_COM_504
+SIF FLAG:控え表示位置++ == 2
+	FLAG:控え表示位置 = 0
+
+@SHOP_危険日表示(ARG)
+IF FLAG:カスタムゲーム画面
+	IF ARG != MASTER && CHECK_CHILD_CARE(ARG) && FLAG:出産機能ONOFF
+		SETCOLOR 0xCC33FF
+		PRINT Nursery
+		RESETCOLOR
+	ELSEIF ARG == MASTER && CHECK_CHILD_CARE(ARG) && FLAG:出産機能ONOFF && !GROUPMATCH(危険日(ARG), -2, 2, 3)
+		SETCOLOR 0xCC33FF
+		PRINT Nursery
+		RESETCOLOR
+	ELSEIF GROUPMATCH(危険日(ARG), -2, 1, 2, 3)
+		IF TALENT:ARG:妊娠 && 危険日(ARG) == 1
+			SETCOLOR 0xCC33FF
+			PRINT Pregnant
+			RESETCOLOR
+		ELSE
+			SETCOLOR 0xCC33FF
+			IF 危険日(ARG) == 1
+				PRINT Danger Day
+			ELSE
+				PRINT In Heat
+			ENDIF
+			RESETCOLOR
+		ENDIF
+	ELSEIF TALENT:ARG:妊娠
+		SETCOLOR 0xCC33FF
+		PRINT Pregnant
+		RESETCOLOR
+	ELSE
+		PRINT 　　　
+	ENDIF
+ELSE
+	IF ARG != MASTER && CHECK_CHILD_CARE(ARG) && FLAG:出産機能ONOFF
+		PRINT ［Nursery］
+	ELSEIF ARG == MASTER && CHECK_CHILD_CARE(ARG) && FLAG:出産機能ONOFF && !GROUPMATCH(危険日(ARG), -2, 2, 3)
+		PRINT ［Nursery］
+	ELSEIF GROUPMATCH(危険日(ARG), -2, 1, 2, 3)
+		IF TALENT:ARG:妊娠 && 危険日(ARG) == 1
+			PRINT （Pregnant）
+		ELSE
+			IF CHKFONT("MS UI Gothic")
+				LOCALS '= GETFONT()
+				SETFONT "MS UI Gothic"
+				PRINTFORM %UNICODE(0x2004) * 2%%UNICODE(0x200A) * 2%
+				SETFONT LOCALS
+			ENDIF
+			SETCOLOR 0xCC33FF
+			CALL HEARTB
+			IF 危険日(ARG) == 1
+				PRINT Danger Day
+			ELSE
+				PRINT In Heat
+			ENDIF
+			CALL HEARTB
+			RESETCOLOR
+		ENDIF
+	ELSEIF TALENT:ARG:妊娠
+		PRINT （Pregnant）
+	ELSE
+		PRINT 　　　　　
+	ENDIF
+ENDIF
+
+;=================================================
+;セーブ
+;=================================================
+@SHOPCOMABLE_200
+RESULTS = Save
+RETURN 1
+
+@SHOP_COM_200
+CALL TITLE_SAVEGAME
+
+
+
+;=================================================
+;ロード
+;=================================================
+@SHOPCOMABLE_300
+RESULTS = Load
+RETURN 1
+
+@SHOP_COM_300
+CALL TITLE_LOADGAME

@@ -1,0 +1,5804 @@
+;-------------------------------------------------
+;ジャック・オ・ランタン口上
+;ふわふわ浮いてるかわいいやつ目当ての人にはお勧めできない
+;第4回eraイベント参加
+;--------------------------------------------------
+
+
+;--------------------------------------------------
+;ライセンスについて
+;	・基本項目(許可する項目を"○"に、許可しない項目を"×"に変更してください。)
+;	+----+----+-------------------------------+
+;	|番号|許可|ライセンス内容                 |
+;	+----+----+-------------------------------+
+;	|   1| ○ | 処理上のバグ修正              |
+;	+----+----+-------------------------------+
+;	|   2| ○ | 口上の誤字・脱字の修正        |
+;	+----+----+-------------------------------+
+;	|   3| ○ | 口上まとめへの収録            |
+;	+----+----+-------------------------------+
+;	|   4| × | 口上の新規追加                |
+;	+----+----+-------------------------------+
+;	|   5| × | 既存口上の改変                |
+;	+----+----+-------------------------------+
+;	|   6| ○ | 改変した口上の自由な再配布    |
+;	+----+----+-------------------------------+
+;	|   7| ○ | 口上内容の転載                |
+;	+----+----+-------------------------------+
+
+;・これを基にして他の口上をなんかするのは構わないんですが
+;　この口上そのものを改変するのはやめてくださいお願いします
+;　改変再配布は別人版として配布してください
+;--------------------------------------------------
+
+;============================================================================
+;2015/08/19		キョート市民		eraイベントに合わせて投下
+;									できてるとこだけにしたらだいぶ軽くなった
+;============================================================================
+
+;--------------------------------------------------
+;口上セレクト機能：口上説明
+;--------------------------------------------------
+;この関数のコメントアウトを外すと、口上の選択時に選択肢として候補にあがります
+;既に口上のあるキャラや会話タイプの別版の口上を作成する時に利用してください
+;その際、この関数を含めたこのファイル内の関数名すべてに_任意の1-49(汎用口上なら1-9)の数字を加えてください
+;例： EVENTTRAIN_K513_2 → EVENTTRAIN_K513_2_12
+;--------------------------------------------------
+@セレクト口上説明_K513_2,ARG = 0
+SIF ARG == 1
+	RETURN 0
+;口上名
+PRINTFORML ジャックランタン（ヒーホーでない）口上
+;口上説明文
+PRINTFORML    
+PRINTFORML    「やあ。俺、鬼火のジャック」
+PRINTFORML    「地獄行きは免れたけれど、天国からも門前払いで、行く場所がないのさ」
+
+;--------------------------------------------------
+;EVENTTRAIN関係
+;調教開始時のセリフ CFLAG 201～219を使用
+;--------------------------------------------------
+@EVENTTRAIN_K513_2
+;--------------------------------------------------
+;エキストラモード構文　CFLAG:220を使用
+;はいを選択した時に初調教時に口上設定用の素質に変更できます
+;--------------------------------------------------
+IF CFLAG:220 == 0
+	PRINTL この口上は素質変更が前提の口上です
+	PRINTW この口上に合うように素質を変更しますか？
+	PRINTL 
+	PRINTL [0] 想定素質・服装に変更する
+	PRINTL [1] 素質を変更しない
+	;PRINTL [2] 汎用口上を適用する
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 0
+		PRINTFORMW ―素質を変更して調教を開始します―
+		TALENT:小柄体型 = 0
+		;ワイシャツ
+		CFLAG:初期服 = 121
+		CFLAG:服 = 121
+		TEQUIP:服 = 121
+		;ズボン
+		CFLAG:初期下衣 = 204
+		CFLAG:下衣 = 204
+		TEQUIP:下衣 = 204
+		;手袋
+		CFLAG:初期手 = 401
+		CFLAG:手 = 401
+		TEQUIP:手 = 401
+		;トランクス
+		CFLAG:初期下着（下） = 606
+		CFLAG:下着（下） = 606
+		TEQUIP:下着（下） = 606
+		;ブーツ
+		CFLAG:初期靴 = 901
+		CFLAG:靴 = 901
+		TEQUIP:靴 = 901
+		
+		PRINTL 
+		PRINTW 口上内素質変化イベントを発生させますか？
+		PRINTL 
+		PRINTL [0] 発生させる
+		PRINTL [1] 素質を変化させない
+		$INPUT_LOOP2
+		INPUT
+		IF RESULT == 0
+			CFLAG:220 = 2
+		ELSEIF RESULT == 1
+			CFLAG:220 = 1
+		ELSE
+			GOTO INPUT_LOOP2
+		ENDIF
+	ELSEIF RESULT == 1
+		PRINTFORMW ―通常素質で調教を開始します―
+		CFLAG:220 = 1
+	;ELSEIF RESULT == 2
+		;PRINTFORMW ―汎用口上で調教を開始します―
+		;CFLAG:口上セレクト = -1
+		;TRYJUMPFORM EVENTTRAIN_PUB{ABL:会話タイプ}
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+
+	CALLNAME = 鬼火のジャック
+	CSTR:一人称 = 俺
+	;二人称も変えたいけど保留
+ENDIF
+
+;--------------------------------------------------
+;簡易助手口上の発動時に初調教時口上をスキップ
+;複数人いる際には、SIF NO:ASSI == Y1 || NO:ASSI == Z1と追加していく
+;--------------------------------------------------
+;IF CFLAG:201 == 0 && ASSI > 0
+;	SIF NO:ASSI == Y1
+;		CFLAG:201 =1
+;ENDIF
+;-------------------------------------------------
+;調教開始時（一回のみ） CFLAG201
+;-------------------------------------------------
+DRAWLINE
+;初調教時
+IF CFLAG:201 == 0
+	PRINTFORMW 古ぼけたランタンを携えた、にこにこ笑う赤毛の男が座っている。
+	PRINTL 
+	PRINTFORML 「やあ。%CSTR:一人称%、鬼火のジャック」
+	PRINTFORMW 「地獄行きは免れたけれど、天国からも門前払いで、行く場所がないのさ」
+	PRINTL 
+	PRINTFORML 「見た目が妙だって？　あれ、%CSTR:二人称%は知らないのかい」
+	PRINTFORMW 「いつの間にかあんな形になってたけれど、もともとは人間なんだぜ、%CSTR:一人称%」
+	PRINTL 
+	PRINTFORML 「それにしたって、ずいぶん狭い部屋だなあ」
+	PRINTFORMW 「なんの用だい？　博打ならけっこう得意なんだけれど」
+	PRINTL 
+	PRINTFORML 「へえ、調教。…… ……」
+ENDIF
+IF CFLAG:201 == 0 && TALENT:恋慕 == 0
+	PRINTFORMW 「悪いんだけれどもう一回言ってくれるかい。ちょっと耳の具合が悪くて」
+	PRINTL 
+	PRINTFORML 「……ううん、このまま聞き返し続ければいけるかな、と思ったけれど、無理かあ」
+	PRINTFORMW 「さてはて、どうしたものかな」
+	PRINTL 
+	PRINTFORML 「よし、それじゃあこうしよう」
+	PRINTFORMW 「別に調教してくれてかまわないけれど、%CSTR:一人称%が10日耐えたらそれでおしまいっていうのは……」
+	PRINTFORMW 「……あ、やっぱり駄目？」
+	CFLAG:201 = 1
+	RETURN 0
+;屈服刻印Lv1
+ELSEIF CFLAG:201 < 2 && MARK:2 == 1
+	PRINTFORMW ランタンには明かりが灯っている。
+	PRINTL 
+	;快楽による刻印
+	IF CFLAG:800 == 11
+		PRINTFORML 「ううん……素直に気持ちのいいことをされると、ちょっと、困るな」
+		PRINTFORMW 「なんていうか、力いっぱい抵抗しなくていいんじゃないかな、みたいな気分になる」
+		PRINTL 
+		PRINTFORML 「だからといって、調教されてもいいってわけじゃないけれど」
+		PRINTFORMW 「これはあれかな？　根競べってやつ？」
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 21
+		PRINTFORML 「前のあれはやめてほしい」
+		PRINTFORMW 「ほんとうにね、そういうのは%CSTR:一人称%がやる側だと思うんだ」
+		PRINTL 
+		PRINTFORML 「……イヤなんだよ」
+		PRINTFORMW 「ああいうこと以外だったら、まあ、協力しないでもないから」
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 31
+		PRINTFORML 「なんてことを……なんてことを……」
+		PRINTFORMW 「%CSTR:一人称%に、忠誠を誓えっていうのかい？」
+		PRINTL 
+		PRINTFORML 「……直接痛い目にあうわけじゃないから、ましかなあ」
+		PRINTFORMW 「ううん、いや、でも、積極的にしたいことじゃないか」
+	ENDIF
+	PRINTL 
+	PRINTFORMW まだ抵抗する気力はあるようだ。
+	CFLAG:201 = 2
+	RETURN 0
+;屈服刻印Lv2
+ELSEIF CFLAG:201 < 3 && MARK:2 == 2
+	PRINTFORMW ランタンには明かりが灯っている。
+	PRINTL 
+	;快楽による刻印
+	IF CFLAG:800 == 12
+		PRINTFORML 「順調に、とりかえしのつかないことになっているなあ」
+		PRINTFORMW 「気持ちいいのは確かだし、このまま……」
+		PRINTL 
+		PRINTFORML 「……い、いやいや。なにを血迷っているんだ」
+		PRINTFORMW 「まだ！　まだ負けてない！」
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 22
+		PRINTFORML 「あああもう、ああいうことはほんとうに、イヤなんだって」
+		PRINTFORMW 「お化けを脅かして楽しいかい？　悪魔を虐めて楽しいかい？」
+		PRINTL 
+		PRINTFORML 「……楽しいだろうね！　%CSTR:一人称%だってやる側のときは楽しかったさ！」
+		PRINTFORMW 「だからほんとうに、勘弁してほしいんだけれど……」
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 32
+		PRINTFORML 「人の命令に従わされるなんて、自分の身におこるとイヤなものだね」
+		PRINTFORMW 「…… …… …… ……」
+		PRINTL 
+		PRINTFORML 「%CSTR:一人称%はけっこう、よくやった方だと思うけれど」
+		PRINTFORMW 「%CSTR:一人称%にこれ以上なにをしろっていうんだい？」
+	ENDIF
+	PRINTL 
+	PRINTFORMW かなり揺らいでいるようだ。
+	CFLAG:201 = 3
+	RETURN 0
+;屈服刻印Lv3
+ELSEIF CFLAG:201 < 4 && MARK:2 == 3 && !陥落(TARGET)
+	PRINTFORMW ランタンの炎は不安定に揺れている。
+	PRINTL 
+	;快楽による刻印
+	IF CFLAG:800 == 13
+		PRINTFORML 「……や、やっぱり、もう駄目みたいだ」
+		;快楽刻印3
+		SIF MARK:1 == 3
+			PRINTFORML 「生きてたときだって、あんなに気持ちのいいことなんてなかった……」
+		PRINTFORMW 「あんなことされて、どうやって正気でいろっていうのさ？」
+		PRINTL 
+		PRINTFORML 「……それで、ええと、するんだよね？　今日も」
+		PRINTFORMW 「もっとすごいの、期待してもいいのかな……」
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 23
+		PRINTFORML 「…… …… …… ……」
+		;苦痛刻印3
+		SIF MARK:0 == 3
+			PRINTFORML 「…… ……まだ、痛みが、とれない」
+		PRINTFORMW 「イヤだっていったじゃないか……ふふ……」
+		PRINTL 
+		PRINTFORML 「なにをいっても、結局%CSTR:二人称%は、%CSTR:二人称%のしたいことしかしないんだろうね」
+		PRINTFORMW 「いいよ。かまわない。%CSTR:二人称%の好きにするといいさ……」
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 33
+		PRINTFORML 「やあ、また来たね」
+			;奉仕精神3以上
+			SIF ABL:TARGET:7 >= 3
+			PRINTFORML 「最近はどうも、%CSTR:二人称%の喜ぶ顔も楽しみになってきたよ」
+		PRINTFORMW 「別段なにをしたっていいけれど、ほどほどにしてほしいかな」
+		PRINTL 
+		PRINTFORML 「……なんだい？　%CSTR:一人称%が素直でおかしいかい？」
+		PRINTFORMW 「そりゃあ%CSTR:二人称%、ここまでされてこたえないわけないだろう」
+	ENDIF
+	PRINTL 
+	PRINTFORMW 抵抗をほとんど諦めたようだ。
+	CFLAG:201 = 4
+	RETURN 0
+;陥落
+ELSEIF CFLAG:201 < 5 && (TALENT:3 || TALENT:4 || TALENT:5)
+	;恋慕
+	IF TALENT:3
+		IF CFLAG:未調教陥落 == 1
+			;調教せずに恋慕をつけた場合
+			PRINTFORMW 「なんてこった！　願ってもない！」
+			PRINTL 
+			PRINTFORML 「つまり、そう、%CSTR:二人称%に触ったり%CSTR:一人称%が触られたりできるってことだ」
+			PRINTFORMW 「ど、どうしよう、子供でもないのにドキドキしてきたぞ……」
+			PRINTL 
+			IF TALENT:MASTER:男の娘 == 1 || TALENT:MASTER:オトコ == 1
+				PRINTFORML 「しかし困った、あいにく女遊びしか経験がないんだ」
+				PRINTFORMW 「もし気に入らないことがあったら言ってくれよ」
+			ELSE
+				PRINTFORML 「うん、ちゃんとやさしくしよう、やさしく」
+				PRINTFORMW 「騙したり痛がらせたりするばっかりじゃいけないな」
+			ENDIF
+			PRINTL 
+			PRINTFORML 「嬉しいなあ。こんなに嬉しかったことなんて、そうないぞ」
+			PRINTFORMW 「こんなことなら、天国にも地獄にも行けなくて良かったかもしれない！」
+			PRINTL 
+			PRINTFORMW ランタンの中でくるくると炎が飛び回っている……
+		ELSE
+			PRINTFORMW ランタンは柔らかな光で部屋を照らしている。
+			PRINTL 
+			PRINTFORML 「やあ、来たね」
+			PRINTFORMW 「待ってたよ」
+			PRINTL 
+			PRINTFORML 「実をいうとね、調教っていうのはわかってるんだけれど、どうも、」
+			PRINTFORMW 「……好きになった、のかなあ。%CSTR:二人称%のこと」
+			IF TALENT:MASTER:男の娘 == 1 || TALENT:MASTER:オトコ == 1
+				PRINTFORMW 「それはもう、男同士なんて気にならないぐらいには」
+			ELSE
+				PRINTFORMW 「ちょっとおかしいなあ、とは自分でも思うよ」
+			ENDIF
+			PRINTL 
+			PRINTFORML 「うん。%CSTR:二人称%が%CSTR:一人称%をどう思ってても、%CSTR:一人称%は%CSTR:二人称%が好きなんだ」
+			PRINTFORMW 「迷惑だろうけれど、それこそ利用でもなんでもしてくれよ」
+		ENDIF
+	;淫乱
+	ELSEIF TALENT:4
+		PRINTFORMW ランタンの炎はごうごうと燃え盛っている……
+		PRINTL 
+		PRINTFORML 「やあ、%CSTR:二人称%か」
+		PRINTFORMW 「……悪いんだけれど、服を脱がせてくれないかい」
+		PRINTL 
+		PRINTFORML 「うん、その、自分で脱ごうとすると、ちょっとね」
+		PRINTFORMW 「擦れるだけで力が抜けて、脱ぐどころじゃなくてさ……」
+		PRINTL 
+		PRINTFORML 「まったく、頭のおかしい感度にしてくれたね」
+		PRINTFORMW 「……それで、今日はどうするんだい？」
+		PRINTL 
+		SIF HAVE_PENIS(MASTER)
+			PRINTFORML 「フェラ？　手コキ？　素股？」
+		SIF TALENT:MASTER:処女
+			PRINTFORML 「%CSTR:一人称%ので処女喪失でもしてみるかい？」
+		SIF TALENT:MASTER:処女 == 0 && (TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘 == 0)
+			PRINTFORML 「肉バイブってやつにでもされるのかな？」
+		SIF EXP:MASTER:Ａ経験 > 0
+			PRINTFORML 「後ろを攻められたいとか？」
+		SIF HAVE_PENIS(MASTER) && ABL:Ａ感覚 >= 3
+			PRINTFORML 「%CSTR:一人称%の尻でも精液漬けにしたり？」
+		PRINTFORMW 「……ああ、ほんとうに、楽しみでしょうがないよ」
+	;服従
+	ELSEIF TALENT:5
+		PRINTFORMW ランタンの炎は青白く燃えている……
+		PRINTL 
+		;PRINTFORML 「わあいご主人さま　%CSTR:一人称%ご主人さまだいすき」
+		PRINTFORML 「……やあ。ご機嫌いかがかな？」
+		PRINTFORMW 「なんだいその顔は」
+		PRINTL 
+		PRINTFORML 「敬語なんて性に合わないから、せめて挨拶ぐらい丁寧にしておこうと思ったんだけれど」
+		PRINTFORMW 「気に入らなかったかい？　ふむ、研究の余地はあるなあ」
+		PRINTL 
+		PRINTFORML 「それは今後の課題として、今日はどうするのかな」
+		PRINTFORMW 「なんでも……うん、なんでもするよ。%CSTR:一人称%にできないことは、できるようになるから」
+		;PRINTL 
+		;PRINTFORMW 「……あと、できたら、たっぷりいたぶってほしい」
+	ENDIF
+	CFLAG:201 = 5
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;簡易助手口上 CFLAG203-204
+;掛け合いをするキャラを増やす場合は、構文をコピー＆ペーストをして、CFLAGの数を204、205と増やす
+;趣味しかないからコメントアウト
+;-------------------------------------------------
+;助手の有無をチェック（いない場合は二回目以降へ飛ぶ）
+IF ASSI < 0 
+	CALL EVENTTRAIN_SECOND_K513_2
+;助手ジャックフロスト
+;ELSEIF NO:ASSI == 512
+	;初めて
+;	IF CFLAG:203 == 0
+;		PRINTFORMW 「やあ、雪だるまのジャック。元気そうだね」
+;		PRINTL 
+;		PRINTFORMW 『お、お、オマエダレだホー！？』
+;		PRINTL 
+;		PRINTFORML 「見てのとおりの、鬼火のジャックだとも」
+		;陥落済み＋陥落時初口上が発生済み
+;		IF 陥落(TARGET) && CFLAG:201 >= 5
+;			PRINTFORMW 「楽しくやろうよ、兄弟」
+		;それ以外
+;		ELSE
+;			PRINTFORMW 「ところで兄弟、ここから逃げる方法なんてのは、知らないのかな？」
+;		ENDIF
+;		CFLAG:203 = 1
+	;二回目以降
+;	ELSEIF CFLAG:203 < 2 || FLAG:7 ==2
+		;陥落済み
+;		IF 陥落(TARGET)
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;		CFLAG:203 = 2
+;	ENDIF
+;助手キャベツ
+;ELSEIF NO:ASSI == 4625
+	;初めて
+;	IF CFLAG:204 == 0
+;		PRINTFORMW 「やあ、あんた、%CSTR:一人称%と似たようなにおいがするね」
+;		PRINTL 
+;		PRINTFORMW 『……ケンカ売ってんの？』
+;		PRINTL 
+;		PRINTFORML 「いやあ、まさか、そんなことはないよ」
+		;陥落済み＋陥落時初口上が発生済み
+;		IF 陥落(TARGET) && CFLAG:201 >= 5
+;			PRINT 「なんだかんだでたぶらかされそうな
+		;それ以外
+;		ELSE
+;			PRINT 「騙して丸め込んでも結局うまくいかなそうな
+;		ENDIF
+;		PRINTW ところが、似てるなあって」
+;		PRINTL 
+;		PRINTFORMW 『……もう一回聞くけど、ケンカ売ってるだろ』
+;		CFLAG:204 = 1
+	;二回目以降
+;	ELSEIF CFLAG:204 < 2 || FLAG:7 ==2
+		;陥落済み
+;		IF 陥落(TARGET)
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;		CFLAG:204 = 2
+;	ENDIF
+;口上のある助手が居ない場合は、通常の二回目以降の口上へ飛ぶ
+ELSE
+	CALL EVENTTRAIN_SECOND_K513_2
+ENDIF
+
+;-------------------------------------------------
+;調教開始時（2回目以降）
+;-------------------------------------------------
+@EVENTTRAIN_SECOND_K513_2
+;反発刻印Lv3＋陥落素質無し
+IF MARK:3 == 3 && !陥落(TARGET) && (CFLAG:202 < 4 || FLAG:7 == 2)
+	PRINTFORMW ランタンの炎はどす黒く、くすぶっている……
+	PRINTL 
+	IF RAND:3 == 0
+		PRINTFORML 「燃やされたいらしいね、%CSTR:二人称%」
+		PRINTFORMW 「……はあ」
+	ELSEIF RAND:2 == 0
+		PRINTFORML 「自分がなにをしたかわかってるのかな」
+		PRINTFORMW 「反省すべき、なんてこというつもりはないよ。でもねえ」
+	ELSE
+		PRINTFORML 「そりゃあ反発ぐらいするさ、意思はあるもの」
+		PRINTFORMW 「早いところ落ち着かせてくれないかな」
+	ENDIF
+	CFLAG:202 = 4
+;屈服刻印Lv0
+ELSEIF MARK:2 == 0 && (CFLAG:202 < 1 || FLAG:7 == 2)
+	PRINTFORMW ランタンには明かりが灯っている。
+	PRINTL 
+	IF RAND:3 == 0
+		PRINTFORML 「ああ、退屈だなあ」
+		PRINTFORMW 「賭場にでも行きたいよ」
+	ELSEIF RAND:2 == 0
+		PRINTFORML 「ううん、眠い」
+		PRINTFORMW 「寝ていたいんだけれど、駄目？　駄目か」
+	ELSE
+		PRINTFORML 「まだやる気なのかい？」
+		PRINTFORMW 「……そうか」
+	ENDIF
+	CFLAG:202 = 1
+;屈服刻印Lv1
+ELSEIF MARK:2 == 1 && (CFLAG:202 < 2 || FLAG:7 == 2)
+	PRINTFORMW ランタンには明かりが灯っている。
+	PRINTL 
+	;調教方法について
+	;挑発
+	;その他（今のところコンパチ）
+	;快楽による刻印
+	IF CFLAG:800 == 11
+		IF RAND:3 == 0
+			PRINTFORML 「そういうやりかたは、悪くないのかもしれないね」
+			PRINTFORMW 「反発されないほうがよっぽど楽だろうし」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「男の体をまさぐって楽しいかい？」
+			PRINTFORMW 「……はは、冗談だよ」
+		ELSE
+			PRINTFORML 「%CSTR:一人称%に手を出すなんて、よっぽどひまらしい」
+			PRINTFORMW 「もっとかわいい女の子のほうがよくないかな」
+		ENDIF
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 21
+		IF RAND:3 == 0
+			PRINTFORML 「そういうやりかたは嫌いだな」
+			PRINTFORMW 「ただの拷問じゃないか……」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「男を痛めつけて楽しいかい？」
+			PRINTFORMW 「……はは、冗談だよ」
+		ELSE
+			PRINTFORML 「%CSTR:一人称%に手を出すなんて、よっぽどひまらしい」
+			PRINTFORMW 「もっとかわいい女の子のほうがよくないかな」
+		ENDIF
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 31
+		IF RAND:3 == 0
+			PRINTFORML 「そういうやりかたは……どうなんだろう」
+			PRINTFORMW 「ものすごく悔しい気分になるよ」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「ひとを従わせて楽しいかい？」
+			PRINTFORMW 「……はは、冗談だよ」
+		ELSE
+			PRINTFORML 「%CSTR:一人称%に手を出すなんて、よっぽどひまらしい」
+			PRINTFORMW 「もっとかわいい女の子のほうがよくないかな」
+		ENDIF
+	ENDIF
+	CFLAG:202 = 2
+;屈服刻印Lv2
+ELSEIF MARK:2 == 2 && (CFLAG:202 < 3 || FLAG:7 == 2)
+	PRINTFORMW ランタンには明かりが灯っている。
+	PRINTL 
+	;調教方法について
+	;マジやめて
+	;その他
+	;快楽による刻印
+	IF CFLAG:800 == 12
+		IF RAND:3 == 0
+			PRINTFORML 「またああやって、ひとを手籠めにしようっていうのかい？」
+			PRINTFORMW 「イヤじゃなくなってきてるのがイヤなんだよな……」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「まだ負けてない……まだ……」
+			PRINTFORMW 「……いまからでもやめる気は、……ないか」
+		ELSE
+			PRINTFORML 「気持ちいいことって抵抗しづらいんだよ……」
+			PRINTFORMW 「%CSTR:一人称%なんかは昔があれだったから余計に……」
+		ENDIF
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 22
+		IF RAND:3 == 0
+			PRINTFORML 「また酷い真似をしようっていうのかい？」
+			PRINTFORMW 「……もう罵倒も出てこないよ」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「もしかして、躾のつもりなのかい……？」
+			PRINTFORMW 「……いまからでも手加減する気は、……ないか」
+		ELSE
+			PRINTFORML 「…… ……」
+			PRINTFORMW 「もうイヤだよう……」
+		ENDIF
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 32
+		IF RAND:3 == 0
+			PRINTFORML 「またあんなことをさせるつもりかい？」
+			PRINTFORMW 「ははは、まったくいい根性だね」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「まだ負けてない……まだ……」
+			PRINTFORMW 「……いまからでもやめる気は、……ないか」
+		ELSE
+			PRINTFORML 「しかし、%CSTR:二人称%も飽きないね」
+			PRINTFORMW 「侍らせるなら%CSTR:一人称%よりかわいい女の子がおすすめだけれど？」
+		ENDIF
+	ENDIF
+	CFLAG:202 = 3
+;屈服刻印Lv3＋陥落素質無し
+ELSEIF MARK:2 == 3 && !陥落(TARGET) && (CFLAG:202 < 4 || FLAG:7 == 2)
+	PRINTFORMW ランタンの炎は不安定に揺れている。
+	PRINTL 
+	;快楽による刻印
+	IF CFLAG:800 == 13
+		IF RAND:3 == 0 && MARK:1 == 3
+			PRINTFORML 「頭に焼き付いて離れないんだ」
+			PRINTFORMW 「……むごいことをしてくれたね」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「……うう」
+			PRINTFORMW 「するなら、早くしてくれないかな……」
+		ELSE
+			PRINTFORML 「自分からねだれっていうのかい？」
+			PRINTFORMW 「…… ……」
+		ENDIF
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 23
+		IF RAND:3 == 0 && ABL:TARGET:9 >= 3
+			PRINTFORML 「……今日も殴るのかい？」
+			PRINTFORMW 「躾のつもりなら、たぶんもう、逆効果だと思うよ」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「逆らったりしたらどうなるかはよくわかったよ」
+			PRINTFORMW 「好きにするといいさ」
+		ELSE
+			PRINTFORML 「%CSTR:一人称%がどうなったら、許してくれるのかな」
+			PRINTFORMW 「許すつもりもないのかな」
+		ENDIF
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 33
+		IF RAND:3 == 0 && ABL:TARGET:7 >= 3
+			PRINTFORML 「またかい？」
+			PRINTFORMW 「せいぜい気持ちよくはしてあげるよ」
+		ELSEIF RAND:2 == 0
+			PRINTFORML 「鬼！　悪魔！　%CALLNAME:MASTER%！」
+			PRINTFORMW 「…… ……はあ。で、%CSTR:一人称%になにをさせるのかな」
+		ELSE
+			PRINTFORML 「はいはい、%CSTR:一人称%は逃げも隠れもしないよ」
+			PRINTFORMW 「好きにすればいいさ」
+		ENDIF
+	ENDIF
+	CFLAG:202 = 4
+;陥落済み
+ELSEIF CFLAG:202 < 5 || FLAG:7 == 2
+	;恋慕、親愛
+	IF TALENT:3 || TALENT:6
+		IF MARK:3 == 3
+			PRINTFORMW ランタンの炎はどす黒く、くすぶっている……
+			PRINTL 
+			IF RAND:3 == 0
+				PRINTFORML 「鬼！　悪魔！　%CALLNAME:MASTER%！」
+				PRINTFORMW 「…… ……はあ。%CSTR:一人称%が悪いのかな……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「そりゃあ反発ぐらいするさ、意思はあるもの」
+				PRINTFORMW 「早いところ落ち着かせてくれないかな」
+			ELSE
+				PRINTFORML 「わざわざ反発させるようなことをしたのはなんでなのかな」
+				PRINTFORMW 「%CSTR:一人称%に好かれるのもイヤだったかい？」
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW ランタンの中でくるくると炎が飛び回っている……
+			ELSE
+				PRINTFORMW ランタンは柔らかな光で部屋を照らしている。
+			ENDIF
+			IF RAND:3 == 0
+				PRINTFORML 「さあて、今日はなにをしてあげようか」
+				PRINTFORMW 「なんでもいってくれていいんだぜ？」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:一人称%の番か。ふふふ」
+				PRINTFORMW 「……いやね、%CSTR:二人称%に忘れられてないのが嬉しくて」
+			ELSE
+				PRINTFORML 「待ってたよ」
+				PRINTFORMW 「なにからはじめようか。%CSTR:二人称%はどうしたい？」
+			ENDIF
+		ENDIF
+	;淫乱、娼婦
+	ELSEIF TALENT:4 || TALENT:7
+		IF MARK:3 == 3
+			PRINTFORMW ランタンの炎はどす黒く、くすぶっている……
+			PRINTL 
+			IF RAND:3 == 0
+				PRINTFORML 「鬼！　悪魔！　%CALLNAME:MASTER%！」
+				PRINTFORMW 「…… ……はあ。つまらないなあ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「そりゃあ反発ぐらいするさ、意思はあるもの」
+				PRINTFORMW 「早いところ落ち着かせてくれないかな」
+			ELSE
+				PRINTFORML 「わざわざ反発させるようなことをしたのはなんでなのかな」
+				PRINTFORMW 「無理やりのほうが燃えるたちかい？」
+			ENDIF
+		ELSE
+			PRINTFORMW ランタンの炎はごうごうと燃え盛っている……
+			PRINTL 
+			IF RAND:3 == 0
+				PRINTFORML 「さあて、今日はなにをしてくれるのかな」
+				PRINTFORMW 「気持ちいいことならなんでも歓迎だぜ？」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:一人称%の番か。ふふふ」
+				PRINTFORMW 「……いやあ、期待してたから楽しみでさ」
+			ELSE
+				PRINTFORML 「待ってたよ」
+				PRINTFORMW 「なにからはじめようか。どういうのを使おうか」
+			ENDIF
+		ENDIF
+	;服従、隷属
+	ELSEIF TALENT:5 || TALENT:8
+		IF MARK:3 == 3
+			PRINTFORMW ランタンの炎はどす黒く、くすぶっている……
+			PRINTL 
+			IF RAND:3 == 0
+				PRINTFORML 「鬼！　悪魔！　%CALLNAME:MASTER%！」
+				PRINTFORMW 「…… ……っていったら、お仕置きぐらいしてくれるかな」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「そりゃあ反発ぐらいするさ、意思はあるもの」
+				PRINTFORMW 「早いところ落ち着かせてくれないかな」
+			ELSE
+				PRINTFORML 「わざわざ反発させるようなことをしたのはなんでなのかな」
+				PRINTFORMW 「どこまで大丈夫か確かめたかったのかい？」
+			ENDIF
+		ELSE
+			PRINTFORMW ランタンの炎は青白く燃えている……
+			PRINTL 
+			IF RAND:3 == 0
+				PRINTFORML 「さあて、今日はなにをさせてくれるのかな」
+				PRINTFORMW 「なんでも自由にしてくれていいんだぜ？」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:一人称%の番か。ふふふ」
+				PRINTFORMW 「……放置されてもいいけれど、やっぱり%CSTR:二人称%がいたほうがいいね」
+			ELSE
+				PRINTFORML 「待ってたよ」
+				PRINTFORMW 「なにからはじめようか。%CSTR:一人称%はどうすればいい？」
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:202 = 5
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;EVENTEND関係
+;調教終了時のセリフ
+;-------------------------------------------------
+@EVENTEND_K513_2
+;--------------------------------------------------
+;調教終了時のセリフ
+;--------------------------------------------------
+DRAWLINE
+;反発刻印Lv3
+IF MARK:3 == 3 && !陥落(TARGET) && (CFLAG:217 < 1 || FLAG:7 == 2)
+	IF RAND:3 == 0
+		PRINTFORML 「……」
+		PRINTFORMW 「……はあ」
+	ELSEIF RAND:2 == 0
+		PRINTFORML 「とっても不愉快だよ」
+		PRINTFORMW 「やれやれだね」
+	ELSE
+		PRINTFORML 「まだやる気なのかい？」
+		PRINTFORMW 「ははは、そうかい」
+	ENDIF
+	CFLAG:217 = 1
+;屈服刻印Lv1以下
+;八割コンパチ
+ELSEIF MARK:2 <= 1 && (CFLAG:219 < 1 || FLAG:7 == 2)
+	;快楽による刻印
+	IF CFLAG:800 == 11
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……こ、殺す気なのかな？」
+				PRINTFORMW 「なんてひどい……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「体がろくに動かないんだけれど」
+				PRINTFORMW 「……駄目だ、力が入らないよ……」
+			ELSE
+				PRINTFORML 「ちょっぴり彼岸が見えたよ」
+				PRINTFORMW 「どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「はいはい、お疲れ様」
+				PRINTFORMW 「もう勘弁してほしいね」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%は満足したかい？」
+				PRINTFORMW 「%CSTR:一人称%はまったく疲れたね」
+			ELSE
+				PRINTFORML 「人間同士でやってくれよな……」
+				PRINTFORMW 「%CSTR:一人称%を巻き込まないでくれよ」
+			ENDIF
+		ENDIF
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 21
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……こ、殺す気なのかな？」
+				PRINTFORMW 「暴力的でイヤになるよ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「体がろくに動かないんだけれど」
+				PRINTFORMW 「……駄目だ、痛い……」
+			ELSE
+				PRINTFORML 「ちょっぴり彼岸が見えたよ」
+				PRINTFORMW 「どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「はいはい、お疲れ様」
+				PRINTFORMW 「もう勘弁してほしいね」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%は満足したかい？」
+				PRINTFORMW 「%CSTR:一人称%はまったく疲れたね」
+			ELSE
+				PRINTFORML 「人間同士でやってくれよな……」
+				PRINTFORMW 「%CSTR:一人称%を巻き込まないでくれよ」
+			ENDIF
+		ENDIF
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 31
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……こ、殺す気なのかな？」
+				PRINTFORMW 「これがブラックサマナー……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「体がろくに動かないんだけれど」
+				PRINTFORMW 「酷使しすぎじゃないかい……」
+			ELSE
+				PRINTFORML 「ちょっぴり彼岸が見えたよ」
+				PRINTFORMW 「どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「はいはい、お疲れ様」
+				PRINTFORMW 「もう勘弁してほしいね」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%は満足したかい？」
+				PRINTFORMW 「%CSTR:一人称%はまったく疲れたね」
+			ELSE
+				PRINTFORML 「人間同士でやってくれよな……」
+				PRINTFORMW 「%CSTR:一人称%を巻き込まないでくれよ」
+			ENDIF
+		ENDIF
+	ELSE
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……こ、殺す気なのかな？」
+				PRINTFORMW 「なんて非道な」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「体がろくに動かないんだけれど」
+				PRINTFORMW 「悪魔にも体力があるんだね……」
+			ELSE
+				PRINTFORML 「ちょっぴり彼岸が見えたよ」
+				PRINTFORMW 「どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「はいはい、お疲れ様」
+				PRINTFORMW 「もう来なくていいと思うよ」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%は満足したかい？」
+				PRINTFORMW 「%CSTR:一人称%はまったく疲れたね」
+			ELSE
+				PRINTFORML 「人間同士でやってくれよな……」
+				PRINTFORMW 「%CSTR:一人称%を巻き込まないでくれよ」
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:219 = 1
+;屈服刻印Lv2
+ELSEIF MARK:2 == 2
+	;快楽による刻印
+	IF CFLAG:800 == 12
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……死にそうだ」
+				PRINTFORMW 「なんてむごい真似を……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「気持ちのいいことでも疲れるんだよ……」
+				PRINTFORMW 「すこしは加減をする余裕を持つべきだと思うね」
+			ELSE
+				PRINTFORML 「%CSTR:二人称%はいつか腹上死させてきそうだよ」
+				PRINTFORMW 「……どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「あれ、もう……」
+				PRINTFORMW 「……いや。いやいや、%CSTR:一人称%はなにをいってるんだ」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%のほうが疲れたのかな」
+				PRINTFORMW 「まあいいさ。早く終わってくれるのはありがたい」
+			ELSE
+				PRINTFORML 「た、大したことはないね」
+				PRINTFORMW 「%CSTR:二人称%も調教師ならもっとがんばりなよ」
+			ENDIF
+		ENDIF
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 22
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……死にそうだ」
+				PRINTFORMW 「なんて酷い真似を……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「これだけされれば倒れもするさ……」
+				PRINTFORMW 「すこしは加減をする余裕を持つべきだと思うね」
+			ELSE
+				PRINTFORML 「%CSTR:二人称%はいつか殴り殺してきそうだよ」
+				PRINTFORMW 「……どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「あれ、もういいのかい……」
+				PRINTFORMW 「……いや。痛めつけられるのがこれで終わりならいいんだけれど」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%のほうが疲れたのかな」
+				PRINTFORMW 「殴るのも大変だろうしね。早く終わってくれるのはありがたい」
+			ELSE
+				PRINTFORML 「た、大したことはないね」
+				PRINTFORMW 「けれど、%CSTR:二人称%も調教師なら商品は丁重に……」
+			ENDIF
+		ENDIF
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 32
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……死にそうだよ」
+				PRINTFORMW 「なんて酷いブラックなんだ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「これだけさせられれば倒れもするさ……」
+				PRINTFORMW 「すこしは加減をする余裕を持つべきだと思うね」
+			ELSE
+				PRINTFORML 「%CSTR:二人称%はいつか使い潰してきそうだよ」
+				PRINTFORMW 「……どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「あれ、もういいのかい……」
+				PRINTFORMW 「……いや。終わりだろう？　終わりでいいんだよね？」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%のほうが疲れたのかな」
+				PRINTFORMW 「命令に飽きたかい？　まあ、早く終わってくれるのはありがたい」
+			ELSE
+				PRINTFORML 「た、大したことはないね」
+				PRINTFORMW 「けれど、%CSTR:二人称%も調教師ならもっとバリエーションを……」
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:219 = 2
+;屈服刻印Lv3＋陥落素質無し
+ELSEIF MARK:2 == 3 && !陥落(TARGET)
+	;快楽による刻印
+	IF CFLAG:800 == 13
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……もうぐちゃぐちゃじゃないか」
+				PRINTFORMW 「なんてむごい真似を……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「もう指すら動かない……」
+				PRINTFORMW 「舌も回らないし、なんてことだ」
+			ELSE
+				PRINTFORML 「こんな恥ずかしい死に方はごめんだよ」
+				PRINTFORMW 「……どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「もうおしまいかい？　そう」
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%のほうが疲れたのかな」
+				PRINTFORMW 「体に気をつけなよ」
+			ELSE
+				PRINTFORML 「まだ続ける気はあるのかな」
+				PRINTFORMW 「つぎがあるなら、早いうちにね」
+			ENDIF
+		ENDIF
+	;xPAINx、恐怖による刻印
+	ELSEIF CFLAG:800 == 23
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……もうぼろぼろじゃないか」
+				PRINTFORMW 「なんてむごい真似を……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「…… ……」
+				PRINTFORMW 「終わったかい……？」
+			ELSE
+				PRINTFORML 「こうやってなぶり殺されるのはごめんだよ」
+				PRINTFORMW 「……どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「おしまいかい？　そう、良かった」
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%のほうが疲れたのかな」
+				PRINTFORMW 「体に気をつけなよ」
+			ELSE
+				PRINTFORML 「まだ続ける気はあるのかな」
+				PRINTFORMW 「……終わってはくれないんだろうね」
+			ENDIF
+		ENDIF
+	;SURREN、恭順による刻印
+	ELSEIF CFLAG:800 == 33
+		;体力500以下
+		IF BASE:0 < 500
+			IF RAND:3 == 0
+				PRINTFORML 「……ここまで酷使されるなんて」
+				PRINTFORMW 「なんてむごい真似を……」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「もう指一本動かないよ……」
+				PRINTFORMW 「いいから休ませてくれ」
+			ELSE
+				PRINTFORML 「悪魔でも過労死はごめんだよ」
+				PRINTFORMW 「……どちらにせよ追い返されるけれどね」
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「もうおしまいかい？　そう、良かった」
+				PRINTFORMW 「いいかげん肩がこってきたところだよ」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「%CSTR:二人称%のほうが疲れたのかな」
+				PRINTFORMW 「体に気をつけなよ」
+			ELSE
+				PRINTFORML 「まだ続ける気はあるのかな」
+				PRINTFORMW 「別にどっちでもかまわないけれど」
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:219 = 3
+;陥落済み＋体力500未満
+ELSEIF BASE:0 < 500 && (CFLAG:218 < 1 || FLAG:7 == 2)
+	;恋慕、親愛
+	IF TALENT:3 || TALENT:6
+		IF MARK:3 == 3 
+			IF RAND:3 == 0
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 「…… …… …… ……」
+			ELSE
+				PRINTFORMW %CALLNAME%は眠ってしまった……
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「ああ、満たされた」
+				PRINTFORMW 「幸せだよ」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「ずいぶん長い間いた気がするよ」
+				PRINTFORMW 「なに、すこし休ませてくれればそれでいいさ」
+			ELSE
+				PRINTFORML 「……ぐぅ」
+				PRINTFORMW 「…… …… …… ……」
+				PRINTL 
+				PRINTFORMW %CALLNAME%は眠ってしまった……
+			ENDIF
+		ENDIF
+	;淫乱、娼婦
+	ELSEIF TALENT:4 || TALENT:7
+		IF MARK:3 == 3 
+			IF RAND:3 == 0
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 「…… …… …… ……」
+			ELSE
+				PRINTFORMW %CALLNAME%は眠ってしまった……
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「ああ、満たされた」
+				PRINTFORMW 「楽しかったよ」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「なかなか激しかったね」
+				PRINTFORMW 「なに、すこし休ませてくれればそれでいいさ」
+			ELSE
+				PRINTFORML 「……ぐぅ」
+				PRINTFORMW 「…… …… …… ……」
+				PRINTL 
+				PRINTFORMW %CALLNAME%は眠ってしまった……
+			ENDIF
+		ENDIF
+	;服従、隷属
+	ELSEIF TALENT:5 || TALENT:8
+		IF MARK:3 == 3 
+			IF RAND:3 == 0
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 「…… …… …… ……」
+			ELSE
+				PRINTFORMW %CALLNAME%は崩れ落ちてしまった……
+			ENDIF
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「ははは……ひ弱なんだよ、%CSTR:一人称%」
+				PRINTFORMW 「迷惑かけてすまないね」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「これ以上は支障が出そうだ」
+				PRINTFORMW 「すこし休ませてくれないかな……」
+			ELSE
+				PRINTFORML 「……とても申し訳ないんだけれど、体力が……」
+				PRINTFORMW 「…… …… …… ……ぐぅ」
+				PRINTL 
+				PRINTFORMW %CALLNAME%は眠ってしまった……
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:218 = 1
+;陥落済み
+ELSEIF CFLAG:219 < 4 || FLAG:7 == 2
+	;恋慕、親愛
+	IF TALENT:3 || TALENT:6
+		IF MARK:3 == 3 
+			IF RAND:3 == 0
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 「…… …… …… ……」
+			ELSE
+				PRINTFORMW %CALLNAME%は黙りこくっている……
+			ENDIF
+		;絶倫取得　
+		ELSEIF EXP:射精経験 > 500 && HAVE_PENIS(TARGET) && TALENT:152 == 0 && CFLAG:220 == 2
+			PRINTFORMW %CALLNAME%の様子がおかしい……
+			PRINTFORMW 調教が終わった後にもかかわらず、未だ硬くそそり立つ剛直を呆然と見下ろしている……
+			PRINTL 
+			PRINTFORMW 「……どうしよう、おさまらないよ……」
+			PRINTL 
+			PRINTFORMW %NAME:TARGET%は【Unmatched】を得た
+			PRINTL 
+			TALENT:152 = 1
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「これでおしまい？　そうかい」
+				PRINTFORMW 「それじゃあ、なにかほかに手伝えることはあるかな？」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「お疲れ様」
+				PRINTFORMW 「余裕があるうちに終わろうって？　まあ、いい判断じゃないかな」
+			ELSE
+				PRINTFORML 「え、もう？」
+				PRINTFORMW 「……仕事もたまっているだろうし、しょうがないな」
+			ENDIF
+		ENDIF
+	;淫乱、娼婦
+	ELSEIF TALENT:4 || TALENT:7
+		IF MARK:3 == 3 
+			IF RAND:3 == 0
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 「…… …… …… ……」
+			ELSE
+				PRINTFORMW %CALLNAME%は黙りこくっている……
+			ENDIF
+		;絶倫取得　
+		ELSEIF EXP:射精経験 > 500 && HAVE_PENIS(TARGET) && TALENT:152 == 0 && CFLAG:220 == 2
+			PRINTFORMW %CALLNAME%の様子がおかしい……
+			PRINTFORMW 調教が終わった後にもかかわらず、未だ硬くそそり立つ剛直に手を伸ばしている……
+			PRINTL 
+			PRINTFORMW 「……いくらでも出せそう……すごいことになっちゃったかな……」
+			PRINTL 
+			PRINTFORMW %NAME:TARGET%は【Unmatched】を得た
+			PRINTL 
+			TALENT:152 = 1
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「これでおしまい？　……ううん」
+				PRINTFORMW 「ちょっとだけ物足りないかな」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「お疲れ様」
+				PRINTFORMW 「余裕があるうちに終わろうって？　まあ、いい判断じゃないかな」
+			ELSE
+				PRINTFORML 「え、もう？」
+				PRINTFORMW 「……いいよ。あとは%CSTR:一人称%ひとりでどうにかするさ」
+			ENDIF
+		ENDIF
+	;服従、隷属
+	ELSEIF TALENT:5 || TALENT:8
+		IF MARK:3 == 3 
+			IF RAND:3 == 0
+				PRINTFORMW 「…… ……」
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 「…… …… …… ……」
+			ELSE
+				PRINTFORMW %CALLNAME%は黙りこくっている……
+			ENDIF
+		;絶倫取得　
+		ELSEIF EXP:射精経験 > 500 && HAVE_PENIS(TARGET) && TALENT:152 == 0 && CFLAG:220 == 2
+			PRINTFORMW %CALLNAME%の様子がおかしい……
+			PRINTFORMW 調教が終わった後にもかかわらず未だ硬くそそり立つ剛直を、%CALLNAME:MASTER%の目から必死に隠そうとしている……
+			PRINTL 
+			PRINTFORMW 「欲求不満とか、そういうことじゃあなくて、あの、……ううう……」
+			PRINTL 
+			PRINTFORMW %NAME:TARGET%は【Unmatched】を得た
+			PRINTL 
+			TALENT:152 = 1
+		ELSE
+			IF RAND:3 == 0
+				PRINTFORML 「これでおしまいなんだね」
+				PRINTFORMW 「ふうむ、つぎまでに練習しておこうかな」
+			ELSEIF RAND:2 == 0
+				PRINTFORML 「お疲れ様」
+				PRINTFORMW 「道具を使い潰さないなんて優しいなあ」
+			ELSE
+				PRINTFORML 「え、もう？」
+				PRINTFORMW 「文句なんてないけれど、その、%CSTR:二人称%はもういいのかい？」
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:219 = 4
+ENDIF
+RETURN 0
+
+;--------------------------------------------------
+;@KOJO_MESSAGE_COM関係
+;コマンド実行時に出力されます
+;--------------------------------------------------
+@KOJO_MESSAGE_COM_K513_2
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0
+;ボールギャグ着用時か反発刻印3なら地の文を表示して口上をスキップする
+IF (TEQUIP:20 &&  SELECTCOM != 107) || MARK:3 == 3 
+	CALL TRAIN_MESSAGE
+	RETURN 0
+;反発刻印3が確実につく時　TRACHECK.ERBの構文を持ってきただけ
+;これちゃんと動くの？→一応動くっぽい
+ELSEIF A >= 3000 && MARK:4 <= 2 && TFLAG:150 == 0
+	CALL TRAIN_MESSAGE
+		PRINTW 「…… …… …… ……」
+	RETURN 0
+ENDIF
+;-------------------------------------------------
+;コマンド実行時のセリフ CFLAG 300～500
+;-------------------------------------------------
+;=================================================
+;愛撫系コマンド
+;=================================================
+;-------------------------------------------------
+;0,愛撫
+;男に触手中毒とかつけませんよね…
+;-------------------------------------------------
+SELECTCASE SELECTCOM
+	CASE 0
+		CALL TRAIN_MESSAGE
+		;初めて
+		IF CFLAG:300 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTL 
+				PRINTFORMW 「やあ、こういうのはいいね」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTL 
+				PRINTFORMW 「もっと強いほうが好みかな」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTL 
+				PRINTFORMW 「ん？　なんだい？」
+			ELSE
+				PRINTL 
+				PRINTFORMW 「くすぐったいんだけれど」
+			ENDIF
+			CFLAG:300 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:300 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					;触手+中毒
+					IF TEQUIP:25 == 1 && ABL:触手中毒 > 3
+						PRINTL 
+						PRINTFORMW 「へへ……気持ちいいよ……」
+					;触手
+					ELSEIF TEQUIP:25 == 1
+							PRINTL 
+							PRINTFORMW 「ううう、気持ち悪い……」
+					ELSEIF PALAM:欲情 >= PALAMLV:5
+						IF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は蕩けた表情でされるがままになっている……
+						ELSE
+							PRINTL 
+							PRINTFORMW 「触られるのは好きだよ……気持ちいいもの」
+						ENDIF
+					ELSE
+						IF RAND:2 == 0
+							PRINTL 
+							PRINTFORMW 「そんなに%CSTR:一人称%を触るのが楽しいかい？　……冗談だよ」
+						ELSE
+							PRINTL 
+							PRINTW 「よく動く指だなあ。器用っていいね」
+						ENDIF
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					;触手+中毒
+					IF TEQUIP:25 == 1 && ABL:触手中毒 > 3
+						PRINTL 
+						PRINTFORMW 「こうしてみると、案外かわいいかもしれないな」
+					;触手
+					ELSEIF TEQUIP:25 == 1
+							PRINTL 
+							PRINTFORMW 「ははは、変な動き」
+					ELSEIF PALAM:欲情 >= PALAMLV:5
+						IF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は爛々と瞳を輝かせつつもされるがままになっている……
+						ELSE
+							PRINTL 
+							PRINTFORMW 「触るだけで満足なのかい？　%CSTR:一人称%は物足りないな……%UNICODE(0x2665)%」
+						ENDIF
+					ELSE
+						IF RAND:2 == 0
+							PRINTL 
+							PRINTW 「焦らすなあ」
+						ELSE
+							PRINTL 
+							PRINTW 「前戯が丁寧なのはいいことだよね」
+						ENDIF
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					;触手+中毒
+					IF TEQUIP:25 == 1 && ABL:触手中毒 > 3
+						PRINTL 
+						PRINTFORMW 「へへ……気持ちいいよ……」
+					;触手
+					ELSEIF TEQUIP:25 == 1
+							PRINTL 
+							PRINTFORMW 「うう……」
+					ELSEIF PALAM:欲情 >= PALAMLV:5
+						IF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は荒い息をつきながらされるがままになっている……
+						ELSE
+							PRINTL 
+							PRINTFORMW 「こうも優しくされると、つぎのおしおきが楽しみになってしまうな……%UNICODE(0x2665)%」
+						ENDIF
+					ELSE
+						IF RAND:2 == 0
+							PRINTL 
+							PRINTW 「触るだけ？　そうかい」
+						ELSE
+							PRINTL 
+							PRINTW 「痛くしてくれていいのになあ」
+						ENDIF
+					ENDIF
+				ENDIF
+				CFLAG:300 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:300 < 3 || FLAG:7 == 2)
+				IF PALAM:欲情 >= PALAMLV:5
+					IF RAND:2 == 0
+						PRINTFORMW %CALLNAME%は抵抗せずされるがままになっている……
+					ELSE
+						PRINTL 
+						PRINTFORMW 「……そこは、好きかな」
+					ENDIF
+				ELSE
+					IF RAND:2 == 0
+						PRINTL 
+						PRINTW 「楽しんでるみたいだね」
+					ELSE
+						PRINTL 
+						PRINTW 「悪くは……いや、ええと、うん」
+					ENDIF
+				ENDIF
+				CFLAG:300 = 3
+			;それ以外
+			ELSEIF CFLAG:300 < 2 || FLAG:7 == 2
+				IF RAND:2 == 0
+					PRINTL 
+					PRINTW 「そうやって、べたべた触られてもなあ」
+				ELSE
+					PRINTL 
+					PRINTW 「ううん、つめたい」
+				ENDIF
+				CFLAG:300 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;2,フェラする
+;お掃除フェラ分岐もつけたいね
+;-------------------------------------------------
+	CASE 2
+		CALL TRAIN_MESSAGE
+		;初めて
+		IF CFLAG:302 == 0
+			IF TEQUIP:主導権
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTL 
+					PRINTFORMW 「苦しいならいうんだよ？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTL 
+					PRINTFORMW 「とっても気持ちいいよ、%CSTR:二人称%の口」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTL 
+					PRINTFORMW 「……つぎは%CSTR:一人称%が咥えたいな」
+				ELSE
+					PRINTL 
+					PRINTFORMW 「おっと、やりすぎた？」
+				ENDIF
+			ELSE
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTL 
+					PRINTFORMW 「……あ、あの、無理はしなくていいんだよ？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTL 
+					PRINTFORMW 「わあ上手。うらやましいよ」
+				;服従、隷属
+					PRINTL 
+					PRINTFORMW 「汚れてたかな……」
+				ELSE
+					PRINTL 
+					PRINTW 「わっ、ちょ、ちょっと！？」
+				ENDIF
+			ENDIF
+			CFLAG:302 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:302 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					IF TEQUIP:主導権
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTW 「飲んで……くれなくても、いいけれど、ね」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は目を細めて%CALLNAME:PLAYER%の表情を見つめている……
+						ELSE
+							PRINTL 
+							PRINTW 「んー……いいなあ……」
+						ENDIF
+					;調教者（主人）の精液中毒3以上
+					ELSEIF ABL:PLAYER:16 >= 3
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「す、吸っちゃ駄目だって……%UNICODE(0x2665)%」
+						ELSEIF RAND:2 == 0
+							PRINTL 
+							PRINTW 「……飲みたいのかい？」
+						ELSE
+							PRINTL 
+							PRINTFORMW 「%CSTR:二人称%、こういうのが好きなんだね」
+						ENDIF
+					ELSE
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「……あっ、ちょっと、まずっ……」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は愛しそうに%CALLNAME:PLAYER%の表情を見つめている……
+						ELSE
+							PRINTL 
+							PRINTW 「イヤならやめていいんだよ？　無理はしないでね？」
+						ENDIF
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					;調教者が淫乱か娼婦
+					IF TALENT:PLAYER:4 || TALENT:PLAYER:7
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「せっかくだし、飲んでもらおうかな」
+						ELSEIF RAND:2 == 0
+							PRINTL 
+							PRINTFORMW 「%CSTR:二人称%も好きだね……」
+						ELSE
+							PRINTL 
+							PRINTW 「楽しそうでいいね」
+						ENDIF
+					;調教者が服従か隷属
+					ELSEIF TALENT:PLAYER:5 || TALENT:PLAYER:8
+						IF RAND:3 == 0 && TEQUIP:主導権
+							PRINTL 
+							PRINTFORMW 「もっとひどくしてほしいなら、いつでも聞くよ」
+						ELSEIF RAND:2 == 0
+							PRINTL 
+							PRINTW 「慣れてるのかな、やっぱり」
+						ELSE
+							PRINTL 
+							PRINTW 「好きだろう？　遠慮しなくていいよ」
+						ENDIF
+					ELSE
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「せっかくだし、飲んでもらおうかな」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は楽しそうに%CALLNAME:PLAYER%の表情を見つめている……
+						ELSE
+							PRINTL 
+							PRINTW 「なかなかやるなあ……」
+						ENDIF
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					;調教者が淫乱か娼婦
+					IF TALENT:PLAYER:4 || TALENT:PLAYER:7
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「くっ……た、耐えられるわけないだろっ%UNICODE(0x2665)%」
+						ELSEIF RAND:2 == 0
+							PRINTL 
+							PRINTFORMW 「%CSTR:二人称%ももの好きだな……」
+						ELSE
+							PRINTL 
+							PRINTFORMW 「%CSTR:一人称%にやりかた教えてくれてるのかな」
+						ENDIF
+					;調教者（主人）の精液中毒3以上
+					ELSEIF ABL:PLAYER:16 >= 3
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「……あっ、ちょっと、まずっ……」
+						ELSEIF RAND:2 == 0
+							PRINTL 
+							PRINTFORMW 「さては%CSTR:一人称%を水筒かなにかだと……それでいいけれど！」
+						ELSE
+							PRINTL 
+							PRINTW 「えっと、出していいの？　駄目……？」
+						ENDIF
+					ELSE
+						IF RAND:3 == 0 && TFLAG:10 > 0 && TFLAG:29 > 0
+							PRINTL 
+							PRINTFORMW 「無理っ、出る……っ%UNICODE(0x2665)%」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME%は%CALLNAME:PLAYER%の頭に手を添えている……
+						ELSE
+							PRINTL 
+							PRINTFORMW 「なんで%CSTR:一人称%ばっかり、%CSTR:一人称%にもさせてくれよう」
+						ENDIF
+					ENDIF
+				ENDIF
+				CFLAG:302 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:302 < 3 || FLAG:7 == 2)
+				IF PALAM:欲情 >= 3 && TFLAG:10 > 0 && TFLAG:29 > 0
+					PRINTL 
+					PRINTFORMW 「う……くっ%UNICODE(0x2665)%」
+				ELSEIF RAND:2 == 0
+					PRINTL 
+					PRINTFORMW 「どこが弱いかばれちゃったかな？」
+				ELSE
+					PRINTL 
+					PRINTFORMW 「……歯はやめてくれよ」
+				ENDIF
+				CFLAG:302 = 3
+			;それ以外
+			ELSEIF CFLAG:302 < 2 || FLAG:7 == 2
+				IF RAND:2 == 0
+					PRINTL 
+					PRINTW 「うわー……うわー……」
+				ELSE
+					PRINTL 
+					PRINTW 「気持ちいいけど気持ち悪いね」
+				ENDIF
+				CFLAG:302 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;4,アナル舐め
+;-------------------------------------------------
+	CASE 4
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:304 == 0
+			IF TEQUIP:主導権
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「これでいいかな？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「これが顔面騎乗……で、いいのかなあ？」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「しかし、わざわざ尻の下敷きにさせるのはどうかと思うぜ」
+				ELSE
+					PRINTFORMW 「よっと、こうだな」
+				ENDIF
+			ELSE
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「濡らしてどうするんだい？　……いれる気かい？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTW 「いれるつもりだね！？　がぜん楽しみになってきたよ！」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTW 「下準備かい？　そ、そうかあ、本気なんだな……」
+				ELSE
+					PRINTW 「……んん？　まさか、その気かい？」
+				ENDIF
+			ENDIF
+			CFLAG:304 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:304 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					;ＡEXP100以上＋欲情のPALAMLV3以上
+					IF EXP:1 >= 100 && PALAM:欲情 >= PALAMLV:3
+						IF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0 && RAND:3 == 0
+							PRINTFORMW 「あ、ちょっ、まだ中に……ううっ%UNICODE(0x2665)%」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「舌までいれないでくれよ、我慢できなくなるだろう……」
+						ELSE
+							PRINTW 「な、中は駄目だよ……」
+						ENDIF
+					ELSE
+						IF RAND:2 == 0
+							PRINTFORMW 「……やっぱりこう、抵抗はさ、うん、あるよね」
+						ELSE
+							PRINTW 「そんなところ舐めなくてもいいのになあ」
+						ENDIF
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					;ＡEXP100以上＋欲情のPALAMLV3以上
+					IF EXP:1 >= 100 && PALAM:欲情 >= PALAMLV:3
+						IF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0 && RAND:3 == 0
+							PRINTFORMW 「精液、まだ中に残ってるけれど。まさか全部吸ってしまうのかな？」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「舌までいれないでくれよ、我慢できなくなるだろう……」
+						ELSE
+							PRINTW 「なんだか、別の生き物みたいで面白いね」
+						ENDIF
+					ELSE
+						IF RAND:2 == 0
+							PRINTFORMW 「%CSTR:二人称%こそ、抵抗がありそうなものだけれど」
+						ELSE
+							PRINTW 「自然には濡れないからねえ」
+						ENDIF
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					;ＡEXP100以上＋欲情のPALAMLV3以上
+					IF EXP:1 >= 100 && PALAM:欲情 >= PALAMLV:3
+						IF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0 && RAND:3 == 0
+							PRINTFORMW 「あ、ちょっ、まだ中に……ううっ%UNICODE(0x2665)%」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「舌までいれないでくれよ、我慢できなくなるだろう……」
+						ELSE
+							PRINTW 「な、中は駄目だよ……」
+						ENDIF
+					ELSE
+						IF RAND:2 == 0
+							PRINTFORMW 「……やっぱりこう、抵抗はさ、うん、あるよね」
+						ELSE
+							PRINTW 「いくら出さなくてもいいっていっても、あの、やっぱりさあ……」
+						ENDIF
+					ENDIF
+				ENDIF
+				CFLAG:304 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:304 < 3 || FLAG:7 == 2)
+				;ＡEXP100以上＋欲情のPALAMLV3以上
+				IF EXP:1 >= 100 && PALAM:欲情 >= PALAMLV:3
+					IF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0 && RAND:3 == 0
+						PRINTFORMW 「あ、ちょっ、まだ中に……ううっ%UNICODE(0x2665)%」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「舌までいれないでくれよ、我慢できなくなるだろう……」
+					ELSE
+						PRINTW 「な、中は駄目だよ……」
+					ENDIF
+				ELSE
+					IF RAND:2 == 0
+						PRINTFORMW 「……やっぱりこう、抵抗はさ、うん、あるよね」
+					ELSE
+						PRINTW 「そんなところ舐めなくてもいいのになあ」
+					ENDIF
+				ENDIF
+				CFLAG:304 = 3
+			;それ以外
+			ELSEIF CFLAG:304 < 2 || FLAG:7 == 2
+				;ＡEXP100以上＋欲情のPALAMLV3以上
+				IF EXP:1 >= 100 && PALAM:欲情 >= PALAMLV:3
+					IF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0 && RAND:3 == 0
+						PRINTFORMW 「あ、ちょっ、まだ中に……ううっ%UNICODE(0x2665)%」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「舌までいれないでくれよ……」
+					ELSE
+						PRINTW 「ひっ、舌……！？」
+					ENDIF
+				ELSE
+					IF RAND:2 == 0
+						PRINTW 「変態だ……！」
+					ELSE
+						PRINTW 「変態だ……駄目なかんじの変態だ……！」
+					ENDIF
+				ENDIF
+				CFLAG:304 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;5,アナル愛撫
+;かなりコンパチ
+;-------------------------------------------------
+	CASE 5
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:305 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「おうっ！？　……よ、よし！　来い！」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「とうとうそっちに手を出すのか」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「な、なにかな。検分？　……違うか」
+			ELSE
+				PRINTFORMW 「……まあ、そうなるよなあ」
+			ENDIF
+			CFLAG:305 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:305 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					;A感覚3以上？
+					IF ABL:5 >= 3
+						;何かしら挿入中
+						IF TEQUIP:14 == 1 || TEQUIP:15 == 1
+							IF RAND:3 == 0
+								PRINTFORMW 「おもちゃで遊ぶのが好きなのかな、%CSTR:二人称%は……」
+							ELSEIF RAND:2 == 0
+								PRINTFORMW 「んぐっ……うう……%UNICODE(0x2665)%」
+							ELSE
+								PRINTFORMW 「せめて抜いてくれないかな、っ、うう……」
+							ENDIF
+						;浣腸器＋プラグ
+						ELSEIF TEQUIP:21 == 1
+						;拡張バルーン
+						ELSEIF TEQUIP:22 == 1
+							PRINTFORMW 「戻らなくなってもいいのかなっ……はは……」
+						;アナル電極
+						ELSEIF TEQUIP:23 == 1
+						;触手+中毒
+						ELSEIF TEQUIP:25 == 1 && ABL:触手中毒 > 3
+							PRINTFORMW 「んぐ……好き勝手してくれるね%UNICODE(0x2665)%」
+						;触手
+						ELSEIF TEQUIP:25 == 1
+							PRINTFORMW 「……やっぱりこれ気持ち悪いよ」
+						;前コマンドアナルセックス系で精液が腸内にある
+						;Zoma口上別人加筆さんから
+						ELSEIF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0
+							;主人についてる＝たぶん主人が出した
+							IF HAVE_PENIS(PLAYER)
+								IF RAND:3 == 0
+									PRINTFORMW 「は、恥ずかしいから、音立てないでくれよう……」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「塗り込めるのは！　反則だと……っ思う、ね！」
+								ELSE
+									PRINTFORMW 「いっぱい出したのは%CSTR:二人称%だろう……」
+								ENDIF
+							;主人についてない＝助手が出した？
+							ELSE
+								PRINTFORMW 「な、なんでかき出すんだい……？　ひゃっ」
+							ENDIF
+						;無し
+						ELSE
+							IF HAVE_PENIS(PLAYER)
+								IF RAND:3 == 0
+									PRINTFORMW 「は、恥ずかしいから、音立てないでくれよう……」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「指もいいけれど、……ええと、その……」
+								ELSE
+									PRINTFORMW 「……セックスするつもりはないのかな？」
+								ENDIF
+							;ついてない
+							ELSE
+								IF RAND:3 == 0
+									PRINTFORMW 「は、恥ずかしいから、音立てないでくれよう……」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「あのさ、これ、%CSTR:二人称%は気持ちよくないんじゃないかなって……」
+								ELSE
+									PRINTFORMW 「%CSTR:二人称%についてたら、入れてくれっていったんだけれどね」
+								ENDIF
+							ENDIF
+						ENDIF
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 「ちょっとまだ無理かな……」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「きつくないかい？」
+						ELSE
+							PRINTFORMW 「……ぐっ」
+						ENDIF
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					;A感覚3以上？
+					IF ABL:5 >= 3
+						;何かしら挿入中
+						IF TEQUIP:14 == 1 || TEQUIP:15 == 1
+							IF RAND:3 == 0
+								PRINTFORML 「そりゃあ、気持ちよくするためだけのおもちゃだもの」
+								PRINTFORMW 「気持ちいいに決まってるよ……」
+							ELSEIF RAND:2 == 0
+								PRINTFORMW 「おぐっ%UNICODE(0x2665)%　は、あはは……%UNICODE(0x2665)%」
+							ELSE
+								PRINTFORMW 「あはっ、……もっと、奥がいいな……%UNICODE(0x2665)%」
+							ENDIF
+						;浣腸器＋プラグ
+						ELSEIF TEQUIP:21 == 1
+						;拡張バルーン
+						ELSEIF TEQUIP:22 == 1
+							PRINTFORMW 「……どこまで拡げる気だい？」
+						;アナル電極
+						ELSEIF TEQUIP:23 == 1
+						;触手+中毒
+						ELSEIF TEQUIP:25 == 1 && ABL:触手中毒 > 3
+							PRINTFORMW 「んぐ……好き勝手してくれるね%UNICODE(0x2665)%」
+						;触手
+						ELSEIF TEQUIP:25 == 1
+							PRINTFORMW 「……やっぱりこれ気持ち悪いよ」
+						;前コマンドアナルセックス系で精液が腸内にある
+						;Zoma口上別人加筆さんから
+						ELSEIF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0
+							;主人についてる＝たぶん主人が出した
+							IF HAVE_PENIS(PLAYER)
+								IF RAND:3 == 0
+									PRINTFORMW 「さっき入れたばっかりだろう？　今度は指かい？」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「にちゃにちゃぬちゃぬちゃ、ひどい音だ！」
+								ELSE
+									PRINTFORMW 「いっぱい出したのは%CSTR:二人称%だろう？　ふふふ」
+								ENDIF
+							;主人についてない＝助手が出した？
+							ELSE
+								PRINTFORMW 「なんでかき出すんだい？　もったいないなあ」
+							ENDIF
+						;無し
+						ELSE
+							IF HAVE_PENIS(PLAYER)
+								IF RAND:3 == 0
+									PRINTFORMW 「ぐちゃぐちゃぐちゃぐちゃ、ひどい音だ！」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「残念、指だけじゃもう物足りないんだよねえ」
+								ELSE
+									PRINTFORMW 「セックスするつもりはないのかな？　いつでもいいのに」
+								ENDIF
+							;ついてない
+							ELSE
+								IF RAND:3 == 0
+									PRINTFORMW 「ぐちゃぐちゃぐちゃぐちゃ、ひどい音だ！」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「奥まで擦ってほしいな……」
+								ELSE
+									PRINTFORMW 「%CSTR:二人称%についてないのが残念だよ！」
+								ENDIF
+							ENDIF
+						ENDIF
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 「ちょっとまだ無理かな……」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「きつくないかい？」
+						ELSE
+							PRINTFORMW 「……もう少し慣らさないといけないね」
+						ENDIF
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					;A感覚3以上？
+					IF ABL:5 >= 3
+						;何かしら挿入中
+						IF TEQUIP:14 == 1 || TEQUIP:15 == 1
+							IF RAND:3 == 0
+								PRINTFORMW 「おもちゃで遊ぶのが好きなのかな、%CSTR:二人称%は……」
+							ELSEIF RAND:2 == 0
+								PRINTFORMW 「んぐっ……うう……%UNICODE(0x2665)%」
+							ELSE
+								PRINTFORMW 「ははは、おもちゃで開発してくれるのかい？」
+							ENDIF
+						;浣腸器＋プラグ
+						ELSEIF TEQUIP:21 == 1
+						;拡張バルーン
+						ELSEIF TEQUIP:22 == 1
+							PRINTFORMW 「う、腕でも、いれるのかな……」
+						;アナル電極
+						ELSEIF TEQUIP:23 == 1
+							PRINTFORMW 「あがッ%UNICODE(0x2665)%　……ぐ……%UNICODE(0x2665)%」
+						;触手+中毒
+						ELSEIF TEQUIP:25 == 1 && ABL:触手中毒 > 3
+							PRINTFORMW 「んぐ……好き勝手してくれるね%UNICODE(0x2665)%」
+						;触手
+						ELSEIF TEQUIP:25 == 1
+							PRINTFORMW 「……やっぱりこれ気持ち悪いよ」
+						;前コマンドアナルセックス系で精液が腸内にある
+						;Zoma口上別人加筆さんから
+						ELSEIF (PREVCOM ==62 || PREVCOM ==63 || PREVCOM ==67 || PREVCOM ==70 || PREVCOM ==71) && TCVAR:TARGET:101 > 0
+							;主人についてる＝たぶん主人が出した
+							IF HAVE_PENIS(PLAYER)
+								IF RAND:3 == 0
+									PRINTFORMW 「今度は指かい？　もうほぐれたと思うけれど、ぅ」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「どれだけ出したか見せてくれるって……？」
+								ELSE
+									PRINTFORMW 「けっこう、過敏に……なってるんじゃないかなあ……」
+								ENDIF
+							;主人についてない＝助手が出した？
+							ELSE
+								PRINTFORMW 「な、なんでかき出すんだい……？　ひゃっ」
+							ENDIF
+						;無し
+						ELSE
+							IF HAVE_PENIS(PLAYER)
+								IF RAND:3 == 0
+									PRINTFORMW 「し、下準備、かい……？」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「いつでも使ってくれてかまわないよ」
+								ELSE
+									PRINTFORMW 「……みっともなくねだればいいのかな？」
+								ENDIF
+							;ついてない
+							ELSE
+								IF RAND:3 == 0
+									PRINTFORMW 「おもちゃでもなんでもいいから、塞いでおいてほしいな……」
+								ELSEIF RAND:2 == 0
+									PRINTFORMW 「……みっともなくねだればいいのかな？」
+								ELSE
+									PRINTFORMW 「%CSTR:一人称%がこうやってひどい顔するの、そんなに面白いかな……%UNICODE(0x2665)%」
+								ENDIF
+							ENDIF
+						ENDIF
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 「ちょっとまだ無理かな……」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「きつくないかい？」
+						ELSE
+							PRINTFORMW 「……そりゃあ恥ずかしいけれど、%CSTR:二人称%のやることだしね」
+						ENDIF
+					ENDIF
+				CFLAG:305 = 4
+				ENDIF
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:305 < 3 || FLAG:7 == 2)
+				;A感覚3以上？
+				IF ABL:5 >= 3
+					IF RAND:3 == 0
+						PRINTFORMW 「か、勘弁してほしいなあ、なんて」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「も、もうイヤだ、おかしくなるって……」
+					ELSE
+						PRINTFORMW 「……ひぐっ、うう……」
+					ENDIF
+				ELSE
+					IF RAND:3 == 0
+						PRINTFORMW 「……これが気持ちよくなるのかなあ」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「無理やりはやめてくれよ……」
+					ELSE
+						PRINTFORMW 「異物感？　っていうのかな？」
+					ENDIF
+				ENDIF
+				CFLAG:305 = 3
+			;それ以外
+			ELSEIF CFLAG:305 < 2 || FLAG:7 == 2
+				;A感覚3以上？
+				IF ABL:5 >= 3
+					IF RAND:3 == 0
+						PRINTFORMW 「か、勘弁してほしいなあ、なんて」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「も、もうイヤだ、おかしくなるって……」
+					ELSE
+						PRINTFORMW 「……ひぐっ、うう……」
+					ENDIF
+				ELSE
+					IF RAND:3 == 0
+						PRINTFORMW 「いまのところ、気持ち悪いだけなんだけれど」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「きっついなあ……」
+					ELSE
+						PRINTFORMW 「……ぐっ」
+					ENDIF
+				ENDIF
+				CFLAG:305 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;6,胸揉み
+;むにむに
+;-------------------------------------------------
+	CASE 6
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:306 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「……出ないよ？」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「硬い胸が好みかい？」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「やわらかいほうが好みなら……揉めばどうにかなるかなあ……」
+			ELSE
+				PRINTFORMW 「……なんだいそれは。」
+			ENDIF
+			CFLAG:306 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:306 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:306 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:306 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:306 = 3
+			;それ以外
+			ELSEIF CFLAG:306 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:306 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;7,乳首責め
+;くりくり
+;-------------------------------------------------
+	CASE 7
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:307 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「つぶれたりしないよね？　ね？」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「んん、つぶされるぐらいのほうが好きかな……」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「いづッ…… ……だ、大丈夫、そのまま好きなようにしてくれよ……」
+			ELSE
+				PRINTFORMW 「いてててて！　や、やめてくれないか！」
+			ENDIF
+			CFLAG:307 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:307 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:307 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:307 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:307 = 3
+			;それ以外
+			ELSEIF CFLAG:307 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:307 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;8,胸愛撫
+;なでなで
+;-------------------------------------------------
+	CASE 8
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:308 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「……いや、あの、出ないよ？　たぶん」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「そうまで撫でまわされると、ちょっとくすぐったいね」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「えっと……その……%CSTR:一人称%はこのままでいいのかな」
+			ELSE
+				PRINTFORMW 「……なんだいそれは。」
+			ENDIF
+			CFLAG:308 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:308 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:308 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:308 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:308 = 3
+			;それ以外
+			ELSEIF CFLAG:308 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:308 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;11,自慰
+;-------------------------------------------------
+	CASE 11
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:311 == 0
+			;撮影中
+			IF TEQUIP:28
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「こんなざまを記録するのかい！　こ、この、変態め……%UNICODE(0x2665)%」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「……つまりこいつは、他の人間も見るかもしれないってことかい？　そうかあ%UNICODE(0x2665)%」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「これを残すのか……い、いや、文句なんてないさ」
+				ELSE
+					PRINTFORMW 「記録……記録だって……？」
+				ENDIF
+			;野外プレイ
+			ELSEIF TEQUIP:29 >= 1
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「……きみが、どうしてもっていうから……」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「こんなところで堂々と、っていうのは、ぞくぞくするよ」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「開放感よりは、まだ恥ずかしいかな……」
+				ELSE
+					PRINTFORMW 「よくもまあこんなことが思いつくね」
+				ENDIF
+			;羞恥プレイ
+			ELSEIF TEQUIP:30
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTW 「恥ずかしいかって？　恥ずかしいさ！　顔から火が出るよ！」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「そうかそうか、こう見えてるわけか%UNICODE(0x2665)%」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「%CSTR:一人称%ってこんな顔してたんだね……%UNICODE(0x2665)%」
+				ELSE
+					PRINTFORMW 「……ぐ」
+				ENDIF
+			ELSE
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「%CSTR:一人称%がいまさら恥じらうとでも思ったのかい！　……恥ずかしいさ！」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「%CSTR:二人称%、見てるだけでいいのかい？」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「ど、どうかな？　%CSTR:二人称%の希望どおりだぜ……？」
+				ELSE
+					PRINTFORMW 「こういうのはひとりで静かにすませたいんだけれど」
+				ENDIF
+			ENDIF
+			CFLAG:311 = 1
+		;二回目以降
+		ELSE
+
+		ENDIF
+
+
+;=================================================
+;道具使用コマンド
+;=================================================
+;40,ローター
+;-------------------------------------------------
+	CASE 40
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:322 == 0 && CFLAG:330 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「こんなに小さいのに……ううう……」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「面白いね、これ」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「ひぐっ！？」
+			ELSE
+				PRINTFORMW 「……%CSTR:二人称%は頭がおかしいんじゃないかな」
+			ENDIF
+			CFLAG:322 = 1
+		;初めて
+		ELSEIF CFLAG:322 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「前にも思ったけど、これってどうやって動いているのかなあ……んんっ」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「ちょっと物足りないかな。ちょっとね」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「いろいろ使えて便利なんじゃないかな……」
+			ELSE
+				PRINTFORMW 「……今度はこっちかい？」
+			ENDIF
+			CFLAG:322 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:322 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:322 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:322 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:322 = 3
+			;それ以外
+			ELSEIF CFLAG:322 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:322 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;41,Ｅマッサージャ
+;-------------------------------------------------
+	CASE 41
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:323 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 「ぐぅ……っ！？」
+			ENDIF
+			CFLAG:323 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:323 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:323 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:323 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:323 = 3
+			;それ以外
+			ELSEIF CFLAG:323 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:323 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;43,オナホール
+;-------------------------------------------------
+	CASE 43
+		IF TEQUIP:12
+			CALL TRAIN_MESSAGE
+			PRINTL 
+			;初めて
+			IF CFLAG:325 == 0
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「恥ずかしいな……」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「へえ。最近は、こういうおもちゃが流行りかい？」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「う……え、これ、つけたままでいろって？」
+				ELSE
+					PRINTFORMW 「……色事に関しての進歩が早すぎるよ」
+				ENDIF
+				CFLAG:325 = 1
+			;二回目以降
+			ELSE
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:325 < 4 || FLAG:7 == 2)
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ENDIF
+					CFLAG:325 = 4
+				;屈服刻印Lv3
+				ELSEIF MARK:2 == 3 && (CFLAG:325 < 3 || FLAG:7 == 2)
+					PRINTFORMW 
+					CFLAG:325 = 3
+				;それ以外
+				ELSEIF CFLAG:325 < 2 || FLAG:7 == 2
+					PRINTFORMW 
+					CFLAG:325 = 2
+				ENDIF
+			ENDIF
+		ELSE
+			IF CFLAG:325 == 1 || FLAG:7 == 2
+				CALL TRAIN_MESSAGE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;47,二プルキャップ
+;-------------------------------------------------
+	CASE 47
+		IF TEQUIP:16
+			CALL TRAIN_MESSAGE
+			;初めて
+			IF CFLAG:329 == 0
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「……ちぎれたりはしないだろうね？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「んん、これはなかなか……」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「……牛に見え……ないか」
+				ELSE
+					PRINTFORMW 「……いまの人間は、意味のわからないものを作るんだな」
+				ENDIF
+				CFLAG:329 = 1
+			;二回目以降
+			ELSE
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:329 < 4 || FLAG:7 == 2)
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ENDIF
+					CFLAG:329 = 4
+				;屈服刻印Lv3
+				ELSEIF MARK:2 == 3 && (CFLAG:329 < 3 || FLAG:7 == 2)
+					PRINTFORMW 
+					CFLAG:329 = 3
+				;それ以外
+				ELSEIF CFLAG:329 < 2 || FLAG:7 == 2
+					PRINTFORMW 
+					CFLAG:329 = 2
+				ENDIF
+			ENDIF
+		ELSE
+			IF CFLAG:329 == 1 || FLAG:7 == 2
+				CALL TRAIN_MESSAGE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;48,乳首ローター
+;-------------------------------------------------
+	CASE 48
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:330 == 0 && CFLAG:322 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「こんなに小さいのに……ううう……」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「面白いね、これ」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「ひぐっ！？」
+			ELSE
+				PRINTFORMW 「……%CSTR:二人称%は頭がおかしいんじゃないかな」
+			ENDIF
+			CFLAG:330 = 1
+		;初めて
+		ELSEIF CFLAG:330 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「前にも思ったけど、これってどうやって動いているのかなあ……んんっ」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「ちょっと物足りないかな。ちょっとね」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「いろいろ使えて便利なんじゃないかな……」
+			ELSE
+				PRINTFORMW 「……今度はこっちかい？」
+			ENDIF
+			CFLAG:330 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:330 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:330 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:330 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:330 = 3
+			;それ以外
+			ELSEIF CFLAG:330 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:330 = 2
+			ENDIF
+		ENDIF
+
+
+;=================================================
+;セックス系コマンド
+;=================================================
+
+;-------------------------------------------------
+;62,正常位アナル
+;-------------------------------------------------
+	CASE 62
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:334 == 0 && CFLAG:335 == 0 && CFLAG:339 == 0 && CFLAG:342 == 0 && CFLAG:343 == 0 && CFLAG:421 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「顔、見えてるほうが、いいかな……」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「とうとう入れられちゃった……%UNICODE(0x2665)%」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「どうかな、気に入ってくれたかな……っ」
+			ELSE
+				PRINTFORMW 「……ド変態だぁ……」
+			ENDIF
+			CFLAG:334 = 1
+		;この体位が初めて
+		ELSEIF CFLAG:334 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+			CFLAG:334 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:334 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:334 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:334 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:334 = 3
+			;それ以外
+			ELSEIF CFLAG:334 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:334 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;63,後背位アナル
+;-------------------------------------------------
+	CASE 63
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:334 == 0 && CFLAG:335 == 0 && CFLAG:339 == 0 && CFLAG:342 == 0 && CFLAG:343 == 0 && CFLAG:421 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「あ、ちょっと、苦し……ッ」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「……犯されてるって感じで、いいね」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「犬の真似でもしようか、ッ」
+			ELSE
+				PRINTFORMW 「しねばいいのに……」
+			ENDIF
+			CFLAG:335 = 1
+		;初めて
+		ELSEIF CFLAG:335 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+			CFLAG:335 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:335 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:335 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:335 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:335 = 3
+			;それ以外
+			ELSEIF CFLAG:335 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:335 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;64,逆レイプ
+;-------------------------------------------------
+	CASE 64
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:336 == 0 && TALENT:PLAYER:0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORML 「…… ……！？」
+				PRINTFORMW 「なんでっ……こんな……」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「やあ、貫通式だね%UNICODE(0x2665)%」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORML 「…… ……！？」
+				PRINTFORMW 「あ、あはは……使ってもらえてうれしいよ……%UNICODE(0x2665)%」
+			ELSE
+				PRINTFORMW 「……処女喪失がこれか。最低だね」
+			ENDIF
+			CFLAG:336 = 1
+		;初めて
+		ELSEIF CFLAG:336 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+			CFLAG:336 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:336 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:336 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:336 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:336 = 3
+			;それ以外
+			ELSEIF CFLAG:336 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:336 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;67,騎乗位アナル
+;-------------------------------------------------
+	CASE 67
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:334 == 0 && CFLAG:335 == 0 && CFLAG:339 == 0 && CFLAG:342 == 0 && CFLAG:343 == 0 && CFLAG:421 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「重くないかい？　……そう、それならよかった……」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「自分で入れさせられるなんてね。悪くはないかな%UNICODE(0x2665)%」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「ちゃんとできたよ……？」
+			ELSE
+				PRINTFORMW 「（翻訳不可能な罵倒）」
+			ENDIF
+			CFLAG:339 = 1
+		;初めて
+		ELSEIF CFLAG:339 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+			CFLAG:339 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:339 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:339 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:339 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:339 = 3
+			;それ以外
+			ELSEIF CFLAG:339 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:339 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;70,対面座位アナル
+;-------------------------------------------------
+	CASE 70
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:334 == 0 && CFLAG:335 == 0 && CFLAG:339 == 0 && CFLAG:342 == 0 && CFLAG:343 == 0 && CFLAG:421 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「胸までいじらなくても……ううう」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「……へえ。キスなんかするんだ？」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「あの、これ、当たって……ううう」
+			ELSE
+				PRINTFORMW 「……反吐が出るね！」
+			ENDIF
+			CFLAG:342 = 1
+		;初めて
+		ELSEIF CFLAG:342 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+			CFLAG:342 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:342 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:342 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:342 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:342 = 3
+			;それ以外
+			ELSEIF CFLAG:342 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:342 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;71,背面座位アナル
+;-------------------------------------------------
+	CASE 71
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:334 == 0 && CFLAG:335 == 0 && CFLAG:339 == 0 && CFLAG:342 == 0 && CFLAG:343 == 0 && CFLAG:421 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「ち、力、抜け……%UNICODE(0x2665)%」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「こうやって、気持ちよくしてもらうのは、好きだよ%UNICODE(0x2665)%」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「腰、振れって、無理だよう……%UNICODE(0x2665)%」
+			ELSE
+				PRINTFORMW 「（翻訳不可能な罵倒）」
+			ENDIF
+			CFLAG:343 = 1
+		;初めて
+		ELSEIF CFLAG:343 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+			CFLAG:343 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:343 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:343 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:343 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:343 = 3
+			;それ以外
+			ELSEIF CFLAG:343 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:343 = 2
+			ENDIF
+		ENDIF
+
+;=================================================
+;奉仕系コマンド
+;=================================================
+;-------------------------------------------------
+;80,手淫
+;手袋コキすき
+;分岐増やしすぎたのですっごいコンパチ
+;-------------------------------------------------
+	CASE 80
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:344 == 0
+			;手袋/レースの手袋
+			IF TEQUIP:手 == 401 || TEQUIP:手 == 405
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「……あ。手袋、外さなくてよかったのかい？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「布越しが好みかい？　ふふ」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「どうかな。布越しだと、すこし動かしにくいのだけれど」
+				ELSE
+					PRINTFORMW 「やれやれ。手袋が汚れるな……」
+				ENDIF
+			;素手・カフス・袖・ネギ・腕輪（干渉しなさそうなもの）
+			ELSEIF !TEQUIP:手 > 0 || TEQUIP:手 == 402 || TEQUIP:手 == 403 || TEQUIP:手 == 408 || TEQUIP:手 == 411
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「どうかな……？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「爪でも立ててあげようか？　ははは、冗談だよ」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「%CSTR:一人称%なんかの手でいいのかなあ……」
+				ELSE
+					PRINTFORMW 「直接触りたいものじゃないよね、やっぱり」
+				ENDIF
+			;痛そうなもの（篭手、指輪）
+			ELSEIF TEQUIP:手 == 406 || TEQUIP:手 == 410
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORML 「……擦れて痛いんじゃないかなあ、って、思うんだ」
+					PRINTFORMW 「一応、慎重にはしてるつもりだけれど」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「%CSTR:二人称%も酔狂だね。外させればいいのにさ」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「これでよかったのかい……？」
+				ELSE
+					PRINTFORMW 「趣味が悪いな」
+				ENDIF
+			;その他
+			ELSE
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「これ、外さなくてよかったのかい？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「なかなか面白いことをさせるね」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「このままでよかったのかなあ……」
+				ELSE
+					PRINTFORMW 「趣味が悪いな」
+				ENDIF
+			ENDIF
+			CFLAG:344 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:344 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					;手袋/レースの手袋
+					IF TEQUIP:手 == 401 || TEQUIP:手 == 405
+						IF RAND:3 == 0
+							PRINTFORMW 「ううん、滑っちゃうなあ……どうしようか」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「けっこういい手袋だから、触り心地はいいと思うんだけれどね」
+						ELSE
+							PRINTFORMW 「%CSTR:二人称%が気に入ったならいいんだけれど」
+						ENDIF
+					;素手・カフス・袖・ネギ・腕輪（干渉しなさそうなもの）
+					ELSEIF !TEQUIP:手 > 0 || TEQUIP:手 == 402 || TEQUIP:手 == 403 || TEQUIP:手 == 408 || TEQUIP:手 == 411
+						IF RAND:3 == 0
+							PRINTFORMW 「どうかな？」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「どこが好きなのかな……」
+						ELSE
+							PRINTFORMW 「%CSTR:一人称%も結構、慣れてきたとは思うんだけれど」
+						ENDIF
+					;痛そうなもの（篭手、指輪）
+					ELSEIF TEQUIP:手 == 406 || TEQUIP:手 == 410
+						IF RAND:3 == 0
+							PRINTFORMW 「……もしかして、痛いほうが好みだったのかな」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「大丈夫だよ、やさしくするからさ」
+						ELSE
+							PRINTFORMW 「痛かったらすぐにいうんだよ？」
+						ENDIF
+					;その他
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 「ううん……外したほうがいいんじゃないかなあ」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「ほんとうにこれでいいのかい？」
+						ELSE
+							PRINTFORMW 「%CSTR:二人称%がいいならいいけれど……」
+						ENDIF
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					;手袋/レースの手袋
+					IF TEQUIP:手 == 401 || TEQUIP:手 == 405
+						IF RAND:3 == 0
+							PRINTFORMW 「つるつる滑って、やりづらいなあ」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「直接してあげてもいいんだけれど、こっちが好みかい？」
+						ELSE
+							PRINTFORMW 「匂いが染みたらどうしようかな……」
+						ENDIF
+					;素手・カフス・袖・ネギ・腕輪（干渉しなさそうなもの）
+					ELSEIF !TEQUIP:手 > 0 || TEQUIP:手 == 402 || TEQUIP:手 == 403 || TEQUIP:手 == 408 || TEQUIP:手 == 411
+						IF RAND:3 == 0
+							PRINTFORMW 「わあ。にちゃにちゃいってるねえ」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「我慢しなくていいからね」
+						ELSE
+							PRINTFORMW 「イきたいならいつでもいいよ……」
+						ENDIF
+					;痛そうなもの（篭手、指輪）
+					ELSEIF TEQUIP:手 == 406 || TEQUIP:手 == 410
+						IF RAND:3 == 0
+							PRINTFORMW 「挟まりそうでこわくなったりはしないのかな？」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「硬いので擦られてそんなにいいかい？」
+						ELSE
+							PRINTFORMW 「そういう趣味ってことだろう？　わかってるさ」
+						ENDIF
+					;その他
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 「ははは、楽しそうだ」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「面白いことをさせるよね、毎回」
+						ELSE
+							PRINTFORMW 「まあ、%CSTR:一人称%が損するわけでもないからね」
+						ENDIF
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					;手袋/レースの手袋
+					IF TEQUIP:手 == 401 || TEQUIP:手 == 405
+						IF RAND:3 == 0
+							PRINTFORMW 「%CSTR:一人称%の手なんかに触られたくないよね……わかってるさ」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「布のほうがいいかい？　そう……」
+						ELSE
+							PRINTFORMW 「が、頑張るよ……%UNICODE(0x2665)%」
+						ENDIF
+					;素手・カフス・袖・ネギ・腕輪（干渉しなさそうなもの）
+					ELSEIF !TEQUIP:手 > 0 || TEQUIP:手 == 402 || TEQUIP:手 == 403 || TEQUIP:手 == 408 || TEQUIP:手 == 411
+						IF RAND:3 == 0
+							PRINTFORMW 「%CSTR:一人称%なんかの手でいいのかい……？　ほんとうに？」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「%CSTR:二人称%が喜んでくれるならいいんだけれど……」
+						ELSE
+							PRINTFORMW 「どう、かな？」
+						ENDIF
+					;痛そうなもの（篭手、指輪）
+					ELSEIF TEQUIP:手 == 406 || TEQUIP:手 == 410
+						IF RAND:3 == 0
+							PRINTFORMW 「……あの、痛いんじゃないのかな？」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「うう……いいのかい？」
+						ELSE
+							PRINTFORMW 「痛かったらいってくれよ？」
+						ENDIF
+					;その他
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 「ううん……外したほうがいいんじゃないかなあ」
+						ELSEIF RAND:2 == 0
+							PRINTFORMW 「ほんとうにこれでいいのかい？」
+						ELSE
+							PRINTFORMW 「%CSTR:二人称%がいいならいいけれど……」
+						ENDIF
+					ENDIF
+				ENDIF
+				CFLAG:344 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:344 < 3 || FLAG:7 == 2)
+				;手袋/レースの手袋
+				IF TEQUIP:手 == 401 || TEQUIP:手 == 405
+					IF RAND:3 == 0
+						PRINTFORMW 「せいぜい汚さないように気をつけてくれよ」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「……これをこのままはめるのは%CSTR:一人称%なんだぜ」
+					ELSE
+						PRINTFORMW 「変態といってさしつかえないね」
+					ENDIF
+				;素手・カフス・袖・ネギ・腕輪（干渉しなさそうなもの）
+				ELSEIF !TEQUIP:手 > 0 || TEQUIP:手 == 402 || TEQUIP:手 == 403 || TEQUIP:手 == 408 || TEQUIP:手 == 411
+					IF RAND:3 == 0
+						PRINTFORMW 「素手で触らされるのは、まあいい気分じゃあないさ」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「さっさと済まないかな……」
+					ELSE
+						PRINTFORMW 「なんだい。いわれたとおりにやってるだろう？」
+					ENDIF
+				;痛そうなもの（篭手、指輪）
+				ELSEIF TEQUIP:手 == 406 || TEQUIP:手 == 410
+					IF RAND:3 == 0
+						PRINTFORMW 「わざわざ痛めつけられたいのかな」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「%CSTR:一人称%のほうが萎える」
+					ELSE
+						PRINTFORMW 「……ほんとうにこれ大丈夫かい？」
+					ENDIF
+				;その他
+				ELSE
+					IF RAND:3 == 0
+						PRINTFORMW 「なんなのかな、これは」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「……いやまったく、悪趣味だと思うよ」
+					ELSE
+						PRINTFORMW 「…… ……はぁ」
+					ENDIF
+				ENDIF
+				CFLAG:344 = 3
+			;それ以外
+			ELSEIF CFLAG:344 < 2 || FLAG:7 == 2
+				;手袋/レースの手袋
+				IF TEQUIP:手 == 401 || TEQUIP:手 == 405
+					IF RAND:3 == 0
+						PRINTFORMW 「……うわあ」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「手袋……」
+					ELSE
+						PRINTFORMW 「……いやまったく、悪趣味だと思うよ」
+					ENDIF
+				;素手・カフス・袖・ネギ・腕輪（干渉しなさそうなもの）
+				ELSEIF !TEQUIP:手 > 0 || TEQUIP:手 == 402 || TEQUIP:手 == 403 || TEQUIP:手 == 408 || TEQUIP:手 == 411
+					IF RAND:3 == 0
+						PRINTFORMW 「とても不愉快だね」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「これが男にやらせることかい？」
+					ELSE
+						PRINTFORMW 「まあ、自分がやられて痛いまねは、しないけれどさ」
+					ENDIF
+				;痛そうなもの（篭手、指輪）
+				ELSEIF TEQUIP:手 == 406 || TEQUIP:手 == 410
+					IF RAND:3 == 0
+						PRINTFORMW 「なんなのかな、これは」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「……いやまったく、悪趣味だと思うよ」
+					ELSE
+						PRINTFORMW 「…… ……はぁ」
+					ENDIF
+				;その他
+				ELSE
+					IF RAND:3 == 0
+						PRINTFORMW 「なんなのかな、これは」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「……いやまったく、悪趣味だと思うよ」
+					ELSE
+						PRINTFORMW 「…… ……はぁ」
+					ENDIF
+				ENDIF
+				CFLAG:344 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;81,フェラチオ
+;-------------------------------------------------
+	CASE 81
+		CALL TRAIN_MESSAGE
+		;初めて
+		IF CFLAG:345 == 0
+			PRINTL 
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「んあ？　……大丈夫だよ、歯を立てたりはしないさ」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「たくさん出してくれよ%UNICODE(0x2665)%」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「きれいにすればいいのかな」
+			ELSE
+				PRINTFORMW 「バケツがほしいね。吐きそうだから」
+			ENDIF
+			CFLAG:345 = 1
+		;二回目以降
+		ELSE
+		ENDIF
+
+;=================================================
+;調教者奉仕系コマンド
+;=================================================
+;-------------------------------------------------
+;手淫する
+;-------------------------------------------------
+	CASE 90
+		CALL TRAIN_MESSAGE
+		;初めて
+		IF CFLAG:423 == 0
+			IF TEQUIP:主導権
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW %CALLNAME%は腰を押し付けるようにして快楽を得ようとしている……
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTL 
+					PRINTFORMW 「手なら男も女もそんなに変わらないしね」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW %CALLNAME%は腰を押し付けるようにして快楽を得ようとしている……
+				ELSE
+					PRINTL 
+					PRINTFORMW 「せいぜい%CSTR:一人称%の役に立ってくれよ」
+				ENDIF
+			ELSE
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTL 
+					PRINTFORMW 「あんまり強くしないでほしいな……」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTL 
+					PRINTFORMW 「そうやってこすられると、たまらないね」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTL 
+					PRINTFORMW 「え、あ、射精？　射精すればいいのかい？」
+				ELSE
+					PRINTL 
+					PRINTW 「……なにもうれしくない」
+				ENDIF
+			ENDIF
+			CFLAG:423 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:423 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:423 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:423 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:423 = 3
+			;それ以外
+			ELSEIF CFLAG:423 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:423 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;パイズリする
+;-------------------------------------------------
+	CASE 91
+		CALL TRAIN_MESSAGE
+		;初めて
+		IF CFLAG:424 == 0
+			IF TEQUIP:主導権
+				PRINTL 
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「やわらかいし、あったかいし、気持ちいいよ……」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「一回ぐらい試してみたかったんだ」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「て、手間はかけさせないよ……」
+				ELSE
+					PRINTFORMW 「胸だけなら、まあ、悪くはないかなあ」
+				ENDIF
+			ELSE
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTL 
+					PRINTFORMW 「%CSTR:一人称%が女ならしてあげられたんだけど」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTL 
+					PRINTFORMW 「わあ、こういうのもいいね」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW %CALLNAME%は動揺と快楽のはざまで揺れている……
+				ELSE
+					PRINTL 
+					PRINTW 「……なにもうれしくない」
+				ENDIF
+			ENDIF
+			CFLAG:424 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:424 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:424 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:424 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:424 = 3
+			;それ以外
+			ELSEIF CFLAG:424 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:424 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;正常位させる
+;調教者が処女かどうかと主導権で分岐させたい
+;-------------------------------------------------
+	CASE 92
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:425 == 0
+			IF TALENT:MASTER:処女
+				IF TEQUIP:主導権
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……ずっと、こういうことしたかったんだ……」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「処女ごちそうさま%UNICODE(0x2665)%」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「好きにしていいって言われたら、%CSTR:一人称%……」
+					ELSE
+						PRINTFORMW 「……なんだ。初めてだったなら、いえばいいのに」
+					ENDIF
+				ELSE
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……%CSTR:一人称%でよかったのかい？」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「今度は%CSTR:二人称%を開発するのかな？　せいぜい%CSTR:一人称%を有効活用してほしいね」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「%CSTR:一人称%、バイブよりは役に立つと思うから、今からいっぱい使ってくれよ……」
+					ELSE
+						PRINTW 「…… ……ぐっ」
+					ENDIF
+				ENDIF
+			ELSE
+				IF TEQUIP:主導権
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……辛かったらいってくれよ？」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ELSE
+						PRINTFORMW 
+					ENDIF
+				ELSE
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ELSE
+						PRINTFORMW 
+					ENDIF
+				ENDIF
+			ENDIF
+			CFLAG:425 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:425 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:425 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:425 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:425 = 3
+			;それ以外
+			ELSEIF CFLAG:425 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:425 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;後背位させる
+;-------------------------------------------------
+	CASE 93
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:426 == 0
+			IF TALENT:MASTER:処女
+				IF TEQUIP:主導権
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……ずっと、こういうことしたかったんだ……」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「処女ごちそうさま%UNICODE(0x2665)%」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「好きにしていいって言われたら、%CSTR:一人称%……」
+					ELSE
+						PRINTFORMW 「……なんだ。初めてだったなら、いえばいいのに」
+					ENDIF
+				ELSE
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……%CSTR:一人称%でよかったのかい？」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「今度は%CSTR:二人称%を開発するのかな？　せいぜい%CSTR:一人称%を有効活用してほしいね」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「%CSTR:一人称%、バイブよりは役に立つと思うから、今からいっぱい使ってくれよ……」
+					ELSE
+						PRINTW 「…… ……ぐっ」
+					ENDIF
+				ENDIF
+			ELSE
+				IF TEQUIP:主導権
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ELSE
+						PRINTFORMW 
+					ENDIF
+				ELSE
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ELSE
+						PRINTFORMW 
+					ENDIF
+				ENDIF
+			ENDIF
+			CFLAG:426 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:426 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:426 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:426 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:426 = 3
+			;それ以外
+			ELSEIF CFLAG:426 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:426 = 2
+			ENDIF
+		ENDIF
+;-------------------------------------------------
+;騎乗位する
+;-------------------------------------------------
+	CASE 94
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:427 == 0
+			IF TALENT:MASTER:処女
+				IF TEQUIP:主導権
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……ずっと、こういうことしたかったんだ……」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「処女ごちそうさま%UNICODE(0x2665)%」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「好きにしていいって言われたら、%CSTR:一人称%……」
+					ELSE
+						PRINTFORMW 「……なんだ。初めてだったなら、いえばいいのに」
+					ENDIF
+				ELSE
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「……%CSTR:一人称%でよかったのかい？」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「今度は%CSTR:二人称%を開発するのかな？　せいぜい%CSTR:一人称%を有効活用してほしいね」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「%CSTR:一人称%、バイブよりは役に立つと思うから、今からいっぱい使ってくれよ……」
+					ELSE
+						PRINTW 「…… ……ぐっ」
+					ENDIF
+				ENDIF
+			ELSE
+				IF TEQUIP:主導権
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ELSE
+						PRINTFORMW 
+					ENDIF
+				ELSE
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ELSE
+						PRINTFORMW 
+					ENDIF
+				ENDIF
+			ENDIF
+			CFLAG:427 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:427 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:427 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:427 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:427 = 3
+			;それ以外
+			ELSEIF CFLAG:427 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:427 = 2
+			ENDIF
+		ENDIF
+
+;=================================================
+;SM系コマンド
+;=================================================
+;-------------------------------------------------
+;100,スパンキング
+;-------------------------------------------------
+	CASE 100
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:354 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「……なにか気に食わないことでもしてしまったかな」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「尻をぶたれて気持ちよくなるものかな？」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「……%UNICODE(0x2665)%」
+			ELSE
+				PRINTFORMW 「でっ……人の尻をなんだと思ってるんだ……」
+			ENDIF
+			CFLAG:354 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:354 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:354 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:354 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:354 = 3
+			;それ以外
+			ELSEIF CFLAG:354 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:354 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;101,乳スパンキング
+;-------------------------------------------------
+	CASE 101
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:355 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「……！？」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「どうせなら、もうちょっと別の方向性でいじってほしいかなあ」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「ひぐっ%UNICODE(0x2665)%」
+			ELSE
+				PRINTFORMW 「！？」
+			ENDIF
+			CFLAG:355 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:355 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:355 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:355 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:355 = 3
+			;それ以外
+			ELSEIF CFLAG:355 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:355 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;103,蝋燭
+;-------------------------------------------------
+	CASE 103
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:357 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「！？　……熱いし、痛い……？」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「……！？　あ、熱い？　なんで？」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「あﾞ……%UNICODE(0x2665)%」
+			ELSE
+				PRINTFORMW 「づッ……！？」
+			ENDIF
+			PRINTL
+			PRINTFORMW 火炎は効かないものの、火炎そのものでない『蝋』に対しては、吸収のしようがないようだ……
+			CFLAG:357 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:357 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:357 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:357 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:357 = 3
+			;それ以外
+			ELSEIF CFLAG:357 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:357 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;104,針
+;-------------------------------------------------
+	CASE 104
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:358 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「……痛がらせたいなら、そこじゃなくて……そうそう、そのあたりかな」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「……ピアス穴でも、開けるつもりかな」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「このまま、穴だらけにしてもらうのも、いいかな……%UNICODE(0x2665)%」
+			ELSE
+				PRINTFORMW 「%CSTR:一人称%のほうが、扱いはうまいと思うけれど……っ」
+			ENDIF
+			CFLAG:358 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:358 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:358 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:358 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:358 = 3
+			;それ以外
+			ELSEIF CFLAG:358 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:358 = 2
+			ENDIF
+		ENDIF
+
+;=================================================
+;特殊コマンド
+;=================================================
+;-------------------------------------------------
+;180,ローション,
+;-------------------------------------------------
+	CASE 180
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:392 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「いまどきはこういうのを使うんだね」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「下準備に気を使うのはいいことだよ」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「えっと、自分で塗り広げればいいのかな？」
+			ELSE
+				PRINTFORMW 「まあ、使いみちはわからなくもないけれど……」
+			ENDIF
+			CFLAG:392 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:392 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:392 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:392 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:392 = 3
+			;それ以外
+			ELSEIF CFLAG:392 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:392 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;183,ビデオカメラ,
+;-------------------------------------------------
+	CASE 183
+		IF TEQUIP:28
+			CALL TRAIN_MESSAGE
+			PRINTL 
+			;初めて
+			IF CFLAG:395 == 0
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「なんだっけ、テープとかいうものに記録できるらしいね」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「セックスの様子なんかを残せば売れるって聞いたけど、そのつもりかい？」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「たしか、それにうつすと記録が残るのだっけ？」
+				ELSE
+					PRINTFORMW 「……？」
+				ENDIF
+				CFLAG:395 = 1
+			;二回目以降
+			ELSE
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:395 < 4 || FLAG:7 == 2)
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ENDIF
+					CFLAG:395 = 4
+				;屈服刻印Lv3
+				ELSEIF MARK:2 == 3 && (CFLAG:395 < 3 || FLAG:7 == 2)
+					PRINTFORMW 
+					CFLAG:395 = 3
+				;それ以外
+				ELSEIF CFLAG:395 < 2 || FLAG:7 == 2
+					PRINTFORMW 
+					CFLAG:395 = 2
+				ENDIF
+			ENDIF
+		ELSE
+			IF CFLAG:395 == 1 || FLAG:7 == 2
+				CALL TRAIN_MESSAGE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+
+
+;-------------------------------------------------
+;186,羞恥プレイ,
+;-------------------------------------------------
+	CASE 186
+		IF TEQUIP:30
+			CALL TRAIN_MESSAGE
+			PRINTL 
+			;初めて
+			IF CFLAG:398 == 0
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「高そうな鏡だなあ……」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「よく見えるね。ふふふ」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「鏡？　……これの前でするのかい？」
+				ELSE
+					PRINTFORMW 「たいそうなものを持ち出してきたね」
+				ENDIF
+				CFLAG:398 = 1
+			;二回目以降
+			ELSE
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:398 < 4 || FLAG:7 == 2)
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ENDIF
+					CFLAG:398 = 4
+				;屈服刻印Lv3
+				ELSEIF MARK:2 == 3 && (CFLAG:398 < 3 || FLAG:7 == 2)
+					PRINTFORMW 
+					CFLAG:398 = 3
+				;それ以外
+				ELSEIF CFLAG:398 < 2 || FLAG:7 == 2
+					PRINTFORMW 
+					CFLAG:398 = 2
+				ENDIF
+			ENDIF
+		ELSE
+			IF CFLAG:398 == 1 || FLAG:7 == 2
+				CALL TRAIN_MESSAGE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;187,お風呂場プレイ,
+;-------------------------------------------------
+	CASE 187
+		IF TEQUIP:31
+			CALL TRAIN_MESSAGE
+			PRINTL 
+			;初めて
+			IF CFLAG:399 == 0
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「体を洗うだけじゃないのかい？」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「風呂場？　……ううん、それはそれで」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「背中を流すとか、そういうことかな」
+				ELSE
+					PRINTFORMW 「……ランタンは置いていくよ」
+				ENDIF
+				CFLAG:399 = 1
+			;二回目以降
+			ELSE
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:399 < 4 || FLAG:7 == 2)
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 
+					ENDIF
+					CFLAG:399 = 4
+				;屈服刻印Lv3
+				ELSEIF MARK:2 == 3 && (CFLAG:399 < 3 || FLAG:7 == 2)
+					PRINTFORMW 
+					CFLAG:399 = 3
+				;それ以外
+				ELSEIF CFLAG:399 < 2 || FLAG:7 == 2
+					PRINTFORMW 
+					CFLAG:399 = 2
+				ENDIF
+			ENDIF
+		ELSE
+			IF CFLAG:399 == 1 || FLAG:7 == 2
+				CALL TRAIN_MESSAGE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+
+
+;-------------------------------------------------
+;189,新妻プレイ,　恋慕、親愛のみ
+;-------------------------------------------------
+	CASE 189
+		IF TEQUIP:33
+			CALL TRAIN_MESSAGE
+			PRINTL 
+			;初めて
+			IF CFLAG:401 == 0
+				PRINTFORMW 「……ふむ。ふむ」
+				CFLAG:401 = 1
+			;二回目以降
+			ELSEIF CFLAG:401 < 2 || FLAG:7 == 2
+				IF RAND:3 == 0
+					PRINTFORMW 「そうだなあ、家事のひとつもこなしてみようかな」
+				ELSEIF RAND:2 == 0
+					PRINTFORMW 「若奥さん、って言葉にはひかれるものがあるね」
+				ELSE
+					PRINTFORMW 「%CSTR:二人称%も着よう！　せっかくだから！」
+				ENDIF
+				CFLAG:401 = 2
+			ENDIF
+		ELSE
+			IF CFLAG:401 == 1 || FLAG:7 == 2
+				CALL TRAIN_MESSAGE
+				PRINTFORMW 「やめてしまうのかい？　そうかあ……」
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;194,ザーメンキス
+;-------------------------------------------------
+	CASE 194
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:406 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「……そんなにイヤだったならやらなきゃ……え、なに、違う？」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「んん……やっぱり、まあ、おいしくはないか」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「こんなにまずいもの飲ませたら、失礼だよね……」
+			ELSE
+				PRINTFORMW 「むぐっ……ぐ……」
+			ENDIF
+			CFLAG:406 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:406 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:406 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:406 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:406 = 3
+			;それ以外
+			ELSEIF CFLAG:406 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:406 = 2
+			ENDIF
+		ENDIF
+
+;-------------------------------------------------
+;196,媚薬使う
+;-------------------------------------------------
+	CASE 196
+		CALL TRAIN_MESSAGE
+		PRINTL 
+		;初めて
+		IF CFLAG:437 == 0
+			;恋慕、親愛
+			IF TALENT:3 || TALENT:6
+				PRINTFORMW 「てっきり、%CSTR:一人称%に飲ませるのかと……」
+			;淫乱、娼婦
+			ELSEIF TALENT:4 || TALENT:7
+				PRINTFORMW 「そんなの使わなくても十分だと思うんだけれど、%CSTR:二人称%はあれじゃあ不満なのかな？」
+			;服従、隷属
+			ELSEIF TALENT:5 || TALENT:8
+				PRINTFORMW 「……薬でも使わないと、よくないのかい？」
+			ELSE
+				PRINTFORMW 「なにしてるんだい？」
+			ENDIF
+			CFLAG:437 = 1
+		;二回目以降
+		ELSE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:368 < 4 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 
+				ENDIF
+				CFLAG:437 = 4
+			;屈服刻印Lv3
+			ELSEIF MARK:2 == 3 && (CFLAG:368 < 3 || FLAG:7 == 2)
+				PRINTFORMW 
+				CFLAG:437 = 3
+			;それ以外
+			ELSEIF CFLAG:437 < 2 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:437 = 2
+			ENDIF
+		ENDIF
+;------------------------------------------------
+;コマンド口上ここまで
+;------------------------------------------------
+	CASEELSE
+		SIF FLAG:6 > 0
+			CALL TRAIN_MESSAGE
+ENDSELECT
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG関係
+;パラメータ変化などをトリガーにした口上　CFLAG 221～260を使用
+;-------------------------------------------------
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG_A
+;調教者の射精をトリガーにした口上
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_A_K513_2
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時か反発刻印3、本人の絶頂時なら地の文を表示して口上をスキップする
+IF (TEQUIP:20 &&  SELECTCOM != 107) || MARK:3 == 3 
+	CALL PALAM_MESSAGE_A
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;調教者の射精時のテキスト
+;-------------------------------------------------
+;-------------------------------------------------
+;射精箇所変更時のテキスト　有効時はここで関数終了
+;-------------------------------------------------
+IF CFLAG:106
+	CALL PALAM_MESSAGE_A
+	RETURN 0
+ENDIF
+
+
+;-------------------------------------------------
+;手、口以外で射精
+;対応コマンドはキス、素股、足コキ、アナル強制奉仕、ダブル素股、助手を犯させる
+;以外にも増えてるんじゃないかな
+;-------------------------------------------------
+IF TFLAG:9 > 0
+	CALL PALAM_MESSAGE_A
+ENDIF
+
+;-------------------------------------------------
+;助手を犯すで射精
+;-------------------------------------------------
+IF TFLAG:7 > 0
+	CALL PALAM_MESSAGE_A
+ENDIF
+
+;-------------------------------------------------
+;口で射精
+;-------------------------------------------------
+IF TFLAG:0 > 0
+	CALL PALAM_MESSAGE_A
+ENDIF
+
+;-------------------------------------------------
+;手で射精
+;-------------------------------------------------
+IF TFLAG:1 > 0
+	CALL PALAM_MESSAGE_A
+ENDIF
+
+;-------------------------------------------------
+;オナホに射精
+;-------------------------------------------------
+IF TFLAG:16 == 1
+	CALL PALAM_MESSAGE_A
+ENDIF
+
+;-------------------------------------------------
+;セックスで射精
+;-------------------------------------------------
+IF TFLAG:2 > 0
+	CALL PALAM_MESSAGE_A
+ENDIF
+
+;-------------------------------------------------
+;逆レイプで射精させた
+;-------------------------------------------------
+;ゴムつき
+IF SELECTCOM == 64 && TFLAG:10 > 0 && TEQUIP:35
+	CALL PALAM_MESSAGE_A
+;ゴムなし
+ELSEIF SELECTCOM == 64 && TFLAG:10 > 0
+	CALL PALAM_MESSAGE_A
+	;陥落済み
+	IF 陥落(TARGET) && (CFLAG:240 < 3 || FLAG:7 == 2)
+		;恋慕、親愛
+		IF TALENT:3 || TALENT:6
+			PRINTL 
+			PRINTFORMW 「はあっ……ぁ……ああぁ……」
+		;淫乱、娼婦
+		ELSEIF TALENT:4 || TALENT:7
+			PRINTL 
+			PRINTFORMW 「最初から種付け希望だろう？」
+		;服従、隷属
+		ELSEIF TALENT:5 || TALENT:8
+			PRINTFORMW %CALLNAME%は%CALLNAME:MASTER%の子宮を抉るように亀頭を押し付けた……
+		ENDIF
+		CFLAG:240 = 3
+	;屈服刻印Lv3
+	ELSEIF MARK:2 == 3 && (CFLAG:240 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:240 = 2
+	;それ以外
+	ELSEIF CFLAG:240 < 1 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:240 = 1
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG_E
+;触手の射精をトリガーにした口上
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_E_K513_2
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時か反発刻印3なら地の文を表示して口上をスキップする
+IF (TEQUIP:20 &&  SELECTCOM != 107) || MARK:3 == 3 
+	CALL PALAM_MESSAGE_E
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;触手の射精時のテキスト
+;-------------------------------------------------
+;-------------------------------------------------
+;触手が射精
+;-------------------------------------------------
+IF TFLAG:15 >0
+	CALL PALAM_MESSAGE_E
+ENDIF
+
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG_B関係
+;奴隷の絶頂をトリガーにした口上
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_B_K513_2
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時か反発刻印3なら地の文を表示して口上をスキップする
+IF (TEQUIP:20 &&  SELECTCOM != 107) || MARK:3 == 3 
+	CALL PALAM_MESSAGE_B
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;奴隷の絶頂時のテキスト
+;-------------------------------------------------
+;-------------------------------------------------
+;初めてC絶頂
+;-------------------------------------------------
+IF NOWEX:0 > 0 && CFLAG:242 == 0
+	;没だよ
+	;PRINTFORMW 「男がチンポに勝てるわけないだろ……！」
+
+	;陥落済み
+	IF 陥落(TARGET)
+		PRINTFORMW 「そういえば、ここじゃ一回もイカせてもらってなかったっけ……？」
+	;屈服刻印3
+	ELSEIF MARK:2 == 3
+		PRINTFORMW 「んっ……！」
+	ELSE
+		PRINTFORMW 「こんなみっともないこと……ぅ、くッ」
+	ENDIF
+	CFLAG:242 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてA絶頂
+;-------------------------------------------------
+IF NOWEX:2 > 0 && CFLAG:244 == 0
+	;陥落済み
+	IF 陥落(TARGET)
+		PRINTFORMW 「え。あ、あれ？　気持ちいい……？　あ、ッ」
+	;屈服刻印3
+	ELSEIF MARK:2 == 3
+		PRINTFORMW 「きみみたいな、変態に、慣れてきてるって思うと……心底イヤだね……」
+	ELSE
+		PRINTFORMW 「ひッ、い、イヤだ、こんな、こんな……！」
+	ENDIF
+	CFLAG:244 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてB絶頂
+;A絶頂より動揺度合いはげしめ
+;-------------------------------------------------
+IF NOWEX:3 > 0 && CFLAG:245 == 0
+	;陥落済み
+	IF 陥落(TARGET)
+		PRINTFORMW 「胸ッ……！？　嘘だろ……」
+	;屈服刻印3
+	ELSEIF MARK:2 == 3
+		PRINTFORMW 「……胸、って、そんなにいじるようなところじゃ……っ」
+	ELSE
+		PRINTFORMW 「こんなことで……！？」
+	ENDIF
+	CFLAG:245 = 1
+ENDIF
+
+;-------------------------------------------------
+;絶頂
+;-------------------------------------------------
+IF TFLAG:29 > 0
+	CALL PALAM_MESSAGE_B
+ENDIF
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG_C関係
+;調教後の変化をトリガーにした口上
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_C_K513_2
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時には地の文を表示して口上をスキップする
+IF TEQUIP:20 &&  SELECTCOM != 107
+	CALL PALAM_MESSAGE_C
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;調教後のテキスト
+;-------------------------------------------------
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG_D関係
+;パラメータ変化をトリガーにした口上
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_D_K513_2
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時には地の文を表示して口上をスキップする
+IF TEQUIP:20 &&  SELECTCOM != 107
+	CALL PALAM_MESSAGE_D
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;パラメータ変化時のテキスト
+;-------------------------------------------------
+;-------------------------------------------------
+;初めて潤滑がLV3超えた
+;-------------------------------------------------
+P = PALAM:4 + CUP:4
+IF P > PALAMLV:4 && CFLAG:250 == 0
+	CALL PALAM_MESSAGE_D
+	;ローションを使った場合
+	IF SELECTCOM == 180
+		PRINTFORMW 「しかし、これはなにでできているんだろう」
+	;それ以外
+	ELSE
+		PRINTFORMW 「……%CSTR:一人称%が？」
+	ENDIF
+	CFLAG:250 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて欲情がLV2超えた
+;-------------------------------------------------
+P = PALAM:6 + CUP:6
+IF P > PALAMLV:3 && CFLAG:251 == 0
+	CALL PALAM_MESSAGE_D
+	;媚薬を使った場合
+	IF SELECTCOM == 181
+		PRINTFORMW 「……ううっ、この薬、効きが早すぎないかな」
+	;それ以外
+	ELSE
+		PRINTFORMW 「なんだろう、……盛り上げ上手だね？」
+	ENDIF
+	CFLAG:251 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて屈服がLV3超えた
+;-------------------------------------------------
+P = PALAM:7 + CUP:7
+IF P > PALAMLV:3 && CFLAG:252 == 0
+	CALL PALAM_MESSAGE_D
+	PRINTFORMW 「敵わない……？」
+	CFLAG:252 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて恭順がLV3超えた
+;-------------------------------------------------
+P = PALAM:5 + CUP:5
+IF P > PALAMLV:3 && CFLAG:253 == 0
+	CALL PALAM_MESSAGE_D
+	;陥落済み
+	IF 陥落(TARGET)
+		PRINTFORMW 「……やっぱり、%CSTR:二人称%のためならなんだってできそうだ」
+	;それ以外
+	ELSE
+		PRINTFORMW 「頭を下げる気になるって、複雑だなあ」
+	ENDIF
+	CFLAG:253 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて恐怖がLV3超えた
+;-------------------------------------------------
+P = PALAM:11 + CUP:11
+IF P > PALAMLV:3 && CFLAG:254 == 0
+	CALL PALAM_MESSAGE_D
+	;陥落済み
+	IF 陥落(TARGET)
+		PRINTFORMW 「ひっ……」
+	;それ以外
+	ELSE
+		PRINTFORMW 「ひっ……」
+	ENDIF
+	CFLAG:254 = 1
+ENDIF
+
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_MARKCNG関係
+;刻印変動をトリガーにした口上
+;刻印変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_MARKCNG_K513_2
+;喋らないとしても処理だけぶち込む
+;-------------------------------------------------
+;屈服刻印Lv1
+;-------------------------------------------------
+IF TFLAG:24 == 11 || TFLAG:24 == 21 || TFLAG:24 == 31
+	;快楽による屈服
+	IF TFLAG:24 == 11
+	;恐怖と苦痛による屈服
+	ELSEIF TFLAG:24 == 21
+		CFLAG:800 = 21
+	;屈服と恭順による屈服
+	ELSEIF TFLAG:24 == 31
+		CFLAG:800 = 31
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;屈服刻印Lv2
+;-------------------------------------------------
+IF TFLAG:24 == 12 || TFLAG:24 == 22 || TFLAG:24 == 32
+	;快楽による屈服
+	IF TFLAG:24 == 12
+		CFLAG:800 = 12
+	;恐怖と苦痛による屈服
+	ELSEIF TFLAG:24 == 22
+		CFLAG:800 = 22
+	;屈服と恭順による屈服
+	ELSEIF TFLAG:24 == 32
+		CFLAG:800 = 32
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;屈服刻印Lv3
+;-------------------------------------------------
+IF TFLAG:24 == 13 || TFLAG:24 == 23 || TFLAG:24 == 33
+	;快楽による屈服
+	IF TFLAG:24 == 13
+		CFLAG:800 = 13
+	;恐怖と苦痛による屈服
+	ELSEIF TFLAG:24 == 23
+		CFLAG:800 = 23
+	;屈服と恭順による屈服
+	ELSEIF TFLAG:24 == 33
+		CFLAG:800 = 33
+	ENDIF
+ENDIF
+
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時か反発刻印3なら地の文を表示して口上をスキップする
+IF (TEQUIP:20 &&  SELECTCOM != 107) || MARK:3 == 3 
+	CALL MARK_MESSAGE
+	RETURN 0
+ENDIF
+;-------------------------------------------------
+;苦痛刻印Lv3
+;-------------------------------------------------
+IF TFLAG:22 == 3
+	CALL MARK_MESSAGE_A
+	;恋慕、親愛
+	IF TALENT:3 || TALENT:6
+		PRINTFORMW 「……そんなに、うっとうしかったかな、%CSTR:一人称%」
+	;淫乱、娼婦
+	ELSEIF TALENT:4 || TALENT:7
+		PRINTFORMW 「いっ、痛いだけ、なんて、趣味じゃないよ……」
+	;服従、隷属
+	ELSEIF TALENT:5 || TALENT:8
+		PRINTFORMW 「これがっ、これが……お仕置き……」
+	ELSE
+		PRINTFORMW 「もう、イヤだ、やめて……やめて、くれよう……」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;快楽刻印Lv3
+;-------------------------------------------------
+IF TFLAG:23 == 3
+	CALL MARK_MESSAGE_P
+	;恋慕、親愛
+	IF TALENT:3 || TALENT:6
+		PRINTFORMW 
+	;服従、隷属
+	ELSEIF TALENT:5 || TALENT:8
+		PRINTFORMW 
+	ELSE
+		PRINTFORMW 「あは、は、ははぁ……気持ちいい……%UNICODE(0x2665)%」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;屈服刻印Lv3
+;-------------------------------------------------
+IF TFLAG:24 == 13 || TFLAG:24 == 23 || TFLAG:24 == 33
+	CALL MARK_MESSAGE_S
+	;快楽による屈服
+	IF TFLAG:24 == 13
+		CFLAG:800 = 13
+	;恐怖と苦痛による屈服
+	ELSEIF TFLAG:24 == 23
+		CFLAG:800 = 23
+	;屈服と恭順による屈服
+	ELSEIF TFLAG:24 == 33
+		CFLAG:800 = 33
+	ENDIF
+ELSE
+	CALL MARK_MESSAGE_S
+ENDIF
+
+;-------------------------------------------------
+;反発刻印Lv3
+;-------------------------------------------------
+IF TFLAG:21 == 3
+	CALL MARK_MESSAGE_R
+	;陥落済み
+	IF 陥落(TARGET)
+		;恋慕、親愛
+		IF TALENT:3 || TALENT:6
+			PRINTFORMW ランタンの炎が色を変えた……
+		;淫乱、娼婦
+		ELSEIF TALENT:4 || TALENT:7
+			PRINTFORMW ランタンの炎が色を変えた……
+		;服従、隷属
+		ELSEIF TALENT:5 || TALENT:8
+			PRINTFORMW ランタンの炎が色を変えた……
+		ENDIF
+	ELSE
+		PRINTFORMW ランタンの炎が色を変えた……
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;イベント口上集 CFLAG 261～299を使用
+;-------------------------------------------------
+@KOJO_MESSAGE_EVENT_K513_2
+
+SELECTCASE TFLAG:13
+		;-------------------------------------------------
+		;朝フェラ
+		;-------------------------------------------------
+	CASE 1
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+			CALL EVENT_MESSAGE
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:261 < 1 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					IF HAVE_PENIS(MASTER)
+						PRINTFORMW 「残念、起こしちゃった」
+					ELSE
+						PRINTFORMW 「残念、起こしちゃった」
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					IF HAVE_PENIS(MASTER)
+						PRINTFORMW 「……ううん、元気そうでなによりだよ」
+					ELSE
+						PRINTFORMW 「残念、起こしちゃった」
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					IF HAVE_PENIS(MASTER)
+						PRINTFORMW 「起こすならこういうのが受けるかなあ、と思ってね」
+					ELSE
+						PRINTFORMW 「起こすならこういうのが受けるかなあ、と思ってね」
+					ENDIF
+				ENDIF
+				CFLAG:261 = 1
+			ENDIF
+		;-------------------------------------------------
+		;夜這い（主人C 相手A）
+		;-------------------------------------------------
+	CASE 31
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+		IF E == MASTER
+			IF RAND:3 == 0
+				;睡眠姦完遂
+				PRINTFORML 激しい射精感に襲われて目を醒ますと、%CALLNAME%が%CALLNAME:MASTER%の下半身に跨っていた…
+				PRINTFORML %CALLNAME:MASTER%に顔を向けてにっこり微笑むと、良く見えるように足を大きく広げて
+				PRINTFORML アナルから射精を終えたばかりのペニスを解放していった…
+				PRINTFORMW ゆっくりと閉じていく肛門からは、出された精液が溢れ出している…
+			ELSEIF RAND:2 == 0
+				;途中で目覚める
+				PRINTFORML 夜の遅い時間になって、眠っていた%CALLNAME:MASTER%は違和感を覚えて飛び起きた。
+				PRINTFORML 見ると%CALLNAME%が愛おしげな表情で熱心に%CALLNAME:MASTER%に奉仕していた…
+				PRINTFORML 十分に勃起したのを確認した%CALLNAME%は、ローションをペニスに塗りたくると
+				PRINTFORMW 呆気に取られる%CALLNAME:MASTER%をよそに、アナルで受け入れ快楽を貪りだした…
+			ELSE
+				IF RAND:3 == 0
+					PRINTFORML 深夜%CALLNAME:MASTER%がくつろいでいると、突然%CALLNAME%が%CALLNAME:MASTER%の部屋の扉を開いた。
+				ELSEIF RAND:2 == 0
+					PRINTFORML 深夜遅く、%CALLNAME:MASTER%の元に%CALLNAME%がやってきた。
+				ELSE
+					PRINTFORML 夜、幽鬼のような足取りでふらつく%CALLNAME%がやってきた。
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML %CALLNAME%は何も言わずに、当然のように下着を下ろし
+					PRINTFORML 有無を言わさず%CALLNAME:MASTER%に覆い被さり、尻穴に誘った…
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME%は%CALLNAME:MASTER%の目の前で、火照った顔で服を脱ぎ捨て
+					PRINTFORML %CALLNAME:MASTER%に抱き付いて、後ろを責めて欲しいと熱っぽく伝えてきた…
+				ELSE
+					PRINTFORML %CALLNAME:MASTER%が呆気に取られていると、欲情しきった顔で着ていた服を脱ぎ、
+					PRINTFORML 壁に手を付いて%CALLNAME:MASTER%に向けて尻を突き出した…
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORMW 求められるまま、%CALLNAME:MASTER%は%CALLNAME%のアナルをたっぷり楽しんだ…
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME:MASTER%は%CALLNAME%を背中から抱き締めて、誘われるままに後ろの穴を楽しんだ…
+					PRINTFORMW %CALLNAME%は熱い吐息を吐きながら、夢中で自ら%CALLNAME:MASTER%に腰を打ちつけている…
+				ELSE
+					PRINTFORML 自ら後ろの穴をローションでほぐし、大きく広げて受け入れる%CALLNAME%に応え
+					PRINTFORMW %CALLNAME:MASTER%は誘われるまま腸内の感触を味わっていた…
+				ENDIF
+			ENDIF
+			CFLAG:269 = 1
+		ELSE
+			CALL EVENT_MESSAGE
+		ENDIF
+		;-------------------------------------------------
+		;夜這い（主人V 相手C）
+		;-------------------------------------------------
+	CASE 32
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+		IF E == MASTER
+			IF RAND:5 == 0
+				;睡眠姦完遂
+				PRINTFORML %CALLNAME%は眠っている%CALLNAME:MASTER%のベッドに忍び込み、静かに下着を脱がせると、
+				PRINTFORML 持ち込んだローションを丁寧に%CALLNAME:MASTER%の身体に馴染ませてゆく…
+				PRINTFORML %CALLNAME:MASTER%の寝息に甘い声が混じり、秘肉がやわらかくほぐれたのを確認すると、
+				PRINTFORMW %CALLNAME%は眠ったままの%CALLNAME:MASTER%に静かに挿入し、たっぷりと中出ししていった…
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+					PRINTL 
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「全然起きないんだもんなあ……」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「起きたらどんな顔するのかなあ、ふふ」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「……ああ、きれいにしておかないと……」
+					ENDIF
+				ENDIF
+			ELSEIF RAND:4 == 0
+				;途中で目を醒まして受け入れる
+				PRINTFORML 眠っていた%CALLNAME:MASTER%は、自分が小さく甘い声をあげている事に気が付き目を醒ました…。
+				PRINTFORML 寝起きでぼんやりとした意識の中で、%CALLNAME:MASTER%は身体が火照っているのを感じていた。
+				PRINTFORML 見ると%CALLNAME%が%CALLNAME:MASTER%の剥き出しの秘部に顔を埋め、熱心に奉仕している…。
+				PRINTFORML 行われていた長時間の愛撫に、%CALLNAME:MASTER%の身体はすっかり蕩けて奥から愛液を垂れ流している…
+				PRINTFORMW 強引な行為に戸惑いつつも、快楽に呑まれた%CALLNAME:MASTER%はたまらず、%CALLNAME%に挿入を促した……
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+					PRINTL 
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「いいのかい？　それじゃあ、遠慮なく」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「起きなかったらどうしようかと思ったけれど、そうやってねだられるのは悪くないな」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「させてくれるのかい？　よかった……」
+					ENDIF
+				ENDIF
+			ELSEIF RAND:3 == 0
+				;睡眠姦完遂
+				PRINTFORML 眠っていた%CALLNAME:MASTER%は、下半身に違和感を覚えて突然目を醒ました。
+				PRINTFORML 見ると下着は全て脱がされ、シーツは大量のローションで濡れている。
+				PRINTFORML そして%CALLNAME:MASTER%の膣からは、出された精液が中からとろとろと垂れ落ちている……
+				PRINTFORML 身勝手な行為に及んだ%CALLNAME%は、%CALLNAME:MASTER%が起きたことを知ると
+				PRINTFORMW 再び%CALLNAME:MASTER%に覆い被さってきた……
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+					PRINTL 
+					;恋慕、親愛
+					IF TALENT:3 || TALENT:6
+						PRINTFORMW 「起きた？　それじゃあ、もう一回しようか」
+					;淫乱、娼婦
+					ELSEIF TALENT:4 || TALENT:7
+						PRINTFORMW 「寝顔もよかったけど、やっぱり喘いでくれないとつまらないからね」
+					;服従、隷属
+					ELSEIF TALENT:5 || TALENT:8
+						PRINTFORMW 「…… ……%UNICODE(0x2665)%」
+					ENDIF
+				ENDIF
+			;自重できた
+			ELSEIF RAND:2 == 0
+				IF RAND:3 == 0
+					PRINTFORML 深夜%CALLNAME:MASTER%がくつろいでいると、突然%CALLNAME%が%CALLNAME:MASTER%の部屋の扉を開いた。
+				ELSEIF RAND:2 == 0
+					PRINTFORML 深夜遅く、%CALLNAME:MASTER%の元に%CALLNAME%がやってきた。
+				ELSE
+					PRINTFORML 夜、幽鬼のような足取りでふらつく%CALLNAME%がやってきた。
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML 顔を火照らせて荒い息をつく%CALLNAME%の様子を見て、%CALLNAME:MASTER%はゆっくりと手を取り、
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME:MASTER%は落ち着かない様子で口ごもる%CALLNAME%からどうにか望みを聞き出すと、
+				ELSE
+					PRINTFORML そのまま立ち尽くす%CALLNAME%に、察した%CALLNAME:MASTER%は静かに頷くと、
+				ENDIF
+				IF RAND:2 == 0
+					IF RAND:3 == 0
+						PRINTFORML キスを交わしながら、もつれるようにベッドに倒れ込んでいった…
+					ELSEIF RAND:2 == 0
+						PRINTFORML 硬く勃起した%CALLNAME%の欲望に、全身で応えた…
+					ELSE
+						PRINTFORML %CALLNAME:MASTER%は自分から%CALLNAME%の勃起したペニスを膣口にあてがい、咥え込んでいった…
+					ENDIF
+					IF RAND:3 == 0
+						PRINTFORMW そして二人はお互いを貪るように求めあっていた…
+					ELSEIF RAND:2 == 0
+						PRINTFORMW ゴリゴリと膣内を硬いペニスで掻き回され、%CALLNAME:MASTER%は甘い声をあげている…
+					ELSE
+						PRINTFORMW %CALLNAME:MASTER%は無意識に足を絡ませ、%CALLNAME%の種付けを求めていた…
+					ENDIF
+					;陥落済み
+					IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+						PRINTL 
+						;恋慕、親愛
+						IF TALENT:3 || TALENT:6
+							PRINTFORMW 「……子供とか、できたら、どうしようか？」
+						;淫乱、娼婦
+						ELSEIF TALENT:4 || TALENT:7
+							PRINTFORMW 「かわいい顔するね……」
+						;服従、隷属
+						ELSEIF TALENT:5 || TALENT:8
+							PRINTFORMW 「つぎ、つぎからがんばって、我慢するから……%UNICODE(0x2665)%」
+						ENDIF
+					ENDIF
+				ELSE
+					IF RAND:3 == 0
+						PRINTFORML 好きなように抱いて良いと%CALLNAME%に伝えた…
+					ELSEIF RAND:2 == 0
+						PRINTFORML 激しく奥まで突いて欲しいと、耳元で伝えた…
+					ELSE
+						PRINTFORML たっぷり中に出して良いと、小声で%CALLNAME%に伝えた…
+					ENDIF
+					IF RAND:3 == 0
+						PRINTFORMW %CALLNAME%は目の色を変えて%CALLNAME:MASTER%に襲い掛かると、ペニスを乱暴に捻じ込んだ…
+					ELSEIF RAND:2 == 0
+						PRINTFORMW %CALLNAME%はたまらず%CALLNAME:MASTER%に圧し掛かり、発情したように腰を振り出した…
+					ELSE
+						PRINTFORMW %CALLNAME:MASTER%の言葉に興奮した%CALLNAME%は、勢い良く%CALLNAME:MASTER%を押し倒していった…
+					ENDIF
+				ENDIF
+					;陥落済み
+					IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+						PRINTL 
+						;恋慕、親愛
+						IF TALENT:3 || TALENT:6
+							PRINTFORMW 「……なんでそういうこというのかなあ！」
+						;淫乱、娼婦
+						ELSEIF TALENT:4 || TALENT:7
+							PRINTFORMW 「せっかく我慢しようと思ったのに%UNICODE(0x2665)%」
+						;服従、隷属
+						ELSEIF TALENT:5 || TALENT:8
+							PRINTFORMW 「…… ……%UNICODE(0x2665)%」
+						ENDIF
+					ENDIF
+			;自重できなかった
+			ELSE
+				IF RAND:3 == 0
+					PRINTFORML 深夜%CALLNAME:MASTER%がくつろいでいると、突然%CALLNAME%が%CALLNAME:MASTER%の部屋の扉を開いた。
+				ELSEIF RAND:2 == 0
+					PRINTFORML 深夜遅く、%CALLNAME:MASTER%の元に%CALLNAME%がやってきた。
+				ELSE
+					PRINTFORML 夜、幽鬼のような足取りでふらつく%CALLNAME%がやってきた。
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML 舌なめずりしながら迫る%CALLNAME%に%CALLNAME:MASTER%は強引にその場で押し倒され、
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME:MASTER%は%CALLNAME%に静かな動きで無理矢理組み敷かれ、
+				ELSE
+					PRINTFORML %CALLNAME:MASTER%は血走った瞳の%CALLNAME%に激しく抱き締められ、
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML 獣のように後ろから犯された…
+				ELSEIF RAND:2 == 0
+					PRINTFORML やがて既に限界まで勃起していたペニスの挿入を許してしまった…
+				ELSE
+					PRINTFORML 抵抗する間も無いまま、%CALLNAME%の好きに弄ばれてしまった…
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORMW %CALLNAME%の行為はその後長い間続いた…
+				ELSEIF RAND:2 == 0
+					PRINTFORMW %CALLNAME%は%CALLNAME:MASTER%を孕ませる気で、激しく奥で長い射精をしていった…
+				ELSE
+					PRINTFORMW %CALLNAME%の強引な行為を、いつしか%CALLNAME:MASTER%は自ら腰を振って受け入れていた…
+				ENDIF
+				;陥落済み
+				IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+					PRINTL 
+					PRINTFORMW %CALLNAME%の口からは荒い息が漏れるばかりで、ついぞ意味のある言葉を吐くことはなかった。
+				ENDIF
+			ENDIF
+			CFLAG:269 = 1
+		ELSE
+			CALL EVENT_MESSAGE
+		ENDIF
+		
+		;-------------------------------------------------
+		;夜這い（主人A 相手C）
+		;オトコ同士だとアレかなあって文章を消したり改変しただけ
+		;-------------------------------------------------
+	CASE 33
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+		IF E == MASTER
+			IF RAND:5 == 0
+				PRINTFORML %CALLNAME:MASTER%が床に就こうとしたとき、%CALLNAME%がふらりと部屋を訪ねてきた
+				PRINTL 
+				;「脱がせるの面倒くさい」
+				PRINTFORML %CALLNAME%は%CALLNAME:MASTER%の下着をずらすとうつ伏せに押し倒し
+				PRINTFORML %CALLNAME:MASTER%の尻たぶを広げて窄まりを丁寧に解きほぐし、己の怒張をゆっくりとねじ入れた
+				PRINTFORMW %CALLNAME%は%CALLNAME:MASTER%を背中から抱きしめたまま腸内を蹂躙している
+			ELSEIF RAND:4 == 0
+				PRINTFORML 眠っていた%CALLNAME:MASTER%は、身体を揺すられて目を醒ました。
+				PRINTL 
+				PRINTFORML 見れば%CALLNAME%が%CALLNAME:MASTER%をうつ伏せにして、下着を下ろしているところだった…
+				PRINTFORML 驚きを覚えながらも、%CALLNAME:MASTER%は求められるままに自ら臀部を大きく押し広げ、
+				PRINTFORMW %CALLNAME%の硬く勃起したペニスを腸内に受け入れていった…
+			ELSEIF RAND:3 == 0
+				PRINTFORML 深夜遅く、%CALLNAME:MASTER%は%CALLNAME%の突然の来訪に目を醒ました。
+				PRINTL 
+				PRINTFORML %CALLNAME%は眠りから醒めたばかりの%CALLNAME:MASTER%をうつ伏せの姿勢で押さえつけると、
+				PRINTFORML 丹念に舌と指で%CALLNAME:MASTER%の尻穴をほぐしてゆき、自身のペニスを時間をかけて挿入した。
+				PRINTFORMW そして、%CALLNAME:MASTER%の直腸の感触を満足するまで楽しんでいった…
+			;自重できた
+			ELSEIF RAND:2 == 0
+				IF RAND:3 == 0
+					PRINTFORML 深夜%CALLNAME:MASTER%がくつろいでいると、突然%CALLNAME%が%CALLNAME:MASTER%の部屋の扉を開いた。
+				ELSEIF RAND:2 == 0
+					PRINTFORML 深夜遅く、%CALLNAME:MASTER%の元に%CALLNAME%がやってきた。
+				ELSE
+					PRINTFORML 夜、幽鬼のような足取りでふらつく%CALLNAME%がやってきた。
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML 顔を火照らせて荒い息をつく%CALLNAME%の様子を見て、%CALLNAME:MASTER%はゆっくりと手を取り、
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME:MASTER%は落ち着かない様子で口ごもる%CALLNAME%からどうにか望みを聞き出すと、
+				ELSE
+					PRINTFORML そのまま立ち尽くす%CALLNAME%に、察した%CALLNAME:MASTER%は静かに頷くと、
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML アナルを責めたいという%CALLNAME%の希望を聞き入れて、うつ伏せに横たわった…
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME%の勃起したペニスを後ろの穴に宛がい、挿入を誘った…
+				ELSE
+					PRINTFORML 壁に両手を付いて後ろを責めるように身振りで示した…
+				ENDIF
+				IF ABL:MASTER:5 >= 3
+					;A感覚3以上
+					IF RAND:3 == 0
+						PRINTFORMW そして、お互い快楽を貪りながら求め合い、長い間二人は繋がっていた…
+					ELSEIF RAND:2 == 0
+						PRINTFORMW お互いが満足するまでの長い間、無心にアナルでのセックスを続けていた…
+					ELSE
+						PRINTFORMW ゆっくりと熱く脈うつ%CALLNAME%のペニスをアナルに受け入れて、%CALLNAME:MASTER%は自ら腰を振り出した…
+					ENDIF
+				ELSE
+					;A経験少なめ
+					IF RAND:3 == 0
+						PRINTFORMW そして、%CALLNAME:MASTER%は慣れない行為に呻きながらも、%CALLNAME%との一時を楽しんだ…
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 未だ慣れない後ろへの挿入の感覚に戸惑いながらも、%CALLNAME%の欲望に応えていった…
+					ELSE
+						PRINTFORMW 慣れないアナルの感触に戸惑っていたが、やがて熱い吐息を混じらせていった…
+					ENDIF
+				ENDIF
+			;自重できなかった
+			ELSE
+				IF RAND:3 == 0
+					PRINTFORML 深夜%CALLNAME:MASTER%がくつろいでいると、突然%CALLNAME%が%CALLNAME:MASTER%の部屋の扉を開いた。
+				ELSEIF RAND:2 == 0
+					PRINTFORML 深夜遅く、%CALLNAME:MASTER%の元に%CALLNAME%がやってきた。
+				ELSE
+					PRINTFORML 夜、幽鬼のような足取りでふらつく%CALLNAME%がやってきた。
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML 舌なめずりしながら迫る%CALLNAME%に%CALLNAME:MASTER%は強引にその場で押し倒され、
+				ELSEIF RAND:2 == 0
+					PRINTFORML %CALLNAME:MASTER%は%CALLNAME%に静かな動きで無理矢理組み敷かれ、
+				ELSE
+					PRINTFORML %CALLNAME:MASTER%は血走った瞳の%CALLNAME%に激しく抱き締められ、
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORML 荒い息を肩越しに感じながらアナルを犯されてしまった…
+				ELSEIF RAND:2 == 0
+					PRINTFORML 後ろから抱き締められたまま、アナルへの蹂躙を許してしまった…
+				ELSE
+					PRINTFORML がっしりと腰を押さえつけられると、そのまま後ろを犯されてしまった…
+				ENDIF
+				IF RAND:3 == 0
+					PRINTFORMW 長く続けられた行為で、激しい射精を体内に受けていた…
+				ELSEIF RAND:2 == 0
+					PRINTFORMW %CALLNAME:MASTER%は%CALLNAME%が満足するまで、乱暴な行為を受け止めた…
+				ELSE
+					PRINTFORMW そして、%CALLNAME%の身勝手な肛辱は、そのまま長い間続けられた…
+				ENDIF
+			ENDIF
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+				PRINTL 
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					IF RAND:3 == 0
+						PRINTFORMW 「どうしてこんなに、治まらなくなっちゃったんだろう……」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「…… ……%UNICODE(0x2665)%」
+					ELSE
+						PRINTFORMW 「ひどいかな。ひどいよね。……嫌いになってくれないかな」
+					ENDIF
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					IF RAND:3 == 0
+						PRINTFORMW 「処女でもないんだから、別にいいだろう？」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「…… ……%UNICODE(0x2665)%」
+					ELSE
+						PRINTFORMW 「ああ、うん。やっぱりいいね」
+					ENDIF
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					IF RAND:3 == 0
+						PRINTFORMW 「あは、あ、ぐぅ……%UNICODE(0x2665)%」
+					ELSEIF RAND:2 == 0
+						PRINTFORMW 「…… ……%UNICODE(0x2665)%」
+					ELSE
+						PRINTFORMW 「許してもらえるのかな……駄目かなあ……」
+					ENDIF
+				ENDIF
+				CFLAG:269 = 1
+			ENDIF
+		ELSE
+			CALL EVENT_MESSAGE
+		ENDIF
+
+		;-------------------------------------------------
+		;夜這い（両者C（素股）・両者C（貝合わせ））
+		;-------------------------------------------------
+	CASE 34
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+		IF E == MASTER
+			PRINTFORML 床に就こうとした%CALLNAME:MASTER%の寝室に%CALLNAME%が現れた……
+			IF RAND:3 == 0
+				PRINTFORML %CALLNAME%は%CALLNAME:MASTER%の下着をためらいなくはぎとり
+			ELSEIF RAND:2 == 0
+				PRINTFORML 自ら服を脱ぎ捨てた%CALLNAME%は%CALLNAME:MASTER%の衣服も優しく脱がせ
+			ELSE
+				PRINTFORML 欲情を隠そうともせずに%CALLNAME:MASTER%を押し倒すと
+			ENDIF
+			;主人が男またはフタナリ
+			IF HAVE_PENIS(MASTER)
+				IF RAND:3 == 0
+					PRINTFORML %CALLNAME:MASTER%のペニスを丹念に手で扱いて起立させて
+					PRINTFORMW 互いの先走りを混ぜ合わせるように、%CALLNAME%は自らのペニスを擦りつけている
+				ELSEIF RAND:2 == 0
+					PRINTFORML 温めた潤滑油をたっぷりと垂らして
+					PRINTFORMW 鈴口同士でキスをさせると、ペニスを絡めあうように擦りあわせた……
+				ELSE
+					PRINTFORML %CALLNAME%は%CALLNAME:MASTER%のペニスを股にはさみ、
+					PRINTFORMW 大胆に腰を動かしながら自らのペニスを擦りつけている……
+				ENDIF
+			;主人が女性
+			ELSE
+				IF RAND:3 == 0
+					PRINTFORML 割れ目を舌でじっくりと濡らし
+					PRINTFORMW 自らの隆起したモノを当てがえて、激しく擦りつけだした
+				ELSEIF RAND:2 == 0
+					PRINTFORML 挿入しようとする素振りひとつなく
+					PRINTFORMW %CALLNAME%と%CALLNAME:MASTER%は互いの性器を擦りあわせた……
+				ELSE
+					PRINTFORML %CALLNAME%は、%CALLNAME:MASTER%の足を力強く押し広げ、たっぷりの潤滑油で濡らすと
+					PRINTFORMW ペニスを敏感な部分に当て、柔らかい素肌の感触を楽しみながら擦り付けた…
+				ENDIF
+			ENDIF
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+				PRINTL 
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「……んん……」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「気持ちいいかい？　それはよかった」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「勝手なことしてごめんね……」
+				ENDIF
+				CFLAG:269 = 1
+			ENDIF
+		ELSE
+			CALL EVENT_MESSAGE
+		ENDIF
+
+		;-------------------------------------------------
+		;夜自慰
+		;-------------------------------------------------
+	CASE 35
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+		IF E == MASTER
+			PRINTFORMW %CALLNAME:MASTER%の寝室に%CALLNAME%が現れた……
+			PRINTL 
+			PRINTFORML 「ああ……寝てるのか。残念だな……」
+			;陥落済み
+			IF 陥落(TARGET) && (CFLAG:269 < 1 || FLAG:7 == 2)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORMW 「……どうしようかな」
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORMW 「寝込みを襲う気分じゃないし……」
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORMW 「“お手伝い”でもしようかと思ったんだけれど……」
+				ENDIF
+				CFLAG:269 = 1
+			ENDIF
+			PRINTL 
+			;露出癖で分岐
+			IF ABL:8 >= 5
+				PRINTFORML %CALLNAME%はそのまま、眠る%CALLNAME:MASTER%の目の前で自慰に耽りはじめた……
+				PRINTFORMW 押し殺した吐息だけが部屋に響いている……
+			ELSE
+				PRINTFORML %CALLNAME%はふらりと踵を返し、自室で自慰に耽りはじめた……
+				PRINTFORMW 希望がかなえられなかったせいか、どこか寂しげだ……
+			ENDIF
+		ELSE
+			CALL EVENT_MESSAGE
+		ENDIF
+		;-------------------------------------------------
+		;一緒に寝る 恋慕、親愛
+		;-------------------------------------------------
+	CASE 36
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+		IF E == MASTER
+			IF CFLAG:269 < 1 || FLAG:7 == 2
+				PRINTFORMW 「おや。もう寝ちゃってたか」
+				PRINTL 
+				IF RAND:3 == 0
+					PRINTFORML 「それにしたって、布団をかけないのはいただけないな」
+					PRINTFORMW 「……かけておいてあげよう」
+				ELSEIF RAND:2 == 0
+					PRINTFORML 「場所は……あるな」
+					PRINTFORMW 「よっと、おじゃまします」
+				ELSE
+					PRINTFORML 「顔にらくがきでもしてみようかな」
+					PRINTFORMW 「さすがにやめておこう」
+				ENDIF
+				CFLAG:269 = 1
+			ENDIF
+		ELSE
+			CALL EVENT_MESSAGE
+		ENDIF
+		;-------------------------------------------------
+		;定食屋台時
+		;-------------------------------------------------
+	CASE 15
+		IF MARK:3 == 3 
+			CALL EVENT_MESSAGE
+			RETURN 0
+		ENDIF
+			CALL EVENT_MESSAGE
+			;初めて
+			IF CFLAG:275 == 0
+				PRINTFORMW 「ふうん。今どきの飯屋っていうのは、こういうものか」
+				CFLAG:275 = 1
+			;それ以外
+			ELSEIF CFLAG:275 < 1 || FLAG:7 == 2
+				PRINTFORMW 
+				CFLAG:275 = 1
+			ENDIF
+
+	CASEELSE
+		SIF FLAG:6 > 0
+			CALL EVENT_MESSAGE
+ENDSELECT
+
+
+;-------------------------------------------------
+;闘技場敗北時口上集 基本的に見るとゲームオーバーなのでフラグは使わない事に
+;コンパチ
+;-------------------------------------------------
+@KOJO_MESSAGE_LOSE_COLOSSEUM_K513_2
+SELECTCASE TFLAG:闘技場敗北
+		;-------------------------------------------------
+		;オニ＆蔦
+		;-------------------------------------------------
+	CASE 1
+			CALL MESSAGE_LOSE_COLOSSEUM
+			;陥落済み
+			IF 陥落(TARGET)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORML %CALLNAME%は%CALLNAME:MASTER%を逃がそうと必死に炎を放っていたものの、やがて魔力も尽き果て、
+					PRINTFORML 絡みつく蔦の群れに飲み込まれていった。
+					PRINTFORMW 伸ばしかけた手も、瞬いていたランタンの光も、もう見えない。
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORML %CALLNAME%はせめてもの抵抗として炎を放っていたものの、やがて魔力も尽き果て、
+					PRINTFORML 全身に絡みつく蔦の群れに飲み込まれていった。
+					PRINTFORMW %CALLNAME%の姿が完全に消えた後も、遠くから湿った音が聞こえる……
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORML %CALLNAME%は%CALLNAME:MASTER%を逃がそうと必死に炎を放っていたものの、やがて魔力も尽き果て、
+					PRINTFORML 肉を食らう花と蔦の群れに飲み込まれていった。
+					PRINTFORMW 伸ばしかけた手も、瞬いていたランタンの光も、もう見えない。
+				ENDIF
+			ELSE
+				PRINTFORML %CALLNAME%は必死に炎を放っていたものの、やがて魔力も尽き果て、
+				PRINTFORML 大口を開けた食人花の群れに飲み込まれていった。
+				PRINTFORMW 骨の折れる音と、肉の潰れる音しか、もう聞こえない……
+			ENDIF
+		;-------------------------------------------------
+		;科学者＆マシン
+		;-------------------------------------------------
+	CASE 2
+			CALL MESSAGE_LOSE_COLOSSEUM
+			;陥落済み
+			IF 陥落(TARGET)
+				;恋慕、親愛
+				IF TALENT:3 || TALENT:6
+					PRINTFORML %CALLNAME%は%CALLNAME:MASTER%を逃がそうと必死に炎を放っていたものの、やがて魔力も尽き果て、
+					PRINTFORML いつしか全身をコードに覆い尽くされていた。
+					PRINTFORMW 伸ばしかけた手も、瞬いていたランタンの光も、もう見えない。
+				;淫乱、娼婦
+				ELSEIF TALENT:4 || TALENT:7
+					PRINTFORML %CALLNAME%はせめてもの抵抗として炎を放っていたものの、やがて魔力も尽き果て、
+					PRINTFORML いつしか全身をコードに絡め取られていた。
+					PRINTFORMW %CALLNAME%の悲鳴は、いつしか喜悦の声に変わっていた……
+				;服従、隷属
+				ELSEIF TALENT:5 || TALENT:8
+					PRINTFORML %CALLNAME%は%CALLNAME:MASTER%を逃がそうと必死に炎を放っていたものの、やがて魔力も尽き果て、
+					PRINTFORML マグネタイト加工用ミンチマシーンに引きずり込まれようとしていた。
+					PRINTFORMW なにごとか口走ったようだが、機械の駆動音に阻まれ、聞こえることはなかった。
+				ENDIF
+			ELSE
+				PRINTFORML %CALLNAME%は必死に炎を放っていたものの、やがて魔力も尽き果て、
+				PRINTFORML 禍々しい機械の中に「収容」されてしまった。
+				PRINTFORMW 閉じられた蓋の向こうからは、もう何も聞こえない……
+			ENDIF
+ENDSELECT
+
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_ENDING関係
+;-------------------------------------------------
+;-------------------------------------------------
+;エンディング口上の有無を判別する関数
+;記述したエンディングの種類に応じてコメントアウトを解除
+;-------------------------------------------------
+@ENDING_CHECK_K513_2
+SELECTCASE TSTR:END種別
+	;CASE "個別END"
+	;	SIF TALENT:妻 || TALENT:夫
+	;		RETURN 1
+	;	SIF TALENT:淫魔
+	;		RETURN 1
+	;	SIF TALENT:玩具
+	;		RETURN 1
+	;CASE "調教師END"
+	;	RETURN 1
+	;CASE "稀代の調教師END"
+	;	RETURN 1
+	;CASE "食堂経営END"
+	;	RETURN 1
+	;CASE "娼館経営END"
+	;	RETURN 1
+	;CASE "アイドルEND"
+	;	RETURN 1
+ENDSELECT
+RETURN 0
+
+;-------------------------------------------------
+;エンド本文
+;-------------------------------------------------
+@KOJO_MESSAGE_ENDING_K513_2
+;--------------------------------------------------
+SELECTCASE TSTR:END種別
+	;CASE "個別END"
+		;恋慕単体エンド
+		;IF TALENT:妻 || TALENT:夫 && CFLAG:21 == 1
+			;DRAWLINE
+			;PRINTFORMW …………
+			;PRINTFORMW ………
+			;PRINTFORMW ……
+			;PRINTFORMW 
+			;PRINTFORMW 　　　　　　　　―― Extra Ending　（◯◯エンド）
+		;淫乱単体エンド
+		;ELSEIF TALENT:淫魔 && CFLAG:21 == 1
+			;DRAWLINE
+			;PRINTFORMW …………
+			;PRINTFORMW ………
+			;PRINTFORMW ……
+			;PRINTFORMW 
+
+			;PRINTFORMW 
+			;PRINTFORMW 　　　　　　　　―― Extra Ending　（◯◯エンド）
+		;服従単体エンド
+		;ELSEIF TALENT:玩具 && CFLAG:21 == 1
+			;DRAWLINE
+			;PRINTFORMW …………
+			;PRINTFORMW ………
+			;PRINTFORMW ……
+			;PRINTFORMW 
+
+			;PRINTFORMW 
+			;PRINTFORMW 　　　　　　　　―― Extra Ending　（◯◯エンド）
+		;ENDIF
+	;CASE "調教師END"
+	;CASE "稀代の調教師END"
+	;CASE "食堂経営END"
+	;CASE "娼館経営END"
+	;CASE "アイドルEND"
+ENDSELECT
+;個別ENDの場合ここでRETURN 1すると、その後ゲームは続かずつぎ周に行くかゲーム終了かの選択になります
+RETURN 1
+
+
+@ENEMY_BATTLE_EVENT_K513_2, ARG, ARG:1, ARG:2
+
+;-------------------------------------------------
+@BATTLE_EVENT_K513_2, ARG, ARG:1, ARG:2
+;-------------------------------------------------
+
+SIF ARG < 0 && NO:ARG != 513
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+
+;崩壊してるか反発刻印3の場合は口上表示しない
+SIF TALENT:ARG:9 || MARK:ARG:3 == 3
+	RETURN 0
+
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:3 == 0
+			LOCALS = やあ、これはいいね。
+		ELSEIF RAND:2 == 0
+			LOCALS = 続いてくれるかな？
+		ELSE
+			LOCALS = 調子がいいぞ！
+		ENDIF
+	;COOP参加
+	CASE 2
+		IF FLAG:行動順1 != -1 && FLAG:行動順1 == MASTER
+			IF RAND:4 == 0
+				LOCALS = うんうん、手伝おうか
+			ELSEIF RAND:3 == 0
+				LOCALS = いい展開かな。
+			ELSEIF RAND:2 == 0
+				LOCALS = 合わせるよ。
+			ELSE
+				LOCALS = なんだ、やるじゃないか！
+			ENDIF
+		ELSE
+			IF RAND:4 == 0
+				LOCALS = うんうん、手伝おうか。
+			ELSEIF RAND:3 == 0
+				LOCALS = 悪くないね！
+			ELSEIF RAND:2 == 0
+				LOCALS = チャンスだ！
+			ELSE
+				LOCALS = なんだ、やるじゃないか！
+			ENDIF
+		ENDIF
+	;被召喚時
+	CASE 3
+		IF RAND:3 == 0
+			LOCALS = %CSTR:一人称%の出番かな！
+		ELSEIF RAND:2 == 0
+			LOCAL:1 = 2
+			LOCALS = %CSTR:一人称%は鬼火のジャック。
+			LOCALS:1 = 見た目どおり、火の扱いならお手の物さ。
+		ELSE
+			LOCAL:1 = 2
+			LOCALS = %CSTR:一人称%の力が必要かい？
+			LOCALS:1 = それじゃあ、頑張ってみようかな。
+		ENDIF
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+				IF RAND:2
+					LOCALS = おしまいだね。
+				ELSE
+					LOCALS = 恨まないでくれよ。
+				ENDIF
+		;弱点をついた。つまりCOOP
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+				LOCALS = ああっ、防がれてる！
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+			LOCALS = ううん、ウェルダン。
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 25
+			LOCALS = はしっこは焦がせたかな。
+		ELSEIF ダメージ割合(ARG:1, ARG:2) <= 0
+			LOCALS = これはひどい。
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			LOCALS = あれ？　……あ、動か、
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			IF 陥落(ARG) && RAND:2
+				LOCALS = とっても痛いけど、まだ立ってるからね！
+			ELSE
+				IF RAND:2
+					LOCALS = ヒホー……
+				ELSE
+					LOCALS = いたたたた……
+				ENDIF
+			ENDIF
+		;無効
+		ELSEIF ARG:2 == 0
+			IF RAND:2 == 0
+				LOCALS = なんて馬鹿なんだろう。
+			ELSE
+				LOCALS = おやおや、効くと思ったのかな？
+			ENDIF
+		;吸収
+		ELSEIF ARG:2 < 0
+			IF RAND:2 == 0
+				LOCALS = やあ、ありがとう。
+			ELSE
+				LOCALS = %CSTR:一人称%にとってはありがたいことだ。
+			ENDIF
+		ENDIF
+	;反射された
+	CASE 15
+		IF RAND:2 == 0
+			LOCALS = おおっと？
+		ELSE
+			LOCALS = ま、間違えた！
+		ENDIF
+	;反射した
+	CASE 16
+		IF RAND:2 == 0
+			LOCALS = ほとほと呆れかえるぜ。
+		ELSE
+			LOCALS = やれやれ。
+		ENDIF
+	;回避された
+	CASE 17
+		IF RAND:8 == 0
+			LOCALS = あっ
+		ELSEIF RAND:7 == 0
+			LOCALS = ……ふうむ。届かないのか
+		ELSEIF RAND:6 == 0
+			LOCALS = すばしっこいなあ。
+		ELSEIF RAND:5 == 0
+			LOCALS = 当たらないか。
+		ELSEIF RAND:4 == 0
+			LOCALS = おや？
+		ELSEIF RAND:3 == 0
+			LOCALS = なんともしまらない！
+		ELSEIF RAND:2 == 0
+			LOCALS = やれやれ。
+		ELSE
+			LOCALS = つぎは当てるぞ。
+		ENDIF
+	;回避した
+	CASE 18
+		IF RAND:8 == 0
+			LOCALS = ヒーホー！
+		ELSEIF RAND:7 == 0
+			LOCALS = おっと、危ない。
+		ELSEIF RAND:6 == 0
+			LOCALS = それで当てるつもりかい？
+		ELSEIF RAND:5 == 0
+			LOCALS = 囮役なんてがらじゃないんだけど。
+		ELSEIF RAND:4 == 0
+			LOCALS = 笑っちゃうよ。
+		ELSEIF RAND:3 == 0
+			LOCALS = %CSTR:一人称%、意外とすばしっこいんだぜ。
+		ELSEIF RAND:2 == 0
+			LOCALS = ううん、おしい。
+		ELSE
+			LOCALS = おまえの目玉はどこにあるのかな。
+		ENDIF
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+;-------------------------------------------------
+@BATTLE_MESSAGE_K513_2,ARG,ARG:1 = 0
+;-------------------------------------------------
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = "EMPTY"
+
+;崩壊してる場合は口上表示しない
+SIF TALENT:ARG:9
+	RETURN 0
+
+CALLFORM SKILL_EFECT_{LOCAL}
+
+;-------------------------------------------------
+;特定スキル/行動
+;-------------------------------------------------
+;-------------------------------------------------
+;Fire
+;-------------------------------------------------
+;ダイナミック・アギラオ
+IF LOCAL == 712
+	IF FLAG:拡散フラグ >= 40225 || BASE:ARG:ＭＰ >= 10000
+		IF RAND:3 == 0
+			LOCALS = とっておきの……焼却魔法……
+		ELSEIF RAND:2 == 0
+			LOCAL:1 = 2
+			LOCALS = あっはははははは！！
+			LOCALS:1 = 燃えろ！　燃えろ！　灰になれっ！！
+		ELSE
+			LOCAL:1 = 2
+			LOCALS = それはもう、悪魔にもらった種火だもの！
+			LOCALS:1 = きっと熱くてたまらないだろうね！
+		ENDIF
+	ELSEIF FLAG:拡散フラグ >= 3825 || BASE:ARG:ＭＰ >= 900
+		IF RAND:3 == 0
+			LOCALS = ヒャッハー！　焼却だー！
+		ELSEIF RAND:2 == 0
+			LOCAL:1 = 2
+			LOCALS = 汚い花火……じゃないね。
+			LOCALS:1 = 焚き火？　焚き火かな？
+		ELSE
+			LOCAL:1 = 2
+			LOCALS = 煌々と！　全力で！　照らしてみようか！
+			LOCALS:1 = ダイナミック・アギラオ！
+		ENDIF
+	ELSE
+		IF RAND:3 == 0
+			LOCALS = 全力でやれっていうのかい！？
+		ELSEIF RAND:2 == 0
+			LOCAL:1 = 2
+			LOCALS = とっておきだから、強いはずだけど、
+			LOCALS:1 = そのぶん使った後は無能になるんだよね……
+		ELSE
+			LOCAL:1 = 2
+			LOCALS = 眩しく照らしてみようか！
+			LOCALS:1 = ダイナミック・アギラオ！
+		ENDIF
+	ENDIF
+;暗黒狂焔乱舞
+ELSEIF LOCAL == 713
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = みんな、まとめて皆殺しだぁぁぁ！！
+		LOCALS:1 = ……なんちゃって。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = …ヒ…イヒ…ヒャハ！ヒャーハハハァァァァ！！
+		LOCALS:1 = ……なんちゃって。
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = それじゃあ、消し炭になってもらおうか。
+		LOCALS:1 = ほら、早く。
+	ENDIF
+;デッドリーバーン
+ELSEIF LOCAL == 712
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = 灰も残ざねええええ！
+		LOCALS:1 = ……げほっ、げほっ。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = 塵にじでやるあぁあぁ！
+		LOCALS:1 = ……なんちゃって。
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = 燃べろ！燃べ尽ぎろぉぉぉ！
+		LOCALS:1 = ……げほっ、げほっ。
+	ENDIF
+;炎の乱舞
+ELSEIF LOCAL == 717
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = 鬼火の乱舞！
+		LOCALS:1 = ……あ、違う？
+	ELSEIF RAND:2 == 0
+		LOCALS = 誰に当たるかおたのしみ！
+	ELSE
+		LOCALS = さあ、ショウタイム！
+	ENDIF
+;炎のランナー
+ELSEIF LOCAL == 2829
+	IF ABL:歌唱技能 == 10
+		IF RAND:3 == 0
+			LOCAL:1 = 2
+			LOCALS = 突然のライブ！
+			LOCALS:1 = 盛り上がるといいんだけどね！
+		ELSEIF RAND:2 == 0
+			LOCAL:1 = 2
+			LOCALS = 突撃ラブハアアアアアアト！！
+			LOCALS:1 = ……なんちゃって。
+		ELSE
+			LOCAL:1 = 2
+			LOCALS = 美声で幸せに燃えるといいさ！
+			LOCALS:1 = ……さあ、%CSTR:一人称%の歌を聴け！！
+		ENDIF
+	ELSE
+		LOCALS = えっマイク！？　いつの間に！？
+	ENDIF
+;-------------------------------------------------
+;ＣＨＡＮＧＥ
+;-------------------------------------------------
+ELSEIF LOCAL == 2301
+	IF RAND:3 == 0
+		LOCALS = ちょっとかわっておくれ。
+	ELSEIF RAND:2 == 0
+		LOCALS = 交代しようか。
+	ELSE
+		LOCALS = うん、かわったほうがよさそうだ。
+	ENDIF
+;-------------------------------------------------
+;汎用スキル
+;-------------------------------------------------
+;Fire
+ELSEIF RANGE(LOCAL,701, 799)
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = %CSTR:一人称%に火炎を使わせたら、
+		LOCALS:1 = けっこうすごいんだよ。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = いいねいいね！
+		LOCALS:1 = 焚き火の時間だ！
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = 燃やすんだろう？
+		LOCALS:1 = 得意中の得意さ、なんたってジャックランタンだからね！
+	ENDIF
+;Ice
+ELSEIF RANGE(LOCAL,801, 899)
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = 実際、こういう冷たいのはさ、
+		LOCALS:1 = 雪だるまのジャックに任せておきたいぜ。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = なんてこった。
+		LOCALS:1 = %CSTR:一人称%に氷を使わせるなんて！
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = こっちに余波でも飛んできたら、
+		LOCALS:1 = %CSTR:一人称%はそのまま倒れちまうよ。
+	ENDIF
+;Elect
+ELSEIF RANGE(LOCAL,901, 999)
+	IF RAND:3 == 0
+		LOCALS = 痺れてもらっちゃうよ。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = Elect……電撃かあ。
+		LOCALS:1 = カミナリ落とせってことだよね。
+	ELSE
+		LOCALS = サンダーブレーク！
+	ENDIF
+;Force
+ELSEIF RANGE(LOCAL,1001, 1099)
+	IF RAND:3 == 0
+		LOCALS = 嵐で吹き飛ばしちゃうよ。
+	ELSEIF RAND:2 == 0
+		LOCALS = 念動力ってやつなのかな。
+	ELSE
+		LOCALS = あったーれ。
+	ENDIF
+;Nerve
+ELSEIF RANGE(LOCAL,1101, 1199)
+	IF RAND:3 == 0
+		LOCALS = あんまり好きじゃあないんだけれどね。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = 毒とか麻痺とか、
+		LOCALS:1 =敵に使われるととっても面倒だ。
+	ELSE
+		LOCALS = どうだろう、効くのかな？
+	ENDIF
+;Mind
+ELSEIF RANGE(LOCAL,1201, 1299)
+	IF RAND:3 == 0
+		LOCALS = あんまり好きじゃあないんだけれどね。
+	ELSEIF RAND:2 == 0
+		LOCALS = 囁いてみようかな。
+	ELSE
+		LOCALS = どうだろう、効くのかな？
+	ENDIF
+;Light
+ELSEIF RANGE(LOCAL,1301, 1399)
+	IF RAND:3 == 0
+		LOCALS = 十字架を投げればいいのかい？
+	ELSEIF RAND:2 == 0
+		LOCALS = 十字架を刻めばいいのかい？
+	ELSE
+		LOCALS = 十字架で殴ればいいのかい？
+	ENDIF
+;Dark
+ELSEIF RANGE(LOCAL,1401, 1499)
+	IF RAND:100 == 0
+		LOCAL:1 = 5
+		LOCALS:0 = 　　　　い　　　み　　　ど
+		LOCALS:1 = 　　　　な　　　ん　　　う
+		LOCALS:2 = 　　　　く　　　な　　　せ
+		LOCALS:3 = 　　　　な
+		LOCALS:4 = 　　　　る
+	ELSE
+		LOCALS = のろまーす。
+	ENDIF
+;Earth
+ELSEIF RANGE(LOCAL,1501, 1599)
+	IF RAND:3 == 0
+		LOCALS = 足元には気をつけてくれよ。
+	ELSEIF RAND:2 == 0
+		LOCALS = ぐらぐらっと、揺らしてみようか。
+	ELSE
+		LOCALS = 地面が割れると思うとこわいね。
+	ENDIF
+;Water
+ELSEIF RANGE(LOCAL,1601, 1699)
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = 実際、こういう冷たいのはさ、
+		LOCALS:1 = 雪だるまのジャックに任せておきたいぜ。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = なんてこった。
+		LOCALS:1 = %CSTR:一人称%に水を使わせるなんて！
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = こっちに余波でも飛んできたら、
+		LOCALS:1 = %CSTR:一人称%はそのまま倒れちまうよ。
+	ENDIF
+;Wind
+ELSEIF RANGE(LOCAL,1701, 1799)
+	IF RAND:3 == 0
+		LOCALS = 北風でも吹くのかな、これは。
+	ELSEIF RAND:2 == 0
+		LOCALS = 風にあおられて落ちればいいさ。
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = こっちに余波でも飛んできたら、
+		LOCALS:1 = %CSTR:一人称%はそのまま倒れちまうよ。
+	ENDIF
+;Grav
+ELSEIF RANGE(LOCAL,1801, 1899)
+	IF RAND:3 == 0
+		LOCALS = ……重力って？
+	ELSEIF RAND:2 == 0
+		LOCALS = つまるところ、地面に引っ張られる力ってやつかい？
+	ELSE
+		LOCALS = ぺしゃんこになればいいさ。
+	ENDIF
+;Nuclr
+ELSEIF RANGE(LOCAL,1901, 1999)
+	IF RAND:3 == 0
+		LOCAL:1 = 2
+		LOCALS = %CSTR:一人称%に熱を扱わせたら、
+		LOCALS:1 = けっこうすごいんだよ。
+	ELSEIF RAND:2 == 0
+		LOCAL:1 = 2
+		LOCALS = いいねいいね！
+		LOCALS:1 = 焚き火の時間だ！
+	ELSE
+		LOCAL:1 = 2
+		LOCALS = 灼きつくすんだろう？
+		LOCALS:1 = 得意中の得意さ、なんたってジャックランタンだからね！
+	ENDIF
+;回復
+ELSEIF RANGE(LOCAL,401, 499)
+	IF RAND:3 == 0
+		LOCALS = 治すのは苦手なんだけど……
+	ELSEIF RAND:2 == 0
+		LOCALS = 治せっていうのかい？　やれやれ。
+	ELSE
+		LOCALS = 攻撃のほうが得意なんだよな。
+	ENDIF
+;支援
+ELSEIF RANGE(LOCAL,501, 599)
+	;強化系
+	IF RANGE(LOCAL,501, 505)
+		IF RAND:2
+			LOCALS = %RESULTS%、ねえ。やっておこうか。
+		ELSE
+			LOCALS = ううん、こういうのは得意じゃないんだよな。
+		ENDIF
+	;弱体系
+	ELSEIF RANGE(LOCAL,506, 509) || LOCAL == 520
+		IF RAND:2
+			LOCALS = 多少なりとも、削ってみようか。
+		ELSE
+			LOCALS = こういうのは……得意じゃないんだよな……
+		ENDIF
+	;淀んだ空気･吐息
+	ELSEIF RANGE(LOCAL,518, 519)
+		IF RAND:2
+			LOCALS = 下準備ってやつかい？
+		ELSE
+			LOCALS = ふうむ。こういうのもありなのかなあ？
+		ENDIF
+	;気合、コンセントレイト
+	ELSEIF RANGE(LOCAL,511, 512)
+		IF RAND:3 == 0
+			LOCAL:1 = 2
+			LOCALS = つぎは。
+			LOCALS:1 = けっこう、痛いよ。
+		ELSEIF RAND:2 == 0
+			LOCALS = 精神集中……さ。
+		ELSE
+			LOCALS = ……。
+		ENDIF
+	;挑発
+	ELSEIF LOCAL == 515
+		IF RAND:3 == 0
+			LOCALS = やーいやーい。
+		ELSEIF RAND:2 == 0
+			LOCALS = 人間にだまされる頭の弱さ！　尊敬するね！
+		ELSE
+			LOCALS = （ 放送禁止用語 ）
+		ENDIF
+	;その他
+	ELSE
+		IF RAND:3 == 0
+			LOCALS = できないことはないけれど……
+		ELSEIF RAND:2 == 0
+			LOCALS = %RESULTS%かい？　まあ、やってみようか。
+		ELSE
+			LOCALS = ……これでよかったっけか？
+		ENDIF
+	ENDIF
+
+;-------------------------------------------------
+;リンケージ
+;-------------------------------------------------
+;メシアライザー
+ELSEIF LOCAL == 4160
+	IF RAND:2
+		LOCALS = 治しちゃうよ！
+	ELSE
+		LOCALS = 態勢を立て直そう！
+	ENDIF
+;Lヒートライザ
+ELSEIF LOCAL == 4200
+	IF RAND:2
+		LOCALS = アガるね！
+	ELSE
+		LOCALS = ヒャッハァ！
+	ENDIF
+;死亡遊戯
+ELSEIF LOCAL == 4800
+	IF RAND:2
+		LOCALS = ははは、受けてもらおうか！
+	ELSE
+		LOCALS = ……だって、%CSTR:二人称%のためだもの。
+	ENDIF
+;上記以外のリンケージ
+ELSEIF RANGE(LOCAL,4000, 4999)
+	IF RAND:2
+		LOCALS = へえ。協力。いいんじゃない？
+	ELSE
+		LOCALS = さあさあ、合体技だよ！
+	ENDIF
+;-------------------------------------------------
+;その他
+;-------------------------------------------------
+ELSE
+	IF RAND:8 == 0
+		LOCALS = えーい。
+	ELSEIF RAND:7 == 0
+		LOCALS = 当たれ！
+	ELSEIF RAND:6 == 0
+		LOCALS = どうかな？
+	ELSEIF RAND:5 == 0
+		LOCALS = さあて。
+	ELSEIF RAND:4 == 0
+		LOCALS = よっと。
+	ELSEIF RAND:3 == 0
+		LOCALS = いけるかな？
+	ELSEIF RAND:2 == 0
+		LOCALS = ふふん。
+	ELSE
+		LOCALS = どっせーい。
+	ENDIF
+ENDIF
+
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+;@FUSION_MESSAGE_K513_2,ARG
+;PRINTFORMW 「やあ。俺はジャックランタン、鬼火のジャック」
+;PRINTFORMW 「地獄行きは免れたけれど、天国からも門前払いで、行く場所がないのさ」
+;PRINTFORMW 「あんたがどこに行くかは知らないけれど、生きてるうちはついていくよ」

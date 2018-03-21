@@ -1,0 +1,223 @@
+;====================
+;関連フラグリスト
+;====================
+;依頼フラグ:15:0 1:ゆきの＋もう一人仲間　2:無事だが, 仲間にはならない　3:見捨てた 4:奴隷化
+;====================
+;条件
+;====================
+@PLAYABLE_REQUEST_15
+;SEBECビルクリア後,麻希イベントを見ていない,
+IF ダンジョンフラグ:10:9 == 1 && ダンジョンフラグ:10:10 == 0 && 依頼フラグ:15:0 == 0
+	RESULTS = Rescue Request 1
+	RETURN 1
+ENDIF
+RETURN 0
+;====================
+;説明
+;====================
+@EXPLAIN_REQUEST_15
+PRINTL 
+PRINTFORMW -An email arrived-
+PRINTFORMW It's a request from the Phantom Society.
+PRINTFORMW About the Mikage-Cho isolation barrier, free a student of St Hermelin High School in Mikage-Cho, is the request.
+PRINTFORMW Because the Mikage-Cho barrier is hard to cross, the objective is to to rescue one student.
+PRINTFORMW The client is the Pharmacy owner Tadashi Satomi.
+PRINTFORMW Somehow, the reward is medicine.
+PRINTFORMW The target is the storekeeper's son.
+PRINTFORMW The face is similar so you should be able recognize the target immediately.
+PRINTFORMW 
+
+;====================
+;内容
+;====================
+@REQUEST_15
+PRINTFORMW Visited St Hermelin High School.
+PRINTFORMW Managed to enter easily.
+WAIT
+PRINTFORMW Somehow, the school's interior does not appear peaceful.
+PRINTFORMW In several places, parts of the school seemed to be in a different world, and the teachers and students run around in confusion.
+PRINTFORMW In fact, not only the school, but Mikage-Cho is sinking into another world.
+PRINTFORMW Went looking to talk with Yukino, but couldn't find her.
+PRINTFORMW Caught a person who explained the situation, Yukino gathered a group of persona users to enter the other world, while said world encroached upon the school.
+PRINTFORMW As far as you heard, the son of Tadashi Satomi that you seek was taken to the other world.
+PRINTFORMW Somehow, %CALLNAME:MASTER% was forced to go.
+WAIT
+PRINTFORMW The place was wrapped in fog.
+PRINTFORMW Though the fog seems harmless, %CALLNAME:MASTER% became strangely sleepy.
+PRINTFORMW In the corners of a real classroom, students and teachers slept unusually comfortably.
+PRINTFORMW While enduring the sleepiness, carefully examined the corners and turned around.
+PRINTFORMW Somehow, the sleeping people are hard to wake.
+IF イベントフラグ:22:0 == 1
+;ゆきのに協力申し出
+	PRINTFORMW After wandering a while, you heard the sound of fighting.
+	PRINTFORMW You follow the sound.
+	PRINTFORMW There, 3 three female persona users defeated a demon.
+	PRINTFORMW Yukino was at the lead.
+	IF イベントフラグ:20:0 != 0
+		PRINTFORMW Ayase was there too.
+		PRINTFORMW The last was an unknown elegant girl, who had a persona.
+	ELSE
+		PRINTFORMW Eri was there too.
+		PRINTFORMW The last was an unknown freckled girl, who had a persona.
+	ENDIF
+	PRINTFORMW 「You...I didn't think you would possibly help.」
+	PRINTFORMW As Yukino smiled, you said you wanted to deal with the other-worldly incident for campus safety.
+	PRINTFORMW However, the 3 seemed uneasy anout your magic.
+	PRINTFORMW When %CALLNAME:MASTER% explained future intentions, Yukino frowned and spoke.
+	PRINTFORMW 「You are investigating. I should have slept comfortably in a room somewhere.」
+	PRINTFORMW 「...Sorry, may I ask something after this?　We're on a time limit.」
+	PRINTFORMW 「What could I say instead, you just leave after the investigation.」
+	PRINTFORMW 「I do not think it is a good idea to only have one person escape.」
+	PRINTFORMW %CALLNAME:MASTER% hasn't found the boy yet.
+	PRINTFORMW ...the person who knew what was going on earlier.
+	PRINTFORMW After parting from Yukino, continued searching.　In a few minutes...
+	PRINTFORMW 「Umm...Is it you?　Who damaged my dreamworld」
+	PRINTFORMW A student of Hermelin called out to you...
+	PRINTFORMW She doesn't seem human.　Perhaps, she is the source of the drowsiness...
+	PRINTFORMW 「...please just give in...because I'm having a happy dream...」
+	PRINTFORMW 「...it is nicer in this dream than in the hot, painful reality...」
+	PRINTFORMW You are currently free, but she's trying to cloud your thoughts.
+	PRINTFORMW There is no right or wrong if you interfere.
+;ヒュプノスと戦闘
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	WAIT
+	CALL SET_ENEMY,10,460,25, 0,1
+	CALL BATTLE_START
+	CUSTOMDRAWLINE =
+	WAIT
+
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	PRINTFORMW 「Ah...why...」
+	PRINTFORMW Screaming in agony, the girl dies.
+	PRINTFORMW If it is her causing this drowsiness, things will slowly recover.
+	PRINTFORMW After leaving that area of the different world, Yukino came up to you.
+	PRINTFORMW 「Did you do it?　...thank you, you saved us.」
+	PRINTFORMW 「Like I said back then, I didn't think you'd really help.」
+	PRINTFORMW 「Still, there is a place that is becoming strange within the school.」
+	PRINTFORMW 「...If it is good, I ask you to lend us a hand for a bit more...」
+	CALL INPUT_YN("If you give me a hand too", "I cannot promise that")
+	IF RESULT == 0
+		依頼フラグ:15:0 = 1
+		PRINTFORMW 「Naturally. Well, with me and...」
+		IF イベントフラグ:20:0 != 0
+			PRINTFORMW 「...Yuka helping.　Because we cannot empty the school, we didn't ask Eriko for help.」
+			PRINTFORMW Yukino Mayuzumi and Yuka Ayase became your friends.
+			CALL ADD_NEW_COMPANION,4515,500
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			CALL ADD_NEW_COMPANION,4535,500
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			;REPEAT CHARANUM
+				;戦闘参加可能で加入するが, 調教で戦闘参加不可能になる
+			;	SIF NO:COUNT == 4515 || NO:COUNT == 4535
+			;		CFLAG:COUNT:戦闘参加不可能 = -1
+			;REND
+		ELSE
+			PRINTFORMW 「...Eriko helping.　Because we cannot empty the school, I didn't ask Yuka to help.」
+			PRINTFORMW Yukino Mayuzumi and Eriko Kirishima became your friends.
+			CALL ADD_NEW_COMPANION,4514,500
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			CALL ADD_NEW_COMPANION,4535,500
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			;REPEAT CHARANUM
+				;戦闘参加可能で加入するが, 調教で戦闘参加不可能になる
+			;	SIF NO:COUNT == 4514 || NO:COUNT == 4535
+			;		CFLAG:COUNT:戦闘参加不可能 = -1
+			;REND
+		ENDIF
+	ELSE
+		依頼フラグ:15:0 = 2
+		PRINTFORMW 「...is that so, it is so.　You have circumstances too...I'm sorry for being unreasonable.」
+	ENDIF
+ELSE
+;顔を繋いだだけ
+	PRINTFORMW After a few minutes, found some girls you recognized in a room.
+	PRINTFORMW They were the persona-users of Hermelin, including Yukino.
+	PRINTFORMW But, the 3 lied unconscious on the ground.
+	PRINTFORMW Several demons surrounded and groped them.
+	PRINTFORMW From the state of their clothes, they have yet to be raped...
+	PRINTFORMW The demons noticed you too.
+	PRINTFORMW 『What, オ前ラ!?　コレハオレサマタチガ貰ッタ物ダゾ!』
+	CALL INPUT_YN("I am not interested in them.I'll listen", "Attack")
+	IF RESULT == 0
+		CALL INCREASE_LD, -8
+		PRINTFORMW 『...ソンナガキナラ イクラデモイルゾ』
+		PRINTFORMW 『アチラノヘヤニ コロガシテアッタハズダ.　ワカッタラ邪魔ヲスルナ』
+		PRINTFORMW Finishing this business, %CALLNAME:MASTER% turned away from the demons.
+		PRINTFORMW The sound of torn clothes echoed from behind...
+		依頼フラグ:15:0 = 3
+	ELSE
+		PRINTFORMW 『ナニヲスル キサマァ!!』
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		WAIT
+		CALL SET_ENEMY,9,653,17,0
+		CALL SET_ENEMY,10,653,17,0
+		CALL SET_ENEMY,11,653,17,0
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		WAIT
+		PRINTFORMW Now, were the demons finished...?
+		PRINTFORMW 「Umm...please don't make so much noise. I'll lull you into a deep sleep slowly...」
+		PRINTFORMW You turned to a student of Hermelin that called out to you...
+		PRINTFORMW She doesn't look human.　Probably, she is responsible for this drowsiness...
+		PRINTFORMW 「...please just give in...because I'm having a happy dream...」
+		PRINTFORMW You are currently free, but she's trying to cloud your thoughts.
+		PRINTFORMW There is no right or wrong if you interfere.
+	;ヒュプノスと戦闘
+		WAIT
+		CALL SET_ENEMY,10,460,25, 0,1
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		WAIT
+
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		PRINTFORMW 「Ah...why...」
+		PRINTFORMW Screaming in agony, the girl dies.
+		PRINTFORMW  If it is her causing this drowsiness, things will slowly recover.
+		PRINTFORMW By the way, what will you do with the sleeping girls?
+		CALL INPUT_YN("Wake them up", "Gather them up and take them")
+		IF RESULT == 0
+			PRINTFORMW You woke up Yukino and got the boy's whereabouts from her.
+			PRINTFORMW You parted from the thankful Yukino, and left St Hermelin High School.
+			依頼フラグ:15:0 = 2
+		ELSE
+			CALL INCREASE_LD, -8
+			PRINTFORMW You can find the boy easily now that you are free to look thoroughly.
+			PRINTFORMW It's not like the school is that large now that the differentiated world issue has been solved.
+			PRINTFORMW Then, you abducted the three girls in their sleep...
+			PRINTFORMW Yukino Mayuzumi, Eriko Kirishima, Yuka Ayase obtained
+			CALL ADD_NEW_COMPANION,4514,200
+			CALL ADD_NEW_COMPANION,4515,200
+			CALL ADD_NEW_COMPANION,4535,200
+			依頼フラグ:15:0 = 4
+		ENDIF
+	ENDIF
+ENDIF
+CUSTOMDRAWLINE =
+PRINTFORMW Completed the request at St Hermelin High School.
+PRINTFORMW Pharmacy owner「Tadashi Satomi」's son rescued.
+PRINTFORMW You got a Bead as a reward!
+CALL CHECK_ITEMMAX,1004
+IF RESULT == 0
+	CALL GET_ITEM,1004,1
+ELSE
+	PRINTFORMW ...but you couldn't accept it...
+ENDIF
+PRINTFORMW got BalmOfLife as a reward!
+CALL CHECK_ITEMMAX,1009
+IF RESULT == 0
+	CALL GET_ITEM,1009,1
+ELSE
+	PRINTFORMW ...but you couldn't accept it...
+ENDIF

@@ -1,0 +1,225 @@
+
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_20
+
+IF FLAG:闘技場ランク >= 3 && FLAG:闘技場名声 >= 800 && 闘技場フラグ:20:0 < 1 && ダンジョンフラグ:68:40 > 1
+	RESULTS = Rank Ｂ　ＶＳ　White Rider
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@COLOSSEUM_20
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+
+PRINTFORML 　Moderator
+PRINTFORML 「Laaaaadies！And！Gentlemen！
+PRINTFORMW 　Sorry for the wait！Here is today's match！」
+PRINTFORML 
+PRINTFORMW ＞On screen、%CALLNAME:MASTER% and the opposing team were shown…"
+PRINTFORML 
+PRINTFORMW ＞・・・
+PRINTFORMW ＞・・・The candelabrum's flame shakes
+PRINTFORML 
+PRINTFORML 
+PRINTFORML 
+
+PRINTFORML 「Haha！
+PRINTFORMW 　We meet again、%CALLNAME:MASTER%！」
+PRINTFORMW 「Due to the candelabrum's guidance・・・」
+PRINTFORML 「That glow wants only one master、
+PRINTFORMW 　so we shall kindle and test each other！」
+PRINTFORML 「If you defeat all demons、
+PRINTFORMW 　your candelabrum shall burn brightly！」
+PRINTFORMW 「If your flame has little power・・・」
+PRINTFORMW 「Then you shall fall to my divine arrows！」
+
+CUSTOMDRAWLINE =
+WAIT
+
+CALL SET_ENEMY,9,[[キャラ:ホワイトライダー]],55,0,1
+CFLAG:(CHARANUM-1):ＨＰ補正 += 3000
+CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+CFLAG:(CHARANUM-1):行動回数 = 2
+CSTR:(CHARANUM-1):増援パターン = ホワイトライダーの
+	CSTR:(CHARANUM-1):思考パターン = 41076800
+	ABL:(CHARANUM-1):アイテム1 = 350
+	ABL:(CHARANUM-1):入手確率1 = 100
+	ABL:(CHARANUM-1):アイテム2 = 11322
+	ABL:(CHARANUM-1):入手確率2 = 50
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL SET_ENEMY,8,[[キャラ:ヴァーチャー]],50,0,1
+CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+ABL:(CHARANUM-1):スキル5 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL SET_ENEMY,10,[[キャラ:ヴァーチャー]],50,0,1
+CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+CFLAG:(CHARANUM-1):ＭＰ補正 += 500
+ABL:(CHARANUM-1):スキル5 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL BATTLE_START
+CUSTOMDRAWLINE =
+
+PRINTW Fiend White Rider defeated
+PRINTL 
+
+CUSTOMDRAWLINE =
+WAIT
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+PRINTW ￥50000 won
+PRINTFORMW %CALLNAME:MASTER% got 100 fame
+MONEY += 50000
+FLAG:名声 += 100
+FLAG:闘技場名声 += 100
+闘技場フラグ:20:0 = 1
+
+;合体解禁しておく、全書召喚も可能じゃねーかな
+FLAG:14107 = 1
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+
+;=======================================================================
+;ホワイトライダー行動パターン
+;=======================================================================
+@SET_ACTION_41076800,ARG
+#LOCALSIZE 2
+#LOCALSSIZE 1
+;HPが５０％切ったら行動回数増える
+IF CFLAG:ARG:行動回数 < 3 && (BASE:ARG:ＨＰ)*100/(MAXBASE:ARG:ＨＰ) < 50
+	PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+	PRINTFORM ┃[{CFLAG:ARG:ポジション,2}] %CALLNAME:ARG,21,LEFT%┃　┃
+	RESULTS = 龍の眼光
+	PRINTFORML %RESULTS,40,LEFT%┃
+	PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+	CFLAG:ARG:行動回数 = 4
+ENDIF
+
+;４分の１でデカジャチェック
+IF RAND:4 == 1
+	FOR LOCAL,1,7
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS == -1
+			CONTINUE
+		SIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+			CONTINUE
+		FOR LOCAL:1,0,6
+			IF CFLAG:(FLAG:LOCALS):(GET_BATTLESTATUS(LOCAL:1) + "強化") > 0
+				;デカジャ
+				CFLAG:ARG:入力行動 = 509
+				CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+				RETURN 0
+			ENDIF
+		NEXT
+	NEXT
+	GOTO DECIDE_ACTION
+;２分の１でテトラジャチェック
+ELSEIF RAND:2 == 1
+	FOR LOCAL,7,17
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS == -1
+			CONTINUE
+		SIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+			CONTINUE
+		IF CFLAG:(FLAG:LOCALS):DYING無効化回数 < 1
+			;テトラジャ
+			CFLAG:ARG:入力行動 = 601
+			CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+			RETURN 0
+		ENDIF
+	NEXT
+	GOTO DECIDE_ACTION
+ELSE
+	$DECIDE_ACTION
+	LOCAL = RAND:10
+	;通常攻撃
+	IF LOCAL <= 3
+		CFLAG:ARG:入力行動 = 0
+	;ゴッドアロー、破魔効く奴探してそいつ狙う(ただしテトラジャスルー)失敗はLightガードキル
+	ELSEIF 4 <= LOCAL && LOCAL <= 5
+		FOR LOCAL,6,0,-1
+			LOCALS = ポジション{LOCAL}
+			SIF FLAG:LOCALS < 0
+				CONTINUE
+			SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			IF (MAXBASE:(FLAG:LOCALS):破魔 > 0 && MAXBASE:(FLAG:LOCALS):破魔 != 999) || CFLAG:LOCAL:破魔ガードキル > 0
+				;ゴッドアロー
+				CFLAG:ARG:入力行動 = 1322
+				CFLAG:ARG:ターゲット = LOCAL
+				RETURN 1
+			ENDIF
+		NEXT
+		IF !CFLAG:ARG:600
+			SETCOLOR 0xff0033
+			PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+			PRINTFORML ┃Hm? What are you,　　　　　　　　　　　　┃
+			PRINTFORML ┃are my divine arrows not working? They are!　　　　　　┃
+			PRINTFORML ┃　　　　　　　　　　　　　　　　　　　　　　┃
+			PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+			RESETCOLOR
+			CFLAG:ARG:600 = 1
+		ENDIF
+		CFLAG:ARG:入力行動 = 1331
+	;地獄の業火
+	ELSEIF 6 <= LOCAL && LOCAL <= 8
+		CFLAG:ARG:入力行動 = 709
+	;悪魔召喚、ヴァーチャー出す　枠無ければ通常攻撃
+	ELSE
+		FOR LOCAL, 7, 17
+			SIF POS(LOCAL) >= 0
+				CONTINUE
+			BREAK
+		NEXT
+		IF LOCAL == 17
+			CFLAG:ARG:入力行動 = 0
+		ELSE
+			CFLAG:ARG:入力行動 = 2308
+		ENDIF
+	ENDIF
+ENDIF
+
+CALL CHECK_ACTIONABLE,ARG,CFLAG:ARG:入力行動
+IF RESULT == 1
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ELSE
+	;なんかエラーあれば通常攻撃に
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET,ARG,CFLAG:ARG:入力行動
+ENDIF
+RETURN 0
+
+@増援パターン_ホワイトライダーの, ARG, ARG:1, ARG:2
+CALL SET_ENEMY, ARG:1, [[キャラ:ヴァーチャー]],45,0,0
+CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+ABL:(CHARANUM-1):スキル5 = 0
+	ABL:(CHARANUM-1):アイテム1 = 1002
+	ABL:(CHARANUM-1):入手確率1 = 0
+CALL HEALTH_CHARA,(CHARANUM-1)
+CALL SYNC_STATUS,(CHARANUM-1)
+SIF ARG:2 == 1
+	RETURN 1
+RETURN 0
+

@@ -1,0 +1,165 @@
+
+;スキル名
+@SKILL_NAME_2904,ARG
+RESULTS = 「Tengu Psychography」
+;遠眼「天狗ｻｲｺｸﾞﾗﾌｨ」
+SIF  GETBIT (FLAG:カスタムゲーム画面,1)
+	RESULTS = Distant eye「Tengu Psychography」
+	;遠眼「天狗サイコグラフィ」
+
+;　命中
+@SKILL_HITRATE_2904, ARG
+RETURN 200
+
+;　威力
+@SKILL_POWER_2904, ARG
+RETURN 110
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2904,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2904,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2904, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2904,ARG
+RETURN 10
+
+;　相性
+@SKILL_TYPE_2904,ARG
+RETURN GET_TYPE_NUM("万能")
+;相性なし
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2904
+RETURN 1
+;EXTRA
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2904
+RETURN 2
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2904
+RETURN 1
+
+;　射程
+@SKILL_RANGE_2904,ARG
+RETURN 2
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2904,ARG
+RETURN 1
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2904
+RETURN 1
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2904
+RETURN 23
+;継承不可
+
+;速度補正
+@SKILL_SPEED_2904, ARG = -1
+RETURN 5
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2904,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2904
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_2904
+RETURN 10
+;変化不可
+
+@継承不能_2904
+RETURN 1
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_2904,ARG,ARG:1
+#LOCALSIZE 5
+;ARG:0…実行者のCHARA Num　ARG:1…対象のポジションNum
+LOCAL = POS(ARG:1)
+
+;攻撃を行った後、High-dasと同様の処理を行う。
+IF !(CAN_ANALYZE_TL(LOCAL))
+	PRINT 　少女念写中
+	PRINTFORM (0％).....
+	PRINT Failed.
+	PRINTL
+	PRINTFORML 　It seems %CALLNAME:(LOCAL)% can't be scanned...
+	CALL ATTACK_SINGLE,ARG,LOCAL,2904
+	RETURN 0
+ENDIF
+
+
+;（実行者のLv+(知恵+運)*2-対象のレベル、最大９５最低５）％の判定に成功したら解析度が50、その時の出目が運以下なら100上がる
+;失敗しても10上がる
+LOCAL:2 = RAND:100
+PRINT 　少女念写中
+LOCAL:3 = LIMIT((BASE:ARG:LV + (BASE:ARG:知恵 + BASE:ARG:運) * 2 - BASE:LOCAL:LV),5,95)
+PRINTFORM ({LOCAL:3}％).....
+IF LOCAL:2 < LOCAL:3
+		IF LOCAL:2 < BASE:ARG:運
+			LOCAL:4 = 100
+			PRINT 大成功 ！！
+		ELSE
+			LOCAL:4 = 50
+			PRINT 成功 ！
+		ENDIF
+ELSE
+	LOCAL:4 = 10
+	PRINT 終了
+ENDIF
+
+;ボスの場合、上昇は半分になる
+SIF CFLAG:LOCAL:ボスフラグ
+	LOCAL:4 /= 2
+
+PRINTL
+PRINTFORM 　%CALLNAME:(LOCAL)% 
+
+CALL INCREASE_ANALYZE,(NO:LOCAL),LOCAL:4
+
+;アンノウンフラグが解除される
+IF CFLAG:LOCAL:アンノウンフラグ == 1
+	CFLAG:LOCAL:アンノウンフラグ = 0
+	IF NAME:LOCAL == "？？？？"
+		NAME:LOCAL = %CSVNAME(NO:LOCAL,0)%
+		CALLNAME:LOCAL = %CSVCALLNAME(NO:LOCAL,0)%
+	ENDIF
+	PRINTFORM ＝＞　%CALLNAME:(LOCAL)% 
+ENDIF
+
+PRINTFORML Analyzed \@FLAG:(20000+NO:LOCAL) >= 1000 ? COMPLETE! # {FLAG:(20000+NO:LOCAL)/10}％ \@
+
+CALL ATTACK_SINGLE,ARG,LOCAL,2904
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2904
+PRINTL Light Almighty attack to a target.
+PRINTL Also increases analysis percentage of the target.
+PRINTL Spell Card of Raptor Himekadou Hatate. (Impossible to inherit)
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2904,ARG
+RETURN 1
+;とくにない
+

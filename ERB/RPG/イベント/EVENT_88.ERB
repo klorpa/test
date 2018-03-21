@@ -1,0 +1,158 @@
+;ランダム奴隷イベント
+;とりあえず貢献値30万と100万で貰える様に
+;⇒変更しますた
+;イベントフラグ:88:0 リスト
+;0:開始前
+;1:1回目済
+;2:2回目済
+;3:3回目済
+;4:4回目済
+;4:5回目済
+;
+;必要納金額は以下の通り
+;1回目 10万納金
+;2回目 20万納金　(計30万)
+;3回目 40万納金　(計75万)
+;4回目 70万納金　(計145万)
+;5回目 125万納金 (計270万)
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_88
+IF イベントフラグ:88:0 < 5  && ( (イベントフラグ:88:0 == 0 && FLAG:組織貢献度 > 99999) || (イベントフラグ:88:0 == 1 && FLAG:組織貢献度 > 299999) || (イベントフラグ:88:0 == 2 && FLAG:組織貢献度 > 749999) || (イベントフラグ:88:0 == 3 && FLAG:組織貢献度 > 1449999) || (イベントフラグ:88:0 == 4 && FLAG:組織貢献度 > 2699999) )
+	RESULTS = Bonus from the Organization
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_88
+#DIM CHARA, 1
+CUSTOMDRAWLINE =
+IF イベントフラグ:88:0 == 0
+	PRINTFORMW 　An encrypted e-mail reached %CALLNAME:MASTER% who has greatly contributed to the organization.
+	PRINTFORMW 　When decrypted with the Phantom Society Cipher it became readable.
+	PRINTFORMW 『A slave can be given to you as a special reward for your contributions.』
+	PRINTFORMW 　...thus it read
+	PRINTFORMW 　As it indicated, %CALLNAME:MASTER% went to a back alley away from the suburbs of a small factory town.
+	PRINTFORMW 　While several employees saw %CALLNAME:MASTER%, the disguise wasn't blown.
+	PRINTFORMW 　Soon, a poor middle-aged man approached.
+	PRINT 「Are you the trainer I heard about? The stories said you'd be nastier. 
+	IF TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘 == 1
+		PRINTFORMW What a beautiful woman!」
+	ELSE 
+		PRINTFORMW So young!」
+	ENDIF
+	PRINTFORMW 　After the man laughed with a vulgar voice, he glared at %CALLNAME:MASTER% critically.
+	PRINTFORMW 「Oh well. Let's finish this quickly.」
+	PRINTFORMW 　After the man guided you to a back door, you rode the elevator into the basement.
+	PRINTFORMW 　There was a corridor like from an old fashioned building there, 
+	PRINTFORMW 　After the man ran an ID card through a scanner, a heavy iron door opened silently.
+	PRINTFORMW 「Now, men and women, married woman or child you can only have one.」
+	PRINTFORMW 　The man spoke as you walk along this prison that seemed to stretch forever.
+	PRINTFORMW 「I don't mind even if you check the goods.」
+	PRINTFORMW 「But, damaged goods are just trouble. I'll be keeping a firm eye on you.」
+	PRINTFORMW 　While the man had a vulgar smile, he handed %CALLNAME:MASTER% the key to the jail.
+			$ROUYA_LOOP
+			CALL MAKE_RANDOM_CHARA, ,RAND(1, 10)
+			LOCAL:7 = RESULT
+			CHARA = RESULT:1
+			LOCAL:9 = RESULT:2
+			IF RESULT
+				IF 0
+					PRINTL Skill 
+					FOR LOCAL, 1, 20
+						LOCALS = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@スキル{LOCAL}
+						IF ABL:CHARA:LOCALS > 0
+							CALLFORM SKILL_NAME_{ABL:CHARA:LOCALS}
+							PRINTFORML [{LOCAL}] %RESULTS%
+						ENDIF
+					NEXT
+					PRINTL Acquisition 
+					FOR LOCAL, 1, 20
+						LOCALS = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@習得スキル{LOCAL}
+						LOCALS:1 = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@習得LV{LOCAL}
+						IF ABL:CHARA:LOCALS > 0
+							CALLFORM SKILL_NAME_{ABL:CHARA:LOCALS}
+							PRINTFORML [{LOCAL}] %RESULTS%(Lv{ABL:CHARA:(LOCALS:1)})
+						ENDIF
+					NEXT
+				ENDIF
+				;確認する際は1
+				SIF 1
+					CALL CHECK_RANDOM_CHARA,CHARA,LOCAL:9
+				IF RESULT == 0
+					PRINTFORMW 　　Looking for a different slave...
+					PRINTL
+					GOTO ROUYA_LOOP
+				ENDIF
+			ENDIF
+			イベントフラグ:88:0 = 1
+ELSE
+	PRINTFORMW 　One day, %CALLNAME:MASTER% got a e-mail from a familiar address.
+	PRINTFORMW 　Praising your great contributions, the organization allowed you to take another slave from that underground prison.
+	PRINTFORMW 　There was one sentence that was caught your eye.
+	PRINTFORMW 　Based on the attached file, you could narrow down the possible slaves beforehand.
+	PRINTFORMW 　That prison was too large to go searching it for no reason.
+	PRINTFORMW 　As %CALLNAME:MASTER% had this data in hand, %CALLNAME:MASTER% went back to the underground prison.
+	$ROUYA_LOOP2
+	PRINTFORMW 　　Which type of slave do you look for?
+	LOCAL:1 = 0
+	FOR LOCAL, 4901, 4910
+		IF LOCAL == 4909
+			PRINT [-1] Choose a specific one
+		ELSE
+			SIF !EXISTCSV(LOCAL, 0)
+				CONTINUE
+			PRINTFORM %@"[{LOCAL-4901,2}] %CSVCALLNAME(LOCAL, 0)%", 24, LEFT%
+		ENDIF
+		SIF LOCAL:1 % 3 == 2
+			PRINTL 
+		LOCAL:1++
+	NEXT
+	INPUT
+	SIF !RANGE(RESULT, -1, 99)
+		RESTART
+	LOCAL:4 = RESULT == -1 ? -1 # 4901+RESULT
+	LOCAL:6 = 1
+	FOR LOCAL:5, 0, LOCAL:6
+		CALL MAKE_RANDOM_CHARA, LOCAL:4, RAND(1, 10)
+		LOCAL:7 = RESULT
+		CHARA = RESULT:1
+		LOCAL:9 = RESULT:2
+		IF RESULT
+			;確認する際は1、しないなら0
+			IF 0
+				PRINTL Skill 
+				FOR LOCAL, 1, 20
+					LOCALS = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@スキル{LOCAL}
+					IF ABL:CHARA:LOCALS > 0
+						CALLFORM SKILL_NAME_{ABL:CHARA:LOCALS}
+						PRINTFORML [{LOCAL}] %RESULTS%
+					ENDIF
+				NEXT
+				PRINTL Acquisition 
+				FOR LOCAL, 1, 20
+					LOCALS = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@習得スキル{LOCAL}
+					LOCALS:1 = \@CFLAG:CHARA:初期リンク悪魔 ? 初期変身悪魔# \@習得LV{LOCAL}
+					IF ABL:CHARA:LOCALS > 0
+						CALLFORM SKILL_NAME_{ABL:CHARA:LOCALS}
+						PRINTFORML [{LOCAL}] %RESULTS%(Lv{ABL:CHARA:(LOCALS:1)})
+					ENDIF
+				NEXT
+			ENDIF
+			;確認する際は1
+			SIF 1
+				CALL CHECK_RANDOM_CHARA,CHARA,LOCAL:9
+			IF RESULT == 0
+				PRINTFORMW 　　Looking for a different slave...
+				GOTO ROUYA_LOOP2
+			ENDIF
+		ENDIF
+	NEXT
+	イベントフラグ:88:0 = イベントフラグ:88:0 + 1
+ENDIF

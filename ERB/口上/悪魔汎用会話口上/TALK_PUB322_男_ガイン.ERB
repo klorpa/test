@@ -1,0 +1,1096 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:TALK_PUB302.ERB
+;	Facility	:会話タイプ：ガイン君の会話用メッセージ＋挨拶・問答処理
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/10		Ｎ鳥					基本処理をTALK_COMMONに一元化し、メッセージを口上呼び出し用関数に移植
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;=====================================================================
+;口調タイプ：ガインの汎用口上＋会話用ファイルです
+;=====================================================================
+
+;=====================================================================
+;戦闘時会話および合体時会話の口上テンプレートです。
+
+;個別の悪魔に対応させたい場合はX1をキャラ番号に
+;会話タイプ別に対応させたい場合はPUB322をPUB(会話タイプの番号)に
+;置き換えてください。
+
+;例）ピクシーの口上を作りたいならX1⇒501に置き換え
+;　　会話タイプ：女、淑女ならPUB322⇒PUB304に置き換え
+
+;知ってると便利そうな表記
+;　%CSTR:ARG:X%　X = 11:一人称 12:二人称 20:種族
+;　\@ CSTR:ARG:種族名 != "" ? %CSTR:ARG:種族名% # %STR:(ABL:ARG:種族)%
+;　┗CSTRに種族名が記載されていればそれを、されていなければABLから種族名を割り出して表示する
+;====================================================================
+
+@KOJO_TALK_PUB322,ARG,ARG:1
+SELECTCASE ARG:1
+	CASE 1
+		;1:Ladyｰkiller
+		PRINTFORML %CALLNAME:ARG%は%CALLNAME:PLAYER%にメロメロのようだ
+		
+	CASE 2
+		; 2:おねだり前の逡巡時(あいさつor問答で目的が決まっている場合)
+		IF RAND:2 == 0
+			PRINTFORML 「う～ん、ちょっと考えさせてくれるかな。シンキングタイム」
+		ELSE
+			PRINTFORML 「いいよ。でも、代わりに何かくれるんだよね、期待しちゃうな、%CSTR:ARG:11%」
+		ENDIF
+	CASE 3
+		; 3:交渉の目的を尋ねる
+		SELECTCASE CFLAG:ARG:友好度
+			CASE IS < 25
+				;友好度低い
+				PRINTFORML 「%CSTR:ARG:11%、これでも忙しいんだよね。わかってる、%CSTR:ARG:12%？」
+				PRINTFORML 「用があるなら早く言ってね。ハリーアップ」
+			CASE IS < 50
+				;友好度普通
+				PRINTFORML 「それで一体何の用なのかな、%CSTR:ARG:12%？」
+			CASEELSE
+				;友好度高い
+				PRINTFORML 「おっけぃ、今%CSTR:ARG:11%気分がいいから言う事聞いてあげるよ」
+				PRINTFORML 「何でも言ってみるといいよ、%CSTR:ARG:12%」
+		ENDSELECT
+	CASE 84
+		;84:要求前の1文
+		PRINTL 「そうだね……」
+	CASE 4
+		; 4-6:交渉目的：やらせてくれと言った時の反応
+		; 4:取り付く島もなし
+			PRINTFORMW 激しく拒否された
+	CASE 5
+		; 5:交渉次第
+		PRINTFORMW 条件次第でヤらせてくれるようだ
+	CASE 6
+		; 6:一発おｋ
+		PRINTFORMW 快く承諾してくれた
+	CASE 7
+		; 7-9:交渉目的：やらせてくれと言った時の反応
+		; 7:取り付く島もなし
+			PRINTFORMW 激しく拒否された
+	CASE 8
+		; 8:交渉次第
+		PRINTFORMW 条件次第で犯してくれるようだ
+	CASE 9
+		; 9:一発おｋ
+		PRINTFORMW 快く承諾してくれた
+	CASE 10
+		;10:要求額を提示：￥
+		PRINTFORMW 「お金ある？マネー」
+		PRINTFORML 「￥{TFLAG:TALK用要求値}なんてどう？くれる？」
+	CASE 11
+		;11-13:￥を払おうとしてお金が足りない
+		;11:別のものを要求する
+		PRINTFORMW 「お金持ってないの、%CSTR:ARG:12%？」
+		PRINTFORMW 「それじゃ、別のものを期待してもいいよネ？」
+	CASE 85
+		;85 恵まれる
+		PRINTFORMW 「お金持ってないの、%CSTR:ARG:12%？」
+		PRINTFORMW ＞%CALLNAME:ARG%に哀れに思われたようだ
+	CASE 12
+		;12:交渉失敗。立ち去る
+		PRINTFORMW 「お金持ってないの、%CSTR:ARG:12%？」
+		PRINTFORMW 「期待してたのにつまんないネ」
+		PRINTFORMW 「このへんで、終わりにしようよ。ちゃんちゃん」
+	CASE 13
+		;13:交渉失敗。敵対する
+		PRINTFORMW 「お金持ってないの、%CSTR:ARG:12%？」
+		PRINTFORMW 「もう、ぜんぜんダメ。%CSTR:ARG:12%ってしょうがないネ」
+		PRINTFORMW 「そろそろ攻撃しちゃおうカナ」
+	CASE 14
+		;14-16:￥を支払った
+		;14:払ったのに逃げられる
+				PRINTFORMW 「もらったのはうれしいけど、もう、おしまい」
+				PRINTFORMW 「チャンチャンって感じカナ。仕方ないね、%CSTR:ARG:12%。また来週」
+	CASE 15
+		;15:さらに要求される
+				PRINTFORML 「ありがと。でもこれだけじゃ…ネ」
+	CASE 16
+		;16:交渉成功
+				PRINTFORMW 「ありがと。満足だね%CSTR:ARG:11%」
+	CASE 17
+		;17-19:￥を支払うのを断った::
+		;17:交渉失敗。奇襲する
+		PRINTFORMW 「そうなの、残念だね、ソレ」
+		PRINTFORMW 「ダメダメちゃんだね、%CSTR:ARG:12%」
+		PRINTFORMW 「もういいよ。怒っちゃったから攻撃しちゃおうかな、%CSTR:ARG:11%」
+	CASE 18
+		;18:交渉失敗。敵対する
+		PRINTFORML 「ケチンボだね、%CSTR:ARG:12%」
+		PRINTFORMW 「プリプリくんだね、%CSTR:ARG:11%。もう話す気しないね、キャントーク」
+	CASE 19
+		;19:他のものを要求する:
+		PRINTFORMW 「違うのならいいのかな、%CSTR:ARG:12%？」
+	CASE 20
+		;20:要求額を提示：ＭＡＧ
+		PRINTFORML 「{TFLAG:TALK用要求値}MAGなんてどう？くれる？」
+	CASE 21
+		;21-23:ＭＡＧを支払おうとしたが足りない
+		;21:別のものを要求する
+			PRINTFORMW 「ＭＡＧないの？ダメダメだね、%CSTR:ARG:12%」
+				PRINTFORMW 「じゃあ、他のものなら何かくれるんだよネ、期待しちゃうよ、%CSTR:ARG:11%」
+	CASE 86
+		;86 恵まれる
+			PRINTFORMW 「ＭＡＧないの？ダメダメだね、%CSTR:ARG:12%」
+		PRINTFORMW ＞%CALLNAME:ARG%に哀れに思われたようだ
+	CASE 22
+		;22:交渉失敗。立ち去る
+			PRINTFORMW 「ＭＡＧないの？ダメダメだね、%CSTR:ARG:12%」
+				PRINTFORMW 「期待外れだね、%CSTR:ARG:12%」
+				PRINTFORMW 「つまんないから、もう帰るね。グッバイ。また来週」
+	CASE 23
+		;23:交渉失敗。敵対する
+			PRINTFORMW 「ＭＡＧないの？ダメダメだね、%CSTR:ARG:12%」
+				PRINTFORML 「ケチンボだね、%CSTR:ARG:12%」
+				PRINTFORMW 「プリプリくんだね、%CSTR:ARG:11%。もう話す気しないね、キャントーク」
+	CASE 24
+		;24-26:ＭＡＧを支払った
+		;24:払ったのに逃げられる
+				PRINTFORMW 「それじゃ、また来週」
+				PRINTFORMW 「これから運が、向いてくるよ、きっと。グッバイ」
+	CASE 25
+		;25:さらに要求される
+				PRINTFORMW 「ありがと。でもこれだけじゃ…ネ」
+	CASE 26
+		;26:交渉成功
+				PRINTFORMW 「なかなか気前いいね、%CSTR:ARG:12%」
+	CASE 27
+		;27-29:ＭＡＧを支払うのを断った
+		;27:交渉失敗。奇襲する
+				PRINTFORML 「そうなの、残念だね、ソレ」
+				PRINTFORMW 「ダメダメちゃんだね、%CSTR:ARG:12%」
+				PRINTFORMW 「もういいよ。怒っちゃったから攻撃しちゃおうかな、%CSTR:ARG:11%」
+	CASE 28
+		;28:交渉失敗。敵対する
+				PRINTFORML 「ケチンボだね、%CSTR:ARG:12%」
+				PRINTFORMW 「プリプリくんだね、%CSTR:ARG:11%。もう話す気しないね、キャントーク」
+	CASE 29
+		;29:他のものを要求する
+				PRINTFORMW 「しょうがないね。他のにしてあげようカナ」
+	CASE 30
+		;30:魔石を要求
+		PRINTFORML 「じゃ、おみやげに魔石欲しいナ」
+	CASE 31
+		;31-33:魔石を渡そうとしたが持っていない
+		;31:別のものを要求する
+			PRINTFORMW 「持ってないとかダメダメだね。」
+				PRINTFORMW 「別なのを期待していいカナ？」
+	CASE 87
+		;87 恵まれる
+			PRINTFORMW 「持ってないとかダメダメだね。」
+		PRINTFORMW ＞%CALLNAME:ARG%に哀れに思われたようだ
+	CASE 32
+		;32:交渉失敗。立ち去る
+			PRINTFORMW 「持ってないとかダメダメだね。」
+				PRINTFORMW 「もらえないなら帰るね。シーユー」
+	CASE 33
+		;33:交渉失敗。敵対する
+			PRINTFORMW 「持ってないとかダメダメだね。」
+				PRINTFORMW 「仕方ないね。もうおしまい。ダメダメちゃんだね、%CSTR:ARG:12%」
+				PRINTFORMW 「さてと、そろそろ攻撃しちゃおカナ」
+	CASE 34
+		;34-36:魔石を渡した
+		;34:払ったのに逃げられる
+				PRINTFORMW 「ウォー、ありがと。気前いいね、%CSTR:ARG:12%」
+				PRINTFORMW 「あ、用事思い出しちゃったから帰るネ。ちゃんちゃん。また来週」
+	CASE 35
+		;35:さらに要求される
+				PRINTFORML 「ありがと。でもこれだけじゃ…ネ」
+	CASE 36
+		;36:交渉成功
+				PRINTFORMW 「ありがと、満足だね%CSTR:ARG:11%」
+	CASE 37
+		;37-39:魔石を渡すのを断った
+		;37:交渉失敗。奇襲する
+				PRINTFORML 「そうなの、残念だね、ソレ」
+				PRINTFORMW 「ダメダメちゃんだね、%CSTR:ARG:12%」
+				PRINTFORMW 「もういいよ。怒っちゃったから攻撃しちゃおうかな、%CSTR:ARG:11%」
+	CASE 38
+		;38:交渉失敗。敵対する
+				PRINTFORML 「ケチンボだね、%CSTR:ARG:12%」
+				PRINTFORMW 「プリプリくんだね、%CSTR:ARG:11%。もう話す気しないね、キャントーク」
+	CASE 39
+		;39:他のものを要求する
+				PRINTFORMW 「違うのならいいのかな、%CSTR:ARG:12%？」
+	CASE 40
+		;40:異性との性交渉を要求
+		IF RAND:2 == 0
+			PRINTFORMW 「実は、好きなんスよ、オンナ｣
+			PRINTFORML 「ドゥフフ、犯らせてくれる？｣
+		ELSE
+			PRINTFORMW 「いらないね、お金とか。欲しいよね、ガールズ｣
+			PRINTFORML 「……犯らせてくれる？｣
+		ENDIF
+	CASE 41
+		;18:異性を宛がってもらった時の反応
+			PRINTFORMW 「おっ、言ってみるもんだね。今日はラッキーデイ｣
+			PRINTFORMW 「それじゃ、犯らせてもらおうカナ｣
+		CALL MESSAGE_TALK
+	CASE 42
+		;42-46:性交渉が終わった後
+		;42:敗北してる場合ここでゲームオーバー
+		PRINTFORMW 「えっ、もう%CSTR:ARG:12%限界なの？」
+		PRINTFORMW 「%CSTR:ARG:11%のリビドーはまだまだ満足してなんだけど」
+		PRINTFORMW 「じゃあこれから%CSTR:ARG:12%は%CSTR:ARG:11%の肉便器だネ」
+	CASE 43
+		;43:話しかけたキャラが倒れている
+		PRINTFORMW 「えっ、もう%CSTR:ARG:12%限界なの？」
+		PRINTFORMW 「%CSTR:ARG:11%のリビドーはまだまだ満足してなんだけど」
+	CASE 44
+		;44:ヤらせたのに逃げられる
+		PRINTFORMW 「ごちそうさま、中々よかったよ、%CSTR:ARG:12%」
+		PRINTFORMW 「あ、用事思い出しちゃったから帰るネ。ちゃんちゃん。また来週」
+	CASE 45
+		;45:満足してない
+		PRINTFORML 「んー、まだまだ足りないカナ｣
+		PRINTFORML 「もう一回犯らせてね、%CSTR:ARG:12%｣
+	CASE 46
+		;46:満足
+		PRINTFORMW 「いやー、いいカラダだったね。満足だよ、%CSTR:ARG:11%」
+	CASE 47
+		;47-49:性交渉を断った
+		;47:交渉失敗。奇襲する
+				PRINTFORML 「そうなの、残念だね。まったくダメダメちゃんだね、%CSTR:ARG:12%」
+				PRINTFORMW 「もういいよ。怒っちゃったから攻撃しちゃおうかな、%CSTR:ARG:11%」
+	CASE 48
+		;48:交渉失敗。敵対する
+				PRINTFORML 「ケチンボだね、%CSTR:ARG:12%」
+				PRINTFORMW 「プリプリくんだね、%CSTR:ARG:11%。もう話す気しないね、キャントーク」
+	CASE 49
+		;49:他のものを要求する
+				PRINTFORML 「しょうがないね」
+				PRINTFORMW 「違うのなら期待していいのかな、%CSTR:ARG:12%？」
+	CASE 50
+		;50-55:ヤらせてもらった後
+		;50:敗北してる場合ここでゲームオーバー
+	CASE 51
+		;51:話かけたキャラが倒れいる
+	CASE 52
+		;52:去っていく
+	CASE 53
+		;53:満足し、仲魔になる
+	CASE 54
+		;54:満足し、アイテムをくれる
+	CASE 53
+		;53:満足し、見逃してくれる
+		;現状、死に処理
+	CASE 56
+		;56-61:犯してもらった後
+		;56:敗北してる場合ここでゲームオーバー
+	CASE 57
+		;57:話かけたキャラが倒れいる
+	CASE 58
+		;58:去っていく
+	CASE 59
+		;59:満足し、仲魔になる
+	CASE 60
+		;60:満足し、アイテムをくれる
+	CASE 61
+		;61:満足し、見逃してくれる
+		;現状、死に処理
+	CASE 62
+		;62:仲魔になる
+		IF FLAG:交渉目的 > 3
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、%CALLNAME:ARG%が仲魔になってくれました
+		ELSE
+			PRINTFORML 「%CSTR:ARG:11%は%STR:(ABL:ARG:種族)% %CALLNAME:ARG%。もう%CSTR:ARG:12%の仲魔」
+				PRINTFORM 「そして%CSTR:ARG:11%の希望。行きたいね、
+				LOCAL:1 = RAND:5
+				IF LOCAL:1 < 1
+					PRINTFORMW イスタンブール」
+				ELSEIF LOCAL:1 < 2
+					PRINTFORMW ボストン」
+				ELSEIF LOCAL:1 < 3
+					PRINTFORMW テヘラン」
+				ELSEIF LOCAL:1 < 4
+					PRINTFORMW ケープタウン」
+				ELSEIF LOCAL:1 < 5
+					PRINTFORMW ニューデリー」
+				ELSE
+					PRINTFORMW ロンドン 」
+				ENDIF
+		ENDIF
+	CASE 63
+		;63:マスターのレベルより高い場合
+		PRINTFORMW 「あらららら、弱々だね、%CSTR:ARG:12%」
+		PRINTFORMW 「今度会う時までに鍛えておくといいよ、%CSTR:ARG:12%。じゃあね」
+	CASE 64
+		;64:ＣＯＭＰの空きが無い場合
+		PRINTFORML 「あれれれれ、せっかくのチャンスだったけど……」
+		PRINTFORML 「%CSTR:ARG:12%のＣＯＭＰ、定員オーバー。これじゃダメだね」
+		PRINTFORML 「残念だけど、またネ」
+	CASE 65
+		;65:搾りとられた
+	CASE 66
+		;66:お金をくれる
+		IF FLAG:交渉目的 > 3
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、お金を恵んでもらいました
+		ELSE
+			PRINTFORML 「じゃ、お金あげる。マネー」
+			PRINTFORML 「￥{TFLAG:TALK用要求値}もあるんだ。無駄づかいするなよ、%CSTR:ARG:12%」
+		ENDIF
+	CASE 67
+		;67:ＭＡＧをくれる
+		IF FLAG:交渉目的 > 3
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、ＭＡＧを恵んでもらいました
+		ELSE
+			PRINTFORML 「じゃ、マグネタイトあげる」
+			PRINTFORML 「{TFLAG:TALK用要求値}MAGもあるんだ。無駄づかいするなよ、%CSTR:ARG:12%」
+		ENDIF
+	CASE 68
+		;68:ダメージをくれる
+		PRINTFORML 「じゃ、これあげる。黄金の右。%CALLNAME:ARG%パンチ」
+	CASE 69
+		;69-75:アイテムをくれるor回復してくれる
+		;69:ソーマを使ってくれる
+		PRINTFORM 「それじゃコレ使ってあげる。とっときの
+		LOCAL:1 = RAND:5
+		SIF LOCAL:1 == 1
+			PRINTFORM イスタンブール
+		SIF LOCAL:1 == 2
+			PRINTFORM ボストン
+		SIF LOCAL:1 == 3
+			PRINTFORM テヘラン
+		SIF LOCAL:1 == 4
+			PRINTFORM ケープタウン
+		SIF LOCAL:1 == 5
+			PRINTFORM ニューデリー
+		SIF LOCAL:1 == 0
+			PRINTFORM ロンドン
+		PRINTFORMW みやげ」
+		PRINTFORMW 「うれしいでしょ、%CSTR:ARG:12%？」
+	CASE 70
+		;70:BeadChainを使ってくれる
+		PRINTFORMW 「それじゃ回復してあげる。ヒーリング」
+		PRINTFORMW 「え、できるのかって？できるんスよ、%CSTR:ARG:11%」
+	CASE 71
+		;71:ITEMor魔石をくれる
+			LOCAL:1 = RAND:5
+			SIF LOCAL:1 == 1
+				PRINTFORM 「イスタンブール
+			SIF LOCAL:1 == 2
+				PRINTFORM 「ボストン
+			SIF LOCAL:1 == 3
+				PRINTFORM 「テヘラン
+			SIF LOCAL:1 == 4
+				PRINTFORM 「ケープタウン
+			SIF LOCAL:1 == 5
+				PRINTFORM 「ニューデリー
+			SIF LOCAL:1 == 0
+				PRINTFORM 「ロンドン
+			PRINTFORML で買ってきたんだけど」
+			PRINTFORMW 「いらなくなったから%CSTR:ARG:12%にあげるね」
+	CASE 72
+		;72:魔石をくれる
+		IF RAND:2 == 0
+			PRINTFORMW 「魔石あげる。うれしいでしょ？何もないよりは」
+		ELSE
+			PRINTFORMW 「じゃ、お返し。魔石あげる。あ、喜んでるね、%CSTR:ARG:12%」
+		ENDIF
+	CASE 73
+		;73:魔石を使ってくれる
+		IF RAND:2 == 0
+			PRINTFORMW 「おいのりで回復してあげるよ」
+			PRINTFORMW 「本当はアイテム使うんだけどね。うさんくさいよね、%CSTR:ARG:11%」
+		ELSE
+			PRINTFORMW 「痛そうだね、%CSTR:ARG:12%」
+		ENDIF
+	CASE 74
+		;74:宝玉を使ってくれる
+		IF RAND:2 == 0
+			PRINTFORMW 「じゃ、回復してあげるよ。ヒーリング」
+			PRINTFORMW 「とっておきの宝玉だからネ。うれしいでしょ、%CSTR:ARG:12%」
+		ELSE
+			PRINTFORMW 「痛々しくて見てられないね、%CSTR:ARG:12%」
+		ENDIF
+	CASE 75
+		;75:宝玉をくれる
+		IF RAND:2 == 0
+			PRINTFORMW 「宝玉あげる。うれしいでしょ？何もないよりは」
+		ELSE
+			PRINTFORMW 「じゃ、お返し。宝玉あげる。あ、喜んでるね、%CSTR:ARG:12%」
+		ENDIF
+	CASE 76
+		;76-78:気まずくなった
+		;76:会話失敗。奇襲する
+		PRINTFORML 「あーあ、つまんないね、%CSTR:ARG:12%」
+		PRINTFORMW 「退屈だから、もう攻撃しちゃおうカナ」
+	CASE 77
+		;77:会話失敗。敵対する
+		PRINTFORMW 「プリプリくんだね、%CSTR:ARG:11%。もう話す気しないね、キャントーク」
+	CASE 78
+		;78:会話継続
+		PRINTFORMW 「なんか調子狂うね、%CSTR:ARG:12%」
+		PRINTFORMW 「もっと面白い話がしたいね。気分転換」
+	CASE 79
+		;79-83:立ち去る
+		;79:同じ仲魔がいる場合
+		PRINTFORML 「%CSTR:ARG:11%の友達をよろしくネ。フレンズ」
+	CASE 80
+		;険悪な雰囲気
+		PRINTFORML 「もう、付き合ってらんないネ。それじゃ、グッバイ」
+	CASE 81
+		;友好度が低い
+		PRINTFORML 「おはなしは、コレでおしまい。じゃあネ」
+	CASE 82
+		;友好度が普通
+		PRINTFORML 「そういえば、約束があるんだった、すまねぇな」
+	CASE 83
+		;友好度が高い
+		PRINTFORML 「中々有意義な時間だったよ、%CSTR:ARG:12%。それじゃグッバイ。また来週」
+	CASE 88
+		;ヤらせてもらう・交渉が成功した場合
+		PRINTFORMW 交渉に成功し、犯させてもらえることになった
+		CALL MESSAGE_TALK
+	CASE 89
+		;犯してもらう・交渉が成功した場合
+		PRINTFORMW 交渉に成功し、犯してもらえることになった
+		CALL MESSAGE_TALK
+	CASE 90
+		;ダンジョン内性欲処理：輪姦イベント
+	CASE 91
+		;敵が命乞いCASE91～93
+		;91:命乞い
+	CASE 92
+		;92:助けた場合（RETURN 0, X = 0.逃げる　1.仲魔になる　2.何か貰う　3.奇襲）
+		;『@KOJO_TALK』をはさむ為、RESULT:0が上書きされてしまうのでRESULT:1を使う
+		;とりあえずランダムにしてみる
+	CASE 93
+		;93:断った場合
+	CASE 94
+		;敵から助ける代わりに取引を持ちかけられるCASE94～101
+		;94:取引内容（RETURN 0, X = 1.￥　2.魔貨　3.異性）
+		PRINTFORML %CALLNAME:ARG%が%CALLNAME:PLAYER%に取引を持ちかけてきた
+	CASE 95
+		;95:要求をのむ（￥）
+	CASE 96
+		;96:要求をのむ（魔貨）
+	CASE 97
+		;97:要求をのむ（異性）
+		CALL MESSAGE_TALK
+	CASE 98
+		;98:約束を守るかどうか口上内で決める（RETURN 0, X = 1.去っていく　2.戦闘続行）
+	CASE 99
+		;99:約束を守って去っていく
+	CASE 100
+		;100:約束を守らず戦闘続行
+	CASE 101
+		;101:要求を断る
+ENDSELECT
+
+
+
+;===========================================================================
+;会話時挨拶
+;===========================================================================
+@GREET_PUB322,ARG
+
+SELECTCASE CFLAG:ARG:友好度
+	CASE IS > 25
+		PRINTFORML 「ヒャッヒャッヒャ！！おまたせ、%CALLNAME:ARG%くん登場」
+		PRINTFORMW 「心待ちにしてたでしょ、チミ」
+	CASE IS > -25
+		;最初の挨拶
+		IF FLAG:月齢 == 8
+			PRINTFORMW 「イェー、満月。ウォー、ヒャッヒャー！！」
+			PRINTFORMW 「テンション上がるよね。フルムーン」
+			PRINTFORML
+		ELSE
+			PRINTFORMW 「やあ、こんにちわス。%CSTR:ARG:12%、なにか用？」
+			PRINTFORML
+		ENDIF
+	CASEELSE
+		PRINTFORML 「ボクって、たまあに、おセンチさんになるんスよ。はぁ……」
+		PRINTFORMW 「で、なにか用？」
+ENDSELECT
+;質問を増やした場合、RAND:XのXを増やす
+;RETURNの値により回答後の雰囲気が変わる。
+;0.会話継続 1.直接仲魔になる 2.何かくれる 3.奇襲される 4.敵対する 5.逃げる 6.気まずくなる
+SELECTCASE RAND:2
+			CASE 0
+		PRINTFORMW 「By the way, what is %CSTR:ARG:12% doing here?」
+		;「ところで%CSTR:ARG:12%、こんな所で何してるのカナ？」
+		PRINTFORML
+		PRINTFORML [1]Adventure　　　[2]Exterminating demons
+		;[1]冒険　　　[2]悪魔退治
+		PRINTFORML [3]Looking for matchmen　[4]Hunting for slaves
+		;[3]仲魔探し　[4]奴隷狩り
+		$INPUT_LOOP0
+		INPUT
+		PRINTFORML
+		IF RESULT == 1
+			;１．冒険
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+;			素質によって判定値がランダムに上下することもある
+;			SIF TALENT:ARG:反抗的
+;				LOCAL -= RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「ウソだね、それ。ミエはらずにホントのこと言いなよ、%CSTR:ARG:12%」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「ふうん、いいよね。アドベンチャー」
+					PRINTFORMW 「なんかロマンを感じるよ、%CSTR:ARG:11%」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 2
+			;２．悪魔退治
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「悪魔を殺して平気とか、%CSTR:ARG:12%って酷いヤツだね」
+					RETURN 4
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「%CSTR:ARG:12%ってイケイケくんだね。なんかカッコイイよ。デビルバスター」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 3
+			;３．仲魔探し
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「%CSTR:ARG:12%みたいなヘッポコくんについてく悪魔なんて、そうそういないよネ」
+					RETURN 5
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「仲魔を探して三千里？苦労してるね、%CSTR:ARG:12%」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 4
+			;４．奴隷狩り
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「えーっ。それって%CSTR:ARG:11%を狙ってるの、%CSTR:ARG:12%？」
+					RETURN 3
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「ふーん、それってキノコ狩りみたいなもん？がんばってね、%CSTR:ARG:12%」
+					RETURN 0
+			ENDIF
+		ELSE
+			GOTO INPUT_LOOP0
+		ENDIF
+
+	CASE 1
+		PRINTFORMW 「%CSTR:ARG:12% saw you fingering arround with something.」
+		;「%CSTR:ARG:12%、さっきから何か弄ってるけど」
+		PRINTFORMW 「What are you doing, %CSTR:ARG:12%?」
+		;「何やってんの、%CSTR:ARG:12%？」
+		PRINTFORML
+		PRINTFORML [1]Using the ＣＯＭＰ　[2]Playing a game
+		;[1]ＣＯＭＰを使ってる　[2]ゲームで遊んでる
+		PRINTFORML [3]Preparing weapons　　[4]Playing with myself
+		;[3]武器を準備してる　　[4]自分を慰めている
+		$INPUT_LOOP1
+		INPUT
+		PRINTFORML
+		IF RESULT == 1
+			;１．ＣＯＭＰを使ってる
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+;			素質によって判定値がランダムに上下することもある
+;			SIF TALENT:ARG:反抗的
+;				LOCAL -= RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「何かアヤシイことしてるね。うさんくさいよ、%CSTR:ARG:12%」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「へー、ＣＯＭＰを持ってるってことは%CSTR:ARG:12%ってサマナーなんだね」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 2
+			;２．ゲームで遊んでる
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「%CSTR:ARG:11%と話してる時に他の事で遊んでるとか、失礼なヤツだね、%CSTR:ARG:12%」
+					RETURN 4
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「ふーん、それって面白いのカナ？」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 3
+			;３．武器を準備してる
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「どうして、そういうことするかな。%CSTR:ARG:11%とやり合う気マンマンなの、%CSTR:ARG:12%？」
+					RETURN 5
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「%CSTR:ARG:12%、武闘派なんだね。なんかカッコイイかもネ」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 4
+			;４．自分を慰めている
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「それってちょっと笑えないジョークだよね」
+					PRINTFORMW 「思いっきり外してるよ、%CSTR:ARG:12%」
+					RETURN 3
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「うわ、エロエロくんなんだね、%CSTR:ARG:12%」
+					RETURN 0
+			ENDIF
+		ELSE
+			GOTO INPUT_LOOP1
+		ENDIF
+ENDSELECT
+
+;===========================================================================
+;会話時問答
+;===========================================================================
+@QUESTION_PUB322,ARG,ARG:1
+
+PRINTFORML
+CUSTOMDRAWLINE ･
+PRINTFORML
+
+DO
+	;設問を増やした場合、RAND:XのXを増やす
+	RESULT:1 = RAND:5
+
+
+	;RETURNの値により回答後の雰囲気が変わる。
+	;0.会話継続 1.直接仲魔になる 2.何かくれる 3.奇襲される 4.敵対する 5.逃げる 6.気まずくなる 7.交渉開始
+	SELECTCASE RESULT:1
+		CASE ARG:1
+			CONTINUE
+		CASE 0
+			PRINTFORMW 「最近の注目。その１。毎日おいしい牛乳ゴックゴク」
+			PRINTFORMW 「う～ん、とってもテイスティ。どう？%CSTR:ARG:11%のマイブーム」
+			PRINTFORML
+			PRINTFORML [1]おいしそう　[2]今後は注目する
+			PRINTFORML [3]ヤバそう　　[4]別のミルクなら……
+			$INPUT_LOOP0
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1．おいしそう
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+	;			素質によって判定値がランダムに上下することもある
+	;			SIF TALENT:ARG:反抗的
+	;				LOCAL -= RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「本当にそう思ってる？なんか疑わしいね、%CSTR:ARG:12%」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「いいよね、牛乳。みなぎるよね、カルシウム」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2．今後は注目する
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「そうなの？なんかムリムリだね、ソレ。合わせなくて、いいんスよ、%CSTR:ARG:12%」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「それがいいね。いいノリしてるね、%CSTR:ARG:12%」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3．ヤバそう
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「そうかな。気が合わないね、%CSTR:ARG:12%と%CSTR:ARG:11%」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「え、牛乳飲めないの？
+						PRINTFORMW 「そりゃ残念。人生損してるね、%CSTR:ARG:12%」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4．別のミルクなら……
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「……人が飲んでる時に言うセリフじゃないよね、ソレ」
+						RETURN 3
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「%CSTR:ARG:12%ってエロエロくん？」
+						PRINTFORMW 「そういうの嫌いじゃないっスよ、%CSTR:ARG:11%」
+						RETURN 0
+				ENDIF
+			ELSE
+				GOTO INPUT_LOOP0
+			ENDIF
+
+		CASE 1
+			PRINTFORMW 「最近の注目。その２。ジャスミン茶で最高の気分。」
+			PRINTFORMW 「う～ん、とってもテイスティ。氷を入れたらアイスティ」
+			PRINTFORMW 「どう？%CSTR:ARG:11%のマイブーム」
+			PRINTFORML
+			PRINTFORML [1]おいしそう　[2]今後は注目する
+			PRINTFORML [3]ヤバそう　　[4]ギャグがつまらない
+			$INPUT_LOOP1
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1．おいしそう
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+	;			素質によって判定値がランダムに上下することもある
+	;			SIF TALENT:ARG:反抗的
+	;				LOCAL -= RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「%CSTR:ARG:12%が注目すると%CSTR:ARG:11%の飲む分が減っちゃうんだよね……」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「そうでしょ。やっぱ、すごいね、%CSTR:ARG:11%のマイブーム。それとギャグセンス」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2．今後は注目する
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「目をつけるのが遅すぎカナ。%CSTR:ARG:12%ってグズグズくんだね」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「それがいいね。なんか、%CSTR:ARG:12%と%CSTR:ARG:11%、趣味が合いそうだネ」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3．ヤバそう
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「あ、そう。保守的なんだね、%CSTR:ARG:12%」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「ヤバいのかな？エスパーとかに目覚めそうだもんね、コレ」
+						PRINTFORMW 「ところでエスパーってなんだろ。外人？歌？」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4．ギャグがつまらない
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「……%CSTR:ARG:12%ってギャグセンスないよ。ダメダメだね」
+						RETURN 3
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「やっぱりそう？自分でも寒いかなって思ってたんスよ」
+						RETURN 0
+				ENDIF
+			ELSE
+				GOTO INPUT_LOOP1
+			ENDIF
+
+		CASE 2
+			PRINTFORMW 「%CSTR:ARG:11%、最近ポタリングにハマってるんスけど……。%CSTR:ARG:12%もどうよ、ポタリング？」
+			PRINTFORML
+			PRINTFORML [1]やってみたい　[2]ポタリングってなに？
+			PRINTFORML [3]遠慮する　　　[4]そんなことより競輪やろうぜ
+			$INPUT_LOOP2
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1．やってみたい
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+	;			素質によって判定値がランダムに上下することもある
+	;			SIF TALENT:ARG:反抗的
+	;				LOCAL -= RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「%CSTR:ARG:12%と一緒は遠慮したいカナ、%CSTR:ARG:11%」
+						PRINTFORMW 「行くなら一人で行ってね」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「いいね、%CSTR:ARG:12%。一緒に河川敷流さない？」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2．ポタリングってなに？
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「ポタリングも知らないの？無知だね、%CSTR:ARG:12%」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「自転車で散歩程度に流して走るんスよ。%CSTR:ARG:11%の今のマイブーム」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3．遠慮する
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「チャレンジ精神がないね、%CSTR:ARG:12%。そういうのってダメダメくんだよ」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「%CSTR:ARG:12%、今忙しいの？暇になったら教えてね」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4．そんなことより競輪やろうぜ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「競輪とか関係ないよね。%CSTR:ARG:12%、馬鹿にしてるのかな？」
+						RETURN 3
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「競輪いいよね。実は%CSTR:ARG:11%も大好き」
+						PRINTFORMW 「気が合うね。%CSTR:ARG:12%と%CSTR:ARG:11%」
+						RETURN 0
+				ENDIF
+			ELSE
+				GOTO INPUT_LOOP2
+			ENDIF
+
+		CASE 3
+	IF RAND:2 == 0
+			PRINTFORM 「Ｌがつく閣下とか、
+	ELSE
+			PRINTFORM 「四文字のなんとかってオッサン、
+	ENDIF
+			PRINTFORMW 最近調子乗ってるよね」
+			PRINTFORMW 「でも、三秒あれば指先一つでＫＯできるけどね、%CSTR:ARG:11%」
+			PRINTFORMW 「チョチョイのチョイだよ」
+			PRINTFORML
+			PRINTFORML [1]That's amazing　　　[2]Then why didn't you try to win?
+			;[1]すごいね　　　[2]じゃあ勝負してみる？
+			PRINTFORML [3]Thats impossible　[4]Silently point behind them
+			;[3]そりゃ無理だ　[4]無言で背後を指差す
+			$INPUT_LOOP3
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1.すごいね
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+	;			素質によって判定値がランダムに上下することもある
+				SIF TALENT:ARG:愚鈍
+					CFLAG:ARG:友好度 += RAND:15
+				SIF TALENT:ARG:賢い
+					CFLAG:ARG:友好度 -= RAND:15
+				SIF TALENT:ARG:素直
+					LOCAL += RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:30
+					;失敗
+						PRINTFORMW 「……もしかして、馬鹿にしてる？そうなら許さないよ、%CSTR:ARG:12%」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「そうでしょ。%CSTR:ARG:12%、中々見る目あるネ」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2.じゃあ勝負してみる？
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「野蛮だね、%CSTR:ARG:12%。戦うことしか頭にないの？」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「勝てる喧嘩はしない主義なんだ、%CSTR:ARG:11%。命拾いしたね、%CSTR:ARG:12%」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3.そりゃ無理だ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				SIF TALENT:ARG:プライド高い
+					CFLAG:ARG:友好度 -= RAND:15
+				SIF TALENT:ARG:楽観的
+					LOCAL -= RAND:20
+				SIF TALENT:ARG:悲観的
+					LOCAL += RAND:20
+				IF LOCAL < 0
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「%CSTR:ARG:11%の実力を見くびってるね、%CSTR:ARG:12%」
+						RETURN 3
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「あ、やっぱり？%CSTR:ARG:11%も薄々そう思ってたんスよ」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4.無言で背後を指差す
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				SIF TALENT:ARG:臆病
+					LOCAL -= RAND:20
+				IF LOCAL < 0
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW %CALLNAME:ARG%は慌てて振り返った
+						PRINTFORMW 「……驚かさないでよ。心臓に悪いよ、%CSTR:ARG:12%」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:20
+					;成功
+						PRINTFORMW 「え、後ろ……？」
+						PRINTFORMW 「何にもないじゃない。驚かさないでよ、%CSTR:ARG:12%」
+						RETURN 0
+				ENDIF
+			ELSE
+				GOTO INPUT_LOOP3
+			ENDIF
+			
+				CASE 4
+			PRINTFORMW 「Sometimes, %CSTR:ARG:11% is feeling lonely.....I miss my younger sister.」
+			;「%CSTR:ARG:11%ってこんな感じだから……。たまあにおセンチさんになるんスよ」
+			PRINTFORMW 「But it can't be helped, so I think I'm going to get myself a pet. Can you recommend me one?」
+			;「さみしいから、ペット飼おうと思うんだケド、どれがいいんスかね？」
+			PRINTFORML
+			PRINTFORML [1]Dog　　　[2]Monkey
+			;[1]イヌ　　　[2]サル
+			PRINTFORML [3]Cat　　　[4]Onna
+			;[3]ネコ　　　[4]オンナ
+			$INPUT_LOOP4
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1．イヌ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+	;			素質によって判定値がランダムに上下することもある
+	;			SIF TALENT:ARG:反抗的
+	;				LOCAL -= RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「そうかな？夜中に吠えたりしてうるさいよね。ドッグ」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「そうだね、イヌはいいネ。%CSTR:ARG:11%らの友達だしね、ワンワン」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2．サル
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「そうかな？猿知恵とか、あんまりいい印象ないよね。モンキー」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「そうだね、%CSTR:ARG:12%たちの遠い親戚だし、%CSTR:ARG:11%らも友達だしね。ウッキッキー」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3．ネコ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「そうかな？懐かないし、引っ掻くし、いいトコないよね。キャット」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「そうだね、カッコイイからネ。%CSTR:ARG:11%らの友達だしね、ニャ～オ」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4．オンナ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+					IF RAND:2 == 0
+						PRINTFORMW 「それってペットショップで見たことないよ？」
+						PRINTFORMW 「いい加減なこと言わないでくれるカナ、%CSTR:ARG:12%」
+					ELSE
+						PRINTFORMW 「オンナをペットにするとか、うらやま…酷いヤツだね、%CSTR:ARG:12%」
+					ENDIF
+						RETURN 3
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+			PRINTFORMW 「そうだね、キモチイイことできるしネ。売ればお金にもなるしね」
+			PRINTFORMW 「%CSTR:ARG:12%って大物かもネ」
+						RETURN 0
+				ENDIF
+			ELSE
+				GOTO INPUT_LOOP4
+			ENDIF
+		
+	ENDSELECT
+
+LOOP 1
+
+@FUSION_MESSAGE_PUB322,ARG
+;合体時口上
+PRINTFORMW 
+

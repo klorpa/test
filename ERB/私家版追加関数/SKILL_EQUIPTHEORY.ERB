@@ -1,0 +1,168 @@
+;=================================================================
+;装備スキル(装備知識Lv0～Lv5)に関する関数郡
+;=================================================================
+
+;-----------------------------------------------------------------
+;@SKILL_EQUIPTHEORY_IS_HAVE_SKILL
+;装備知識スキル(Lv0～Lv5)を保持しているかを返す
+;　ARG:0 対象のキャラID
+; 戻り値 0=保持していない 1=保持している
+;-----------------------------------------------------------------
+@SKILL_EQUIPTHEORY_IS_HAVE_SKILL, ARG:0 = -1
+#FUNCTION
+#LOCALSIZE  1
+#LOCALSSIZE 1
+	;キャラ指定が不正
+	SIF ARG:0 == -1
+		RETURNF 0
+	;装備知識スキル(Lv0～Lv5)を保持している
+	SIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv0]])
+		RETURNF 1
+	SIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv1]])
+		RETURNF 1
+	SIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv2]])
+		RETURNF 1
+	SIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv3]])
+		RETURNF 1
+	SIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv4]])
+		RETURNF 1
+	SIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv5]])
+		RETURNF 1
+	;ここまでの条件を満たさない場合
+	RETURNF 0
+
+
+;-----------------------------------------------------------------
+;@SKILL_EQUIPTHEORY_IS_SKILL_EQUIPTHEORY
+;指定のスキルNoが装備知識スキル(Lv0～Lv5)のいずれかに該当しているかを返す
+;主にスキル削除時の装備解除の必要有無判定に使用する
+;　ARG:0 対象のスキルNo
+; 戻り値 0=対象は装備知識スキルではない 1=対象は装備知識スキルである
+;-----------------------------------------------------------------
+@SKILL_EQUIPTHEORY_IS_SKILL_EQUIPTHEORY, ARG:0
+#FUNCTION
+#LOCALSIZE  1
+#LOCALSSIZE 1
+	;指定Noは装備知識スキル(Lv0～Lv5)である
+	SIF ARG:0 == [[スキル:装備知識Lv0]]
+		RETURNF 1
+	SIF ARG:0 == [[スキル:装備知識Lv1]]
+		RETURNF 1
+	SIF ARG:0 == [[スキル:装備知識Lv2]]
+		RETURNF 1
+	SIF ARG:0 == [[スキル:装備知識Lv3]]
+		RETURNF 1
+	SIF ARG:0 == [[スキル:装備知識Lv4]]
+		RETURNF 1
+	SIF ARG:0 == [[スキル:装備知識Lv5]]
+		RETURNF 1
+	;ここまでの条件を満たさない場合
+	RETURNF 0
+
+;-----------------------------------------------------------------
+;@SKILL_EQUIPTHEORY_DEL_SKILL
+;スキル削除処理時に対象キャラが悪魔で削除対象スキルが装備知識系スキルかつ削除の結果、
+;装備知識スキル系をまったく所持していない状態となった場合は装備を解除する
+;主にスキル削除を要する処理(スキル削除、スキル取得時の更新、スキルカード化)
+;　ARG:0 対象となっているキャラID
+;　ARG:1 削除対象のスキルNo
+; 戻り値 なし
+;-----------------------------------------------------------------
+@SKILL_EQUIPTHEORY_DEL_SKILL, ARG:0 = -1, ARG:1
+#LOCALSIZE  1
+#LOCALSSIZE 1
+	;キャラ指定が不正
+	SIF ARG:0 == -1
+		RETURN 0
+	;対象キャラが悪魔で装備知識スキルが削除対象で装備知識スキル系をまったく所持していない場合は装備を解除する
+	IF GET_DEVIL(ARG) && SKILL_EQUIPTHEORY_IS_SKILL_EQUIPTHEORY(ARG:1) == 1 && SKILL_EQUIPTHEORY_IS_HAVE_SKILL(ARG:0) == 0
+		CALL 全装備解除, (ARG:0)
+		PRINTFORMW %CALLNAME:(ARG:0)%は装備知識のスキルを失ったため、装備が解除されました。
+	ENDIF
+
+
+;-----------------------------------------------------------------
+;@SKILL_EQUIPTHEORY_EQUIP_STATUS
+;対象キャラの所持する装備知識スキルに応じて装備により増加する能力値を補正する
+;最低限1は保障する
+;　ARG:0 対象キャラ
+;　ARG:1 補正対象の装備能力値
+; 戻り値 所持スキルに応じて補正した装備能力補正値
+; LOCAL:0 計算した補正値
+;-----------------------------------------------------------------
+@SKILL_EQUIPTHEORY_EQUIP_STATUS, ARG:0 = -1, ARG:1
+#FUNCTION
+#LOCALSIZE  1
+#LOCALSSIZE 1
+	LOCAL:0 = ARG:1
+	;キャラ指定が不正
+	SIF ARG:0 == -1
+		RETURNF 1
+	;装備知識スキル(Lv0～Lv5)を保持している
+	;1.25倍
+	IF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv5]])
+		TIMES LOCAL:0, 1.10
+	;1.00倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv4]])
+		TIMES LOCAL:0, 1.00
+	;0.75倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv3]])
+		TIMES LOCAL:0, 0.75
+	;0.50倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv2]])
+		TIMES LOCAL:0, 0.5
+	;0.25倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv1]])
+		TIMES LOCAL:0, 0.25
+	;0.10倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv0]])
+		TIMES LOCAL:0, 0.1
+	ENDIF
+
+	SIF LOCAL:0 < 1
+		LOCAL:0 = 1;
+	
+	RETURNF LOCAL:0
+
+;-----------------------------------------------------------------
+;@SKILL_EQUIPTHEORY_EQUIP_HIT
+;対象キャラの所持する装備知識スキルに応じて装備の命中値を補正する
+;最低限25は保障する
+;　ARG:0 対象キャラ
+;　ARG:1 補正対象の命中値
+; 戻り値 所持スキルに応じて補正した装備の命中値
+; LOCAL:0 計算した命中値
+;-----------------------------------------------------------------
+@SKILL_EQUIPTHEORY_EQUIP_HIT, ARG:0 = -1, ARG:1
+#FUNCTION
+#LOCALSIZE  1
+#LOCALSSIZE 1
+	LOCAL:0 = ARG:1
+	;キャラ指定が不正
+	SIF ARG:0 == -1
+		RETURNF 25
+	;装備知識スキル(Lv0～Lv5)を保持している
+	;1.25倍
+	IF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv5]])
+		TIMES LOCAL:0, 1.10
+	;1.00倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv4]])
+		TIMES LOCAL:0, 1.00
+	;0.75倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv3]])
+		TIMES LOCAL:0, 0.75
+	;0.50倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv2]])
+		TIMES LOCAL:0, 0.5
+	;0.25倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv1]])
+		TIMES LOCAL:0, 0.25
+	;0.10倍
+	ELSEIF HAVE_SKILL(ARG:0, [[スキル:装備知識Lv0]])
+		TIMES LOCAL:0, 0.1
+	ENDIF
+
+	SIF LOCAL:0 < 25
+		LOCAL:0 = 25;
+	
+	RETURNF LOCAL:0

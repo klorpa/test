@@ -1,0 +1,53 @@
+;=================================================
+;気絶の処理
+;=================================================
+;RESULT = 0なら問題なし,1は体力500以下,2なら気絶した
+@気絶処理,ARG
+
+IF BASE:ARG:体力 == LIMIT(BASE:ARG:体力,1,499)
+	PRINTFORMW %CALLNAME:ARG%s Stamina has almost reached it's limit.
+	;の体力はほとんど限界に近い
+	RETURN 1
+ELSEIF BASE:ARG:体力 > 0
+	RETURN 0
+ENDIF
+
+PRINTFORMW .........
+PRINTFORMW ......
+PRINTFORMW ...
+PRINTFORMW %CALLNAME:ARG% fainted.
+
+;蓬莱人にとって一時的な死は日常
+IF TALENT:ARG:蓬莱人
+	BASE:ARG:体力 = 1
+	RETURN 2
+ENDIF
+
+;従順ダウン
+IF ABL:ARG:従順 > 0
+	ABL:ARG:従順 -= 1
+	PRINTL Odedience decreased by １.
+	;従順が１下がった
+ENDIF
+
+;;ＭＡＧ強化を剥奪
+;LOCALS   = Stamina
+;LOCALS:1 = Willpower
+;FOR LOCAL,0,2
+;	RESULTS = %LOCALS:LOCAL%
+;	SIF MAXBASE:ARG:RESULTS <= CSVBASE(NO:ARG,GETNUM(BASE,RESULTS),0)
+;		CONTINUE
+;	MAXBASE:ARG:RESULTS = CSVBASE(NO:ARG,GETNUM(BASE,RESULTS),0)
+;	PRINTFORML ＭＡＧによる強化が破綻し、%RESULTS%の上限が{MAXBASE:ARG:RESULTS}に下がった
+;NEXT
+
+;体力回復停止フラグ
+CFLAG:ARG:体力回復停止フラグ = MAX(12,CFLAG:ARG:体力回復停止フラグ*2)
+CFLAG:ARG:ストレス値 += CFLAG:ARG:体力回復停止フラグ * (MARK:ARG:苦痛刻印+1)
+BASE:ARG:体力 = 1
+
+;体力尽きて体力回復が止まってる状態で働かせるとか鬼畜すぎだろ常考
+CFLAG:ARG:労役フラグ = 0
+
+WAIT
+RETURN 2

@@ -1,0 +1,107 @@
+;フラグ
+;イベントフラグ:20:0 ; 0:イベント未解決 1:アヤセ見捨てた 2:アヤセ放置　3:アヤセ放置(IDあり)
+;4:奴隷化(IDあり), 5:和解(IDあり)
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_20
+;地下鉄クリア後,SEBECビル侵入前,「御影町にて」イベント未解決
+IF ダンジョンフラグ:9:1 == 1 && ダンジョンフラグ:10:0 == 0 && イベントフラグ:21:0 == 0 && イベントフラグ:20:0 == 0
+	RESULTS = In Mikage-Cho １
+	RETURN 1
+ENDIF
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_20
+	PRINTL You went to explore Mikage-Cho, now that you can enter.
+	PRINTL There are no people on the streets, not even dead people, looking like they could run and hide surprisingly well.
+	PRINTL There are demons, but none are particularly powerful.
+	PRINTFORML There seem to be many places where pockets of space have been sent to a different world, but when they are avoided, %CALLNAME:MASTER% faces no particular danger.
+	PRINTL ......
+	PRINTL ....
+	PRINTW ...
+	PRINTL For a while you just walk arround, but then you heard a disturbance nearby.
+	PRINTL While hiding in the shadow of the buildings, you moved to investigate.
+	PRINTL You saw a girl with freckles, who was chased by three men in black.
+	PRINTL The uniform she is wearing is that of the St. Hermelin High School of Mikage-Cho.
+	PRINTL She doesn't seem to be an ordinary human, as she is fighting back using magic, 
+	PRINTL but since it's 3v1, it's only a matter of time until she is overwhelmed.
+	CALL INPUT_YN("Help the girl", "Doesn't matter")
+	IF RESULT == 0
+		PRINTL 『What, you!?』
+		PRINTL 『If you interfere, we'll eliminate you too.』
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		WAIT
+		CALL SET_ENEMY,9, 4212,18, 0
+		CALL SET_ENEMY,10,4212,18, 0,1
+		CALL SET_ENEMY,11,4212,18, 0
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		WAIT
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		PRINTL The 3 men in black fell.
+		PRINTL It seems they weren't ordinary people...
+		PRINTL 「Oh, you helped me out...you, what...?」
+		PRINTL The girl is still on guard and somewhat suspicous of you.
+		CALL INPUT_YN("Let's talk", "Leave her")
+		IF RESULT == 0
+			PRINTFORML ...%CALLNAME:MASTER% calmed the girl and convinced her to have a conversation.
+			PRINTL She introduced herself as 「Yuka Ayase」. She is a persona-user and a student of St. Hermelin High School.
+			PRINTL When she went outside into Mikage-Cho, she saw those black guys doing something in the abandoned factory, and they began to chase her.
+			PRINTL By the way, how should you explain yourself?
+			PRINTL Since the barrier can only be pierced for a short amount to time, only a few people can enter and exit.
+			PRINTL Although this girl is alone, it is evident she'd want to help out everybody...
+			CALL INPUT_YN("Try to deceive her", "Speak at length to pursuade her")
+			IF RESULT == 0
+				CALL INCREASE_LC, -4
+				PRINTL Unfortunately, Ayase doesn't appear to be entirely convinced.
+				PRINTL She regards you with suspicous eyes, then makes a hasty retreat...
+				CALL INPUT_YN("Leave", "Catch and enslave her")
+				IF RESULT == 0
+					PRINTL No need to get further involved.
+					PRINTL With the girl's power, she should be able to avoid danger and reach a safe place.
+					PRINTFORMW %CALLNAME:MASTER% ignored the girl's suspicions and left.
+					イベントフラグ:20:0 = 3
+				ELSE
+					CALL INCREASE_LD, -16
+					PRINTL Chased Ayase and easily caught her by the back of her clothes.
+					PRINTL Giving her no time to complain, you hit her neck.
+					PRINTL The girl collapsed like a doll whose strings were cut.
+					PRINTW Yuka Ayase became a slave.
+					CALL ADD_NEW_COMPANION,4515,100
+					イベントフラグ:20:0 = 4
+				ENDIF
+			ELSE
+				CALL INCREASE_LD, 4
+				PRINTL Talked at length to try and pursuade her.
+				PRINTL When the talk was over, Ayase's eyes softened a bit.
+				PRINTL 「Well, I don't quite understand but...you are going something about the situation in this town, right?」
+				PRINTL 「That there would be someone like that, that's good to hear. Would it be fine if I told everybody?」
+				PRINTL Parted with Ayase as she left to return to her school.
+				イベントフラグ:20:0 = 5
+			ENDIF
+			PRINTL Afterwards, you examined the fallen men in black.
+			PRINTL Their leader has some kind of ID card, maybe it could be useful?
+			PRINTW Decided to pocket it.
+		ELSE
+			PRINTL No need to get further involved.
+			PRINTL With the girl's power, she should be able to avoid danger and reach a safe place.
+			PRINTFORMW %CALLNAME:MASTER% ignored the girl's suspicions and left.
+			イベントフラグ:20:0 = 2
+		ENDIF
+	ELSE
+		PRINTL Soon, the girl could no longer resist and fell.
+		PRINTL 『She gave us a hard time....should we kill her?』
+		PRINTL 『....I'll ask the higher-ups for orders. Let's head back.』
+		PRINTL The 3 left with the girl.
+		PRINTFORMW %CALLNAME:MASTER%, while hiding, watched the men enter a brand-new building.
+		イベントフラグ:20:0 = 1
+	ENDIF
+

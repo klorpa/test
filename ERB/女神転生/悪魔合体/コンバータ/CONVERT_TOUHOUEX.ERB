@@ -1,0 +1,142 @@
+@CONVERT_TOUHOUEX, ARG , ARG:1 , ARG:2 , ARG:3 = -1
+;ARG ,悪魔１
+;ARG:1　悪魔２
+;ARG:2　悪魔３
+;ARG:3　元々のRESULT
+;
+
+;LOCAL ：悪魔１種族
+;LOCAL:1 ：悪魔２種族0
+;LOCAL:2 ：悪魔３種族
+;LOCAL:3 ：悪魔種族
+;LOCAL:4 ：悪魔LV
+
+#LOCALSSIZE 5
+
+;合体処理をもう一度行う
+;合体結果の種族を検索
+IF ARG:2 > 0
+	LOCAL = ABL:(ARG:0):種族
+	LOCAL:1 = ABL:(ARG:1):種族
+	LOCAL:2 = ABL:(ARG:2):種族
+	;バブルソートもどき
+	SIF LOCAL > LOCAL:1
+		SWAP LOCAL , LOCAL:1
+	SIF LOCAL:1 > LOCAL:2
+		SWAP LOCAL:1 , LOCAL:2
+	SIF LOCAL > LOCAL:1
+		SWAP LOCAL , LOCAL:1
+	CALL SEARCH_RACE, LOCAL , LOCAL:1
+	SIF RESULT == 13
+		RESULT = LOCAL
+	CALL SEARCH_RACE, MIN(RESULT , LOCAL:2), MAX(RESULT , LOCAL:2)
+	IF RESULT == 13
+		RETURN ARG:3
+	ELSE
+	
+	ENDIF
+ELSE
+	CALL SEARCH_RACE,MIN(ABL:ARG:種族,ABL:(ARG:1):種族),MAX(ABL:ARG:種族,ABL:(ARG:1):種族)
+	SIF RESULT == 13
+		RETURN ARG:3
+ENDIF
+;その種族の悪魔をリスト化 Ｄあたりにリストを入れる
+;女専用種族を男で作ろうとする場合、オトコ専用種族に変換する。
+IF RESULT == 1 && TALENT:ARG:オトコ
+	RESULT = 15
+ELSEIF RESULT == 2 && TALENT:ARG:オトコ
+	RESULT = 16
+ENDIF
+LOCAL:3 = RESULT
+	;合体不可の組み合わせなら0を返す
+SIF LOCAL:3 == 0
+	RETURN 0
+
+;作成したリストから二体の平均レベルに合わせて悪魔を選ぶ
+IF ARG:2 > 0
+	;平均に足すレベル
+	IF EQUIP:MASTER:Paracelsus == 0
+		LOCAL:4 = (CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:1),GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:2),GETNUM(BASE,"LV"),0))/3 + FUSION_PLUS_LV(3,1)
+	ELSE
+		LOCAL:4 = (BASE:ARG:LV + BASE:(ARG:1):LV + BASE:(ARG:2):LV)/3 + FUSION_PLUS_LV(3,1)
+	ENDIF
+ELSE
+	;平均に足すレベル
+	IF EQUIP:MASTER:Paracelsus == 0
+		LOCAL:4 = (CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:1),GETNUM(BASE,"LV"),0))/2 + FUSION_PLUS_LV(2,1)
+	ELSE
+		LOCAL:4 = (BASE:ARG:LV + BASE:(ARG:1):LV)/2 + FUSION_PLUS_LV(2,1)
+	ENDIF
+ENDIF
+
+;デバッグ用
+;PRINTFORML 種族 ＝ {LOCAL:3}
+;PRINTFORML 元キャラレベル ＝ {LOCAL:4}
+
+SELECTCASE LOCAL:3
+	;地母神
+	;CASE 1
+	;女神
+	;CASE 2
+	;魔王
+	;CASE 3
+	;天使
+	;CASE 4
+	;妖魔
+	CASE 5
+		;35以上、丁礼田舞
+			SIF LOCAL:4 >= 35
+			RETURN 5823
+		;それ以下、爾子田里乃
+			RETURN 5822
+	;妖精
+	CASE 6
+		;30以上、日焼けしたチルノ
+			SIF LOCAL:4 >= 30
+			RETURN 5825
+		;それ以下、エタニティラルバ
+			RETURN 5818
+	;妖鬼
+	CASE 7
+		;現状他にいないので坂田ネムノ。
+			RETURN 5819
+	;竜王
+	;CASE 8
+	;魔獣
+	CASE 9
+		;現状他にいないので高麗野あうん
+			RETURN 5820
+	;妖鳥
+	;CASE 10
+	;外道
+	;CASE 11
+	;CASE 13
+	;鬼神
+	CASE 15
+		;現状他になし。矢田寺成美。
+			RETURN 5821
+	;魔神
+	;CASE 16
+
+ENDSELECT
+
+
+;コンバート先がない場合、そのまま返す
+RETURN ARG:3
+
+;特殊合体枠
+;=====================================================
+;造魔＊丁礼田舞or爾子田里乃　＝　摩多羅隠岐奈
+;=====================================================
+@FUSION_SPECIAL_4402_5823,ARG,ARG:1
+RETURN 5824
+@FUSION_SPECIAL_4402_5822,ARG,ARG:1
+RETURN 5824
+
+;=====================================================
+;丁礼田舞or爾子田里乃＊チルノ　＝　日焼けしたチルノ
+;=====================================================
+@FUSION_SPECIAL_5823_4804,ARG,ARG:1
+RETURN 5825
+@FUSION_SPECIAL_5822_4804,ARG,ARG:1
+RETURN 5825

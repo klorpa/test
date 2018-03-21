@@ -1,0 +1,416 @@
+@EVENT_7_GYPTY
+#LOCALSIZE 10
+#LOCALSSIZE 30
+;提供噂の決定
+VARSET LOCALS
+LOCAL = 10
+;ルート進行を保存
+LOCAL:6 = STRFLAG_NUM_EV("罪ルート進行", , , , [[イベント:ペルソナ２]])
+LOCAL:7 = STRFLAG_NUM_EV("罰ルート進行", , , , [[イベント:ペルソナ２]])
+LOCAL:8 = STRFLAG_NUM_EV("ニャル進行", , , , [[イベント:ペルソナ２]])
+LOCAL:9 = STRFLAG_NUM_EV("フィレモン進行", , , , [[イベント:ペルソナ２]])
+;--------------------------------------
+;噂の在庫調査
+;--------------------------------------
+IF LOCAL:6 >= 3 || LOCAL:7 >= 2
+	LOCALS:LOCAL = 不思議なカードの噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+IF LOCAL:6 == 3
+	LOCALS:LOCAL = ヴィジュアル系番長の噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+IF LOCAL:6 == 5
+	LOCALS:LOCAL = 元アイドルの幽霊の噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+IF LOCAL:6 >= 7 && STRFLAG_NUM_EV("仮面党は流行に敏感の噂") < 2
+	LOCALS:LOCAL = 仮面党は伝統の香りの噂
+	IF !STRFLAG_NUM_EV(LOCALS:LOCAL)
+		LOCAL++
+	ELSE
+		LOCALS:LOCAL = 
+	ENDIF
+ENDIF
+SIF LOCAL == 10
+	LOCALS = ネタ切れ
+CUSTOMDRAWLINE =
+;--------------------------------------
+;選択肢冒頭
+;--------------------------------------
+IF !STRFLAG_EV("ジプシー初回", 1)
+	PRINTL ＞占い師の館はオリエンタルな空気に包まれている…
+	PRINTL ＞人々の悩みを聞き、未来を占うことで、自然と噂が集まってくるらしい
+	PRINTW ＞珠閒溜ジプシー、彼女は優秀な占い師というだけでなく、優秀な噂屋でもあるようだ
+	PRINTL 
+	PRINTL 珠閒溜ジプシー:
+	PRINTW 「ここは人生という迷宮に迷った者が訪れる場所。暗澹たる未来に一筋の光明を放ち、進むべき道筋を指し示す場所」
+	PRINTW 「妾はその番人、珠間瑠ジプシー。どうやらそなたは初めてここを訪れたようだな？そなたも、未来への道を見失った一人か？」
+	PRINTW 「それとも、浮世での噂話でも聞きに来たか？」
+	PRINTW 「ここにいれば多くの民と言葉を交わすでな、現世漂う噂話などもよく聞こえて来る。最近は、それを聞きに来る旅人も多いのだ]
+	PRINTW 「噂を語るのは妾の生業ではない。よって金を取るつもりは無い……」
+	PRINTW 「といいたいところじゃが、それでは他の噂の道に住む仲間達に迷惑をかけるでな」
+	PRINTW 「不本意ではあるが、それなりの報酬を戴くことにしておるのじゃ」
+	PRINTW 「さて、それでは…」
+ELSE
+	PRINTL 珠閒溜ジプシー:
+	IF RAND:10
+		PRINTW 「ここは人生という迷宮に迷った者が訪れる場所。暗澹たる未来に一筋の光明を放ち、進むべき道筋を指し示す場所」
+		PRINTW 「さて、それではそなたの望みを聞くとしようぞ」
+	ELSE
+		PRINTL 「ご指名して頂いてありがとうございます。今日もアニ…っ！
+		PRINTW 　ゴホッゴホッ。な、何でもない。今のは忘れてくれ」
+	ENDIF
+ENDIF
+IF 0
+	$START
+	PRINTW 「それではほかになにか用はあるかな？」
+ENDIF
+PRINTL 
+PRINTL [0] Buy Rumors
+PRINTL [1] Talk
+PRINTL [9] Leave the Store
+CALL INPUTINT(0, 1, 9)
+;--------------------------
+;噂購入
+;---------------------------
+IF RESULT == 0
+	IF LOCALS == "ネタ切れ"
+		PRINTL 珠閒溜ジプシー:
+		PRINTW 「ふむ、噂話か、そなたの知りたいこと、ただちに答えてみせようぞ…」
+		PRINTW 「といいたいところじゃが、今そなたが知りたいことに答えられぬと」
+		PRINTW 「このタロットが示しておる。すまないが、今日のところは出直して欲しい」
+		PRINTW 「じゃが、そなたが真に迷ったとき、そのときそ妾はそなたの力になれる」
+		PRINTW 「そのことをゆめゆめ忘れるでないぞ」
+		GOTO START
+	ELSE
+		PRINTW 「まずはそなたにとって必要なネタを告げるのじゃ」
+		PRINTL 
+		$INPUT_LOOP_CHOICE
+		FOR LOCAL, 10, 30
+			SIF STRLENS(LOCALS:LOCAL) == 0
+				BREAK
+			PRINTFORML [{LOCAL-10}] %LOCALS:LOCAL%
+		NEXT
+		PRINTL [100] Return
+		INPUT
+		IF RESULT == 100
+			PRINTL 珠閒溜ジプシー:
+			PRINTL 「ふむ、そなたの求めるものはこの中にはない…か
+			PRINTW 　まぁ、それもよかろう」
+			GOTO START
+		ELSEIF RESULT + 10 >= 0 && RESULT + 10 < VARSIZE("LOCALS") && STRLENS(LOCALS:(RESULT+10)) 
+			LOCALS = %LOCALS:(RESULT+10)%
+			IF LOCALS == "不思議なカードの噂"
+				;噂基本価格
+				LOCAL = 5000
+				;価格補正人数係数
+				LOCAL:1 = 30
+			ELSEIF LOCALS == "ヴィジュアル系番長の噂"
+				;噂基本価格
+				LOCAL = 10000
+				;価格補正人数係数
+				LOCAL:1 = 25
+			ELSEIF LOCALS == "元アイドルの幽霊の噂"
+				;噂基本価格
+				LOCAL = 30000
+				;価格補正人数係数
+				LOCAL:1 = 15
+			ELSEIF LOCALS == "仮面党は伝統の香りの噂"
+				;噂基本価格
+				LOCAL = 50000
+				;価格補正人数係数
+				LOCAL:1 = 20
+			ELSEIF LOCALS == "ブキミちゃんの噂"
+				;噂基本価格
+				LOCAL = 80000
+				;価格補正人数係数
+				LOCAL:1 = 12
+			ENDIF
+		ELSE
+			GOTO INPUT_LOOP_CHOICE
+		ENDIF
+		PRINTL 珠閒溜ジプシー:
+		PRINTFORML 「%LOCALS%か。そなたの希望はよくわかったぞ」
+		PRINTW 「では、そなたは対価として何を差し出すのじゃ？」
+		PRINTL 
+		$INPUT_LOOP_GYPSY
+		PRINTL [0] Buy Rumor With Money
+		PRINTL [1] Buy Rumor With Gifts
+		PRINTL [2] Seduce
+		PRINTL [3] Lend a Slave
+		PRINTL [4] Resolve With Violence
+		PRINTL [99] Buy Another Rumor
+		PRINTL [100] Return
+		CALL INPUTINT(0, 1, 2, 3 ,4, 99, 100)
+		SELECTCASE RESULT
+			CASE 0
+				;値段を決定する。男主人の場合は陥落人数により割引が発生する
+				IF TALENT:MASTER:オトコ
+					LOCAL = LOCAL * (100 - LOCAL:1 * (FLAG:恋慕人数 + FLAG:淫乱人数 +FLAG:服従人数))/100
+					;下限は5000
+					SIF LOCAL <= 5000
+						LOCAL = 5000
+				ENDIF
+				PRINTFORMW 「そうじゃな。{LOCAL}円といったところでどうじゃ？」
+				IF MONEY > LOCAL
+					PRINTL ＞支払いますか？
+				ELSE
+					PRINTW ＞所持金が足りない…
+					GOTO INPUT_LOOP_GYPSY
+				ENDIF
+				CALL INPUT_YN
+				IF RESULT == 0
+					MONEY -= LOCAL
+					PRINTFORMW ＞{LOCAL}円を支払った
+					PRINTL 
+					PRINTL 珠閒溜ジプシー:
+					PRINTW 「ふむ、確かに頂戴したぞ」
+				ELSE
+					PRINTL 珠閒溜ジプシー:
+					PRINTW 「そなたの望みがその程度のものであるならば、妾は力には慣れぬな」
+					PRINTW 「所詮、占い師は力を貸すだけのもの、望みが弱いものを助けることはできぬ」
+					GOTO INPUT_LOOP_GYPSY
+				ENDIF
+			CASE 1
+				PRINTL 珠閒溜ジプシー:
+				PRINTW 「え、プレゼント？　なんかもらえるの？　やったぁ…ごほっごほっ、なんでもない」
+				PRINTW 「そうじゃな、妾がなにかもらうとしたら、やはり宝石が望ましいな」
+				PRINTW 「なにより綺麗…ではなく、神秘の力を秘めておるからな」
+				PRINTW 「妾の占いの役に立つのじゃよ」
+				PRINTL 
+				PRINTW しかし、手元に宝石がなかった…
+				PRINTW 「む、ないのか残念…いや、気にすることはないぞ」
+				PRINTW 「お客さんにもらえ…もとい、妾の働き次第でどうとでもなるわけじゃなからな」
+				GOTO INPUT_LOOP_GYPSY
+			;原作知らない人的にはどーなんだろうね！
+			CASE 2
+				IF TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘
+					PRINTL 珠閒溜ジプシー:
+					PRINTW 「え？　私は女の子はちょっと…げほっげほっ」
+					PRINTW 「いや、なんでもない…ただ、妾には特殊な性癖はないでな」
+					PRINTW 「そのような申し出をされても困るだけじゃ」
+					GOTO INPUT_LOOP_GYPSY
+				ELSE
+					IF STRFLAG_EV("ジプシー初売春")
+						PRINTL 珠閒溜ジプシー:
+						PRINTW 「うふ、またご指名？」
+						PRINTW 「ありがとう。それじゃあ早速…」
+						PRINTW 「と、いけないいけない」
+						PRINTW 「まずは噂屋のお仕事を終わらせなきゃ…いや、終わらせねばな」
+						CALLF STRFLAG_EV("主人売春", 1)
+					ELSE
+						PRINTL 珠閒溜ジプシー:
+						PRINTW 「え、私と一晩？　どうしよう…結構好みだし…」
+						PRINTW 「いやいやでも…一般の人なわけだし…うー」
+						PRINTW 「ああ、いやなんでもないのじゃ」
+						PRINTW 「申し出は魅力的ではあるが、妾にはそなたがこの提案を後悔すると」
+						PRINTW 「占わずともわかってしまうものでな」
+						PRINTW 「どんなことがあっても後悔しないというなら、まだしも」
+						PRINTW 「やめておくことをおすすめするぞ」
+						CALL INPUT_YN("やめない", "やめておく")
+						IF RESULT == 0
+							PRINTL 珠閒溜ジプシー:
+							PRINTW 「え、ほんとに？　それなら…」
+							PRINTW 「いや、そなたがそこまで覚悟ができておるのならば、妾はもう何も言うまい」
+							PRINTW 「では、そなたの体買わせてもらうぞ？」
+							CALLF STRFLAG_EV("主人売春", 1)
+						ELSE
+							PRINTL 珠閒溜ジプシー:
+							PRINTW 「はー…やっぱりそうよね…惜しいなぁ…」
+							PRINTW 「げほっげほっ、まぁそういうことで申し出はなかったことにじゃな」
+							PRINTW 「で、どうするのじゃ？」
+							GOTO INPUT_LOOP_GYPSY
+						ENDIF
+					ENDIF
+				ENDIF
+			CASE 3
+				IF !STRFLAG_EV("ジプシー初売春")
+					PRINTL 珠閒溜ジプシー:
+					PRINTW 「え、奴隷？　それは夢がある…というか、たまには買うほうも…」
+					PRINTW 「いやいや、なんでもないぞ」
+					PRINTW 「妾はこのように世を捨てた身、そのようなあさましい行為をしては力を失うやもしれん」
+					PRINTW 「少し惜しいが、その提案、なかったことにしてもらおうぞ」
+				ELSE
+					PRINTL 珠閒溜ジプシー:
+					PRINTW 「うーん…奴隷も悪くはないけど…」
+					PRINTW 「どうせなら…あなたを食べさせて
+					CALL HEARTBW
+				ENDIF
+				GOTO INPUT_LOOP_GYPSY
+			CASE 4
+				PRINTW ＞ここでこいつを締め上げてしまうか
+				PRINTW ＞このあたりにはもう近づけなくなるが、どうとでもなるだろう
+				PRINTL ＞本当に暴力で無理矢理解決しますか？
+				CALL INPUT_YN
+				IF RESULT == 0
+					PRINTL 珠閒溜ジプシー:
+					PRINTW 「きゃーっ、やめてっ…！」
+					PRINTW 「い、いや、やめるのじゃ」
+					PRINTW 「噂はいくらでも教える。だから、暴力はやめるのじゃ」
+					;だいぶDCに傾く
+					CALL INCREASE_LD, -10
+					CALL INCREASE_LC, -10
+					CALLF STRFLAG_EV("ジプシー暴力", 1)
+				ELSE
+					PRINTW ＞無駄に暴力を使っても仕方ない。やめておこう
+					GOTO INPUT_LOOP_GYPSY
+				ENDIF
+			CASE 99
+				PRINTL 珠閒溜ジプシー:
+				PRINTW 「そうか。ならば、より己にふさわしき噂を選ぶが良い」
+				GOTO INPUT_LOOP_CHOICE
+			CASE 100
+				PRINTL 珠閒溜ジプシー:
+				PRINTL 「対価を支払うかどうかはそなた次第じゃ
+				PRINTW 　本当に必要なその時が来れば、また話をきこうぞ」
+				GOTO START
+		ENDSELECT
+		IF LOCALS == "不思議なカードの噂"
+			PRINTL 珠閒溜ジプシー:
+			PRINTW 「よかろう。では…」
+			PRINTW 「蓮華台の時間城というアンティークショップを知っておるかな？」
+			PRINTW 「品のいい高級品に、伯爵と名乗る謎めいた美形の店主、それはもうため息がでるくらい素敵な店じゃ」
+			PRINTW 「そこの店でなにやら、不思議なカードが売られているという話じゃ」
+			PRINTW 「伯爵がいうには悪魔の力の一部を封じたカードのレプリカで」
+			PRINTW 「レプリカにもかかわらず、本物と同じだけの秘めておるらしい」
+			PRINTW 「しかも、そのレプリカは伯爵自身が作成したという話じゃ」
+			PRINTW 「それを聞いた客は冗談だと思ったようじゃが、値段を聞くとすごい値段でな…」
+			PRINTW 「どうも、本当なんじゃないかというはなしがでておるのじゃ」
+		ELSEIF LOCALS == "ヴィジュアル系番長の噂"
+			PRINTL 珠閒溜ジプシー:
+			PRINTW 「よかろう。では、ネタを提供するとしよう」
+			PRINTW 「春日山高校を知っておるかな？」
+			PRINTW 「今時、番長などというものが普通におる硬派な男子校じゃ」
+			PRINTW 「とは言っても、時代の流れというか、なんというか」
+			PRINTW 「そこの番長がガスチェンバーなるヴィジュアル系バンドを結成したらしいのじゃ」
+			PRINTW 「青く染めた頭に、バリバリに決めた化粧に、派手なパフォーマンス…わりと人気があるらしい」
+			PRINTW 「私としては、確かに化粧して綺麗な男の子っていうの悪くないとは思うんだけど」
+			PRINTW 「せっかく番長なんだから、ビシッと硬派に決めてもらいたいと思うんだけど…っとなんでもない」
+			PRINTW 「まぁ今時は番長ですら、ヴィジュアル系になるという…世の中わからんもんじゃな」
+		ELSEIF LOCALS == "元アイドルの幽霊の噂"
+			PRINTL 珠閒溜ジプシー:
+			PRINTW 「よかろう。妾の知る情報を話そう」
+			PRINTW 「いま、話題になっているMUSESは知っておろうな？」
+			PRINTW 「あのように期待されているアイドルは生活は素晴らしいものじゃろう」
+			PRINTW 「しかし、ああした人気が何時までも続くわけがないのも世の道理じゃ」
+			PRINTW 「そう、落ち目になったアイドルとは悲惨なものじゃよ」
+			PRINTW 「その悲惨なアイドルの幽霊がコンサートホール付近で目撃されているらしいのじゃ」
+			PRINTW 「なんでも、アイドルにきゃーきゃーいうファンを目の敵にし、とりころそうとしてくるとか」
+			PRINTW 「おお、くわばら、くわばら。そなたも気をつけるがいいぞ？」
+		ELSEIF LOCALS == "仮面党は伝統の香りの噂"
+			PRINTL 珠閒溜ジプシー:
+			PRINTW 「さて、それでは妾の番じゃな」
+			PRINTW 「そなたも仮面党について、名前くらいは知っておるじゃろう？」
+			PRINTW 「じゃが、詳しいことはどうじゃ？」
+			PRINTW 「例えば、奴らが実はイギリスに起源をもつ古き秘密結社だという噂」
+			PRINTW 「これは知っておるかの？」
+			PRINTW 「まぁ、ああいうローブは元々日本のものじゃないしの」
+			PRINTW 「そして、イギリスなら確かにああいう秘密結社くらいいくらでもありそうなものじゃし」
+			PRINTW 「あの格好も伝統のものと考えれば納得できるというものじゃ」
+			PRINTW 「ほら、倫敦屋を知っておるかの？」
+			PRINTW 「あそこのテイラーは本場英国仕込みじゃからな」
+			PRINTW 「あそこのスーツをぱりっと着こなした男のひととかマジかっこい…ごほっごほっ」
+			PRINTW 「と、まぁそれはともかく仮面党の制服のデザインも担当したそうじゃ」
+			PRINTW 「客は差別しない、それもまたプロ意識なのかもしれんな」
+			PRINTW 「まぁ、とにかく仮面党にも歴史と伝統ありというわけじゃな」
+		ENDIF
+		IF STRFLAG_EV("主人売春")
+			IF !STRFLAG_EV("ジプシー初売春", 1)
+				PRINTL 珠閒溜ジプシー:
+				PRINTW 「それじゃあ…、ここからは二人の時間ね…」
+				PRINT 「ふふ…私の秘密教えてあ・げ・る
+				CALL HEARTBW
+				PRINTFORMW そういって、絡み付いてくるジプシーと共に%CALLNAME:MASTER%はホテルへと向かった…
+				CALL PROSITUTION_GOSSIP_M(1)
+				PRINTW ＞ジプシーの恐ろしい秘密を知ってしまった…
+				CALLF STRFLAG_EV("ジプシー初売春", 1)
+				IF TALENT:MASTER:男嫌い
+					PRINTW もう二度とジプシーには近づかないようにしよう…
+					;暴力で代替、まぁ暴力を受けたと考えればOKだよね
+					CALLF STRFLAG_EV("ジプシー暴力", 1)
+				ENDIF
+			ELSE
+				PRINTL 珠閒溜ジプシー:
+				PRINTW 「さぁ…また二人の時間ね…」
+				PRINT 「甘い夢を見させて…あげる…
+				CALL HEARTBW
+				CALL PROSITUTION_GOSSIP_M(1)
+			ENDIF
+		ENDIF
+		CUSTOMDRAWLINE = 
+		WAIT
+		CALLF STRFLAG_NUM_EV(LOCALS, "=", , 1)
+		PRINTFORMW ＞%LOCALS%を手に入れた
+		RETURN 0
+	ENDIF
+;-------------------------
+;会話
+;-------------------------
+ELSEIF RESULT == 1
+	PRINTL 珠閒溜ジプシー:
+	;罪ルート(ゾディアッククリア前)
+	IF RANGE(LOCAL:6, 2, 3)
+		PRINTL 「なに？カメントウ？仮面党か？
+		PRINTW 　いや、その様な名は聞いた事が無いが…何か組織の名前なのか？」
+		PRINTL 「そういう事なら本丸公園の男に聞いてみるがよかろう
+		PRINTW 　彼の者は妾以上に俗世の噂をよく知っておる
+		PRINTL 「しかし謎の組織、仮面党か…面白い話を聞いた
+		PRINTW 　これは新しい噂のネタとして、心得ておかねばならぬな」
+	;罪ルート(コンサートクリア前)
+	ELSEIF RANGE(LOCAL:6, 4, 5)
+		IF STRFLAG_NUM_EV("ヴィジュアル系番長の噂", , , , [[イベント:噂]]) == 2
+			PRINTL 「ガスチェンバーのボーカルの栄吉は、元は番長だったとか…
+			PRINTL 　とはいえ、今時の学生事情には妾も疎いゆえ、よくわからぬが
+			PRINTW 　番長というものは硬派で、デビューなどするものではないと思うのじゃがな」
+		ELSE
+			PRINTL 「ＭＵＳＥＳの３人は普通の高校生らしいな
+			PRINTL 　それがこうも騒がれているとなると……どうも……
+			PRINTW 　妾もせめておん……ゴホッゴホッ、いやなんでもない。気にするな」
+		ENDIF
+	;罪ルート(空の博物館クリア前)
+	ELSEIF RANGE(LOCAL:6, 6, 7)
+		PRINTL 「そなたに、ちと聞きたい事があるのじゃが…
+		PRINTW 　どこかに良い占い師はおらぬか？」
+		PRINTL 「あ…いや、妾も占い師には違いないのだが…
+		PRINTL 　その…あの…い、いや、何でもない。ちょっとした気の迷いじゃ。
+		PRINTW 　忘れてくれ。ハァ…」
+	;罪ルート(ラストバタリオン登場後)
+	ELSEIF RANGE(LOCAL:6, 9, 10)
+		PRINTL 「外はすごい喧騒じゃな……
+		PRINTW 　いまは奴らもここには踏み込んできたりはせぬが……」
+		PRINTW 「ハァ、ほんと私はどうしたらいいんだろう…」
+		PRINTL 「……いや、すまぬ。ここは妾が訪れた人の相談にのるべき場所
+		PRINTW 　妾がそなたに質問するにわけにはいかぬな。ハァ…」
+	;罰ルート
+	ELSEIF RANGE(LOCAL:7, 2, 4)
+		PRINTL 「ハァ……すまぬ。つい溜息がだな
+		PRINTL 　それというのも、最近全然占いがあたらなくて
+		PRINTW 　これじゃ閑古鳥も寄り付かないというわけじゃ…ハァ…」
+	;条件該当なし用
+	ELSE
+		PRINTL 「ぶつぶつ…適当に言ってるだけなのに…ぶつぶつ…どうして当たっちゃうのかしら…ぶつぶつ
+		PRINTW 　やっぱり自分の未来を占うなんて…ぶつぶつ…」
+		PRINTL 「は！？　す、済まぬ。ちょっとしたひとり言じゃ
+		PRINTL 　も、もしかして聞いてた？
+		PRINTW 　そ、その、た、他言は無用じゃぞっ」
+	ENDIF
+ELSE
+	PRINTL 珠閒溜ジプシー:
+	PRINTL 「己の未来知りたくば、再び訪れるがよい
+	PRINTW 　全ての答えは、この水晶とタロットが導き出してくれる」
+	RETURN -1
+ENDIF
+GOTO START

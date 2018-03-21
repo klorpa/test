@@ -1,0 +1,133 @@
+;Ｖ感覚の可否
+@ISABLUP4
+;恋慕、親愛、淫乱、娼婦はMAXLV10
+IF ABL:4 >= 10
+	RETURN 0
+ELSEIF ABL:4 >= 5 && !陥落(TARGET) && TARGET != MASTER
+	RETURN 0
+ENDIF
+
+CALL DECIDE_ABLUP4
+
+IF Z == 0
+	RETURN 0
+ELSE
+	RETURN 1
+ENDIF
+
+;ＶSensitivity
+@ABLUP4
+$ABLUP_LOOP
+
+DRAWLINE
+;恋慕、親愛、淫乱、娼婦はMAXLV10
+IF ABL:4 >= 10
+	PRINTW The abiltiy has been MAXed already.
+	RETURN 0
+ELSEIF ABL:4 >= 5 && !陥落(TARGET) && TARGET != MASTER
+	PRINTW The abiltiy has been MAXed already.
+	RETURN 0
+ENDIF
+
+CALL DECIDE_ABLUP4
+
+PRINT [0] - 
+PRINTS PALAMNAME_E(1)
+PRINT  Orbs×
+PRINTV A
+PRINT ....
+IF I == 0
+	PRINT ＯＫ
+ELSE
+	SIF I & 1
+		PRINT Not Enough Orbs 
+	SIF I & 2
+		PRINT Not Enough EXP 
+ENDIF
+PRINTL 
+
+IF Z == 0
+	WAIT
+	RETURN
+ENDIF
+
+PRINTLC [100] - Quit
+PRINTFORMLC   %" " * 42%
+PRINTLC [200] - Auto-Upgrade ability
+
+
+INPUT
+IF (RESULT < 0 || RESULT > 0) && RESULT != 100 && RESULT != 200
+	RESTART
+ELSEIF I != 0 && RESULT == 0
+	PRINTL Conditions are not met
+	RETURN 0
+ELSEIF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 200
+	CALL AUTOMAX, 4
+	RETURN 0
+ENDIF
+
+ABL:4 += 1
+
+IF RESULT == 0
+	JUEL:1 -= A
+ENDIF
+
+PRINTS ABLNAME_E(4)
+PRINT  ability level became 
+PRINTV ABL:4
+PRINTW .
+GOTO ABLUP_LOOP
+
+;Ｖ感覚LvUPの判定
+@DECIDE_ABLUP4
+;条件別にＯＫかダメかを記録する
+I = 0
+;能力アップ可能なら1にする
+Z = 0
+
+IF ABL:4 == 0
+	A = 1
+ELSEIF ABL:4 == 1
+	A = 20
+ELSEIF ABL:4 == 2
+	A = 400
+ELSEIF ABL:4 == 3
+	A = 5000
+ELSEIF ABL:4 == 4
+	A = 15000
+ELSEIF ABL:4 == 5
+	A = 30000
+ELSEIF ABL:4 == 6
+	A = 40000
+ELSEIF ABL:4 == 7
+	A = 50000
+ELSEIF ABL:4 == 8
+	A = 60000
+ELSEIF ABL:4 == 9
+	A = 70000
+ENDIF
+
+;淫乱
+SIF TALENT:4
+	TIMES A , 0.80
+;娼婦
+SIF TALENT:7
+	TIMES A , 0.50
+
+;0になった場合は1にする
+SIF A == 0
+	A = 1
+
+;快Ｖの珠で上げる
+SIF JUEL:1 < A
+	I |= 1
+
+IF I == 0
+	Z = 1
+ENDIF
+
+RETURN 1
+

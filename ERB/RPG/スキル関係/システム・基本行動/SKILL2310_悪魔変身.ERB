@@ -1,0 +1,153 @@
+;ＣＨＡＮＧＥ
+;システム用スキルです
+
+;スキル名
+@SKILL_NAME_2310,ARG
+IF ARG == -1 || CFLAG:ARG:悪魔変身
+	RESULTS = Transform Revert
+ELSE
+	RESULTS = Devil Transform
+ENDIF
+
+;　命中
+@SKILL_HITRATE_2310, ARG
+RETURN 0
+
+;　威力
+@SKILL_POWER_2310, ARG
+RETURN 0
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2310,ARG
+RETURN 0
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2310,ARG
+RETURN 0
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2310, ARG
+RETURN 1
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2310,ARG
+RETURN 0
+
+;　相性
+@SKILL_TYPE_2310,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2310
+RETURN 0
+;どちらでもない
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2310
+RETURN 1
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2310
+RETURN 4
+
+;　射程
+@SKILL_RANGE_2310,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2310,ARG
+RETURN 1
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2310
+RETURN 4
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2310
+RETURN 0
+;継承不可
+
+;速度補正
+@SKILL_SPEED_2310, ARG = -1
+RETURN 10
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2310,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2310
+RETURN 1
+
+;スキル変化？用ランク
+@SKILL_RANK_2310
+RETURN 0
+;変化不可
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_2310,ARG,ARG:1 = 0
+#DIM 仲魔
+#DIM 変身前ＨＰ
+#DIM 変身前ＭＰ
+仲魔 = FINDCHARA_ID(CFLAG:ARG:リンク悪魔)
+
+SIF ARG:1 == 1
+	PRINTFORMW %AUTO_SPLIT("悪魔へと姿を変えた！_人間の姿へと戻った！","_",CFLAG:ARG:悪魔変身)%
+
+CFLAG:ARG:悪魔変身 = !CFLAG:ARG:悪魔変身
+SIF 仲魔 > 0 && TALENT:ARG:デビルシフター
+	CFLAG:仲魔:被変身フラグ = CFLAG:ARG:悪魔変身
+
+;変身先悪魔がパーティに居るなら外す
+SIF CFLAG:ARG:悪魔変身 && CFLAG:ARG:リンク悪魔 > 0 && 仲魔 > 0 && CPOS(仲魔) > 0
+	CALL REMOVE_POSITION, CPOS(仲魔)
+
+FOR LOCAL,1,FLAG:異能者スキル数 + 1
+	SELECTCASE 1
+		;変身解除
+		CASE CFLAG:ARG:悪魔変身 == 0
+			ABL:ARG:@"スキル{LOCAL}" = ABL:ARG:@"人間時スキル{LOCAL}"
+		;仲魔に変身
+		CASE MIN(CFLAG:ARG:リンク悪魔,仲魔) > 0
+			ABL:ARG:@"人間時スキル{LOCAL}" = ABL:ARG:@"スキル{LOCAL}"
+			ABL:ARG:@"スキル{LOCAL}"       = ABL:仲魔:@"スキル{LOCAL}"
+		;初期変身悪魔に変身
+		CASEELSE
+			ABL:ARG:@"人間時スキル{LOCAL}" = ABL:ARG:@"スキル{LOCAL}"
+			ABL:ARG:@"スキル{LOCAL}"       = ABL:ARG:@"初期変身悪魔スキル{LOCAL}"
+	ENDSELECT
+NEXT
+
+変身前ＨＰ = MAXBASE:ARG:ＨＰ
+変身前ＭＰ = MAXBASE:ARG:ＭＰ
+CALL SYNC_STATUS,ARG
+BASE:ARG:ＨＰ = MAX(1 , BASE:ARG:ＨＰ * MAXBASE:ARG:ＨＰ / 変身前ＨＰ)
+BASE:ARG:ＭＰ = MAX(0 , BASE:ARG:ＭＰ * MAXBASE:ARG:ＭＰ / 変身前ＭＰ)
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2310
+;SIF TALENT:ARG:デビルシフター
+;	PRINT リンクしている
+	PRINTL Transform into a demon.
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2310,ARG
+IF FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+	ARG:1 = FINDCHARA_ID(CFLAG:ARG:リンク悪魔)
+	;召喚予定のキャラは無理
+	SIF CFLAG:(ARG:1):被召喚フラグ
+		RETURN 0
+	SIF CFLAG:(ARG:1):この場に居ないフラグ
+		RETURN 0
+ENDIF
+RETURN 1
+;とくにない
+

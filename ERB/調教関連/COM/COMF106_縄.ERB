@@ -1,0 +1,192 @@
+;-------------------------------------------------
+;縄
+;SM系コマンド、レベル3
+;-------------------------------------------------
+@COMNAME106
+RESULTS = Rope
+SIF TEQUIP:19
+	RESULTS = Untie
+@ACT_COM106
+IF TEQUIP:25
+	PRINTL Tentacle bondage
+	;触手緊縛
+	TSTR:0 = 触手緊縛
+	SELECTCOM = 166
+ELSE
+	PRINTL Rope
+	TSTR:0 = 縄
+ENDIF
+
+;縄で縛る
+IF TEQUIP:19 == 0 && TEQUIP:25 == 0
+	IF FLAG:44 & 1
+		PRINTL 縛り方を決めてください
+		DRAWLINE
+		PRINTL [0]-普通に縛る
+		PRINTL [1]-四肢緊縛
+		;調教者の技巧Lv3以上
+		SIF ABL:PLAYER:2 >= 3
+			PRINTL [2]-亀甲縛り
+		;調教者の技巧Lv4以上&& (調教者がサド || (助手がいる && (助手が崩壊 || 助手が盲信 || 助手が狂気)))
+		SIF ABL:PLAYER:2 >= 4 && (TALENT:PLAYER:83 ||( ASSI > 0 && (TALENT:ASSI:9 || TALENT:ASSI:86 || TALENT:ASSI:141)))
+			PRINTL [3]-吊り下げ
+		$INPUT_LOOP
+		INPUT
+		IF RESULT == 0
+			PRINTL Rope
+			TSTR:0 = 縄
+			TEQUIP:37 |= 1
+		ELSEIF RESULT == 1
+			PRINTL 四肢緊縛
+			TSTR:0 = 四肢緊縛
+			TEQUIP:37 |= 2
+		ELSEIF RESULT == 2 && ABL:PLAYER:2 >= 3
+			PRINTL 亀甲縛り
+			TSTR:0 = 亀甲縛り
+			TEQUIP:37 |= 4
+		ELSEIF RESULT == 3 && ABL:PLAYER:2 >= 4 && (TALENT:PLAYER:83 ||( ASSI > 0 && (TALENT:ASSI:9 || TALENT:ASSI:86 || TALENT:ASSI:141)))
+			PRINTL 吊り下げ
+			TSTR:0 = 吊り下げ
+			TEQUIP:37 |= 8
+		ELSE
+			GOTO INPUT_LOOP
+		ENDIF
+	ENDIF
+;触手緊縛
+ELSEIF TEQUIP:19 == 0
+		CALL SET_STAIN("手", "粘液", TARGET)
+		CALL SET_STAIN("胸", "粘液", TARGET)
+;解除
+ELSE
+	TEQUIP:37 = 0
+ENDIF
+
+;CALL KOJO_MESSAGE_COM
+
+INVERTBIT TEQUIP:19 , 0
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 30
+DOWNBASE:TARGET:気力 += 120
+
+SOURCE:TARGET:痛み = 300
+SOURCE:TARGET:恐れ = 900
+SOURCE:TARGET:露出 = 200
+SOURCE:TARGET:屈従 = 250
+SOURCE:TARGET:逸脱 = 300
+SOURCE:TARGET:反感 = 700
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;BondageEXPが高いと消費減少
+IF EXP:51 < EXPLV:3
+	TIMES DOWNBASE:TARGET:体力 , 1.00
+	TIMES DOWNBASE:TARGET:気力 , 1.00
+ELSEIF EXP:51 < EXPLV:4
+	TIMES DOWNBASE:TARGET:体力 , 0.90
+	TIMES DOWNBASE:TARGET:気力 , 0.90
+ELSE
+	TIMES DOWNBASE:TARGET:体力 , 0.70
+	TIMES DOWNBASE:TARGET:気力 , 0.70
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+CALL ADDS_EXP("緊縛経験", 5, TARGET)
+;PRINTL BondageEXP＋５
+
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+ENDIF
+
+;触手召喚時、TentacleEXPのリセットをする
+;SIF TEQUIP:25 == 1
+;	T = 0
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM106
+IF TEQUIP:25
+	PRINTL ＜Bound by tentacles＞
+	;触手緊縛中
+ELSE
+	PRINTL ＜Bound with rope＞
+	;緊縛中
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 15
+
+SOURCE:TARGET:痛み += 150
+SOURCE:TARGET:恐れ += 450
+SOURCE:TARGET:露出 += 100
+SOURCE:TARGET:屈従 += 125
+SOURCE:TARGET:逸脱 += 150
+SOURCE:TARGET:反感 += 350
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;BondageEXPが高いと消費減少
+A = 60
+IF EXP:51 < EXPLV:3
+	TIMES A , 1.00
+ELSEIF EXP:51 < EXPLV:4
+	TIMES A , 0.90
+ELSE
+	TIMES A , 0.70
+ENDIF
+DOWNBASE:TARGET:気力 += A
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+CALL ADDS_EXP("緊縛経験", 1, TARGET)
+;PRINTL BondageEXP＋１
+
+;TentacleEXP加算
+SIF TEQUIP:25 == 1
+	CALL ADDS_EXP("触手経験", 1, TARGET)
+;	T += 1
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_106
+RETURN COMTYPE("ＳＭ系")
+
+

@@ -1,0 +1,257 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/02/16		Ｎ鳥					悪魔ストレージ機能追加
+;	003		2011/03/23		UNP						セットアップ画面での誤爆クリックを予防
+;	004		2011/03/23		Ｐ						プラグインソフトの装着処理呼び出しを追加
+;	005		2013/02/25		GunＰ					悪魔ストレージに陥落素質表示とポジション表示を追加
+;	006		2013/03/05		GunＰ					悪魔ストレージのリストで最初のページと最後のページを行き来できるように加筆
+;	007		2013/11/24		ひみつ					リスト表示数設定
+;	008		2013/12/02		ひみつ					リスト表示数設定。装備変更画面のチラつき抑止
+;	009		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;戦闘や探索の準備を行う画面
+
+
+@SHOPCOMABLE_106
+#LOCALSIZE 2
+RESULTS = Party Setup
+IF CHARANUM > 0
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+
+
+@SHOP_COM_106
+#DIM LREDRAW
+;メインメニュー表示
+PRINTL
+DRAWLINE
+DRAWLINE
+CALL SHOW_NOW_FORMATION_P,0,2, 3, 1
+PRINTL
+DRAWLINE
+IF FLAG:カスタムゲーム画面
+	PRINTL 　　　　　　　　　　　　　　[1] - Add to party		[2] - Change Position		[3] - Remove from party
+	PRINTL 　　　　　　　　　　　　　　[4] - Change equip		[5] - Install Software		[6] - Remove demon
+	;---- EDIT 004 MOD START -------------------------
+	PRINTL 　　　　　　　　　　　　　　[7] - Store demon		[8] - Plug-in software
+	;---- EDIT 004 MOD END   -------------------------
+ELSE
+	PRINTL 　　　　　　　　　　[1] - Add to party	[2] - Change position	[3] - Remove from party
+	PRINTL 　　　　　　　　　　[4] - Change equip	[5] - Install Software	[6] - Remove demon
+	;---- EDIT 004 MOD START -------------------------
+	PRINTL 　　　　　　　　　　[7] - Store demon	[8] - Plug-in software
+	;---- EDIT 004 MOD END   -------------------------
+ENDIF
+PRINTL
+DRAWLINE
+PRINTC [110] - Check Stats
+
+PRINTC [100] - Return
+PRINTC  
+PRINTFORMC [120] - Display weaknesses[\@ FLAG:相性等表示ON == 0 ? OFF # ON \@]
+
+$INPUT_LOOP
+INPUT
+IF RESULT ==1
+	CALL SETUP_SUMON
+ELSEIF RESULT == 2
+	CALL SETUP_FORMATION
+ELSEIF RESULT == 4
+	LREDRAW = CURRENTREDRAW()
+	SIF LREDRAW != 2
+		REDRAW 2
+	CALL EQUIPMENT
+	SIF LREDRAW != 2
+		REDRAW LREDRAW
+ELSEIF RESULT == 3
+	CALL SETUP_REMOVE
+ELSEIF RESULT == 5
+	CALL SETUP_SOFT
+;ELSEIF RESULT == 6 && NUM_NAKAMA() > 0
+ELSEIF RESULT == 6
+	CALL SETUP_PARTING
+ELSEIF RESULT == 7
+	CALL DEVIL_STORAGE
+;---- EDIT 004 ADD START -------------------------
+ELSEIF RESULT == 8
+	CALL EQUIP_PLUGIN_SOFT
+ELSEIF RANGE(RESULT, 21, 26)
+	RESULT = POS(RESULT - 20)
+	IF RESULT >= 0
+		LOCAL:1 = 0
+		FOR LOCAL, 1, 7
+			SIF POS(LOCAL) < 0
+				CONTINUE
+			Q:(LOCAL:1) = POS(LOCAL)
+			LOCAL:1++
+		NEXT
+		CALL SHOW_CHARADATA_PAGE, 2, LOCAL:1
+	ENDIF
+;---- EDIT 004 ADD END   -------------------------
+ELSEIF RESULT == 110
+	CALL SHOP_COM_110
+ELSEIF RESULT == 120
+	FLAG:相性等表示ON += 1
+	SIF FLAG:相性等表示ON > 1
+		FLAG:相性等表示ON = 0
+ELSEIF RESULT == 100
+	RETURN 0
+ENDIF
+RESTART
+
+
+
+;=================================================================
+;仲魔と別れる
+;=================================================================
+@SETUP_PARTING
+CALL INPUT_CHARA_LIST("Which demon do you want to remove?", "CASTING_SETUP_PARTING")
+DRAWLINE
+IF RESULT == 1000
+	RETURN 0
+ELSE
+	SIF CFLAG:RESULT:12 > 0
+		RESTART
+	LOCAL:20 = RESULT
+	IF ABL:(LOCAL:20):種族 != 0
+		;PRINTFORML %NAME:(LOCAL:20)%のデータをＣＯＭＰから削除しますか？
+		PRINTFORML %NAME:(LOCAL:20)%'s data in the ＣＯＭＰ will be deleted. Continue?
+	ELSE
+		PRINTFORML %NAME:(LOCAL:20)% will be released. Continue?
+	ENDIF
+	
+	CALL INPUT_YN,"Yes","No",2
+
+	SELECTCASE RESULT
+		CASE 0
+			;死んでるか石化してる仲魔だったら主人属性値ダウン
+			IF CFLAG:(LOCAL:20):ステート == GET_STATE_NUM("DYING") || CFLAG:(LOCAL:20):ステート == GET_STATE_NUM("STONE")
+				CALL INCREASE_LD,-5
+			ENDIF
+			CALL キャラ削除, LOCAL:20
+		CASE 1
+			RESTART
+	ENDSELECT
+
+	;フォーメーション再読み込み
+	CALL REFRESH_POS
+
+ENDIF
+
+@CASTING_SETUP_PARTING
+SIF COUNT == MASTER
+	RETURN 0
+SIF (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 44) && NO:COUNT != 3501 && NO:COUNT != 3502
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF CFLAG:COUNT:所属ＣＯＭＰ == -1 && FLAG:ショップコマンド ==[[ショップ:探索]]
+	RETURN 0
+RETURN 1
+
+
+;=================================================================
+;悪魔ストレージ
+;=================================================================
+@DEVIL_STORAGE
+
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	SIF COUNT == MASTER
+		CONTINUE
+	SIF (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 45)
+		CONTINUE
+	IF TALENT:COUNT:人修羅
+		CFLAG:COUNT:所属ＣＯＭＰ = -1
+		CONTINUE
+	ENDIF
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+	SIF CFLAG:COUNT:容量未使用
+		CONTINUE
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:2 = A
+
+DRAWLINE
+
+$PRINT_LIST
+PRINTFORML Please select a demon to switch between the ＣＯＭＰ and the home server　＜page.{P + 1}＞　ＣＯＭＰ：{NUM_NAKAMA()+ソフト容量()}/{FLAG:ＣＯＭＰ容量}
+DRAWLINE
+FOR LOCAL, P * リスト表示数() , MIN(P * リスト表示数() + リスト表示数(), LOCAL:2)
+	CALL ARRANGE_CHARALIST, Q:LOCAL
+	CALL ARRANGE_CHARALIFE, Q:LOCAL
+;---- EDIT 005 MOD START -------------------------
+	PRINTFORM 　
+	CALL ARRANGE_FALLTALENT, Q:LOCAL
+	PRINTFORM %AUTO_SPLIT(" 　　, ?　, ?　, ?　, 　?, 　?, 　?",",",CFLAG:(Q:LOCAL):ポジション)%
+;---- EDIT 005 MOD END   -------------------------
+	PRINTFORML [\@ CFLAG:(Q:LOCAL):所属ＣＯＭＰ == -1 ? Home server # ＣＯＭＰ \@]
+	
+NEXT
+;---- EDIT 006 MOD START -------------------------
+DRAWLINE
+PRINTFORMLC \@ A > 16 ?[1007]Previous page# [----] \@
+PRINTLC [1000]Return
+PRINTFORMLC \@ A > 16 ?[1009]Next page# [----] \@
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1007
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSEIF P == 0
+		P =(LOCAL:2-1) / 16 
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	IF P == (LOCAL:2-1) / 16
+		P = 0
+		GOTO PRINT_LIST
+	ELSEIF P < (LOCAL:2-1) / 16
+		P += 1
+		GOTO PRINT_LIST
+	ENDIF
+;---- EDIT 006 MOD END   -------------------------
+ELSEIF RESULT < 1 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+	GOTO INPUT_LOOP_1
+ELSE
+	IF CFLAG:RESULT:所属ＣＯＭＰ == -1
+		LOCAL = RESULT
+		IF FLAG:ＣＯＭＰ容量 <= NUM_NAKAMA() + ソフト容量()
+			PRINTW ＣＯＭＰ-Capacity exhausted.
+			CLEARLINE 2
+			GOTO INPUT_LOOP_1
+		ENDIF
+		IF NO:LOCAL != 3501 && NO:LOCAL != 3502 && NO:LOCAL != 4402
+			FOR LOCAL:1,0,CHARANUM
+				IF 契約(LOCAL:1) == 0 && NO:(LOCAL:1) == NO:LOCAL && 契約(LOCAL) == 0 && CFLAG:(LOCAL:1):所属ＣＯＭＰ != -1
+					PRINTW A demon of this kind is already stored in the ＣＯＭＰ.
+					CLEARLINE 2
+					GOTO INPUT_LOOP_1
+				ENDIF
+			NEXT
+		ENDIF
+		CFLAG:RESULT:所属ＣＯＭＰ = 0
+	ELSE
+		CFLAG:RESULT:所属ＣＯＭＰ = -1
+	ENDIF
+	GOTO PRINT_LIST
+ENDIF

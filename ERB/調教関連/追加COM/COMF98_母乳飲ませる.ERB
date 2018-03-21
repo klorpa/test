@@ -1,0 +1,173 @@
+
+@CHECK_COM_ABLE98
+
+;母乳飲ませる
+;母乳体質じゃなきゃダメ
+SIF TALENT:PLAYER:149 == 0
+	RETURN 0
+;元の母乳飲みにならって一応陥落した相手限定。別にそうする必要はないかもしれない
+SIF TALENT:3 == 0 && TALENT:4 == 0 && TALENT:5 == 0 && TALENT:6 == 0 && TALENT:7 == 0 && TALENT:8 == 0
+	RETURN 0
+
+;男の場合は、上半身上着か全身上着をつけているとダメ
+SIF (TEQUIP:PLAYER:5 || TEQUIP:PLAYER:6) && IS_MALE(PLAYER)
+	RETURN 0
+
+SIF !USE_MOUTH(TARGET)
+	RETURN 0
+
+SIF !USE_NIPLE(PLAYER)
+	RETURN 0
+
+
+;縄使用中は不可
+SIF TEQUIP:19
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+RETURN 1
+
+
+@ACT_COM98
+;母乳飲ませる
+
+
+PRINTL Give Milk
+TSTR:0 = 母乳飲ませる
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 25
+DOWNBASE:TARGET:気力 += 90
+
+SOURCE:TARGET:情愛 = 500
+SOURCE:TARGET:達成 = 500
+SOURCE:TARGET:恭順 = 1000
+SOURCE:TARGET:屈従 = 900
+SOURCE:TARGET:逸脱 = 50
+SOURCE:TARGET:反感 = 50
+
+;調教対象の技巧が高ければ調教者に快Ｂ
+SIF ABL:技巧 >= 3
+SOURCE:PLAYER:3 = 150
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷の口⇔調教者のＢの汚れが移動
+CALL MOVE_STAIN("口", TARGET, "胸", PLAYER)
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 3
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+	CALL ADDS_EXP("愛情経験", 1, TARGET)
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+CALL ADDS_EXP("奉仕快楽経験", 1, PLAYER)
+
+;依存度ベクトル
+TFLAG:33 = 4
+
+;依存度補正値(主人かつ恋慕で1、親愛で2）
+IF TALENT:3 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ELSEIF TALENT:6 && ASSIPLAY == 0
+	TFLAG:30 += 4
+ENDIF
+
+RETURN 1
+
+
+@MESSAGE_COM98
+IF TEQUIP:主導権
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%の
+	IF TEQUIP:PLAYER:服 > 0
+			CALL CLOTHES_NAME,1,PLAYER
+			PRINT の開いた胸元からこぼれた、
+		ELSEIF TEQUIP:PLAYER:全身服 > 0
+			CALL CLOTHES_NAME,3,PLAYER
+			PRINT の開いた胸元からこぼれた、
+			ELSEIF TEQUIP:PLAYER:上着 > 0
+				CALL CLOTHES_NAME,10,PLAYER
+				PRINT の開いた胸元からこぼれた、
+			ENDIF
+		;小柄体型＋貧乳、絶壁
+		IF (TALENT:PLAYER:100 && TALENT:PLAYER:109) || TALENT:PLAYER:110
+			PRINT 僅かに膨らみが感じられる程度の
+		;貧乳
+		ELSEIF TALENT:PLAYER:109
+			PRINT 小振りの
+		;巨乳
+		ELSEIF TALENT:PLAYER:111
+			PRINT 手から溢れそうなほどの
+		;爆乳
+		ELSEIF TALENT:PLAYER:112
+			PRINT 手に余るほど大きな
+		ENDIF
+		;恋慕か親愛で助手調教系ではない
+		IF (TALENT:3 || TALENT:6) && ASSIPLAY == 0
+			PRINTW 胸の先端を吸い上げ、味わうように母乳を飲んでいる…
+		ELSE
+			PRINTW 胸の先端を吸いあげ母乳を飲んだ……
+		ENDIF
+;それ以外
+ELSE
+		PRINTFORM %CALLNAME:PLAYER%は
+		IF TEQUIP:PLAYER:服 > 0
+			CALL CLOTHES_NAME,1,PLAYER
+			PRINT の開いた胸元からこぼれた、
+		ELSEIF TEQUIP:PLAYER:全身服 > 0
+			CALL CLOTHES_NAME,3,PLAYER
+			PRINT の開いた胸元からこぼれた、
+			ELSEIF TEQUIP:PLAYER:上着 > 0
+				CALL CLOTHES_NAME,10,PLAYER
+				PRINT の開いた胸元からこぼれた、
+			ENDIF
+		;小柄体型＋貧乳、絶壁
+		IF (TALENT:PLAYER:100 && TALENT:PLAYER:109) || TALENT:PLAYER:110
+			PRINT 僅かに膨らみが感じられる程度の
+		;貧乳
+		ELSEIF TALENT:PLAYER:109
+			PRINT 小振りの
+		;巨乳
+		ELSEIF TALENT:PLAYER:111
+			PRINT 手から溢れそうなほどの
+		;爆乳
+		ELSEIF TALENT:PLAYER:112
+			PRINT 手に余るほど大きな
+		ENDIF
+		PRINTFORMW 胸の先端を%CALLNAME:TARGET%に差し出し、母乳を飲ませた……
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_98
+RETURN COMTYPE("調教者奉仕系")
+
+

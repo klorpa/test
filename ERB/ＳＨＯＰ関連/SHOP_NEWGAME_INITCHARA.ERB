@@ -1,0 +1,1477 @@
+;=================================================================
+;指定キャラのステータスを主に引き継ぎ用に初期化する
+;;引き継いだキャラのレベルを人間なら5、悪魔なら1にして能力をＣＳＶから読み込んでからレベルに合わせて増減、習得スキルをＣＳＶから再読み込み。引継ぎフラグに応じて素質や能力変更
+;ARG:0 キャラの登録番号
+;RESULT 真:成功 偽:失敗
+;=================================================================
+@SHOP_NEWGAME_INITCHARA, ARG
+	LOCAL = ARG
+
+	;チェフェイ転生処理
+	SIF NO:LOCAL >= 3701 && NO:LOCAL <= 3707
+		CALL TYEFEI_TENSEI,ARG,810
+
+	IF ABL:LOCAL:種族 == 0
+		BASE:LOCAL:LV = 5
+	ELSE
+		BASE:LOCAL:LV = 1
+	ENDIF
+
+	;元が非戦闘員またはランダムキャラ(No.4901～4920)ならベースステータスを保管
+	IF CSVTALENT(NO:LOCAL,230,0) == 1 || (4900 < NO:LOCAL  && 4921 > NO:LOCAL)
+		FOR LOCAL:1,1,7
+			BASE:LOCAL:GET_BASESTATUS(LOCAL:1) = 3
+			CFLAG:LOCAL:(GET_BASESTATUS(LOCAL:1) + "強化回数") = 0
+		NEXT
+	;元が非戦闘員またはランダムキャラ以外ならベースステータスをCSVから読み込み
+	ELSE
+		FOR LOCAL:1,1,7
+			BASE:LOCAL:GET_BASESTATUS(LOCAL:1) = CSVBASE(NO:LOCAL,GETNUM(BASE,GET_BASESTATUS(LOCAL:1)),0)
+			CFLAG:LOCAL:(GET_BASESTATUS(LOCAL:1) + "強化回数") = 0
+		NEXT
+	ENDIF
+
+
+
+	;能力値の合計を計算
+	LOCAL:2 = (18 + BASE:LOCAL:LV * 3 / 2)
+
+	FOR LOCAL:1,1,7
+		;レベルに応じて能力値増減
+		BASE:LOCAL:(GET_BASESTATUS(LOCAL:1)) *= LOCAL:2
+		BASE:LOCAL:(GET_BASESTATUS(LOCAL:1)) /= (18 + CSVBASE(NO:LOCAL,GETNUM(BASE,"LV"),0) * 3 / 2)
+	NEXT
+
+	;基本能力値合計がレベル分より低い場合差分を補填
+	;IF BASE:LOCAL:力 + BASE:LOCAL:知恵 + BASE:LOCAL:魔力 + BASE:LOCAL:耐力 + BASE:LOCAL:速さ + BASE:LOCAL:運 < 18 + BASE:LOCAL:LV * 3 / 2
+	;	LOCAL:1 = 18 + BASE:LOCAL:LV * 3 / 2 - (BASE:LOCAL:力 + BASE:LOCAL:知恵 + BASE:LOCAL:魔力 + BASE:LOCAL:耐力 + BASE:LOCAL:速さ + BASE:LOCAL:運)
+	;	FOR LOCAL:2, 1, LOCAL:1 + 1
+	;		BASE:LOCAL:(GET_BASESTATUS(LOCAL:2 % 6 + 1)) += 1
+	;	NEXT
+	;ENDIF
+	;↑元々基本能力値合計がレベル分より低い（人修羅等）のも個性だと思うしそれを反映させたいので没
+
+	;基本能力値合計がレベル分より低い場合2PTまで補填（計算が端数切捨てで低くなりがちなので
+	IF BASE:LOCAL:力 + BASE:LOCAL:知恵 + BASE:LOCAL:魔力 + BASE:LOCAL:耐力 + BASE:LOCAL:速さ + BASE:LOCAL:運 < 18 + BASE:LOCAL:LV * 3 / 2
+		BASE:LOCAL:運 += 1
+		SIF (18 + BASE:LOCAL:LV * 3 / 2) - (BASE:LOCAL:力 + BASE:LOCAL:知恵 + BASE:LOCAL:魔力 + BASE:LOCAL:耐力 + BASE:LOCAL:速さ + BASE:LOCAL:運) > 1
+			BASE:LOCAL:速さ += 1
+	ENDIF
+
+	;現状人間と半魔は悪魔に比べて弱いのでちょっぴり優遇←シフターとかは端数切捨てで基本能力値振りなおしで若干弱くなるし良しとする
+	SIF ABL:LOCAL:種族 == 0 || ABL:LOCAL:種族 == 36
+		BASE:LOCAL:耐力 += 1
+
+	BASE:LOCAL:ＥＸＰ = 5*(BASE:LOCAL:LV-1)*(BASE:LOCAL:LV+1)*(BASE:LOCAL:LV)/3
+	BASE:LOCAL:ＭＡＧ = 0
+	CFLAG:LOCAL:初期LV = 1
+
+	;敵専用スキルを削除
+	FOR LOCAL:3,1,FLAG:異能者スキル数+1
+		LOCALS = スキル{LOCAL:3}
+		TRYCCALLFORM 敵専用_{ABL:LOCAL:LOCALS}
+		SIF RESULT == 1
+				ABL:LOCAL:LOCALS = 0
+		CATCH
+		ENDCATCH
+	NEXT
+
+	CFLAG:LOCAL:能力強化回数 = 0
+	CFLAG:LOCAL:強化使用ＭＡＧ = 0
+	
+	;装備初期化
+	;初期装備が強力な場合があるので、主人の初期装備と同等の物を与える
+	;PRINTFORMW %NAME:LOCAL%,{LOCAL}
+	CALL 全装備解除 , LOCAL
+	IF ABL:LOCAL:種族 == 0 || ABL:LOCAL:種族 == 36
+		FOR LOCAL:1,0,VARSIZE("EQUIP")
+			EQUIP:LOCAL:(LOCAL:1) = CSVEQUIP(NO:MASTER,LOCAL:1,0)
+		NEXT
+	ENDIF
+	;引継ぎ回数*2だけ、ランダムに能力値増加
+	;FOR LOCAL:1,0,CFLAG:LOCAL:引継ぎ回数*2 + CFLAG:LOCAL:妊娠回数
+	;CFLAG:LOCAL:妊娠回数 = (CFLAG:LOCAL:妊娠回数 + 1 ) / 2
+	;FOR LOCAL:1,0,CFLAG:LOCAL:妊娠回数
+	;	LOCAL:2 = RAND:6
+		;PRINTFORMW {LOCAL:1}:%GET_BASESTATUS_E(LOCAL:2+1)%
+	;	CFLAG:LOCAL:(GET_BASESTATUS(LOCAL:2 + 1) + "強化回数") += 1
+	;NEXT
+	
+	;スキル関連
+	;旧あなたの場合
+	IF NO:LOCAL == 4998
+		;サマナーあなたの場合
+		IF CFLAG:LOCAL:73  == 1
+			FOR LOCAL:1, 0, 64
+				SIF GETBIT(FLAG:主人獲得スキル, (LOCAL:1)) && MASTER_SKILL(LOCAL:1) >= 0
+					CALL LEARN_SKILL, LOCAL, MASTER_SKILL(LOCAL:1)
+			NEXT
+		;ペルソナ使いあなたの場合
+		ELSEIF CFLAG:LOCAL:73  == 2
+			LOCAL:2 = CFLAG:LOCAL:初期ペルソナナンバー
+			CFLAG:LOCAL:初期ペルソナナンバー = 0
+			CALL SYNC_STATUS, LOCAL
+			LOCAL:1 = CFLAG:LOCAL:初期ペルソナナンバー
+			;取得済みスキルコピー
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル1")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル2")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル3")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル4")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル5") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル5")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル6") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル6")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル7") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル7")
+			DITEMTYPE:(LOCAL:1):ペルソナ("スキル8") = DITEMTYPE:(LOCAL:2):ペルソナ("スキル8")
+
+			SELECTCASE ABL:LOCAL:初期ペルソナ
+				CASE [[キャラ:サラスヴァティ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 1
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 12
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 11
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 4
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 7
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 5
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ディア]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:夢見針]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:マカ・カジャ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:慈愛の祈り]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:トラエスト]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 18
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 19
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:リカーム]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 22
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:重力の壁]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:メ・ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 26
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:デ・カジャ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 32
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:ディアラハン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 38
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:メ・ディアラハン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 42
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:サマリカーム]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:スカアハ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 12
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 4
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 10
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 3
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ラク・ンダ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:ザン]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:クロズディ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:一分の活泉]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 7
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:ザンマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:コーチング]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 18
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:アドバイス]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:マハ・ザンマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 30
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:煌天の会心]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 36
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:メ・ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 38
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:雄叫び]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 44
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:コンセントレイト]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 47
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:刹那五月雨撃]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:キクリヒメ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 4
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 9
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 9
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 7
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ムド]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:ディア]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:リカーム]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:ポズムディ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:ブフ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 18
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:マハムド]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:マハ・ブフ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 22
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:セクシーダンス]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:メ・ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 30
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:ムドオン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 34
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:ディアラハン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 36
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:闇の審判]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 40
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:サマリカーム]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:エンジェル]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 8
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 8
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 7
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 7
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ディア]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:ハンマ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:ガル]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:メ・ディア]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:ガルーラ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 18
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:マハンマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:光の裁き]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 30
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:エンジェルアロー]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 17
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:メ・ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 35
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:ハマオン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 36
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:リカーム]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 40
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:穢れ無き威光]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:ジャックフロスト]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 8
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 8
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 9
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ディア]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:ブフ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:パトラ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:ブフーラ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:アイスブレス]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:ソニックパンチ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 22
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:高揚の歌]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:アトミック・ブフーラ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:スク・カジャ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 30
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:ブフダイン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 32
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:ディアラハン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 40
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:タル・カジャ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 48
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:マハ・ブフダイン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:モコイ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 8
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 7
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 6
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 7
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ジオ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:ポズムディ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:ショートジャブ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:デ・カジャ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:マリンカリン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 17
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:スク・カジャ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 18
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:ジオンガ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:ソニックパンチ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 22
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:淀んだ空気]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 28
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:スクカジャオート]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 34
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:モコイブーメラン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 38
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:マカ・カジャ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 42
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:トラフーリ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:モー・ショボー]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 7
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 14
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 4
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ディア]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:自爆]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:ザン]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:ひっかき]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:玉砕破]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 17
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:ディアラマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 18
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:羽ばたき]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:マハ・ザン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 21
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:マハ・ザンマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 26
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:ディアラハン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 34
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:ザンダイン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 38
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:衝撃の壁]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 46
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:マハ・ザンダイン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:ゾンビちゃん]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 2
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 2
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 2
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 4
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ひっかき]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:治癒促進(小)]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:食いしばり]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:毒ひっかき]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:一分の活泉]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:暴れまくり]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 21
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:セクシーダンス]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:治癒促進(中)]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 25
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:ブレインシェイク]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 28
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:三分の活泉]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 30
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:アクセルクロー]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 36
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:治癒促進(大)]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 40
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:不屈の闘志]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASE [[キャラ:リリム]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("LV")   = 15
+					DITEMTYPE:(LOCAL:1):ペルソナ("力")   = 3
+					DITEMTYPE:(LOCAL:1):ペルソナ("知恵") = 7
+					DITEMTYPE:(LOCAL:1):ペルソナ("魔力") = 9
+					DITEMTYPE:(LOCAL:1):ペルソナ("耐力") = 5
+					DITEMTYPE:(LOCAL:1):ペルソナ("速さ") = 8
+					DITEMTYPE:(LOCAL:1):ペルソナ("運")   = 8
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル1") = [[スキル:ラク・ンダ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル2") = [[スキル:マリンカリン]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル3") = [[スキル:ジオ]]
+				;	DITEMTYPE:(LOCAL:1):ペルソナ("スキル4") = [[スキル:サバトマ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル1")  = [[スキル:タル・ンダ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV1")      = 16
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル2")  = [[スキル:マハ・ジオ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV2")      = 17
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル3")  = [[スキル:スク・ンダ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV3")      = 20
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル4")  = [[スキル:ジオンガ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV4")      = 22
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル5")  = [[スキル:セクシーダンス]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV5")      = 24
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル6")  = [[スキル:マハ・ジオンガ]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV6")      = 28
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル7")  = [[スキル:テンタラフー]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV7")      = 30
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル8")  = [[スキル:マハムド]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV8")      = 36
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル9")  = [[スキル:ジオダイン]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV9")      = 40
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得スキル10") = [[スキル:ファイナルヌード]]
+					DITEMTYPE:(LOCAL:1):ペルソナ("習得LV10")     = 50
+				CASEELSE
+					;処理なし
+				ENDSELECT
+		;異能者あなたの場合
+		ELSEIF CFLAG:LOCAL:73  == 3
+			;取得スキル
+			FOR LOCAL:2,0,10
+				LOCALS   = 習得スキル{(LOCAL:2)*2+1}
+				LOCALS:1 = 習得スキル{(LOCAL:2)*2+2}
+				LOCALS:2 = 習得LV{(LOCAL:2)*2+1}
+				LOCALS:3 = 習得LV{(LOCAL:2)*2+2}
+				ABL:LOCAL:LOCALS     = CSVABL(CFLAG:LOCAL:3031,GETNUM(ABL,LOCALS),0)
+				ABL:LOCAL:(LOCALS:2) = CSVABL(CFLAG:LOCAL:3031,GETNUM(ABL,LOCALS:2),0)
+				ABL:LOCAL:(LOCALS:1) = CSVABL(CFLAG:LOCAL:3032,GETNUM(ABL,LOCALS),0)
+				ABL:LOCAL:(LOCALS:3) = CSVABL(CFLAG:LOCAL:3032,GETNUM(ABL,LOCALS:2),0)
+			NEXT
+		;観光客あなたの場合
+		ELSEIF CFLAG:LOCAL:73  == 4
+			;スキル取得なしのため処理なし
+		;喰奴あなたの場合
+		ELSEIF CFLAG:LOCAL:73  == 5
+			SELECTCASE CFLAG:LOCAL:初期リンク悪魔
+				CASE 3808
+					TALENT:LOCAL:電撃 = 1
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:テトラジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV1     = 14
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:バイコウハ]]
+					ABL:LOCAL:初期変身悪魔習得LV2     = 28
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:マハ・ジオダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV3     = 42
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:メギドラオン]]
+					ABL:LOCAL:初期変身悪魔習得LV4     = 56
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:天罰]]
+					ABL:LOCAL:初期変身悪魔習得LV5     = 70
+					CDFLAG:LOCAL:マントラ:1  = 10000
+					CDFLAG:LOCAL:マントラ:16 = 10000
+				CASE 3809
+					TALENT:LOCAL:支援 = 1
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:気功(小)]]
+					ABL:LOCAL:初期変身悪魔習得LV1     = 14
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:デ・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV2     = 28
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ディアラハン]]
+					ABL:LOCAL:初期変身悪魔習得LV3     = 42
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:パワーブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV4     = 56
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:アムリタ]]
+					ABL:LOCAL:初期変身悪魔習得LV5     = 70
+					CDFLAG:LOCAL:マントラ:1 = 10000
+					CDFLAG:LOCAL:マントラ:5 = 10000
+				CASE 3810
+					TALENT:LOCAL:打撃 = 1
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:一分の活泉]]
+					ABL:LOCAL:初期変身悪魔習得LV1     = 14
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:誘惑]]
+					ABL:LOCAL:初期変身悪魔習得LV2     = 28
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:刹那五月雨撃]]
+					ABL:LOCAL:初期変身悪魔習得LV3     = 42
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:絶妙打]]
+					ABL:LOCAL:初期変身悪魔習得LV4     = 56
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:冥界の門]]
+					ABL:LOCAL:初期変身悪魔習得LV5     = 70
+					CDFLAG:LOCAL:マントラ:1 = 10000
+					CDFLAG:LOCAL:マントラ:2 = 10000
+				CASE 3811
+					TALENT:LOCAL:精神 = 1
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:慈愛の祈り]]
+					ABL:LOCAL:初期変身悪魔習得LV1     = 14
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:デ・クンダ]]
+					ABL:LOCAL:初期変身悪魔習得LV2     = 28
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:サマリカーム]]
+					ABL:LOCAL:初期変身悪魔習得LV3     = 42
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:ファイナルヌード]]
+					ABL:LOCAL:初期変身悪魔習得LV4     = 56
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:アムリタ]]
+					ABL:LOCAL:初期変身悪魔習得LV5     = 70
+					CDFLAG:LOCAL:マントラ:1 = 10000
+					CDFLAG:LOCAL:マントラ:5 = 10000
+				CASE 3812
+					TALENT:LOCAL:剣撃 = 1
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:アドバイス]]
+					ABL:LOCAL:初期変身悪魔習得LV1     = 14
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:切り落とし]]
+					ABL:LOCAL:初期変身悪魔習得LV2     = 28
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:テトラカーン]]
+					ABL:LOCAL:初期変身悪魔習得LV3     = 42
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:虚空斬波]]
+					ABL:LOCAL:初期変身悪魔習得LV4     = 56
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:不屈の闘志]]
+					ABL:LOCAL:初期変身悪魔習得LV5     = 70
+					CDFLAG:LOCAL:マントラ:1 = 10000
+					CDFLAG:LOCAL:マントラ:2 = 10000
+				CASE 3813
+					TALENT:LOCAL:呪殺 = 1
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:一分の魔脈]]
+					ABL:LOCAL:初期変身悪魔習得LV1     = 14
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:誘惑]]
+					ABL:LOCAL:初期変身悪魔習得LV2     = 28
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:アラクノワイヤー]]
+					ABL:LOCAL:初期変身悪魔習得LV3     = 42
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:闇の審判]]
+					ABL:LOCAL:初期変身悪魔習得LV4     = 56
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:千年の呪怨]]
+					ABL:LOCAL:初期変身悪魔習得LV5     = 70
+					CDFLAG:LOCAL:マントラ:1  = 10000
+					CDFLAG:LOCAL:マントラ:56 = 10000
+				ENDSELECT
+		;達人あなたの場合
+		ELSEIF CFLAG:LOCAL:73 == 6
+			;取得スキル
+			FOR LOCAL:2,0,10
+				LOCALS   = 習得スキル{(LOCAL:2)*2+1}
+				LOCALS:1 = 習得スキル{(LOCAL:2)*2+2}
+				LOCALS:2 = 習得LV{(LOCAL:2)*2+1}
+				LOCALS:3 = 習得LV{(LOCAL:2)*2+2}
+				ABL:LOCAL:LOCALS     = CSVABL(CFLAG:LOCAL:3031,GETNUM(ABL,LOCALS),0)
+				ABL:LOCAL:(LOCALS:2) = CSVABL(CFLAG:LOCAL:3031,GETNUM(ABL,LOCALS:2),0)
+				ABL:LOCAL:(LOCALS:1) = CSVABL(CFLAG:LOCAL:3032,GETNUM(ABL,LOCALS),0)
+				ABL:LOCAL:(LOCALS:3) = CSVABL(CFLAG:LOCAL:3032,GETNUM(ABL,LOCALS:2),0)
+			NEXT
+			;追加スキル
+			SELECTCASE CFLAG:LOCAL:3032
+				CASE 4751 TO 4752
+					ABL:LOCAL:習得スキル17 = [[スキル:気合]]
+					ABL:LOCAL:習得LV17 = 20
+					ABL:LOCAL:習得スキル19 = [[スキル:三分の魔脈]]
+					ABL:LOCAL:習得LV19 = 30
+					TALENT:LOCAL:サクセサー = 1
+				CASE 4753
+					ABL:LOCAL:習得スキル17 = [[スキル:気合]]
+					ABL:LOCAL:習得LV17 = 20
+					ABL:LOCAL:習得スキル19 = [[スキル:三分の魔脈]]
+					ABL:LOCAL:習得LV19 = 30
+					TALENT:LOCAL:ガンスリンガー = 1
+				CASEELSE
+					ABL:LOCAL:習得スキル17 = [[スキル:三分の魔脈]]
+					ABL:LOCAL:習得LV17 = 20
+					ABL:LOCAL:習得スキル19 = [[スキル:コンセントレイト]]
+					ABL:LOCAL:習得LV19 = 30
+					TALENT:LOCAL:サクセサー = 1
+			ENDSELECT
+			LOCAL:3 = 3
+
+		;悪魔狩人あなたの場合
+		ELSEIF CFLAG:LOCAL:73 == 7
+			ABL:LOCAL:習得スキル1 = 2955
+			ABL:LOCAL:習得LV1     = 7
+			ABL:LOCAL:習得スキル2 = 2418
+			ABL:LOCAL:習得LV2     = 13
+			ABL:LOCAL:習得スキル3 = 2952
+			ABL:LOCAL:習得LV3     = 17
+			ABL:LOCAL:習得スキル4 = 129
+			ABL:LOCAL:習得LV4     = 27
+			ABL:LOCAL:習得スキル5 = 2953
+			ABL:LOCAL:習得LV5     = 33
+			ABL:LOCAL:習得スキル6 = 2954
+			ABL:LOCAL:習得LV6     = 37
+			ABL:LOCAL:習得スキル7 = 2956
+			ABL:LOCAL:習得LV7     = 45
+			ITEM:Caliburn += 1
+		;悪魔人あなたの場合
+		ELSEIF CFLAG:LOCAL:73 == 8
+			ABL:LOCAL:習得スキル1 = 514
+			ABL:LOCAL:習得LV1     = 7
+			ABL:LOCAL:習得スキル2 = 237
+			ABL:LOCAL:習得LV2     = 13
+			ABL:LOCAL:習得スキル3 = 511
+			ABL:LOCAL:習得LV3     = 17
+			ABL:LOCAL:習得スキル4 = 2406
+			ABL:LOCAL:習得LV4     = 27
+			ABL:LOCAL:習得スキル5 = 229
+			ABL:LOCAL:習得LV5     = 33
+			ABL:LOCAL:習得スキル6 = 2425
+			ABL:LOCAL:習得LV6     = 38
+			ABL:LOCAL:習得スキル7 = 741
+			ABL:LOCAL:習得LV7     = 45
+			ABL:LOCAL:習得スキル8 = 2062
+			ABL:LOCAL:習得LV8     = 50
+		;たけしあなたの場合
+		ELSEIF CFLAG:LOCAL:73 == 9
+			;スキル取得なしのため処理なし
+		;デビルシフターあなたの場合
+		ELSEIF CFLAG:LOCAL:73 == 10
+			SELECTCASE CFLAG:LOCAL:初期リンク悪魔
+				CASE [[キャラ:タナトス]]
+					TALENT:LOCAL:呪殺 = 1
+					TALENT:LOCAL:破魔 = 1
+					TALENT:LOCAL:剣撃 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:ハンマ]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:ムド]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:テトラジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:利剣乱舞]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:マハンマ]] ;[[スキル:バイコウハ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:マハムド]] ;[[スキル:バイエイハ]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:剛切断]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:ドムディ]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:デスバウンド]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:メギド]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:マハムドオン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:マハンマオン]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:ブレイブザッパー]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:メギドラオン]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 70
+				CASE [[キャラ:クルースニク]]
+					TALENT:LOCAL:剣撃 = 1
+					;TALENT:LOCAL:飛具 = 1
+					;TALENT:LOCAL:破魔 = 1
+					TALENT:LOCAL:火炎 = 1
+					TALENT:LOCAL:衝撃 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:マハ・ラギ]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:マハ・ザン]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:ハマオン]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:アギラオ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:イナズマ突き]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:気功(中)]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:デスバウンド]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:マハ・ラギダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:マハ・ザンダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:狼牙天誅斬]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:パワーブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:竜巻]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 60
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:虚空斬波]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 70
+				CASE [[キャラ:クラマテング]]
+					TALENT:LOCAL:飛具 = 1
+					TALENT:LOCAL:衝撃 = 1
+					TALENT:LOCAL:破魔 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:マハンマ]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:九十九針]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:羽ばたき]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:タル・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ソニックブーム]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:天羽の舞]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:破魔の雷光]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:フォッグブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:ソニックウィング]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:暗波双飛爪]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:竜巻]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:伍絶切羽]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:高天烈風弾]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 62
+				CASE [[キャラ:インキュバス]]
+					CFLAG:LOCAL:リンク悪魔 = [[キャラ:インキュバス]]
+					TALENT:LOCAL:神経 = 1
+					TALENT:LOCAL:精神 = 1
+					TALENT:LOCAL:支援 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:誘惑]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:地獄突き]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:シバブー]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:タル・ンダ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:バインドボイス]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:雄叫び]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:魔界の調べ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 25
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:淫魔の乱舞]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:フォッグブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:淀んだ空気]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 35
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:溶解ブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:三分の魔脈]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:ランダマイザ]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 60
+				CASE [[キャラ:ジャックランタン]]
+					TALENT:LOCAL:火炎 = 1
+					TALENT:LOCAL:核熱 = 1
+					;TALENT:LOCAL: = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:ドルミナー]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:アギ]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:フレイ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:マハ・ラギ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:アギラオ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:パララアイ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:フレイラ]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:ダイナミック・アギラオ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:暗黒狂焔乱舞]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:炎の乱舞]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:マハ・ラギダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:フレイダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:地獄の業火]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:ニュークリアミサイル]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 60
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:デッドリーバーン]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 70
+				CASE [[キャラ:ククノチ]]
+					CFLAG:LOCAL:リンク悪魔 = [[キャラ:ククノチ]]
+					TALENT:LOCAL:飛具 = 1
+					TALENT:LOCAL:防御 = 1
+					TALENT:LOCAL:衝撃 = 1
+					TALENT:LOCAL:支援 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:シングルショット]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:ザン]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:スク・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:タル・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ディアラマ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:雄叫び]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:マハ・ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 25
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:徒花一閃]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:溶解ブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:マハ・ザンダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:グランドタック]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:テトラカーン]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:マカラカーン]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:ラスタキャンディ]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 60
+				CASE [[キャラ:ラクシャーサ]]
+					TALENT:LOCAL:飛具 = 1
+					TALENT:LOCAL:打撃 = 1
+					TALENT:LOCAL:剣撃 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:突撃]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:シングルショット]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:暗夜剣]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:暴れまくり]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ファイアブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:剛切断]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:連続撃ち]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 26
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:パニックボイス]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 28
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:デスバウンド]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 30
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:絶妙打]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:刹那五月雨撃]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:木っ端微塵斬り]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:狼牙天誅斬]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:虚空斬波]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 70
+				CASE [[キャラ:フェニックス]]
+					TALENT:LOCAL:回復 = 1
+					TALENT:LOCAL:火炎 = 1
+					TALENT:LOCAL:核熱 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:炎の壁]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:メ・ディア]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:アギ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:フレイ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ディアラマ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:熱風]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:フレイラ]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:リカーム]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 25
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:デ・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:メ・ディアラマ]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:サマリカーム]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 35
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:マハ・ラギダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:三分の魔脈]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:リカームドラ]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 47
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:ヒートカイザー]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 56
+				CASE [[キャラ:クシナダヒメ]]
+					TALENT:LOCAL:回復 = 1
+					TALENT:LOCAL:支援 = 1
+					;TALENT:LOCAL:防御 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:夢見針]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:ディア]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:アギ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:テトラジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ラク・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:慈愛の祈り]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:ディアラマ]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:リカーム]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 25
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:エストマ]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:ディアラハン]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:勇奮の舞]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:メ・ディアラハン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 40
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:サマリカーム]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 42
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:アムリタ]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 46
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:ラスタキャンディ]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 56
+				CASE [[キャラ:フォルトゥナ]]
+					TALENT:LOCAL:回復 = 1
+					TALENT:LOCAL:衝撃 = 1
+					TALENT:LOCAL:疾風 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:ディア]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:ザン]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:ガル]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:マハ・ガル]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:マハ・ザン]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 10
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:メ・ディア]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:ガルーラ]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 20
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:ディアラマ]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:リカーム]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:メ・ディアラマ]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:マハ・ガルダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 35
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:マハ・ザンダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:リムドーラ]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:旋風陣]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 60
+				CASE [[キャラ:パラスアテナ]]
+					TALENT:LOCAL:剣撃 = 1
+					TALENT:LOCAL:防御 = 1
+					TALENT:LOCAL:支援 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:かすみ斬り]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:マハンマ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:メ・ディア]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:スク・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ヒートウェイブ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:二段突き]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:タル・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:デスバウンド]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:龍牙旋回]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:狼牙天誅斬]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:パワーブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:マカラカーン]] ;[[スキル:テトラカーン]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:虚空斬波]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 70
+				CASE [[キャラ:デュラハン]]
+					CFLAG:LOCAL:リンク悪魔 = [[キャラ:デュラハン]]
+					TALENT:LOCAL:剣撃 = 1
+					TALENT:LOCAL:打撃 = 1
+					TALENT:LOCAL:呪殺 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]] ;[[スキル:ギロチンブレイド]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:地獄突き]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:ヘルズアイ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:バインドボイス]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ドムディ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:暴れまくり]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:剛切断]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:デスブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:デスバウンド]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:絶妙打]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:地母の晩餐]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:狼牙天誅斬]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:死んでくれる？]] ;[[スキル:千年の呪怨]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 60
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:不屈の闘志]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 70
+				CASE [[キャラ:サキュバス]]
+					TALENT:LOCAL:電撃 = 1
+					TALENT:LOCAL:精神 = 1
+					TALENT:LOCAL:呪殺 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:誘惑]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:マリンカリン]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:ジオ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:タル・ンダ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ダムド]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ジオンガ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 15
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:マハムド]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:デ・クンダ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:淫魔の乱舞]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 25
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:ジオダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:闇の審判]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:ダムドラオン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:ファイナルヌード]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:超メギド]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:メギドラオン]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 70
+				CASE [[キャラ:ローレライ]]
+					CFLAG:LOCAL:リンク悪魔 = [[キャラ:ローレライ]]
+					TALENT:LOCAL:重力 = 1
+					TALENT:LOCAL:精神 = 1
+					;TALENT:LOCAL:氷結 = 1
+					TALENT:LOCAL:水撃 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:マリンカリン]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:アクア]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:グライ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:子守唄]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:パニックボイス]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:キャンディボイス]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:マハ・アクエス]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:マハ・グライバ]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:魔界の調べ]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:永眠の誘い]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:マハ・アクダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:ダムドラオン]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル15 = [[スキル:アクアリータイド]]
+					ABL:LOCAL:初期変身悪魔習得LV15 = 65
+					;歌唱スキル
+					;ABL:LOCAL:初期変身悪魔習得スキル10 = 2829;『炎のランナー』[[スキル:]]
+					;ABL:LOCAL:初期変身悪魔習得LV10 = 19
+					;ABL:LOCAL:初期変身悪魔習得スキル11 = 2830;『嵐を呼ぶ男』[[スキル:]]
+					;ABL:LOCAL:初期変身悪魔習得LV11 = 26
+					;ABL:LOCAL:初期変身悪魔習得スキル12 = 2833;『君の瞳は一万ボルト』[[スキル:]]
+					;ABL:LOCAL:初期変身悪魔習得LV12 = 28
+					ABL:LOCAL:初期変身悪魔習得スキル13 = 2831;『凍らすライン』[[スキル:]]
+					ABL:LOCAL:初期変身悪魔習得LV13 = 30
+					ABL:LOCAL:初期変身悪魔習得スキル14 = 2832;『ボンバーガール』[[スキル:]]
+					ABL:LOCAL:初期変身悪魔習得LV14 = 40
+				CASE [[キャラ:ユキジョロウ]]
+					CFLAG:LOCAL:リンク悪魔 = [[キャラ:ユキジョロウ]]
+					TALENT:LOCAL:氷結 = 1
+					TALENT:LOCAL:精神 = 1
+					TALENT:LOCAL:呪殺 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:ブフ]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:ムド]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:マカジャマ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:ラク・ンダ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:子守唄]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:ブフーラ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:マハ・ブフーラ]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:マハムドオン]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:ブフダイン]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:絶対零度]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:闇の審判]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:誘惑の霧]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:千年の呪怨]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 60
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:大冷界]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 70
+				CASE [[キャラ:ブラックウィドウ]]
+					TALENT:LOCAL:戦技 = 1
+					TALENT:LOCAL:飛具 = 1
+					TALENT:LOCAL:神経 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:毒ひっかき]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:マヒ針]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:シバブー]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:ラク・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ザンマ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:スクカジャオート]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:天羽の舞]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:巻きつき]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 25
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:パララ・ウェブ]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:心の叫び]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:スパイククロー]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:アラクノワイヤー]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:伍絶切羽]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:桜花閃乱]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:アイアンクロウ]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 60
+				CASE [[キャラ:オニ]]
+					TALENT:LOCAL:剣撃 = 1
+					TALENT:LOCAL:火炎 = 1
+					TALENT:LOCAL:地変 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:アギ]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:マグナ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:唐竹割り]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:ラク・ンダ]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 10
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:暴れまくり]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:ファイアブレス]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:剛切断]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 20
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:アースブレイク]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:牙折り]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:火砕烈風破]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:ガイアブレイク]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:木っ端微塵斬り]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:狼牙天誅斬]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 50
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:三分の活泉]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル13 = [[スキル:虚空斬波]]
+					ABL:LOCAL:初期変身悪魔習得LV13 = 70
+				CASE [[キャラ:モムノフ]]
+					CFLAG:LOCAL:リンク悪魔 = [[キャラ:モムノフ]]
+					TALENT:LOCAL:剣撃 = 1
+					TALENT:LOCAL:打撃 = 1
+					TALENT:LOCAL:支援 = 1
+					ABL:LOCAL:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+					ABL:LOCAL:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+					ABL:LOCAL:初期変身悪魔スキル3 = [[スキル:突撃]]
+					ABL:LOCAL:初期変身悪魔スキル4 = [[スキル:スク・ンダ]]
+					ABL:LOCAL:初期変身悪魔習得スキル1 = [[スキル:暗夜剣]]
+					ABL:LOCAL:初期変身悪魔習得LV1 = 7
+					ABL:LOCAL:初期変身悪魔習得スキル2 = [[スキル:暴れまくり]]
+					ABL:LOCAL:初期変身悪魔習得LV2 = 13
+					ABL:LOCAL:初期変身悪魔習得スキル3 = [[スキル:タル・カジャ]]
+					ABL:LOCAL:初期変身悪魔習得LV3 = 17
+					ABL:LOCAL:初期変身悪魔習得スキル4 = [[スキル:武者車]]
+					ABL:LOCAL:初期変身悪魔習得LV4 = 23
+					ABL:LOCAL:初期変身悪魔習得スキル5 = [[スキル:切り落とし]]
+					ABL:LOCAL:初期変身悪魔習得LV5 = 27
+					ABL:LOCAL:初期変身悪魔習得スキル6 = [[スキル:タルカジャオート]]
+					ABL:LOCAL:初期変身悪魔習得LV6 = 30
+					ABL:LOCAL:初期変身悪魔習得スキル7 = [[スキル:気合]]
+					ABL:LOCAL:初期変身悪魔習得LV7 = 33
+					ABL:LOCAL:初期変身悪魔習得スキル8 = [[スキル:デスバウンド]]
+					ABL:LOCAL:初期変身悪魔習得LV8 = 35
+					ABL:LOCAL:初期変身悪魔習得スキル9 = [[スキル:絶妙打]]
+					ABL:LOCAL:初期変身悪魔習得LV9 = 37
+					ABL:LOCAL:初期変身悪魔習得スキル10 = [[スキル:天驚地爆断]]
+					ABL:LOCAL:初期変身悪魔習得LV10 = 45
+					ABL:LOCAL:初期変身悪魔習得スキル11 = [[スキル:三分の活泉]]
+					ABL:LOCAL:初期変身悪魔習得LV11 = 56
+					ABL:LOCAL:初期変身悪魔習得スキル12 = [[スキル:虚空斬波]]
+					ABL:LOCAL:初期変身悪魔習得LV12 = 70
+			ENDSELECT
+		ENDIF
+	ELSE
+		FOR LOCAL:1,1,21
+			ABL:LOCAL:("習得スキル" + TOSTR(LOCAL:1)) = CSVABL(NO:LOCAL,(GETNUM(ABL,"習得スキル" + TOSTR(LOCAL:1))),0)
+			ABL:LOCAL:("習得LV" + TOSTR(LOCAL:1)) = CSVABL(NO:LOCAL,(GETNUM(ABL,"習得LV" + TOSTR(LOCAL:1))),0)
+			ABL:LOCAL:("初期変身悪魔習得スキル" + TOSTR(LOCAL:1)) = CSVABL(NO:LOCAL,(GETNUM(ABL,"初期変身悪魔習得スキル" + TOSTR(LOCAL:1))),0)
+			ABL:LOCAL:("初期変身悪魔習得LV" + TOSTR(LOCAL:1)) = CSVABL(NO:LOCAL,(GETNUM(ABL,"初期変身悪魔習得LV" + TOSTR(LOCAL:1))),0)
+		NEXT
+	ENDIF
+
+	;外見・スリーサイズパッチ対応　周回時に肌の色設定をTALENTからCFLAGに移す
+	IF TALENT:LOCAL:117
+		CFLAG:LOCAL:38 = 1
+		TALENT:LOCAL:117 = 0
+	ELSEIF TALENT:LOCAL:118
+		CFLAG:LOCAL:38 = 2
+		TALENT:LOCAL:118 = 0
+	ELSEIF TALENT:LOCAL:119
+		CFLAG:LOCAL:38 = 3
+		TALENT:LOCAL:119 = 0
+	ELSEIF TALENT:LOCAL:120
+		CFLAG:LOCAL:38 = 4
+		TALENT:LOCAL:120 = 0
+	ENDIF
+	;ここまで
+
+	;人気は引き継がない
+	CFLAG:LOCAL:便器人気 = 0
+	CFLAG:LOCAL:売春人気 = 0
+	CFLAG:LOCAL:料理人気 = 0
+	CFLAG:LOCAL:劇場人気 = 0
+	CFLAG:LOCAL:アイドル人気 = 0
+	
+	;FOR LOCAL:1,1020,1025
+	;	CFLAG:LOCAL:(LOCAL:1) = 0
+	;NEXT
+	FOR LOCAL:1,76,80
+		EXP:LOCAL:(LOCAL:1) = 0
+	NEXT
+	IF CFLAG:LOCAL:引継ぎフラグ > 1
+		;陥落履歴素質設定
+		SIF TALENT:LOCAL:親愛 == 1
+			TALENT:LOCAL:("陥落履歴(親愛)") = 1
+		SIF TALENT:LOCAL:娼婦 == 1
+			TALENT:LOCAL:("陥落履歴(娼婦)") = 1
+		SIF TALENT:LOCAL:隷属 == 1
+			TALENT:LOCAL:("陥落履歴(隷属)") = 1
+
+		;その他素質リセット
+		TALENT:LOCAL:妻 = 0
+		TALENT:LOCAL:夫 = 0
+		TALENT:LOCAL:淫魔 = 0
+		TALENT:LOCAL:玩具 = 0
+		TALENT:LOCAL:恋慕 = 0
+		TALENT:LOCAL:親愛 = 0
+		TALENT:LOCAL:淫乱 = 0
+		TALENT:LOCAL:娼婦 = 0
+		TALENT:LOCAL:服従 = 0
+		TALENT:LOCAL:隷属 = 0
+		TALENT:LOCAL:セックス狂 = 0
+		TALENT:LOCAL:自慰狂い = 0
+		TALENT:LOCAL:尻穴狂い = 0
+		TALENT:LOCAL:淫乳 = 0
+		CFLAG:LOCAL:依存度 = 0
+		TALENT:LOCAL:ＮＴＲ = 0
+		TALENT:LOCAL:即落ち = 0
+		CFLAG:LOCAL:ＮＴＲ夜這い = 0
+		CFLAG:LOCAL:NTRフラグ = 0
+		CFLAG:LOCAL:愛ＮＴＲ進行度 = 0
+		CFLAG:LOCAL:淫ＮＴＲ進行度 = 0
+		CFLAG:LOCAL:隷ＮＴＲ進行度 = 0
+		CFLAG:LOCAL:淫乱度 = 0
+		CFLAG:LOCAL:構ったフラグ = 0
+		CFLAG:LOCAL:現ＮＴＲ進行度 = 0
+		CFLAG:LOCAL:放置日数 = 0
+		CFLAG:LOCAL:AVアイドル = 0
+		CFLAG:LOCAL:訪問販売フラグ = 0
+
+		;好感度・陥落初期化
+		FOR LOCAL:1,-99,200
+			CFLAG:LOCAL:(2100+LOCAL:1) = 0
+			CFLAG:LOCAL:(2400+LOCAL:1) = 0
+		NEXT
+		CFLAG:LOCAL:陥落キャラ = 0
+		CFLAG:LOCAL:第何子まで産んだか = 0
+		CFLAG:LOCAL:仕送り時してくれる人数親 = 0 
+		MAXBASE:LOCAL:忠誠度 = MAX(0,BASE:LOCAL:忠誠度 - 5000)
+		;口上用のフラグを初期化
+		FOR LOCAL:1,200,501
+			CFLAG:LOCAL:(LOCAL:1) = 0
+		NEXT
+;		CFLAG:LOCAL:キャラ固有の番号 = FLAG:今までのキャラ数
+;		FLAG:今までのキャラ数 += 1
+		IF CFLAG:LOCAL:引継ぎフラグ > 2
+			;元男なら処女に戻す
+			IF EXP:LOCAL:ＴＳ経験 % 2 == 1 && !IS_MALE(LOCAL)
+				TALENT:LOCAL:処女 = 1
+			ELSE
+				TALENT:LOCAL:処女 = CSVTALENT(NO:LOCAL,0,0)
+			ENDIF
+			FOR LOCAL:1,0,85
+				EXP:LOCAL:(LOCAL:1) = CSVEXP(NO:LOCAL,LOCAL:1,0)
+				CFLAG:LOCAL:異常経験記録 = 0
+			NEXT
+			CFLAG:LOCAL:被調教回数 = 0
+			CFLAG:LOCAL:ビデオ売却数 = 0
+			CFLAG:LOCAL:ビデオ売却合計金額 = 0
+			IF CFLAG:LOCAL:引継ぎフラグ == 4
+				FOR LOCAL:1,0,30
+					ABL:LOCAL:(LOCAL:1) = CSVABL(NO:LOCAL,LOCAL:1,0)
+				NEXT
+				FOR LOCAL:1,0,5
+					MARK:LOCAL:(LOCAL:1) = CSVMARK(NO:LOCAL,LOCAL:1,0)
+				NEXT
+				FOR LOCAL:1,0,101
+					JUEL:LOCAL:(LOCAL:1) = 0
+				NEXT
+			ENDIF
+		ENDIF
+	ENDIF
+	CFLAG:LOCAL:リンク悪魔 = -1
+	SIF CFLAG:LOCAL:悪魔変身
+		CALL ACTION_2310 , LOCAL , 0
+	;CFLAG:LOCAL:悪魔変身 = 0
+	CFLAG:LOCAL:被リンクフラグ = -1
+	CFLAG:LOCAL:被変身フラグ = 0
+	IF TALENT:LOCAL:喰奴
+		FOR LOCAL:1, 1, 116
+			;マントラの解析度は失う
+			CDFLAG:LOCAL:マントラ:(LOCAL:1) = MIN(CDFLAG:LOCAL:マントラ:(LOCAL:1), 1)
+			;初期マントラ獲得
+			FOR LOCAL:2, 1, 9
+				SIF CSVABL(NO:LOCAL, GETNUM(ABL, @"スキル{LOCAL:2}"), 0)
+					CDFLAG:LOCAL:マントラ:CSVABL(NO:LOCAL, GETNUM(ABL, @"スキル{LOCAL:2}"), 0) = 10000
+			NEXT
+		NEXT
+		;マントラ補正リセット
+		FOR LOCAL:1, 1, 7
+			CFLAG:LOCAL:(GET_BASESTATUS(LOCAL:1)+"マントラ補正") = 0
+		NEXT
+		;現在のスキルは残り、常に自由に付け替えられる
+		FOR LOCAL:1, 1, 9
+			SIF ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" <= 0
+				CONTINUE
+			LOCAL:2 = 1
+			;空いてる習得スキル枠に詰めてく
+			WHILE LOCAL:2 < 20
+				IF !ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:2}"
+					ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:2}" = ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}"
+					ABL:LOCAL:@"初期変身悪魔習得LV{LOCAL:2}" = -1
+					BREAK
+				ENDIF
+				LOCAL:2++
+			WEND
+		NEXT
+	ENDIF
+	CALL SYNC_STATUS,LOCAL
+	CALL HEALTH_CHARA,LOCAL
+	CFLAG:LOCAL:この場に居ないフラグ = 0
+	CFLAG:LOCAL:引継ぎフラグ = 0
+	CFLAG:LOCAL:労役フラグ = 0
+	CFLAG:LOCAL:劇場出演順番 = 0
+	CFLAG:LOCAL:労役店舗 = 0
+	C = LOCAL
+	CALL CLEAR_FLAG
+	SIF TALENT:LOCAL:153
+		CALL REVERSE_B_SIZE
+
+	TALENT:LOCAL:153 = 0
+	CFLAG:LOCAL:発情妊娠 = 0
+	CFLAG:LOCAL:父親失踪 = 0
+	TALENT:LOCAL:154 = 0
+	
+	TALENT:LOCAL:妻拉致 = 0
+	TALENT:LOCAL:悪徳スカウト = 0
+	RETURN 1
+
+;チェフェイ転生
+@TYEFEI_TENSEI,ARG,ARG:1
+PRINTFORML %CALLNAME:ARG% seems to mutating...
+;に転生の兆候が現れている……
+PRINTFORML Allow this?
+;見守りますか？
+CALL INPUT_YN,"Yes","No"
+IF RESULT == 1
+	PRINTFORMW %CALLNAME:ARG%'s signs of mutation have stopped.
+	;の転生の兆候は消え去った
+ELSE
+	PRINTFORML %CALLNAME:ARG% is reborn into %CSVNAME(ARG:1,0)%!
+	;%CALLNAME:ARG%は%CSVNAME(ARG:1,0)%へと生まれ変わった！
+	;名称変更(変更されていない場合のみ)
+	NAME:ARG '= \@ NAME:ARG == CSVNAME(NO:ARG) ? %CSVNAME(ARG:1)% # %NAME:ARG% \@
+	CALLNAME:ARG '= \@ CALLNAME:ARG == CSVCALLNAME(NO:ARG) ? %CSVCALLNAME(ARG:1)% # %CALLNAME:ARG% \@
+	
+	;能力値とレベル
+	;BASE:ARG:LV = 5
+	;BASE:ARG:力 = 1
+	;BASE:ARG:知恵 = 3
+	;BASE:ARG:魔力 = 4
+	;BASE:ARG:耐力 = 4
+	;BASE:ARG:速さ = 6
+	;BASE:ARG:運 = 7
+	FOR LOCAL,0,7
+		BASE:ARG:GET_BASESTATUS(LOCAL) = CSVBASE(ARG:1,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)
+	NEXT
+	BASE:ARG:CP = CSVBASE(ARG:1,GETNUM(BASE,"CP"),0)
+	;相性
+	FOR LOCAL,0,19
+		BASE:ARG:GET_TYPE(LOCAL) = CSVBASE(ARG:1,GETNUM(BASE,GET_TYPE(LOCAL)),0)
+	NEXT
+	;現在の経験値
+	SIF BASE:ARG:ＥＸＰ < GET_NEXT_EXP(BASE:ARG:LV-1, ABL:ARG:種族 != 0 && !陥落(ARG))
+		BASE:ARG:ＥＸＰ = GET_NEXT_EXP(BASE:ARG:LV-1, ABL:ARG:種族 != 0 && !陥落(ARG))
+	;会話タイプ
+	ABL:ARG:受胎アイテム = CSVABL(ARG:1,GETNUM(ABL,"受胎アイテム"),0)
+	ABL:ARG:会話タイプ = CSVABL(ARG:1,GETNUM(ABL,"会話タイプ"),0)
+	ABL:ARG:攻撃相性 = CSVABL(ARG:1,GETNUM(ABL,"攻撃相性"),0)
+	ABL:ARG:最大攻撃回数 = CSVABL(ARG:1,GETNUM(ABL,"最大攻撃回数"),0)
+	ABL:ARG:最低攻撃回数 = CSVABL(ARG:1,GETNUM(ABL,"最低攻撃回数"),0)
+	ABL:ARG:射程 = CSVABL(ARG:1,GETNUM(ABL,"射程"),0)
+	ABL:ARG:攻撃範囲 = CSVABL(ARG:1,GETNUM(ABL,"攻撃範囲"),0)
+	ABL:ARG:追加効果 = CSVABL(ARG:1,GETNUM(ABL,"追加効果"),0)
+	ABL:ARG:追加効果相性 = CSVABL(ARG:1,GETNUM(ABL,"追加効果相性"),0)
+	ABL:ARG:追加効果命中率 = CSVABL(ARG:1,GETNUM(ABL,"追加効果命中率"),0)
+	ABL:ARG:追加効果最大命中率 = CSVABL(ARG:1,GETNUM(ABL,"追加効果最大命中率"),0)
+	
+	;素質
+	;外見的な物だけ
+	TALENT:ARG:小人体型 = CSVTALENT(ARG:1,GETNUM(TALENT,"小人体型"),0)
+	TALENT:ARG:小柄体型 = CSVTALENT(ARG:1,GETNUM(TALENT,"小柄体型"),0)
+	TALENT:ARG:吸血鬼 = CSVTALENT(ARG:1,GETNUM(TALENT,"吸血鬼"),0)
+	TALENT:ARG:日光浴 = CSVTALENT(ARG:1,GETNUM(TALENT,"日光浴"),0)
+	TALENT:ARG:月光浴 = CSVTALENT(ARG:1,GETNUM(TALENT,"月光浴"),0)
+	TALENT:ARG:動物耳 = CSVTALENT(ARG:1,GETNUM(TALENT,"動物耳"),0)
+	TALENT:ARG:大柄 = CSVTALENT(ARG:1,GETNUM(TALENT,"大柄"),0)
+	TALENT:ARG:巨体 = CSVTALENT(ARG:1,GETNUM(TALENT,"巨体"),0)
+	TALENT:ARG:絶壁 = CSVTALENT(ARG:1,GETNUM(TALENT,"絶壁"),0)
+	TALENT:ARG:貧乳 = CSVTALENT(ARG:1,GETNUM(TALENT,"貧乳"),0)
+	TALENT:ARG:巨乳 = CSVTALENT(ARG:1,GETNUM(TALENT,"巨乳"),0)
+	TALENT:ARG:爆乳 = CSVTALENT(ARG:1,GETNUM(TALENT,"爆乳"),0)
+
+	FOR LOCAL,201,342
+		TALENT:ARG:LOCAL = CSVTALENT(ARG:1,LOCAL,0)
+	NEXT
+	;スキル習得
+	FOR LOCAL,1,FLAG:スキル数 + 1
+		LOCALS = スキル{LOCAL}
+		SIF CSVABL(ARG:1,GETNUM(ABL,LOCALS),0) > 0
+			CALL LEARN_SKILL,ARG,CSVABL(ARG:1,GETNUM(ABL,LOCALS),0)
+	NEXT
+	;習得予定スキル更新
+	FOR LOCAL,1,21
+		ABL:ARG:("習得スキル" + TOSTR(LOCAL)) = CSVABL(ARG:1,GETNUM(ABL,("習得スキル" + TOSTR(LOCAL))),0)
+		ABL:ARG:("習得LV" + TOSTR(LOCAL)) = CSVABL(ARG:1,GETNUM(ABL,("習得LV" + TOSTR(LOCAL))),0)
+	NEXT
+	
+	;タイトル・種族名更新
+	CSTR:ARG:タイトル '= CSVCSTR(ARG:1, GETNUM(CSTR, "タイトル"))
+	CSTR:ARG:種族名   '= CSVCSTR(ARG:1, GETNUM(CSTR, "種族名"))
+	
+	;解説更新(変更されていない場合のみ)
+	IF CSTR:ARG:解説1 == CSVCSTR(NO:ARG, GETNUM(CSTR, "解説1"))
+		FOR LOCAL, 1, 21
+			CSTR:ARG:@"解説{LOCAL}" '= CSVCSTR(ARG:1, GETNUM(CSTR, @"解説{LOCAL}"))
+		NEXT
+	ENDIF
+	
+	;相性グループを変更
+	CSTR:ARG:相性グループ = %CSVCSTR(ARG:1 , GETNUM(CSTR , "相性グループ") , 0)%
+	
+	;最後にナンバー変更
+	NO:ARG = ARG:1
+	ABL:ARG:種族 = CSVABL(ARG:1,GETNUM(ABL,"種族"),0)
+	ABL:ARG:変異レベル = CSVABL(ARG:1,GETNUM(ABL,"変異レベル"),0)
+	ABL:ARG:変異 = CSVABL(ARG:1,GETNUM(ABL,"変異"),0)
+	
+	;陥落で【堕天使】になった種族：天使の堕天使引継ぎ処理
+	IF ABL:ARG:種族 == 4
+		IF TALENT:ARG:4 || TALENT:ARG:5 || TALENT:ARG:7 || TALENT:ARG:8
+			TALENT:ARG:211 = 1
+		ELSE
+			TALENT:ARG:210 = 1
+		ENDIF
+	ENDIF
+
+	FOR LOCAL,0,12
+		CFLAG:ARG:("初期" + GET_CLOTHESNAME(LOCAL)) = CSVCFLAG(NO:ARG,GETNUM(CFLAG,GET_CLOTHESNAME(LOCAL)),0)
+	NEXT
+	;衣装初期化
+	CALL CLOTHES_INITIALIZE,ARG
+	
+	SIF FLAG:(20000+ARG:1) < 100
+		FLAG:(20000+ARG:1) = 100
+ENDIF

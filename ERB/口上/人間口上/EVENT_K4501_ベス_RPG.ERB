@@ -1,0 +1,281 @@
+;-------------------------------------------------
+;真２ベス戦闘口上
+;テンプレより作成。ライセンスフリー
+;-------------------------------------------------
+;
+;
+
+;-------------------------------------------------
+;■台詞の行数を増やしたいときは
+;			LOCAL:1 = 行数
+;			LOCALS = 一行目
+;			LOCALS:1 = 二行目
+;			LOCALS:2 = 三行目
+;と増やしていく
+;-------------------------------------------------
+
+;-------------------------------------------------
+@BATTLE_EVENT_K4501, ARG, ARG:1, ARG:2
+;-------------------------------------------------
+SIF ARG < 0 && NO:ARG != 4501
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:2
+			LOCALS = 今です、追撃を！
+		ELSE
+			LOCALS = 防御を崩しました、後はお願いします！！
+		ENDIF
+	;COOP参加
+	CASE 2
+		;主人がCOOP発動
+		IF FLAG:行動順1 != -1 && FLAG:行動順1 == MASTER
+			LOCALS = 私も役に立たなきゃ…！
+		;それ以外
+		ELSE
+			IF RAND:2
+				LOCALS = 流石ですね、続きます！
+			ELSE
+				LOCALS = この距離なら追撃できるはず！
+			ENDIF
+		ENDIF
+	;被召喚時
+	CASE 3
+			LOCALS = 
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+			IF RAND:2
+				LOCALS = （どうか、アナタの罪も赦されますように…）
+			ELSE
+				LOCALS = Et dimitte nobis debita nostra, sicut et nos dimittimus debitoribus nostris…
+			ENDIF
+		;弱点をついた。つまりCOOP
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+;				LOCALS = 
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+;		;大ダメージ
+;		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+;			LOCALS = 
+;		ELSEIF ダメージ割合(ARG:1, ARG:2) > 25
+;			LOCALS = 
+;		ELSEIF ダメージ割合(ARG:1, ARG:2) <= 0
+;			LOCALS = 
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			IF RAND:2
+				LOCALS = ここで倒れるわけには、いかないのに…！
+			ELSE
+				LOCALS = （あ…　私、もうダメみたい…）
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			IF RAND:2
+				LOCALS = ああああっ！
+			ELSE
+				LOCALS = いまさら、命を惜しむつもりはありません…
+			ENDIF
+;		;無効
+;		ELSEIF ARG:2 == 0
+;			LOCALS = 
+;		;吸収
+;		ELSEIF ARG:2 < 0
+;			LOCALS = 
+		ENDIF
+;	;反射された
+;	CASE 15
+;			LOCALS = 
+;	;反射した
+;	CASE 16
+;			LOCALS = 
+;	;回避された
+;	CASE 17
+;			LOCALS = 
+;	;回避した
+;	CASE 18
+;			LOCALS = 
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+;-------------------------------------------------
+@BATTLE_MESSAGE_K4501,ARG,ARG:1 = 0
+;-------------------------------------------------
+
+LOCAL:1 = 1
+LOCALS = "EMPTY"
+
+;崩壊してる場合は口上表示しない
+SIF TALENT:ARG:9
+	RETURN 0
+
+CALLFORM SKILL_EFECT_{CFLAG:ARG:入力行動}
+;-------------------------------------------------
+;特定スキル
+;-------------------------------------------------
+;これは通常攻撃
+IF CFLAG:ARG:入力行動 == 0
+	LOCALS = それッ！
+;;-------------------------------------------------
+;;ＣＨＡＮＧＥ
+;;-------------------------------------------------
+;ELSEIF LOCAL == 2301
+;	LOCALS = 
+;-------------------------------------------------
+;汎用スキル
+;-------------------------------------------------
+;Slash
+ELSEIF RANGE(CFLAG:ARG:入力行動,1, 99)
+		IF RAND:2
+			LOCALS = せいッ！！
+		ELSE
+			LOCALS = テンプルナイトの剣技、甘く見ないで！
+		ENDIF
+;;Gun
+;ELSEIF RANGE(CFLAG:ARG:入力行動,101, 199)
+;	LOCALS = 
+;Strke
+ELSEIF RANGE(CFLAG:ARG:入力行動,201, 299)
+	LOCALS = 訓練通りに組み打てばっ！！
+;噛み付き系
+ELSEIF RANGE(CFLAG:ARG:入力行動,321, 326)
+	LOCALS = こほん。　オ、オレサマ、オマエ、マルカジリ！
+;回復
+ELSEIF RANGE(CFLAG:ARG:入力行動,401, 499)
+	;全体回復
+	IF CFLAG:ARG:ターゲット > 6
+		IF RAND:2
+			LOCALS = 我がはらからに、癒しの恵みあれ！！
+		ELSE
+			LOCALS = 戦列を維持しないと…！
+		ENDIF
+	ELSE
+		IF RAND:2
+			LOCALS = 『きよくなれ』！
+		ELSE
+			LOCALS = 大丈夫、治療なら任せて
+		ENDIF
+	ENDIF
+;支援
+ELSEIF RANGE(CFLAG:ARG:入力行動,501, 599)
+	;強化系
+	IF RANGE(CFLAG:ARG:入力行動,501, 505)
+		LOCALS = 支援術式を使います！
+	;弱体系
+	ELSEIF RANGE(CFLAG:ARG:入力行動,506, 509)
+		LOCALS = これで行動が阻害されるはず…
+	;挑発
+	ELSEIF CFLAG:ARG:入力行動 == 515
+		LOCALS = かわいそうなのね、アナタたち
+	;その他
+	ELSE
+		LOCALS = （戦局を変えるには…）
+	ENDIF
+;防御
+ELSEIF RANGE(CFLAG:ARG:入力行動,601, 699)
+	LOCALS = （今は様子見ね…）
+;Fire
+ELSEIF RANGE(CFLAG:ARG:入力行動,701, 799)
+	LOCALS = 浄罪の炎よ！
+;Ice
+ELSEIF RANGE(CFLAG:ARG:入力行動,801, 899)
+	LOCALS = 凍れッ！
+;Elect
+ELSEIF RANGE(CFLAG:ARG:入力行動,901, 999)
+	LOCALS = 痺れなさい！
+;Force
+ELSEIF RANGE(CFLAG:ARG:入力行動,1001, 1099)
+	LOCALS = 打ちつける風よ！
+;;Nerve
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1101, 1199)
+;	LOCALS = 
+;;Mind
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1201, 1299)
+;	LOCALS = 
+;Light
+ELSEIF RANGE(CFLAG:ARG:入力行動,1301, 1399)
+	IF RAND:2
+		LOCALS = “土は土に、灰は灰に、塵は塵に”ッ！！
+	ELSE
+		LOCALS = 在るべき世界へ還りなさい、悪魔よ！
+	ENDIF
+;Dark
+ELSEIF RANGE(CFLAG:ARG:入力行動,1401, 1499)
+	LOCALS = アナタの咎は…　私が背負いましょう
+;;Earth
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1501, 1599)
+;	LOCALS = 
+;;Water
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1601, 1699)
+;	LOCALS = 
+;Wind
+ELSEIF RANGE(CFLAG:ARG:入力行動,1701, 1799)
+	LOCALS = 切り裂く風よ！
+;;Grav
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1801, 1899)
+;	LOCALS = 
+;;Nuclr
+;ELSEIF RANGE(CFLAG:ARG:入力行動,1901, 1999)
+;	LOCALS = 
+;Almig
+ELSEIF RANGE(CFLAG:ARG:入力行動,2001, 2099)
+	;自爆系
+	IF RANGE(CFLAG:ARG:入力行動,2005, 2007)
+		LOCALS = まだ一つだけ、役に立てるわ…！
+	ELSE
+		LOCALS = この攻撃なら、通用するはず！
+	ENDIF
+;;魔法少女系
+;ELSEIF RANGE(CFLAG:ARG:入力行動,2989, 2999)
+;	LOCALS = 
+;-------------------------------------------------
+;リンケージ
+;-------------------------------------------------
+;メシアライザー
+ELSEIF CFLAG:ARG:入力行動 == 4160
+	LOCALS = 大丈夫。%CSTR:ARG:二人称%達なら、どんな試練だって乗り越えられるわ
+;Lヒートライザ
+ELSEIF CFLAG:ARG:入力行動 == 4200
+	LOCALS = …大罪に惑え
+;死亡遊戯
+ELSEIF CFLAG:ARG:入力行動 == 4800
+	LOCALS = 共に、土くれに還りましょう…？
+;ELSEIF CFLAG:ARG:入力行動 == 
+;	IF RAND:2
+;		LOCALS = 
+;	ELSE
+;		LOCALS = 
+;	ENDIF
+
+;-------------------------------------------------
+;加筆分
+;-------------------------------------------------
+
+;Gun
+ELSEIF CFLAG:ARG:入力行動 == 2101
+	LOCALS = 抵抗するなら、撃ちます！
+
+;-------------------------------------------------
+;その他
+;-------------------------------------------------
+ELSE
+;	LOCALS = 
+ENDIF
+
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)

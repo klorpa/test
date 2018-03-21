@@ -1,0 +1,824 @@
+
+;2012/06/18 - バグ修正
+
+;---------------------------------------------------------
+;射精するかのチェック
+;---------------------------------------------------------
+;CALL予定箇所：SOURCE.ERB 844行目(調教対象射精チェックの直後)
+;主人、助手についてこの関数を呼ぶ
+;案としては、奴隷の射精チェックも此処に含めていいかもしれない
+;その場合、奴隷の射精による奴隷のソースやDOWNBASEの増加はこの関数内に記述する
+;---------------------------------------------------------
+@EJAC_CHECK,ARG
+#DIM 射精相手
+;射精ゲージはとりあえずコマンド内に残っているものを使う
+;もしくは調教対象射精と同様に快の合計から射精ゲージ上昇量を決めてもいいかもしれない
+;その場合、例えばパイズリなら胸が大きい方が射精させやすくするなど、ここでの倍率に何らかのTFLAGでボーナスを与えていても良いかも
+;でもそれならコマンド内で快をTIMESさせた方がいいか
+
+;射精限界が来ている場合は、射精ゲージは強制的に0にする
+IF CFLAG:ARG:11 == 0
+	BASE:ARG:2 = 0
+ENDIF
+
+IF BASE:ARG:2 > MAXBASE:ARG:2 * 5
+	TCVAR:ARG:射精 = 5
+ELSEIF BASE:ARG:2 > MAXBASE:ARG:2 * 4
+	TCVAR:ARG:射精 = 4
+ELSEIF BASE:ARG:2 > MAXBASE:ARG:2 * 3
+	TCVAR:ARG:射精 = 3
+ELSEIF BASE:ARG:2 > MAXBASE:ARG:2 * 2
+	TCVAR:ARG:射精 = 2
+ELSEIF BASE:ARG:2 > MAXBASE:ARG:2
+	TCVAR:ARG:射精 = 1
+ELSE
+	TCVAR:ARG:射精 = 0
+ENDIF
+SIF TCVAR:ARG:射精 == 0 && ARG == PLAYER
+	TFLAG:8 = 0
+SIF TCVAR:ARG:射精 == 0
+	RETURN 0
+
+射精相手 = TCVAR:ARG:ペニス使用対象
+SIF 射精相手 == -1
+	RETURN 0
+IF 射精相手 % 10000 == TARGET || (射精相手 / 10000)-1 == TARGET
+	射精相手 = TARGET
+ELSE
+	RETURN 0
+ENDIF
+;相手が調教対象であれば射精のソース加算
+CALL SAMEN_SHOOT_CALC,ARG,TARGET
+
+;相手が調教対象で、妊娠しておらず、ゴムを付けていないのであれば中田氏時のソース追加処理
+SIF TALENT:(射精相手):妊娠 == 0 && 射精相手 == TARGET && (TCVAR:ARG:射精箇所 == 1 || (TCVAR:ARG:射精箇所 == 2 && TALENT:(射精相手):男の娘)) && TEQUIP:ARG:Condom == 0
+	CALL SAMEN_SHOOT_SOURCE,ARG,射精相手
+
+
+
+;---------------------------------------------------------
+;射精、及び射精箇所選択
+;---------------------------------------------------------
+;CALL予定箇所：SOURCE.ERB 2104-2105行目間
+;TCVAR:射精が1以上のキャラについて、この関数を呼ぶ
+;---------------------------------------------------------
+;ARG = 射精するキャラ
+;---------------------------------------------------------
+@SAMEN_SHOOT,ARG
+#DIM 射精相手
+#LOCALSSIZE 1
+
+FONTREGULAR
+
+;精液汚れの設定
+;STAIN:P:2 |= 4
+CALL SET_STAIN("ペニス", "精液", ARG)
+射精相手 = TCVAR:ARG:ペニス使用対象
+SIF TCVAR:ARG:ペニス使用対象 >= 10000
+	射精相手 = TCVAR:ARG:ペニス使用対象 % 10000	
+
+;射精箇所選択機能	
+;(射精するのが調教対象でなく、射精相手が単体で、射精箇所選択がONであり、選択できないコマンドでないならば射精箇所選択処理)
+IF ARG != TARGET && FLAG:99 == 9 && TFLAG:704 != 0 && TCVAR:ARG:ペニス使用対象 > -1 && TCVAR:ARG:ペニス使用対象 < 10000
+	PRINTFORMW %CALLNAME:ARG%'s penis swells and is about to ejaculate...
+	PRINTFORMW 　
+	PRINTFORMW Where on %CALLNAME:(TCVAR:ARG:ペニス使用対象)% will %CALLNAME:ARG% shoot it?
+	PRINTL [0] 「Hair」
+	PRINTL [1] 「Face」
+	PRINTL [2] 「Chest」
+	PRINTL [3] 「Belly」
+	PRINTL [4] 「Armpit」
+	PRINTL [5] 「Thigh」
+	PRINTL [6] 「Pussy」
+	PRINTL [7] 「Butt」
+	IF TEQUIP:ARG:35
+		PRINTL [8] 「Into a condom」
+	ELSE
+		PRINTL [8] 「Whereever it is」
+	ENDIF
+	CALL INPUTINT , 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8
+	LOCAL = RESULT
+ELSE
+	LOCAL = FLAG:99
+ENDIF
+SELECTCASE LOCAL
+	CASE 0
+		TCVAR:ARG:射精箇所 = 6
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 1
+	CASE 1
+		TCVAR:ARG:射精箇所 = 7
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 2
+	CASE 2
+		TCVAR:ARG:射精箇所 = 5
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 3
+	CASE 3
+		TCVAR:ARG:射精箇所 = 8
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 4
+	CASE 4
+		TCVAR:ARG:射精箇所 = 9
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 5
+	CASE 5
+		TCVAR:ARG:射精箇所 = 10
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 6
+	CASE 6
+		TCVAR:ARG:射精箇所 = 11
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 7
+	CASE 7
+		TCVAR:ARG:射精箇所 = 12
+		SIF ARG == PLAYER && TCVAR:ARG:ペニス使用対象 == TARGET
+			CFLAG:106 = 8
+	CASE 8
+		;TCVAR:ARG:射精箇所 = 1
+		SIF TEQUIP:ARG:35 == 1
+			TCVAR:ARG:射精箇所 = 13
+ENDSELECT
+
+;射精表示
+PRINTFORM \@TCVAR:ARG:射精 == 5 ?  ultimate  # \@\@TCVAR:ARG:射精 == 4 ?  penultimate  # \@\@TCVAR:ARG:射精 == 3 ?  huge  # \@\@TCVAR:ARG:射精 == 2 ?  large  #  \@ \@ TCVAR:ARG:射精箇所 == 1 ? vaginal # \@ cumshot
+PRINT (
+SELECTCASE ARG
+	CASE MASTER
+		PRINTFORM Master
+	CASE TARGET
+		PRINTFORM %CALLNAME:TARGET%
+	CASE ASSI
+		PRINTFORM Assistant
+ENDSELECT
+IF TCVAR:ARG:射精箇所 == 1
+	PRINT →
+	SELECTCASE TCVAR:ARG:ペニス使用対象
+		CASE MASTER
+			PRINTFORM Master
+		CASE TARGET
+			PRINTFORM %CALLNAME:TARGET%
+		CASE ASSI
+			PRINTFORM Assistant
+	ENDSELECT
+ELSEIF TCVAR:ARG:射精箇所 == 2 && TALENT:(TCVAR:ARG:ペニス使用対象):男の娘
+	PRINT →
+	SELECTCASE TCVAR:ARG:ペニス使用対象
+		CASE MASTER
+			PRINTFORM Master
+		CASE TARGET
+			PRINTFORM %CALLNAME:TARGET%
+		CASE ASSI
+			PRINTFORM Assistant
+	ENDSELECT
+ENDIF
+PRINT )
+
+PRINTL
+
+FOR LOCAL , 0 , (TCVAR:ARG:ペニス使用対象 >= 10000 ? 2 # 1)
+	SIF LOCAL == 1
+		射精相手 = TCVAR:ARG:ペニス使用対象 / 10000 -1
+	;射精処理
+	SELECTCASE TCVAR:ARG:射精箇所
+		CASE -1
+			;オナホに射精
+			SIF ARG == PLAYER
+				TFLAG:16 = TCVAR:ARG:射精
+		CASE 1 , 2
+			;膣内射精 or ケツ射精
+			CALL IN_VAGINA_CHECK,ARG,射精相手
+			SIF ARG == PLAYER && 射精相手 == TARGET
+				TFLAG:2 = TCVAR:ARG:射精
+			SIF ASSI > -1 && ARG == MASTER && 射精相手 == ASSI
+				TFLAG:7 = TCVAR:ARG:射精
+		CASE 3
+			;手に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,20
+			;パンツ扱き
+			IF SELECTCOM == 197
+				LOCALS = \@ CFLAG:下着（下） ? 下着（下） # 全身下着 \@
+				SETBIT STAIN:射精相手:LOCALS, 2
+			;手に射精 ネギ持って手こきは,無茶かと
+			ELSEIF TEQUIP:射精相手:手 == 401 || (RANGE(TEQUIP:射精相手:手, 404, 410) && TEQUIP:射精相手:手 != 408)
+				SETBIT STAIN:射精相手:14, 2
+			ENDIF
+			;手が隠れていない or パンツ扱きでない時は手にも付着
+			SIF !(TEQUIP:射精相手:手 == 401 || RANGE(TEQUIP:射精相手:手, 404, 407) || TEQUIP:射精相手:手 == 409 || SELECTCOM == 197)
+				CALL SET_STAIN("手" , "精液" , 射精相手)
+			SIF ARG == PLAYER && 射精相手 == TARGET
+				TFLAG:1 = TCVAR:ARG:射精
+		CASE 4
+			;口に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,60,3
+			CALL SET_STAIN("口" , "精液" , 射精相手)
+			SIF ARG == PLAYER && 射精相手 == TARGET
+				TFLAG:0 = TCVAR:ARG:射精
+		CASE 5
+			;胸に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,60,3
+			;胸隠してると服に、見えてるなら肌に汚れ
+			SIF (TEQUIP:射精相手:乳房露出 > 0 || TEQUIP:射精相手:乳房露出 > 0)
+				SETBIT STAIN:射精相手:(TEQUIP:射精相手:乳房露出 + 10), 2
+			SIF (TEQUIP:射精相手:乳房露出 == -1 && TEQUIP:射精相手:乳房露出 == -1)
+				CALL SET_STAIN("胸" , "精液" , 射精相手)
+			SIF ARG == PLAYER && 射精相手 == TARGET
+				TFLAG:34 = TCVAR:ARG:射精
+		CASE 6
+			;髪に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,20
+			CALL SET_STAIN("髪" , "精液" , 射精相手)
+			;帽子があると帽子にも
+			SIF TEQUIP:射精相手:帽子 > 0
+				SETBIT STAIN:射精相手:帽子, 2
+		CASE 7
+			;顔に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,60,3
+			CALL SET_STAIN("口" , "精液" , 射精相手)
+			;眼鏡、眼帯、サングラスにも付着
+			SIF (TEQUIP:射精相手:その他 == 1103 || TEQUIP:射精相手:その他 == 1114 || TEQUIP:射精相手:その他 == 1118)
+				SETBIT STAIN:射精相手:その他, 2
+			SIF ARG == PLAYER && 射精相手 == TARGET
+				TFLAG:0 = TCVAR:ARG:射精
+		CASE 8
+			;腹に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,60,3
+			;たくしあげ可能な上着か 下に全身下着の場合で分岐
+			IF TEQUIP:臍露出 != -1
+				TRYCCALLFORM CLOTHES_BREAST_{TEQUIP:射精相手:服}
+					IF !(RESULT & 8)
+						SETBIT STAIN:射精相手:服, 2
+					ELSEIF TEQUIP:射精相手:全身下着 > 0
+						TRYCALLFORM CLOTHES_EXPOSE_{TEQUIP:射精相手:全身下着},6
+						SIF RESULT == 0
+							SETBIT STAIN:射精相手:全身下着, 2
+					ENDIF
+				CATCH
+					IF TEQUIP:全身服 > 0 && TEQUIP:スカートたくし上げ >= 1
+						IF TEQUIP:射精相手:全身下着 > 0
+							TRYCALLFORM CLOTHES_EXPOSE_{TEQUIP:射精相手:全身下着},6
+							SIF RESULT == 0
+								SETBIT STAIN:射精相手:全身下着, 2
+						ENDIF
+					ELSE
+						SETBIT STAIN:射精相手:(TEQUIP:射精相手:臍露出 + 10), 2
+					ENDIF
+				ENDCATCH
+			ENDIF
+		CASE 9
+			;腋に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,60,3
+		CASE 10
+			;太ももに射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,60,3
+			IF TEQUIP:射精相手:スカートたくし上げ <= 1 && TEQUIP:射精相手:脚露出 > 0
+				SETBIT STAIN:射精相手:(TEQUIP:射精相手:脚露出 + 10), 2
+			;スカートの下
+			ELSEIF TEQUIP:射精相手:スカートたくし上げ > 1
+				;靴→靴下→全身下着 の順で腿被覆チェック
+				REPEAT 3
+					TRYCALLFORM CLOTHES_EXPOSE_{TEQUIP:射精相手:(GET_CLOTHESNAME(9 - COUNT))},3
+						IF RESULT == 0
+							SETBIT STAIN:射精相手:(19 - COUNT), 2
+							BREAK
+						ENDIF
+				REND
+			ENDIF
+		CASE 11
+			;割れ目に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,100
+			IF TEQUIP:射精相手:陰唇露出 == -1
+				CALL SET_STAIN("ヴァギナ" , "精液" , 射精相手)
+			ELSE
+				SETBIT STAIN:射精相手:(TEQUIP:射精相手:陰唇露出 + 10), 2
+			ENDIF
+		CASE 12
+			;尻に射精
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,100
+			IF TEQUIP:射精相手:臀部露出 == -1
+				CALL SET_STAIN("アナル" , "精液" , 射精相手)
+			ELSE
+				SETBIT STAIN:射精相手:(TEQUIP:射精相手:臀部露出 + 10), 2
+			ENDIF
+		CASE 13
+			CALL SAMEN_SHOOT_CONDOM,ARG,射精相手
+		CASE 14
+			;空中に射精
+			;足扱き
+			SIF SELECTCOM == 85
+				SETBIT STAIN:射精相手:(TEQUIP:射精相手:足露出 + 10), 2
+			SIF ARG == PLAYER
+				TFLAG:9 = TCVAR:ARG:射精
+		CASEELSE
+			CALL SAMEN_SHOOT_OLD,ARG,射精相手,5
+			
+		
+	ENDSELECT
+	;CALL SAMEN_SHOOT_CALC,ARG,射精相手
+NEXT
+
+SIF ARG == TARGET
+	TFLAG:10 = TCVAR:ARG:射精
+
+
+;経験加算
+CALL ADDS_EXP("射精経験", TCVAR:ARG:射精, ARG)
+
+;射精ゲージ減少
+BASE:ARG:2 -= MAXBASE:ARG:2
+SIF TCVAR:ARG:射精 == 2
+	BASE:ARG:2 -= MAXBASE:ARG:2
+SIF BASE:ARG:2 >= MAXBASE:ARG:2
+	BASE:ARG:2 = MAXBASE:ARG:2 - 1
+
+;射精後は再装填の時間を設ける
+;通常射精時
+SIF TCVAR:ARG:射精 == 1
+	CFLAG:ARG:9 = 3
+;大量射精時
+SIF TCVAR:ARG:射精 == 2
+	CFLAG:ARG:9 = 5
+;超大量射精時
+SIF TCVAR:ARG:射精 == 3
+	CFLAG:ARG:9 = 6
+;最強射精時
+SIF TCVAR:ARG:射精 == 4
+	CFLAG:ARG:9 = 7
+;究極射精時
+SIF TCVAR:ARG:射精 == 5
+	CFLAG:ARG:9 = 2
+CFLAG:ARG:11 -= 1
+
+;無限射精薬が有効なら再装填時間を0に
+SIF CFLAG:ARG:無限射精薬フラグ == 1
+	CFLAG:ARG:9 = 0
+
+;コンドームは脱げる
+TEQUIP:ARG:35 = 0
+
+;コンドーム自動装着処理
+IF (FLAG:98 & 4)
+	IF ITEM:Condom > 0
+		ITEM:Condom -= 1
+		TEQUIP:ARG:Condom = 1
+	ENDIF
+	IF ITEM:Condom == 0
+		PRINT <Since the condom supply is exhausted, automatic useage has been canceled>
+		FLAG:98 = 0
+	ENDIF
+ENDIF
+
+
+
+
+;---------------------------------------------------------
+;中出し・アナル射精処理
+;---------------------------------------------------------
+@IN_VAGINA_CHECK,ARG,ARG:1
+;浮気草の露
+LOCAL:1 = 1
+IF FLAG:ＮＴＲ機能
+	SIF CFLAG:(ARG:1):浮気草の露 == 1
+		LOCAL:1 = 50
+ENDIF
+
+;妊娠判定用の数字をLOCALに放り込む
+SELECTCASE ARG
+	CASE MASTER
+		LOCAL = 1
+	CASE TARGET
+		LOCAL = 4
+	CASE ASSI
+		LOCAL = 3
+ENDSELECT
+
+;妊娠する可能性のある射精
+IF TCVAR:ARG:射精箇所 == 1 || (TCVAR:ARG:射精箇所 == 2 && TALENT:(ARG:1):男の娘)
+	IF CFLAG:(ARG:1):"Contraceptive barrier"
+		PRINTL <Contraception Barrier>
+	ELSE
+		SIF !IS_MALE(ARG:1)
+			CALL ADDS_EXP("膣射経験", TCVAR:ARG:射精, ARG:1)
+		CFLAG:(ARG:1):(100+LOCAL) += TCVAR:ARG:射精
+		SIF TALENT:(ARG:1):153 == 0 && ARG:1 == TARGET
+			CALL SAMEN_SHOOT_SOURCE,ARG,ARG:1
+	ENDIF
+ENDIF
+
+CALL ADDS_EXP("精液経験", TCVAR:ARG:射精, ARG:1)
+
+;精液付着
+IF TCVAR:ARG:射精箇所 == 1
+	CALL SET_STAIN("膣内" , "精液" , ARG:1)
+	CALL SET_STAIN("ヴァギナ" , "精液" , ARG:1)
+ENDIF
+SIF TCVAR:ARG:射精箇所 == 2
+	CALL SET_STAIN("アナル" , "精液" , ARG:1)
+
+;お互い以外への好感度減少処理
+IF FLAG:ＮＴＲ機能
+	CALL NTR_SHOOT, ARG:1, CFLAG:ARG:キャラ固有の番号, TCVAR:ARG:射精 * LOCAL:1
+	CALL NTR_SHOOT, ARG, CFLAG:(ARG:1):キャラ固有の番号, TCVAR:ARG:射精 * LOCAL:1
+ENDIF
+;ＭＡＧ吸収処理
+IF CFLAG:ARG:ＭＡＧ非被吸収 == 0
+	LOCAL:2 = 100 * MAXBASE:(ARG:1):LV * TCVAR:ARG:射精 * (5+MAX(ABL:(ARG:1):従順, ABL:(ARG:1):欲望, ABL:(ARG:1):技巧))/5
+	CALL DRAIN_MAG,ARG,LOCAL:2,ARG:1
+ENDIF
+
+
+;---------------------------------------------------------
+;ゴム射精の処理
+;---------------------------------------------------------
+@SAMEN_SHOOT_CONDOM,ARG,ARG:1
+
+;コンドームに精液溜まる（主人:1、助手:2、奴隷:3）
+IF ARG == MASTER
+	CFLAG:(ARG:1):107 = 1
+ELSEIF ARG == ASSI
+	CFLAG:(ARG:1):107 = 2
+ELSEIF ARG == TARGET
+	CFLAG:(ARG:1):107 = 3
+ENDIF
+SIF ARG == PLAYER && ARG:1 == TARGET
+	CFLAG:106 = 9
+;---------------------------------------------------------
+;SemenEXPの増加とMAG
+;---------------------------------------------------------
+@SAMEN_SHOOT_OLD,ARG,ARG:1,ARG:2,ARG:3 = 1
+CALL ADDS_EXP("精液経験", ARG:3*TCVAR:ARG:射精, TARGET)
+;ＭＡＧ吸収処理
+IF CFLAG:ARG:ＭＡＧ非被吸収 == 0
+	LOCAL:2 = ARG:2 * MAXBASE:(ARG:1):LV * TCVAR:ARG:射精 * (5+MAX(ABL:(ARG:1):従順, ABL:(ARG:1):欲望, ABL:(ARG:1):技巧))/5
+	CALL DRAIN_MAG,ARG,LOCAL:2,ARG:1
+ENDIF
+
+;---------------------------------------------------------
+;射精共通処理(ソースの増加のみ)
+;---------------------------------------------------------
+@SAMEN_SHOOT_CALC,ARG,ARG:1
+#DIM 中毒ソース , 2
+;射精時の共通処理
+
+
+;射精時に中毒充足のソースを追加
+;通常射精時
+SIF TCVAR:ARG:射精 == 1
+	中毒ソース = 200
+;大量射精時
+SIF TCVAR:ARG:射精 == 2
+	中毒ソース = 500
+;超大量射精時
+SIF TCVAR:ARG:射精 == 3
+	中毒ソース = 700
+;最強射精時
+SIF TCVAR:ARG:射精 == 4
+	中毒ソース = 1000
+;究極射精時
+SIF TCVAR:ARG:射精 == 5
+	中毒ソース = 1500
+
+IF TCVAR:ARG:射精 > 0
+	;精液中毒を見る
+	IF ABL:16 == 0
+		TIMES 中毒ソース , 0.00
+	ELSEIF ABL:16 == 1
+		TIMES 中毒ソース , 0.00
+	ELSEIF ABL:16 == 2
+		TIMES 中毒ソース , 0.30
+	ELSEIF ABL:16 == 3
+		TIMES 中毒ソース , 0.60
+	ELSEIF ABL:16 == 4
+		TIMES 中毒ソース , 0.90
+	ELSEIF ABL:16 == 5
+		TIMES 中毒ソース , 1.20
+	ELSEIF ABL:16 == 6
+		TIMES 中毒ソース , 1.50
+	ELSEIF ABL:16 == 7
+		TIMES 中毒ソース , 1.80
+	ELSEIF ABL:16 == 8
+		TIMES 中毒ソース , 2.30
+	ELSEIF ABL:16 == 9
+		TIMES 中毒ソース , 3.00
+	ELSEIF ABL:16 == 10
+		TIMES 中毒ソース , 5.00
+	ELSE
+		中毒ソース = 中毒ソース * (ABL:16 * 2 - 13 + (ABL:16 - 10) / 2)
+	ENDIF
+ENDIF
+
+SOURCE:(ARG:1):中毒充足 += 中毒ソース
+
+
+
+;-------------------------------------------------
+;中出しソースの計算
+;-------------------------------------------------
+@SAMEN_SHOOT_SOURCE,ARG,ARG:1
+#DIM 達成ソース , 1
+#DIM 反感ソース , 1
+#DIM 恐れソース , 1
+達成ソース = 0
+反感ソース = 0
+恐れソース = 0
+
+;中出ししてもらった相手が好きな人だと達成にボーナス
+IF Affection(ARG:1 , ARG) || Love(ARG:1 , ARG)
+	SOURCE:(ARG:1):達成 += 1500
+ELSE
+	IF 危険日(ARG:1) == 1
+		SOURCE:(ARG:1):恐れ += 2500
+		SOURCE:(ARG:1):反感 += 1000
+	ELSEIF 危険日(ARG:1) > 1
+		SOURCE:(ARG:1):反感 += 125
+	ELSE
+		SOURCE:(ARG:1):恐れ += 1500
+		SOURCE:(ARG:1):反感 += 500
+	ENDIF
+ENDIF
+
+;陥落素質が無い場合反感追加
+IF !陥落(ARG:1)
+	SOURCE:(ARG:1):反感 += 1000
+	SIF 危険日(ARG:1) > 1
+		SOURCE:(ARG:1):反感 -= 750
+ENDIF
+
+;-------------------------------------------------
+;射精させたかどうかの関数
+;ARG:0　…　射精元キャラ位置
+;ARG:1　…　射精先キャラ位置
+;-------------------------------------------------
+@CHECK_EJAC_TARGET(ARG,ARG:1 = -1)
+#FUNCTION
+SIF ARG == -1
+	RETURNF 0
+SIF ARG:1 == -1
+	ARG:1 = TARGET
+SIF TCVAR:ARG:ペニス使用対象 % 10000 != ARG:1 && (TCVAR:ARG:ペニス使用対象 / 10000) -1 != ARG:1
+	RETURNF 0
+SIF TCVAR:ARG:射精 == 0
+	RETURNF 0
+RETURNF TCVAR:ARG:射精箇所
+
+;--------------------------------------
+;奴隷による主人・助手への中出し
+;いずれIN_VAGINA_CHECKと統合予定
+;--------------------------------------
+@IN_VAGINA_CHECK_T
+;奴隷の各コマンドでの中田氏チェック
+;各コマンドへの影響を小さくするのが目的（関数を呼ぶ、もしくはオミットするだけで良い）
+;TFLAG:10（中田氏）とTEQOIP:35（Condom）を条件に膣射を増やす処理を持つ
+
+;まずコンドームで分岐
+IF TEQUIP:TARGET:35 == 1
+	PRINTL Trainee condom ejaculation
+	;奴隷コンドーム射精
+	TEQUIP:TARGET:35 = 0
+	;コンドーム自動装着処理
+	IF (FLAG:98 & 1)
+		IF ITEM:45 > 0
+			ITEM:45 -= 1
+			TEQUIP:TARGET:35 = 1
+		ENDIF
+		IF ITEM:45 == 0
+			PRINT <Since the condom supply is exhausted, automatic useage has been canceled>
+			;コンドームが無くなったので、自動装着を解除します
+			FLAG:98 = 0
+		ENDIF
+	ENDIF
+	CFLAG:107 = 3
+;コンドームをしてないかつセックス系コマンドなら中出し
+ELSEIF FLAG:98 < 3 && (SELECTCOM == 64 || SELECTCOM == 92 || SELECTCOM == 93 || SELECTCOM == 94 || SELECTCOM == 122)
+	;浮気草の露
+	LOCAL:1 = 1
+	IF FLAG:ＮＴＲ機能
+		SIF CFLAG:117 == 1
+			LOCAL:1 = 50
+	ENDIF
+	IF ASSIPLAY == 0
+		;主人以外への好感度減少処理
+		IF FLAG:ＮＴＲ機能
+			CALL NTR_SHOOT,TARGET,CFLAG:MASTER:キャラ固有の番号,E*2 * LOCAL:1
+			CALL NTR_SHOOT,MASTER,CFLAG:TARGET:キャラ固有の番号,E*2 * LOCAL:1
+		ENDIF
+		IF E == 5
+			;PRINTFORML 膣内究極射精(%CALLNAME:TARGET%)
+			IF CFLAG:MASTER:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 5
+			ELSE
+				;PRINTL 主人のCreampieEXP+５
+				CALL ADDS_EXP("膣射経験", 5, MASTER)
+				CFLAG:MASTER:104 += 5
+				TFLAG:10 = 5
+			ENDIF
+		ELSEIF E == 4
+			;PRINTFORML 膣内最強射精(%CALLNAME:TARGET%)
+			IF CFLAG:MASTER:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 4
+			ELSE
+				;PRINTL 主人のCreampieEXP+４
+				CALL ADDS_EXP("膣射経験", 4, MASTER)
+				CFLAG:MASTER:104 += 4
+				TFLAG:10 = 4
+			ENDIF
+		ELSEIF E == 3
+			;PRINTFORML 膣内超大量射精(%CALLNAME:TARGET%)
+			IF CFLAG:MASTER:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 3
+			ELSE
+				;PRINTL 主人のCreampieEXP+３
+				CALL ADDS_EXP("膣射経験", 3, MASTER)
+				CFLAG:MASTER:104 += 3
+				TFLAG:10 = 3
+			ENDIF
+		ELSEIF E == 2
+			;PRINTFORML 膣内大量射精(%CALLNAME:TARGET%)
+			IF CFLAG:MASTER:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 2
+			ELSE
+				;PRINTL 主人のCreampieEXP+２
+				CALL ADDS_EXP("膣射経験", 2, MASTER)
+				CFLAG:MASTER:104 += 2
+				TFLAG:10 = 2
+			ENDIF
+		ELSEIF E == 1
+			;PRINTFORML 膣内射精(%CALLNAME:TARGET%)
+			IF CFLAG:MASTER:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 1
+			ELSE
+				;PRINTL 主人のCreampieEXP+１
+				CALL ADDS_EXP("膣射経験", 1, MASTER)
+				CFLAG:MASTER:104 += 1
+				TFLAG:10 = 1
+			ENDIF
+		ENDIF
+	ELSE
+		;助手以外への好感度減少処理
+		IF FLAG:ＮＴＲ機能
+			CALL NTR_SHOOT,TARGET,CFLAG:ASSI:キャラ固有の番号,E*2
+			CALL NTR_SHOOT,ASSI,CFLAG:TARGET:キャラ固有の番号,E*2
+		ENDIF
+		IF E == 5
+			;PRINTFORML 膣内究極射精(%CALLNAME:TARGET%)
+			IF CFLAG:ASSI:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 5
+			ELSE
+				;PRINTL 助手のCreampieEXP+５
+				CALL ADDS_EXP("膣射経験", 5, ASSI)
+				CFLAG:ASSI:104 += 5
+				TFLAG:10 = 5
+			ENDIF
+		ELSEIF E == 4
+			;PRINTFORML 膣内最強射精(%CALLNAME:TARGET%)
+			IF CFLAG:ASSI:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 4
+			ELSE
+				;PRINTL 助手のCreampieEXP+４
+				CALL ADDS_EXP("膣射経験", 4, ASSI)
+				CFLAG:ASSI:104 += 4
+				TFLAG:10 = 4
+			ENDIF
+		ELSEIF E == 3
+			;PRINTFORML 膣内超大量射精(%CALLNAME:TARGET%)
+			IF CFLAG:ASSI:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 3
+			ELSE
+				;PRINTL 助手のCreampieEXP+３
+				CALL ADDS_EXP("膣射経験", 3, ASSI)
+				CFLAG:ASSI:104 += 3
+				TFLAG:10 = 3
+			ENDIF
+		ELSEIF E == 2
+			;PRINTFORML 膣内大量射精(%CALLNAME:TARGET%)
+			IF CFLAG:ASSI:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 2
+			ELSE
+				;PRINTL 助手のCreampieEXP+２
+				CALL ADDS_EXP("膣射経験", 2, ASSI)
+				CFLAG:ASSI:104 += 2
+				TFLAG:10 = 2
+			ENDIF
+		ELSEIF E == 1
+			;PRINTFORML 膣内射精(%CALLNAME:TARGET%)
+			IF CFLAG:ASSI:108
+				PRINTL <Contraception Barrier>
+				TFLAG:10 = 1
+			ELSE
+				;PRINTL 助手のCreampieEXP+１
+				CALL ADDS_EXP("膣射経験", 1, ASSI)
+				CFLAG:ASSI:104 += 1
+				TFLAG:10 = 1
+			ENDIF
+		ENDIF
+	ENDIF
+ELSEIF FLAG:98 < 3 && (SELECTCOM == 95 || SELECTCOM == 96 || SELECTCOM == 97)
+	;IF E == 5
+	;	PRINTFORML 究極射精(%CALLNAME:TARGET%)
+	;ELSEIF E == 4
+	;	PRINTFORML 最強射精(%CALLNAME:TARGET%)
+	;ELSEIF E == 3
+	;	PRINTFORML 超大量射精(%CALLNAME:TARGET%)
+	;ELSEIF E == 2
+	;	PRINTFORML 大量射精(%CALLNAME:TARGET%)
+	;ELSEIF E == 1
+	;	PRINTFORML Ejaculation(%CALLNAME:TARGET%)
+	;ENDIF
+	;調教者以外への好感度減少処理
+	IF FLAG:ＮＴＲ機能
+		CALL NTR_SHOOT,TARGET,CFLAG:PLAYER:キャラ固有の番号,TFLAG:10*2
+		CALL NTR_SHOOT,PLAYER,CFLAG:TARGET:キャラ固有の番号,TFLAG:10*2
+	ENDIF
+	SIF TALENT:PLAYER:男の娘
+		CFLAG:PLAYER:101 += TFLAG:10
+ELSE
+;	IF E == 5
+;		PRINTFORML 究極射精(%CALLNAME:TARGET%)
+;	ELSEIF E == 4
+;		PRINTFORML 最強射精(%CALLNAME:TARGET%)
+;	ELSEIF E == 3
+;		PRINTFORML 超大量射精(%CALLNAME:TARGET%)
+;	ELSEIF E == 2
+;		PRINTFORML 大量射精(%CALLNAME:TARGET%)
+;	ELSEIF E == 1
+;		PRINTFORML Ejaculation(%CALLNAME:TARGET%)
+;	ENDIF
+ENDIF
+
+;コンドーム未使用時、オトコはコマンドに応じて追加ソース
+IF FLAG:98 < 3 && TALENT:オトコ
+	SELECTCASE SELECTCOM
+		CASE 64,92,93,94,122
+			;中出し
+			;Accomplishment＋1000
+			SOURCE:TARGET:達成 += 1000 * (E)/2
+			SOURCE:TARGET:情愛 += 250 * (E)/2
+			IF 危険日() == -2
+				SOURCE:TARGET:達成 += 1000 * (E)/2
+				SOURCE:TARGET:欲情 += 1000 * (E)/2
+				CFLAG:PLAYER:101 += E
+			ENDIF
+		CASE 92,93,94
+			;アナル中出し
+			;Accomplishment＋750
+			SOURCE:TARGET:達成 += 750 * (E)/2
+			SOURCE:TARGET:逸脱 += 750 * (E)/2
+			IF 危険日() == -2 && TALENT:PLAYER:男の娘
+				SOURCE:TARGET:達成 += 1000 * (E)/2
+				SOURCE:TARGET:欲情 += 1000 * (E)/2
+				CFLAG:PLAYER:101 += E
+			ENDIF
+		CASE 2
+			;Mouth
+			;Accomplishment＋500
+			SOURCE:TARGET:達成 += 250 * (E)/2
+			SOURCE:TARGET:欲情 += 750 * (E)/2
+		CASE 90,91
+			;Mouth
+			;Accomplishment＋500
+			SOURCE:TARGET:達成 += 500 * (E)/2
+			SOURCE:TARGET:欲情 += 500 * (E)/2
+	ENDSELECT
+ENDIF
+;--------------------------------------
+;奴隷の射精表示
+;--------------------------------------
+@SAMEN_SHOOT_TARGET
+;膣内射精
+IF TEQUIP:TARGET:35 == 0 && FLAG:98 < 3 && (SELECTCOM == 64 || SELECTCOM == 92 || SELECTCOM == 93 || SELECTCOM == 94 || SELECTCOM == 122)
+	;PRINT In vagina
+	PRINTFORM \@TFLAG:10 == 5 ?  ultimate  # \@\@TFLAG:10 == 4 ?  penultimate  # \@\@TFLAG:10 == 3 ?  huge  # \@\@TFLAG:10 == 2 ?  large  # \@ vaginal cumshot
+	PRINTFORM (%CALLNAME:TARGET%
+	PRINT →
+	SELECTCASE PLAYER
+		CASE MASTER
+			PRINTFORM Master)
+		CASE ASSI
+			PRINTFORM Assistant)
+	ENDSELECT
+;男の娘中出し
+ELSEIF TEQUIP:TARGET:35 == 0 && FLAG:98 < 3 && (SELECTCOM == 95 || SELECTCOM == 96 || SELECTCOM == 97) && TALENT:PLAYER:男の娘
+	PRINTFORM \@TFLAG:10 == 5 ?  ultimate  # \@\@TFLAG:10 == 4 ?  penultimate  # \@\@TFLAG:10 == 3 ?  huge  # \@\@TFLAG:10 == 2 ?  large  # \@ cumshot
+	PRINTFORM (%CALLNAME:TARGET%
+	PRINT →
+	SELECTCASE PLAYER
+		CASE MASTER
+			PRINTFORM Master)
+		CASE ASSI
+			PRINTFORM Assistant)
+	ENDSELECT
+;その他
+ELSE
+	PRINTFORM \@TFLAG:10 == 5 ? ultimate # \@\@TFLAG:10 == 4 ? penultimate # \@\@TFLAG:10 == 3 ? huge # \@\@TFLAG:10 == 2 ? large # \@ cumshot (%CALLNAME:TARGET%)
+ENDIF
+PRINTL 
+

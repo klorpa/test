@@ -1,0 +1,222 @@
+
+
+;スキル名
+@SKILL_NAME_4855,ARG
+RESULTS = Twin Shot
+;集中射撃
+
+;　命中
+@SKILL_HITRATE_4855, ARG
+RETURN 200
+
+;　威力
+@SKILL_POWER_4855, ARG
+#LOCALSIZE 6
+SIF ARG == -1 || CFLAG:ARG:単独リンケージ
+	RETURN 300
+LOCAL:1 = MAXBASE:ARG:銃攻撃
+LOCAL:2 = MAXBASE:(CFLAG:ARG:リンケージ参加者1):銃攻撃
+CALLFORM 最低攻撃回数_{EQUIP:ARG:銃}
+LOCAL:5 = RESULT
+CALLFORM 最大攻撃回数_{EQUIP:ARG:銃}
+LOCAL:3 = RESULT
+LOCAL:3 = (LOCAL:3 + LOCAL:5) / 2
+IF LOCAL:3 < 2
+	CALLFORM 攻撃範囲_{EQUIP:ARG:銃}
+	IF RESULT > 1
+		LOCAL:3 = 2
+	ELSE
+		LOCAL:3 = 1
+	ENDIF
+ENDIF
+CALLFORM 最低攻撃回数_{EQUIP:(CFLAG:ARG:リンケージ参加者1):銃}
+LOCAL:5 = RESULT
+CALLFORM 最大攻撃回数_{EQUIP:(CFLAG:ARG:リンケージ参加者1):銃}
+LOCAL:4 = RESULT
+LOCAL:4 = (LOCAL:4 + LOCAL:5) / 2
+IF LOCAL:4 < 2
+	CALLFORM 攻撃範囲_{EQUIP:(CFLAG:ARG:リンケージ参加者1):銃}
+	IF RESULT > 1
+		LOCAL:4 = 2
+	ELSE
+		LOCAL:4 = 1
+	ENDIF
+ENDIF
+LOCAL   = ((12000 * LOCAL:1 + 100 * LOCAL:1 * LOCAL:1) * LOCAL:3 + (12000 * LOCAL:2 + 100 * LOCAL:2 * LOCAL:2) * LOCAL:4) /(LOCAL:1 * LOCAL:1 + 120 * LOCAL:1)
+RETURN LOCAL * 3/2
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_4855,ARG
+RETURN 1
+
+
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_4855,ARG
+RETURN 1
+
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_4855, ARG, ARG:1
+RETURN 2
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_4855, ARG
+RETURN 5
+
+;　相性
+@SKILL_TYPE_4855,ARG
+RETURN GET_TYPE_NUM("飛具")
+;　1EXTRAか2MAGICか
+
+@SKILL_DECIDE_TYPE_4855
+RETURN 1
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_4855
+RETURN 1
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_4855
+RETURN 1
+
+;　射程
+@SKILL_RANGE_4855,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_4855,ARG
+RETURN 1
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_4855
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_4855,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_4855
+RETURN 23
+;
+
+;速度補正
+@SKILL_SPEED_4855, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_4855,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_4855
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_4855
+RETURN 0
+
+@SKILL_RANKUP_4855
+RETURN 0
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_4855,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_4855,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_4855,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_4855,ARG
+RETURN 0
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_4855,ARG,ARG:1
+
+	LOCAL = POS(ARG:1)
+	CALL GUN_SINGLE,ARG,LOCAL,4855
+
+
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_4855
+PRINTL Two gun masters unloading on on foe.
+
+;継承に必要な部位
+@継承部位_4855,ARG
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_4855,ARG
+CALL CHECK_COST,ARG,4855
+SIF RESULT == 0
+	RETURN 0
+RETURN 1
+;とくにない
+
+
+;=====================================================
+;リンケージ設定
+;=====================================================
+@LINKAGE_4855
+RETURN 1
+
+@参加人数_4855
+RETURN 1
+
+@参加条件表示_4855,ARG
+SELECTCASE ARG
+	CASE 1
+		PRINTFORM Gunslinger
+	CASE 2
+		PRINTFORM Gunslinger
+ENDSELECT
+
+@発動者条件_4855 , ARG
+SIF EQUIP:ARG:銃 == 0
+	RETURN 0
+SIF !TALENT:ARG:ガンスリンガー
+	RETURN 0
+RETURN 1
+
+
+@参加者条件_4855, ARG , ARG:1
+SIF CPOS(ARG) < 1 || CPOS(ARG) > 6
+	RETURN 0
+CALL CHECK_COST_LINCAGE, ARG, 4855, ARG:1
+SIF RESULT == 0
+	RETURN 0
+SIF EQUIP:ARG:銃 == 0
+	RETURN 0
+SIF !TALENT:ARG:ガンスリンガー
+	RETURN 0
+RETURN 1
+
+@リンケージコストタイプ_4855, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 2
+ENDSELECT
+@リンケージコスト_4855, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 5
+ENDSELECT

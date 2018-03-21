@@ -1,0 +1,309 @@
+@BATTLE_EVENT_ATTACK, ARG , ARG:1, ARG:2, ARG:3
+;TFLAG:戦闘イベントに以下の値を代入して、@EVENT_BATTLE_Kを呼び出す
+;範囲系は封印。吸収反射回避も単体でしかでない
+;11.与ダメージ(単体)
+;12.被ダメージ(単体)
+;13.与ダメージ(範囲・ランダム)
+;14.被ダメージ(範囲・ランダム)
+;15.反射された
+;16.反射した
+;17.回避された
+;18.回避した
+;19,敵味方全体攻撃
+;21.味方に対して与ダメージ(単体)
+;22.味方に対して被ダメージ(単体)
+;23.味方に対して与ダメージ(範囲・ランダム)
+;24.味方に対して被ダメージ(範囲・ランダム)
+;25.味方に対して反射された
+;26.味方に対して反射した
+;27.味方に対して回避された
+;28.味方に対して回避した
+
+;ARG 攻撃者
+;ARG:1 被攻撃者
+;ARG:2 ダメージ量
+;ARG:3 1の時、受け渡し用にLOCALを立てる,2の時はミスしたというフラグになる。-1は反射発生
+SIF FLAG:RPG口上
+	RETURN 0
+;とりあえず、範囲は仕様で悩むので封印しておく
+;特殊なスキルで変わったたーげっとが投げ込まれた場合に対処
+IF ARG:3
+	IF CFLAG:ARG:ターゲット > 16
+		LOCAL = 0
+		LOCAL:1 = 0
+		LOCAL:2 = 0
+		LOCAL:3 = 0
+		RETURN 0
+	ELSE
+		;リンケージ参加の場合はフラグ更新しない
+		SIF CFLAG:ARG:リンケージ参加
+			RETURN 0
+		LOCAL = ARG
+		LOCAL:1 = ARG:1
+		LOCAL:2 = ARG:2
+		;反射はSKILL_TEMP時点で-1をいれて、それからDAMAGE関数で3をいれる
+		IF LOCAL:3 == -1
+			LOCAL:3 = 3
+		ELSE
+			LOCAL:3 = ARG:3
+		ENDIF
+	ENDIF
+	RETURN 0
+ENDIF
+;異常な数値が来てしまうのを回避
+IF LOCAL >= CHARANUM || LOCAL:1 >= CHARANUM || LOCAL == 0
+	LOCAL = 0
+	LOCAL:1 = 0
+	LOCAL:2 = 0
+	LOCAL:3 = 0
+	RETURN 0
+ENDIF
+
+;攻撃側メッセージ
+;敵味方全体攻撃
+IF CFLAG:LOCAL:ターゲット == 23
+	TFLAG:戦闘イベント = 19
+ELSE
+	;ミス
+	IF LOCAL:3 == 2
+		TFLAG:戦闘イベント = 17
+	;反射
+	ELSEIF LOCAL:3 == 3
+		TFLAG:戦闘イベント = 15
+	;範囲
+	ELSEIF CFLAG:LOCAL:ターゲット > 16
+		TFLAG:戦闘イベント = 13
+	;単体
+	ELSE
+		TFLAG:戦闘イベント = 11
+	ENDIF
+	SIF CFLAG:LOCAL:PTフラグ == CFLAG:(LOCAL:1):PTフラグ
+		TFLAG:戦闘イベント += 10
+ENDIF
+;TARGETを保存し、口上内でTARGETを使えるように
+LOCAL:99 = TARGET
+TARGET = LOCAL
+IF CFLAG:LOCAL:PTフラグ == 0
+	SETCOLOR 0xff0033
+	CALL 口上呼び出し , "ENEMY_BATTLE_EVENT" , LOCAL , LOCAL , LOCAL:1 , LOCAL:2
+ELSE
+	SETCOLOR 0x33ffcc
+	CALL 口上呼び出し , "BATTLE_EVENT" , LOCAL , LOCAL , LOCAL:1 , LOCAL:2
+ENDIF
+TARGET = LOCAL:1
+;Def側メッセージ
+;ミス
+IF LOCAL:3 == 2
+	TFLAG:戦闘イベント = 18
+;反射
+ELSEIF LOCAL:3 == 3
+	TFLAG:戦闘イベント = 16
+;範囲
+ELSEIF CFLAG:(LOCAL:1):ターゲット > 16
+	TFLAG:戦闘イベント = 14
+;単体
+ELSE
+	TFLAG:戦闘イベント = 12
+ENDIF
+SIF CFLAG:LOCAL:PTフラグ == CFLAG:(LOCAL:1):PTフラグ
+	TFLAG:戦闘イベント += 10
+;Def側
+IF CFLAG:(LOCAL:1):PTフラグ == 0
+	SETCOLOR 0xff0033
+	CALL 口上呼び出し , "ENEMY_BATTLE_EVENT" , LOCAL:1 , LOCAL:1 , LOCAL , LOCAL:2
+ELSE
+	SETCOLOR 0x33ffcc
+	CALL 口上呼び出し , "BATTLE_EVENT" , LOCAL:1 , LOCAL:1 , LOCAL , LOCAL:2
+ENDIF
+RESETCOLOR
+TFLAG:戦闘イベント = 0
+LOCAL = 0
+LOCAL:1 = 0
+LOCAL:2 = 0
+LOCAL:3 = 0
+;TARGETを戻す
+TARGET = LOCAL:99
+
+
+;@戦闘行動対応忠誠度上昇,ARG
+;LOCAL:1 = 0
+;LOCAL:2 = 0
+;LOCAL:3 = 0
+;LOCAL:4 = 0
+;LOCAL:5 = 0
+;LOCAL:6 = 0
+;LOCAL:7 = -1
+;LOCAL:9 = 0
+;LOCAL:10 = 0
+;LOCAL:11 = 0
+;
+;;使用したスキルのタイプ等を調べる
+;;LOCAL:1 = 1攻撃、2回復、3状態変化、4特殊、5状態回復
+;CALLFORM SKILL_EFECT_{CFLAG:ARG:入力行動}
+;LOCAL:1 = RESULT
+;
+;;LOCAL:2 = 1物理、2魔法
+;CALLFORM SKILL_DAMAGETYPE_{CFLAG:ARG:入力行動}
+;LOCAL:2 = RESULT
+;
+;;LOCAL:3 = 相性（0剣撃～17万能）
+;CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動},ARG
+;LOCAL:3 = RESULT
+;
+;;LOCAL:4 = 攻撃威力
+;CALLFORM SKILL_POWER_{CFLAG:ARG:入力行動},ARG
+;LOCAL:4 = RESULT
+;
+;;LOCAL:5 = 平均攻撃回数
+;CALLFORM SKILL_MINATTACKNUMBER_{CFLAG:ARG:入力行動},ARG
+;LOCAL:5 = RESULT
+;CALLFORM SKILL_MAXATTACKNUMBER_{CFLAG:ARG:入力行動},ARG
+;LOCAL:5 = (LOCAL:5 + RESULT) / 2
+;
+;;LOCAL:6 = 攻撃範囲
+;CALLFORM SKILL_SPHERE_{CFLAG:ARG:入力行動},ARG
+;LOCAL:6 = RESULT
+;
+;;LOCAL:7 = 対象
+;SIF CFLAG:ARG:ターゲット > 0 && CFLAG:ARG:ターゲット < 17
+;	LOCAL:7 = POS(CFLAG:ARG:ターゲット)
+;
+;;LOCAL:8 = 対象の状態
+;RESULT = 1
+;SIF LOCAL:7 > 0
+;	CALL COOPABLE_CHARA,LOCAL:7
+;LOCAL:8 = RESULT
+;
+;;LOCAL:9 = 上昇する要因となった性格
+;;LOCAL:10 = 忠誠度上昇量
+;
+;SELECTCASE LOCAL:1
+;	CASE 1
+;		;物理ダメージを与える行動で、獰猛持ちの忠誠度が上昇
+;		SIF TALENT:ARG:獰猛 && LOCAL:2 == 1
+;			LOCAL:9 = GETNUM(TALENT,"獰猛")
+;
+;		;魔法ダメージを与える行動で、狡猾持ちの忠誠度が上昇
+;		SIF TALENT:ARG:狡猾 && LOCAL:2 == 2
+;			LOCAL:9 = GETNUM(TALENT,"狡猾")
+;
+;		;高威力の行動で、残虐持ちの忠誠度が上昇。物理攻撃と魔法攻撃の威力差がパねぇ
+;		SIF TALENT:ARG:残虐 && LOCAL:2 == 1 && (LOCAL:4 * (MAX(LOCAL:5 + LOCAL:6 - 2,0) * 66 + 100) / 100) > BASE:ARG:LV + 100
+;			LOCAL:9 = GETNUM(TALENT,"残虐")
+;		SIF TALENT:ARG:残虐 && LOCAL:2 == 2 && (LOCAL:4 * (MAX(LOCAL:5 + LOCAL:6 - 2,0) * 33 + 100) / 100) > BASE:ARG:LV + 5
+;			LOCAL:9 = GETNUM(TALENT,"残虐")
+;
+;		;相手の弱点を付いた攻撃or行動不能な状態異常の敵に対する攻撃で、賢い持ちの忠誠度が上昇
+;		SIF TALENT:ARG:賢い && LOCAL:7 > -1 && ((MAXBASE:(LOCAL:7):(GET_TYPE(LOCAL:3)) > 100 && MAXBASE:(LOCAL:7):(GET_TYPE(LOCAL:3)) != 999) || LOCAL:8 == 0)
+;			LOCAL:9 = GETNUM(TALENT,"賢い")
+;
+;		;破魔相性の行動で、天使持ちの忠誠度が上昇
+;		SIF TALENT:ARG:天使 && LOCAL:3 == GET_TYPE_NUM("破魔")
+;			LOCAL:9 = GETNUM(TALENT,"天使")
+;
+;		;呪殺相性の行動で、堕天使持ちの忠誠度が上昇
+;		SIF TALENT:ARG:堕天使 && LOCAL:3 == GET_TYPE_NUM("呪殺")
+;			LOCAL:9 = GETNUM(TALENT,"堕天使")
+;
+;	CASE 2 , 5
+;	;回復・状態回復行動では友愛持ちの忠誠度が上昇
+;		SIF TALENT:ARG:友愛
+;			LOCAL:9 = GETNUM(TALENT,"友愛")
+;
+;	CASE 3
+;	;状態変化では高慢持ちの忠誠度が上昇
+;		SIF TALENT:ARG:高慢
+;			LOCAL:9 = GETNUM(TALENT,"高慢")
+;
+;	CASE 4
+;	;特殊では冷静持ちの忠誠度が上昇
+;		SIF TALENT:ARG:冷静
+;			LOCAL:9 = GETNUM(TALENT,"冷静")
+;ENDSELECT
+;
+;SIF LOCAL:9
+;	LOCAL:10 = 5
+;
+;;愚鈍・ゾンビ持ちは主人とのLv差だけ忠誠度が上昇
+;IF (TALENT:ARG:愚鈍 || TALENT:ARG:ゾンビ) && LOCAL:10 == 0
+;	LOCAL:9 = GETNUM(TALENT,"愚鈍")
+;	LOCAL:10 = LIMIT(BASE:MASTER:LV - BASE:ARG:LV,0,5)
+;ENDIF
+;
+;;虚心持ちは最低２だけ忠誠度が上昇
+;IF TALENT:ARG:虚心 && LOCAL:10 < 2
+;	LOCAL:9 = GETNUM(TALENT,"虚心")
+;	LOCAL:10 = 2
+;ENDIF
+;
+;;対象キャラが悪魔で忠誠度が上がらなかった場合はボイコット計算をする
+;;虚心の場合は5％の確率で入る
+;RESULT = 0
+;SIF (GET_DEVIL(ARG) && LOCAL:9 == 0) || (TALENT:ARG:虚心 && RAND:100 < 5)
+;	CALL ボイコット計算, ARG
+;
+;;対象キャラがあなたならボイコットしない(たけしあなたは除く)
+;SIF (NO:ARG == 0 || NO:ARG == 4999) && CFLAG:MASTER:73  != 9
+;CFLAG:ARG:ボイコットフラグ = 0
+;
+;;口上呼び出しとボイコットに対する旧処理
+;;CALL 口上呼び出し , "BATTLE_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , LOCAL:9
+;;CALL 口上呼び出し , "BATTLE_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , LOCAL:9 , RESULT
+;
+;;ボイコットした場合でもまれに忠誠度+ ただしインストールソフトで行動抑制の場合は-2
+;IF RESULT > 0
+;	CALL 口上呼び出し , "BATTLE_BOYCOTT_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , RESULT
+;	SIF EQUIP:MASTER:BlackCompany == 1
+;		LOCAL:10 -= 2
+;	SIF RAND:3 == 0
+;		LOCAL:10 += 1
+;;行動指示を聞いた場合は1/2で忠誠度+
+;ELSE
+;	CALL 口上呼び出し , "BATTLE_MESSAGE" , FLAG:行動順1 , FLAG:行動順1 , LOCAL:9
+;	SIF RAND:2 == 0
+;		LOCAL:10 += 1
+;ENDIF
+;
+;;BASE:ARG:忠誠度 += LOCAL:10
+;TCVAR:ARG:獲得忠誠度 += LOCAL:10
+
+@BATTLE_EVENT, ARG
+;戦闘イベント全般の発生時に呼び出され、個別の戦闘口上を呼び出す関数
+;TFLAG:戦闘イベントの値は呼び出し側で事前にセットしておく必要あり
+;
+;ARG：イベント発生者の奴隷番号（ＣＳＶ番号でなく、現リスト内での通し番号）
+
+IF CFLAG:ARG:PTフラグ
+	;味方の場合
+	CALL 口上呼び出し , "BATTLE_EVENT" , ARG , ARG
+ELSE
+	;敵の場合
+	CALL 口上呼び出し , "ENEMY_BATTLE_EVENT" , ARG , ARG
+ENDIF
+
+
+;@ボイコット計算, ARG
+;;簡易式ボイコット処理
+;LOCAL:1 = 0
+;;忠誠度/10が抵抗値（最低1000、最高7000（陥落次第で10000まで上がる））
+;;LOCAL = LIMIT(BASE:ARG:忠誠度 / 100, 10, 70 + 陥落(ARG) * 10)
+;;(忠誠度*相性)/10が抵抗値（最低1000、最高7000（陥落次第で10000まで上がる））
+;LOCAL = LIMIT( ( BASE:ARG:忠誠度*GET_RELATION(ARG, MASTER) )/10, 1000, 7000 + 陥落(ARG) * 1000)
+;
+;IF RAND:10000 > LOCAL
+;	REPEAT 9
+;		SIF TALENT:ARG:(201+COUNT) == 0
+;			CONTINUE
+;		LOCAL:1 = (201+COUNT)
+;		CFLAG:ARG:ボイコットフラグ = 1
+;
+;		;ボイコットに対する抑制処理
+;		;嫌がってても指示を聞く(1/3) または インストールソフトでボイコット抑制
+;		SIF RAND:3 == 0 || EQUIP:MASTER:BlackCompany == 1
+;			CFLAG:ARG:ボイコットフラグ = 0
+;
+;		BREAK
+;	REND
+;ENDIF
+;RETURN LOCAL:1
+

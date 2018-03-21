@@ -1,0 +1,82 @@
+
+;イベントフラグ:8:0 = 1　市ヶ谷駐屯地ＩＤカード
+;イベントフラグ:8:0 |= 1　某国大使館ＩＤカード
+;イベントフラグ:8:0 = 2 　引き受けなかった
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_8
+;新宿衛生病院踏破＆マヨーネ二段階以内
+IF ダンジョンフラグ:3:1 > 0 && イベントフラグ:1:0 < 3 && イベントフラグ:8:0 == 0
+	RESULTS = Request from Mayone
+	RETURN 1
+ENDIF
+RETURN 0
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_8
+IF イベントフラグ:1:0 < 3 && イベントフラグ:8:0 == 0 && ( イベントフラグ:8:0 & 1 ) == 0
+	PRINTFORMW Mayone visited %CALLNAME:MASTER%'s office。
+	IF TALENT:MASTER:服従 == 1
+		PRINTW 「Shall I have you thank me, I have a special job for you.」
+	ELSE
+		PRINTW 「I brought a special job for you today.」
+	ENDIF
+	PRINTL 「Well, two jobs actually.」
+	PRINTW 「One is about assassinating the commander of the Ichigaya Garrison, Lt. General Gotou.」
+	PRINTW 「The other is to secretly investigate a certain country's embassy.」
+	IF TALENT:MASTER:服従 == 1
+		PRINTW 「Is this too hard for a doggy that mindlessly licks shoes?」
+		PRINT 「Fufu...If you can handle this job,
+		IF TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘
+			PRINTW do you want a reward?」
+		ELSE
+			PRINTW you may get promoted from fuckmeat to footrest.」
+		ENDIF
+		PRINTW 「Then I leave you this ID card.」
+		PRINTW 「Please do your best.」
+		イベントフラグ:8:0 = 3
+	ELSE
+		PRINTW 「Both these jobs are risky.」
+		PRINTW 「Fufufu...If you lose your nerve, will you then choose to not take either?」
+		PRINTL [0] Assassinate the commander of Ichigaya Garrison
+		PRINTL [1] Secretly investigate a certain country's embassy
+		PRINTL [2] Take both jobs
+		PRINTL [3] Don't take a job
+		$INPUT_LOOP
+		INPUT
+		IF RESULT == 0
+			イベントフラグ:8:0 = 1
+		ELSEIF RESULT == 1
+			イベントフラグ:8:0 = 2
+		ELSEIF RESULT == 2
+			イベントフラグ:8:0 = 3
+		ELSEIF RESULT == 3
+			イベントフラグ:8:0 = 4
+		ELSE
+			GOTO INPUT_LOOP
+		ENDIF
+		IF イベントフラグ:8:0 == 4
+			PRINTL 「Oh...」
+			PRINTW 「Did I misjudge you?」
+			PRINTW 「Then, I dismiss you.」
+		ELSE
+			PRINTL 「Thank you.」
+			PRINTW 「Then...」
+			WAIT
+			PRINTL 「Ah yes...some advice before you start.」
+			PRINTL 「We cannot guarantee your safety, if this become disadvantageous to the Phantom Society.」
+			PRINTW 「If you really are stupid enough to reveal who sent you...fufu.」
+			PRINTL Seems suitable measures were put in place if where you came from is found out.
+			PRINTFORMW %CALLNAME:MASTER% recognized that this job is very important.
+		ENDIF
+	ENDIF
+ENDIF
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+
+

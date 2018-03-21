@@ -1,0 +1,32 @@
+;========================================
+;危険日判定関数
+;ARG（TARGET）が危険日かどうかを返す
+;0 = 通常、-1 = オトコ、1 = 危険日、2 = 発情期
+;========================================
+@危険日(ARG = -1)
+#FUNCTION
+#LOCALSIZE 1
+SIF ARG == -1
+	ARG = TARGET
+LOCAL = FLAG:月齢
+SIF LOCAL > 0 && LOCAL < 8 && FLAG:月齢ベクトル == 1
+	LOCAL = 16 - LOCAL
+IF LOCAL == 8 && ABL:ARG:種族 > 0 && ABL:ARG:種族 != 45
+	SIF TALENT:ARG:オトコ && TALENT:ARG:男の娘 == 0
+		RETURNF -2
+	RETURNF 3
+ENDIF
+SIF CFLAG:ARG:発情妊娠 || CFLAG:ARG:ダンジョン内発情
+	RETURNF 2
+
+SIF TALENT:ARG:オトコ && TALENT:ARG:男の娘 == 0
+	RETURNF -1
+IF LOCAL == CFLAG:ARG:危険日
+	IF TALENT:ARG:発情可
+		RETURNF 2
+	ELSE
+		RETURNF 1
+	ENDIF
+ELSE
+	RETURNF 0
+ENDIF

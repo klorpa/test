@@ -1,0 +1,2415 @@
+;=======================================================================
+;ダンジョン突入時のイベント
+;=======================================================================
+@START_DUNGEON_50, ARG
+FLAG:現M = 0
+FLAG:現X = 24
+FLAG:現Y = 11
+FLAG:脱出スキル禁止 = 1
+;主人公以外を外す
+FOR LOCAL, 1, 7
+	SIF POS(LOCAL) > 0
+		CALL REMOVE_POSITION, LOCAL
+NEXT
+PRINTFORML ＞%CALLNAME:MASTER%は指示通り、一人で七姉妹学園にやってきた
+PRINTFORML ＞そして、屋内へと足を踏み入れると、
+PRINTFORMW ＞ゴーンゴーンという音が鳴り響いた
+PRINTL 
+
+PRINTL 生徒:
+PRINTW 「ん、これ何の音？　なんか鐘っぽいけど」
+PRINTL 生徒:
+PRINTW 「もしかして、時計台の鐘じゃ？　あの鳴らないって評判のさ」
+PRINTL 生徒:
+PRINTL 「え、まさか…だって噂じゃ…
+PRINTW 　時計台の鐘がなるとき世界が滅びるって…」
+PRINTL 生徒:
+PRINTW 「あ、あれ、なにあれ！？」
+PRINTL 
+PRINTFORMW ＞騒ぎ始めた生徒達のうちひとりが指さした先には悪魔がいた
+PRINTFORMW ＞%CALLNAME:MASTER%はCOMPを取り出すと戦闘態勢をとった
+PRINTL ＞魔獣 ラタトスク１体と夜魔 ナイトメア２体が出た！
+CUSTOMDRAWLINE =
+WAIT
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CALL SET_ENEMY,8,[[キャラ:ナイトメア]], 8
+CALL SET_ENEMY,9,[[キャラ:ラタトスク]], 8
+CALL SET_ENEMY,10,[[キャラ:ナイトメア]], 8
+CALL BATTLE_START
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+PRINTL 生徒:
+PRINTW 「い、いまのって、あああああ悪魔だよね！？」
+PRINTW 「時計台の呪いよ！　世界が滅亡しちゃうよぉ!!」
+PRINTL 生徒:
+PRINTW 「世界なんかどーだっていいよ！　それより悪魔だぞ。悪魔！」
+PRINTW 「俺、まだ死にたくねーよ！」
+PRINTW 「そ、そうだ。あんた、もしかしてデビルサマナーってやつ…？」
+PRINTW 「なぁ、あんた、なんとかしてくれよ！」
+PRINTL 生徒:
+PRINTW 「なんで、なんで扉が開かないの！？」
+PRINTW 「やだ。死にたくない…」
+IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+	PRINTL 生徒:
+	PRINTW 「校長先生！　校長先生ならきっとどうにかしてくれるはず！」
+	PRINTW 「校長先生に助けを呼びに行こうよ！」
+	PRINTL 生徒:
+	PRINTW 「で、でも…校長室にいくまでに悪魔がでたら…」
+	PRINTW 「そうだ！　あなた、サマナーなんでしょ？」
+	PRINTW 「校長室は３階の西の突き当たりだから、助けを呼んでよ！」
+ELSE
+	PRINTL 生徒:
+	PRINTL 「く、くそ…なんでこんなことに
+	PRINTW てか、あんな時計台残しとく学校も学校だ！」
+	PRINTW 「ハンニャの野郎…この責任取らせてやる！」
+	PRINTL 生徒:
+	PRINTW 「で、でも…校長室にいくまでに悪魔がでたらやばいんじゃねえか？」
+	PRINTL 生徒:
+	PRINTW 「３階の奥だからなぁ…確かにあっこまで行く気はしねーわ…」
+	PRINTW 「そうだ！　あんた、サマナーなんだろ？」
+	PRINTW 「３階の西の突き当たりの校長室にいる禿親父に責任とれっていってくれよ！」
+ENDIF
+PRINTL 
+PRINTFORMW ＞七姉妹学園は異界化してしまったようだ…
+PRINTFORMW ＞しかも、原因を解決するまでここから出れないようだ
+;CALL AUTOMAP
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_50,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+CASE 1
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	ENDSELECT
+;==========
+;出口の処理　出口はない
+;==========
+;==========
+;扉の処理
+;==========
+CASE 2
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;入り口の扉
+		CASE 1
+			IF STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+				PRINTW ＞職員室に報告に行こう
+			ELSE
+				PRINTW ＞扉はなんらかの力で封印されているようだ
+			ENDIF
+			FLAG:現Y -= 1
+			RETURN 0
+		CASEELSE
+			;2F以下では扉に出入りするごとに敵の出現の有無がスイッチされる
+			IF FLAG:現M <= 2
+				IF STRFLAG_D("敵出現なし")
+					IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+						CALLF STRFLAG_D("敵出現なし", -1)
+						FLAG:MAG消費率 = 100
+					ENDIF
+				ELSE
+					CALLF STRFLAG_D("敵出現なし", 1)
+					FLAG:MAG消費率 = 0
+				ENDIF
+			ENDIF
+	ENDSELECT
+	CALL DUNGEON_DOOR, ARG
+	RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_50, DA:(FLAG:現X):(FLAG:現Y) / 10
+		RETURN 1
+;=======
+;イベント
+;=======
+	CASE 4
+		CALL EVENT_50
+		RETURN 1
+;=======
+;階段
+;=======
+	CASE 6
+		CALL STAIR_50, 6
+		RETURN 1
+	CASE 7
+		CALL STAIR_50, 7
+		RETURN 1
+;=======
+;特殊タイル
+;=======
+	CASE 9
+ENDSELECT
+@EVENT_CHECK_DUNGEON_50
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+;==========
+;出口の処理　出口はない
+;==========
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_50, DA:(FLAG:現X):(FLAG:現Y) / 10
+		RETURN 1
+;=======
+;イベント
+;=======
+	CASE 4
+		CALL EVENT_50
+		RETURN 1
+;=======
+;階段
+;=======
+	CASE 6
+		CALL STAIR_50, 6
+		RETURN 1
+	CASE 7
+		CALL STAIR_50, 7
+		RETURN 1
+;=======
+;メッセンジャー
+;=======
+	CASE 8
+		CALL MESSAGE_50
+	CASEELSE
+		PRINTW Nothing seems to be here.
+		RETURN 0
+ENDSELECT
+@TREASURE_50, ARG
+SELECTCASE ARG
+	CASE 0
+		PRINTFORMW ＞箱には蝋燭や鞭が入っている…
+		PRINTL 
+		IF FINDCHARA_B([[キャラ:栄吉]]) == 2
+			PRINTW ＞栄吉が箱の中を覗き込んで呆然としている
+			PRINTL 
+			PRINTL 栄吉:
+			PRINTW 「こ、これってまさか…そ、そんなわけねーよな…」
+			PRINTW 「だって、あのじっちゃんが…なぁ？」
+			PRINTL リサ:
+			PRINTFORMW 「ん、どーしたの？　パンツ番長」
+			PRINTL
+			PRINTFORMW ＞栄吉の様子を不審に思ったリサが箱をみようとした
+			PRINTL 栄吉:
+			PRINTFORMW 「いや、なんでもねぇ。とにかくこれはみちゃいけねぇ！」
+			PRINTL 
+			PRINTFORMW ＞栄吉はあわてて、リサを箱から引き剥がした…
+		ELSEIF FINDCHARA_B([[キャラ:うらら]]) == 2
+			PRINTFORMW うららは箱の中を覗き込んで、目をまるくしている
+			PRINTL 
+			PRINTL うらら:
+			PRINTFORMW 「え、これってもしかして…あの二人が…？」
+			PRINTFORMW 「はは…そんなまさか…」
+			PRINTFORMW 「で、どっちがSで、どっちがMなんだろう…？」
+		ELSEIF !STRFLAG_D("蝋燭ゲット", 1)
+			PRINTFORMW ＞%CALLNAME:MASTER%はその中から低温蝋燭を少々拝借した
+			CALL GET_ITEMS, "低温蝋燭", 5
+		ELSE
+			PRINTFORMW ＞%CALLNAME:MASTER%は見なかった事にした
+		ENDIF
+ENDSELECT
+;=======================================================================
+;階段
+;=======================================================================
+@STAIR_50, ARG
+IF ARG == 6
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1, DA:(FLAG:現X):(FLAG:現Y)+1001
+ELSE
+	CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1, DA:(FLAG:現X):(FLAG:現Y)-1001
+ENDIF
+
+;=======================================================================
+;イベント
+;=======================================================================
+@EVENT_50
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;バイク
+	CASE 0
+		PRINTFORMW ＞駐輪場に立派なバイクが置かれている
+		PRINTL 
+		IF FINDCHARA_B([[キャラ:達哉]]) == 2
+			PRINTL リサ:
+			PRINTFORMW 「あーん、やっぱり、情人のバイクかっこいー！」
+			PRINTFORMW 「また、後ろに乗せてね！」
+		ELSEIF FINDCHARA_B([[キャラ:克哉]]) == 2
+			PRINTL 克哉:
+			PRINTFORMW 「これは……やっぱり、達哉は校内にいるのか…無事だといいが…」
+			PRINTFORMW 「いや、すまない。このバイクは弟のものでね…」
+		ELSE
+			PRINTFORMW ＞生徒のものだろうか？
+		ENDIF
+	;ニャル石
+	CASE 1
+		PRINTFORMW ＞石の柱が立っている…
+		PRINTFORMW ＞そばの看板に比麗門上人が鳴羅門火手恐という邪気が封じた守護石だと書いてある
+		PRINTFORMW ＞……なにやらひどく禍々しいオーラが漂っているきがする
+	;ブキミちゃん
+	CASE 100
+		IF !STRFLAG_D("ブキミちゃん撃破",1)
+			PRINTFORML 不気味な顔をした少女:
+			PRINTFORMW 「くすくす…ねぇ…遊ぼうよ…」
+			PRINTL 
+			PRINTL ＞外道 ブキミちゃんが一体出た！
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9, [[キャラ:ブキミちゃん]], 10, 0,1
+			;HP1000
+			LOCAL = FLAG:戦闘難易度 - 3 > 0 ? 100 + (FLAG:戦闘難易度 - 3) * 20 # 100
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 6 * LOCAL, "ＨＰ")
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 1 * LOCAL, "ＭＰ")
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CALL SYNC_STATUS, (CHARANUM-1)
+			CALL HEALTH_CHARA, (CHARANUM-1)
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+		ENDIF
+	CASE 101
+		PRINTFORMW ＞スーツを着た男がはなしかけてきた
+		PRINTL 
+		PRINTFORML スーツを着た男:
+		PRINTFORMW 「ふむ、我が運命の罠への闖入者はファントム・ソサエティの悪魔使いか」
+		PRINTFORMW 「しかも、それだけじゃなくて、奴隷商人も営んでると来てる」
+		PRINTFORMW 「おっと、そんな怖い顔をしないでくれ」
+		PRINTFORMW 「争う気はないし、君もここで騒ぎを起こすのは嫌だろう？」
+		PRINTFORMW 「ただ、さっきの３人とか高く売れたり、便利だろうし、と考えてるんじゃないかと思ってね」
+		PRINTL 
+		PRINTL [0] 当然だ
+		PRINTL [1] そんなこと考えるわけがない
+		PRINTL [2] ………
+		CALL INPUTINT(0, 1, 2)
+		PRINTFORML スーツを着た男:
+		IF RESULT == 0
+			PRINTFORMW 「やはり、そうか。これは面白い…」
+			PRINTFORMW 「君には見込みがある」
+			PRINTFORMW 「いま忙しいのが惜しいくらいだ」
+			IF STRFLAG_D("ナイトメア退治") && STRFLAG_D("ゾンビちゃん退治") && STRFLAG_D("金要求") && (STRFLAG_D("ラタトスク力づく") || STRFLAG_D("ラタトスク退治")) &&  STRFLAG_D("魔貨強奪")
+				PRINTW 「だがまぁ、とりあえず投資はしておくか」
+				PRINTW 「これを受け取りたまえ。ちょっとしたサービスだ」
+				PRINTL 
+				PRINTL You got 4 Skillcards
+				PRINTL ＞Skillcard【Megido】 received
+				PRINTL ＞Skillcard【Tarunda】 received
+				PRINTL ＞Skillcard【Sukunda】 received
+				PRINTW ＞Skillcard【Rakunda】 received
+				ITEM:スキルカード【メギド】+= 1
+				ITEM:スキルカード【タル・ンダ】+= 1
+				ITEM:スキルカード【スク・ンダ】+= 1
+				ITEM:スキルカード【ラク・ンダ】+= 1
+				PRINTL 
+				PRINTL スーツを着た男
+				PRINTW 「まぁ…それはそうとして…」
+			ENDIF
+			CALL INCREASE_LD, -5
+		ELSEIF RESULT == 1
+			PRINTFORMW 「おっと、そうなのか…それは期待外れ…」
+			PRINTFORMW 「いや、本心とは限らないか。くくく」
+			CALL INCREASE_LD, 5
+		ELSE
+			PRINTFORMW 「答えないというのは肯定してるとしか思えないが」
+			PRINTFORMW 「まぁいい。それを非難しようというわけじゃない。くく」
+		ENDIF
+		PRINTFORMW 「とりあえず、あの３人は１０年かけて用意した、私の玩具でね」
+		PRINTFORMW 「もちろん１０年など一瞬だが、それでも横取りされるのはやっぱり困るんだよ」
+		PRINTFORMW 「本来ならば、この運命に干渉されること自体がありえないが…どうやら君は特別なようだ」
+		PRINTFORMW 「というわけで、あの３人を奴隷にするのは諦めてもらえないかな？」
+		IF TALENT:MASTER:ペルソナ使い
+			PRINTL 「もちろん、ただでとは言わない
+			PRINTL 　君はペルソナの力を扱う術を心得ているようだが
+			PRINTW 　それを仮面のようにつけかえる術を知らないんだろう？」
+			PRINTL 「せっかくの力の生かし方を知らないというのはもったいないことだ
+			PRINTW 　あとで君の元を訪れさせてもらう。そして君の嘲笑と暴力を手助けしよう」
+		ELSE
+			PRINTFORMW 「もちろん、ただでとは言わない。君がペルソナ使いを奴隷にしたらそのときはちょっとしたお手伝いをさせてもらおう」
+			PRINTFORMW 「いや、でも、あの３人が奴隷というのはそれはそれで面白いか」
+			PRINTFORMW 「まぁいい。君のその他人を隷属させ、道具に貶める運命は面白い」
+			PRINTFORMW 「誰でもいい。ペルソナ使いを奴隷にしたまえ」
+			PRINTFORMW 「運命を嘲るものとして、君の嘲笑と暴力を手助けしよう」
+		ENDIF
+		PRINTL 
+		PRINTFORMW ＞それだけ言うと、男は行ってしまった…
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		CALLF STRFLAG_D("ニャル会話", 1)
+		;ベルベットルーム条件取得
+		CALLF STRFLAG_NUM_EV("覚醒", "=", , 2, [[イベント:ペルソナ]])
+	;死体
+	CASE 200
+		PRINTFORMW ＞禿頭の男の死骸がある…
+		PRINTFORMW ＞まるで獣に食いちぎられたようで、とても人間の仕業とは思えない…
+	;校長室
+	CASE 201
+		IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+			PRINTFORMW ＞校長室に入ると、なにやら金髪の少女と青髪の少年が喧嘩をしていた
+			PRINTFORMW ＞傍にはメッティカットの少年もいる…
+			PRINTL 
+			PRINTL 金髪の少女:
+			PRINTFORMW 「ケッヘイ！　わたしのせいだっていうの！？　仕方ないでしょ！！」
+			PRINTFORMW 「こんなことになるなんて思ってなかったんだから！」
+			PRINTFORMW 「なんだよ！　人のパンツ降ろして喜んでる変態セクハラ番長がえっらそーに！！」
+			PRINTFORMW 「こっのー！　パンツ番長！　パンツ番長！　パンツ番長！　パンツ番長！」
+			PRINTL パンツ番長？:
+			PRINTFORMW 「てめーこそ、外人のくせにべらべら日本語喋りやがって！」
+			PRINTFORMW 「おまけにわけわかんねー言葉かで使うしよぉ！」
+			PRINTFORMW 「よし、俺がわかりやすく改名してやるぜ！」
+			PRINTFORMW 「てめぇは今日からギンコだ！　ギンコ！　ギンコ！　ギンコ！　ギンコ！」
+			PRINTL ギンコ？:
+			PRINTFORMW 「ファーンナ！　ヤダ！　ヤダヤダヤダ！　そんなだっさい仇名つけないでよぉ！」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は見なかったことにして部屋をでようとした…
+			PRINTFORMW ＞すると、突如、部屋に悪魔が飛び込んできた
+			PRINTL 
+			PRINTL 悪魔:
+			PRINTFORMW 「ジョ…ジョーカーサマノ…ゴメーレーデ…オオオマエラヲヲヲヲ」
+			PRINTL 
+			PRINTL ＞外道 ゾンビくん３体が出た！
+			CUSTOMDRAWLINE =
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,8,[[キャラ:ゾンビくん]], 12
+			CALL SET_ENEMY,9,[[キャラ:ゾンビくん]], 12
+			CALL SET_ENEMY,10,[[キャラ:ゾンビくん]], 12
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			PRINTL ギンコ？:
+			PRINTFORMW 「アイヤー！　すごい！　ぱぱっとやっつけちゃったよ」
+			PRINTL パンツ番長？:
+			PRINTFORMW 「おおぅ、見事だねぇ。このミッシェル様には及ばないけど華麗だったよ」
+			PRINTL ギンコ？:
+			PRINTFORMW 「あ、わたしはリサ・シルバーマン、この学校の生徒で」
+			PRINTFORMW 「で、こっちが周防 達哉、わたしのカレなの」
+			PRINTL 
+			PRINTFORMW ＞達哉と呼ばれた少年は首を振って、否定の意志をしめしている…
+			PRINTL パンツ番長？:
+			PRINTFORMW 「そして、全てのレディ達に愛を振りまく天才アーティスト、ミッシェル様とは」
+			PRINTFORMW 「ボクのことさ！　ホォォォォォォォゥ！！」
+			PRINTL リサ:
+			PRINTFORMW 「すいません。こいつ、頭がわいてて、一応、栄吉って名前があるけど」
+			PRINTFORMW 「人のパンツを脱がすのが趣味のパンツ番長で十分です」
+			PRINTL 
+			PRINTFORMW ＞思わず背を向けて立ち去ろうとしたところをリサが引き止めてきた
+			PRINTL 
+			PRINTL リサ:
+			PRINTFORMW 「で、\@TALENT:MASTER:オトコ ? お兄さん#お姉さん\@はサマナーってやつですか？」
+			PRINTW 「すっごく強いし、ただものではないですよね？」
+			PRINTL 栄吉:
+			PRINTL 「うんうん、さっきのはすごかったねぇか
+			PRINTW 　あんないい動きするのは親父以外で初めて見たよ」
+			PRINTL リサ:
+			PRINTFORMW 「ねぇ…達哉。\@TALENT:MASTER:オトコ ? お兄さん#お姉さん\@に手伝ってもらおうよ」
+			PRINTFORMW 「戦うのに慣れてるみたいだし…、やっぱりペルソナがあっても悪魔は怖いよ」
+			PRINTL 
+			PRINTFORMW ＞達哉は首を振るが、リサは自分の意見を取り下げようとしない
+			PRINTFORMW ＞%CALLNAME:MASTER%は問答をする二人をよそに栄吉に事情を尋ねた
+			PRINTL 
+			PRINTL 栄吉:
+			PRINTFORMW 「事情、そうだねぇ。ざっくりいうとボク達３人はジョーカーに命を狙われてるんだ」
+			PRINTFORMW 「さっきの悪魔もたぶんボク達への刺客なんだよねぇ…きっと」
+			PRINTFORMW 「え、ペルソナ？」
+			PRINTFORMW 「それはボクもよくわかんないんだけど、異能力ってやつ？」
+			PRINTFORMW 「心の力だか、なんだかよくわからないけど、悪魔がバァーとでてきて助けてくれるのさ」
+			PRINTFORMW 「ん、そんなにまじまじと見て、サインが欲しいんならいつでもオッケーだけど」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は栄吉の提案を無視して、手伝うと告げた
+			PRINTL 栄吉:
+			PRINTFORMW 「おお、サンキュー、これで百人力だね！」
+			PRINTL リサ:
+			PRINTFORMW 「トォチェ！　ありがとう！　これでハンニャもジョーカーも怖くないわ！」
+			PRINTL 
+			PRINTFORMW ＞喜ぶ二人をよそに達哉は困ったといった顔をしている…
+			PRINTFORMW ＞が、強行に反対するというわけでもないようだ
+			PRINTFORML ＞ペルソナ使い 周防 達哉がパーティーに加わった
+			PRINTFORML ＞ペルソナ使い リサ・シルバーマンがパーティーに加わった
+			PRINTFORML ＞ペルソナ使い 三科 栄吉がパーティーに加わった
+			LOCAL = GETCHARA([[キャラ:達哉]])
+			IF LOCAL == -1
+				CALL ADD_GUEST_COMPANION([[キャラ:達哉]], 100)
+				LOCAL = GETCHARA([[キャラ:達哉]])
+				BASE:LOCAL:LV = 10
+				BASE:LOCAL:力 = 8
+				BASE:LOCAL:知恵 = 5 
+				BASE:LOCAL:魔力 =  6
+				BASE:LOCAL:耐力 = 5
+				BASE:LOCAL:速さ = 5
+				BASE:LOCAL:運 = 4
+				BASE:LOCAL:ＥＸＰ = 1650
+				EQUIP:LOCAL:所持ペルソナ1 = ペルソナ("ゲストペルソナ1")
+				CALL GUEST_ENHANCED_D50, LOCAL
+				CALL SYNC_STATUS, LOCAL
+			ELSE
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) == -1 || ABL:POS(LOCAL:1):種族 > 0
+						CALL INSERT_POSITION, LOCAL:1, LOCAL
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			LOCAL = GETCHARA([[キャラ:リサ]])
+			IF LOCAL == -1
+				CALL ADD_GUEST_COMPANION([[キャラ:リサ]], 100)
+				LOCAL = GETCHARA([[キャラ:リサ]])
+				BASE:LOCAL:LV = 10
+				BASE:LOCAL:力 = 6
+				BASE:LOCAL:知恵 = 4 
+				BASE:LOCAL:魔力 =  5
+				BASE:LOCAL:耐力 = 7
+				BASE:LOCAL:速さ = 8
+				BASE:LOCAL:運 = 3
+				BASE:LOCAL:ＥＸＰ = 1650
+				EQUIP:LOCAL:所持ペルソナ1 = ペルソナ("ゲストペルソナ2")
+				CALL GUEST_ENHANCED_D50, LOCAL
+				CALL SYNC_STATUS, LOCAL
+			ELSE
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) == -1 || ABL:POS(LOCAL:1):種族 > 0
+						CALL INSERT_POSITION, LOCAL:1, LOCAL
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			LOCAL = GETCHARA([[キャラ:栄吉]])
+			IF LOCAL == -1
+				CALL ADD_GUEST_COMPANION([[キャラ:栄吉]], 100)
+				LOCAL = GETCHARA([[キャラ:栄吉]])
+				BASE:LOCAL:LV = 10
+				BASE:LOCAL:力 = 8
+				BASE:LOCAL:知恵 = 2 
+				BASE:LOCAL:魔力 = 3
+				BASE:LOCAL:耐力 = 9
+				BASE:LOCAL:速さ = 4
+				BASE:LOCAL:運 = 7
+				BASE:LOCAL:ＥＸＰ = 1650
+				EQUIP:LOCAL:所持ペルソナ1 = ペルソナ("ゲストペルソナ3")
+				CALL GUEST_ENHANCED_D50, LOCAL
+				CALL SYNC_STATUS, LOCAL
+			ELSE
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) == -1 || ABL:POS(LOCAL:1):種族 > 0
+						CALL INSERT_POSITION, LOCAL:1, LOCAL
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			PRINTFORMW パーティー構成及びフォーメーションが変更されているので注意してください
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:ノッカー]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("LV") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("力") = 7
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("知恵") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("魔力") = 4
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("耐力") = 14
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("速さ") = 1
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("運") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("ランク") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("EXP") = 250
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:ポズムディ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:マグナ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:ディア]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル4") = [[スキル:ソニックパンチ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル5") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル6") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル7") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 2
+
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("NO") = [[キャラ:シルキー]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("LV") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("力") = 1
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("知恵") = 12
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("魔力") = 6
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("耐力") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("速さ") = 9
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("運") = 3
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("ランク") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("EXP") = 250
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル1") = [[スキル:ブフ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル2") = [[スキル:メ・ディア]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル3") = [[スキル:ラク・カジャ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル4") = [[スキル:水の壁]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル5") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル6") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル7") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("属性LD") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("属性LC") = 2
+
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("NO") = [[キャラ:ハーピー]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("LV") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("力") = 6
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("知恵") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("魔力") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("耐力") = 4
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("速さ") = 13
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("運") = 6
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("ランク") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("EXP") = 250
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル1") = [[スキル:ひっかき]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル2") = [[スキル:ザン]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル3") = [[スキル:ガル]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル4") = [[スキル:キャンディボイス]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル5") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル6") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル7") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("属性LD") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("属性LC") = 3
+
+		ELSE
+			PRINTW スーツの男:
+			PRINTFORMW 「む、君は？　学校の関係者のようではなさそうだが…」
+			PRINTL 
+			PRINTFORMW ＞校長室に入るなり、スーツの男に不審そうな目で見られる
+			PRINTFORMW ＞そんな男に傍にいた女が、態度について咎めた
+			PRINTL 
+			PRINTW スーツの男:
+			PRINTFORMW 「ああ、そうだな…済まない」
+			PRINTFORMW 「殺人事件に、悪魔に、ペルソナと気が立っていてね」
+			PRINTFORMW 「僕は周防 克哉、刑事をしている。今日は弟の担任に呼ばれてここに来たんだが…」
+			PRINTL 
+			PRINTFORMW ＞克哉はそう言って、警察手帳を取り出してみせた
+			PRINTFORMW ＞さっきの女が天野 舞耶という名で雑誌記者をしており、
+			PRINTFORMW ＞今日は取材でここにやってきたと自己紹介をした
+			PRINTFORMW ＞そして、さらに部屋の奥から、もう一人女が現れた
+			PRINTL 
+			PRINTW もう一人の女:
+			PRINTFORMW 「ちょっと、マーヤ、誰か来たの？　もしかしてジョーカー？」
+			PRINTFORMW 「あ、すいません。私は芹沢 うらら。普通にＯＬを…」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%も、自分はサマナーであると自己紹介をした
+			PRINTL 
+			PRINTL うらら:
+			PRINTFORMW 「サマナーって、じゃあもしかしてこいつが！？」
+			PRINTL 克哉:
+			PRINTFORMW 「いや、それならこんなふうに名乗らないと思うが…」
+			PRINTL うらら:
+			PRINTFORMW 「しかし、なんでサマナーがこんなところに？」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は手早く、依頼について説明した
+			PRINTL 
+			PRINTL うらら:
+			PRINTFORMW 「うーん…タイミング良すぎる気がするけど…」
+			PRINTL 克哉:
+			PRINTFORMW 「いや、さっき、弟の担任からサマナーに依頼をしたという話を聞いたところだ」
+			PRINTFORMW 「ほんの雑談で、まさかこんなことになるとは思ってはいなかったが…」
+			PRINTL 
+			PRINTFORMW ＞そういったところで、舞耶が%CALLNAME:MASTER%に部屋の奥のほうを見て欲しいと言ってきた
+			PRINTFORMW ＞%CALLNAME:MASTER%が言葉通りに部屋の奥に行くと、そこには禿頭の男の死骸があった…
+			PRINTFORMW ＞死骸の様子はまるで獣に食いちぎられたようで、とても人間の仕業とは思えない…
+			PRINTL 
+			PRINTL 克哉:
+			PRINTFORMW 「ご覧のとおりだ…しかも犯人らしき男も見てはいる」
+			PRINTFORMW 「紙袋のようなものをかぶっていて、個人の特定はできなかったが…」
+			PRINTL うらら:
+			PRINTFORMW 「しかも、そいつがジョーカーはひとりじゃない」
+			PRINTFORMW 「もう一人のジョーカーがマーヤを殺すっていうのよ！」
+			PRINTL 克哉:
+			PRINTFORMW 「僕達でそのもう一人のジョーカーとやらをさがそうとしていたんだ」
+			PRINTFORMW 「ペルソナ…異能力というんだろうな…そういう力に突然目覚めてね」
+			PRINTFORMW 「おそらく、この力で、悪魔にもジョーカーにも対抗できるだろうとは思う」
+			PRINTFORMW 「え、ペルソナ？」
+			PRINTFORMW 「心の力…をひきだし、悪魔の形を借りて使うらしいが、正直なところよくわからない」
+			PRINTL うらら:
+			PRINTFORMW 「ねぇ、マーヤ、この人にも手伝ってもらえないかな？」
+			PRINTFORMW 「ほら、本職みたいだし、きっと私たちだけよりずっとよくなると思う」
+			PRINTL 克哉:
+			PRINTFORMW 「芹沢くん、一般人を巻き込むような真似は…」
+			PRINTL うらら:
+			PRINTFORMW 「一般人って、私も一般人よ！」
+			PRINTL 克哉:
+			PRINTFORMW 「むぅ…それもそうだが…」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は喧嘩をはじめそうな二人を遮って、手伝うことを告げた…
+			PRINTL 
+			PRINTL うらら:
+			PRINTFORMW 「ほんと？　ありがとう。これで百人力ね！」
+			PRINTL 克哉:
+			PRINTFORMW 「すまない。僕が一人で市民を守るべきなんだろうが…」
+			PRINTFORMW 「慣れない力に戸惑っててね。正直に言えばとても助かる…」
+			PRINTL 
+			PRINTFORMW ＞舞耶はニコっとわらって手をさし出してきた
+			PRINTL 
+			PRINTFORMW %CALLNAME:MASTER%はその手をとって、しっかりと握手した…
+			PRINTFORMW ＞ペルソナ使い 天野 舞耶がパーティーに加わった
+			PRINTFORMW ＞ペルソナ使い 芹沢 うららがパーティーに加わった
+			PRINTFORMW ＞ペルソナ使い 周防 克哉がパーティーに加わった
+			LOCAL = GETCHARA([[キャラ:舞耶]])
+			IF LOCAL == -1
+				CALL ADD_GUEST_COMPANION([[キャラ:舞耶]], 100)
+				LOCAL = GETCHARA([[キャラ:舞耶]])
+				BASE:LOCAL:LV = 10
+				BASE:LOCAL:力 = 2
+				BASE:LOCAL:知恵 = 9 
+				BASE:LOCAL:魔力 =  9
+				BASE:LOCAL:耐力 = 3
+				BASE:LOCAL:速さ = 5
+				BASE:LOCAL:運 = 5
+				BASE:LOCAL:ＥＸＰ = 1650
+				EQUIP:LOCAL:所持ペルソナ1 = ペルソナ("ゲストペルソナ1")
+				CALL SYNC_STATUS, LOCAL
+			ELSE
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) == -1 || ABL:POS(LOCAL:1):種族 > 0
+						CALL INSERT_POSITION, LOCAL:1, LOCAL
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			LOCAL = GETCHARA([[キャラ:うらら]])
+			IF LOCAL == -1
+				CALL ADD_GUEST_COMPANION([[キャラ:うらら]], 100)
+				LOCAL = GETCHARA([[キャラ:うらら]])
+				BASE:LOCAL:LV = 10
+				BASE:LOCAL:力 = 5
+				BASE:LOCAL:知恵 = 4 
+				BASE:LOCAL:魔力 =  4
+				BASE:LOCAL:耐力 = 8
+				BASE:LOCAL:速さ = 8
+				BASE:LOCAL:運 = 4
+				BASE:LOCAL:ＥＸＰ = 1650
+				EQUIP:LOCAL:所持ペルソナ1 = ペルソナ("ゲストペルソナ2")
+				CALL GUEST_ENHANCED_D50, LOCAL
+				CALL SYNC_STATUS, LOCAL
+			ELSE
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) == -1 || ABL:POS(LOCAL:1):種族 > 0
+						CALL INSERT_POSITION, LOCAL:1, LOCAL
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			LOCAL = GETCHARA([[キャラ:克哉]])
+			IF LOCAL == -1
+				CALL ADD_GUEST_COMPANION([[キャラ:克哉]], 100)
+				LOCAL = GETCHARA([[キャラ:克哉]])
+				BASE:LOCAL:LV = 10
+				BASE:LOCAL:力 = 8
+				BASE:LOCAL:知恵 = 6 
+				BASE:LOCAL:魔力 =  6
+				BASE:LOCAL:耐力 = 7
+				BASE:LOCAL:速さ = 3
+				BASE:LOCAL:運 = 3
+				BASE:LOCAL:ＥＸＰ = 1650
+				EQUIP:LOCAL:所持ペルソナ1 = ペルソナ("ゲストペルソナ3")
+				CALL GUEST_ENHANCED_D50, LOCAL
+				CALL SYNC_STATUS, LOCAL
+			ELSE
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) == -1 || ABL:POS(LOCAL:1):種族 > 0
+						CALL INSERT_POSITION, LOCAL:1, LOCAL
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			PRINTFORMW パーティー構成及びフォーメーションが変更されているので注意してください
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:リリム]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("LV") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("力") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("知恵") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("魔力") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("耐力") = 4
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("速さ") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("運") = 7
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("ランク") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("EXP") = 250
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:ジオ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:タル・ンダ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:マリンカリン]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル4") = [[スキル:雷の壁]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル5") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル6") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル7") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 3
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 3
+
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("NO") = [[キャラ:ジャックフロスト]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("LV") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("力") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("知恵") = 3
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("魔力") = 7
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("耐力") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("速さ") = 3
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("運") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("ランク") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("EXP") = 250
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル1") = [[スキル:ディア]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル2") = [[スキル:ブフ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル3") = [[スキル:スク・カジャ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル4") = [[スキル:ソニックパンチ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル5") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル6") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("スキル7") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("属性LD") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ2"):ペルソナ("属性LC") = 2
+			
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("NO") = [[キャラ:エンジェル]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("LV") = 10
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("力") = 4
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("知恵") = 7
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("魔力") = 6
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("耐力") = 4
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("速さ") = 6
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("運") = 7
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("ランク") = 5
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("EXP") = 250
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル1") = [[スキル:ディア]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル2") = [[スキル:メ・ディア]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル3") = [[スキル:ハンマ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル4") = [[スキル:ガル]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル5") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル6") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("スキル7") = 0
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("属性LD") = 2
+			DITEMTYPE:ペルソナ("ゲストペルソナ3"):ペルソナ("属性LC") = 1
+		ENDIF
+		CALLF STRFLAG_D("校長室", 1)
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+	;ボス
+	CASE 300
+		IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+			PRINTFORMW ＞時計台には髪の毛がふさふさな男と、奇妙な仮面をつけた白い学生服の少年がいた…
+			PRINTL 
+			PRINTL 栄吉:
+			PRINTFORMW 「ジョーカー！！」
+			PRINTL 
+			PRINTFORMW ＞栄吉が仮面の少年を指さして叫び声をあげた
+			PRINTFORMW ＞しかし、少年はなにかを男に告げると消えてしまった…
+			PRINTL 
+			PRINTL リサ:
+			PRINTFORMW 「それにハンニャ校長も！　やっぱりあんた、ジョーカーとつながってたんだ！」
+			PRINTFORMW 「学校がこんなことになったのもあんたが原因なんでしょ！？　白状しなよっ！！」
+			PRINTL ハンニャ校長:
+			PRINTFORMW 「一体、何を言うか、このバカチンがぁ！」
+			PRINTFORMW 「これもみんなお前ら学生どもの素行が悪いからくだされた天罰なのだ！」
+			PRINTFORMW 「まぁ、まさか、カス高の学生共の妬みからでた噂が現実になるとは思ってなかったが」
+			PRINTFORMW 「しかし、ジョーカー様にお願いすれば、すぐに問題解決だ」
+			PRINTFORMW 「それどころか、ジョーカー様に従えば、より有意義な人生を掴むことができるのだ」
+			PRINTL リサ:
+			PRINTFORMW 「ケッヘイ！　あんた、それでも教師！？」
+			PRINTL ハンニャ校長:
+			PRINTFORMW 「ふん、馬鹿な学生にはわからんか」
+			PRINTFORMW 「だが、大人ならわかるだろう？」
+			PRINTFORMW 「確か、チンケな報酬につられてやってきたんだったな」
+			PRINTFORMW 「どうだ？　ここで、我々仮面党の仲間になればなんでも思うがままだぞ」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は素人のお遊びには付き合いきれないといった様子で首を振る
+			PRINTL 
+			PRINTL ハンニャ校長:
+			PRINTFORMW 「やはり、サマナーなど野蛮な仕事をしているやつはそんなものか！」
+			PRINTFORMW 「ならば、一緒に教育指導をしてやる！　ヤイル・カメーン！」
+			PRINTL 
+			PRINTFORMW ＞仮面党員 ハンニャ校長が一体でた！
+			FLAG:逃走不可フラグ = 1
+;			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9, [[キャラ:ハンニャ校長]], 12, 0, 1
+			;HP1000
+			LOCAL = FLAG:戦闘難易度 - 3 > 0 ? 100 + (FLAG:戦闘難易度 - 3) * 20 # 100
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 10 * LOCAL, "ＨＰ")
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 5 * LOCAL, "ＭＰ")
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			ABL:(CHARANUM-1):会話タイプ = 331
+			CALL SYNC_STATUS, (CHARANUM-1)
+			CALL HEALTH_CHARA, (CHARANUM-1)
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			PRINTL ハンニャ校長:
+			PRINTFORMW 「ぬぅ…今日のは指導はここまでだ」
+			PRINTFORMW 「だが、これですむと思うなよ」
+			PRINTL 
+			PRINTFORMW ＞そう言うとハンニャ校長は窓から飛びだした
+			PRINTFORMW ＞ぬぉああああという悲鳴が響き渡る
+			PRINTL 
+			PRINTL 栄吉:
+			PRINTFORMW 「ここ４階だぜ…あの親父じゃ死にそうにねぇけどよ」
+			PRINTL リサ:
+			PRINTFORMW 「……はぁ、それより疲れたよ。これで異界化は収まったんだよね？」
+			PRINTL 
+			PRINTFORMW ＞あたりを覆っていた悪魔の気配はなくなっている。おそらくもう大丈夫だろう
+			PRINTFORMW ＞%CALLNAME:MASTER%はリサの考えを肯定するように、頷いてみせた
+			PRINTL 
+			PRINTL リサ:
+			PRINTFORMW 「はぁ、よかった。それじゃあ、どっか行って休もうよ達哉」
+			PRINTFORMW 「私もうへとへと……」
+			PRINTL 栄吉:
+			PRINTFORMW 「ボクのお腹の妖精もピィピィいってるし、なんか食べたいところだねぇ」
+			PRINTL リサ:
+			PRINTFORMW 「あ、よかったら\@TALENT:MASTER:オトコ ? お兄さん#お姉さん\@も…」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は断った
+			PRINTL リサ:
+			PRINTFORMW 「あ、仕事の報告ですか。じゃあ、仕方ないですね」
+			PRINTFORMW 「今日はどうもありがとうございました」
+			PRINTL 栄吉:
+			PRINTFORMW 「ありがとうよ！　この恩は忘れねぇぜ！」
+			PRINTL 
+			PRINTFORMW ＞礼をいう二人に続いて、達哉も頭を下げた
+			PRINTL リサ:
+			PRINTFORMW 「じゃあ、わたし達はこれで失礼しますね」
+			PRINTFORMW 「あ…そうだ。お礼…になるかどうかわかりませんが」
+			PRINTFORMW 「いま、噂が本当になるみたいで、もしかしたらお仕事の役に立つかも」
+			PRINTL 栄吉:
+			PRINTFORMW 「そうそう、ボクのところにも、噂屋なんてのがいついてねぇ」
+			PRINTFORMW 「なんだか、金払って、噂を買う時代がカミングって感じ？」
+			PRINTL リサ:
+			PRINTFORMW 「あぁ、噂屋の居場所ですか…？」
+			PRINTFORMW 「平坂区のがってん寿司のサラリーマンに、ラーメンしらいしのおじさんに…それに、えーと」
+			PRINTL 
+			PRINTFORMW ＞言いよどむギンコの言葉をひきとって達哉が
+			PRINTFORMW ＞港南区の占い屋と、夢先区のピースダイナーの女子高生について教えてくれた
+			PRINTL 
+			PRINTFORMW ＞３人は去っていった…
+			PRINTFORML ＞ペルソナ使い 周防 達哉がパーティーから外れた
+			PRINTFORML ＞ペルソナ使い リサ・シルバーマンがパーティーから外れた
+			PRINTFORMW ＞ペルソナ使い 三科 栄吉がパーティーから外れた
+			PRINTL 
+			PRINTW ＞仕事の報告をするために職員室まで行こう
+			LOCAL = GETCHARA([[キャラ:達哉]])
+			SIF LOCAL >= 0 && CFLAG:LOCAL:引継ぎ回数 == 0
+				CALL DEL_GUEST, LOCAL
+			LOCAL = GETCHARA([[キャラ:リサ]])
+			SIF LOCAL >= 0 && CFLAG:LOCAL:引継ぎ回数 == 0
+				CALL DEL_GUEST, LOCAL
+			PRINTFORML 
+			LOCAL = GETCHARA([[キャラ:栄吉]])
+			SIF LOCAL >= 0 && CFLAG:LOCAL:引継ぎ回数 == 0
+				CALL DEL_GUEST, LOCAL
+		ELSE
+			PRINTFORMW ＞ジャージを着た少女が俯いている…
+			PRINTFORML 
+			PRINTL 克哉:
+			PRINTFORMW 「君、こんなところで、なにを…いや、この感じ、まさか…」
+			PRINTL 
+			PRINTFORMW ＞克哉は少女に近づこうとして、立ち止まった…
+			PRINTFORMW ＞そして、少女が顔を上げる
+			PRINTFORMW ＞その顔は白塗りの化物のようになっている！
+			PRINTL 
+			PRINTL うらら:
+			PRINTFORMW 「きゃっ、なにこれ、まさかジョーカー！？」
+			PRINTL 少女:
+			PRINTFORMW 「そう…私がジョーカー！　間違った、この世界に正義の鉄槌を下すものよ！」
+			PRINTL 
+			PRINTFORMW ＞少女の背後に異形のペルソナが浮かび上がる！
+			PRINTL 
+			PRINTL 少女:
+			PRINTFORMW 「お姉さまの命とも言うべき、足を奪った憎むべき男も！」
+			PRINTFORMW 「まだ燃え尽きてないのに、お姉さまにひどいことをいったハンニャも死んだ！」
+			PRINTFORMW 「でも、まだ足りない！　今度は私の番、私が殺す」
+			PRINTFORMW 「そう、これがジョーカー呪いの対価…！　アマノ マヤ…お前を殺す！」
+			PRINTL 
+			PRINTFORMW ＞ペルソナ使い？ ＪＯＫＥＲノリコが一体でた！
+			CUSTOMDRAWLINE =
+			WAIT
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9, [[キャラ:ＪＯＫＥＲノリコ]], 12, 0, 1
+			;HP1000
+			LOCAL = FLAG:戦闘難易度 - 3 > 0 ? 100 + (FLAG:戦闘難易度 - 3) * 20 # 100
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 10 * LOCAL, "ＨＰ")
+			CALL SET_BATTLE_STATUS(CHARANUM-1, 5 * LOCAL, "ＭＰ")
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			ABL:(CHARANUM-1):初期ペルソナ = -1
+			CALL SYNC_STATUS, (CHARANUM-1)
+			CALL HEALTH_CHARA, (CHARANUM-1)
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CUSTOMDRAWLINE =
+			WAIT
+			PRINTFORMW ＞ＪＯＫＥＲノリコは倒れた…
+			PRINTL 
+			PRINTL 克哉:
+			PRINTFORMW 「く、学生のようだが…どういうことだ？　明らかに普通じゃない」
+			PRINTL うらら:
+			PRINTFORMW 「それより、マーヤを殺すってどういうこと？」
+			PRINTFORMW 「それにジョーカー呪いをした対価って…」
+			PRINTL 
+			PRINTFORMW ＞うららの顔は真っ青で、今にも倒れそうにみえる
+			PRINTFORMW ＞狼狽する二人に構わず、舞耶は倒れた少女を抱き起こした
+			PRINTFORMW ＞そして、大変だといって、少女の様子を周りに見せた
+			PRINTFORMW ＞少女の顔は白塗りではない、普通の人間の顔となっている…
+			PRINTFORMW ＞しかし、呼吸は弱く、いまにも死んでしまいそうだ
+			PRINTL 
+			PRINTL 克哉:
+			PRINTFORMW 「……もしかして、危ういのか。今すぐ病院に連れていかないと」
+			PRINTFORMW 「いや、悪魔の仕業だ。病院じゃなくて、寺か？」
+			PRINTFORMW 「くそっ、こんなときどうすればいいんだっ！？」
+			PRINTL うらら:
+			PRINTFORMW 「えっと、あなた、サマナーなんでしょ。こういうときどうすればいいかわかるんじゃ」
+			PRINTL 
+			PRINTFORMW ＞うららがそういうと、舞耶も頼るような目で%CALLNAME:MASTER%を見つめてきた
+			PRINTFORMW ＞%CALLNAME:MASTER%はしょうがなく、少女を麻耶から受け取った
+			PRINTFORMW ＞その瞬間、目眩がして、意識が遠のいた…
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			PRINTFORMW 
+			CUSTOMDRAWLINE =
+			WAIT
+			PRINTL ＞気がつくと、そこは事務所ではなく、四方で星が瞬く、謎の空間だった
+			PRINTFORMW ＞いつのまにか摩耶達３人はいなくなっており、%CALLNAME:MASTER%と少女だけがその空間に残されている…
+			PRINTFORML ＞%CALLNAME:MASTER%があたりを見渡し、とにかく動こうとしたその時、
+			PRINTFORMW ＞目の前に仮面をつけた男が姿を現した
+			PRINTL 
+			PRINTL 仮面の男:
+			PRINTW 「ようこそ、意識と無意識の狭間へ…私の名はフィレモン」
+			PRINTW 「さて…君は自分が誰であるか、名乗る事が出来るかね？」
+			PRINTL 
+			IF TALENT:MASTER:ペルソナ使い
+				PRINTFORMW ＞%CALLNAME:MASTER%は自分の名前を答えた……
+				PRINTL 
+				PRINTL フィレモン:
+				PRINTL 「君はすでに『ペルソナ』を扱う術を見いだしている
+				PRINTW 　そう、ペルソナとは、心の奥底に潜む、神や悪魔のごとき、もう１人の自分を呼び出す力だ」
+				PRINTL 「神の様に、慈愛に満ちた自分…悪魔の様に、残酷な自分…人は、様々な仮面を着けて生きるもの…
+				PRINTL 　今の諸君の姿も、無数の仮面の一つに過ぎん。ペルソナもまた、数多くある君の姿の一つなのだ」
+				PRINTL 「君もペルソナを扱う力を持っているのならばわかるだろう
+				PRINTW 　その少女に憑いているものが如何に忌むべきものか」
+				PRINTL 「そう、それは人の心のうちに潜む穢れ、悪しき歪んだ心だ
+				PRINTW 　ＪＯＫＥＲとはそれが無理矢理、外にひきずりだされたものだ…」
+			ELSE
+				PRINTFORMW ＞男の質問に答えようとする……が、%CALLNAME:MASTER%はなぜか自分の名前を言う事ができなかった……
+				PRINTL 
+				PRINTL フィレモン:
+				PRINTL 「やはり、君には『ペルソナ』を扱う資格がないようだ
+				PRINTW 　ペルソナとは、心の奥底に潜む、神や悪魔のごとき、もう１人の自分を呼び出す力だ」
+				PRINTL 「神の様に、慈愛に満ちた自分…悪魔の様に、残酷な自分…人は、様々な仮面を着けて生きるもの…
+				PRINTW 　今の諸君の姿も、無数の仮面の一つに過ぎん。ペルソナもまた、数多くある君の姿の一つなのだ」
+				PRINTL 「今、君が戦ったのはそのペルソナの影
+				PRINTL 　人の心のうちに潜む穢れ、悪しき歪んだ心だ
+				PRINTW 　ＪＯＫＥＲとはそれが無理矢理、外にひきずりだされたものだ」
+			ENDIF
+			PRINTL 
+			PRINTW ＞仮面の男が少女にむかって、手を翳すと、黒い霧のようなものが少女から立ち上り、消えた…
+			PRINTL 
+			PRINTL フィレモン:
+			PRINTW 「これで大丈夫だ…」
+			PRINTL 
+			PRINTW ＞仮面の男がそう言うと、少女の姿も消えた…
+			PRINTL 
+			PRINTL フィレモン:
+			PRINTL 「もちろん、ＪＯＫＥＲは心の影、完全になくすわけにはいかぬ
+			PRINTW 　これからどうするかはあの少女次第だ」
+			PRINTW 「さて……これで一つの問題のかたはついたはずだ」
+			PRINTL 
+			PRINTFORMW ＞フィレモンは%CALLNAME:MASTER%をじっとみつめる……
+			PRINTL 
+			PRINTL フィレモン:
+			PRINTL 「しかし、君は…一体どういうことだろうか……
+			PRINTW 　本来ならば、君は七姉妹学園に来ることはなかった」
+			PRINTL 「這い寄る混沌はこの世界に、罠をはり、私の力を奪ったのだ
+			PRINTW 　そう……私はこの世界において、すでに這いよる混沌に敗北している……」
+			PRINTL 「そして奴は私に勝利すると、運命の糸を伸ばし、多くの人間を絡めとった
+			PRINTW 　だが、君にはその糸はつながってはいない」
+			PRINTL 「いや、それどころか、君の運命はどこにもつながっていない
+			PRINTW 　それでも、いや、それだからこそだろうか」
+			PRINTL 「こうして、はっきりと君と話し、力を貸すことができるのだ
+			PRINTW 　敗北以来、悪しき運命に呪われた人々には微かな力を貸すことで精一杯だったというのにだ」
+			PRINTL 「君は一つの可能性であり、この世界を変える存在なのかも知れない
+			PRINTW 　そして、私はその可能性を助けるために、引き寄せられたのかもしれない」
+			PRINTW 「世界が変わるために私の力が必要だというのならば、喜んで力を貸そう」
+			CALLF STRFLAG_EV("ベルベットルーム使用可能", 1, [[イベント:ペルソナ]])
+			IF STRFLAG_NUM_EV("フィレモン進行", , , , [[イベント:ペルソナ２]]) == 1 && !STRFLAG_D("魔貨強奪", 0, [[ダンジョン:ペルソナ２]])
+				PRINTW 「そして、できれば、這い寄る混沌との戦いに力を貸してほしい」
+				PRINTL 「先程も言ったが、君に戦いの運命はない
+				PRINTW 　しかし、それ故に君は自らの意志で戦うことを選ぶことが出来る」
+				PRINTW 「この世界における奴の勢力に対抗するには君の力が必要なのだ」
+				PRINTW 「もちろん、君が私の望みを拒もうとも、私は君に力を貸そう」
+				PRINTW 「さぁ、君はどうする？」
+				PRINTL 
+				PRINTL ＞フィレモンの頼みをききますか？
+				CALL INPUT_YN
+				IF RESULT == 0
+					PRINTL フィレモン:
+					PRINTW 「そうか…ありがとう…おかげで心強い…」
+					CALLF STRFLAG_NUM_EV("フィレモン進行", "=", , 2, [[イベント:ペルソナ２]])
+					CALL INCREASE_LD, 15
+					IF STRFLAG_D("ナイトメアプレゼント") && STRFLAG_D("ゾンビちゃん成仏") && !STRFLAG_D("ラタトスク力づく")
+						PRINTW 「ならば、今はこれくらいしかできないが、受け取りたまえ」
+						PRINTL 
+						PRINTL You got 5 Skillcards
+						PRINTL ＞Skillcard【Megido】 received
+						PRINTL ＞Skillcard【Tarukaja】 received
+						PRINTL ＞Skillcard【Sukukaja】 received
+						PRINTL ＞Skillcard【Makakaja】 received
+						PRINTW ＞Skillcard【Rakukaja】 received
+						ITEM:スキルカード【メギド】+= 1
+						ITEM:スキルカード【タル・カジャ】+= 1
+						ITEM:スキルカード【スク・カジャ】+= 1
+						ITEM:スキルカード【マカ・カジャ】+= 1
+						ITEM:スキルカード【ラク・カジャ】+= 1
+						PRINTL 
+						PRINTL フィレモン:
+					ENDIF
+				ELSE
+					PRINTW 「そうか…ならば、君は君が望む、新しき世界を作るのだ」
+				ENDIF
+			ENDIF
+			;ベルベットルーム条件取得
+			CALLF STRFLAG_NUM_EV("覚醒", "=", , 3, [[イベント:ペルソナ]])
+			PRINTW 「青い扉を探すのだ。そこで私の従者が君に力を貸す」
+			PRINTL 
+			PRINTW ＞そう言うと男は手を翳した。途端に意識が朦朧としてくる……
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			PRINTFORMW 
+			CUSTOMDRAWLINE =
+			PRINTW ＞気がつくと、そこは時計台の中だった
+			PRINTW ＞腕の中にJOKERだった少女がいて、周囲に舞耶達がいる…
+			PRINTL 
+			PRINTL うらら:
+			PRINTW 「どう、どうにかなりそう？」
+			PRINTL 
+			PRINTFORMW ＞そう訪ねてくるうららに、%CALLNAME:MASTER%はもう大丈夫だと告げた
+			PRINTL 
+			PRINTL 克哉:
+			PRINTW 「本当だ…脈も呼吸も正常だ。さすが本職ということか」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は助けたのは自分ではないが、あの仮面の男のことを言うに気にはならなかった
+			PRINTFORMW ＞そんな%CALLNAME:MASTER%をよそに、克哉は考え事を始めた
+			PRINTL 
+			PRINTL 克哉:
+			PRINTW 「さて、どうするか。あんな現場じゃ、この子の犯罪を立証することも出来まい」
+			PRINTW 「いや、それ以前に現場にいたのは明らかに男だ…」
+			PRINTW うらら：
+			PRINTW 「じゃあ、犯人はこの子じゃないっていうの？」
+			PRINTW 「マーヤはまだ狙われるっていうの！？」
+			PRINTL 克哉:
+			PRINTW 「わからない…だが、その可能性は否定出来ない」
+			PRINTW 「そんな…」
+			PRINTL 克哉:
+			PRINTW 「とりあえず、この子は病院に連れていったほうがいいだろうな」
+			PRINTW 「それから、君達を保護したい…が…」
+			PRINTW 「サマナーの君は、警察の厄介にはなりたくないんじゃないか？」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は頷いて、肯定した
+			PRINTL 
+			PRINTL 克哉:
+			PRINTW 「本来ならば、どんな事情があろうと危険があれば市民には協力してもらうところだが…」
+			PRINTW 「こんなふうに助けてもらって、無理は言えないな」
+			PRINTW 「君がそういうなら、今回は君が自力で身を守れることを信じよう」
+			PRINTW 「では、ここでお別れでいいか。協力に感謝する」
+			PRINTL うらら:
+			PRINTW 「ありがとう…おかげでほんとに助かった」
+			PRINTW これでマーヤが殺されてたら、私…ううん、なんでもない」
+			PRINTL 
+			PRINTW ＞舞耶も礼をいって、頭を下げた…
+			PRINTL 
+			PRINTFORMW ＞３人は去っていった…
+			PRINTFORML ＞ペルソナ使い 天野 舞耶がパーティーから外れた
+			PRINTFORML ＞ペルソナ使い 芹沢 うららがパーティーから外れた
+			PRINTFORMW ＞ペルソナ使い 周防 克哉がパーティーから外れた
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は仕事の報告をするために職員室まで行くことにした
+			LOCAL = GETCHARA([[キャラ:舞耶]])
+			SIF LOCAL >= 0 && CFLAG:LOCAL:引継ぎ回数 == 0
+				CALL DEL_GUEST, LOCAL
+			LOCAL = GETCHARA([[キャラ:うらら]])
+			SIF LOCAL >= 0 && CFLAG:LOCAL:引継ぎ回数 == 0
+				CALL DEL_GUEST, LOCAL
+			LOCAL = GETCHARA([[キャラ:克哉]])
+			SIF LOCAL >= 0 && CFLAG:LOCAL:引継ぎ回数 == 0
+				CALL DEL_GUEST, LOCAL
+		ENDIF
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		CALLF STRFLAG_D("ボス撃破", 1, [[ダンジョン:ペルソナ２]])
+		FLAG:MAG消費率 = 0
+ENDSELECT
+;=====================
+;メッセンジャー(50)
+;=====================
+@TILE_MARK_COMMON_50_8, ARG, ARG:1, ARG:2
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@MESSAGE_50
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;おばちゃん
+	CASE 0
+		IF ITEM:時計台の鍵
+			PRINTFORML 用務員の妻:
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「はぁ、橿原先生ねぇ…」
+				PRINTFORMW 「まぁいい先生だったんだけど、ちょっと思い込みが激しい人だったのよ…」
+			ELSE
+				PRINTFORMW 「ちょっと、橿原先生は死んでないでしょ」
+				PRINTFORMW 「ちゃんと毎日会ってるのに、失礼なこというもんじゃありませんよ」
+			ENDIF
+		ELSEIF STRFLAG_D("職員室")
+			PRINTL 用務員の妻らしき女:
+			PRINTW 「鍵？　はてねぇ…」
+			PRINTW 「私にはちょっとわからないねぇ」
+		ELSE
+			PRINTFORMW 用務員の妻らしき女:
+			PRINTFORMW 「もう、さっきまで鐘がなったら世界が滅ぶ滅ぶってうるさかったのに」
+			PRINTFORMW 「こんどはご飯ご飯って、さっき食べたばっかりでしょ！」
+		ENDIF
+	;おじちゃん
+	CASE 1
+		IF ITEM:時計台の鍵
+			PRINTFORML 用務員:
+			PRINTFORMW 「そうだそうだ。鐘がなったら世界が滅びるって死んだ橿原先生が…」
+			PRINTFORMW 「橿原先生は偉い先生だったから間違いあるめぇ」
+		ELSEIF STRFLAG_D("職員室")
+			PRINTW 用務員:
+			PRINTFORMW 「時計台の鍵…？　どこやったかのぉ…」
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTL リサ:
+				PRINTFORMW 「えっと、探させてもらって構わないですか？」
+				PRINTL 用務員の妻:
+				PRINTFORMW 「構わないけど、あんまり荒らしちゃダメよ」
+				PRINTL リサ:
+				PRINTFORMW 「はい、大丈夫です。さぁパンツ番長、とっとと探すわよ」
+				PRINTL 栄吉:
+				PRINTFORMW 「だから、パンツ番長はやめろってギンコ」
+				PRINTL リサ:
+				PRINTFORMW 「パンツ番長はパンツ番長でしょ。てか、そっちこそギンコとか呼ばないでよ」
+				PRINTL 栄吉:
+				PRINTFORMW 「あぁん？　ギンコはギンコだろ。　ギンコ!　ギンコ！　ギンコ！」
+				PRINTL リサ:
+				PRINTFORMW 「パンツ番長！　パンツ番長！　パンツ番長！」
+				PRINTL 栄吉:
+				PRINTFORMW 「ギンコ！　ギンコ！　ってボクとしたことがこれはビュリホーじゃない」
+				PRINTFORMW 「そうだ。勝負しよう。ボクが先に鍵を見つけたら、パンツ番長はやめる」
+				PRINTFORMW 「で、ギンコがさきならギンコはやめる。アーユーアンダスタン？」
+				PRINTL リサ:
+				PRINTFORMW 「ふん、そういうことなら、絶対負けないんだから」
+				PRINTL 
+				PRINTFORMW ＞なにやら盛り上がる二人を尻目に、%CALLNAME:MASTER%と達哉は溜息をつくと鍵を探し始めた…
+				PRINTFORMW ………
+				PRINTFORMW ……
+				PRINTFORMW …
+				PRINTFORMW 
+				PRINTL リサ:
+				PRINTFORMW 「あーん、みつかんないよー」
+				PRINTL 栄吉:
+				PRINTFORMW 「ホワァッツ！？　なんでこんなに探してるのにみつからないんだ！？」
+				PRINTL 用務員の妻:
+				PRINTFORMW 「まぁまぁ、焦らずにお茶でも飲みなさいよ」
+				PRINTL 
+				PRINTFORMW ＞そういって出されたお茶を受け取って、席に着くと、ふと用務員の胸で鍵束が輝いているのに気づいた…
+				PRINTL 
+				PRINTW 用務員:
+				PRINTFORMW 「これ？　これはもちろんこの学校の鍵じゃ、時計台の鍵ももちろんあるぞ」
+				PRINTL 
+				PRINTFORMW ＞一同は盛大に溜息をつくと、時計台の鍵を受け取った…
+			ELSE
+				PRINTL 克哉:
+				PRINTFORMW 「すいませんが、探させてもらって構わないですか？」
+				PRINTL 用務員の妻:
+				PRINTFORMW 「構わないけど、あんまり荒らしちゃダメよ」
+				PRINTL 克哉:
+				PRINTFORMW 「それではさっそくとりかかるとしよう」
+				PRINTL うらら:
+				PRINTFORMW 「あ、マーヤ、ほどほどにね。あんたが張り切るとたいていひどいことになるんだから」
+				PRINTL 
+				PRINTFORMW ＞うららの言葉に、マーヤはニッコリと笑って答える
+				PRINTL 
+				PRINTL うらら:
+				PRINTFORMW 「……ほんとにわかってるのかしら」
+				PRINTL 
+				PRINTFORMW 不安そうに鍵を探し始めるうららにつづいて、%CALLNAME:MASTER%も鍵を探し始めた…
+				PRINTFORMW ………
+				PRINTFORMW ……
+				PRINTFORMW …
+				PRINTFORMW 
+				PRINTL うらら:
+				PRINTFORMW 「あー、もう、ほんとどこにあるの！？」
+				PRINTL 克哉:
+				PRINTFORMW 「落ち着きたまえ、芹沢君。そんなふうにヤケをおこしてはますます見つからなくなるぞ」
+				PRINTL うらら:
+				PRINTFORMW 「だって、もうだいぶ探してるわよ！　ほんとにここにあるわけ！？」
+				PRINTL 用務員の妻:
+				PRINTFORMW 「まぁまぁ、焦らずにお茶でも飲みなさいよ」
+				PRINTL 
+				PRINTFORMW 出されたお茶を受け取って、席に着くと、ふと用務員の胸で鍵束が輝いているのに気づいた…
+				PRINTL 
+				PRINTL 用務員:
+				PRINTFORML 「これ？　これはもちろんこの学校の鍵じゃ、時計台の鍵ももちろんあるぞ」
+				PRINTFORML 「おお、まさか自分の首にかけていたとはなぁ。年はとりたくないもんじゃ」
+				PRINTFORMW 「ところで、捜し物の鍵は見つかったのかの？」
+				PRINTL 
+				PRINTFORMW ＞一同は盛大に溜息をつくと、時計台の鍵を受け取った…
+			ENDIF
+			ITEM:時計台の鍵 = 1
+		ELSE
+			PRINTFORML 用務員らしき男:
+			PRINTFORMW 「悪魔悪魔と騒がしいがご飯はまだかのぉ…」
+		ENDIF
+	;イデアル先生
+	CASE 2
+		PRINTL 教師らしき女:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「やっぱり…鳴羅門石が震えてる…」
+			PRINTFORMW 「これはまさかマイアの託宣…？」
+			PRINTFORMW 「それともラストバタリオンの陰謀…？」
+			PRINTFORMW 「ああ、いまに恐ろしいことが起こるに違いないわ！」
+		ELSE
+			PRINTFORMW 「鳴羅門石の異常が収まらない…」
+			PRINTFORMW 「始まってしまったということね…」
+		ENDIF
+	;入り口の生徒
+	CASE 3
+		PRINTL 必死に扉を叩いてる生徒:
+		PRINTFORMW 「ちくしょう！ちくしょう！　なんででれねーんだ！」
+		PRINTFORMW 「まだしにたくなんかねーよ！」
+		PRINTFORMW 「なぁ、あんたサマナーなんだろ？　なんとかしてくれよ！」
+	CASE 4
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			IF !STRFLAG_D("泣いている生徒", 1, [[ダンジョン:ペルソナ２]])
+				PRINTFORML 泣いている女子生徒:
+				PRINTFORMW 「いや…悪魔だなんて…うそでしょ…」
+				PRINTFORMW 「わたし、まだ恋だってしたことないのに…うぅ…」
+				PRINTL 
+				PRINTFORMW ＞女子生徒は涙を流している…
+				PRINTL [0]慰める
+				PRINTL [1]放っておく
+				PRINTL [2]助ける代わりに金銭を要求する
+				CALL INPUTINT(0, 1, 2)
+				IF RESULT == 0
+					PRINTL 泣き虫な女子生徒:
+					PRINTFORMW 「え、サマナー…？　助けてくれる？」
+					PRINTFORMW 「で、でも、危ないですよ」
+					PRINTFORMW 「プロだから…大丈夫っていっても…ううん」
+					PRINTFORMW 「わかりました。私、あなたを信じます」
+					PRINTFORMW 「頑張ってください。お願いします」
+					PRINTL 
+					PRINTFORMW ＞そう言って%CALLNAME:MASTER%を見つめる女子生徒の視線がどこか熱っぽい…
+					;Lに傾く
+					CALL INCREASE_LD, 4
+					CALLF STRFLAG_NUM_EV("フィレモン進行", "=", , 1, [[イベント:ペルソナ２]])
+				ELSEIF RESULT == 1
+					PRINTFORMW ＞女子生徒は泣き続けている…
+				ELSE
+					PRINTL 女子生徒:
+					PRINTFORMW 「え、サマナー…？　助けてくれる？」
+					PRINTFORMW 「お金……っていってもたいしてはないんですけど…」
+					PRINTFORMW 「えっと、すいません…これしか…」
+					PRINTL
+					PRINTW ＞少女はそういって￥3000を差し出してきた
+					PRINTW ＞\3000を手に入れた
+					MONEY += 3000
+					;Cに傾く
+					CALL INCREASE_LC, -4
+					CALLF STRFLAG_D("金要求", 1, [[ダンジョン:ペルソナ２]])
+				ENDIF
+			ELSE
+				IF STRFLAG_NUM_EV("フィレモン進行", , , , [[イベント:ペルソナ２]]) == 1
+					PRINTL 泣き虫な女子生徒:
+					PRINTFORMW 「頑張ってください…私、信じてますから」
+				ELSEIF STRFLAG_D("金要求", 0, [[ダンジョン:ペルソナ２]])
+					PRINTL 女子生徒:
+					PRINTFORMW 「頑張ってください」
+				ELSE
+					PRINTFORMW ＞女子生徒はまだ泣いている…
+				ENDIF
+			ENDIF
+		ELSE
+			IF STRFLAG_NUM_EV("フィレモン進行", , , , [[イベント:ペルソナ２]]) > 0
+				IF !STRFLAG_D("お礼",1) && TALENT:MASTER:オトコ
+					PRINTL 泣き虫な女子生徒:
+					PRINTFORMW 「ほんとにありがとうございます…ちゅ…」
+					PRINTL 
+					PRINTFORMW ＞泣き虫な女子生徒はキスしてきた…
+					PRINTL 
+					PRINTL 泣き虫な女子生徒:
+					PRINTFORMW 「えっと…そのお礼です…あのその、迷惑でした…？」
+					PRINTL 
+					PRINTFORMW ＞顔を真赤にして訪ねてくる女子生徒にそんなことはないといってやった
+					PRINTL 
+					PRINTL 泣き虫な女子生徒:
+					PRINTFORMW 「そうですか…ふふ、よかった…」
+					PRINTL 
+					PRINTFORMW ＞女子生徒はニッコリと微笑んだ…
+				ELSE
+					PRINTL 泣き虫な女子生徒:
+					PRINTFORMW 「えっと…ほんとにありがとうございます…」
+					PRINTFORMW 「私，サマナーさんのこと絶対に忘れません」
+				ENDIF
+			ELSE
+				PRINTL 女子生徒:
+				PRINTFORMW 「え、もう悪魔はいない？」
+				PRINTFORMW 「ほんと…？　はぁ…よかった…」
+			ENDIF
+		ENDIF
+	CASE 5
+		PRINTL 男子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「あんたがサマナー？」
+				PRINTFORMW 「なら、校長先生を手伝ってやってくれよ」
+				PRINTFORMW 「いや、校長先生ならあんたの助けなんかいらないだろうけど」
+				PRINTFORMW 「なんかのやくにたつかもしんねーし」
+				PRINTFORMW 「ほら、３階の西の廊下の突き当たりに校長室があるからさ」
+			ELSE
+				PRINTFORMW 「なんでも、真っ先にハンニャのやろうが殺されたとか何とか…」
+				PRINTFORMW 「え、どこでって？」
+				PRINTFORMW 「そりゃ、ハンニャはあれでも校長だからな。校長室だよ。３階西の突き当たりのさ」
+			ENDIF
+		ELSE
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「この学園は…校長先生のおかげで守られたんだよな…たぶん」
+				PRINTFORMW 「俺達は絶対校長先生のことは忘れないぜ…」
+			ELSE
+				PRINTFORMW 「ハンニャのやつが死んだってのはまじかぁ…」
+				PRINTFORMW 「嫌な奴だけど、死ぬのは…っていいたけど、正直ざまぁみろってかんじ」
+				PRINTFORMW 「俺って冷たいか…？」
+			ENDIF
+		ENDIF
+	CASE 6
+		PRINTL 男子生徒:
+		IF STRFLAG_D("ブキミちゃん終了")
+			PRINTW 「ああ、今日は最高の日だ！」
+			PRINTW 「これで何の不安もなく学校生活を送れる！」
+		ELSEIF STRFLAG_D("ボス撃破")
+			PRINTW 「ブキミちゃんはまだいるのに…」
+			PRINTW 「本当にやばいのはこんなことじゃないのに…」
+		ELSEIF STRFLAG_D("ブキミちゃん撃破")
+			PRINTW 「それはBukimi's Nametag！」
+			PRINTW 「と、いうことはやってくれたんだな！」
+			PRINTW 「ひゃっほぅ！」
+			PRINTW 「と、お礼をしなきゃな。はい、これ」
+			PRINTL
+			PRINTW ＞反魂香を渡された
+			CALL GET_ITEMS, "BalmOfLife",1
+			CALLF STRFLAG_D("ブキミちゃん終了", 1)
+		ELSEIF STRFLAG_D("ブキミちゃん開始")
+			PRINTW 「どうした？」
+			PRINTW 「はやく倒してくれよ」
+			PRINTW 「お礼はちゃんと用意してあるからさ」
+		ELSE
+			PRINTW 「みんな悪魔悪魔って騒いで…」
+			PRINTW 「本当にやばいのはブキミちゃんだっつーの」
+			PRINTW 「七姉妹学園に巣食う闇…」
+			PRINTW 「いつか、生徒を皆殺しにする悪魔」
+			PRINTW 「それがブキミちゃんなんだよ！」
+			PRINTW 「なぁあんた、ブキミちゃんを倒してくれよ！」
+			PRINTW 「お礼はするからさ！」
+			CALL INPUT_YN
+			PRINTL 
+			PRINTL 男子生徒:
+			IF RESULT == 0
+				PRINTW 「よし、頼んだぜ！」
+				PRINTW 「頑張ってくれよ！」
+				CALLF STRFLAG_D("ブキミちゃん開始", 1)
+			ELSE
+				PRINTW 「なんだよ。あんたサマナーなんだろ」
+				PRINTW 「まさかびびってるのかよ？」
+				PRINTW 「期待してがっかりしたぜ」
+			ENDIF
+		ENDIF
+	CASE 7
+		PRINTFORML 男子生徒:
+		IF !STRFLAG_D("魔貨ゲット", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「なぁ、あんた、サマナーなんだろ？」
+			PRINTFORMW 「じゃあ、これの価値わかるよな」
+			PRINTL 
+			PRINTFORMW ＞そういうと男子生徒は魔貨を見せてきた
+			PRINTL 
+			PRINTL 男子生徒:
+			PRINTFORMW 「悪魔の通貨、魔貨。そういう仕事に関わる人間は主にこれを利用してるって話だろ」
+			PRINTFORMW 「あんたも、強力な装備を用意したり、COMPを改造するのにはこれをつかってるんだろ」
+			PRINTFORMW 「で、まぁ物は相談なんだが」
+			PRINTFORMW 「この100魔貨を買い取ってくれないか？」
+			PRINTFORMW 「ちょっと色々あって手に入れたんだけど、正直俺には使い道がないのよ」
+			PRINTFORMW 「￥6000でどうよ？　悪い話じゃないだろ？」
+			PRINTL 
+			PRINTL [0] 買い取る
+			PRINTL [1] 買わない
+			PRINTL [2] 無理やり奪う
+			CALL INPUTINT(0, 1, 2)
+			PRINTL 
+			PRINTL 男子生徒:
+			IF RESULT == 0
+				IF MONEY >= 6000
+					PRINTFORMW 「へへ、まいどどうも」
+					PRINTL 
+					PRINTFORMW ＞￥6000を支払い、100魔貨を手に入れた
+					MONEY -= 6000
+				ELSEIF MONEY >= 3000
+					PRINTFORMW 「って、あんた金たりてねーじゃねーか」
+					PRINTFORMW 「仕方ねぇなぁ。￥3000に負けといてやるよ」
+					PRINTL 
+					PRINTFORMW ＞￥3000を支払い、100魔貨を手に入れた
+					MONEY -= 3000
+				ELSE
+					PRINTFORMW 「って、あんた金たりてねーじゃねーか」
+					PRINTFORMW 「なら、￥3000でって、それすらたりてねぇ！」
+					PRINTFORMW 「ああもう仕方ねぇなぁ。ほらもってけよ」
+					PRINTFORMW 「どうせ俺には使い道ねーし、いい大人がそんな金ねーのも可哀相だわ」
+					PRINTL 
+					PRINTFORMW ＞100魔貨を恵んでもらった
+				ENDIF
+				MONEY:1 += 100
+				CALLF STRFLAG_D("魔貨ゲット", 1, [[ダンジョン:ペルソナ２]])
+			ELSEIF RESULT == 1
+				PRINTFORMW 「え、まじで？　ちょっと待てよ」
+				PRINTFORMW 「なら、￥3000ならどうだ？」
+				PRINTFORMW 「これなら、文句無いだろ？」
+				PRINTL 
+				CALL INPUT_YN("買い取る", "買い取らない")
+				PRINTL 男子生徒:
+				IF RESULT == 0
+					PRINTFORMW 「へへ、まいどどうも」
+					IF MONEY >= 3000
+						PRINTL 
+						PRINTFORMW ￥3000を支払い、100魔貨を手に入れた
+						MONEY -= 3000
+						MONEY:1 += 100
+						CALLF STRFLAG_D("魔貨ゲット", 1, [[ダンジョン:ペルソナ２]])
+					ELSE
+						PRINTFORMW 「って金たりねーじゃねーか！」
+						PRINTFORMW 「いい大人が￥3000もねーのかよ！？」
+					ENDIF
+				ELSE
+					PRINTFORMW 「あー、そうかい」
+					PRINTFORMW 「それならいいよ」
+				ENDIF
+			ELSE
+				PRINTL 男子生徒:
+				PRINTFORMW 「おい…ちょっと…やめろよ」
+				PRINTFORMW 「あー、もうわかったよ。わかった」
+				PRINTFORMW 「ほら、もってけよ」
+				PRINTL 
+				PRINTFORMW ＞100魔貨を奪い取った
+				;DCに傾く
+				CALL INCREASE_LD, -8
+				CALL INCREASE_LC, -8
+				CALLF STRFLAG_D("魔貨ゲット", 1, [[ダンジョン:ペルソナ２]])
+				CALLF STRFLAG_D("魔貨強奪", 1, [[ダンジョン:ペルソナ２]])
+				MONEY:1 += 100
+			ENDIF
+		ELSE
+			IF STRFLAG_D("魔貨強奪", 0, [[ダンジョン:ペルソナ２]])
+				PRINTFORMW 「な、なんだよ」
+				PRINTFORMW 「もうなにもねーぞ」
+			ELSE
+				PRINTFORMW 「ん、どうした？」
+				PRINTFORMW 「もう、魔貨はねーぞ」
+			ENDIF
+		ENDIF
+	CASE 8
+		PRINTL 女子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「ヒットポイント回復するなら傷薬と宝玉で～♪」
+			PRINTFORMW 「瀕死大変、仲間を助ける地返しの玉と反魂香～♪」
+			IF !STRFLAG_D("サトミタダシファン", 1, [[ダンジョン:ペルソナ２]])
+				PRINTFORMW 「あ、これサトミタダシの歌です。知ってます？」
+				PRINTFORMW 「回復アイテムを売ってくれるディスカウントショップで大ファンなんです」
+				PRINTFORMW 「うふ、悪魔が出てくれて、やっと買っといたアイテムが役に立つ日が来たわ」
+				PRINTFORMW 「そうだ。あなたにもわけてあげる」
+				PRINTL 
+				PRINTL ＞傷薬を渡された
+				PRINTL ＞牛黄丹を渡された
+				PRINTL ＞ディスチャームを渡された
+				PRINTL ＞ディスポイズンを渡された
+				PRINTL ＞道返玉を渡された
+				CALL GET_ITEMS,"Medicine", 3
+				CALL GET_ITEMS,"OxBezoar", 2
+				CALL GET_ITEMS,"Dis-Charm", 2
+				CALL GET_ITEMS,"Dis-Poison", 3
+				CALL GET_ITEMS,"RevivalBead", 1
+				PRINTL 
+				PRINTL 女子生徒:
+				PRINTFORMW 「どうです？　びっくりしました？」
+				PRINTFORMW 「これがサトミタダシのちからですよ。安いからいっぱい買えちゃうわけ」
+				PRINTFORMW 「ところで…魔法があるから、回復アイテムいらないとか思ってませんよね？」
+				PRINTFORMW 「道具知識もちの香りがするあなたが…まさかとは思いますけど」
+				PRINTFORMW 「気づいたら溜まってて地味に嬉しい傷薬、下手な魔法より全然回復する牛黄丹」
+				PRINTFORMW 「もたせておくのがめんどくさい状態異常回復、それに復活の地返しの玉…」
+				PRINTFORMW 「このすばらしさがわからないなんて…そんなはずないですよね。うふふふふ」
+			ENDIF
+		ELSE
+			PRINTFORMW 「あぁ、回復アイテムのおかげで、今日は最高だったわ…」
+			PRINTFORMW 「でも減っちゃったから、またサトミタダシにいかなきゃ。うふふ」
+		ENDIF
+	CASE 9
+		PRINTL ゾンビちゃん:
+		PRINTW 「あなた、サマナーね？」
+		PRINTW 「ねぇ、ちょっと私の話を聞いてくれない？」
+		PRINTL [0] はい
+		PRINTL [1] いいえ
+		PRINTL [2] 悪魔は退治する
+		CALL INPUTINT(0 ,1, 2)
+		IF RESULT == 0
+			PRINTL 
+			PRINTL ゾンビちゃん:
+			PRINTW 「私も、もうこんなゾンビになってまで生きてるのがつくづく嫌になってね…」
+			PRINTW 「いい加減成仏したいのよ…」
+			PRINTW 「それには反魂香があるといいんだけど、あなた持ってない…？」
+			PRINTW 「持ってたら、この耐力の香と交換して欲しいのだけれど」
+			IF ITEM:BalmOfLife
+				PRINTL [0] 交換する
+				PRINTL [1] 交換しない
+				PRINTL [2] 戦って奪いとる
+				CALL INPUTINT(0 ,1, 2)
+				IF RESULT == 0
+					PRINTL 
+					PRINTW ＞反魂香と引換に耐力の香をもらった
+					PRINTL 
+					PRINTL ゾンビちゃん:
+					PRINTW 「ありがとう。これでこの忌まわしい人生も終わりね…」
+					PRINTL 
+					PRINTW ＞ゾンビちゃんは反魂香を使った
+					PRINTW ＞ゾンビちゃんは白い光に包まれ、消滅した…
+					ITEM:BalmOfLife -= 1
+					ITEM:EnIncense += 1
+					CALLF STRFLAG_D("ゾンビちゃん成仏", 1)
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					CALL INCREASE_LD, 16
+					RETURN 0
+				ELSEIF RESULT == 1
+					PRINTL 
+					PRINTL ゾンビちゃん:
+					PRINTW 「そう…残念ね…」
+					RETURN 0
+				ELSE
+					CALL INCREASE_LC, -8
+					CALL INCREASE_LD, -8
+				ENDIF
+			ELSE
+				PRINTL ＞反魂香はないが…
+				CALL INPUT_YN("戦って奪い取る", "やめておく")
+				IF RESULT == 1
+					PRINTL 
+					PRINTL ゾンビちゃん:
+					PRINTW 「そう…ないのね」
+					PRINTW 「しょうがないわね…」
+					PRINTW 「でも、手に入ったら私のところに持ってきて…お願いよ」
+					RETURN 0
+				ELSE
+					CALL INCREASE_LC, -8
+					CALL INCREASE_LD, -8
+				ENDIF
+			ENDIF
+		ELSEIF RESULT == 1
+			PRINTL ゾンビちゃん:
+			PRINTW 「そう…残念ね…」
+			RETURN 0
+		ELSE
+			CALL INCREASE_LC, 8
+			CALL INCREASE_LD, 2
+		ENDIF
+		IF FINDCHARA_B([[キャラ:達哉]]) == 2
+			PRINTFORMW ＞達哉は%CALLNAME:MASTER%を非難するような目で見たが
+			PRINTW ＞ため息をつくと、武器を構えた
+		ELSEIF FINDCHARA_B([[キャラ:舞耶]]) == 2
+			PRINTFORMW ＞舞耶は%CALLNAME:MASTER%を非難するような目で見たが
+			PRINTW ＞ため息をつくと、武器を構えた
+		ENDIF
+		PRINTL ゾンビちゃん:
+		PRINTW 「やる気…？」
+		PRINTW 「……人間に頼みごとをしようとした私が馬鹿だったってことね…」
+		PRINTL ＞外道 ゾンビちゃんに襲いかかった！
+		CUSTOMDRAWLINE =
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9, [[キャラ:ゾンビちゃん]], 12
+		ABL:(CHARANUM-1):アイテム1 = [[アイテム:EnIncense]]
+		ABL:(CHARANUM-1):入手確率1 = 100
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALLF STRFLAG_D("ゾンビちゃん退治", 1)
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+	;麻生先生
+	CASE 100
+		PRINTL 男性教師:
+		IF STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「あー、そう。さすがサマナー。あっさり事件解決ってわけね」
+		ELSEIF STRFLAG_D("時計台")
+			PRINTFORMW 「時計台の鍵？　そんなもんどうするの？」
+			PRINTFORMW 「あー、そう。時計台に行きたいのか　」
+		ELSE
+			PRINTFORMW 「君が例のサマナー？　なんか思ったより普通だね」
+			PRINTFORMW 「あー、そう。学校に来るのに変な格好してこれないか」
+		ENDIF
+	;女教師
+	CASE 101
+		PRINTL 依頼者の女教師: 
+		IF STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「ふむふむ…なるほど…まさか…」
+			PRINTL 
+			PRINTFORMW ＞%CALLNAME:MASTER%は依頼者に、仕事の詳細を伝えた…
+			PRINTL 
+			PRINTL 依頼者の女教師: 
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「しかし、ハンニャの野郎が怪しげな集団とつながってるなんてねぇ…」
+				PRINTFORMW 「言われてみれば、いきなりふさふさになったし…はぁ…ほんとにろくなことしないんだから」
+			ELSE
+				PRINTFORMW 「一応、いまのところ被害が確認できてるのは校長一人みたい」
+				PRINTFORMW 「あんな校長でも、殺されちゃうとやっぱりね…」
+			ENDIF
+			PRINTFORMW 「まぁでも、とにかく、悪魔はいなくなったみたい」
+			PRINTFORMW 「本当におかげで助かったわ」
+			PRINTFORMW 「報酬はあとでしっかり振り込ませてもらうわ」
+			PRINTFORMW 「もちろん、しっかり異界化を解決してくれたんだから奮発させてもらうわ」
+			PRINTL 
+			PRINTW ＞時計台の鍵を返して、七姉妹学園を後にした
+			;罰ルートは直後にノリコを奴隷として獲得するか、５００魔貨を得るかの２択を作るのでやや安く
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 報酬として、口座に￥40000が支払われた
+				MONEY += 40000
+				CALLF STRFLAG_NUM_EV("罪ルート進行", "=", , 2, [[イベント:ペルソナ２]])
+			ELSE
+				PRINTFORMW 報酬として、口座に￥25000が支払われた
+				MONEY += 25000
+				CALLF STRFLAG_NUM_EV("罰ルート進行", "=", , 2, [[イベント:ペルソナ２]])
+			ENDIF
+			;いらなくなったフラグ消去
+			ITEM:時計台の鍵 = 0
+			SAVESTR:(100 + [[ダンジョン:ペルソナ２]]) = /七姉妹学園クリア/
+			FLAG:脱出スキル禁止 = 0
+			FLAG:脱出 = 1
+			RETURN 0
+		ELSEIF !STRFLAG_D("女教師", 1)
+			PRINTFORMW 「どうも手遅れだったみたい…」
+			PRINTFORMW 「いや、あなたが来てくれてるということはまだギリギリセーフかも」
+			PRINTFORMW 「お願いします。この学園を救ってください」
+		ENDIF
+		IF STRFLAG_D("時計台")
+			PRINTFORMW 「時計台の鍵？　うーん…ちょっと探してみるから待ってね」
+			PRINTL 
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			PRINTFORMW 
+			PRINTL 依頼者の女教師: 
+			PRINTFORMW 「ないわね。誰かが持ち出したのかも」
+			PRINTFORMW 「用務員のおじさんが全部の鍵をもってるはずだから」
+			PRINTFORMW 「１階の用務員室に行ってみるといいかもしれないわ」
+			CALLF STRFLAG_D("職員室", 1)
+		ELSE
+			PRINTFORMW 「でも、意外と悪魔ってのもどーにかなるものね」
+			PRINTFORMW 「もう何体か張り倒してあげたわよ」
+		ENDIF
+	;メッセンジャー(2F西)
+	CASE 102
+		IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+			PRINTL 男子生徒:
+			IF FINDCHARA_B([[キャラ:リサ]]) == 2
+				IF !STRFLAG_D("眼鏡ゲット", 1)
+					PRINTW 「リサさん！　これをつけてください！」
+					PRINTL 
+					PRINTW ＞男子生徒は眼鏡をリサに渡した
+					PRINTL 
+					PRINTL リサ：
+					PRINTW 「え、なに？」
+					PRINTL 男子生徒:
+					PRINTL 「眼鏡です！　リサさんは美しいですが」
+					PRINTW 　その美しさも眼鏡がないせいで完成していないのです！！」
+					PRINTL 栄吉:
+					PRINTL 「はぁ？　ギンコに眼鏡？
+					PRINTW 　こいつにそんな賢そうなもの似合うわけが」
+					PRINTL リサ:
+					PRINTW 「ケッヘイ！　うるさい！」
+					PRINTW 「私だって、眼鏡のひとつやふたつ…」
+					PRINTW 「どう、チンヤン？」
+					PRINTL 男子生徒:
+					PRINTW 「うおおおおおおお！」
+					PRINTW 「感動です！　死ぬ前にリサさんの眼鏡姿を見れるなんて」
+					PRINTL リサ：
+					PRINTW 「え？　え、ちょっと…」
+					PRINTL 男子生徒:
+					PRINTW 「それはもっていってください！」
+					PRINTL 
+					PRINTW ＞そういってむせびなく、男子生徒の傍を離れた…
+					PRINTL
+					PRINTL リサ：
+					PRINTW 「うん…怖い…」
+					PRINTW 「これ、処分してください…」
+					PRINTL 
+					PRINTW インテリメガネを手に入れた
+					CALL GET_ITEMS, "Intel Glasses", 1
+				ELSE
+					PRINTW 「リサさん、眼鏡は！？」
+					PRINTW 「眼鏡はどうしたんですか！？」
+					PRINTL リサ：
+					PRINTW 「え、えーと…うん」
+					PRINTW 「ほら、悪魔とかいるし、落として割ったりしないように…ね？」
+				ENDIF
+			ELSE
+				PRINTW 「はぁ…リサさん、どうしてあなたはそんなに美しいんだ…」
+			ENDIF
+		ELSE
+			PRINTL 女子生徒:
+			IF FINDCHARA_B([[キャラ:克哉]]) == 2
+				IF !STRFLAG_D("眼鏡ゲット", 1)
+					PRINTW 「は…素敵な眼鏡の殿方」
+					PRINTW 「そう、そうだわ！　これは運命だわ！」
+					PRINTW 「これを受け取ってください」
+					PRINTL 
+					PRINTW そういって女子生徒は克哉に眼鏡を押し付けた
+					PRINTL 
+					PRINTL 克哉:
+					PRINTW 「え、ええと…これは？」
+					PRINTL 女子生徒:
+					PRINTW 「私、眼鏡をつけた男性が好きなんです。萌えるんです」
+					PRINTW 「夢は素敵な眼鏡の男性と結婚することです…」
+					PRINTW 「そして、それはその男性につけてもらおうと買っていた眼鏡です」
+					PRINTW 「でも、悪魔のせいで夢はかなわなさそうなので…」
+					PRINTL 克哉:
+					PRINTW 「そんなに大切な眼鏡は受け取れない」
+					PRINTW 「それに君達は僕が責任をもってしっかりと守らせてもらう」
+					PRINTW 「だから、大丈夫だ」
+					PRINTL 
+					PRINTW ＞克哉はそう言って眼鏡を女子生徒に返そうとした…
+					PRINTL 
+					PRINTL 女子生徒:
+					PRINTW 「受け取ってくれないんですか！？」
+					PRINTW 「私の一生のお願いを聞いてくれないんですか！？」
+					PRINTL 克哉:
+					PRINTW 「いや、だからだね…」
+					PRINTL 女子生徒:
+					PRINTW 「ひどい、ひどすぎる…」
+					PRINTW 「そう思いませんか！？」
+					PRINTL うらら:
+					PRINTW 「あー、うん。受け取ってあげれば？」
+					PRINTL 
+					PRINTW ＞うららがそう言うと舞耶もうんうんとうなづく
+					PRINTFORMW ＞そして、少女が目線で訴えかけてきたので%CALLNAME:MASTER%も同意しておくことにした
+					PRINTL 
+					PRINTL 克哉:
+					PRINTW 「うぅ、仕方ないな…」
+					PRINTW 「それじゃあ、大切にさせてもらうよ」
+					PRINTL 女子生徒:
+					PRINTW 「わぁ、ありがとうございます」
+					PRINTW 「これで悪魔に食い殺されようが、どうなろうが望むところです！」
+					PRINTL 克哉:
+					PRINTW 「いやいや…それは…」
+					PRINTL 女子生徒:
+					PRINTL 「私のことを気遣ってくれるんですか？
+					PRINTW 　ますます素敵！」
+					PRINTL 克哉：
+					PRINTW 「……」
+					PRINTL 
+					PRINTW 克哉は絶句している…
+					PRINTL 
+					PRINTL 女子生徒：
+					PRINTW 「それにあなたたちもいいひとみたいですね！」
+					PRINTW 「これをどうぞ！　知り合った記念です！」
+					PRINTL 
+					PRINTW 女子生徒は一同に眼鏡を配ってきた
+					PRINTW インテリメガネを手に入れた
+					CALL GET_ITEMS, "Intel Glasses", 1
+				ELSE
+					PRINTW 「あ…、王子様…」
+					PRINTW 「眼鏡を私だと思って大切にしてくださいね…うふ」
+					PRINTL 
+					PRINTL 克哉:
+					PRINTW 「あ…あぁ…」
+					PRINTL
+					PRINTW 克哉はひきつった笑みを浮かべている…
+				ENDIF
+			ELSE
+				IF STRFLAG_D("眼鏡ゲット")
+					PRINTW 「はぁ…眼鏡の王子様…私の心は常にあなたのそばにあります…」
+				ELSE
+					PRINTW 「はぁ…眼鏡の王子様…はやくきてください…」
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE 103
+		PRINTL 女子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「もう…せっかくジョーカー様に綺麗にしてもらったのに…」
+				PRINTFORMW 「まだ素敵な彼氏を捕まえてないうちに死ぬなんて嫌よ…」
+				PRINTFORMW 「あー、誰でもいいから助けて!」
+			ELSE
+				PRINTFORMW 「うー…ジョーカー呪いをして、あの女がもうすぐ死んで…私の時代がくるっていうのに…」
+				PRINTFORMW 「なんで、こんな…ふざけるんじゃないわよ」
+				PRINTFORMW 「誰かどうにかしなさいよ」
+			ENDIF
+		ELSE
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「あー、助かった助かった」
+				PRINTFORMW 「それじゃあ、さっそく素敵な彼氏を探さなきゃ…うふ」
+			ELSE
+				PRINTFORMW 「うーん、助かった」
+				PRINTFORMW 「あとはあの女が殺されるのをまつだけね。うふ」
+			ENDIF
+		ENDIF
+	CASE 104
+		PRINTL 男子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTL 「はぁ、軽高が異界化したって話だし…
+			PRINTL 　エルミンの方も大変なことになってるって話だし
+			PRINTW 　セブンスも…って思ってたけど、ほんとにこんなことになるなんてなぁ…」
+			PRINTW 「てかもう、この世界ダメなんじゃねーか…」
+		ELSE
+			PRINTW 「なんかもう、ダメだと思ったけど普通に助かったのかぁ」
+			PRINTW 「でも、これっていつどんなことになってもおかしくないってことだよな」
+			PRINTW 「うん、俺も悔いがないように毎日精一杯頑張っていきよう…」
+		ENDIF
+	CASE 105
+		PRINTL 女子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTW 「うー、悪魔だなんて…」
+			PRINTW 「やっぱり、最近危ないしなぁ…ほんと」
+			PRINTL 「なんか、街でも武器とか防具売ってるところがあるとかいう噂だし
+			PRINTW 　私もなんか買っとけばよかったのかなぁ…」
+			PRINTW 「確か英国屋がウェディングドレスから鎧まで作ってくれる…」
+			PRINTW 「ってこれ、単なる宣伝文句よね」
+		ELSE
+			PRINTW 「えーと、どこで買えるんだっけかな…」
+			PRINTW 「ロサカンディータだっけか」
+			PRINTW 「あれ、でもこれって今年のテーマは防具ってだけだったような」
+			PRINTW 「要するにデザインが防具っぽい服を売りますってことだよね？」
+		ENDIF
+	CASE 106
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			IF FINDCHARA_B([[キャラ:リサ]]) == 2
+				IF !STRFLAG_D("みーぽ会話", 1)
+					PRINTL 女子生徒:
+					PRINTFORMW 「あ、リサ、無事だったんだ…よかった…」
+					PRINTL リサ:
+					PRINTFORMW 「あ、みーぽ…」
+					PRINTL みーぽ:
+					PRINTFORMW 「はぁ、ほんと心配したんだよ」
+					PRINTFORMW 「ふーん…でも大丈夫だから、別に心配することないよ」
+					PRINTL 
+					PRINTFORMW ＞リサはそう言って、女子生徒から離れた
+					PRINTL みーぽ:
+					PRINTFORMW 「あ、ちょっと、どこいくの？」
+					PRINTL リサ:
+					PRINTFORMW 「悪魔退治」
+					PRINTFORMW ＞リサは振り向かずに答えた
+					PRINTL みーぽ:
+					PRINTFORMW 「え、ええ？　危ないよ！　あ、ちょっと待ってよ。リサ！」
+					PRINTW 「あー…もう、そうだ！」
+					PRINTW 「これもっていってください。リサをよろしくお願いします」
+					CALL GET_ITEMS,"ValueMedicine", 3
+					PRINTL 
+					PRINTW ＞メディカルパウダーを渡された
+				ELSE
+					PRINTL みーぽ:
+					PRINTFORMW 「えっと、サマナーさん、周防先輩、リサをよろしくお願いします」
+				ENDIF
+			ELSE
+				PRINTL 女子生徒:
+				PRINTFORMW 「…あさっちもリサもだいじょうぶだよね」
+				PRINTFORMW 「悪魔に食べられちゃったりしてないよね…」
+			ENDIF
+		ELSE
+			IF STRFLAG_D("みーぽ会話")
+				PRINTL みーぽ:
+				PRINTW 「あ、サマナーさん…
+				PRINTW 　えっと、さっきはどうも…」
+				PRINTW 「リサ、無事だったみたいですね。ありがとうございます」
+			ELSE
+				PRINTL 女子生徒:
+				PRINTFORMW 「もう、悪魔はいないんだよね…」
+				PRINTFORMW 「あさっちとリサを探さなきゃ……でもやっぱり怖い……」
+			ENDIF
+		ENDIF
+	CASE 107
+		PRINTL 女子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「異界化した学校に閉じ込められると、最後にはゾンビちゃんにされちゃうらしいの…」
+			PRINTFORMW 「それで……ふらふら、食べる人間を求めて……永遠に苦しまなきゃいけないとか……」
+			PRINTFORMW 「ああ、でもゾンビちゃんでもちゃんと愛してくれる人が現れたら成仏できて救われるとか」
+			PRINTFORMW 「でも、ゾンビを愛せる人なんていないわよね…あー、いやー、ゾンビちゃんになんかなりたくないよー」
+		ELSE
+			PRINTFORMW 「はぁ…これを気に頑張って彼氏でも作ろうかな…」
+			PRINTFORMW 「私がゾンビちゃんになっても、愛してるっていってくれるような…」
+			PRINTFORMW 「って、無理かなやっぱり」
+		ENDIF
+	CASE 200
+		IF !STRFLAG_D("ラタトスク初回", 1, [[ダンジョン:ペルソナ２]])
+			PRINTL ラタトスク:
+			PRINTW 「うわ、武器なんか構えないでよ」
+			PRINTW 「あたしは平和主義者なんだから」
+			PRINTW 「他の野蛮な奴らと一緒にしないでよね」
+			CALL INPUT_YN("武器をおさめる", "悪魔は退治する")
+			IF RESULT == 0
+				PRINTL 
+				PRINTL ラタトスク:
+				PRINTW 「そうそう、バトルなんてお腹が空くだけよね」
+				PRINTW 「で、なんか用なの？」
+				PRINTW 「用があれば聞くけど」
+				PRINTW 「正直、退屈してるのよねー」
+				GOTO BUKIMISTART
+			ELSE
+				PRINTL 
+				IF FINDCHARA_B([[キャラ:うらら]]) == 2
+					PRINTL うらら:
+					PRINTW 「……平和主義だって言ってるけど？」
+					PRINTW 「ううん、悪魔は悪魔よね」
+				ELSEIF FINDCHARA_B([[キャラ:栄吉]]) == 2
+					PRINTL 栄吉:
+					PRINTW 「まじで？　ぜんっぜん、害なんかなさそうなのによぉ」
+					PRINTW 「いや、プロのあんたがやるっていうんだから…従うぜ」
+				ENDIF
+				CALL INCREASE_LC, 8
+				CALL INCREASE_LD, 2
+				PRINTL ラタトスク:
+				PRINTW 「ちょっとやめてよ？」
+				PRINTW 「……あー、もう後悔させてやるんだから！」
+				PRINTL ＞魔獣 ラタトスクに襲いかかった！
+				CUSTOMDRAWLINE =
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:ラタトスク]], 12
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALLF STRFLAG_D("ラタトスク退治", 1)
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				PRINTL 
+				IF FINDCHARA_B([[キャラ:うらら]]) == 2
+					PRINTL うらら:
+					PRINTW 「…でも、ほんとにこれよかったのかな」
+					PRINTW 「ううん、考えてもしょうがないわね」
+				ELSEIF FINDCHARA_B([[キャラ:栄吉]]) == 2
+					PRINTL 栄吉:
+					PRINTW 「…ほんとにこれでよかったのか」
+					PRINTW 「いや、考えてもしかたねぇか」
+				ENDIF
+			ENDIF
+		ELSEIF STRFLAG_D("ブキミちゃん撃破")
+			PRINTL ラタトスク:
+			PRINTW 「へー、ブキミちゃんやっつけたんだ？」
+			PRINTW 「で、それが名札ねぇ…」
+			PRINTW 「こういっちゃなんだけど、それってほんとに証拠になるの？」
+			PRINTW 「いくらでもつくれそうなんだけど」
+		ELSEIF STRFLAG_D("ブキミちゃん出現")
+			PRINTL ラタトスク:
+			PRINTW 「うーん、けっこう聞いてまわったけど」
+			PRINTW 「やっぱり、知ってる子なんでほとんどいなかったよ」
+			PRINTW 「ああ、でも、最後のほうだと聞いたことあるってこはいたよ」
+			PRINTW 「その子によると友達が２階でそんな感じの変なのにあったっていうはなしだけど」
+		ELSE
+			PRINTL ラタトスク:
+			PRINTL 「はぁ、退屈…まったく平和主義っていってんのに
+			PRINTW 　ガキンチョ共は逃げてくし」
+			PRINTW 「あんたくらいは面白い話しなさいよ」
+			$BUKIMISTART
+			IF STRFLAG_D("ブキミちゃん開始")
+				IF !STRFLAG_D("ブキミちゃん開始初回", 1)
+					PRINTL 
+					PRINTFORML ＞%CALLNAME:MASTER%はブキミちゃんの話をしてみた
+					PRINTL 
+					PRINTL ラタトスク:
+					PRINTW 「へー、そんなのがいるんだ」
+					PRINTW 「私は見たことも聞いたこともないけど」
+					PRINTW 「それにしてもブキミちゃんってひっどい名前！」
+					PRINTW 「どんな顔なんだろう」
+					PRINTW 「まぁ、それはともかくとして、あんたはそれを探してるわけね」
+					PRINTW 「じゃあ、私がブキミちゃんがどこにいるか、ほかの子にきいてあげよーか？」
+					PRINTW 「誰か知ってる子の一人くらいいるでしょ」
+				ELSE
+					PRINTW 「でまぁ、それはともかく、金を払うきになった？」
+					PRINTW 「いい暇つぶしになるし、100魔貨でいいわよ」
+				ENDIF
+				PRINTW 「いまなら、100魔貨でいいけど、どう？」
+				PRINTL [0] 払う
+				PRINTL [1] やめておく
+				PRINTL [2] 力づくでいうことを聞かせる
+				CALL INPUTINT(0, 1, 2)
+				PRINTL 
+				PRINTL ラタトスク:
+				IF  RESULT == 0
+					IF MONEY:1 < 100
+						PRINTW 「ってあんた、100魔貨もってないじゃない」
+						PRINTW 「まー、いいわ。ブキミちゃんの話面白かったし
+						PRINTW 　退屈しまくってたところだし」
+						PRINTW 「とりあえず、持ってるの全部でやったげる」
+						MONEY:1 = 0
+					ELSE
+						MONEY:1 -= 100
+					ENDIF
+					PRINTW 「んじゃ、しっかり引き受けたわ」
+					PRINTW 「話聞いてくるからちょっとしたらまた来なさい」
+					PRINTL 
+					PRINTW ＞ラタトスクは魔貨を受け取るとその場を離れた
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					CALLF STRFLAG_D("ブキミちゃん出現", 1)
+				ELSEIF RESULT == 1
+					PRINTW 「しみったれてるわねー」
+					PRINTW 「100魔貨くらい、気前よく払えないの？」
+				ELSE
+					CALL INCREASE_LC, -8
+					CALL INCREASE_LD, -8
+					PRINTW 「ちょっとやめてよ？」
+					PRINTW 「……あー、もう後悔させてやるんだから！」
+					PRINTL ＞魔獣 ラタトスクに襲いかかった！
+					CUSTOMDRAWLINE =
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_ENEMY,9, [[キャラ:ラタトスク]], 12
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					CALLF STRFLAG_D("ラタトスク力づく", 1)
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					PRINTL 
+					PRINTL ラタトスク:
+					PRINTW 「わ、わかったわよ。わかったからもうやめて…」
+					PRINTW 「それじゃあ、聞いてくるから…」
+					PRINTL 
+					PRINTW ＞ラタトスクはふらふらした足取りでその場を離れた
+					CALLF STRFLAG_D("ブキミちゃん出現", 1)
+				ENDIF
+			ENDIF
+		ENDIF
+	;メッセンジャー(3F西)
+	CASE 201
+		PRINTL 男子生徒
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「むぅ…ハナジーもチカリンもなにをやってるのだ」
+			PRINTFORMW 「いまこそ、スクープチャンス…新聞部の本気をみせるときではないか！」
+			PRINTFORMW 「ん、俺？　俺は３年で引退してるからそこらへんは後輩に任せるつもりだが」
+		ELSE
+			PRINTFORMW 「はぁ…情けない。これでは新聞部もさきがないな」
+		ENDIF
+	CASE 202
+		PRINTL 男子生徒
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「ジョーカー様、ジョーカー様どうかおたすけください」
+				PRINTFORMW 「そして、ついでに素敵な彼女と、大学合格と、えーとお金と」
+				PRINTFORMW 「とにかくお願いします」
+			ELSE
+				PRINTFORMW 「あー、もうこんなことになるなら、ジョーカー呪いためしときゃよかった」
+				PRINTFORMW 「俺がここで死ぬのにあいつが生きてるとかたえらんねぇ」
+			ENDIF
+		ELSE
+			IF STRFLAG_EV("罪ルート", 0, [[イベント:ペルソナ２]])
+				PRINTFORMW 「さすがジョーカー様…さっそく助けてくださったんですね」
+				PRINTFORMW 「それじゃあ、この調子で他のお願いもよろしくお願いします」
+			ELSE
+				PRINTFORMW 「はー、助かった」
+				PRINTFORMW 「やっぱり日頃の行いがいいからだな。うん」
+			ENDIF
+		ENDIF
+	CASE 203
+		PRINTL 女子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			IF !STRFLAG_D("Gun弾プレゼント", 1, [[ダンジョン:ペルソナ２]])
+				PRINTW 「えっと、サマナーさんですね」
+				PRINTW 「これ、使ってください！」
+				PRINTL 
+				PRINTW ＞Holy ShellとCurse Shellを5個づつ渡された
+				CALL GET_ITEMS, "Holy Shell", 5
+				CALL GET_ITEMS, "Curse Shell", 5
+				PRINTL 
+				PRINTW 「こんなふうに悪魔に襲われたときのために買っておいたんですが…」
+				PRINTW 「やっぱり、全然使えなくて…」
+				PRINTW 「そもそもGunがないのに、通販で弾だけ買ってどうするんだって話なんですけど…」
+			ELSE
+				PRINTW 「あれなんですよね…全然使えないのはわかってたんです…」
+				PRINTW 「でも、やっぱりなんかあると安心できるもので…」
+				PRINTW 「はぁ、私、バカみたい」
+			ENDIF
+		ELSE
+			PRINTW 「うーん、次は何買おうかな…」
+			PRINTW 「私でも使えるものってなんだろう？」
+			PRINTW 「お米を投げつけるとか？」
+		ENDIF
+	CASE 204
+		PRINTFORML 女子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTW 「私、隣の教室に悪魔がはいっていくのを見ちゃったんです」
+			PRINTW 「それはそれは恐ろしいヤツで」
+			PRINTW 「あー、どうしよう。次はここに来るのかな」
+			PRINTW 「逃げたいけど逃げるところなんてないし…うぅ…」
+		ELSE
+			PRINTW 「はぁ助かった…」
+			PRINTL 「隣のクラスの子は私のこと恨まないでね
+			PRINTW 　しっかり成仏してね…なむなむ」
+		ENDIF
+	CASE 205
+		PRINTL ナイトメア:
+		IF STRFLAG_D("ナイトメアプレゼント")
+			IF STRFLAG_D("ボス撃破")
+				PRINTW 「あぅぅ、いつのまにかみんないなくなってるですぅ」
+				PRINTW 「ナイトメア、置いて行かれちゃったですか」
+				PRINTW 「ど、どうしよう…えーん」
+				CALL INPUT_YN("契約を申し出る", "放っておく")
+				IF RESULT == 0
+					PRINTFORMW 「え、\@TALENT:MASTER:オトコ ? お兄ちゃん # お姉ちゃん\@、ナイトメアとお友達になりたいんですか？」
+					PRINTFORMW 「ナイトメア、ママに悪い人と付き合っちゃダメって言われてるけど」
+					PRINTFORMW 「\@TALENT:MASTER:オトコ ? お兄ちゃん # お姉ちゃん\@、いい人そうですし」
+					PRINTFORMW 「\@TALENT:MASTER:オトコ ? お兄ちゃん # お姉ちゃん\@がどうしてもナイトメアがほしいって言うんなら仕方ないですぅ」
+					PRINTFORMW 「ナイトメアのお友達にしてあげるですぅ！　ありがたく思いやがれですぅ！」
+					PRINTFORMW ＞ナイトメアが仲魔に加わった
+					CALL ADD_NEW_COMPANION, [[キャラ:ナイトメア]], 500, 1
+					IF RESULT == 1
+						BASE:(RESULT:1):LV = 10
+						BASE:(RESULT:1):力 = 3
+						BASE:(RESULT:1):知恵 = 8
+						BASE:(RESULT:1):魔力 = 6
+						BASE:(RESULT:1):耐力 = 3
+						BASE:(RESULT:1):速さ = 7
+						BASE:(RESULT:1):運 = 6
+						BASE:(RESULT:1):ＥＸＰ = 5*(9)*(10)*(11)/3
+						ABL:(RESULT:1):スキル3 = [[スキル:子守唄]]
+						ABL:(RESULT:1):スキル4 = [[スキル:永眠の誘い]]
+						ABL:(RESULT:1):スキル5 = [[スキル:タル・ンダ]]
+						ABL:(RESULT:1):スキル6 = [[スキル:バリアントダンス]]
+						TALENT:(RESULT:1):プライド低い = 0
+						TALENT:(RESULT:1):生意気 = 1
+						TALENT:(RESULT:1):悲観的 = 0
+						TALENT:(RESULT:1):好奇心 = 1
+						CFLAG:(RESULT:1):その他 = [[衣装:眼鏡]]
+					ENDIF
+					CALLF STRFLAG_D("ナイトメア加入", 1)
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ELSE
+					PRINTW ＞ナイトメアは泣き続けている……
+				ENDIF
+			ELSE
+				PRINTW 「ふふ、どうです？　この知性に満ちた姿は？」
+				PRINTW 「……でもなんだかちょっと世界がくらくらして気持ち悪いです」
+				PRINTW 「うー…でも外したくないし、賢いって大変ですぅ」
+			ENDIF
+		ELSEIF !STRFLAG_D("ナイトメア初回", 1, [[ダンジョン:ペルソナ２]])
+			PRINTW 「あ、人間ですぅ」
+			PRINTW 「この教室はこのナイトメアの領土ですよぉ」
+			PRINTW 「勝手に入ってきちゃダメですぅ」
+			PRINTL 「あ、でもでも、何か貢ぎ物を差し出すというんなら
+			PRINTW 　特別にこのナイトメア王国の一員にしてあげてもいいですぅ」
+			PRINTL 「そうですねぇ。この賢くて美しいナイトメアにぴったりな知的な
+			PRINTW 　アイテムなんかがいいですぅ」
+			PRINTW 「もし、持ってきてくれたら、今なら特別なご褒美もあげちゃうですぅ」
+			PRINTW 「どうです。人間、なんか持ってくるつもりはあるです？」
+			PRINTL [0] はい
+			PRINTL [1] いいえ
+			PRINTL [2] 悪魔を退治する
+			PRINTL [3] ご褒美とやらを無理矢理奪う
+			CALL INPUTINT(0, 1, 2, 3)
+			IF RESULT == 0
+				PRINTL ナイトメア:
+				PRINTW 「良い返事ですぅ」
+				PRINTW 「それじゃあ、楽しみにしてるです」
+				IF FINDCHARA_B([[キャラ:克哉]]) == 2
+					PRINTL 克哉:
+					PRINTW 「ううん。悪魔に貢ぎ物か…」
+					PRINTW 「まぁ、平和的に解決できるならそれに越したことはないが…なんだか」
+				ELSEIF FINDCHARA_B([[キャラ:リサ]]) == 2
+					PRINTL リサ:
+					PRINTW 「うーん、賢くて美しいのにぴったりかぁ…」
+					PRINTW 「なんだろう？　教科書とかは喜ばないか」
+				ENDIF
+			ELSEIF RESULT == 1
+				PRINTL ナイトメア:
+				PRINTW 「なら、出て行くですぅ」
+				PRINTW 「ナイトメアは貢ぎ物ももってこれないやつと話をしたりしないのです」
+				PRINTW 「ナイトメアと話したかったらなにかもってくることですぅ」
+				IF FINDCHARA_B([[キャラ:克哉]]) == 2
+					PRINTL 克哉:
+					PRINTW 「ううむ…放っておいて大丈夫なのだろうが…」
+					PRINTW 「まぁ、他の生徒達の様子をみる限り大丈夫そうだが」
+				ELSEIF FINDCHARA_B([[キャラ:リサ]]) == 2
+					PRINTL リサ:
+					PRINTW 「そういえば、ここ、あの子の領土とか言ってたけど」
+					PRINTW 「まぁ、なんか困ってる人もいなさそうだし、ほっといてもよさそう」
+				ENDIF
+			ELSE
+				IF RESULT == 2
+					CALL INCREASE_LD, 2
+					CALL INCREASE_LC, 8
+				ELSEIF RESULT == 3
+					CALL INCREASE_LC, -8
+					CALL INCREASE_LD, -8
+				ENDIF
+				IF FINDCHARA_B([[キャラ:克哉]]) == 2
+					PRINTL 克哉:
+					PRINTW 「……害はなさそうだが、本当にやるのか？」
+					PRINTW 「いや、悪魔は悪魔だ。今は大丈夫でも何があるかわからないということか」
+				ELSEIF FINDCHARA_B([[キャラ:リサ]]) == 2
+					PRINTL リサ:
+					PRINTW 「ハイメ？　この子を倒しちゃうの？」
+					PRINTW 「害はなさそうというか、可愛いのに」
+					PRINTW 「でも、悪魔は悪魔だから仕方ないのかな…」
+				ENDIF
+				PRINTL ナイトメア:
+				PRINTW 「あ、なにをするです！？」
+				PRINTL ＞妖魔 ナイトメアに襲いかかった！
+				CUSTOMDRAWLINE =
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:ナイトメア]], 12
+				ABL:(CHARANUM-1):アイテム1 = [[アイテム:LuIncense]]
+				ABL:(CHARANUM-1):入手確率1 = 100
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALLF STRFLAG_D("ナイトメア退治", 1)
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				IF FINDCHARA_B([[キャラ:克哉]]) == 2
+					PRINTL 克哉:
+					PRINTW 「これで市民を守れるが……」
+					PRINTW 「話が通じるというのがこんなにつらいものだとはな」
+				ELSEIF FINDCHARA_B([[キャラ:リサ]]) == 2
+					PRINTL リサ:
+					PRINTW 「ホーリーン。やっぱり可哀想…」
+					PRINTW 「こんなところに来なければよかったのに…」
+				ENDIF
+			ENDIF
+		ELSE
+			IF ITEM:"Intel Glasses"
+				LOCAL = 0
+			ELSE
+				LOCAL = -1
+				FOR LOCAL:1, 1, 7
+					IF POS(LOCAL:1) >= 0 && EQUIP:POS(LOCAL:1):アクセサリ == GETNUM(ITEM, "Intel Glasses")
+						LOCAL = POS(LOCAL:1)
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			IF LOCAL == -1
+				PRINTW 「貢ぎ物はもってきたですか？」
+				PRINTW 「この賢くて美しいナイトメアにぴったりな知的な
+				PRINTW 　アイテムを持ってくるまで話すことなんてなにもないですぅ」
+			ELSE
+				PRINTW 「あ、それ！　その眼鏡が欲しいですぅ！」
+				PRINTW 「この運の香をあげるから、それをよこすです！」
+				CALL INPUT_YN("渡す", "渡さない")
+				IF RESULT == 0
+					PRINTL 
+					PRINTW ＞インテリメガネを渡して、運の香をもらった
+					PRINTL 
+					PRINTL ナイトメア:
+					PRINTW 「ありがとう！」
+					PRINTW 「どーですか？　似合うですか？」
+					PRINTW 「賢そうでしょう？　ふふふ」
+					IF LOCAL
+						EQUIP:LOCAL:アクセサリ = 0
+					ELSE
+						ITEM:"Intel Glasses" -= 1
+					ENDIF
+					CALL GET_ITEMS, "LuIncense", 1
+					CALLF STRFLAG_D("ナイトメアプレゼント", 1)
+				ELSE
+					PRINTL 
+					PRINTL ナイトメア:
+					PRINTW 「うー、意地悪」
+					PRINTW 「そんな意地悪な人間はどっかいっちまえですぅ！」
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE 206
+		PRINTL 女子生徒:
+		IF !STRFLAG_D("ボス撃破")
+			IF STRFLAG_D("ナイトメア退治")
+				PRINTW 「……可哀想」
+				PRINTW 「あなたは心が痛まないの？」
+			ELSEIF STRFLAG_D("ナイトメアプレゼント")
+				PRINTW 「ふーん、あの眼鏡、あなたがあげたんだ？」
+				PRINTW 「なかなか似合ってていい感じね」
+				PRINTW 「まぁ…賢そうにはみえないかもだけど」
+			ELSE
+				PRINTW 「あんなにかわいい悪魔っているのね」
+				PRINTW 「なんか貢ぎ物とか言われたときは魂もっていかれるのかと思ったけど」
+				PRINTW 「安物のヘアバンドでも喜んでくれるし」
+				PRINTW 「あー、なんかもっといいものがあればよかったのになー」
+			ENDIF
+		ELSE
+			IF STRFLAG_D("ナイトメアプレゼント")
+				IF STRFLAG_D("ナイトメア加入")
+					PRINTW 「お持ち帰り、うらやましいなー」
+					PRINTW 「私も今から頑張ってサマナーになろうかしら…」
+				ELSE
+					PRINTW 「あー、泣き顔もかわいいなぁ」
+					PRINTW 「見てたら、なんだか、変な気分になってきたわ」
+				ENDIF
+			ELSE
+				IF STRFLAG_D("ナイトメア退治")
+					PRINTW 「……ありがとう」
+					PRINTW 「いちおうお礼は言っておくわ」
+				ELSE
+					PRINTW 「はぁ、消えちゃった…」
+					PRINTW 「さすがにあのままっていうのはこまるけど」
+					PRINTW 「もっと、仲良くしたかったのになぁ」
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE 207
+		PRINTFORML 男子生徒:
+		IF !STRFLAG_D("ボス撃破", 0, [[ダンジョン:ペルソナ２]])
+			PRINTFORMW 「……なんか隣の教室がすげーことになってるんだけど」
+			PRINTFORML 「いや、それがさ。なんか泉があって
+			PRINTFORMW 　如何わしい格好した妖精が金払えって…」
+			PRINTW 「なんかもうこのまま死ぬのも嫌だし、全財産はたいてもいいかなって思ったけど」
+			PRINTFORMW 「なんか、マカだかなんだかを払えよ。死ねとか言われたんだ…」
+		ELSE
+			PRINTFORMW 「……あの妖精と泉はなんだったんだろう」
+			PRINTFORMW 「あんな騒ぎだったし、何が起きても不思議じゃないけど」
+			PRINTW 「もう一回、会いたかったなぁ」
+			PRINTW 「そして、死ね！とかまた言われたいような…」
+		ENDIF
+	CASE 208
+		PRINTL 男子生徒:
+		IF !STRFLAG_D("ボス撃破")
+			IF STRFLAG_D("ナイトメア退治")
+				PRINTW 「なんていうか、あんたってすごいな…」
+				PRINTW 「そういう冷徹な心がないとサマナーなんてやってられないんだろうけど」
+				PRINTW 「俺には無理だわ…」
+			ELSEIF STRFLAG_D("ナイトメアプレゼント")
+				PRINTW 「うーん…悪魔の世界でも眼鏡かけてると頭がいいってイメージなのかな…」
+				PRINTW 「いや、実際、喜んでるんだからいいんだけど」
+				PRINTW 「なんか、気になるっていうか、釈然としないというか…」
+			ELSE
+				PRINTW 「うーん、悪魔っていってもあんなのもいるもんなんだなぁ」
+				PRINTW 「お腹がすいたとか言われたときは、食われるのかと思ったけど」
+				PRINTW 「菓子パンでOKというか、大喜びで食べるとか…」
+				PRINTW 「なんていうか、カルチャーショック？」
+			ENDIF
+		ELSE
+			IF STRFLAG_D("ナイトメアプレゼント")
+				IF STRFLAG_D("ナイトメア加入")
+					PRINTW 「うーん、なんか変なこというけどさ」
+					PRINTW 「要するにあの子を戦わせるわけだろ？」
+					PRINTW 「なんか、それってすごく絵面的に鬼畜っぽくない？」
+				ELSE
+					PRINTW 「これも迷子…っていうのか？」
+					PRINTW 「なら、交番に届け出れば…って悪魔だしなぁ」
+					PRINTW 「悪魔にもおまわりさんとかいるのかな？」
+				ENDIF
+			ELSE
+				IF STRFLAG_D("ナイトメア退治")
+					PRINTW 「ありがとう。あんたのおかげで平和になったんだよな」
+					PRINTW 「あの子はちょっと可哀想だったけど…」
+					PRINTL 「まぁこうして平和に暮らしていけるのも
+					PRINTW 　あんたみたいなのが汚れ役を引き受けてくれてるからなんだろうな」
+					PRINTW 「だからまぁ、俺は素直にあんたに感謝するぜ」
+				ELSE
+					PRINTW 「平和になったのはいいけど、ちょっと寂しいな」
+					PRINTW 「もっと色々、持ってりゃあげることができたんだがなぁ」
+					PRINTW 「ていうか、購買の場所でも教えてあげりゃよかったんかな？」
+				ENDIF
+			ENDIF
+		ENDIF
+ENDSELECT
+;10レベルの装備相当の補正を素で持たせとく
+@GUEST_ENHANCED_D50, ARG
+#LOCALSIZE 1
+CFLAG:ARG:攻撃補正 = 28
+CFLAG:ARG:防御補正 = 36
+CFLAG:ARG:命中補正 = 23
+CFLAG:ARG:回避補正 = 23
+CFLAG:ARG:魔法威力補正 = 28
+CFLAG:ARG:魔法効果補正 = 23
+

@@ -1,0 +1,996 @@
+
+;=======================================================================
+;ローカパーラ
+;ダンジョンナンバー13
+;フラグ
+;ダンジョンフラグ:13:0　報酬フラグ
+;ダンジョンフラグ:13:1　イベント進行度
+;ダンジョンフラグ:13:2　地下街イベント進行度
+;ダンジョンフラグ:13:3　地下街ヒールスポット
+;ダンジョンフラグ:13:4　収容所イベント進行度
+;ダンジョンフラグ:13:5　収容所その他イベント
+;ダンジョンフラグ:13:7　収容所限界歩数
+;ダンジョンフラグ:13:6　カルマシティ占い師
+;ダンジョンフラグ:13:8　占い効果
+;ダンジョンフラグ:13:9　ローカパーラサブイベント
+
+;ダンジョンフラグ:13:11　協会・空港イベント進行度
+;ダンジョンフラグ:13:12　協会その他イベント
+;ダンジョンフラグ:13:13　空港その他イベント
+;ダンジョンフラグ:13:14　空港輪姦進行度
+
+
+;ダンジョンフラグ:13:70 ローカパーラの宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:71 地下街1の宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:72 地下街2の宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:73 地下街3の宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:74 地下街4の宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:75 地下街5の宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:76 海底ケーブル1の宝箱管理用変数（ビット演算）
+;ダンジョンフラグ:13:77 海底ケーブル2の宝箱管理用変数（ビット演算）
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_13
+;闘技場 試合ランクＤ　ＶＳ　飢えに狂った女　クリア後
+
+IF ダンジョンフラグ:13:1 > 0
+	RETURN 1
+ELSEIF FLAG:DEBUG || 闘技場フラグ:16:0 == 1
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_13
+IF ダンジョンフラグ:13:1 == 0
+	RESULTS = Lokapala Hideout（Underground Shopping Center）
+ELSEIF ダンジョンフラグ:13:1 < 3
+	RESULTS = Lokapala Hideout（Camp）
+ELSEIF ダンジョンフラグ:13:1 < 5
+	RESULTS = Lokapala Hideout（Karma Association）
+	;ローカパーラアジト（カルマ協会）
+ELSE
+	RESULTS = Lokapala Hideout（Unreal Image）
+ENDIF
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_13
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Lokapala
+	CASE 1
+		PRINTL Underground Shopping Center 1
+	CASE 2
+		PRINTL Underground Shopping Center 2
+	CASE 3
+		PRINTL Underground Shopping Center 3
+	CASE 4
+		PRINTL Underground Shopping Center 4
+	CASE 5
+		PRINTL Underground Shopping Center 5
+	CASE 6
+		PRINTL 海底ケーブル1
+	CASE 7
+		PRINTL 海底ケーブル2
+	CASE 8
+		PRINTL 食料プラントドーム　工場群
+	CASE 13
+		PRINTL 収容所1F
+	CASE 12
+		PRINTL 収容所B1F
+	CASE 11
+		PRINTL 収容所B2F
+	CASE 10
+		PRINTL 収容所B3F
+	CASE 9
+		PRINTL 収容所B4F
+	CASE 15
+		PRINTL 収容所倉庫
+	CASE 14
+		PRINTL カルマシティ市街地
+	CASE 16
+		PRINTL Karma Association HQ Entrance
+	CASE 17
+		PRINTL Karma Association HQ ２Ｆ
+	CASE 18
+		PRINTL Karma Association HQ １０Ｆ
+	CASE 19
+		PRINTL Karma Association HQ １１Ｆ
+	CASE 20
+		PRINTL Karma Association HQ ２０Ｆ　ヘリポート
+	CASE 21
+		PRINTL Karma Association HQ ２１Ｆ
+	CASE 22
+		PRINTL Karma Association HQ ２２Ｆ
+	CASE 23
+		PRINTL Karma Association HQ ４４Ｆ
+	CASE 24
+		PRINTL Karma Association HQ ４５Ｆ
+	CASE 25
+		PRINTL Karma Association HQ ５５Ｆ
+	CASE 26
+		PRINTL In front of the Airport
+		;空港前
+	CASE 27
+		PRINTL Airport B2F
+	CASE 28
+		PRINTL Airport B1F
+	CASE 29
+		PRINTL Airport 1F
+	CASE 30
+		PRINTL Airport 2F
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_13,ARG
+FLAG:現M = 0
+FLAG:現X = 3
+FLAG:現Y = 2
+;CALL AUTOMAP
+
+;=======================================================================
+;攻略開始時のイベント
+;=======================================================================
+@EVENT_DUNGEON_START_13
+FLAG:脱出スキル禁止 = 1
+
+IF GETCHARA([[キャラ:千早]]) > 0 && 陥落(GETCHARA([[キャラ:千早]])) > 0 && ダンジョンフラグ:13:6 < 3 && ダンジョンフラグ:13:1 > 2
+	IF ダンジョンフラグ:13:6 == 2
+		CALL MESSAGE_WINDOW_D, "", "千早がカルマシティで占い師を再開したらしい"
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "千早がカルマシティで占い師を始めたらしい"
+	ENDIF
+	CALL MESSAGE_WINDOW_D, "", "カルマシティ市街地で占いを行えるようになった"
+	CALL MESSAGE_WINDOW_D, "", "陥落している千早は自分には無料で占ってくれるだろう"
+	
+	
+	ダンジョンフラグ:13:6 = 3
+ENDIF
+
+IF ダンジョンフラグ:13:1 == 0
+	CALL FLOOR_ANALYZE
+	PRINTFORMW You got a request from the Phantom Society.
+	PRINTFORML An organization called Karma Society was establishing influence in the area affecting Phantom Society
+	PRINTFORMW They seem to be focused on research.
+	PRINTFORML A man named Roland has intel on this organization.
+	PRINTFORMW You were sent to visit him in Lokapala.
+ELSEIF ダンジョンフラグ:13:1 == 1
+	CALL FLOOR_ANALYZE
+	CALL MESSAGE_WINDOW_D, "", "地下街にやってくると/Rolandが話しかけてきた"
+	CALL MESSAGE_WINDOW_D, "Roland", "やあ、来たね/この前はご苦労だった"
+	CALL MESSAGE_WINDOW_D, "Roland", "カルマ協会は人類存続のために/人類すべてを悪魔化しようと考えている"
+	CALL MESSAGE_WINDOW_D, "Roland", "人類すべてを悪魔になれば人間はまともに住めなくなる/これでは　君の組織ファントムにも大打撃を食うだろう"
+	CALL MESSAGE_WINDOW_D, "Roland", "だが　カルマ協会は強大だ/このまま本部に乗り込んでも負けるだけだ"
+	CALL MESSAGE_WINDOW_D, "Roland", "そこで収容所に行って所長を倒してほしい/そうすれば　私たちの捕虜も何人か助かる"
+	CALL MESSAGE_WINDOW_D, "Roland", "カルマ協会は兵を収容所に送り本部に乗り込みやすくなるだろう/その隙に本部に乗り込んで　ボスを倒せば君の依頼は達成できるだろう"
+	CALL MESSAGE_WINDOW_D, "Roland", "君と一緒に共闘した喰奴とまた共闘すると/楽に達成できるだろうな"
+	CALL MESSAGE_WINDOW_D, "Roland", "ところでどうだい？/彼らのことを詳しく聞きたくはないか？"
+	CALL INPUT_SELECT_D, "[0]聞きたい/[1]聞きたくない/[2]マコト達のことは？"
+	IF RESULT == 0
+		CALL MESSAGE_WINDOW_D, "Roland", "わかった　私の部屋に来てくれ "
+		CALL jank_event
+	ELSEIF RESULT == 1
+		CALL MESSAGE_WINDOW_D, "Roland", "そうかい　Adilに話しかければ/収容所への道を教えてくれるよ/ただし　１０分ほど待ってくれないか？ "
+		CALL MESSAGE_WINDOW_D, "", "＞あなたは１０分ほど待った/＞そろそろRolandの部屋の前のAdilに話しかけよう/※Adilに話しかければ収容所に行けます "
+	ELSEIF RESULT == 2
+		CALL MESSAGE_WINDOW_D, "Roland", "残念ながら　彼女たちの情報は/詳しいことはわからなかったよ "
+		CALL MESSAGE_WINDOW_D, "Roland", "体から　悪魔を召喚できる能力/あの能力はカルマ兵にも私たちにもいない "
+		CALL MESSAGE_WINDOW_D, "Roland", "彼女は夢の中の男に能力をもらったと/言っているがね "
+		CALL MESSAGE_WINDOW_D, "Roland", "喰奴のように飢えることはないようだがな… "
+		CALL MESSAGE_WINDOW_D, "Roland", "ところでどうだい？/君と共闘する喰奴のことを詳しく聞きたくはないか？"
+		CALL INPUT_SELECT_D, "[0]聞きたい/[1]聞きたくない"
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "Roland", "わかった　私の部屋に来てくれ "
+			CALL jank_event
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "Roland", "そうかい　Adilに話しかければ/収容所への道を教えてくれるよ/ただし　１０分ほど待ってくれないか？ "
+			CALL MESSAGE_WINDOW_D, "", "＞あなたは１０分ほど待った/＞そろそろRolandの部屋の前のAdilに話しかけよう/※Adilに話しかければ収容所に行けます "
+		ENDIF
+	ENDIF
+	ダンジョンフラグ:13:5 = 1
+	ダンジョンフラグ:13:1 = 2
+ELSEIF ダンジョンフラグ:13:1 == 3
+	CALL MESSAGE_WINDOW_D, "", "地下街にやってきた"
+	CALL MESSAGE_WINDOW_D, "", "すでにローカパーラは準備できていた"
+	CALL MESSAGE_WINDOW_D, "Roland", "ローかパーラはもうすでに準備ができた/収容所を混乱させている間に本部に突入しよう"
+	CALL MESSAGE_WINDOW_D, "Roland", "マコト君　君たちもこの混乱に乗じて/カルマシティに仲間がいないか探しに行くといい"
+	CALL MESSAGE_WINDOW_D, "Roland", "カルマシティの警備兵も少なくなっているはずだ"
+	CALL MESSAGE_WINDOW_D, "Makoto", "ありがとうございます"
+	CALL MESSAGE_WINDOW_D, "構成員", "なあ　ちょっといいか？"
+	CALL MESSAGE_WINDOW_D, "", "いきなり構成員が話しかけてきた"
+	CALL MESSAGE_WINDOW_D, "Roland", "なんだ？"
+	CALL MESSAGE_WINDOW_D, "構成員", "いや　彼女たちに用があるんだ"
+	CALL MESSAGE_WINDOW_D, "Ann", "な　何？"
+	CALL MESSAGE_WINDOW_D, "構成員", "君たちによく似た顔立ちの女の子が/ジャランダーラに追われているところを見つけたんだ"
+	CALL MESSAGE_WINDOW_D, "構成員", "とっさにその子の写Makotoを撮ってきたんだが/この子に見覚えはないか？"
+	CALL MESSAGE_WINDOW_D, "", "Makoto達は写Makotoを見る"
+	CALL MESSAGE_WINDOW_D, "", "すると　彼女たちの表情は一変した"
+	CALL MESSAGE_WINDOW_D, "Ann", "ね　ねえ…/この見た目って"
+	CALL MESSAGE_WINDOW_D, "Ryuji", "この服　この髪型…/まさか…"
+	CALL MESSAGE_WINDOW_D, "Makoto", "は…ハルちゃん"
+	CALL MESSAGE_WINDOW_D, "Yusuke", "おい　ジャランダーラとは何だ"
+	CALL MESSAGE_WINDOW_D, "Roland", "ジャランダーラとは　協会で悪魔化した後/軍を抜け好き勝手やっている連中だ"
+	CALL MESSAGE_WINDOW_D, "Ryuji", "なんだって！？/おい！なんで助けに行かなかったんだよ！"
+	CALL MESSAGE_WINDOW_D, "構成員", "し　しょうがないだろう/俺一人だったんだ　逆にやられちまうよ"
+	CALL MESSAGE_WINDOW_D, "Makoto", "どこで見つけたの？"
+	CALL MESSAGE_WINDOW_D, "構成員", "ああ　空港のらへんで見つけたよ"
+	CALL MESSAGE_WINDOW_D, "Ryuji", "空港だな/早くいくぜ！"
+	CALL MESSAGE_WINDOW_D, "Roland", "まて　ならず者といえど元軍人/君たちだけで行くと危険だ"
+	CALL MESSAGE_WINDOW_D, "Ryuji", "じゃあ　どうすりゃいいんだよ！/この間にHaru先輩が…"
+	CALL MESSAGE_WINDOW_D, "Cielo", "俺　マコト達についていくよ"
+	CALL MESSAGE_WINDOW_D, "Ann", "Cielo？"
+	CALL MESSAGE_WINDOW_D, "Cielo", "お前らの仲間が死にそうなんだろ/放っておけねえよ"
+	CALL MESSAGE_WINDOW_D, "Argilla", "私も行くわ"
+	CALL MESSAGE_WINDOW_D, "Yusuke", "Argillaさんも！？"
+	CALL MESSAGE_WINDOW_D, "Argilla", "仲間を失う気持ち　わかるもの/この子たちにそんな目に遭わせたくない"
+	CALL MESSAGE_WINDOW_D, "Roland", "でもこれではカルマ協会に突入する/メンバーが少なくないか？"
+	CALL MESSAGE_WINDOW_D, "Serph", "そうだな…/マコト達の仲間を2人程ついていってほしい"
+	CALL MESSAGE_WINDOW_D, "Ryuji", "俺が行くよ"
+	CALL MESSAGE_WINDOW_D, "Ryuji", "俺もHaru先輩が気になるけどよ/ローカパーラやSerphさん達には世話になりっぱなしだしよ"
+	CALL MESSAGE_WINDOW_D, "Ann", "私も行く"
+	CALL MESSAGE_WINDOW_D, "Ann", "私たちがHaruちゃんを大切に思うように/Serphさん達がセラちゃんのことを大切に思うのと一緒だと思うから…"
+	CALL MESSAGE_WINDOW_D, "Roland", "Serph　このメンバーでいいな"
+	CALL MESSAGE_WINDOW_D, "Serph", "ああ　問題ない"
+	CALL MESSAGE_WINDOW_D, "Makoto", "お手を煩わせてすいません"
+	CALL MESSAGE_WINDOW_D, "Gale", "気にすることはない/俺たちは　お前らの仲間を探すのに協力することも約束した"
+	CALL MESSAGE_WINDOW_D, "Makoto", "ありがとうございます"
+	
+	
+	PRINTFORMW セラを救出に向かうか、Haruを救出に向かうか選ぶことが出来ます
+	PRINTFORML セラの救出に行く場合はSerphに
+	PRINTFORMW Haruの救出に向かう場合はMakotoに話しましょう
+	
+	ダンジョンフラグ:13:1 = 4
+ENDIF
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_13
+IF ダンジョンフラグ:13:1 == 1
+	CALL MESSAGE_WINDOW_D, "", @"＞For defeating the karma soldiers, you got ￥100000 and 40 fame."
+	MONEY += 100000
+	FLAG:名声 += 40
+ENDIF
+
+IF GETCHARA([[キャラ:千早]]) > 0 && 陥落(GETCHARA([[キャラ:千早]])) > 0 && ダンジョンフラグ:13:6 == 3 && ダンジョンフラグ:13:1 > 2
+	LOCAL = (50+ RAND:100) * 陥落(GETCHARA([[キャラ:千早]]))
+	CALL MESSAGE_WINDOW_D, "", @"千早は" + TOSTR(LOCAL) + "マッカ稼いだ来た"
+	MONEY:1 += LOCAL
+	
+ENDIF
+
+FLAG:脱出スキル禁止 = 0
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_13,ARG,ARG:1
+;DA:ARG:(ARG:1)
+;ARG、ARG:1はそれぞれ対象のマスのX、Y座標を表しています。
+;このダンジョンではエレベーターの扉が一度右側から開けておかないと左側からは開けられない、という処理に使用しています。
+;どのマップでも座標(2,7)がエレベータの扉。ダンジョンフラグ:1:13 ＝ エレベータフラグ管理用変数の{現在のマップ番号}番目のビットが立っていなければ開けられるかどうかの判定を行う
+IF FLAG:現M > 8 && FLAG:現M < 14
+	CALL shuyoujo_ENTER,ARG,ARG:1
+ELSEIF FLAG:現M == 15
+	CALL shuyoujo2_ENTER,ARG,ARG:1
+ELSEIF FLAG:現M < 26
+	CALL kyoukai_ENTER,ARG,ARG:1
+ELSEIF FLAG:現M < 31
+	CALL airport_ENTER,ARG,ARG:1
+ELSE
+	CALL OTHER_ENTER_13
+ENDIF
+SIF RESULT == 0
+	RETURN 0
+
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+@OTHER_ENTER_13
+	RETURN 1
+;=======================================================================
+;ターミナル名前
+;=======================================================================
+@GET_FLOORNAME_13
+SELECTCASE FLAG:現M
+	CASE 0
+		RESULTS = Lokapala
+	CASE IS < 6
+		RESULTS = Underground Shopping Center
+	CASE IS < 8
+		RESULTS = 海底ケーブル
+	CASE IS < 14
+		RESULTS = Camp
+		;収容所
+	CASE IS < 26
+		RESULTS = Karma Association Headquarters
+		;カルマ協会本部
+	CASE IS < 31
+		RESULTS = Airport
+		;空港
+ENDSELECT
+;=======================================================================
+;タイル調整
+;=======================================================================
+;ARG:1、ARG:2はそれぞれX座標とY座標
+;ARGはその座標に現在代入されている番号
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内、3～9が代入されているマスに、個別の番号を与える処理を実行します。
+;この処理を行った後、これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合、「2番のマップ＝３Ｆで、左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚、0～2はどのマップにも大量に設置されるので、ここでは基本的に個別の番号を与えません。
+;
+;何個目のARGタイプのマスなのか、は左上の(0,0)から右まで探し、その後一つ下の段に移って同様に探す、というのを右下まで繰り返して数えます。
+@MAKE_FLOOR_LINE_COMMON_13, ARG, ARG:1, ARG:2
+#LOCALSIZE 10
+;LOCAL:0～9 それぞれ何個目のARGなのかを記憶しています
+;LOCAL:3 宝箱→使用フラグはダンジョンフラグ:70~74
+;指定された座標が(0,0)である場合、つまり新しいマップを読み込んだ時はLOCALを消去します
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		;宝箱は多くの場合、開けたフラグが立っていると床を代入します
+		;そのマップでどの宝箱を開けたかは、そのマップの宝箱管理用変数の何番目のビットが立っているかで判断します
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4 TO 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:ARG * 10 + ARG
+		LOCAL:ARG++
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;TILE_MARK_COMMON_{FLAG:現ダンジョン}_X
+;=======================================================================
+;ARG:1、ARG:2がX座標とY座標
+;ARGはそこに代入されている値
+;RESULTSに代入した文字がマップに表示されますが、必ず全角1文字分になるようにしてください。そうでないと表示が崩れます。
+
+@TILE_MARK_COMMON_13_4, ARG , ARG:1 , ARG:2
+IF (ARG / 10) < 100
+	CALL Lokapala_TILE, ARG 
+ELSEIF (ARG / 10) < 600
+	CALL tikagai_TILE, ARG
+ELSEIF (ARG / 10) < 1400
+	CALL shuyoujo_TILE, ARG 
+ELSEIF FLAG:現M == 14
+	CALL karumasity_TILE, ARG
+ELSEIF FLAG:現M < 26
+	CALL kyoukai_TILE, ARG 
+ELSEIF FLAG:現M < 31
+	CALL airport_TILE, ARG 
+ELSE
+	RETURN 1
+ENDIF
+;特に設定しない場合、"！"と表示されます
+
+
+@TILE_MARK_COMMON_13_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 0
+		IF ダンジョンフラグ:13:1 > 0
+			SETCOLOR 0xaa44ff
+			RESULTS = Ｔ
+		ELSE
+			RESULTS = □
+		ENDIF
+	CASE 1
+		SETCOLOR 0xff7300
+		RESULTS = イ
+	CASEELSE
+ENDSELECT
+IF (ARG / 10) > 99 && (ARG / 10) < 600
+	CALL tikagai_TILE2,ARG
+ELSEIF  (ARG / 10) < 1400
+	CALL shuyoujo_TILE2, ARG , ARG:1 , ARG:2
+ELSEIF FLAG:現M == 15
+	CALL shuyoujo2_TILE2, ARG , ARG:1 , ARG:2
+ELSEIF FLAG:現M < 26
+	CALL kyoukai_TILE2, ARG , ARG:1 , ARG:2
+ELSEIF FLAG:現M < 31
+	CALL airport_TILE2, ARG , ARG:1 , ARG:2
+ELSE
+	RETURN 1
+ENDIF
+
+@TILE_MARK_COMMON_13_2, ARG , ARG:1 , ARG:2
+	IF ARG:1 == 4 && ARG:2 == 36
+		RESULTS = ■
+	ELSE
+		RETURN 1
+	ENDIF
+	
+
+@TILE_MARK_COMMON_13_3, ARG , ARG:1 , ARG:2
+	IF FLAG:現M == 15
+		CALL onmitsu_TILE, ARG , ARG:1 , ARG:2
+	ELSE
+		RETURN 1
+	ENDIF
+	
+
+@TILE_MARK_COMMON_13_5, ARG , ARG:1 , ARG:2
+	IF FLAG:現M == 15
+		CALL onmitsu_TILE, ARG , ARG:1 , ARG:2
+	ELSE
+		RETURN 1
+	ENDIF
+
+
+@TILE_MARK_COMMON_13_1, ARG , ARG:1 , ARG:2
+	IF FLAG:現M == 15
+		CALL onmitsu_TILE, ARG , ARG:1 , ARG:2
+	ELSE
+		RETURN 1
+	ENDIF
+;@TILE_MARK_13_13_4_36
+;RESULTS = ■
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_13
+SIF FLAG:現M == 15
+	CALL onmitsu_event_sw
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	IF ダンジョンフラグ:13:1 > 2
+		PRINTL Where do you want to go?
+		;どこへ行きますか？
+		PRINTFORML [ 0] Lokapala Hideout
+		PRINTFORML [ 1] カルマシティ市街地
+		SIF ダンジョンフラグ:13:1 > 4
+			PRINTFORML [ 2] ジャランダーラアジト
+		PRINTFORML [10] Return
+		INPUT
+		IF RESULT == 0
+			CALL DUNGEON_WORP,0,3,2
+		ELSEIF RESULT == 1
+			CALL DUNGEON_WORP,14,3,12
+		ELSEIF RESULT == 2 && ダンジョンフラグ:13:1 > 4
+			CALL DUNGEON_WORP,99,2,47
+		ELSEIF RESULT == 10
+			CALL DUNGEON_EXIT
+			RETURN 1
+		ENDIF
+	ELSE
+		CALL DUNGEON_EXIT
+		RETURN 1
+	ENDIF
+;========
+;宝の処理
+;========
+;% 10は10で割ったあまり、つまり下一桁がでてきます
+;そして、下一桁はタイルの種類を表す
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	IF FLAG:現M == 15
+		FLAG:未遭遇歩数++
+		CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)
+		RETURN 0
+	ENDIF
+	CALL TREASURE_13
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_13
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_13
+	RETURN RESULT
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	IF FLAG:現M == 0
+		CALL Lokapala_event
+	ELSEIF  FLAG:現M < 6
+		CALL tikagai_event_sw
+	ELSEIF  FLAG:現M < 14
+		CALL shuyoujo_event_sw
+	ELSEIF  FLAG:現M == 14
+		CALL karumasity_event
+	ELSEIF FLAG:現M < 26
+		CALL kyoukai_event_sw
+	ELSEIF FLAG:現M < 31
+		CALL airport_event_sw
+	ENDIF
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;ローカパーライベント
+		CASE 0
+			IF ダンジョンフラグ:13:1 > 0
+				CALL DUNGEON_TERMINAL
+			ENDIF
+		CASE 1
+			CALL Lokapala_event2
+	ENDSELECT
+	IF FLAG:現M == 15
+		FLAG:未遭遇歩数++
+		CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)
+		RETURN 0
+	ENDIF
+ELSE
+	IF FLAG:現M == 15
+		FLAG:未遭遇歩数++
+		CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)
+		RETURN 0
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+		RETURN 0
+	ENDIF
+ENDIF
+RETURN 0
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_13,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+SIF FLAG:現M == 15
+	CALL onmitsu_event
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	IF ダンジョンフラグ:13:1 > 2
+		PRINTFORML Where do you want to go?
+		PRINTFORML [ 0] Lokapala Hideout
+		PRINTFORML [ 1] カルマシティ市街地
+		SIF ダンジョンフラグ:13:1 > 4
+			PRINTFORML [ 2] ジャランダーラアジト
+		PRINTFORML [10] Return
+		INPUT
+		IF RESULT == 0
+			CALL DUNGEON_WORP,0,3,2
+		ELSEIF RESULT == 1
+			CALL DUNGEON_WORP,14,3,12
+		ELSEIF RESULT == 2 && ダンジョンフラグ:13:1 > 4
+			CALL DUNGEON_WORP,99,2,47
+		ELSEIF RESULT == 10
+			CALL DUNGEON_EXIT
+			RETURN 1
+		ENDIF
+	ELSE
+		CALL DUNGEON_EXIT
+		RETURN 1
+	ENDIF
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_13
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_13
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_13
+	RETURN RESULT
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+		;１Ｆイベント
+		CASE 1
+	ENDSELECT
+	IF FLAG:現M > 0 && FLAG:現M < 6
+		CALL tikagai_event
+	ELSEIF  FLAG:現M < 14
+		CALL shuyoujo_event
+	ELSEIF  FLAG:現M == 15
+		CALL shuyoujo2_event
+	ELSEIF FLAG:現M < 26
+		CALL kyoukai_event
+	ELSEIF FLAG:現M < 31
+		CALL airport_event
+	ENDIF
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) %10 == 9
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;ローカパーライベント
+		CASE 0
+			IF ダンジョンフラグ:13:1 > 0
+				CALL DUNGEON_TERMINAL
+			ENDIF
+	ENDSELECT
+	IF FLAG:現M > 0 && FLAG:現M < 6
+		CALL tikagai_event2
+	ELSEIF FLAG:現M < 14
+		CALL shuyoujo_event2
+	ELSEIF  FLAG:現M == 15
+	ELSEIF FLAG:現M < 26
+		CALL kyoukai_event2
+	ELSEIF FLAG:現M < 31
+		CALL airport_event2
+	ENDIF
+ENDIF
+RETURN 0
+
+
+
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_13
+SELECTCASE FLAG:現M
+	CASE 2
+		IF ダンジョンフラグ:13:2 > 2
+			FLAG:エンカウント率 = FLAG:未遭遇歩数*2
+		ELSE
+			FLAG:エンカウント率 = 0
+		ENDIF
+	CASE 4,5
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+	CASE 13
+		IF ダンジョンフラグ:13:4 > 5
+			FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+		ELSE
+			FLAG:エンカウント率 = 0
+		ENDIF
+	CASE 18,19,21,22,23
+		IF ダンジョンフラグ:13:11 > 0 && ダンジョンフラグ:13:11 < 4
+			FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+		ELSE
+			FLAG:エンカウント率 = 0
+		ENDIF
+	CASE 28,29,30
+		IF ダンジョンフラグ:13:11 > 0
+			FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+		ELSE
+			FLAG:エンカウント率 = 0
+		ENDIF
+	CASE 99
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+	CASEELSE
+		FLAG:エンカウント率 = 0
+ENDSELECT
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_13
+	SIF ダンジョンフラグ:13:1 < 1
+		RETURN 20, 18, 23, 28
+	SIF ダンジョンフラグ:13:1 < 3
+		RETURN 27, 25, 32, 37
+	SIF ダンジョンフラグ:13:1 < 5
+		RETURN 37, 35, 44, 50
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_13
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	IF ダンジョンフラグ:13:8 > 1
+		CALL 占い効果
+		ABL:(CHARANUM-1):アイテム3 = RESULT
+		ABL:(CHARANUM-1):入手確率3 = RESULT:1
+	ENDIF
+;	IF RAND:3 == 1
+;		ABL:(CHARANUM-1):アイテム2 = 1415
+;		ABL:(CHARANUM-1):入手確率2 = 8
+;	ELSEIF RAND:2 == 1
+;		ABL:(CHARANUM-1):アイテム2 = 1416
+;		ABL:(CHARANUM-1):入手確率2 = 8
+;	ELSE
+;		ABL:(CHARANUM-1):アイテム2 = 1417
+;		ABL:(CHARANUM-1):入手確率2 = 8
+;	ENDIF
+;	
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;RETURN X でXが種類の数になります
+;あまりいろんなのが混ざっているとCOOPがとりにくくなったり
+;敵の攻撃属性が多くなる傾向にあるので、
+;種類の数は1・2種類を主体に時々3種類くらいを基本にするのが望ましいと思われます
+;=======================================================================
+@CLASS_NUM_13
+SELECTCASE FLAG:現M
+	CASE IS < 13
+		RETURN CLASS_NUM_COMMON("初級")
+	CASE 13
+		RETURN CLASS_NUM_COMMON("初級")
+	CASE IS < 26
+		RETURN CLASS_NUM_COMMON("中級")
+	CASE IS < 31
+		RETURN CLASS_NUM_COMMON("中級")
+	CASE 99
+		SELECTCASE FLAG:現Y
+			CASE IS < 10
+				RETURN CLASS_NUM_COMMON("最上級")
+			CASE IS < 20
+				RETURN CLASS_NUM_COMMON("上級")
+			CASE IS < 30
+				RETURN CLASS_NUM_COMMON("中級")
+			CASEELSE
+				RETURN CLASS_NUM_COMMON("初級")
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお、ここで帰った数字は下限を種族数、上限を10として自動的に調整されます
+;
+;エコービルは最初のダンジョンということで少なめで、最大でも6体ということに
+;=======================================================================
+@ENEMY_NUM_13, ARG
+SELECTCASE FLAG:現M
+	CASE IS < 13
+		RETURN ENEMY_NUM_COMMON("初級", ARG)
+	CASE 13
+		RETURN ENEMY_NUM_COMMON("中級", ARG)
+	CASE IS < 26
+		RETURN ENEMY_NUM_COMMON("中級", ARG)
+	CASE IS < 31
+		RETURN ENEMY_NUM_COMMON("中級", ARG)
+	CASE 99
+		SELECTCASE FLAG:現Y
+			CASE IS < 10
+				RETURN ENEMY_NUM_COMMON("最上級", ARG)
+			CASE IS < 20
+				RETURN ENEMY_NUM_COMMON("上級", ARG)
+			CASE IS < 30
+				RETURN ENEMY_NUM_COMMON("中級", ARG)
+			CASEELSE
+				RETURN ENEMY_NUM_COMMON("初級", ARG)
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;敵ステータス設定
+;=======================================================================
+@SET_ENEMY_STATUS_13,ARG
+ABL:(CHARANUM-1):会話タイプ = 331
+SIF ダンジョンフラグ:13:8 == 1
+	CFLAG:(CHARANUM-1):ＥＸＰ補正 += COEFFICIENT_EXP(ABL:(CHARANUM-1):種族)/2
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_13, ARG
+#LOCALSIZE 3
+;SIF FLAG:現M > 0 && FLAG:現M < 6
+;	CALL tikagai_enemy
+;	CALL shuyoujo_enemy
+SELECTCASE FLAG:現M
+	;地下街
+	CASE 2
+		IF RAND:7 == 0
+			RETURN [[キャラ:リャナンシー]], 18 + RAND:2
+		ELSEIF RAND:6 == 0
+			RETURN [[キャラ:ルサールカ]], 18 + RAND:2
+		ELSEIF RAND:5 == 0
+			RETURN [[キャラ:オキュペテー]], 18 + RAND:2
+		ELSEIF RAND:4 == 0
+			RETURN [[キャラ:ザントマン]], 18 + RAND:2
+		ELSEIF RAND:3 == 0
+			RETURN [[キャラ:セエレ]], 18 + RAND:2
+		ELSEIF RAND:2 == 0
+			RETURN [[キャラ:キマリス]], 18 + RAND:2
+		ELSE
+			RETURN [[キャラ:ヤマチチ]], 18 + RAND:2
+		ENDIF
+	CASE 4,5
+		IF RAND:13 == 0
+			RETURN [[キャラ:リャナンシー]], 18 + RAND:2
+		ELSEIF RAND:12 == 0
+			RETURN [[キャラ:ルサールカ]], 18 + RAND:2
+		ELSEIF RAND:11 == 0
+			RETURN [[キャラ:オキュペテー]], 18 + RAND:2
+		ELSEIF RAND:10 == 0
+			RETURN [[キャラ:ザントマン]], 18 + RAND:2
+		ELSEIF RAND:9 == 0
+			RETURN [[キャラ:セエレ]], 18 + RAND:2
+		ELSEIF RAND:8 == 0
+			RETURN [[キャラ:キマリス]], 18 + RAND:2
+		ELSEIF RAND:7 == 0
+			RETURN [[キャラ:ヤマチチ]], 18 + RAND:2
+		ELSEIF RAND:6 == 0
+			RETURN [[キャラ:アリアンフロッド]], 19 + RAND:4
+		ELSEIF RAND:5 == 0
+			RETURN [[キャラ:スセリビメ]],19 + RAND:4
+		ELSEIF RAND:4 == 0
+			RETURN [[キャラ:ガルム]], 19 + RAND:4
+		ELSEIF RAND:3 == 0
+			RETURN [[キャラ:オニ]], 19 + RAND:4
+		ELSEIF RAND:2 == 0
+			RETURN [[キャラ:ユキジョロウ]], 19 + RAND:4
+		ELSE
+			RETURN [[キャラ:セタンタ]], 19 + RAND:4
+		ENDIF
+	CASE IS < 14
+		CALL shuyoujo_enemy(0)
+		LOCAL = RESULT
+		CALL shuyoujo_enemy(1)
+		LOCAL:1 = RESULT
+		RETURN LOCAL, LOCAL:1
+	CASE IS < 24
+		CALL kyoukai_enemy(0)
+		LOCAL = RESULT
+		CALL kyoukai_enemy(1)
+		LOCAL:1 = RESULT
+		RETURN LOCAL, LOCAL:1
+	CASE IS < 31
+		CALL airport_enemy(0)
+		LOCAL = RESULT
+		CALL airport_enemy(1)
+		LOCAL:1 = RESULT
+		RETURN LOCAL, LOCAL:1
+	CASE 99
+		SELECTCASE ダンジョンフラグ:13:1
+			CASE IS < 7
+				CALL kyoukai_enemy(0)
+				LOCAL = RESULT
+				CALL kyoukai_enemy(1)
+				LOCAL:1 = RESULT
+				RETURN LOCAL, LOCAL:1
+		ENDSELECT
+ENDSELECT
+
+
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_13
+#LOCALSIZE 3
+;宝箱のフラグ管理用変数の番号
+LOCAL = FLAG:現M + 70
+;そのマップの何番目の宝箱か
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+
+;/10はIDを10で割る。つまり、下一桁をなくして、二桁目と三桁目を二桁の数字として取り出している
+
+;地下街（1～5）
+IF FLAG:現M > 0 && FLAG:現M < 6
+	CALL tikagai_takara
+ELSEIF  FLAG:現M < 14
+	CALL shuyoujo_takara
+ELSEIF FLAG:現M < 26
+	CALL kyoukai_takara
+ELSEIF FLAG:現M < 31
+	CALL airport_takara
+ENDIF
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+;上り階段処理
+@UPSTAIRS_13
+#LOCALSIZE 3
+LOCAL = DA:(FLAG:現X):(FLAG:現Y) /10 + 100
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+;	;IDで分岐
+;	;１Ｆ上り階段
+;	CASE 0
+;			;@DUNGEON_UPSTAIRS_ID , 階段を進んだ先のマップ番号 , 移動先のタイルのID
+;			;２Ｆ＝マップ番号1番の0番目の下り階段 = 1 * 1000 + 0 * 10 + 7 = 1007へと飛ぶ
+;			CALL DUNGEON_UPSTAIRS_ID, 1 , 1007
+;	CASE 100
+;			CALL DUNGEON_UPSTAIRS_ID, 2 , 2007
+;	CASE 200
+;			CALL DUNGEON_UPSTAIRS_ID, 3 , 3007
+;	CASE 300
+;			CALL DUNGEON_UPSTAIRS_ID, 4 , 4007
+	CASEELSE
+		CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , LOCAL * 10 + 7
+ENDSELECT
+
+;入り組んだダンジョンで階段がたくさん入り乱れている状態であれば、上記のように階段毎に指定してあげる必要があります。
+;しかしこのエコービルは1つのマップに上り階段が１つ、下り階段が１つ、上の階に進む＝マップ番号が一つ増えるという構造になっています
+;なので、下記のように書けば一行で済みます
+RETURN 1
+
+;下り階段処理
+@DOWNSTAIRS_13
+#LOCALSIZE 3
+LOCAL = DA:(FLAG:現X):(FLAG:現Y) /10 - 100
+;上り階段同様に、エコービルは下り階段も1行で記述できます
+CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , LOCAL * 10 + 6
+RETURN 1
+
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+;ARGはそのエレベーターのタイル
+@DUNGEON_ELEVATOR_13, ARG
+;RESULT:1～5にエレベータが存在するマップの番号を代入し、RESULTS:1～5には表示したい名称を代入、RETURNでは-1を返しておく
+
+IF FLAG:現M > 7 && FLAG:現M < 14
+	RESULT:1 = 9
+	RESULT:2 = 13
+	RESULTS:1 = Ｂ４Ｆ
+	RESULTS:2 = １Ｆ
+ELSEIF  FLAG:現M < 19
+	RESULT:1 = 17
+	RESULT:2 = 18
+	RESULTS:1 = ２Ｆ
+	RESULTS:2 = １０Ｆ
+ELSEIF  FLAG:現M < 21
+	RESULT:1 = 19
+	RESULT:2 = 20
+	RESULTS:1 = １１Ｆ
+	RESULTS:2 = ２０Ｆ
+ELSEIF  FLAG:現M < 24
+	RESULT:1 = 22
+	RESULT:2 = 23
+	RESULTS:1 = ２２Ｆ
+	RESULTS:2 = ４４Ｆ
+ELSEIF  FLAG:現M < 26
+	RESULT:1 = 24
+	RESULT:2 = 25
+	RESULTS:1 = ４５Ｆ
+	RESULTS:2 = ５５Ｆ
+ENDIF
+RETURN -1
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_13
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+
+ENDSELECT
+
+@HEAL_SPOT
+
+PRINTL There is a healing spot. 
+CALL INPUT_YN,"Use it（disappears when used）","Don't use it"
+IF RESULT == 0
+	PRINTFORMW %CALLNAME:MASTER%'s party was healed.
+	FOR LOCAL, 0, CHARANUM
+		CALL HEALTH_CHARA, LOCAL
+	NEXT
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	
+ENDIF
+

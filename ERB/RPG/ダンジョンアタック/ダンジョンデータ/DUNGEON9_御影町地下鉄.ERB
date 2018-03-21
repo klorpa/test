@@ -1,0 +1,420 @@
+
+;=======================================================================
+;地下鉄
+;ボス・なし
+;ダンジョンナンバー9　ＭＡＰ0~2
+;ダンジョンフラグ:9:0 イヌガミ撃破
+;ダンジョンフラグ:9:1 クリアフラグ
+;ダンジョンフラグ:9:2 プラザマウォール消失の日数判定トリガー
+;ダンジョンフラグ:9:3 開始メッセージ
+;=======================================================================
+
+
+
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_9
+;エコービルクリア+P1ルート未クリア+プラズマウォール消失をクリアしてない
+;または主人がエルミン出身+P1ルート未クリア+プラズマウォール消失をクリアしてない
+IF (ダンジョンフラグ:1:1 == 1 || CFLAG:MASTER:72 == 21) && ダンジョンフラグ:11:7 != 1 && イベントフラグ:24:0 == 0
+	SIF ダンジョンフラグ:9:2 == 0
+		ダンジョンフラグ:9:2 = DAY
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_9
+RESULTS = Mikage-cho Subway Station
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_9
+PRINTL Mikage-cho Subway Station
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Around the platform
+	CASE 1
+		PRINTL West Passage
+	CASE 2
+		PRINTL East Passage
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_9_2_7_2
+RESULTS = Ｔ
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_9,ARG
+FLAG:現M = 0
+FLAG:現X = 13
+FLAG:現Y = 0
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_9
+IF ダンジョンフラグ:9:3++ == 0
+	CALL SHOW_PICTURE, "D"
+	IF CFLAG:MASTER:72 == 21
+		CALL MESSAGE_WINDOW_D, "", @"＞A differentiation incident occured at the town of Mikage-cho./＞Mikage-cho is the city where the St.Hermelin high school, %CALLNAME:MASTER%'s school, is located./＞A barrier that prevents exit and entry has surrounded the town./＞However, it is possible to create a small hole in it, that lasts for a very short time."
+		;御影町という町で異界化事件が発生した/＞御影町というと%CALLNAME:MASTER%の通っていた聖エルミン学園がある街だ/＞御影町の周囲には結界が張られ、出入り出来なくなっているのだが、/＞結界に小規模に穴をあけて侵入する事は可能だという
+		CALL MESSAGE_WINDOW_D, "", @"＞To avoid drawing attention to your intrusion, you decided to enter via a subway tunnel./＞...%CALLNAME:MASTER% did not expect this kind of job when first becoming a summoner of the Phantom Society./＞But when you saw this job offer you just couldn't resist."
+		;無駄に目立つのを避けるために、今回は地下鉄線路を利用して侵入する事となった/＞……今やファントムのダークサマナーとなった%CALLNAME:MASTER%が元通り学校に通う日が来るなどとは思えないが/＞それでもこの仕事を目にした時は引き受けずには居られなかった
+		CALL MESSAGE_WINDOW_D, "", @"＞...However, now is not the time to get emotinal./＞That %CALLNAME:MASTER% is already familiar with the town of Mikage-cho, may prove useful during this investigation..."
+		;……とは言え、情だけで動いた訳でもない/＞%CALLNAME:MASTER%が御影町に慣れている事は、この仕事においても優位に働く事もある筈なのだ……
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞A differentiation incident occured at the town of Mikage-cho./＞If you can resolve it, there will be a considerable reward./＞A barrier that prevents exit and entry has surrounded the town./＞However, it is possible to create a small hole in it, that lasts for a very short time."
+		;御影町という町で異界化事件が発生した/＞解決出来れば、相当の報償金が出るそうだ/＞御影町の周囲には結界が張られ、出入り出来なくなっているのだが、/＞結界に小規模に穴をあけて侵入する事は可能だ
+		CALL MESSAGE_WINDOW_D, "", "＞To avoid drawing attention to your intrusion, you decided to enter via a subway tunnel./＞Still, when you where told about the reward,/＞the sponsor requested a quick resolution of the incident, you wonder why?"
+		;無駄に目立つのを避けるために、今回は地下鉄線路を利用して侵入する事となった/＞しかし、報奨金が出ると言う事は、/＞この異界化事件の早期解決を望んでいるスポンサーがいると言う事になるが……？
+		CALL MESSAGE_WINDOW_D, "", @"＞...it's probably nothing you have to worry about./＞%CALLNAME:MASTER% went to Mikage-cho."
+		;＞……これは考える必要のない事ではある/＞%CALLNAME:MASTER%はそれ以上考えるのをやめ、御影町に向かうことにした
+	ENDIF
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_9,ARG,ARG:1
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_9
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 17
+		FLAG:最大Y = 9
+		;イベントの設置
+		CALL MAKE_FLOOR_LINE, 0,"00000000000008000"
+		CALL MAKE_FLOOR_LINE, 1,"0611         1  0"
+		CALL MAKE_FLOOR_LINE, 2,"0  1         1  0"
+		CALL MAKE_FLOOR_LINE, 3,"0  11111111111  0"
+		CALL MAKE_FLOOR_LINE, 4,"0  11111111111  0"
+		CALL MAKE_FLOOR_LINE, 5,"0  11111111111  0"
+		CALL MAKE_FLOOR_LINE, 6,"0            1  0"
+		CALL MAKE_FLOOR_LINE, 7,"0            1160"
+		CALL MAKE_FLOOR_LINE, 8,"00000000000000000"
+		CALL SET_TILE,13,3,ダンジョンフラグ:9:0,0,4
+		CALL SET_TILE,13,3,ダンジョンフラグ:9:0,2,4
+		
+	;A=自動床タイル
+	CASE 1
+		FLAG:最大X = 19
+		FLAG:最大Y = 13
+		;						 0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"811 11111 111A  110"
+		CALL MAKE_FLOOR_LINE, 2,"0 1 1   111  111 10"
+		CALL MAKE_FLOOR_LINE, 3,"0 1 1111  A111 1110"
+		CALL MAKE_FLOOR_LINE, 4,"0 11   1         10"
+		CALL MAKE_FLOOR_LINE, 5,"0  111 11   1111 10"
+		CALL MAKE_FLOOR_LINE, 6,"0 11 1  1 111  1 10"
+		CALL MAKE_FLOOR_LINE, 7,"0 1  11 1 1  111 10"
+		CALL MAKE_FLOOR_LINE, 8,"811   1 1 1  A   10"
+		CALL MAKE_FLOOR_LINE, 9,"0   111 1111 A11110"
+		CALL MAKE_FLOOR_LINE,10,"0   1   1  111 1  0"
+		CALL MAKE_FLOOR_LINE,11,"0   11111      7  0"
+		CALL MAKE_FLOOR_LINE,12,"0000000000000000000"
+		DA:13:1 = 11
+		DA:10:3 = 21
+		DA:13:8 = 31
+		DA:13:9 = 41
+
+	;A=自動床タイル
+	CASE 2
+		FLAG:最大X = 19
+		FLAG:最大Y = 13
+		;						 0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0      1          0"
+		CALL MAKE_FLOOR_LINE, 2,"71111111111       0"
+		CALL MAKE_FLOOR_LINE, 3,"0      1  111   118"
+		CALL MAKE_FLOOR_LINE, 4,"011111 1    1   1 0"
+		CALL MAKE_FLOOR_LINE, 5,"01   1 1    1 111 0"
+		CALL MAKE_FLOOR_LINE, 6,"0111 111    1A1 1 0"
+		CALL MAKE_FLOOR_LINE, 7,"0  1   11     1 1 0"
+		CALL MAKE_FLOOR_LINE, 8,"01 111  1111  1 1 0"
+		CALL MAKE_FLOOR_LINE, 9,"0111 11       1 118"
+		CALL MAKE_FLOOR_LINE,10,"0     11111 111   0"
+		CALL MAKE_FLOOR_LINE,11,"0111111   111 1   0"
+		CALL MAKE_FLOOR_LINE,12,"0000000000000000000"
+		DA:13:6 = 11
+
+	CASEELSE
+
+
+
+
+
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_9
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+	
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTARIS_9
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTARIS_9
+	RETURN RESULT
+
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_9,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	IF FLAG:現M > 0 && !ダンジョンフラグ:9:1
+		CALL MESSAGE_WINDOW_D, "", "＞You started to see daylight./＞Your infiltration of the barrier-blocked Mikage-Cho was successful.../＞You prepared a report for the Phantom Society about your successful intrusion into Mikage-cho."
+		;外の光が見えてきた/＞この先は結界に閉ざされた御影町内部に繋がっている筈だ……/＞ファントムに御影町侵入成功の報告を入れよう
+		CALL MESSAGE_WINDOW_D, "", @"＞From the organisations response,/＞it seems %CALLNAME:MASTER% was the first one to penetrate the barrier./＞You can probably expect to be more involved in the further investigation of Mikage-cho."
+		;どうやら、ここへの侵入については、/＞%CALLNAME:MASTER%が一番乗りの様だ/＞これから御影町絡みの話があれば、こちらに振られる事が多くなるだろう
+		ダンジョンフラグ:9:1 = 1
+	ELSE
+		CALL DUNGEON_EXIT
+	ENDIF
+	RETURN 1
+;==========
+;イベント床
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 1 && DA:(FLAG:現X):(FLAG:現Y) / 10 > 0
+	IF FLAG:現M == 1
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+			CASE 1
+				CALL SHOW_FORCEMOVE, "LLL", "D", , ,  "Suddenly, the floor moved!"
+				;突然床が動き出した！
+			CASE 2
+				CALL SHOW_FORCEMOVE, "RRR", "D", , ,  "Suddenly, the floor moved!"
+			CASE 3
+				CALL SHOW_FORCEMOVE, "UR<2>U<2>L<3>DL<2>D<2>", "D", "", "Suddenly, the floor moved!"
+			CASE 4
+				CALL SHOW_FORCEMOVE, "DLLU", "D", , , "Suddenly, the floor moved!"
+		ENDSELECT
+	ELSE
+		CALL SHOW_FORCEMOVE, "LU<3>L<2>UL<3>", "D", , , "Suddenly, the floor moved!"
+	ENDIF
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTARIS_9
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTARIS_9
+	RETURN RESULT
+
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+SELECTCASE FLAG:現M
+	CASE 0
+		IF ダンジョンフラグ:9:0 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞After walking one the subway tracks for a while, the subway station of Mikage-cho finally came into view.../＞However, there was a biest blocking your way."
+			;地下鉄の線路上を歩いて、ようやく地下鉄御影町駅ホームが見えてきた……/＞が、その先に一体の獣が立ちふさがる
+			CALL MESSAGE_WINDOW_D, "Beast Inugami", "東西ノ通路ヲ封鎖セヨトハ言ワレテイタガ、/マサカソチラカラ人ガ来ルトハ思ワナカッタ/ニンゲン、ドウヤッテ ソッチカラハイッタ？"
+			CALL MESSAGE_WINDOW_D, "", "＞Beast Inugami appeared!"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9,853,15,0,1
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			BASE:(CHARANUM-1):力 += 5
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+			ダンジョンフラグ:9:0 = 1
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞With the defeat of Beast Inugami, the way to intrude into Mikage-cho should now be clear."
+			;魔獣 イヌガミを討伐したことにより、御影町への侵入が可能になった
+		ENDIF
+	CASEELSE
+ENDSELECT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTARIS_9
+SELECTCASE FLAG:現M
+	CASE 0
+		SIF FLAG:現X == 1 && FLAG:現Y == 1
+			CALL DUNGEON_UPSTAIRS,1,15,11
+		SIF FLAG:現X == 15 && FLAG:現Y == 7
+			CALL DUNGEON_UPSTAIRS,2,0,2
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+@DOWNSTARIS_9
+SELECTCASE FLAG:現M
+	CASE 1
+		SIF FLAG:現X == 15 && FLAG:現Y == 11
+			CALL DUNGEON_DOWNSTAIRS,0,1,1
+	CASE 2
+		SIF FLAG:現X == 0 && FLAG:現Y == 2
+			CALL DUNGEON_DOWNSTAIRS,0,15,7
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_9
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_9
+RETURN 15, 12, 15, 15
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_9
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_9
+RETURN CLASS_NUM_COMMON("初級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお、ここで帰った数字は下限を種族数、上限を10として自動的に調整されます
+;=======================================================================
+@ENEMY_NUM_9, ARG
+RETURN ENEMY_NUM_COMMON("初級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_9, ARG
+SELECTCASE RAND:100
+	CASE IS < 10
+		;10%でインプLv9（12）
+		RETURN 459, 12
+	CASE IS < 20
+		;10%でゾンビコップLv9（12）
+		RETURN 1095, 12
+	CASE IS < 30
+		;10%でナハトコボルト
+		RETURN 467, 14
+	CASE IS < 40
+		;10%　龍王ヤトノカミLV22 
+		RETURN [[キャラ:ヤトノカミ]], 14
+	CASE IS < 55
+		;15%でアチェリLv10（13）
+		RETURN 608, 13
+	CASE IS < 70
+		;15%でラミアLv10（13）
+		RETURN 702, 13
+	CASE IS < 85
+		;15%ではなこlv13
+		RETURN 1003, 13
+	CASE IS < 100
+		;15%でドリアード(15)
+		RETURN 502, 15
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_9
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:ゾンビコップ]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビコップ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ナハトコボルト]] , 3 + RAND:10 , CSVBASE([[キャラ:ナハトコボルト]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:インプ]] , 3 + RAND:10 , CSVBASE([[キャラ:インプ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+
+
+

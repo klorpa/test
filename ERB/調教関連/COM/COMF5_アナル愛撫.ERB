@@ -1,0 +1,117 @@
+;-------------------------------------------------
+;アナル愛撫
+;愛撫系コマンド、レベル2
+;-------------------------------------------------
+@ACT_COM5
+PRINTL Anal Caress
+TSTR:0 = アナル愛撫
+;CALL KOJO_MESSAGE_COM
+
+
+;調教者→調教対象
+TFLAG:28 = 2
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 40
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:快Ａ = 100
+SOURCE:TARGET:痛み = 100
+SOURCE:TARGET:屈従 = 100
+SOURCE:TARGET:逸脱 = 80
+SOURCE:TARGET:反感 = 60
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 100
+
+;Aへの苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+IF EXP:1 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 3.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF EXP:1 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 0.80
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF EXP:1 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 0.60
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:1 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.40
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 1.00
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 0.60
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.30
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+IF TEQUIP:25
+	;奴隷のＡに触手の汚れがつく
+	CALL SET_STAIN("アナル", "粘液", TARGET)
+ELSE
+	;奴隷のＡ⇔調教者の指の汚れが移動
+	CALL MOVE_STAIN("アナル", TARGET, "手", PLAYER)
+ENDIF
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+CALL ADDS_EXP("Ａ経験", 1, TARGET)
+;PRINTL ＡEXP＋１
+
+A = 2
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_5
+RETURN COMTYPE("愛撫系")

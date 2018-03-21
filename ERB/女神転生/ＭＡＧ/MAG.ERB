@@ -1,0 +1,1292 @@
+@SHOPCOMABLE_122
+RESULTS = Enhance Demon
+RETURN 1
+
+@SHOP_COM_122
+#LOCALSIZE 5
+LOCAL:4 = RESULT
+$INPUT_LOOP
+CALL INPUT_CHARA_LIST("Who will you strengthen with ＭＡＧ?", "CASTING_SHOP_COM_122")
+IF RESULT != 1000
+	CALL ENHANCE(RESULT, A)
+	GOTO INPUT_LOOP
+ENDIF
+RETURN LOCAL:4
+
+@CASTING_SHOP_COM_122
+SIF CFLAG:COUNT:労役フラグ == 3 || CFLAG:COUNT:この場に居ないフラグ || CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+RETURN 1
+
+;ARG:0…対象キャラ		LOCAL:3…開始時の行数(行削除用)
+;ARG:1…リストの人数	LOCAL:4…スキル変更可否共通判定(異能者でないMASTER、ペルソナ使い、達人は変更不可)
+;LOCAL:0…計算用		LOCAL:5…空きスキル位置(ABL:ARG:(LOCAL:5)で空きスキル。無い場合は-1)
+;LOCAL:1…RESULT保護	LOCAL:6…基本能力強化コスト
+;LOCAL:2…リスト位置	LOCAL:7…Zomaレベルアップコスト
+@ENHANCE(ARG, ARG:1)
+#LOCALSIZE 8
+#DIMS CONST FUNCNAME = "ENHANCE_BASE", "MAG_SKILL_RANKUP", "MAG_SKILL_DELETE", "", "MAG_ENHANCE_ATTACK", "MAG_ENHANCE_DEFTYPE", "MAG_GROWTH"
+#DIMS CONST MANTRAFUNC = "SET_MANTRA_SKILL", "MANTRA_BASESTATUS", "DOWNLOAD_MANTRA"
+#DIM どっちの強化？ , 1
+
+LOCAL:1 = RESULT, FINDELEMENT(Q, ARG, 0, ARG:1), LINECOUNT
+
+IF ((TALENT:ARG:デビルシフター || TALENT:ARG:喰奴) && TALENT:ARG:異能者) || TALENT:ARG:悪魔憑き
+	PRINTL What do you want to enhance?
+	;どちらの強化を行いますか？
+	PRINTL
+	CALL INPUT_YN("Human","Transformation Demon")
+	;人間時","初期変身悪魔
+	SIF RESULT == 0
+		どっちの強化？  = 2
+	SIF RESULT == 1
+		どっちの強化？  = 1
+ELSE
+	どっちの強化？  = 1
+ENDIF
+
+DO
+	LOCAL = GETNUM(ABL, @"\@ TALENT:ARG:デビルシフター || TALENT:ARG:悪魔憑き  && どっちの強化？ == 1 ? 初期変身悪魔 # \@スキル1")
+	
+;	LOCAL:4 = (ARG != MASTER || TALENT:ARG:異能者) && !TALENT:ARG:ペルソナ使い && !TALENT:ARG:達人
+	LOCAL:4 = ( (ARG != MASTER || TALENT:ARG:異能者) && ( (!TALENT:ARG:ペルソナ使い && !TALENT:ARG:達人) || TALENT:ARG:デビルシフター) && (!TALENT:ARG:喰奴 || !TALENT:ARG:悪魔憑き || どっちの強化？ == 2)) || (ARG == MASTER && (ABL:ARG:種族 == 36 || ABL:ARG:種族 == 73))
+	IF (TALENT:ARG:異能者 || TALENT:ARG:達人)&&(どっちの強化？  == 2|| (TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き)==0)
+		LOCAL:5 = FINDELEMENT(ABL:ARG:0, 0, LOCAL, LOCAL + FLAG:異能者スキル数)
+	ELSE
+		LOCAL:5 = FINDELEMENT(ABL:ARG:0, 0, LOCAL, LOCAL + FLAG:スキル数)
+	ENDIF
+	LOCAL:6 = (FLAG:戦闘難易度 > 3 ? 100 # 250) * (CFLAG:ARG:能力強化回数 / 3 + 1) * (CFLAG:ARG:能力強化回数 / 3 + 2) * ＭＡＧ強化ＣＰ補正(ARG) / 1000
+	LOCAL:7 = MAX(1, 2 * (BASE:ARG:LV - 1) * BASE:ARG:LV * (BASE:ARG:LV + 1))
+	FOR LOCAL, 0, MAX(0, BASE:ARG:LV - BASE:MASTER:LV)
+		TIMES LOCAL:7, 1.20
+	NEXT
+	CLEARLINE LINECOUNT - LOCAL:3
+	DRAWLINE
+	PRINTFORML How will you enhance %NAME:ARG%?%" " * MAX(0, 24 - STRLENS(NAME:ARG))%(Current MAG：{BASE:ARG:ＭＡＧ, 8})\n
+;	PRINTFORM \@ ARG != MASTER ? [1]Stat enhancement(Necessary MAG:{LOCAL:6, 8})\n # \@
+	IF ARG == MASTER
+		PRINTFORM [1]Stat enhancement(Necessary MAG:{LOCAL:6 * 100, 8})\n
+	ELSE
+		PRINTFORM [1]Stat enhancement(Necessary MAG:{LOCAL:6, 8})\n
+	ENDIF
+	PRINTFORM \@ LOCAL:4 ? [2]Skill enhancement\n[3]Skill deletion\n # \@\@ LOCAL:4 && ABL:ARG:種族 != 45 ? [4]Skill acquisition\n # \@
+	PRINTFORM \@ ((ABL:ARG:種族 && ABL:ARG:種族 != 36) || TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き) && どっちの強化？ == 1 ? [5]Attack enhancement\n # \@
+	PRINTFORM \@ ((ABL:ARG:種族 && ABL:ARG:種族 != 45) || TALENT:ARG:デビルシフター || TALENT:ARG:悪魔憑き) && どっちの強化？ == 1 ? [6]Resistance enhancement\n # \@
+	PRINTL [7]Stamina and willpower enhancement
+	PRINTFORM \@ ABL:ARG:種族 == 45 ? [8]Zoma Level-up(Current LV：{BASE:ARG:LV, 3} / Necessary MAG:{LOCAL:7, 8})\n # \@
+	;\@ ABL:ARG:種族 == 45 ? [8]Zomaレベルアップ(現在LV：{BASE:ARG:LV, 3} / Necessary MAG:{LOCAL:7, 8})\n # \@
+	IF TALENT:ARG:喰奴 && どっちの強化？  == 1
+		PRINTFORM \@ GETBIT(FLAG:マントラ開放度, 1) ? [9]Set skills\n[10]Set stats\n # \@
+		SETBIT FLAG:マントラ開放度, 0	;シナリオ進行による制限が実装されるまでの仮措置
+		PRINTFORM \@ FLAG:マントラ開放度 ? [11]Download Mantras\n # \@
+	ENDIF
+	SIF ( ABL:ARG:種族 == 0 || ABL:ARG:種族 == 36 || SKILL_EQUIPTHEORY_IS_HAVE_SKILL(ARG) ) && SOFT_ON("魔装術")
+		PRINTL [12]Enhance equipment
+		;装備強化
+	PRINTFORM %"\n" * MAX(0, 10 + LOCAL:3 - LINECOUNT)%
+	DRAWLINE
+	PRINTFORMLC \@ LOCAL:2 > 0 ? [107] Previous character  # %" " * 16% \@
+	PRINTFORMLC [100] Return
+	PRINTFORMLC \@ LOCAL:2 < ARG:1 - 1 ? [109] Next character # %" " * 16% \@
+	DO
+		INPUT
+		LOCAL = RESULT == 100 || (RESULT == 107 && LOCAL:2 > 0) || (RESULT == 109 && LOCAL:2 < ARG:1 - 1)
+		LOCAL |= RESULT == 1
+		LOCAL |= INRANGE(RESULT, 2, 3) && LOCAL:4
+		LOCAL |= RESULT == 4 && (LOCAL:4 && ABL:ARG:種族 != 45 && LOCAL:5 >= 0)
+		LOCAL |= RESULT == 5 && ((ABL:ARG:種族 && ABL:ARG:種族 != 36) || TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き)
+		LOCAL |= RESULT == 6 && ((ABL:ARG:種族 && ABL:ARG:種族 != 45) || TALENT:ARG:デビルシフター || TALENT:ARG:悪魔憑き)
+		LOCAL |= RESULT == 7 || (RESULT == 8 && ABL:ARG:種族 == 45 && BASE:ARG:ＭＡＧ >= LOCAL:7)
+		LOCAL |= RESULT == 9 && TALENT:ARG:喰奴 && GETBIT(FLAG:マントラ開放度, 1)
+		LOCAL |= RESULT == 10 && TALENT:ARG:喰奴 && GETBIT(FLAG:マントラ開放度, 1)
+		LOCAL |= RESULT == 11 && TALENT:ARG:喰奴 && FLAG:マントラ開放度
+		LOCAL |= RESULT == 12 && (ABL:ARG:種族 == 0 || ABL:ARG:種族 == 36 || SKILL_EQUIPTHEORY_IS_HAVE_SKILL(ARG)) && SOFT_ON("魔装術")
+		IF !LOCAL
+			CLEARLINE 1
+			;SIF (RESULT == 1 && ARG != MASTER && BASE:ARG:ＭＡＧ < LOCAL:6) || (RESULT == 8 && ABL:ARG:種族 == 45 && BASE:ARG:ＭＡＧ < LOCAL:7)
+			;	REUSELASTLINE Not enough MAG
+			SIF RESULT == 4 && LOCAL:4 && ABL:ARG:種族 != 45 && LOCAL:5 < 0
+				REUSELASTLINE There is no empty skill slot.
+		ENDIF
+	LOOP !LOCAL
+	LOCAL = RESULT
+	SELECTCASE LOCAL
+		CASE 1
+			CALLFORM %FUNCNAME:(LOCAL - 1)% (ARG)
+		CASE 2 TO 3
+			CALLFORM %FUNCNAME:(LOCAL - 1)% (ARG,どっちの強化？)
+		CASE 3
+			CALLFORM %FUNCNAME:(LOCAL - 1)% (ARG,どっちの強化？)
+		CASE 4
+			CALL MAG_LEARN_SKILL(ARG,どっちの強化？, ABLNAME:(LOCAL:5))
+		CASE 5
+			CALLFORM %FUNCNAME:(LOCAL - 1)% (ARG)
+		CASE 6
+			CALLFORM %FUNCNAME:(LOCAL - 1)% (ARG)
+		CASE 7
+			CALLFORM %FUNCNAME:(LOCAL - 1)% (ARG)
+		CASE 8
+			PRINTFORMW %NAME:ARG%s lvl has risen by 1(New LV：{++BASE:ARG:LV})
+			;%NAME:ARG%のレベルが1上がりました(現在LV：{++BASE:ARG:LV})
+			BASE:ARG:ＭＡＧ -= LOCAL:7
+			CALL EVENT_LEVELUP(ARG, 1)
+			TRYCALLFORM EVENT_LEVELUP_{NO:ARG}(1)
+			CALL SYNC_STATUS(ARG)
+		CASE 9
+			CALL SET_MANTRA_SKILL(ARG)
+		CASE 10
+			CALL MANTRA_BASESTATUS(ARG)
+		CASE 11
+			CALL DOWNLOAD_MANTRA(7, 7, ARG)
+		CASE 12
+			CALL 装備強化 ,ARG
+		CASE 107
+			ARG = Q:(--LOCAL:2)
+		CASE 109
+			ARG = Q:(++LOCAL:2)
+	ENDSELECT
+LOOP LOCAL != 100
+RETURN LOCAL:1
+
+
+;===================================================
+;Stat enhancement
+;===================================================
+@ENHANCE_BASE,ARG
+#DIM ＣＰ補正
+PRINTL □Stat enhancement
+
+;能力ＵＰに必要な値を計算
+LOCAL:1 = CFLAG:ARG:能力強化回数
+;/3 + 1
+SELECTCASE FLAG:戦闘難易度
+	CASE 1 TO 6
+		LOCAL:10 = 250
+	CASE 4,5,6
+		LOCAL:10 = 100
+ENDSELECT
+SIF ARG == MASTER
+	LOCAL:10 *= 100
+LOCAL:2 = 0
+ＣＰ補正 = ＭＡＧ強化ＣＰ補正(ARG)
+FOR LOCAL, 0 ,10
+	LOCAL:2 += (LOCAL:1/3+1) * (LOCAL:1/3+2)
+	SIF LOCAL == 0
+		LOCAL:3 = LOCAL:2*LOCAL:10 * ＣＰ補正 / 1000
+	SIF LOCAL == 4
+		LOCAL:4 = LOCAL:2*LOCAL:10 * ＣＰ補正 / 1000
+	SIF LOCAL == 9
+		LOCAL:5 = LOCAL:2*LOCAL:10 * ＣＰ補正 / 1000
+	LOCAL:1++
+NEXT
+
+
+PRINTFORML Which stat will you strengthen?　　(Current MAG：{BASE:ARG:ＭＡＧ})
+PRINTFORML (Required ＭＡＧ: １:{LOCAL:3,6}　５:{LOCAL:4,6}　１０:{LOCAL:5,6}
+PRINTL  +1   +5  +10
+FOR LOCAL,1,7
+	PRINTFORML [{LOCAL}] [{LOCAL+10}] [{LOCAL+20}]%GET_BASESTATUS_E(LOCAL),5% {MAXBASE:ARG:(GET_BASESTATUS(LOCAL))-CFLAG:ARG:(GET_BASESTATUS(LOCAL) + "強化回数"),4} + {CFLAG:ARG:(GET_BASESTATUS(LOCAL) + "強化回数"),4}
+NEXT
+DRAWLINE
+PRINTL [0]Return
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT < 7 && RESULT > 0
+	IF BASE:ARG:ＭＡＧ < LOCAL:3
+		PRINTFORMW Not enough MAG!
+		RESTART
+	ENDIF
+	PRINTFORMW %NAME:ARG%'s %GET_BASESTATUS_E(RESULT)% rose by 1
+	CFLAG:ARG:能力強化回数 += 1
+	CFLAG:ARG:(GET_BASESTATUS(RESULT) + "強化回数") += 1
+	CALL CONTROL_MAG,ARG,-LOCAL:3
+	CFLAG:ARG:強化使用ＭＡＧ += LOCAL:3
+ELSEIF RESULT < 17 && RESULT > 10
+	IF BASE:ARG:ＭＡＧ < LOCAL:4
+		PRINTFORMW Not enough MAG！
+		RESTART
+	ENDIF
+	PRINTFORMW %NAME:ARG%'s %GET_BASESTATUS_E(RESULT-10)% rose by 5
+	CFLAG:ARG:能力強化回数 += 5
+	CFLAG:ARG:(GET_BASESTATUS(RESULT-10) + "強化回数") += 5
+	CALL CONTROL_MAG,ARG,-LOCAL:4
+	CFLAG:ARG:強化使用ＭＡＧ += LOCAL:4
+ELSEIF RESULT < 27 && RESULT > 20
+	IF BASE:ARG:ＭＡＧ < LOCAL:5
+		PRINTFORMW Not enough MAG!
+		RESTART
+	ENDIF
+	PRINTFORMW %NAME:ARG%'s %GET_BASESTATUS_E(RESULT-20)% rose by 10
+	CFLAG:ARG:能力強化回数 += 10
+	CFLAG:ARG:(GET_BASESTATUS(RESULT-20) + "強化回数") += 10
+	CALL CONTROL_MAG,ARG,-LOCAL:5
+	CFLAG:ARG:強化使用ＭＡＧ += LOCAL:5
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+CALL SYNC_STATUS,ARG
+LOCAL:1 = CFLAG:ARG:能力強化回数/3 + 1
+;IF BASE:ARG:ＭＡＧ < LOCAL:10*LOCAL:1*(LOCAL:1+1)*(900+MAXBASE:ARG:CP)/1000
+;	PRINTW ＭＡＧが足りなくなったので終了します。
+;	RETURN 0
+;ENDIF
+RESTART
+
+
+;===================================================
+;Skill enhancement
+;===================================================
+@MAG_SKILL_RANKUP,ARG,ARG:1
+#DIM 素質ないよ , 1
+#DIM 必要ＭＡＧ , 1
+#DIM ＣＰ補正, 1
+#DIM どっちの強化？ , 1
+
+どっちの強化？ = ARG:1
+
+PRINTFORML □Skill enhancement　　(Current MAG：{BASE:ARG:ＭＡＧ})
+DRAWLINE
+
+IF どっちの強化？  > 0
+	PRINTL Which skills will you rank up?
+	SIF TALENT:ARG:デビルシフター && どっちの強化？  == 1
+		PRINTL ※Devil Shifters can rank up the skills of their initial transformation demon
+		;※デビルシフターは初期変身悪魔のスキルをランクアップさせることが出来ます
+		;Devil Shifter can make the skill of the initial transformation demon rank up
+ELSEIF TALENT:ARG:デビルシフター && (TALENT:ARG:達人 || TALENT:ARG:異能者)
+	
+	PRINTL What skills will you rank up?
+	PRINTL ※Devil Shifters can rank up the skills of their initial transformation demon
+	;※デビルシフターは初期変身悪魔のスキルをランクアップさせることが出来ます
+	PRINTL
+	CALL INPUT_YN("Human","Tranformation Demon")
+	;人間時","初期変身悪魔
+	IF RESULT == 0
+		どっちの強化？  = 2
+	ELSE
+		どっちの強化？  = 1
+	ENDIF
+	PRINTL
+	PRINTL Which skills will you rank up?
+ELSEIF TALENT:ARG:悪魔憑き
+	
+	PRINTL Which skill will you rank up?
+	PRINTL ※Demonic possessed can rank up the skills of their tranformation demon
+	;※悪魔憑きは変身悪魔のスキルをランクアップさせることが出来ます
+	PRINTL
+	CALL INPUT_YN("Human","Transformation Demon")
+	;人間時","変身悪魔
+	IF RESULT == 0
+		どっちの強化？  = 2
+	ELSE
+		どっちの強化？  = 1
+	ENDIF
+	PRINTL
+	PRINTL Which skills will you rank up?
+ELSE
+	PRINTL Which skills will you rank up?
+	SIF TALENT:ARG:デビルシフター
+		PRINTL ※Devil Shifters can rank up the skills of their initial transformation demon
+		;※デビルシフターは初期変身悪魔のスキルをランクアップさせることが出来ます
+	どっちの強化？  = 1
+ENDIF
+
+FOR LOCAL,0,FLAG:異能者スキル数
+;	IF TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0
+	IF (TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0 && TALENT:ARG:悪魔憑き == 0) || どっちの強化？  == 2
+		LOCALS = スキル{LOCAL+1}
+	ELSE
+		LOCALS = 初期変身悪魔スキル{LOCAL+1}
+	ENDIF
+	IF GETBIT(FLAG:カスタムゲーム画面,1)
+		IF ABL:ARG:LOCALS > 0
+			RESULT = 0
+			TRYCALLFORM SKILL_RANKUP_{ABL:ARG:LOCALS}
+			SIF RESULT == 0
+				SETCOLOR 0x404040
+			CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+			PRINTFORM 　[{LOCAL+1}]%RESULTS,38,LEFT%
+			RESETCOLOR
+		ENDIF
+		SIF LOCAL == 2 || LOCAL == 5 || LOCAL == 8
+			PRINTL
+	ELSE
+		IF ABL:ARG:LOCALS > 0
+			RESULT = 0
+			TRYCALLFORM SKILL_RANKUP_{ABL:ARG:LOCALS}
+			SIF RESULT == 0
+				SETCOLOR 0x404040
+			CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+			PRINTFORM 　[{LOCAL+1}]%RESULTS,20,LEFT%
+			RESETCOLOR
+		ENDIF
+		SIF LOCAL % 4 == 3
+			PRINTL
+	ENDIF
+NEXT
+
+DRAWLINE
+PRINTL [0]Return
+
+
+$INPUT_LOOP
+INPUT
+
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT < 1 || RESULT > FLAG:異能者スキル数
+	GOTO INPUT_LOOP
+ELSE
+;	IF TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0
+	IF (TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0 && TALENT:ARG:悪魔憑き == 0) || どっちの強化？  == 2
+		LOCALS = スキル{RESULT}
+	ELSE
+		LOCALS = 初期変身悪魔スキル{RESULT}
+	ENDIF
+	RESULT = 0
+	VARSET D,-1
+	LOCAL:1 = 0
+	TRYCALLFORM SKILL_RANKUP_{ABL:ARG:LOCALS}
+	IF RESULT == 0
+		REUSELASTLINE This skill can't be ranked up.
+		GOTO INPUT_LOOP
+	ENDIF
+	LOCAL:1 = RESULT
+	CALLFORM SKILL_RANK_{ABL:ARG:LOCALS}
+	LOCAL:2 = RESULT
+	$PRINT_LIST
+	ＣＰ補正 = ＭＡＧ強化ＣＰ補正(ARG)
+	FOR LOCAL,1,LOCAL:1+1
+		CALLFORM SKILL_NAME_{D:LOCAL}
+		CALLFORM SKILL_SUCCESSION_TYPE_{D:LOCAL}
+		IF TALENT:ARG:GET_SUCCESSION(RESULT) == 0
+			素質ないよ = 1
+		ELSE
+			素質ないよ = 0
+		ENDIF
+		CALLFORM SKILL_RANK_{D:LOCAL}
+		PRINTFORML [{LOCAL}] %RESULTS,20,LEFT% {(POWER(RESULT,3)-POWER(LOCAL:2,3))*200*(1+素質ないよ) * ＣＰ補正 / 1000}MAG
+	NEXT
+	DRAWLINE
+	PRINTL [0]Return
+	$INPUT_LOOP1
+	INPUT
+	IF RESULT == 0
+		RESTART
+	ELSEIF D:RESULT > 0
+		LOCAL = D:RESULT
+		IF CHECK_SKILL(ARG,LOCAL) > 0
+			REUSELASTLINE This skill is already known.
+			GOTO INPUT_LOOP1
+		ENDIF
+		CALLFORM SKILL_SUCCESSION_TYPE_{LOCAL}
+		IF TALENT:ARG:GET_SUCCESSION(RESULT) == 0
+			素質ないよ = 1
+		ELSE
+			素質ないよ = 0
+		ENDIF
+		
+		CALLFORM SKILL_RANK_{LOCAL}
+		必要ＭＡＧ = (POWER(RESULT,3)-POWER(LOCAL:2,3))*200*(1+素質ないよ) * ＣＰ補正 / 1000
+		IF BASE:ARG:ＭＡＧ < 必要ＭＡＧ
+			REUSELASTLINE Not enough MAG.
+			GOTO INPUT_LOOP1
+		ENDIF
+		SIF FLAG:スキル属性表示設定 == 1
+			CALL SKILL_EXPLAIN_PERFORMANCE, LOCAL, ARG
+		TRYCALLFORM SKILL_EXPLAIN_{LOCAL}
+		DRAWLINE
+		PRINTL Is this alright?
+		CALL INPUT_YN,"Yes","No",2
+
+		SELECTCASE RESULT
+			CASE 0
+				CALL CONTROL_MAG, ARG, -必要ＭＡＧ
+				CALLFORM SKILL_NAME_{ABL:ARG:LOCALS}
+				PRINTFORM %NAME:ARG%'s skill %RESULTS% has been ranked up and became 
+
+				;D:(RAND:(LOCAL:1))に登録された番号のスキルを習得
+				ABL:ARG:LOCALS = LOCAL
+				CALLFORM SKILL_NAME_{ABL:ARG:LOCALS}
+				PRINTFORMW %RESULTS%!
+			CASE 1
+				GOTO PRINT_LIST
+		ENDSELECT
+		
+	ELSE
+		GOTO INPUT_LOOP1
+	ENDIF
+	
+ENDIF
+RESTART
+
+
+;===================================================
+;スキル変異
+;===================================================
+@MAG_SKILL_MUTATION,ARG
+PRINTFORML □Skill mutation　　(Current MAG：{BASE:ARG:ＭＡＧ})
+DRAWLINE
+PRINTL Which skill will you mutate?
+
+
+
+FOR LOCAL,0,FLAG:異能者スキル数
+	IF TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0 && TALENT:ARG:悪魔憑き == 0
+		LOCALS = スキル{LOCAL+1}
+	ELSE
+		LOCALS = 初期変身悪魔スキル{LOCAL+1}
+	ENDIF
+	IF ABL:ARG:LOCALS > 0
+		CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+		PRINTFORM 　[{LOCAL+1}]%RESULTS,20,LEFT%
+		CALLFORM SKILL_RANK_{ABL:ARG:LOCALS}
+		LOCALS = ({POWER(RESULT,3)*500}MAG)
+		PRINTFORM %LOCALS,11%
+	ENDIF
+	SIF LOCAL % 3 == 2 || LOCAL+1 == FLAG:異能者スキル数
+		PRINTL 
+NEXT
+DRAWLINE
+PRINTL [0]Return
+
+$INPUT_LOOP
+INPUT
+
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT < 1 || RESULT > FLAG:異能者スキル数
+	GOTO INPUT_LOOP
+ELSE
+	LOCALS = スキル{RESULT}
+	SIF ABL:ARG:LOCALS < 1
+		GOTO INPUT_LOOP
+	CALLFORM SKILL_RANK_{ABL:ARG:LOCALS}
+	LOCAL:2 = RESULT
+	IF BASE:ARG:ＭＡＧ < POWER(LOCAL:2,3)*500
+		REUSELASTLINE Not enough MAG.
+		GOTO INPUT_LOOP
+	ENDIF
+	
+	;変異候補リスト作成
+	VARSET D,-1
+	LOCAL:1 = 0
+	FOR LOCAL,1,3000
+		RESULT = 0
+		TRYCALLFORM SKILL_RANK_{LOCAL}
+		;ランク±1まで、0は変異不可
+		SIF RESULT == 0 || RESULT < LOCAL:2-1 || RESULT > LOCAL:2+1
+			CONTINUE
+		;継承不能スキルは変異候補に入らないようにする
+		CALLFORM SKILL_SUCCESSION_TYPE_{LOCAL}
+		SIF RESULT == 23
+			CONTINUE
+		SIF CHECK_SKILL(ARG,LOCAL) == 1
+			CONTINUE
+		D:(LOCAL:1) = LOCAL
+		LOCAL:1 += 1
+	NEXT
+	IF LOCAL:1 == 0
+		PRINTFORMW ....Failure
+		RESTART
+	ENDIF
+	CALL CONTROL_MAG,ARG,-POWER(LOCAL:2,3)*500
+	CALLFORM SKILL_NAME_{ABL:ARG:LOCALS}
+	PRINTFORM %NAME:ARG%'s skill %RESULTS% has been forgotten and 
+	
+	;D:(RAND:(LOCAL:1))に登録された番号のスキルを習得
+	ABL:ARG:LOCALS = D:(RAND:(LOCAL:1))
+	CALLFORM SKILL_NAME_{ABL:ARG:LOCALS}
+	PRINTFORMW %RESULTS% was learned!
+ENDIF
+CALL SYNC_STATUS,ARG
+CALL HEALTH_CHARA,ARG
+
+;===================================================
+;Skill acquisition
+;===================================================
+@MAG_LEARN_SKILL,ARG,ARG:1,ARGS
+#DIM どっちの強化？ , 1
+
+どっちの強化？ = ARG:1
+
+PRINTL □Skill acquisition
+SIF TALENT:ARG:デビルシフター && どっちの強化？ <= 1
+	PRINTL 　※Devil Shifters make their inital transformation demon learn new skills
+	;※デビルシフターは初期変身悪魔のスキルを習得させることが出来ます
+
+DRAWLINE
+CALL SHOW_LEARN_SKILL,ARG
+
+
+IF RESULT == 0
+	RETURN 0
+ELSE
+	DRAWLINE
+	LOCAL = RESULT
+	;コストを計算
+	CALLFORM SKILL_RANK_{LOCAL}
+	LOCAL:1 = RESULT
+	LOCAL:2 = POWER(RESULT,3)*150 * ＭＡＧ強化ＣＰ補正(ARG) / 1000
+	TRYCCALLFORM 継承不能_{LOCAL}
+		SIF RESULT
+			LOCAL:2 *= 3
+	CATCH
+	ENDCATCH
+	CALLFORM SKILL_SUCCESSION_TYPE_{LOCAL}
+	SIF TALENT:ARG:GET_SUCCESSION(RESULT) == 0
+		LOCAL:2 *= 2
+	CALLFORM SKILL_NAME_{LOCAL}
+	PRINTFORML □%RESULTS%
+	SIF FLAG:スキル属性表示設定 == 1
+		CALL SKILL_EXPLAIN_PERFORMANCE, LOCAL, ARG
+	TRYCALLFORM SKILL_EXPLAIN_{LOCAL}
+	PRINTFORML Skill rank:{LOCAL:1,2}　　Required ＭＡＧ:{LOCAL:2,8}
+	DRAWLINE
+	PRINTFORML %CALLNAME:ARG,20,LEFT%(Current MAG：{BASE:ARG:ＭＡＧ})
+	IF LOCAL:2 > BASE:ARG:ＭＡＧ
+		PRINTFORMW Not enough MAG.
+		RESTART
+	ENDIF
+	PRINTL Learn this skill?
+	CALL INPUT_YN,"Yes","No",2
+
+	SELECTCASE RESULT
+		CASE 0
+			ABL:ARG:ARGS = LOCAL
+			CALL CONTROL_MAG , ARG , -LOCAL:2
+			CALLFORM SKILL_NAME_{LOCAL}
+			PRINTFORMW %CALLNAME:ARG% has learned %RESULTS%!
+			ITEM:(10000+LOCAL) -= 1
+		CASE 1
+			RESTART
+	ENDSELECT
+ENDIF
+RETURN 0
+
+;======================================
+;Skill deletion
+;======================================
+@MAG_SKILL_DELETE,ARG,ARG:1
+#DIM 必要ＭＡＧ, 1
+#DIM ＣＰ補正, 1
+#DIM どっちの強化？ , 1
+
+どっちの強化？ = ARG:1
+
+PRINTFORML □Skill deletion　　(Current MAG：{BASE:ARG:ＭＡＧ})
+DRAWLINE
+
+IF どっちの強化？ 
+	PRINTL Which skill should be deleted?
+	SIF TALENT:ARG:デビルシフター && どっちの強化？  == 1
+		PRINTL ※Devil Shifters can remove skills from their inital transformation demon
+		;※デビルシフターは初期変身悪魔のスキルを消去させることが出来ます
+ELSEIF TALENT:ARG:デビルシフター && (TALENT:ARG:達人 || TALENT:ARG:異能者)
+	
+	PRINTL What skill should be deleted?
+	PRINTL 　※Devil Shifters can remove skills from their inital transformation demon
+	;※デビルシフターは初期変身悪魔のスキルを消去させることが出来ます
+	PRINTL
+	CALL INPUT_YN("Human","Transformation Demon")
+	;人間時","初期変身悪魔
+	IF RESULT == 0
+		どっちの強化？  = 2
+	ELSE
+		どっちの強化？  = 1
+	ENDIF
+	PRINTL
+	PRINTL Which skill should be deleted?
+ELSEIF TALENT:ARG:悪魔憑き
+	
+	PRINTL Which skill should be deleted?
+	PRINTL 　※Demonic possessed can delecte skill of their inital demon
+	;※悪魔憑きは変身悪魔のスキルを消去させることが出来ます
+	PRINTL
+	CALL INPUT_YN("Human","Transformation demon")
+	;人間時","変身悪魔
+	IF RESULT == 0
+		どっちの強化？  = 2
+	ELSE
+		どっちの強化？  = 1
+	ENDIF
+	PRINTL
+	PRINTL Which skill should be deleted?
+ELSE
+	PRINTL What skill should be deleted?
+	SIF TALENT:ARG:デビルシフター
+		PRINTL 　※Devil Shifters can remove skills from their inital transformation demon
+		;※デビルシフターは初期変身悪魔のスキルを消去させることが出来ます
+	どっちの強化？  = 1
+ENDIF
+
+ＣＰ補正 = ＭＡＧ強化ＣＰ補正(ARG)
+FOR LOCAL,0,FLAG:異能者スキル数
+	IF (TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0) || どっちの強化？  == 2
+		LOCALS = スキル{LOCAL+1}
+	ELSE
+		LOCALS = 初期変身悪魔スキル{LOCAL+1}
+	ENDIF
+	IF GETBIT(FLAG:カスタムゲーム画面,1)
+		IF ABL:ARG:LOCALS > 0
+			CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+			PRINTFORM 　[{LOCAL+1}]%RESULTS,38,LEFT% 
+			CALLFORM SKILL_RANK_{ABL:ARG:LOCALS}
+			PRINTFORM {POWER(RESULT,2)*200 * ＣＰ補正 / 1000, 11}MAG
+		ENDIF
+		SIF LOCAL % 2 == 1 && LOCAL <= 8
+			PRINTL 
+	ELSE
+		IF ABL:ARG:LOCALS > 0
+			CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+			PRINTFORM 　[{LOCAL+1}]%RESULTS,20,LEFT% 
+			CALLFORM SKILL_RANK_{ABL:ARG:LOCALS}
+			PRINTFORM {POWER(RESULT,2)*200 * ＣＰ補正 / 1000, 11}MAG
+		ENDIF
+		SIF LOCAL % 3 == 2 || LOCAL+1 == FLAG:異能者スキル数
+			PRINTL 
+	ENDIF
+NEXT
+DRAWLINE
+PRINTL [0]Return
+
+$INPUT_LOOP
+INPUT
+
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT < 1 || RESULT > FLAG:異能者スキル数
+	GOTO INPUT_LOOP
+ELSE
+	IF (TALENT:ARG:デビルシフター == 0 && TALENT:ARG:喰奴 == 0) || どっちの強化？  == 2
+		LOCALS = スキル{RESULT}
+	ELSE
+		LOCALS = 初期変身悪魔スキル{RESULT}
+	ENDIF
+	SIF ABL:ARG:LOCALS < 1
+		GOTO INPUT_LOOP
+	CALLFORM SKILL_RANK_{ABL:ARG:LOCALS}
+	必要ＭＡＧ = POWER(RESULT,2)*200 * ＣＰ補正 / 1000
+	IF BASE:ARG:ＭＡＧ < 必要ＭＡＧ
+		REUSELASTLINE Not enough MAG.
+		CLEARLINE 2
+		GOTO INPUT_LOOP
+	ENDIF
+	
+	CALL CONTROL_MAG,ARG, -必要ＭＡＧ
+	CALLFORM SKILL_NAME_{ABL:ARG:LOCALS}
+	PRINTFORMW %NAME:ARG% has forgotten %RESULTS%.
+	LOCAL:1 = ABL:ARG:LOCALS
+	ABL:ARG:LOCALS = 0
+	;対象キャラが悪魔で装備知識スキルが削除対象で装備知識スキル系をまったく所持していない場合は装備を解除する
+	CALL SKILL_EQUIPTHEORY_DEL_SKILL, ARG, LOCAL:1
+ENDIF
+CALL SYNC_STATUS,ARG
+CALL HEALTH_CHARA,ARG
+
+
+
+
+
+;===================================================
+;通常攻撃カスタマイズ
+;===================================================
+@MAG_ENHANCE_ATTACK,ARG
+#LOCALSIZE 5
+#DIM 必要ＭＡＧ基本値, 1
+
+DRAWLINE
+PRINTFORML □Attack enhancement　　(Current MAG：{BASE:ARG:ＭＡＧ})
+DRAWLINE
+PRINTL What will you change?
+SIF TALENT:ARG:デビルシフター
+	PRINTL 　※Devil Shifters can change the attack performance of their inital transformation demon
+	;※デビルシフターは初期変身悪魔の通常攻撃性能を変更させることが出来ます
+
+SELECTCASE (TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? ABL:ARG:初期リンク悪魔射程 # ABL:ARG:射程)
+	CASE 1
+		LOCALS = Ｓ
+	CASE 2
+		LOCALS = Ｍ
+	CASE 3
+		LOCALS = Ｌ
+ENDSELECT
+PRINTFORML [1]Range　　 （%LOCALS%）
+SELECTCASE (TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? ABL:ARG:初期リンク悪魔攻撃範囲 # ABL:ARG:攻撃範囲)
+	CASE 1
+		LOCALS = 1 target
+	CASE 2
+		LOCALS = 1 row
+	CASE 3
+		LOCALS = All
+ENDSELECT
+PRINTFORML [2]Radius （%LOCALS%）
+IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+	PRINTFORML [3]Type　　 （%GET_TYPE_E(ABL:ARG:初期リンク悪魔攻撃相性)%）
+ELSE
+	PRINTFORML [3]Type　　 （%GET_TYPE_E(ABL:ARG:攻撃相性)%）
+ENDIF
+;PRINTL [4]初期化
+;Initialization - but this does nothing, so commented out
+DRAWLINE
+PRINTL [0]Return
+必要ＭＡＧ基本値 = POWER(CSVBASE(NO:ARG, GETNUM(BASE, "LV"), 0), 2) * (ABL:ARG:種族 == 36 ? 905/1000 # 1)
+CALL INPUTINT,0,1,2,3,4
+SELECTCASE RESULT
+	CASE 0
+		RETURN 0
+	CASE 1
+		$PRINT_RANGE
+		VARSET LOCAL
+		IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+			SIF ABL:ARG:初期リンク悪魔射程 != 1 && ABL:ARG:初期リンク悪魔攻撃範囲 != 3
+				LOCAL:1 = 1
+			SIF ABL:ARG:初期リンク悪魔射程 != 2 && ABL:ARG:初期リンク悪魔攻撃範囲 != 3
+				LOCAL:2 = 1
+			SIF ABL:ARG:初期リンク悪魔射程 != 3
+				LOCAL:3 = 1
+		
+		ELSE
+			SIF ABL:ARG:射程 != 1 && ABL:ARG:攻撃範囲 != 3
+				LOCAL:1 = 1
+			SIF ABL:ARG:射程 != 2 && ABL:ARG:攻撃範囲 != 3
+				LOCAL:2 = 1
+			SIF ABL:ARG:射程 != 3
+				LOCAL:3 = 1
+		
+		ENDIF
+		
+		;射程
+		DRAWLINE
+		SIF LOCAL:1
+			PRINTFORML [1]Ｓ （Can't attack from back row）　　　　　　　　{50* 必要ＭＡＧ基本値, 8}ＭＡＧ
+		SIF LOCAL:2
+			PRINTFORML [2]Ｍ （Can attack from back row）　　　　　　　　　{250*必要ＭＡＧ基本値,8}ＭＡＧ
+		SIF LOCAL:3
+			PRINTFORML [3]Ｌ （Can attack from back row to back row）{500*必要ＭＡＧ基本値,8}ＭＡＧ
+		PRINTFORML ※The longer the range, the lower the hit chance.
+		DRAWLINE
+		PRINTL [0]Return
+		$INPUT_LOOP_RANGE
+		INPUT
+		IF RESULT == 0
+			RESTART
+		ELSEIF RESULT == 1 && BASE:ARG:ＭＡＧ >= 50*必要ＭＡＧ基本値 && LOCAL:1
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔射程 = 1
+			ELSE
+				ABL:ARG:射程 = 1
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 50*必要ＭＡＧ基本値
+			RESTART
+		ELSEIF RESULT == 2 && BASE:ARG:ＭＡＧ >= 250*必要ＭＡＧ基本値 && LOCAL:2
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔射程 = 2
+			ELSE
+				ABL:ARG:射程 = 2
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 250*必要ＭＡＧ基本値
+			RESTART
+		ELSEIF RESULT == 3 && BASE:ARG:ＭＡＧ >= 500*必要ＭＡＧ基本値 && LOCAL:3
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔射程 = 3
+			ELSE
+				ABL:ARG:射程 = 3
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 500*必要ＭＡＧ基本値
+			RESTART
+		ELSE
+			GOTO INPUT_LOOP_RANGE
+		ENDIF
+	CASE 2
+		$PRINT_SPHERE
+		VARSET LOCAL
+		IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+			SIF ABL:ARG:初期リンク悪魔攻撃範囲 != 1
+				LOCAL:1 = 1
+			SIF ABL:ARG:初期リンク悪魔攻撃範囲 != 2
+				LOCAL:2 = 1
+			SIF ABL:ARG:初期リンク悪魔攻撃範囲 != 3 && ABL:ARG:初期リンク悪魔射程 == 3
+				LOCAL:3 = 1
+		ELSE
+			SIF ABL:ARG:攻撃範囲 != 1
+				LOCAL:1 = 1
+			SIF ABL:ARG:攻撃範囲 != 2
+				LOCAL:2 = 1
+			SIF ABL:ARG:攻撃範囲 != 3 && ABL:ARG:射程 == 3
+				LOCAL:3 = 1
+		ENDIF
+		;攻撃範囲
+		DRAWLINE
+		SIF LOCAL:1
+			PRINTFORML [1]1 target　{10*必要ＭＡＧ基本値,10}ＭＡＧ
+		SIF LOCAL:2
+			PRINTFORML [2]1 row   　{500*必要ＭＡＧ基本値,10}ＭＡＧ
+		SIF LOCAL:3
+			PRINTFORML [3]all     　{2500*必要ＭＡＧ基本値,10}ＭＡＧ
+		PRINTFORML ※The wider the attack radius, the lower the attack power
+		PRINTFORML ※To reach all enemies, attack range needs to be Ｌ
+		DRAWLINE
+		PRINTL [0]Return
+		$INPUT_LOOP_SPHERE
+		INPUT
+		IF RESULT == 0
+			RESTART
+		ELSEIF RESULT == 1 && BASE:ARG:ＭＡＧ >= 10*必要ＭＡＧ基本値 && LOCAL:1
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃範囲 = 1
+			ELSE
+				ABL:ARG:攻撃範囲 = 1
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 10*必要ＭＡＧ基本値
+			RESTART
+		ELSEIF RESULT == 2 && BASE:ARG:ＭＡＧ >= 500*必要ＭＡＧ基本値 && LOCAL:2
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃範囲 = 2
+			ELSE
+				ABL:ARG:攻撃範囲 = 2
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 500*必要ＭＡＧ基本値
+			RESTART
+		ELSEIF RESULT == 3 && BASE:ARG:ＭＡＧ >= 2500*必要ＭＡＧ基本値 && LOCAL:3
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃範囲 = 3
+			ELSE
+				ABL:ARG:攻撃範囲 = 3
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 2500*必要ＭＡＧ基本値
+			RESTART
+		ELSE
+			GOTO INPUT_LOOP_SPHERE
+		ENDIF
+	CASE 3
+		;相性
+		$PRINT_TYPE
+		VARSET LOCAL
+		IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+			SIF ABL:ARG:初期リンク悪魔攻撃相性 != 0
+				LOCAL:1 = 1
+			SIF ABL:ARG:初期リンク悪魔攻撃相性 != 1
+				LOCAL:2 = 1
+			SIF ABL:ARG:初期リンク悪魔攻撃相性 != 2
+				LOCAL:3 = 1
+			SIF ABL:ARG:初期リンク悪魔攻撃相性 != 3
+				LOCAL:4 = 1
+		ELSE
+			SIF ABL:ARG:攻撃相性 != 0
+				LOCAL:1 = 1
+			SIF ABL:ARG:攻撃相性 != 1
+				LOCAL:2 = 1
+			SIF ABL:ARG:攻撃相性 != 2
+				LOCAL:3 = 1
+			SIF ABL:ARG:攻撃相性 != 3
+				LOCAL:4 = 1
+		ENDIF
+		DRAWLINE
+		SIF LOCAL:1
+			PRINTFORML [1]Slash　　{100*必要ＭＡＧ基本値*(1+(TALENT:ARG:武器)),10}ＭＡＧ
+		SIF LOCAL:2
+			PRINTFORML [2]Gun　　{100*必要ＭＡＧ基本値*(1+(TALENT:ARG:射撃武器)),10}ＭＡＧ
+		SIF LOCAL:3
+			PRINTFORML [3]Strike　　{100*必要ＭＡＧ基本値*(1+(TALENT:ARG:鉤爪 || TALENT:ARG:羽 || TALENT:ARG:鉤足 || TALENT:ARG:尾)),10}ＭＡＧ
+		SIF LOCAL:4
+			PRINTFORML [4]Skill　　{100*必要ＭＡＧ基本値*(1+(TALENT:ARG:腕 || TALENT:ARG:足)),10}ＭＡＧ
+		DRAWLINE
+		PRINTL [0]Return
+		$INPUT_LOOP_TYPE
+		INPUT
+		IF RESULT == 0
+			RESTART
+		ELSEIF RESULT == 1 && BASE:ARG:ＭＡＧ >= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:武器)) && LOCAL:1
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃相性 = 0
+			ELSE
+				ABL:ARG:攻撃相性 = 0
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:武器))
+			RESTART
+		ELSEIF RESULT == 2 && BASE:ARG:ＭＡＧ >= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:射撃武器)) && LOCAL:2
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃相性 = 1
+			ELSE
+				ABL:ARG:攻撃相性 = 1
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:射撃武器))
+			RESTART
+		ELSEIF RESULT == 3 && BASE:ARG:ＭＡＧ >= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:鉤爪 || TALENT:ARG:羽 || TALENT:ARG:鉤足 || TALENT:ARG:尾)) && LOCAL:3
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃相性 = 2
+			ELSE
+				ABL:ARG:攻撃相性 = 2
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:鉤爪 || TALENT:ARG:羽 || TALENT:ARG:鉤足 || TALENT:ARG:尾))
+			RESTART
+		ELSEIF RESULT == 4 && BASE:ARG:ＭＡＧ >= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:腕 || TALENT:ARG:足)) && LOCAL:4
+			IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+				ABL:ARG:初期リンク悪魔攻撃相性 = 3
+			ELSE
+				ABL:ARG:攻撃相性 = 3
+			ENDIF
+			BASE:ARG:ＭＡＧ -= 100*必要ＭＡＧ基本値*(1+(TALENT:ARG:腕 || TALENT:ARG:足))
+			RESTART
+		ELSE
+			GOTO INPUT_LOOP_TYPE
+		ENDIF
+ENDSELECT
+
+
+;===================================================
+;耐性変更
+;===================================================
+@MAG_ENHANCE_DEFTYPE,ARG
+#DIM LCOLOR
+#DIM LLINK
+#DIM LLOCK
+#DIM LTRANCE
+#LOCALSIZE 2
+LCOLOR = GETCOLOR()
+DRAWLINE
+PRINTFORML □Resistance enhancement　　(Current MAG：{BASE:ARG:ＭＡＧ})
+IF TALENT:ARG:デビルシフター || TALENT:ARG:悪魔憑き
+	PRINTL 　※Devil Shifters can change the resistance of their initial transformation demon
+	;デビルシフターは初期変身悪魔の耐性を強化させることが出来ます
+SIF TALENT:ARG:悪魔憑き
+	PRINTL 　※Demonic possessed can change the resistance of their transformation demon
+	;※悪魔憑きは変身悪魔の耐性を強化させることが出来ます
+	IF !LLOCK	;RESTART対策のロック
+		LLINK   = CFLAG:ARG:リンク悪魔	;リンク先を保存
+		LTRANCE = CFLAG:ARG:悪魔変身	;変身していたかを保存。今の仕様だとしてないはずだけど念のため
+		SIF LLINK >= 0 && LTRANCE	;初期変身悪魔以外に変身していた場合はまず変身解除
+			CALL ACTION_2310(ARG)
+		CFLAG:ARG:リンク悪魔 = -1	;リンク先を初期変身悪魔に
+		SIF LLINK < 0 !& LTRANCE	;元々初期変身悪魔に変身していた場合以外はここで初期変身悪魔に変身
+			CALL ACTION_2310(ARG)
+		LLOCK = 1
+	ENDIF
+ENDIF
+DRAWLINE
+PRINTFORML %CALLNAME:ARG, 20, LEFT%
+PRINTFORML ※Only one resistance improvement can be active at a time.
+IF CFLAG:ARG:変更相性1
+	PRINTFORM Current resistance improvement： %GET_TYPE_E(CFLAG:ARG:変更相性1 - 1) % 
+	CALL SET_AISYOU_COLOR(CFLAG:ARG:変更相性値1)
+	PRINTFORML \@ CFLAG:ARG:変更相性値1 < 0 ? Dr # 　 \@\@ CFLAG:ARG:変更相性値1 != 999 ? {ABS(CFLAG:ARG:変更相性値1), 3}％ # %" "%Refl \@
+	SETCOLOR LCOLOR
+ENDIF
+DRAWLINE
+PRINTL Which resistance will you change?
+FOR LOCAL, 0, FLAG:相性数 - 1
+	PRINTFORM [{LOCAL, 2}]%GET_TYPE_E(LOCAL),5,LEFT% 
+	CALL SET_AISYOU_COLOR(MAXBASE:ARG:(GET_TYPE(LOCAL)))
+	PRINTFORM \@ MAXBASE:ARG:(GET_TYPE(LOCAL)) < 0 ? Dr # 　 \@
+	PRINTFORM \@ MAXBASE:ARG:(GET_TYPE(LOCAL)) != 999 ? {ABS(MAXBASE:ARG:(GET_TYPE(LOCAL))), 3}％ # %" "%Refl \@　
+	PRINTFORM \@ LOCAL % 6 == 5 ? \n # \@
+	SETCOLOR LCOLOR
+NEXT
+PRINTL 
+PRINTL [100]Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	IF TALENT:ARG:デビルシフター || TALENT:ARG:悪魔憑き
+		SIF LLINK < 0 !& LTRANCE		;元々初期変身悪魔に変身していた場合以外はまず変身解除
+			CALL ACTION_2310(ARG)
+		CFLAG:ARG:リンク悪魔 = LLINK	;リンク先を戻す
+		SIF LLINK >= 0 && LTRANCE		;初期変身悪魔以外に変身していた場合はここで変身
+			CALL ACTION_2310(ARG)
+		LLOCK = 0
+	ENDIF
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT >= FLAG:相性数-1
+	GOTO INPUT_LOOP
+ENDIF
+LOCAL:1 = RESULT
+DRAWLINE
+
+PRINTFORML How do you want to modify the %GET_TYPE_E(LOCAL:1)% resistance?
+PRINTFORM Current：\@(MAXBASE:ARG:(GET_TYPE(LOCAL:1)) < 0) ? Drain # 　\@
+PRINTFORM \@ ((MAXBASE:ARG:(GET_TYPE(LOCAL:1)) != 999)) ? {ABS(MAXBASE:ARG:(GET_TYPE(LOCAL:1))),4}％ # %" " *2%Reflect \@
+
+;PRINTFORM 現在：
+;IF MAXBASE:ARG:GET_TYPE(LOCAL:1) == 999
+;	PRINTFORML 反射
+;ELSEIF MAXBASE:ARG:GET_TYPE(LOCAL:1) == 0
+;	PRINTFORML 無効
+;ELSE
+;	PRINTFORML {MAXBASE:ARG:GET_TYPE(LOCAL:1)}％
+;ENDIF
+
+PRINTL
+SIF MAXBASE:ARG:GET_TYPE(LOCAL:1) > 100 && MAXBASE:ARG:GET_TYPE(LOCAL:1) != 999
+	PRINTFORML [1]Normal  Necessary MAG:{50*(BASE:ARG:CP)}
+SIF MAXBASE:ARG:GET_TYPE(LOCAL:1) > 50 && MAXBASE:ARG:GET_TYPE(LOCAL:1) != 999
+	PRINTFORML [2]Half    Necessary MAG:{500*(BASE:ARG:CP)}
+SIF MAXBASE:ARG:GET_TYPE(LOCAL:1) != 0
+	PRINTFORML [3]Void    Necessary MAG:{2500*(BASE:ARG:CP)}
+SIF MAXBASE:ARG:GET_TYPE(LOCAL:1) >= 0
+	PRINTFORML [4]Drain   Necessary MAG:{5000*(BASE:ARG:CP)}
+SIF MAXBASE:ARG:GET_TYPE(LOCAL:1) != 999
+	PRINTFORML [5]Reflect Necessary MAG:{5000*(BASE:ARG:CP)}
+DRAWLINE
+PRINTL [0] Return
+$INPUT_LOOP_2
+INPUT
+
+IF RESULT == 0
+	RESTART
+ELSEIF RESULT == 1 && MAXBASE:ARG:GET_TYPE(LOCAL:1) > 100 && MAXBASE:ARG:GET_TYPE(LOCAL:1) != 999 && BASE:ARG:ＭＡＧ >= 50*(BASE:ARG:CP)
+	CFLAG:ARG:変更相性1 = LOCAL:1+1
+	CFLAG:ARG:変更相性値1 = 100
+	BASE:ARG:ＭＡＧ -= 50*(BASE:ARG:CP)
+ELSEIF RESULT == 2 && MAXBASE:ARG:GET_TYPE(LOCAL:1) > 50 && MAXBASE:ARG:GET_TYPE(LOCAL:1) != 999 && BASE:ARG:ＭＡＧ >= 500*(BASE:ARG:CP)
+	CFLAG:ARG:変更相性1 = LOCAL:1+1
+	CFLAG:ARG:変更相性値1 = 50
+	BASE:ARG:ＭＡＧ -= 500*(BASE:ARG:CP)
+ELSEIF RESULT == 3 && MAXBASE:ARG:GET_TYPE(LOCAL:1) != 0 && BASE:ARG:ＭＡＧ >= 2500*(BASE:ARG:CP)
+	CFLAG:ARG:変更相性1 = LOCAL:1+1
+	CFLAG:ARG:変更相性値1 = 0
+	BASE:ARG:ＭＡＧ -= 2500*(BASE:ARG:CP)
+ELSEIF RESULT == 4 && MAXBASE:ARG:GET_TYPE(LOCAL:1) >= 0 && BASE:ARG:ＭＡＧ >= 5000*(BASE:ARG:CP)
+	CFLAG:ARG:変更相性1 = LOCAL:1+1
+	CFLAG:ARG:変更相性値1 = -50
+	BASE:ARG:ＭＡＧ -= 5000*(BASE:ARG:CP)
+ELSEIF RESULT == 5 && MAXBASE:ARG:GET_TYPE(LOCAL:1) != 999 && BASE:ARG:ＭＡＧ >= 5000*(BASE:ARG:CP)
+	CFLAG:ARG:変更相性1 = LOCAL:1+1
+	CFLAG:ARG:変更相性値1 = 999
+	BASE:ARG:ＭＡＧ -= 5000*(BASE:ARG:CP)
+ELSE
+	GOTO INPUT_LOOP_2
+ENDIF
+CALL SYNC_STATUS,ARG
+IF TALENT:ARG:デビルシフター || TALENT:ARG:悪魔憑き
+	SIF LLINK < 0 !& LTRANCE		;元々初期変身悪魔に変身していた場合以外はまず変身解除
+		CALL ACTION_2310(ARG)
+	CFLAG:ARG:リンク悪魔 = LLINK	;リンク先を戻す
+	SIF LLINK >= 0 && LTRANCE		;初期変身悪魔以外に変身していた場合はここで変身
+		CALL ACTION_2310(ARG)
+	LLOCK = 0
+ENDIF
+
+
+@MAG_GROWTH,ARG
+DRAWLINE
+PRINTL □Stamina and willpower enhancement
+DRAWLINE
+PRINTL What do you want to strengthen?
+PRINTFORML %NAME:ARG,20,LEFT%(Current MAG：{BASE:ARG:ＭＡＧ})
+IF ARG == MASTER
+;---- EDIT 気力体力強化 START -------------------------
+	LOCAL = MAXBASE:ARG:体力
+
+	PRINTFORML Stamina (Current maximum:{LOCAL})
+
+	SIF BASE:ARG:ＭＡＧ < POWER(LOCAL/100,2)*2*(5+LOCAL/500+LOCAL/3000*5)
+		SETCOLOR 0x404040
+	PRINTFORML   [ 1] +100 / {POWER(LOCAL/100,2)*2*(5+LOCAL/500+LOCAL/3000*5),7,RIGHT}MAG
+
+	LOCAL:1 = 0
+	LOCAL:2 = 0
+	FOR LOCAL:5,0,2
+		FOR LOCAL:6,0,5
+			LOCAL:2 += POWER(LOCAL/100,2)*2*(5+LOCAL/500+LOCAL/3000*5)
+			LOCAL += 100
+		NEXT
+		SIF LOCAL:1
+			BREAK
+		LOCAL:1 += LOCAL:2
+	NEXT
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:1
+		SETCOLOR 0x404040
+	PRINTFORML   [ 6] +500 / {LOCAL:1,7,RIGHT}MAG
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:2
+		SETCOLOR 0x404040
+	PRINTFORML   [11]+1000 / {LOCAL:2,7,RIGHT}MAG
+	RESETCOLOR
+
+	LOCAL = MAXBASE:ARG:気力
+
+	PRINTFORML Willpower (Current maximum:{LOCAL})
+
+	SIF BASE:ARG:ＭＡＧ < POWER(LOCAL/100,2)*4*(5+LOCAL/500+LOCAL/3000*5)
+		SETCOLOR 0x404040
+	PRINTFORML   [ 2] +100 / {POWER(LOCAL/100,2)*4*(5+LOCAL/500+LOCAL/3000*5),7,RIGHT}MAG
+
+	LOCAL:3 = 0
+	LOCAL:4 = 0
+	FOR LOCAL:5,0,2
+		FOR LOCAL:6,0,5
+			LOCAL:4 += POWER(LOCAL/100,2)*4*(5+LOCAL/500+LOCAL/3000*5)
+			LOCAL += 100
+		NEXT
+		SIF LOCAL:3
+			BREAK
+		LOCAL:3 += LOCAL:4
+	NEXT
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:3
+		SETCOLOR 0x404040
+	PRINTFORML   [ 7] +500 / {LOCAL:3,7,RIGHT}MAG
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:4
+		SETCOLOR 0x404040
+	PRINTFORML   [12]+1000 / {LOCAL:4,7,RIGHT}MAG
+	RESETCOLOR
+
+ELSE
+	LOCAL = MAXBASE:ARG:体力
+
+	PRINTFORML Stamina (Current maximum:{LOCAL})
+
+	SIF BASE:ARG:ＭＡＧ < POWER(LOCAL/100,2)*(5+LOCAL/500+LOCAL/3000*5)
+		SETCOLOR 0x404040
+	PRINTFORML   [ 1] +100 / {POWER(LOCAL/100,2)*(5+LOCAL/500+LOCAL/3000*5),7,RIGHT}MAG
+
+	LOCAL:1 = 0
+	LOCAL:2 = 0
+	FOR LOCAL:3,0,2
+		FOR LOCAL:4,0,5
+			LOCAL:2 += POWER(LOCAL/100,2)*(5+LOCAL/500+LOCAL/3000*5)
+			LOCAL += 100
+		NEXT
+		SIF LOCAL:1
+			BREAK
+		LOCAL:1 += LOCAL:2
+	NEXT
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:1
+		SETCOLOR 0x404040
+	PRINTFORML   [ 6] +500 / {LOCAL:1,7,RIGHT}MAG
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:2
+		SETCOLOR 0x404040
+	PRINTFORML   [11]+1000 / {LOCAL:2,7,RIGHT}MAG
+
+	RESETCOLOR
+
+	LOCAL = MAXBASE:ARG:気力
+
+	PRINTFORML Willpower (Current maximum:{LOCAL})
+
+	SIF BASE:ARG:ＭＡＧ < POWER(LOCAL/100,2)*2*(5+LOCAL/500+LOCAL/3000*5)
+		SETCOLOR 0x404040
+	PRINTFORML   [ 2] +100 / {POWER(LOCAL/100,2)*2*(5+LOCAL/500+LOCAL/3000*5),7,RIGHT}MAG
+
+	LOCAL:3 = 0
+	LOCAL:4 = 0
+	FOR LOCAL:5,0,2
+		FOR LOCAL:6,0,5
+			LOCAL:4 += POWER(LOCAL/100,2)*2*(5+LOCAL/500+LOCAL/3000*5)
+			LOCAL += 100
+		NEXT
+		SIF LOCAL:3
+			BREAK
+		LOCAL:3 += LOCAL:4
+	NEXT
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:3
+		SETCOLOR 0x404040
+	PRINTFORML   [ 7] +500 / {LOCAL:3,7,RIGHT}MAG
+
+	SIF BASE:ARG:ＭＡＧ < LOCAL:4
+		SETCOLOR 0x404040
+	PRINTFORML   [12]+1000 / {LOCAL:4,7,RIGHT}MAG
+	RESETCOLOR
+ENDIF
+DRAWLINE
+PRINTL [0]Return
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT == 1
+	IF ARG == MASTER
+		IF BASE:ARG:ＭＡＧ < POWER(MAXBASE:ARG:体力/100,2)*2*(5+MAXBASE:ARG:体力/500+MAXBASE:ARG:体力/3000*5)
+			PRINTW Not enough MAG.
+			GOTO INPUT_LOOP
+		ENDIF
+		CALL CONTROL_MAG,ARG,-POWER(MAXBASE:ARG:体力/100,2)*2*(5+MAXBASE:ARG:体力/500+MAXBASE:ARG:体力/3000*5)
+	ELSE
+		IF BASE:ARG:ＭＡＧ < POWER(MAXBASE:ARG:体力/100,2)*(5+MAXBASE:ARG:体力/500+MAXBASE:ARG:体力/3000*5)
+			PRINTW Not enough MAG.
+			GOTO INPUT_LOOP
+		ENDIF
+		CALL CONTROL_MAG,ARG,-POWER(MAXBASE:ARG:体力/100,2)*(5+MAXBASE:ARG:体力/500+MAXBASE:ARG:体力/3000*5)
+	ENDIF
+	SIF BASE:ARG:体力 == MAXBASE:ARG:体力
+		BASE:ARG:体力 += 100
+	MAXBASE:ARG:体力 += 100
+	PRINTFORMW %NAME:ARG%'s stamina became {MAXBASE:ARG:体力}.
+ELSEIF RESULT == 2
+	IF ARG == MASTER
+		IF BASE:ARG:ＭＡＧ < POWER(MAXBASE:ARG:気力/100,2)*4*(5+MAXBASE:ARG:気力/500+MAXBASE:ARG:気力/3000*5)
+			PRINTW Not enough MAG.
+			GOTO INPUT_LOOP
+		ENDIF
+		CALL CONTROL_MAG,ARG,-POWER(MAXBASE:ARG:気力/100,2)*4*(5+MAXBASE:ARG:気力/500+MAXBASE:ARG:気力/3000*5)
+	ELSE
+		IF BASE:ARG:ＭＡＧ < POWER(MAXBASE:ARG:気力/100,2)*2*(5+MAXBASE:ARG:気力/500+MAXBASE:ARG:気力/3000*5)
+			PRINTW Not enough MAG.
+			GOTO INPUT_LOOP
+		ENDIF
+		CALL CONTROL_MAG,ARG,-POWER(MAXBASE:ARG:気力/100,2)*2*(5+MAXBASE:ARG:気力/500+MAXBASE:ARG:気力/3000*5)
+	ENDIF
+	SIF BASE:ARG:気力 == MAXBASE:ARG:気力
+		BASE:ARG:気力 += 100
+	MAXBASE:ARG:気力 += 100
+	PRINTFORMW %NAME:ARG%'s willpower became {MAXBASE:ARG:気力}.
+ELSEIF RESULT == 6
+	IF BASE:ARG:ＭＡＧ < LOCAL:1
+		PRINTW Not enough MAG.
+		GOTO INPUT_LOOP
+	ENDIF
+	CALL CONTROL_MAG,ARG,-LOCAL:1
+	SIF BASE:ARG:体力 == MAXBASE:ARG:体力
+		BASE:ARG:体力 += 500
+	MAXBASE:ARG:体力 += 500
+	PRINTFORMW %NAME:ARG%'s stamina became {MAXBASE:ARG:体力}.
+ELSEIF RESULT == 7
+	IF BASE:ARG:ＭＡＧ < LOCAL:3
+		PRINTW Not enough MAG.
+		GOTO INPUT_LOOP
+	ENDIF
+	CALL CONTROL_MAG,ARG,-LOCAL:3
+	SIF BASE:ARG:気力 == MAXBASE:ARG:気力
+		BASE:ARG:気力 += 500
+	MAXBASE:ARG:気力 += 500
+	PRINTFORMW %NAME:ARG%'s willpower became{MAXBASE:ARG:気力}.
+ELSEIF RESULT == 11
+	IF BASE:ARG:ＭＡＧ < LOCAL:2
+		PRINTW Not enough MAG.
+		GOTO INPUT_LOOP
+	ENDIF
+	CALL CONTROL_MAG,ARG,-LOCAL:2
+	SIF BASE:ARG:体力 == MAXBASE:ARG:体力
+		BASE:ARG:体力 += 1000
+	MAXBASE:ARG:体力 += 1000
+	PRINTFORMW %NAME:ARG%'s stamina became {MAXBASE:ARG:体力}.
+ELSEIF RESULT == 12
+	IF BASE:ARG:ＭＡＧ < LOCAL:4
+		PRINTW Not enough MAG.
+		GOTO INPUT_LOOP
+	ENDIF
+	CALL CONTROL_MAG,ARG,-LOCAL:4
+	SIF BASE:ARG:気力 == MAXBASE:ARG:気力
+		BASE:ARG:気力 += 1000
+	MAXBASE:ARG:気力 += 1000
+	PRINTFORMW %NAME:ARG%'s willpower became {MAXBASE:ARG:気力}.
+;---- EDIT 気力体力強化 END   -------------------------
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+RESTART
+
+
+@ＭＡＧ強化ＣＰ補正(ARG)
+#FUNCTION
+RETURNF MIN((ABL:ARG:種族 == 36 ? 905 # 900+MAXBASE:ARG:CP), 1100)

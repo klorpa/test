@@ -1,0 +1,2033 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SYSYTEM_BATTLE.ERB
+;	Facility	:ダメージ計算やステータス算出などといった戦闘システムに関わる処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX								新規作成
+;	002		2011/01/30		P						真・全門耐性の処理を追加
+;	003		2011/02/06		Rsp暇人					CFLAG:アイテム使用能力およびアイテム使用強化の処理を追加
+;	004		2011/03/06		Rsp暇人					CFLAG:アイテム使用能力およびアイテム使用強化の処理を修正。仲魔作成時に初期衣装を設定するように。
+;	005		2011/03/28		P						初期好感度の処理を追加。戦闘員による霊媒体質によってMAG移動が増加するように変更
+;	006		2011/08/31		P						人間がLv80を超えている場合、追加でステ補正が入るように
+;	007		2011/11/09		旅人					統合整備
+;													ファイルが肥大化している為、ダメージ処理を分離
+;	008		2011/05/20		P						HalfDemonがバステ耐性を装備からとっていたのを修正
+;	009		2012/10/00		(ﾟдﾟ)					プリンキピアに関する記述を追加
+;	010		2012/12/02		ネトリス				瀕死になった場合にCFLAG:ダンジョン内発情用欲情値が半分になり、発情状態が解除されるように
+;	011		2012/12/26		P						喰奴(Devil shifter)が主人の場合、悪魔変身時に最大MAGが減ってしまうのを修正
+;	012		2013/11/25		ひみつ					NEXT経験値の設定を@GET_NEXT_EXPで行うように(@CHECK_LEVEL_UPの動きに合わせる)
+;													現在経験値が1つ下のLVのNEXT経験値より低い場合、その値まで引き上げる(主に加入時の為)
+;	013		2013/12/11		ひみつ					NEXT経験値の設定を@GET_NEXT_EXPで行うように(@CHECK_LEVEL_UPの動きに合わせる)
+;													現在経験値が1つ下のLVのNEXT経験値より低い場合、その値まで引き上げる(主に加入時の為)
+;	014		2015/01/27		Iz						達人強化パッチとして、「武道の心得」「魔術の素養」に対応調整
+;	015		2015/12/11		JK好き					異能者用のスキル数を確保
+;	016		2016/12/11		Jガン					特定のバステで攻撃が必ず命中するように
+;	017		2017/09/23		名無					ガチャモード追加(ガチャ縛り時、非ガチャ産ステータス半減)
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;===============================
+;＊重要＊
+;能力・相性などの数を指定する
+;===============================
+@CONFIG_ELEMENT_NUM
+;相性の数を指定します
+FLAG:相性数 = 18
+;基本能力値の数を指定します
+FLAG:基本能力数 = 7
+;戦闘能力値の数を指定します
+FLAG:戦闘能力数 = 6
+;習得できるスキルの数を指定します
+FLAG:スキル数 = 8
+;習得できるスキルの数を指定します(異能者達人用)
+FLAG:異能者スキル数 = 12
+;装備から取得できる追加スキルの数を指定します
+FLAG:追加スキル数 = 21
+;バッドステータスの数を指定します
+FLAG:ステート数 = 20
+
+
+
+
+@SYNC_STATUS,ARG
+;引数の番号のキャラクターの戦闘能力等を現在の能力値と同期化
+;作業しながら考えてたけど戦闘能力値弄る人はここも弄るからここ修正する意味薄かった気がする。
+;LOCAL:6まで使われていたので、7と8を最大HP・MP記録用として利用
+
+;BASEからMAXBASEを計算しなおす
+;調教結果をどう絡めるか思案中
+FOR COUNT,0,FLAG:基本能力数
+	COUNT:2 = 0
+	IF CFLAG:ARG:悪魔変身 == 0
+		FOR COUNT:1,0,7
+			IF 魔晶装備(EQUIP:ARG:(GET_EQUIP(COUNT:1)))
+				CALLFORM 基本能力修正_魔晶装備,COUNT,EQUIP:ARG:(GET_EQUIP(COUNT:1)) - 2450 -450*COUNT:1
+			ELSE
+				CALLFORM 基本能力修正_{EQUIP:ARG:(GET_EQUIP(COUNT:1))}, COUNT, ARG
+			ENDIF
+			COUNT:2 += RESULT
+		NEXT
+	ENDIF
+	MAXBASE:ARG:(GET_BASESTATUS(COUNT)) = BASE:ARG:(GET_BASESTATUS(COUNT)) + COUNT:2 + CFLAG:ARG:((GET_BASESTATUS(COUNT)) + "強化回数")
+	;変身済みのデビルシフター・喰奴は此方	
+	IF CFLAG:ARG:悪魔変身 && COUNT > 0
+		IF TALENT:ARG:デビルシフター
+			SIF COUNT == 0
+				CONTINUE
+			COUNT:3 = BASE:ARG:力 + BASE:ARG:知恵 + BASE:ARG:魔力 + BASE:ARG:耐力 + BASE:ARG:速さ + BASE:ARG:運
+			IF FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) = COUNT:3 * BASE:(FINDCHARA_ID(CFLAG:ARG:リンク悪魔)):GET_BASESTATUS(COUNT)
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) /= 18 + BASE:(FINDCHARA_ID(CFLAG:ARG:リンク悪魔)):LV * 3 / 2
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += COUNT:2 + CFLAG:ARG:((GET_BASESTATUS(COUNT)) + "強化回数")
+			ELSE
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) = COUNT:3 * CSVBASE(CFLAG:ARG:初期リンク悪魔 , GETNUM(BASE , GET_BASESTATUS(COUNT)) , 0)
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) /= 18 + CSVBASE(CFLAG:ARG:初期リンク悪魔 , GETNUM(BASE , "LV") , 0) * 3 / 2
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += COUNT:2 + CFLAG:ARG:((GET_BASESTATUS(COUNT)) + "強化回数")
+			ENDIF
+		;喰奴 喰奴は純粋に初期リンク悪魔＋マントラ補正の比率に強化込みで振りなおす
+		ELSE
+			IF COUNT == 1
+				COUNT:3 = 0
+				COUNT:4 = 0
+				FOR LOCAL, 1, 7
+					COUNT:3 += CSVBASE(CFLAG:ARG:初期リンク悪魔 , GETNUM(BASE , GET_BASESTATUS(LOCAL)) , 0)
+					COUNT:3 += CFLAG:ARG:((GET_BASESTATUS(LOCAL)) + "マントラ補正")
+					COUNT:4 += BASE:ARG:(GET_BASESTATUS(LOCAL)) + COUNT:2 + CFLAG:ARG:((GET_BASESTATUS(LOCAL)) + "強化回数")
+				NEXT
+			ENDIF
+			MAXBASE:ARG:(GET_BASESTATUS(COUNT)) = COUNT:4 * (CSVBASE(CFLAG:ARG:初期リンク悪魔 , GETNUM(BASE , GET_BASESTATUS(COUNT)) , 0) + CFLAG:ARG:(GET_BASESTATUS(COUNT) + "マントラ補正")) / COUNT:3
+		ENDIF
+	ENDIF
+	IF ARG == MASTER
+		SELECTCASE COUNT
+			CASE 1,3
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += FLAG:今周回淫乱人数
+			CASE 2,5
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += FLAG:今周回服従人数
+			CASE 4,6
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += FLAG:今周回恋慕人数
+		ENDSELECT
+		;BaBel修正
+		IF EQUIP:ARG:BaBel
+			IF FLAG:ベル神撃破 & 64
+				MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += 5
+			ELSE
+				SIF COUNT && GETBIT(FLAG:ベル神撃破, COUNT-1)
+					MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += 3
+			ENDIF
+		ENDIF
+	ELSE
+		IF 陥落(ARG) > 0
+			SELECTCASE COUNT
+				CASE 1,3
+					MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += TALENT:ARG:淫乱 + TALENT:ARG:娼婦*2 + 陥落(ARG)/2 + TALENT:ARG:淫魔
+				CASE 2,5
+					MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += TALENT:ARG:服従 + TALENT:ARG:隷属*2 + 陥落(ARG)/2 + TALENT:ARG:玩具
+				CASE 4,6
+					MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += TALENT:ARG:恋慕 + TALENT:ARG:親愛*2 + 陥落(ARG)/2 + (TALENT:ARG:妻 || TALENT:ARG:夫)
+			ENDSELECT
+		ENDIF
+		;Honeymoon&Debose補正
+		SIF ABL:ARG:種族 > 0 && COUNT > 0
+			MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += (EQUIP:MASTER:Honeymoon && NUM_SUMMONER()) * 陥落(ARG) + (EQUIP:MASTER:Debose && NUM_SUMMONER()) * MARK:ARG:反発刻印
+	ENDIF
+	
+	SIF TALENT:ARG:崩壊 && COUNT > 0
+		TIMES MAXBASE:ARG:(GET_BASESTATUS(COUNT)) , 0.80
+	SIF TALENT:ARG:妊娠
+		MAXBASE:ARG:(GET_BASESTATUS(COUNT)) += 1
+	
+	;もろもろ計算で0以下になった場合は1に修正
+	SIF MAXBASE:ARG:(GET_BASESTATUS(COUNT)) < 1
+		MAXBASE:ARG:(GET_BASESTATUS(COUNT)) = 1
+NEXT
+;ペルソナ修正
+IF TALENT:ARG:ペルソナ使い && !CFLAG:ARG:悪魔変身
+	LOCAL:7 = MAXBASE:ARG:ＨＰ
+	LOCAL:8 = MAXBASE:ARG:ＭＰ
+	CALL SYNC_STATUS_P(ARG)
+	;ARG = RESULT
+ENDIF
+
+;調教効果をここに記述・基本能力
+IF ARG != MASTER && CFLAG:ARG:PTフラグ > 0
+	MAXBASE:ARG:LV += (MIN(ABL:ARG:従順,10) + MIN(ABL:ARG:欲望,10) + MIN(ABL:ARG:技巧,10) +3)/6
+	MAXBASE:ARG:力 += (MIN(ABL:ARG:欲望,10)+1)/2
+	MAXBASE:ARG:魔力 += (MIN(ABL:ARG:欲望,10)+1)/2
+	MAXBASE:ARG:運 += (MIN(ABL:ARG:従順,10)+1)/2
+	MAXBASE:ARG:耐力 += (MIN(ABL:ARG:従順,10)+1)/2
+	MAXBASE:ARG:知恵 += (MIN(ABL:ARG:技巧,10)+1)/2
+	MAXBASE:ARG:速さ += (MIN(ABL:ARG:技巧,10)+1)/2
+ENDIF
+
+;装備追加スキル、現在３つまで設定可能
+FOR COUNT,1,22
+	LOCALS = 装備スキル{COUNT}
+	ABL:ARG:LOCALS = 0
+NEXT
+COUNT:2 = 0
+COUNT:3 = 0
+FOR COUNT:1,0,7
+	RESULT = 0
+	TRYCALLFORM 装備追加スキル_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},0,ARG
+	LOCALS = 装備スキル{COUNT:3+1}
+	LOCAL:9 = RESULT
+	IF LOCAL:9 > 0
+		ABL:ARG:LOCALS = LOCAL:9
+		COUNT:3 += 1
+	ENDIF
+	RESULT = 0
+	TRYCALLFORM 装備追加スキル_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},1,ARG
+	LOCALS = 装備スキル{COUNT:3+1}
+	LOCAL:9 = RESULT
+	IF LOCAL:9 > 0
+		ABL:ARG:LOCALS = LOCAL:9
+		COUNT:3 += 1
+	ENDIF
+	RESULT = 0
+	TRYCALLFORM 装備追加スキル_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},2,ARG
+	LOCALS = 装備スキル{COUNT:3+1}
+	LOCAL:9 = RESULT
+	IF LOCAL:9 > 0
+		ABL:ARG:LOCALS = LOCAL:9
+		COUNT:3 += 1
+	ENDIF
+NEXT
+
+;人修羅のみ、習得スキル追加
+IF TALENT:ARG:人修羅
+	COUNT:2 = 0
+	FOR COUNT:1,0,20
+		RESULT = 0
+		TRYCALLFORM P習得スキル_{EQUIP:ARG:(GET_EQUIP(6))},COUNT:1
+		LOCAL:9 = RESULT
+		LOCAL:10 = RESULT:1
+		LOCALS = 習得スキル{COUNT:2+1}
+		LOCALS:2 = 習得LV{COUNT:2+1}
+		;装備品に習得スキル&LVが存在してて、かつ習得経験が無いことが条件
+		IF LOCAL:9 > 0 && LOCAL:10 > 0 && !(CDFLAG:ARG:((EQUIP:ARG:(GET_EQUIP(6)))%5+1):((EQUIP:ARG:(GET_EQUIP(6))-8000)/5) & POWER(2,COUNT:1))
+			ABL:ARG:LOCALS = LOCAL:9
+			ABL:ARG:(LOCALS:2) = LOCAL:10
+			COUNT:2 += 1
+		ELSE
+			ABL:ARG:LOCALS = 0
+			ABL:ARG:(LOCALS:2) = 0
+			COUNT:2 += 1
+		ENDIF
+	NEXT
+ENDIF
+
+;MAXBASEをそれぞれのLOCALに代入
+FOR COUNT,0,FLAG:基本能力数
+	LOCAL:(COUNT) = MAXBASE:ARG:(GET_BASESTATUS(COUNT))
+NEXT
+
+
+IF (ABL:ARG:種族 == 0 || ABL:ARG:種族 == 36) && CFLAG:ARG:悪魔変身 == 0
+	;HP
+	MAXBASE:ARG:ＨＰ = (LOCAL+LOCAL:1*2+LOCAL:4*7+5)*(100+LOCAL*3)/100
+	SIF CFLAG:ARG:PTフラグ == 0 && ! CFLAG:ARG:ボスフラグ
+		MAXBASE:ARG:ＨＰ = (LOCAL*3+LOCAL:1*2+LOCAL:4*9/2+5)*(100+LOCAL*3)/100
+	SIF CFLAG:ARG:ボスフラグ
+		MAXBASE:ARG:ＨＰ *= 4+(CFLAG:ARG:ボスフラグ)
+	SIF CFLAG:ARG:PTフラグ == 0 && FLAG:戦闘難易度 > 3
+		TIMES MAXBASE:ARG:ＨＰ , 1.50
+	IF HAVE_SKILL(ARG,[[スキル:武道の心得]]) > 0
+	    TIMES MAXBASE:ARG:ＨＰ,1.60
+	ELSEIF HAVE_SKILL(ARG,[[スキル:三分の活泉]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.30
+	ELSEIF HAVE_SKILL(ARG,[[スキル:二分の活泉]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.20
+	ELSEIF HAVE_SKILL(ARG,[[スキル:一分の活泉]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.10
+	ELSEIF HAVE_SKILL(ARG,[[スキル:ネバーギブアップ]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.30
+	ENDIF
+	MAXBASE:ARG:ＨＰ += CFLAG:ARG:ＨＰ補正
+	
+	;MP
+	MAXBASE:ARG:ＭＰ = 0
+	SIF TALENT:ARG:異能者 || TALENT:ARG:達人 || TALENT:ARG:ペルソナ使い || TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き || ABL:ARG:種族 == 36 
+		MAXBASE:ARG:ＭＰ = ((LOCAL+LOCAL:2/2+(LOCAL:3*3/2))*2 + 5) * (100+LOCAL)/100
+	SIF CFLAG:ARG:ボスフラグ
+		MAXBASE:ARG:ＭＰ *= 4+(CFLAG:ARG:ボスフラグ)
+	IF HAVE_SKILL(ARG,[[スキル:魔術の素養]]) > 0
+	    TIMES MAXBASE:ARG:ＭＰ,1.60
+	ELSEIF HAVE_SKILL(ARG,[[スキル:三分の魔脈]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.30
+	ELSEIF HAVE_SKILL(ARG,[[スキル:二分の魔脈]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.20
+	ELSEIF HAVE_SKILL(ARG,[[スキル:一分の魔脈]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.10
+	ELSEIF HAVE_SKILL(ARG,[[スキル:ネバーギブアップ]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.30
+	ENDIF
+	MAXBASE:ARG:ＭＰ += CFLAG:ARG:ＭＰ補正
+	IF FLAG:人間戦闘ステ設定 == 2
+		;攻撃
+		BASE:ARG:(GET_BATTLESTATUS(0)) = (LOCAL/2+LOCAL:1*5/2+LOCAL:4) + CFLAG:ARG:攻撃補正
+		;命中
+		BASE:ARG:(GET_BATTLESTATUS(1)) = (LOCAL+LOCAL:5*5/2+LOCAL:6) + CFLAG:ARG:命中補正
+		;防御
+		BASE:ARG:(GET_BATTLESTATUS(2)) = (LOCAL+LOCAL:4*3+(LOCAL:1)/2) + CFLAG:ARG:防御補正
+		;回避
+		BASE:ARG:(GET_BATTLESTATUS(3)) = (LOCAL+LOCAL:5*5/2+LOCAL:6) + CFLAG:ARG:回避補正
+		;魔法威力
+		BASE:ARG:(GET_BATTLESTATUS(4)) = (LOCAL/2+LOCAL:3*5/2+LOCAL:2) + CFLAG:ARG:魔法威力補正
+		;魔法効果
+		BASE:ARG:(GET_BATTLESTATUS(5)) = (LOCAL+LOCAL:2*2+LOCAL:6+LOCAL:3/2) + CFLAG:ARG:魔法効果補正
+	ELSE
+		;攻撃
+		BASE:ARG:(GET_BATTLESTATUS(0)) = (LOCAL/2+LOCAL:1+LOCAL:4/2) + CFLAG:ARG:攻撃補正
+		;命中
+		BASE:ARG:(GET_BATTLESTATUS(1)) = (LOCAL+LOCAL:5+LOCAL:6/2) + CFLAG:ARG:命中補正
+		;防御
+		BASE:ARG:(GET_BATTLESTATUS(2)) = (LOCAL+LOCAL:4) + CFLAG:ARG:防御補正
+		;回避
+		BASE:ARG:(GET_BATTLESTATUS(3)) = (LOCAL+LOCAL:5+LOCAL:6/2) + CFLAG:ARG:回避補正
+		;魔法威力
+		BASE:ARG:(GET_BATTLESTATUS(4)) = (LOCAL/2+LOCAL:3+LOCAL:2/2) + CFLAG:ARG:魔法威力補正
+		;魔法効果
+		BASE:ARG:(GET_BATTLESTATUS(5)) = (LOCAL+LOCAL:2+LOCAL:6/2) + CFLAG:ARG:魔法効果補正
+		IF FLAG:人間戦闘ステ設定 == 1
+			;命中
+			BASE:ARG:(GET_BATTLESTATUS(1)) = (LOCAL+LOCAL:5*5/2+LOCAL:6) + CFLAG:ARG:命中補正
+			;魔法効果
+			BASE:ARG:(GET_BATTLESTATUS(5)) = (LOCAL+LOCAL:2*2+LOCAL:6+LOCAL:3/2) + CFLAG:ARG:魔法効果補正
+		ENDIF
+	ENDIF
+	;銃命中
+	BASE:ARG:銃命中 = (LOCAL+LOCAL:5/2+LOCAL:6/2+LOCAL:2/2) + CFLAG:ARG:銃命中補正
+	;銃攻撃
+	BASE:ARG:銃攻撃 = (LOCAL/2 + LOCAL:2/4 + LOCAL:5/4) + CFLAG:ARG:銃攻撃補正
+	;LVが80を超えている場合、装備部分に相当する補正を追加で与える
+	IF BASE:ARG:LV > 80
+		;攻撃
+		BASE:ARG:(GET_BATTLESTATUS(0)) += (BASE:ARG:LV - 80) * 9 / 4
+		;命中
+		BASE:ARG:(GET_BATTLESTATUS(1)) += (BASE:ARG:LV - 80) * 7 / 4
+		;防御
+		BASE:ARG:(GET_BATTLESTATUS(2)) += (BASE:ARG:LV - 80) * 11 / 4
+		;回避
+		BASE:ARG:(GET_BATTLESTATUS(3)) += (BASE:ARG:LV - 80) * 7 / 4
+		;魔法威力
+		BASE:ARG:(GET_BATTLESTATUS(4)) += (BASE:ARG:LV - 80) * 9 / 4
+		;魔法効果
+		BASE:ARG:(GET_BATTLESTATUS(5)) +=(BASE:ARG:LV - 80) * 7 / 4
+		;銃命中
+		BASE:ARG:銃命中 += (BASE:ARG:LV - 80) * 7 / 4
+		;銃攻撃
+		BASE:ARG:銃攻撃 += (BASE:ARG:LV - 80) * 9 / 4
+	ENDIF
+
+
+	;装備品の補正
+	FOR COUNT,0,FLAG:戦闘能力数
+		COUNT:2 = 0
+		FOR COUNT:1,0,7
+			IF 魔晶装備(EQUIP:ARG:(GET_EQUIP(COUNT:1)))
+				CALLFORM 戦闘能力修正_魔晶装備,COUNT,EQUIP:ARG:(GET_EQUIP(COUNT:1)) - 2450 -450*COUNT:1
+			ELSE
+				CALLFORM 戦闘能力修正_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},COUNT,ARG
+				CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(COUNT:1), "戦闘能力修正", GET_BATTLESTATUS(COUNT), RESULT
+			ENDIF
+			COUNT:2 += RESULT
+		NEXT
+			IF FLAG:人間戦闘ステ設定 == 3 && (TALENT:ARG:異能者 || TALENT:ARG:達人 || ABL:ARG:種族 == 0 || ABL:ARG:種族 == 36)
+				MAXBASE:ARG:(GET_BATTLESTATUS(COUNT)) = BASE:ARG:(GET_BATTLESTATUS(COUNT)) + COUNT:2 * (100 + (BASE:ARG:LV/2)) / 100
+			ELSE
+				MAXBASE:ARG:(GET_BATTLESTATUS(COUNT)) = BASE:ARG:(GET_BATTLESTATUS(COUNT)) + COUNT:2
+			ENDIF
+	NEXT
+
+	FOR COUNT,0,FLAG:相性数
+		SIF TALENT:ARG:非戦闘員 && COUNT != 10
+			BASE:ARG:GET_TYPE(COUNT) = 100
+		SIF TALENT:ARG:非戦闘員 && COUNT == 10
+			BASE:ARG:GET_TYPE(COUNT) = 0
+		;ペルソナ使いはすでに耐性変化を終えてるのでBREAK
+		SIF TALENT:ARG:ペルソナ使い
+			BREAK
+		;HalfDemonは装備の影響を受けずに相性変更の影響を受ける
+		IF ABL:ARG:種族 == 36
+			MAXBASE:ARG:GET_TYPE(COUNT)  = CFLAG:ARG:変更相性1 == COUNT + 1 ? CFLAG:ARG:変更相性値1 # BASE:ARG:GET_TYPE(COUNT)
+			CONTINUE
+		ENDIF
+		VARSET T,-1
+		FOR COUNT:1,0,7
+			IF 魔晶装備(EQUIP:ARG:(GET_EQUIP(COUNT:1)))
+				CALLFORM 防御相性_魔晶装備,COUNT,EQUIP:ARG:(GET_EQUIP(COUNT:1)) - 2450 -450*COUNT:1
+				T:(COUNT:1) = RESULT
+			ELSE
+				CALLFORM 防御相性_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},COUNT,ARG
+				CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(COUNT:1), "防御相性", GET_TYPE(COUNT), RESULT
+				T:(COUNT:1) = RESULT
+			ENDIF
+		NEXT
+		T:7 = BASE:ARG:(GET_TYPE(COUNT))
+		IF T:7 < 100 || T:7 == 999
+			IF MINARRAY(T,0,7) < 100
+				IF MAXARRAY(T,0,7) > 100
+					MAXBASE:ARG:(GET_TYPE(COUNT)) = MINARRAY(T,0,7)
+					SIF MAXBASE:ARG:(GET_TYPE(COUNT)) > -1 && MATCH(T,999,0,7)
+						MAXBASE:ARG:(GET_TYPE(COUNT)) = 999
+				ELSE
+					MAXBASE:ARG:(GET_TYPE(COUNT)) = MINARRAY(T,0,8)
+					SIF MAXBASE:ARG:(GET_TYPE(COUNT)) > -1 && MATCH(T,999,0,8)
+						MAXBASE:ARG:(GET_TYPE(COUNT)) = 999
+				ENDIF
+			ELSEIF MAXARRAY(T,0,7) > 100
+				MAXBASE:ARG:(GET_TYPE(COUNT)) = MAXARRAY(T,0,7)
+				SIF MAXBASE:ARG:(GET_TYPE(COUNT)) > -1 && MATCH(T,999,0,7)
+					MAXBASE:ARG:(GET_TYPE(COUNT)) = 999
+			
+			ELSE
+				MAXBASE:ARG:(GET_TYPE(COUNT)) = T:7
+				SIF MAXBASE:ARG:(GET_TYPE(COUNT)) > -1 && MATCH(T,999,0,8)
+					MAXBASE:ARG:(GET_TYPE(COUNT)) = 999
+			ENDIF
+		ELSE
+			MAXBASE:ARG:(GET_TYPE(COUNT)) = MINARRAY(T,0,8)
+			IF MAXBASE:ARG:(GET_TYPE(COUNT)) < 100
+			ELSE
+				MAXBASE:ARG:(GET_TYPE(COUNT)) = MAXARRAY(T,0,8)
+			ENDIF
+			SIF MAXBASE:ARG:(GET_TYPE(COUNT)) > -1 && MATCH(T,999,0,8)
+				MAXBASE:ARG:(GET_TYPE(COUNT)) = 999
+		ENDIF
+	NEXT
+	
+	FOR COUNT,0,FLAG:ステート数
+		VARSET T,-1
+		;P3型を除くペルソナ使いはバステ耐性変更がない
+		SIF TALENT:ARG:ペルソナ使い == 1
+			BREAK
+		;HalfDemonは元々のバステ耐性をみる
+		IF ABL:ARG:種族 == 36
+			MAXBASE:ARG:(GET_STATE(COUNT)) = BASE:ARG:(GET_STATE(COUNT))
+			CONTINUE
+		ENDIF
+		FOR COUNT:1,0,7
+			IF 魔晶装備(EQUIP:ARG:(GET_EQUIP(COUNT:1)))
+				RESULT = 0
+				TRYCALLFORM バステ耐性_魔晶装備,COUNT,EQUIP:ARG:(GET_EQUIP(COUNT:1)) - 2450 -450*COUNT:1
+				T:(COUNT:1) = RESULT
+			ELSE
+				RESULT = 0
+				TRYCALLFORM バステ耐性_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},COUNT,ARG
+				T:(COUNT:1) = RESULT
+			ENDIF
+		NEXT
+		T:7 = BASE:ARG:(GET_STATE(COUNT))
+		
+		IF T:7 < 0
+			IF MINARRAY(T,0,7) < 0
+				IF MAXARRAY(T,0,7) > 0
+					MAXBASE:ARG:(GET_STATE(COUNT)) = MINARRAY(T,0,7)
+				ELSE
+					MAXBASE:ARG:(GET_STATE(COUNT)) = MINARRAY(T,0,8)
+				ENDIF
+			ELSEIF MAXARRAY(T,0,7) > 0
+				MAXBASE:ARG:(GET_STATE(COUNT)) = MAXARRAY(T,0,7)
+			ELSE
+				MAXBASE:ARG:(GET_STATE(COUNT)) = T:7
+			ENDIF
+		ELSE
+			MAXBASE:ARG:(GET_STATE(COUNT)) = MINARRAY(T,0,8)
+			IF MAXBASE:ARG:(GET_STATE(COUNT)) < 0
+			ELSE
+				MAXBASE:ARG:(GET_STATE(COUNT)) = MAXARRAY(T,0,8)
+			ENDIF
+		ENDIF
+	NEXT
+	
+	
+	
+	IF 魔晶装備(EQUIP:ARG:剣)
+		CALLFORM 攻撃相性_魔晶装備,EQUIP:ARG:剣-2450
+		ABL:ARG:攻撃相性 = RESULT
+		CALLFORM 射程_魔晶装備,EQUIP:ARG:剣-2450
+		ABL:ARG:射程 = RESULT
+		CALLFORM 最低攻撃回数_魔晶装備,EQUIP:ARG:剣-2450
+		ABL:ARG:最低攻撃回数 = RESULT
+		CALLFORM 最大攻撃回数_魔晶装備,EQUIP:ARG:剣-2450
+		ABL:ARG:最大攻撃回数 = RESULT
+		CALLFORM 攻撃範囲_魔晶装備,EQUIP:ARG:剣-2450
+		ABL:ARG:攻撃範囲 = RESULT
+		TRYCCALLFORM 追加効果_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:追加効果 = RESULT
+			CALLFORM 追加効果相性_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:追加効果相性 = RESULT
+			CALLFORM 追加効果命中率_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:追加効果命中率 = RESULT
+			CALLFORM 追加効果最大命中率_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:追加効果最大命中率 = RESULT
+		CATCH
+			ABL:ARG:追加効果 = 0
+			ABL:ARG:追加効果相性 = 0
+			ABL:ARG:追加効果命中率 = 0
+			ABL:ARG:追加効果最大命中率 = 0
+		ENDCATCH
+	ELSE
+		CALLFORM 攻撃相性_{EQUIP:ARG:剣},ARG
+		ABL:ARG:攻撃相性 = RESULT
+		CALLFORM 射程_{EQUIP:ARG:剣},ARG
+		ABL:ARG:射程 = RESULT
+		CALLFORM 最低攻撃回数_{EQUIP:ARG:剣},ARG
+		ABL:ARG:最低攻撃回数 = RESULT
+		CALLFORM 最大攻撃回数_{EQUIP:ARG:剣},ARG
+		ABL:ARG:最大攻撃回数 = RESULT
+		CALLFORM 攻撃範囲_{EQUIP:ARG:剣},ARG
+		ABL:ARG:攻撃範囲 = RESULT
+		TRYCCALLFORM 追加効果_{EQUIP:ARG:剣},ARG
+			IF GET_STATE(RESULT) == "GOOD" 
+				CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "ステート"
+				IF GET_STATE(RESULT) != "GOOD"
+					ABL:ARG:追加効果 = RESULT
+					CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "効果相性"
+					ABL:ARG:追加効果相性 = RESULT
+					CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "基本命中"
+					ABL:ARG:追加効果命中率 = RESULT
+					CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "最大命中"
+					ABL:ARG:追加効果最大命中率 = RESULT
+				ELSE
+					ABL:ARG:追加効果 = 0
+					ABL:ARG:追加効果相性 = 0
+					ABL:ARG:追加効果命中率 = 0
+					ABL:ARG:追加効果最大命中率 = 0
+				ENDIF
+			ELSE
+				ABL:ARG:追加効果 = RESULT
+			CALLFORM 追加効果相性_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果相性 = RESULT
+			CALLFORM 追加効果命中率_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果命中率 = RESULT
+			CALLFORM 追加効果最大命中率_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果最大命中率 = RESULT
+			ENDIF
+		CATCH
+			CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "ステート"
+			IF GET_STATE(RESULT) != "GOOD"
+				ABL:ARG:追加効果 = RESULT
+				CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "効果相性"
+				ABL:ARG:追加効果相性 = RESULT
+				CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "基本命中"
+				ABL:ARG:追加効果命中率 = RESULT
+				CALL 装備強化_展開, ARG, EQUIP:ARG:剣, "追加効果", "最大命中"
+				ABL:ARG:追加効果最大命中率 = RESULT
+			ELSE
+				ABL:ARG:追加効果 = 0
+				ABL:ARG:追加効果相性 = 0
+				ABL:ARG:追加効果命中率 = 0
+				ABL:ARG:追加効果最大命中率 = 0
+			ENDIF
+		ENDCATCH
+	ENDIF
+
+	IF EQUIP:ARG:銃 > 0
+		IF 魔晶装備(EQUIP:ARG:銃)
+			CALLFORM 銃命中_魔晶装備,EQUIP:ARG:銃-2900
+			MAXBASE:ARG:銃命中 = BASE:ARG:銃命中 + RESULT
+			CALLFORM 銃攻撃_魔晶装備,EQUIP:ARG:銃-2900
+			MAXBASE:ARG:銃攻撃 = BASE:ARG:銃攻撃 + RESULT
+		ELSE
+			CALLFORM 銃命中_{EQUIP:ARG:銃},ARG
+			CALL 装備強化_展開, ARG, EQUIP:ARG:銃, "戦闘能力修正", "銃命中", RESULT
+			MAXBASE:ARG:銃命中 = BASE:ARG:銃命中 + RESULT
+			CALLFORM 銃攻撃_{EQUIP:ARG:銃},ARG
+			CALL 装備強化_展開, ARG, EQUIP:ARG:銃, "戦闘能力修正", "銃攻撃", RESULT
+			MAXBASE:ARG:銃攻撃 = BASE:ARG:銃攻撃 + RESULT
+			
+		ENDIF
+		
+	ELSE
+		MAXBASE:ARG:銃命中 = 0
+		MAXBASE:ARG:銃攻撃 = 0
+	ENDIF
+
+	;調教効果をここに記述・戦闘能力
+	IF ARG != MASTER && CFLAG:ARG:PTフラグ > 0
+		;現状処理なし
+	ENDIF
+
+	;NEXT経験値
+	;MAXBASE:ARG:ＥＸＰ  = 5*(BASE:ARG:LV)*(BASE:ARG:LV+1)*(BASE:ARG:LV+2)/3
+	MAXBASE:ARG:ＥＸＰ = GET_NEXT_EXP(BASE:ARG:LV, ABL:ARG:種族 && !陥落(ARG))
+	BASE:ARG:ＥＸＰ = MAX(BASE:ARG:ＥＸＰ, GET_NEXT_EXP(BASE:ARG:LV - 1, ABL:ARG:種族 && !陥落(ARG)))
+	
+	;ＭＡＧ
+	IF ARG == MASTER
+		MAXBASE:ARG:ＭＡＧ  = (75)*(LOCAL)*(LOCAL+1)*(LOCAL+2)
+	ELSE
+		MAXBASE:ARG:ＭＡＧ  = (15+陥落(ARG)*3)*(LOCAL)*(LOCAL+1)*(LOCAL+2)
+	ENDIF
+	
+	;抗体ポイント
+	IF CSVBASE(NO:ARG,GETNUM(BASE,"CP"),0) != 0 && CFLAG:ARG:PTフラグ > 0
+		 LOCAL:1 = 15
+		 FOR LOCAL,0,FLAG:相性数 +1
+		 	SELECTCASE MAXBASE:ARG:(GET_TYPE(LOCAL))
+		 		CASE 999
+		 			LOCAL:1 += 55
+		 		CASE IS < 0
+		 			LOCAL:1 += 55
+		 		CASE 0
+		 			LOCAL:1 += 40
+		 		CASE IS > 199
+		 			LOCAL:1 -= 25
+		 		CASE IS > 100
+		 			LOCAL:1 -= 15
+		 		CASE IS <= 50
+		 			LOCAL:1 += 25
+		 		CASE IS < 100
+		 			LOCAL:1 += 15
+		 	ENDSELECT
+		 NEXT
+		BASE:ARG:CP = MAX(1,LOCAL:1/2) + CFLAG:ARG:ＣＰ補正
+		MAXBASE:ARG:CP = MAX(1,BASE:ARG:CP * MAXBASE:ARG:LV / 50 * (100-MIN(10000,BASE:ARG:忠誠度)*50/10000) / 100)
+		MAXBASE:ARG:￥ = MAX(1,BASE:ARG:CP * MAXBASE:ARG:LV * (100-MIN(5000,BASE:ARG:忠誠度)*90/5000) / 100)
+	ELSE
+		MAXBASE:ARG:CP = BASE:ARG:CP * MAXBASE:ARG:LV / 50
+		MAXBASE:ARG:￥ = 0
+	ENDIF
+
+ELSE
+
+	;HP
+	MAXBASE:ARG:ＨＰ = (LOCAL+LOCAL:1*2+LOCAL:4*7+5)*(100+LOCAL*3)/100
+	SIF CFLAG:ARG:PTフラグ == 0 && ! CFLAG:ARG:ボスフラグ
+		MAXBASE:ARG:ＨＰ = (LOCAL*3+LOCAL:1*2+LOCAL:4*9/2+5)*(100+LOCAL*3)/100
+	SIF CFLAG:ARG:ボスフラグ
+		MAXBASE:ARG:ＨＰ *= 5+CFLAG:ARG:ボスフラグ
+	SIF CFLAG:ARG:PTフラグ == 0 && FLAG:戦闘難易度 > 3
+		TIMES MAXBASE:ARG:ＨＰ , 1.50
+	IF HAVE_SKILL(ARG,[[スキル:武道の心得]]) > 0
+	    TIMES MAXBASE:ARG:ＨＰ,1.60
+	ELSEIF HAVE_SKILL(ARG,[[スキル:三分の活泉]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.30
+	ELSEIF HAVE_SKILL(ARG,[[スキル:二分の活泉]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.20
+	ELSEIF HAVE_SKILL(ARG,[[スキル:一分の活泉]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.10
+	ELSEIF HAVE_SKILL(ARG,[[スキル:ネバーギブアップ]]) > 0
+		TIMES MAXBASE:ARG:ＨＰ,1.30
+	ENDIF
+	MAXBASE:ARG:ＨＰ += CFLAG:ARG:ＨＰ補正
+
+	;MP
+	MAXBASE:ARG:ＭＰ = ((LOCAL+LOCAL:2/2+(LOCAL:3*3/2))*2 + 5) * (100+LOCAL)/100
+	SIF CFLAG:ARG:ボスフラグ
+		MAXBASE:ARG:ＭＰ *= 5+CFLAG:ARG:ボスフラグ
+	IF HAVE_SKILL(ARG,[[スキル:魔術の素養]]) > 0
+	    TIMES MAXBASE:ARG:ＭＰ,1.60
+	ELSEIF HAVE_SKILL(ARG,[[スキル:三分の魔脈]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.30
+	ELSEIF HAVE_SKILL(ARG,[[スキル:二分の魔脈]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.20
+	ELSEIF HAVE_SKILL(ARG,[[スキル:一分の魔脈]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.10
+	ELSEIF HAVE_SKILL(ARG,[[スキル:ネバーギブアップ]]) > 0
+		TIMES MAXBASE:ARG:ＭＰ,1.30
+	ENDIF
+	MAXBASE:ARG:ＭＰ += CFLAG:ARG:ＭＰ補正
+
+	;攻撃
+	BASE:ARG:(GET_BATTLESTATUS(0)) = (LOCAL*2+LOCAL:1*5/2+LOCAL:4) + CFLAG:ARG:攻撃補正
+	;命中
+	BASE:ARG:(GET_BATTLESTATUS(1)) = (LOCAL*2+LOCAL:5*5/2+LOCAL:6) + CFLAG:ARG:命中補正
+	;防御
+	BASE:ARG:(GET_BATTLESTATUS(2)) = (LOCAL*2+LOCAL:4*3+(LOCAL:1)/2) + CFLAG:ARG:防御補正
+	;回避
+	BASE:ARG:(GET_BATTLESTATUS(3)) = (LOCAL*2+LOCAL:5*5/2+LOCAL:6) + CFLAG:ARG:回避補正
+	;魔法威力
+	BASE:ARG:(GET_BATTLESTATUS(4)) = (LOCAL*2+LOCAL:3*5/2+LOCAL:2) + CFLAG:ARG:魔法威力補正
+	;魔法効果
+	BASE:ARG:(GET_BATTLESTATUS(5)) = (LOCAL*2+LOCAL:2*2+LOCAL:6+LOCAL:3/2) + CFLAG:ARG:魔法効果補正
+	REPEAT 6
+		MAXBASE:ARG:(GET_BATTLESTATUS(COUNT)) = BASE:ARG:(GET_BATTLESTATUS(COUNT))
+	REND
+	
+	;装備知識スキル持ちならここで処理
+	IF SKILL_EQUIPTHEORY_IS_HAVE_SKILL(ARG)
+		;銃命中
+		BASE:ARG:銃命中 = (LOCAL+LOCAL:5/2+LOCAL:6/2+LOCAL:2/2) + CFLAG:ARG:銃命中補正
+		;銃攻撃
+		BASE:ARG:銃攻撃 = (LOCAL/2 + LOCAL:2/4 + LOCAL:5/4) + CFLAG:ARG:銃攻撃補正
+		;LVが80を超えている場合、装備部分に相当する補正を追加で与える
+		IF BASE:ARG:LV > 80
+			;攻撃
+			BASE:ARG:(GET_BATTLESTATUS(0)) += (BASE:ARG:LV - 80) * 9 / 4
+			;命中
+			BASE:ARG:(GET_BATTLESTATUS(1)) += (BASE:ARG:LV - 80) * 7 / 4
+			;防御
+			BASE:ARG:(GET_BATTLESTATUS(2)) += (BASE:ARG:LV - 80) * 11 / 4
+			;回避
+			BASE:ARG:(GET_BATTLESTATUS(3)) += (BASE:ARG:LV - 80) * 7 / 4
+			;魔法威力
+			BASE:ARG:(GET_BATTLESTATUS(4)) += (BASE:ARG:LV - 80) * 9 / 4
+			;魔法効果
+			BASE:ARG:(GET_BATTLESTATUS(5)) +=(BASE:ARG:LV - 80) * 7 / 4
+			;銃命中
+			BASE:ARG:銃命中 += (BASE:ARG:LV - 80) * 7 / 4
+			;銃攻撃
+			BASE:ARG:銃攻撃 += (BASE:ARG:LV - 80) * 9 / 4
+		ENDIF
+		
+		;装備品の補正
+		FOR COUNT,0,FLAG:戦闘能力数
+			COUNT:2 = 0
+			FOR COUNT:1,0,7
+				IF 魔晶装備(EQUIP:ARG:(GET_EQUIP(COUNT:1)))
+					CALLFORM 戦闘能力修正_魔晶装備,COUNT,EQUIP:ARG:(GET_EQUIP(COUNT:1)) - 2450 -450*COUNT:1
+				ELSE
+					CALLFORM 戦闘能力修正_{EQUIP:ARG:(GET_EQUIP(COUNT:1))},COUNT,ARG
+				ENDIF
+				COUNT:2 += RESULT
+			NEXT
+			
+			MAXBASE:ARG:(GET_BATTLESTATUS(COUNT)) = BASE:ARG:(GET_BATTLESTATUS(COUNT)) + SKILL_EQUIPTHEORY_EQUIP_STATUS(ARG, COUNT:2)
+		NEXT
+		
+		;剣装備の処理
+		IF 魔晶装備(EQUIP:ARG:剣)
+			CALLFORM 攻撃相性_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:攻撃相性 = RESULT
+			CALLFORM 射程_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:射程 = RESULT
+			CALLFORM 最低攻撃回数_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:最低攻撃回数 = RESULT
+			CALLFORM 最大攻撃回数_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:最大攻撃回数 = RESULT
+			CALLFORM 攻撃範囲_魔晶装備,EQUIP:ARG:剣-2450
+			ABL:ARG:攻撃範囲 = RESULT
+			TRYCCALLFORM 追加効果_魔晶装備,EQUIP:ARG:剣-2450
+				ABL:ARG:追加効果 = RESULT
+				CALLFORM 追加効果相性_魔晶装備,EQUIP:ARG:剣-2450
+				ABL:ARG:追加効果相性 = RESULT
+				CALLFORM 追加効果命中率_魔晶装備,EQUIP:ARG:剣-2450
+				ABL:ARG:追加効果命中率 = RESULT
+				CALLFORM 追加効果最大命中率_魔晶装備,EQUIP:ARG:剣-2450
+				ABL:ARG:追加効果最大命中率 = RESULT
+			CATCH
+				ABL:ARG:追加効果 = 0
+				ABL:ARG:追加効果相性 = 0
+				ABL:ARG:追加効果命中率 = 0
+				ABL:ARG:追加効果最大命中率 = 0
+			ENDCATCH
+		ELSE
+			CALLFORM 攻撃相性_{EQUIP:ARG:剣},ARG
+			ABL:ARG:攻撃相性 = RESULT
+			CALLFORM 射程_{EQUIP:ARG:剣},ARG
+			ABL:ARG:射程 = RESULT
+			CALLFORM 最低攻撃回数_{EQUIP:ARG:剣},ARG
+			ABL:ARG:最低攻撃回数 = RESULT
+			CALLFORM 最大攻撃回数_{EQUIP:ARG:剣},ARG
+			ABL:ARG:最大攻撃回数 = RESULT
+			CALLFORM 攻撃範囲_{EQUIP:ARG:剣},ARG
+			ABL:ARG:攻撃範囲 = RESULT
+			TRYCCALLFORM 追加効果_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果 = RESULT
+				CALLFORM 追加効果相性_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果相性 = RESULT
+				CALLFORM 追加効果命中率_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果命中率 = RESULT
+				CALLFORM 追加効果最大命中率_{EQUIP:ARG:剣},ARG
+				ABL:ARG:追加効果最大命中率 = RESULT
+			CATCH
+				ABL:ARG:追加効果 = 0
+				ABL:ARG:追加効果相性 = 0
+				ABL:ARG:追加効果命中率 = 0
+				ABL:ARG:追加効果最大命中率 = 0
+			ENDCATCH
+		ENDIF
+
+		;Gun装備の処理
+		IF EQUIP:ARG:銃 > 0
+			IF 魔晶装備(EQUIP:ARG:銃)
+				CALLFORM 銃命中_魔晶装備,EQUIP:ARG:銃-2900
+				MAXBASE:ARG:銃命中 = BASE:ARG:銃命中 + SKILL_EQUIPTHEORY_EQUIP_HIT(ARG, RESULT)
+				CALLFORM 銃攻撃_魔晶装備,EQUIP:ARG:銃-2900
+				MAXBASE:ARG:銃攻撃 = BASE:ARG:銃攻撃 + SKILL_EQUIPTHEORY_EQUIP_STATUS(ARG, RESULT)
+			ELSE
+				CALLFORM 銃命中_{EQUIP:ARG:銃},ARG
+				MAXBASE:ARG:銃命中 = BASE:ARG:銃命中 + SKILL_EQUIPTHEORY_EQUIP_HIT(ARG, RESULT)
+				CALLFORM 銃攻撃_{EQUIP:ARG:銃},ARG
+				MAXBASE:ARG:銃攻撃 = BASE:ARG:銃攻撃 + SKILL_EQUIPTHEORY_EQUIP_STATUS(ARG, RESULT)
+			ENDIF
+			
+		ELSE
+			MAXBASE:ARG:銃命中 = 0
+			MAXBASE:ARG:銃攻撃 = 0
+		ENDIF
+	ENDIF
+	
+
+	;調教効果をここに記述・戦闘能力
+	IF ARG != MASTER && CFLAG:ARG:PTフラグ > 0
+		;現状処理なし
+	ENDIF
+	
+	;相性関係
+	FOR LOCAL:1,0,FLAG:相性数 +1
+		IF CFLAG:ARG:悪魔変身 == 0
+			MAXBASE:ARG:GET_TYPE(LOCAL:1) = BASE:ARG:GET_TYPE(LOCAL:1)
+			SIF CFLAG:ARG:変更相性1 == LOCAL:1+1
+				MAXBASE:ARG:GET_TYPE(LOCAL:1) = CFLAG:ARG:変更相性値1
+			;プラグイン（アクセサリ）を見る
+			CALLFORM 防御相性_{EQUIP:ARG:アクセサリ},LOCAL:1,ARG
+			IF RESULT != 100
+				MAXBASE:ARG:GET_TYPE(LOCAL:1) = RESULT
+			ENDIF
+		ELSEIF CFLAG:ARG:リンク悪魔 > 0 && FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+			;変身先悪魔が居れば、その悪魔の相性をコピー
+			MAXBASE:ARG:GET_TYPE(LOCAL:1) = BASE:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):GET_TYPE(LOCAL:1)
+			SIF CFLAG:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):変更相性1 == LOCAL:1+1
+				MAXBASE:ARG:GET_TYPE(LOCAL:1) = CFLAG:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):変更相性値1
+		ELSE
+			;デフォルト悪魔の場合は相性コピー＋相性変更は自分のを使用する
+			MAXBASE:ARG:GET_TYPE(LOCAL:1) = CSVBASE((CFLAG:ARG:初期リンク悪魔), GETNUM(BASE , GET_TYPE(LOCAL:1)),0)
+			SIF CFLAG:ARG:変更相性1 == LOCAL:1+1
+				MAXBASE:ARG:GET_TYPE(LOCAL:1) = CFLAG:ARG:変更相性値1
+		ENDIF
+	NEXT
+
+	FOR LOCAL:1,0,FLAG:ステート数
+		IF CFLAG:ARG:悪魔変身 == 0
+			MAXBASE:ARG:GET_STATE(LOCAL:1) = BASE:ARG:GET_STATE(LOCAL:1)
+			;プラグイン（アクセサリ）を見る
+			RESULT = 0
+			TRYCALLFORM バステ耐性_{EQUIP:ARG:アクセサリ},LOCAL:1,ARG
+			IF RESULT < 0
+				MAXBASE:ARG:GET_STATE(LOCAL:1) = RESULT
+			ENDIF
+		ELSEIF FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+			;変身先悪魔が居れば、その悪魔の相性をコピー
+			MAXBASE:ARG:GET_STATE(LOCAL:1) = BASE:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):GET_STATE(LOCAL:1)
+		ELSE
+			;デフォルト悪魔の場合は相性コピー＋相性変更は自分のを使用する
+			MAXBASE:ARG:GET_STATE(LOCAL:1) = CSVBASE((CFLAG:ARG:初期リンク悪魔), GETNUM(BASE , GET_STATE(LOCAL:1)),0)
+		ENDIF
+	NEXT
+
+	IF CFLAG:ARG:悪魔変身
+		IF FINDCHARA_ID(CFLAG:ARG:リンク悪魔) > 0
+			ABL:ARG:攻撃相性 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):攻撃相性
+			ABL:ARG:射程 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):射程
+			ABL:ARG:最低攻撃回数 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):最低攻撃回数
+			ABL:ARG:最大攻撃回数 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):最大攻撃回数
+			ABL:ARG:攻撃範囲 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):攻撃範囲
+			ABL:ARG:追加効果 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):追加効果
+			ABL:ARG:追加効果相性 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):追加効果相性
+			ABL:ARG:追加効果命中率 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):追加効果命中率
+			ABL:ARG:追加効果最大命中率 = ABL:FINDCHARA_ID(CFLAG:ARG:リンク悪魔):追加効果最大命中率
+		ELSE
+			ABL:ARG:攻撃相性 = ABL:ARG:初期リンク悪魔攻撃相性
+			ABL:ARG:射程 = ABL:ARG:初期リンク悪魔射程
+			ABL:ARG:最低攻撃回数 = ABL:ARG:初期リンク悪魔最低攻撃回数
+			ABL:ARG:最大攻撃回数 = ABL:ARG:初期リンク悪魔最大攻撃回数
+			ABL:ARG:攻撃範囲 = ABL:ARG:初期リンク悪魔攻撃範囲
+			ABL:ARG:追加効果 = ABL:ARG:初期リンク悪魔追加効果
+			ABL:ARG:追加効果相性 = ABL:ARG:初期リンク悪魔追加効果相性
+			ABL:ARG:追加効果命中率 = ABL:ARG:初期リンク悪魔追加効果命中率
+			ABL:ARG:追加効果最大命中率 = ABL:ARG:初期リンク悪魔追加効果最大命中率
+		ENDIF
+	ENDIF
+
+	;NEXT経験値
+	MAXBASE:ARG:ＥＸＰ  = 5*(BASE:ARG:LV)*(BASE:ARG:LV+1)*(BASE:ARG:LV+2)/3
+	SIF ABL:ARG:種族 != 0 && !陥落(ARG)
+		TIMES MAXBASE:ARG:ＥＸＰ , 1.25
+	;ＭＡＧキャパシティ
+	IF ARG == MASTER
+		MAXBASE:ARG:ＭＡＧ  = (75)*(LOCAL)*(LOCAL+1)*(LOCAL+2)
+	ELSE
+		MAXBASE:ARG:ＭＡＧ  = (15+陥落(ARG)*3)*(MAXBASE:ARG:LV)*(MAXBASE:ARG:LV+1)*(MAXBASE:ARG:LV+2)
+		SIF ABL:ARG:種族 == 45
+			MAXBASE:ARG:ＭＡＧ *= 5
+	ENDIF
+	;抗体ポイント
+	IF CSVBASE(NO:ARG,GETNUM(BASE,"CP"),0) != 0 && CFLAG:ARG:PTフラグ > 0
+		 LOCAL:1 = 15
+		 FOR LOCAL,0,FLAG:相性数 +1
+		 	SELECTCASE MAXBASE:ARG:(GET_TYPE(LOCAL))
+		 		CASE 999
+		 			LOCAL:1 += 55
+		 		CASE IS < 0
+		 			LOCAL:1 += 55
+		 		CASE 0
+		 			LOCAL:1 += 40
+		 		CASE IS > 199
+		 			LOCAL:1 -= 25
+		 		CASE IS > 100
+		 			LOCAL:1 -= 15
+		 		CASE IS <= 50
+		 			LOCAL:1 += 25
+		 		CASE IS < 100
+		 			LOCAL:1 += 15
+		 	ENDSELECT
+		 NEXT
+		BASE:ARG:CP = MAX(1,LOCAL:1/2) + CFLAG:ARG:ＣＰ補正
+		TRYCCALLFORM 増加CP_{EQUIP:ARG:アクセサリ}
+			RESULT += 100
+		CATCH
+			RESULT = 100
+		ENDCATCH
+		MAXBASE:ARG:CP = MAX(1,BASE:ARG:CP * MAXBASE:ARG:LV / 50 * (100-MIN(10000,BASE:ARG:忠誠度)*50/10000) / 100 * RESULT / 100)
+		MAXBASE:ARG:￥ = MAX(1,BASE:ARG:CP * MAXBASE:ARG:LV * (100-MIN(5000,BASE:ARG:忠誠度)*90/5000) / 100)
+	ELSE
+		MAXBASE:ARG:CP = BASE:ARG:CP * MAXBASE:ARG:LV / 50
+		MAXBASE:ARG:￥ = 0
+	ENDIF
+ENDIF
+
+;主人の場合、属性が変動する。
+;主人以外も変化するようにしてみる
+;IF ARG == MASTER
+	;LD
+	SELECTCASE CFLAG:ARG:善悪値
+		CASE IS > 170
+			ABL:ARG:属性LD = 1
+		CASE IS > 84
+			ABL:ARG:属性LD = 2
+		CASEELSE
+			ABL:ARG:属性LD = 3
+	ENDSELECT
+	SELECTCASE CFLAG:ARG:秩混値
+		CASE IS > 170
+			ABL:ARG:属性LC = 1
+		CASE IS > 84
+			ABL:ARG:属性LC = 2
+		CASEELSE
+			ABL:ARG:属性LC = 3
+	ENDSELECT
+;ENDIF
+
+;アイテム使用関係
+LOCAL = MIN(HAVE_SKILL_OVERLAP(ARG,[[スキル:アイテム習熟]]),2)
+CFLAG:ARG:アイテム使用能力 = TALENT:ARG:道具知識 + TALENT:ARG:アイテム習熟 + LOCAL
+CFLAG:ARG:アイテム使用強化 = TALENT:ARG:アイテム習熟 + LOCAL * 2
+
+;妊娠している場合、一部の能力にボーナス？
+;現状では最大ＨＰとＭＰが2割上昇
+IF TALENT:ARG:妊娠
+	TIMES MAXBASE:ARG:ＨＰ , 1.20
+	TIMES MAXBASE:ARG:ＭＰ , 1.20
+ENDIF
+;崩壊している場合、ＨＰとＭＰが7割に
+IF TALENT:ARG:崩壊
+	TIMES MAXBASE:ARG:ＨＰ , 0.70
+	TIMES MAXBASE:ARG:ＭＰ , 0.70
+ENDIF
+
+;ガチャモードがONで、味方なら{(種族悪魔and全書召喚不可でない)or(造魔である)}andガチャ素質が無い　なら色々半減
+IF FLAG:悪魔ガチャモード > 1 && CFLAG:ARG:PTフラグ > 0
+	IF ((ABL:ARG:種族 > 0 && ABL:ARG:種族 < 45 && CFLAG:ARG:全書召喚不可 == 0) || (ABL:ARG:種族 == 45)) && TALENT:ARG:ガチャ < 1
+		TIMES MAXBASE:ARG:ＨＰ , 0.50
+		TIMES MAXBASE:ARG:ＭＰ , 0.50
+		TIMES BASE:ARG:攻撃 , 0.50
+		TIMES BASE:ARG:命中 , 0.50
+		TIMES BASE:ARG:防御 , 0.50
+		TIMES BASE:ARG:回避 , 0.50
+		TIMES BASE:ARG:魔法威力 , 0.50
+		TIMES BASE:ARG:魔法効果 , 0.50
+		TIMES BASE:ARG:銃攻撃 , 0.50
+		TIMES BASE:ARG:銃命中 , 0.50
+	ENDIF
+ENDIF
+
+SIF MAXBASE:ARG:ＭＡＧ < 1
+	MAXBASE:ARG:ＭＡＧ = 1
+
+;ペルソナ使いの場合、ステータスの変動にあわせて現HP/MPも変動する
+IF TALENT:ARG:ペルソナ使い
+	IF MIN(BASE:ARG:ＨＰ,LOCAL:7) != 0
+		BASE:ARG:ＨＰ *= MAXBASE:ARG:ＨＰ
+		BASE:ARG:ＨＰ /= LOCAL:7
+	ENDIF
+	IF MIN(BASE:ARG:ＭＰ,LOCAL:8) != 0
+		BASE:ARG:ＭＰ *= MAXBASE:ARG:ＭＰ
+		BASE:ARG:ＭＰ /= LOCAL:8
+	ENDIF
+ENDIF
+;=================================================================
+;仲魔として加入
+;ARG:NO
+;ARG:1 忠誠度
+;ARG:2 イベントフラグ(通常の他-1のとき、合体時の一時表示に作成された悪魔であることを示す)
+;ARG:3 真:全書利用時に一時的に仲魔に加える処理であることを示す。所持数警告や加入キャンセルを無効にする
+;RESULT 真:キャラが作成されたことを示す。偽:既に同一キャラがいた場合や人数制限にかかった場合などでキャラが作成されなかった場合
+;RRSULT:1 作成したキャラの登録番号を返す
+;=================================================================
+@ADD_NEW_COMPANION, ARG, ARG:1, ARG:2 = 0, ARG:3 = 0
+#DIMS 異常経験名 , 64
+#DIMS 初期好感度値 , 60
+;Humanorメアリかつ既に仲魔に居るならスルー
+;ランダムキャラはスルーしない
+;引継ぎあなたまたはランダムなダークサマナー(Noが4998)もスルーしない
+;IF (ARG < 4901 || ARG > 4910) && (ARG != 0 && ARG != 4999)
+IF (ARG < 4901 || ARG > 4910) && (ARG != 4998)
+	IF (CSVABL(ARG,GETNUM(ABL,"種族"),0) == 0 || ARG == 4509) && GETCHARA(ARG) > -1
+		CFLAG:GETCHARA(ARG):この場に居ないフラグ = 0
+		CALLF FINDCHARA_B(ARG)
+		RETURN 0
+	ELSEIF ARG:2 > 0 && FINDCHARA_B(ARG,ARG:2) >= 0
+		;RESULT:1には既に番号が返されてるはず
+		RETURN 0
+	ENDIF
+ENDIF
+FOR LOCAL:2, 0, 200
+	SIF !CMATCH(CFLAG:キャラ固有の番号, LOCAL:2)
+		BREAK
+	IF !ARG:3
+		IF LOCAL:2 == 195
+			PRINTW ※You now have 195 active characters
+			;所持しているキャラが195体に達しています
+			PRINTW 　Please note that if 200 characters are reached, no more can join. 
+			;200体を超えると、加入処理がキャンセルされますので注意してください
+		ENDIF
+		IF LOCAL:2 == 199
+			PRINTW The maximum number of active characters has been reached.
+			;キャラクター数が上限に達しています
+			PRINTW Character join has been aborted.
+			;キャラクター加入処理をキャンセルします
+			RETURN 0
+		ENDIF
+	ENDIF
+NEXT
+;抜けた段階で+1されるので調整
+LOCAL:2 -= 1
+;	;RESULT配列に使われてる固有の番号を全部書きだす
+;	VARSET RESULT, -1
+;	FOR LOCAL:2, 0 , CHARANUM
+;		SIF CFLAG:(LOCAL:2):キャラ固有の番号 > 0
+;			RESULT:(CFLAG:(LOCAL:2):キャラ固有の番号) = LOCAL:2
+;	NEXT
+;	;主人は0固定のはずなので、0にする
+;	RESULT = 0
+;	;書きだしたリストから、開いている一番若い番号を探しす
+;	FOR LOCAL:2, 0 , 201
+;		SIF RESULT:(LOCAL:2) >= 0
+;			CONTINUE
+;		BREAK
+;	NEXT
+;	IF LOCAL:2 == 201
+;		PRINTW キャラクター数が上限に達しています
+;		PRINTW キャラクター加入処理をキャンセルします
+;		RETURN 0
+;	ELSEIF LOCAL:2 >= 195
+;		PRINTW ※所持しているキャラが195体に達しています
+;		PRINTW 　200体を超えると、加入処理がキャンセルされますので注意してください
+;	ENDIF
+LOCAL = CHARANUM
+LOCAL:1 = TARGET
+ADDCHARA ARG
+TARGET = LOCAL:1
+CFLAG:LOCAL:PTフラグ = 1
+CFLAG:LOCAL:キャラ固有の番号 = LOCAL:2
+;一応RESULTを破壊しておく
+VARSET RESULT
+;危険日を設定する
+ENCODETOUNI %NAME:LOCAL%
+LOCAL:1 = RESULT+1
+IF ABL:LOCAL:種族 == 0 || ABL:LOCAL:種族 == 45
+	CFLAG:LOCAL:危険日 = (SUMARRAY(RESULT , 1 , LOCAL:1) + DAY*4 + TIME)%16
+ELSE
+	CFLAG:LOCAL:危険日 = (SUMARRAY(RESULT , 1 , LOCAL:1) + DAY*4 + TIME)%15
+	SIF CFLAG:LOCAL:危険日 >= 8
+		CFLAG:LOCAL:危険日 += 1
+ENDIF
+VARSET RESULT
+CFLAG:LOCAL:調教メニュー表示設定 = GLOBAL:9
+;経験値、マグネタイト、忠誠度の初期化、仲魔フラグ
+LOCAL:2 = MAXBASE:LOCAL:(GET_BASESTATUS(0))
+BASE:LOCAL:ＥＸＰ = 5*(LOCAL:2-1)*(LOCAL:2+1)*(LOCAL:2)/3
+SIF ABL:LOCAL:種族 != 0
+	TIMES BASE:LOCAL:ＥＸＰ , 1.25
+
+SIF ABL:LOCAL:種族 == 45
+	BASE:LOCAL:ＥＸＰ = 0
+BASE:LOCAL:ＭＡＧ = 0
+BASE:LOCAL:忠誠度 = ARG:1
+MAXBASE:LOCAL:忠誠度 = 0
+;ＭＡＧ自己消費フラグをＯＦＦ
+CFLAG:LOCAL:ＭＡＧ自己消費 = 0
+;Humanならば戦闘参加不能
+SIF (ABL:LOCAL:種族 > 45 || ABL:LOCAL:種族 == 0) && LOCAL != MASTER
+	CFLAG:LOCAL:戦闘参加不可能 = 1
+;善悪値・秩混値未設定の場合、設定
+CALL ADJUST_CHARA_ALI,LOCAL
+;敵専用スキルを削除
+FOR LOCAL:3,1,FLAG:スキル数+1
+	LOCALS = スキル{LOCAL:3}
+	TRYCCALLFORM 敵専用_{ABL:LOCAL:LOCALS}
+		SIF RESULT == 1
+			ABL:LOCAL:LOCALS = 0
+	CATCH
+	ENDCATCH
+NEXT
+
+;ダンジョンや依頼ごとの修正
+SELECTCASE FLAG:ショップコマンド
+	CASE [[ショップ:探索]]
+		TRYCALLFORM SET_COMPANION_DUNGEON_{FLAG:現ダンジョン} , LOCAL
+	CASE [[ショップ:コロシアム参加]]
+		TRYCALLFORM SET_COMPANION_COLOSSEUM_{FLAG:進行中コロシアム} , LOCAL
+	CASE [[ショップ:イベント]]
+		TRYCALLFORM SET_COMPANION_EVENT_{FLAG:進行中イベント} , LOCAL
+	CASE [[ショップ:依頼請負]]
+		TRYCALLFORM SET_COMPANION_REQUEST_{FLAG:進行中依頼} , LOCAL
+ENDSELECT
+
+;着衣状況をセット
+LOCAL:1 = 1
+REPEAT 12
+	CFLAG:LOCAL:(60+COUNT) = CFLAG:LOCAL:GET_CLOTHESNAME(COUNT)
+	SIF CFLAG:LOCAL:GET_CLOTHESNAME(COUNT)
+		CFLAG:LOCAL:23 |= LOCAL:1
+	LOCAL:1 *= 2
+REND
+CFLAG:LOCAL:24 = CFLAG:LOCAL:23
+
+CFLAG:LOCAL:被リンクフラグ = -1
+CFLAG:LOCAL:リンク悪魔 = -1
+
+;初期マスターマントラ
+IF TALENT:LOCAL:喰奴
+	FOR LOCAL:1, 1, 9
+		SIF ABL:LOCAL:@"スキル{LOCAL:1}"
+			CDFLAG:LOCAL:マントラ:(ABL:LOCAL:@"スキル{LOCAL:1}") = 10000
+		ABL:LOCAL:@"スキル{LOCAL:1}" = 0
+	NEXT
+ENDIF
+
+;初期レベルを保存
+CFLAG:LOCAL:初期LV = BASE:LOCAL:LV
+CFLAG:LOCAL:イベント加入 = ARG:2
+
+;初期異常経験分を加算
+IF CSTR:LOCAL:初期異常経験 != ""
+	VARSET 異常経験名
+	SPLIT CSTR:LOCAL:初期異常経験 , "_" , 異常経験名
+	FOR LOCAL:1 , 0 , STRCOUNT(CSTR:LOCAL:初期異常経験 , "_") + 1
+		SETBIT CFLAG:LOCAL:異常経験記録 , NUM_ABNORMAL_EXP(異常経験名:(LOCAL:1))
+		EXP:LOCAL:異常経験 += RANK_ABNORMAL_EXP(異常経験名:(LOCAL:1))
+	NEXT
+ENDIF
+CFLAG:LOCAL:初期異常経験 = EXP:LOCAL:異常経験
+
+CFLAG:LOCAL:娘の父親の固有番号娘 = -1
+CFLAG:LOCAL:娘の産みの親の固有番号娘 = -1
+
+;初期好感度
+;加入キャラに好感度と被好感度のデータを両方持たせておき、加入時点で相手をサーチして両方上書きする
+;配偶者・近親はデフォで初期好感度を持つ
+VARSET 初期好感度値
+SPLIT CSTR:LOCAL:初期好感度, "_", 初期好感度値
+FOR LOCAL:1, 0, CHARANUM
+	LOCAL:2 = FINDELEMENT(初期好感度値, CSVCALLNAME(NO:(LOCAL:1), 0), , , 1)
+	IF LOCAL:2 > 0
+		CFLAG:LOCAL:(CFLAG:(LOCAL:1):キャラ固有の番号 + 2100) = TOINT(初期好感度値:(LOCAL:2 + 1))
+		CFLAG:(LOCAL:1):(CFLAG:LOCAL:キャラ固有の番号 + 2100) = TOINT(初期好感度値:(LOCAL:2 + 2))
+	ELSEIF CSV配偶者(LOCAL, LOCAL:1)
+		CFLAG:LOCAL:(CFLAG:(LOCAL:1):キャラ固有の番号 + 2100) = 2000
+		CFLAG:(LOCAL:1):(CFLAG:LOCAL:キャラ固有の番号 + 2100) = 2000
+	ELSEIF 近親チェック(LOCAL, LOCAL:1)
+		CFLAG:LOCAL:(CFLAG:(LOCAL:1):キャラ固有の番号 + 2100) = 500
+		CFLAG:(LOCAL:1):(CFLAG:LOCAL:キャラ固有の番号 + 2100) = 500
+	ENDIF
+NEXT
+
+;キャラ相性の初期値は-1(不在)
+FOR LOCAL:1, 1, 21
+	CFLAG:LOCAL:@"キャラ相性{LOCAL:1}" = -1
+NEXT
+
+;二人称の変換
+IF STRFIND(CSTR:LOCAL:二人称 , "NAME:MASTER") > -1
+	IF NAME:MASTER == "あなた" || CALLNAME:MASTER == "あなた"
+		CSTR:LOCAL:二人称 = あなた
+	ELSEIF STRFIND(CSTR:LOCAL:二人称 , "CALLNAME:MASTER") > -1
+		CSTR:LOCAL:二人称 = %CALLNAME:MASTER + SUBSTRING(CSTR:LOCAL:二人称 , 17)%
+	ELSE
+		CSTR:LOCAL:二人称 = %NAME:MASTER + SUBSTRING(CSTR:LOCAL:二人称 , 13)%
+	ENDIF
+ENDIF
+CALL CONVERT_SECOND_PERSON, LOCAL
+
+;容量を超えて仲魔になった場合、自宅サーバーに転送
+IF (FLAG:ＣＯＭＰ容量 < NUM_NAKAMA() + ソフト容量()) && FLAG:合体予定悪魔1 == -1
+	CFLAG:LOCAL:所属ＣＯＭＰ = -1
+ENDIF
+
+;設定された性別の場合、夜這いを不許可に
+IF (FLAG:夜這い不許可性別 & 2 && TALENT:LOCAL:男の娘)
+	CFLAG:LOCAL:夜這い不許可 = 1
+ELSEIF (FLAG:夜這い不許可性別 & 1 && TALENT:LOCAL:オトコ && TALENT:LOCAL:男の娘 == 0)
+	CFLAG:LOCAL:夜這い不許可 = 1
+ELSEIF (FLAG:夜這い不許可性別 & 4 && TALENT:LOCAL:オトコ == 0)
+	CFLAG:LOCAL:夜這い不許可 = 1
+ENDIF
+
+;全コマンド系統フィルタＯＮ
+FOR LOCAL:1 , 0 , 13
+	CFLAG:LOCAL:(170+LOCAL:1) = 1
+NEXT
+CALL SYNC_STATUS,LOCAL
+CALL HEALTH_CHARA,LOCAL
+RESULT:1 = LOCAL
+RETURN 1
+
+
+;=======================================
+;敵キャラクターの消滅
+;=======================================
+@DELENEMY
+SIF FLAG:デバッグ戦闘フラグ
+	RETURN 0
+FOR LOCAL,CHARANUM,0,-1
+	IF CFLAG:(LOCAL-1):PTフラグ == 0
+		SIF CFLAG:(LOCAL-1):ポジション > 0
+			CALL REMOVE_POSITION,CFLAG:(LOCAL-1):ポジション
+		DELCHARA (LOCAL-1)
+	ENDIF
+NEXT
+;===============================
+;キャラクター全快
+;===============================
+@HEALTH_CHARA,ARG
+BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ
+BASE:ARG:ＭＰ = MAXBASE:ARG:ＭＰ
+CFLAG:ARG:ステート = 0
+CFLAG:ARG:ステート経過ターン = 0
+
+
+;=======================================================
+;スキル実行時の基本的な動作
+;=======================================================
+
+;HPの増減処理
+@VAR_HP,ARG,ARG:1,ARG:2
+;ARG:2　0通常のダメージorマッスルドリンコ的回復　1食いしばり有効　2不屈の闘志有効　3通常の回復　4アルカナシフト　5ネバーギブアップ有効
+SIF GET_STATE(CFLAG:(ARG):ステート) == "DYING" && ARG:1 < 0
+	RETURN 0
+BASE:ARG:ＨＰ += ARG:1
+IF BASE:ARG:ＨＰ < 1
+	IF CFLAG:ARG:不死身フラグ
+		IF CFLAG:ARG:不死身フラグ > 1
+			PRINTL
+			PRINTFORM \@ CFLAG:ARG:不死身フラグ == 2 ? %CALLNAME:ARG% endured it! # %CALLNAME:ARG% stood back up! \@
+			;は食いしばった！	は立ち上がった！
+		ENDIF
+		BASE:ARG:ＨＰ = (CFLAG:ARG:不死身フラグ == 3 ? MAXBASE:ARG:ＨＰ # 1)
+		CFLAG:ARG:食いしばりフラグ = 1
+	ELSEIF ARG:2 == 1
+		BASE:ARG:ＨＰ = 1
+		PRINTL
+		PRINTFORM %CALLNAME:ARG% endured it!
+		;は食いしばった！
+	ELSEIF ARG:2 == 2
+		BASE:ARG:ＨＰ = MAXBASE:ARG:5
+		PRINTL
+		PRINTFORM %CALLNAME:ARG% stood back up!
+		;は立ち上がった！
+	ELSEIF ARG:2 == 5
+		BASE:ARG:ＨＰ = MAXBASE:ARG:5
+		PRINTL
+		PRINTFORM %CALLNAME:ARG% is still motivated!
+		;はまだまだやる気だ！
+	;潜在能力
+	;ペルソナ使いであり潜在復活・特殊を持つ時1/4の確率で発動
+	ELSEIF TALENT:(ARG):ペルソナ使い >= 1 && (ABL:ARG:潜在能力 == 3 || ABL:ARG:潜在能力 == 4)
+		IF RAND:4 == 0
+			;潜在復活
+			IF ABL:ARG:潜在能力 == 3
+				;相性☆
+				IF GET_P_FITNESS(ARG, 0) >= 3
+					PRINTL
+					SETCOLOR 0x66FFFF
+					PRINT 　　潜在復活 
+					RESETCOLOR
+					BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ
+					PRINTFORM %CALLNAME:ARG% stood back up!
+					;は立ち上がった！
+				;相性◎
+				ELSEIF GET_P_FITNESS(ARG, 0) == 2
+					PRINTL
+					SETCOLOR 0x66FFFF
+					PRINT 　　潜在復活 
+					RESETCOLOR
+					BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ / 4
+					PRINTFORM %CALLNAME:ARG% stood back up!
+					;は立ち上がった！
+				ENDIF
+			;潜在特殊
+			ELSEIF ABL:ARG:潜在能力 == 4
+				;相性☆
+				IF GET_P_FITNESS(ARG, 0) >= 3
+					PRINTL
+					SETCOLOR 0x66FFFF
+					PRINTFORML 　　%CALLNAME:ARG% 潜在特殊攻撃
+					RESETCOLOR
+					CALLFORM ACTION_2010, ARG, 22
+				;相性◎
+				ELSEIF GET_P_FITNESS(ARG, 0) == 2
+					PRINTL
+					SETCOLOR 0x66FFFF
+					PRINTFORML 　　%CALLNAME:ARG% 潜在特殊攻撃
+					RESETCOLOR
+				CALLFORM ACTION_2010, ARG, 22
+				ENDIF
+			ENDIF
+		ELSEIF BASE:ARG:ＨＰ < 1
+			CALL DEAD_CHARA,ARG
+		ENDIF
+	ELSE
+		CALL DEAD_CHARA,ARG
+	ENDIF
+ELSEIF BASE:ARG:ＨＰ > MAXBASE:ARG:ＨＰ && ARG:2 == 3
+	BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ
+ENDIF
+
+
+;MPの増減処理
+@VAR_MP,ARG,ARG:1,ARG:2
+;ARG:2　0通常のダメージorマッスルドリンコ的回復　1食いしばり有効　2不屈の闘志有効　3通常の回復　4アルカナシフト　5ネヴァーギブアップ有効
+BASE:ARG:ＭＰ += ARG:1
+IF BASE:ARG:ＭＰ < 1
+	IF ARG:2 == 1
+		BASE:ARG:ＭＰ = 1
+	ELSEIF ARG:2 == 2
+		BASE:ARG:ＭＰ = MAXBASE:ARG:ＭＰ
+	ELSEIF ARG:2 == 5
+		BASE:ARG:ＭＰ = MAXBASE:ARG:ＭＰ
+	ELSE
+		BASE:ARG:ＭＰ = 0
+	ENDIF
+ELSEIF BASE:ARG:ＭＰ > MAXBASE:ARG:ＭＰ && ARG:2 == 3
+	BASE:ARG:ＭＰ = MAXBASE:ARG:ＭＰ
+ENDIF
+
+
+
+
+
+;基本的な物理命中判定の処理
+@JUDG_HIT_1,ARG,ARG:1,ARG:2
+;ARG 攻撃者
+;ARG:1 被攻撃者
+;ARG:2 スキル命中率
+;LOCAL 能力差による基本命中率
+LOCAL = 80 - (MAXBASE:(ARG:1):(GET_BATTLESTATUS(3))) + (MAXBASE:ARG:(GET_BATTLESTATUS(1)))
+LOCAL *= (48 + CFLAG:ARG:命中強化)
+LOCAL /= 48
+LOCAL *= (48 - CFLAG:(ARG:1):回避強化)
+LOCAL /= 48
+
+;バステ影響設定有効
+IF BATTLE_SETTING_IS_BAD_STATUS()
+	SELECTCASE GET_STATE(CFLAG:(ARG:1):ステート)
+		CASE "STONE","PALYZE","BIND","FREEZE","SHOCK","SLEEP","PANIC","CHARM","HEAT","SLIP"
+			RETURN 1
+	ENDSELECT
+	IF (RAND:100 < ARG:2 * LOCAL / 100) || CFLAG:ARG:切り落としフラグ || HAVE_SKILL(ARG,[[スキル:プリンキピア]]) || HAVE_SKILL(ARG:1,[[スキル:プリンキピア]])
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+;バステ影響設定有効無効(バニラ)
+ELSE
+	IF (RAND:100 < ARG:2 * LOCAL / 100) || CFLAG:ARG:切り落としフラグ || HAVE_SKILL(ARG,[[スキル:プリンキピア]]) || HAVE_SKILL(ARG:1,[[スキル:プリンキピア]])
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ENDIF
+
+;基本的な魔法命中判定の処理
+@JUDG_HIT_2,ARG,ARG:1,ARG:2
+;ARG 攻撃者
+;ARG:1 被攻撃者
+;ARG:2 スキル命中率
+;LOCAL 能力差による基本命中率
+LOCAL = 80 - ((MAXBASE:(ARG:1):(GET_BATTLESTATUS(5)) + MAXBASE:(ARG:1):(GET_BATTLESTATUS(3))) / 2) + (MAXBASE:ARG:(GET_BATTLESTATUS(5)))
+LOCAL *= (48 + CFLAG:ARG:命中強化)
+LOCAL /= 48
+LOCAL *= (48 - CFLAG:(ARG:1):回避強化)
+LOCAL /= 48
+;バステ影響設定有効
+IF BATTLE_SETTING_IS_BAD_STATUS()
+	SELECTCASE GET_STATE(CFLAG:(ARG:1):ステート)
+		CASE "STONE","PALYZE","BIND","FREEZE","SHOCK","SLEEP","PANIC","CHARM","HEAT","SLIP"
+			RETURN 1
+	ENDSELECT
+ENDIF
+IF RAND:100 < ARG:2 * LOCAL / 100 || HAVE_SKILL(ARG,[[スキル:プリンキピア]]) || HAVE_SKILL(ARG:1,[[スキル:プリンキピア]])
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+
+;基本的なバッドステータス付与の処理
+@ATTACK_BADSTATE,ARG,ARG:1,ARG:2,ARG:3,ARG:4,ARG:5
+;ARG 攻撃者
+;ARG:1 被攻撃者
+;ARG:2 バッドステータスの種類
+;ARG:3 相性
+;ARG:4 基本付与確率
+;ARG:5 確率上限
+;LOCAL 確率
+;LOCA:1 掛かったフラグ
+
+IF MAXBASE:(ARG:1):(GET_TYPE(ARG:3)) <= 0 || MAXBASE:(ARG:1):GET_STATE(ARG:2) <= -100 || (MAXBASE:(ARG:1):(GET_TYPE(ARG:3)) == 999 && !CFLAG:(ARG:1):(GET_TYPE(ARG:3)+"ガードキル")) || (CFLAG:(ARG:1):物理反射フラグ && ARG:3 < 4) || (CFLAG:(ARG:1):魔法反射フラグ && (ARG:3 > 3 && ARG:3 != 17)) || (CFLAG:(ARG:1):無効フラグ && ARG:3 != 17) || CFLAG:(ARG:1):(GET_TYPE(ARG:3) + "ウェイト")
+	PRINTL BLOCK
+	RETURN 0
+ENDIF
+
+LOCALS = %GET_STATE(ARG:2)%無効化回数
+IF CFLAG:(ARG:1):LOCALS
+	PRINTL BLOCK
+	CFLAG:(ARG:1):(GET_STATE(ARG:2) + "被弾") = 1
+	RETURN 0
+ENDIF
+
+LOCALS = %GET_TYPE(ARG:3)%無効化回数
+IF CFLAG:(ARG:1):LOCALS
+	PRINTL BLOCK
+	CFLAG:(ARG:1):(GET_TYPE(ARG:3) + "被弾") = 1
+	RETURN 0
+ENDIF
+
+LOCALS = バステ無効化回数
+IF CFLAG:(ARG:1):LOCALS
+	PRINTL BLOCK
+	CFLAG:(ARG:1):バステ被弾 = 1
+	RETURN 0
+ENDIF
+
+;防御中はバッドステータスにかからない
+IF CFLAG:(ARG:1):防御フラグ == 1
+	PRINTL GUARD
+	RETURN 0
+ENDIF
+
+
+;LOCAL = ARG:4 * (MAXBASE:ARG:(GET_BATTLESTATUS(5)) + MAXBASE:ARG:(GET_BASESTATUS(6)) * 2) / (MAXBASE:(ARG:1):(GET_BATTLESTATUS(5)) + MAXBASE:(ARG:1):(GET_BASESTATUS(6)))
+LOCAL = ARG:4 * MAX(1,(100 - MAXBASE:(ARG:1):(GET_BATTLESTATUS(5)) - MAXBASE:(ARG:1):(GET_BASESTATUS(4)) + MAXBASE:ARG:(GET_BATTLESTATUS(5))+ MAXBASE:ARG:(GET_BASESTATUS(4)))) / 100
+LOCAL -= CFLAG:(ARG:1):魔法効果強化
+;耐性による補正
+LOCAL *= (100+MAXBASE:(ARG:1):GET_STATE(ARG:2))
+LOCAL /= 100
+
+
+SIF CFLAG:(ARG:1):ボスフラグ
+	LOCAL /= 4
+SIF LOCAL > ARG:5
+	LOCAL = ARG:5
+CALL 相性素質チェック, ARG, ARG:3, 1
+SIF RESULT == 1
+	LOCAL = LOCAL * 3/2
+LOCAL:1 = 0
+SIF RAND:100 < (LOCAL * MAXBASE:(ARG:1):(GET_TYPE(ARG:3)) / 100) *(CFLAG:(ARG:1):BS付着率強化+4)/4
+	LOCAL:1 = 1
+SELECTCASE GET_STATE(ARG:2)
+	CASE "STONE","DYING"
+		SIF CFLAG:(ARG:1):ボスフラグ
+			LOCAL:1 = 0
+ENDSELECT
+SIF CFLAG:(ARG:1):ステート > ARG:3
+	LOCAL:1 = 0
+IF LOCAL:1 == 0 || (CFLAG:(ARG:1):PTフラグ < 1 && CFLAG:(ARG:1):バステ無効フラグ)
+	PRINTFORML \@ ((MAXBASE:(ARG:1):(GET_TYPE(ARG:3)) != 999) && (MAXBASE:(ARG:1):(GET_TYPE(ARG:3)) > 0)) ? Miss # BLOCK \@
+	RETURN 0
+ELSE
+	CFLAG:(ARG:1):ステート = ARG:2
+	CFLAG:(ARG:1):ステート経過ターン = 0
+	CALL ACTIONABLE_CHARA,ARG:1
+	SIF RESULT == 0
+		CFLAG:(ARG:1):入力行動 = -1
+	PRINTFORML %GET_STATE(ARG:2)%
+	SIF GET_STATE(ARG:2) == "DYING"
+		CALL DEAD_CHARA,ARG:1
+	RETURN 1
+ENDIF
+
+
+;======================================================================
+;戦闘不能処理
+;======================================================================
+@DEAD_CHARA,ARG
+#LOCALSIZE 1
+BASE:ARG:ＨＰ = 0
+CFLAG:ARG:ステート = GET_STATE_NUM("DYING")
+IF CFLAG:ARG:PTフラグ == 0
+	PRINTL
+	;仲魔に居る悪魔を倒すと混沌に傾く ストレージ内は考慮しないように変更
+;	SIF CFLAG:(FINDCHARA(NO,NO:ARG)):PTフラグ > 0
+	FOR LOCAL,0,CHARANUM
+		IF NO:LOCAL == NO:ARG && (CFLAG:LOCAL:PTフラグ == 2 || (CFLAG:LOCAL:PTフラグ == 1 && CFLAG:LOCAL:所属ＣＯＭＰ != -1))
+			CALL INCREASE_LC,-1
+			BREAK
+		ENDIF
+	NEXT
+	PRINTFORMW %CALLNAME:ARG% Defeated
+	;悪魔解析度が5上昇
+	CALL INCREASE_ANALYZE,NO:ARG,5
+	SIF CFLAG:ARG:死体残存 == 0
+		CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+	CFLAG:ARG:入力行動 = -1
+ELSE
+	IF ARG == MASTER
+		CFLAG:ARG:入力行動 = -1
+		PRINTL
+		PRINTFORMW %CALLNAME:ARG% has collapsed!
+		;は力尽きた
+	ELSEIF ABL:ARG:種族 == 0 || ABL:ARG:種族 == 39 || NO:ARG == 4509 || CFLAG:ARG:所属ＣＯＭＰ == -1
+		CFLAG:ARG:入力行動 = -1
+		PRINTL
+		PRINTFORMW %CALLNAME:ARG% has collapsed!
+	ELSE
+		IF FLAG:ショップコマンド != 102 && CPOS(ARG) > 0 && CFLAG:ARG:所属ＣＯＭＰ != -1
+			CALL REMOVE_POSITION,CFLAG:ARG:ポジション
+			CFLAG:ARG:入力行動 = -1
+			PRINTL
+			PRINTFORMW %CALLNAME:ARG% has taken critical damage and returned to the ＣＯＭＰ.
+			;は力尽きてＣＯＭＰに戻った
+		ELSE
+			CFLAG:ARG:入力行動 = -1
+			PRINTL
+			PRINTFORMW %CALLNAME:ARG% has collapsed!
+		ENDIF
+	ENDIF
+	;瀕死になった場合はCFLAG:ダンジョン内発情用欲情値が半分になり、発情状態が解除される
+	IF FLAG:ムフフ展開 && CFLAG:ARG:ダンジョン内発情用欲情値
+		CFLAG:ARG:ダンジョン内発情用欲情値 /= 2
+		CFLAG:ARG:ダンジョン内発情 = 0
+	ENDIF
+ENDIF
+
+
+
+;===============================
+;善悪操作
+;==============================
+@INCREASE_LD,ARG
+CFLAG:MASTER:善悪値 += ARG
+SIF CFLAG:MASTER:善悪値 > 255
+	CFLAG:MASTER:善悪値 = 255
+SIF CFLAG:MASTER:善悪値 < 0
+	CFLAG:MASTER:善悪値 = 0
+SELECTCASE FLAG:属性固定LD
+	CASE 1
+		CFLAG:MASTER:善悪値 = 255
+	CASE 2
+		CFLAG:MASTER:善悪値 = 127
+	CASE 3
+		CFLAG:MASTER:善悪値 = 0
+ENDSELECT
+
+@CHANGE_CHARA_LD,ARG,ARG:1,ARG:2
+;ARGのキャラが、ARG:1に、ARG:2だけ近づく
+IF CFLAG:ARG:善悪値 >= ARG:1
+	CFLAG:ARG:善悪値 -= ARG:2
+	SIF CFLAG:ARG:善悪値 < ARG:1
+		CFLAG:ARG:善悪値 = ARG:1
+ELSE
+	CFLAG:ARG:善悪値 += ARG:2
+	SIF CFLAG:ARG:善悪値 > ARG:1
+		CFLAG:ARG:善悪値 = ARG:1
+ENDIF
+SIF CFLAG:ARG:善悪値 > 255
+	CFLAG:ARG:善悪値 = 255
+SIF CFLAG:ARG:善悪値 < 0
+	CFLAG:ARG:善悪値 = 0
+IF ARG == MASTER || ARG:1 == MASTER
+	SELECTCASE FLAG:属性固定LD
+		CASE 1
+			CFLAG:MASTER:善悪値 = 255
+		CASE 2
+			CFLAG:MASTER:善悪値 = 127
+		CASE 3
+			CFLAG:MASTER:善悪値 = 0
+	ENDSELECT
+ENDIF
+
+;===========================
+;秩混操作
+;==============================
+@INCREASE_LC,ARG
+CFLAG:MASTER:秩混値 += ARG
+SIF CFLAG:MASTER:秩混値 > 255
+	CFLAG:MASTER:秩混値 = 255
+SIF CFLAG:MASTER:秩混値 < 0
+	CFLAG:MASTER:秩混値 = 0
+SELECTCASE FLAG:属性固定LC
+	CASE 1
+		CFLAG:MASTER:秩混値 = 255
+	CASE 2
+		CFLAG:MASTER:秩混値 = 127
+	CASE 3
+		CFLAG:MASTER:秩混値 = 0
+ENDSELECT
+
+@CHANGE_CHARA_LC,ARG,ARG:1,ARG:2
+;ARGのキャラが、ARG:1に、ARG:2だけ近づく
+IF CFLAG:ARG:秩混値 >= ARG:1
+	CFLAG:ARG:秩混値 -= ARG:2
+	SIF CFLAG:ARG:秩混値 < ARG:1
+		CFLAG:ARG:秩混値 = ARG:1
+ELSE
+	CFLAG:ARG:秩混値 += ARG:2
+	SIF CFLAG:ARG:秩混値 > ARG:1
+		CFLAG:ARG:秩混値 = ARG:1
+ENDIF
+SIF CFLAG:ARG:秩混値 > 255
+	CFLAG:ARG:秩混値 = 255
+SIF CFLAG:ARG:秩混値 < 0
+	CFLAG:ARG:秩混値 = 0
+IF ARG == MASTER || ARG:1 == MASTER
+	SELECTCASE FLAG:属性固定LC
+		CASE 1
+			CFLAG:MASTER:秩混値 = 255
+		CASE 2
+			CFLAG:MASTER:秩混値 = 127
+		CASE 3
+			CFLAG:MASTER:秩混値 = 0
+	ENDSELECT
+ENDIF
+
+@ADJUST_CHARA_ALI,ARG
+;いわゆる初期設定
+IF CFLAG:ARG:善悪値 == 0
+	IF ABL:ARG:属性LD == 1
+		CFLAG:ARG:善悪値 = 255
+	ELSEIF ABL:ARG:属性LD == 2
+		CFLAG:ARG:善悪値 = 128
+	ENDIF
+ENDIF
+IF CFLAG:ARG:秩混値 == 0
+	IF ABL:ARG:属性LC == 1
+		CFLAG:ARG:秩混値 = 255
+	ELSEIF ABL:ARG:属性LC == 2
+		CFLAG:ARG:秩混値 = 128
+	ENDIF
+ENDIF
+
+
+;===============================
+;MAG操作
+;==============================
+@CONTROL_MAG,ARG,ARG:1
+IF BASE:ARG:ＭＡＧ + ARG:1 > MAXBASE:ARG:ＭＡＧ
+	ARG:1 = MAXBASE:ARG:ＭＡＧ - BASE:ARG:ＭＡＧ
+ELSEIF BASE:ARG:ＭＡＧ + ARG:1 < 0
+	ARG:1 = -BASE:ARG:ＭＡＧ
+ENDIF
+BASE:ARG:ＭＡＧ += ARG:1
+TCVAR:ARG:獲得ＭＡＧ += ARG:1
+;SIF BASE:ARG:ＭＡＧ > MAXBASE:ARG:ＭＡＧ
+;	BASE:ARG:ＭＡＧ = MAXBASE:ARG:ＭＡＧ
+;SIF BASE:ARG:ＭＡＧ < 0
+;	BASE:ARG:ＭＡＧ = 0
+
+;===============================
+;MAG吸収
+;==============================
+@DRAIN_MAG,ARG,ARG:1,ARG:2
+ARG:1 *= 2
+IF TALENT:(ARG:2):霊媒体質 && TEQUIP:25 == 0
+	ARG:1 *= 5
+	SIF !TALENT:(ARG:2):非戦闘員
+		ARG:1 /= 2
+ENDIF
+
+;相手のMAGが満タンの場合は経験値になる（割五鈷杵彫りの指輪装備時のみ）
+;1EXP = 10MAG、一回の最高値は次のレベルに必要な総経験地の20％
+;『あなた』のレベルの半分までしか上げられない
+IF MAXBASE:(ARG:2):ＭＡＧ == BASE:(ARG:2):ＭＡＧ && (CFLAG:ARG:その他 == 1130 || CFLAG:ARG:その他2 == 1130 || CFLAG:ARG:その他3 == 1130)&&  BASE:(ARG:2):LV < BASE:ARG:LV / 2
+	IF BASE:ARG:ＭＡＧ >= ARG:1
+		BASE:(ARG:2):ＥＸＰ += LIMIT(ARG:1 / 10 , 0 , MAXBASE:(ARG:2):ＥＸＰ / 5)
+		BASE:ARG:ＭＡＧ -= LIMIT(ARG:1 / 10 , 0 , MAXBASE:(ARG:2):ＥＸＰ / 5) * 10
+	ELSEIF BASE:ARG:ＭＡＧ < ARG:1
+		BASE:(ARG:2):ＥＸＰ += LIMIT(BASE:ARG:ＭＡＧ / 10 , 0 , MAXBASE:(ARG:2):ＥＸＰ / 5)
+		BASE:ARG:ＭＡＧ = 0
+	ENDIF
+ENDIF
+
+;MAGが溢れる事を防ぐ
+SIF ARG:1 > (MAXBASE:(ARG:2):ＭＡＧ - BASE:(ARG:2):ＭＡＧ) && (TEQUIP:25 == 0 || FLAG:触手紳士覚醒 == 0)
+	ARG:1 = (MAXBASE:(ARG:2):ＭＡＧ - BASE:(ARG:2):ＭＡＧ)
+SIF BASE:ARG:ＭＡＧ < ARG:1
+	ARG:1 = BASE:ARG:ＭＡＧ
+IF TEQUIP:25 && FLAG:触手紳士覚醒
+	CALL CONTROL_MAG,ARG,-ARG:1
+	FLAG:触手エネルギー += ARG:1 * (10 + ABL:ARG:触手中毒 * 9) / 100
+	SIF FLAG:触手エネルギー > MAXBASE:MASTER:ＭＡＧ
+		FLAG:触手エネルギー = MAXBASE:MASTER:ＭＡＧ
+	;PRINTFORML 触手エネルギー +{(ARG:1 * (10 + ABL:ARG:触手中毒 * 9) / 100)}
+	;PRINTFORML %NAME:ARG%:ＭＡＧ -{ARG:1}
+	RETURN ARG:1
+ELSE
+	CALL CONTROL_MAG,ARG,-ARG:1
+	CALL CONTROL_MAG,ARG:2,ARG:1
+	;PRINTFORML %NAME:(ARG:2)%:ＭＡＧ +{ARG:1}
+	;PRINTFORML %NAME:ARG%:ＭＡＧ -{ARG:1}
+	RETURN ARG:1
+ENDIF
+
+
+;====================================================
+;DEVIL_COOP
+;====================================================
+@DEVIL_COOP,ARG
+#LOCALSIZE 11
+;COOPを行う必要があるかの判定
+;LOCAL:5 = 受ける人数
+LOCAL:5 = 0
+
+IF CFLAG:ARG:PTフラグ == 0
+	LOCAL:7 = 1
+	LOCAL:8 = 7
+ELSE
+	LOCAL:7 = 7
+	LOCAL:8 = 17
+ENDIF
+
+
+FOR LOCAL,LOCAL:7,LOCAL:8
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS > -1 && GET_STATE(CFLAG:(FLAG:LOCALS):ステート) != "DYING" && CFLAG:(FLAG:LOCALS):ＣＯＯＰフラグ
+		LOCAL:5 += 1
+NEXT
+
+SIF LOCAL:5 == 0
+	RETURN 0
+
+
+;ARG = 発動させたキャラ
+LOCAL:2 = 0
+;LOCAL:2 = 参加人数
+;LOCAL:3 = COOP威力
+LOCAL:3 = 50
+;LOCAL:4 = COOP攻撃力
+LOCAL:4 = 0
+;LOCAL:5 = 攻撃側の平均ＬＶ　＊再利用
+;LOCAL:6 = ダメージ値
+;参加人数を割り出す
+IF CFLAG:ARG:PTフラグ == 0
+	LOCAL:7 = 7
+	LOCAL:8 = 17
+ELSE
+	LOCAL:7 = 1
+	LOCAL:8 = 7
+ENDIF
+FOR LOCAL,LOCAL:7,LOCAL:8
+	LOCALS = ポジション{LOCAL}
+	IF FLAG:LOCALS > -1
+		CALL COOPABLE_CHARA,FLAG:LOCALS
+		SIF RESULT == 0
+			CONTINUE
+		IF FLAG:LOCALS == ARG && CFLAG:ARG:ボスフラグ == 0
+			LOCAL:2 += 1
+			LOCAL:4 += MAX(MAXBASE:(FLAG:LOCALS):攻撃 , MAXBASE:(FLAG:LOCALS):魔法威力)
+			LOCAL:5 += MAXBASE:(FLAG:LOCALS):LV
+			CFLAG:(FLAG:LOCALS):ＣＯＯＰ参加フラグ = 1
+			CONTINUE
+		ENDIF
+		;LOCAL:9 = 個別のCOOP威力加算値
+		;基本COOP加算 110%
+		IF ABL:(FLAG:LOCALS):属性LD == ABL:ARG:属性LD && ABL:(FLAG:LOCALS):属性LC == ABL:ARG:属性LC
+			;ペルソナEXPの加算
+			CALL INCREASE_PERSONA_EXP, FLAG:LOCALS, 2
+			LOCAL:2 += 1
+			LOCAL:9 = 110
+			IF FLAG:LOCALS == ARG && CFLAG:ARG:ボスフラグ
+				LOCAL:2 += 1
+				LOCAL:9 += 40
+			ENDIF
+			LOCAL:4 += MAX(MAXBASE:(FLAG:LOCALS):攻撃 , MAXBASE:(FLAG:LOCALS):魔法威力)
+			LOCAL:5 += MAXBASE:(FLAG:LOCALS):LV
+			CFLAG:(FLAG:LOCALS):ＣＯＯＰ参加フラグ = 1
+		;基本COOP威力加算 60%
+		ELSEIF ABL:(FLAG:LOCALS):属性LD == ABL:ARG:属性LD || ABL:(FLAG:LOCALS):属性LC == ABL:ARG:属性LC
+			;ペルソナEXPの加算
+			CALL INCREASE_PERSONA_EXP, FLAG:LOCALS, 1
+			LOCAL:9 = 60
+			LOCAL:2 += 1
+			LOCAL:4 += MAX(MAXBASE:(FLAG:LOCALS):攻撃 , MAXBASE:(FLAG:LOCALS):魔法威力)
+			LOCAL:5 += MAXBASE:(FLAG:LOCALS):LV
+			CFLAG:(FLAG:LOCALS):ＣＯＯＰ参加フラグ = 1
+		ELSE
+			CONTINUE
+		ENDIF
+		;追撃の心得持ちは威力が1.5倍
+		SIF HAVE_SKILL(FLAG:LOCALS,[[スキル:追撃の心得]])
+			TIMES LOCAL:9, 1.50
+		;ALI補正を抜いた相性と陥落によって1%～150%の補正が発生する
+		LOCAL:10 = GET_RELATION(FLAG:LOCALS, ARG , 0)
+		IF 陥落(FLAG:LOCALS, ARG) == 1
+			LOCAL:10 += 10
+		ELSE
+			LOCAL:10 += 陥落(FLAG:LOCALS, ARG) * 25
+		ENDIF
+		LOCAL:10 = LIMIT(LOCAL:10, 1, 200)
+		LOCAL:10 = LOCAL:10 > 100 ? (LOCAL:10 - 100) / 2 + 100 # LOCAL:10
+		LOCAL:9 = LOCAL:9 * LOCAL:10 / 100
+		;合計COOP威力に個別COOP威力を加算
+		LOCAL:3 += LOCAL:9
+	ENDIF
+NEXT
+SIF LOCAL:2 < 2
+	RETURN 0
+;LOCAL:3 += (LOCAL:2 - 1) * 60
+LOCAL:4 /= LOCAL:2
+LOCAL:5 /= LOCAL:2
+;DEVIL_COOP発動
+;ＣＯＯＰを引き起こしたペルソナ使いのペルソナ経験値を人数分増加
+;ただし、自分参加で1点入るのでここでは1引いとく
+SIF CFLAG:ARG:PTフラグ > 0
+	CALL INCREASE_PERSONA_EXP, ARG, LOCAL:2 - 1
+IF CFLAG:ARG:PTフラグ == 0
+	SETCOLOR 0xff0033
+ELSE
+	SETCOLOR 0x33ffcc
+ENDIF
+IF FLAG:RPG口上 == 0
+	;口上用にTARGET保存
+	LOCAL:9 = TARGET
+	TARGET = ARG
+	;COOP発動時口上
+	TFLAG:戦闘イベント = 1
+	IF CFLAG:ARG:PTフラグ == 0
+		CALL 口上呼び出し , "ENEMY_BATTLE_EVENT" , ARG , ARG
+	ELSE
+		CALL 口上呼び出し , "BATTLE_EVENT" , ARG , ARG
+	ENDIF
+	TARGET = LOCAL:9
+ENDIF
+;参加者の表示・新記述版
+ALIGNMENT CENTER
+PRINTFORML ┏━━━━━━━━━━━━━━━━━┓
+PRINTFORML ┃   ＤＥＶＩＬ ＣＯ‐ＯＰ 発動！   ┃
+PRINTFORML ┗━━━━━━━━━━━━━━━━━┛
+FOR LOCAL,0,2
+	FOR LOCAL:10,LOCAL:7,(LOCAL:8 - LOCAL:7) / 2 + 1
+		IF POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) > -1 && (CFLAG:POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10):ＣＯＯＰ参加フラグ || POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) == ARG)
+			PRINTFORM ┏━━━━━━━━━━┓
+		ELSE
+			SETCOLOR 0x404040
+			PRINTFORM ┏━━━━━━━━━━┓
+			IF CFLAG:ARG:PTフラグ == 0
+				SETCOLOR 0xff0033
+			ELSE
+				SETCOLOR 0x33ffcc
+			ENDIF
+		ENDIF
+		SIF LOCAL:10 != (LOCAL:8 - LOCAL:7)/2
+			PRINTFORM 　
+	NEXT
+	PRINTL
+	FOR LOCAL:10,LOCAL:7,(LOCAL:8 - LOCAL:7) / 2 + 1
+		IF POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) > -1 && (CFLAG:POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10):ＣＯＯＰ参加フラグ || POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) == ARG)
+			PRINTFORM ┃%CALLNAME:POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10),20,LEFT%┃
+		ELSE
+			SETCOLOR 0x404040
+			PRINTFORM ┃\@ POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) > -1 ? %CALLNAME:POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10),20,LEFT% # %"ＥＭＰＴＹ",20,LEFT%\@┃
+			IF CFLAG:ARG:PTフラグ == 0
+				SETCOLOR 0xff0033
+			ELSE
+				SETCOLOR 0x33ffcc
+			ENDIF
+		ENDIF
+		SIF LOCAL:10 != (LOCAL:8 - LOCAL:7)/2
+			PRINTFORM 　
+	NEXT
+	PRINTL
+	FOR LOCAL:10,LOCAL:7,(LOCAL:8 - LOCAL:7) / 2 + 1
+		IF POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) > -1 && (CFLAG:POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10):ＣＯＯＰ参加フラグ || POS(LOCAL*(LOCAL:8 - LOCAL:7) / 2+LOCAL:10) == ARG)
+			PRINTFORM ┗━━━━━━━━━━┛
+		ELSE
+			SETCOLOR 0x404040
+			PRINTFORM ┗━━━━━━━━━━┛
+			IF CFLAG:ARG:PTフラグ == 0
+				SETCOLOR 0xff0033
+			ELSE
+				SETCOLOR 0x33ffcc
+			ENDIF
+		ENDIF
+		SIF LOCAL:10 != (LOCAL:8 - LOCAL:7)/2
+			PRINTFORM 　
+	NEXT
+	PRINTL
+NEXT
+PRINTFORML ┏━━━━━━━━┓
+PRINTFORML ┃ＰＯＷＥＲ:{LOCAL:3 * 100 / 600,3}％┃
+PRINTFORML ┗━━━━━━━━┛
+ALIGNMENT LEFT
+;新記述版ここまで
+FOR LOCAL,LOCAL:7,LOCAL:8
+	LOCALS = ポジション{LOCAL}
+	IF FLAG:LOCALS > -1
+		SIF CFLAG:(FLAG:LOCALS):ＣＯＯＰ参加フラグ == 0
+			CONTINUE
+		SIF FLAG:LOCALS != MASTER
+			TCVAR:(FLAG:LOCALS):獲得忠誠度 += 20
+			;BASE:(FLAG:LOCALS):忠誠度 += 20
+		;ＣＯＯＰ参加した悪魔の解析度+20
+		IF CFLAG:(FLAG:LOCALS):PTフラグ > 0
+			CALL INCREASE_ANALYZE,NO:(FLAG:LOCALS),20
+		ENDIF
+		TFLAG:戦闘イベント = 0
+		;参加者表示：旧記述版
+;		PRINTFORML ┏━━━━━━━━━━━━━┓　┏━━━━━━━━━━━━━━━━━━━━┓
+;		PRINTFORML ┃[{CFLAG:(FLAG:LOCALS):ポジション,2}] %CALLNAME:(FLAG:LOCALS),21,LEFT%┃　┃        デビルＣＯ‐ＯＰ 発動！         ┃
+;		PRINTFORML ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+		IF FLAG:RPG口上 == 0 && FLAG:LOCALS != ARG
+			TFLAG:戦闘イベント = 2
+			LOCAL:9 = TARGET
+			TARGET = FLAG:LOCALS
+			IF CFLAG:ARG:PTフラグ == 0
+				CALL 口上呼び出し , "ENEMY_BATTLE_EVENT" , FLAG:LOCALS , FLAG:LOCALS
+			ELSE
+				CALL 口上呼び出し , "BATTLE_EVENT" , FLAG:LOCALS , FLAG:LOCALS
+			ENDIF
+			TARGET = LOCAL:9
+			TFLAG:戦闘イベント = 0
+		ENDIF
+	ENDIF
+NEXT
+RESETCOLOR
+WAIT
+
+
+IF CFLAG:ARG:PTフラグ == 0
+	LOCAL:7 = 1
+	LOCAL:8 = 7
+ELSE
+	LOCAL:7 = 7
+	LOCAL:8 = 17
+ENDIF
+
+FOR LOCAL,LOCAL:7,LOCAL:8
+	LOCALS = ポジション{LOCAL}
+	IF FLAG:LOCALS > -1
+		SIF CFLAG:(FLAG:LOCALS):ＣＯＯＰフラグ == 0
+			CONTINUE
+		SIF CFLAG:(FLAG:LOCALS):PTフラグ == 0
+			CALL INCREASE_ANALYZE,NO:(FLAG:LOCALS),20
+		PRINTFORM 　　TARGET:[{CPOS(FLAG:LOCALS),2}] %CALLNAME:(FLAG:LOCALS),20,LEFT%　>>>>>>　
+				
+;		LOCAL:6 = CFLAG:(FLAG:LOCALS):ＣＯＯＰフラグ * LOCAL:3 * LOCAL:4 * (LOCAL:4/4+4) / ((MAXBASE:(FLAG:LOCALS):防御 + MAXBASE:(FLAG:LOCALS):魔法効果) * 50) * 3 / 2 / 100
+		LOCAL:6 = (50 + LOCAL:5*5/2)+CFLAG:(FLAG:LOCALS):ＣＯＯＰフラグ
+		LOCAL:6 *= (100+LOCAL:5)*(LOCAL:4)*(10+LOCAL:4/12) * LOCAL:3
+		LOCAL:6 /= ((MAXBASE:(FLAG:LOCALS):防御 + MAXBASE:(FLAG:LOCALS):魔法効果)/2) * 100 * 100 * 300
+
+
+		LOCAL:6 *= (32 + CFLAG:ARG:攻撃強化)
+		LOCAL:6 /= 32
+		LOCAL:6 *= (32 - CFLAG:(FLAG:LOCALS):防御強化)
+		LOCAL:6 /= 32
+		;乱数
+		LOCAL:6 *= (9500+RAND:1000)
+		LOCAL:6 /= 10000
+
+		;防御中のキャラにはダメージ減少
+		SIF CFLAG:(FLAG:LOCALS):防御フラグ
+			LOCAL:6 /= 2
+		;後列のキャラへのダメージ減少はない
+		;受ける側が味方の場合難易度修正
+		IF CFLAG:(FLAG:LOCALS):PTフラグ > 0
+			SELECTCASE FLAG:4
+				CASE 1
+					TIMES LOCAL:6,0.75
+				CASE 3
+					TIMES LOCAL:6,1.5
+			ENDSELECT
+		ENDIF
+		IF CFLAG:(FLAG:LOCALS):PTフラグ > 0
+			SELECTCASE FLAG:戦闘難易度
+				CASE 1
+					TIMES LOCAL:6 , 0.75
+				CASE 3,4
+					TIMES LOCAL:6 , 1.5
+				CASE 5
+					TIMES LOCAL:6 , 2
+				CASE 6
+					TIMES LOCAL:6 , 3
+			ENDSELECT
+		ENDIF
+		;眠っていたらダメージ大
+		SIF CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("SLEEP")
+			TIMES LOCAL:6,1.5
+		;特殊補正
+		LOCAL:6 = LOCAL:6 * (CFLAG:(FLAG:LOCALS):COOP被ダメージ補正 +100) / 100
+		;ハントスキル補正
+		TRYCCALLFORM ハントスキル_{CFLAG:ARG:入力行動}
+			LOCAL:6 = LOCAL:6 * RESULT / 100
+		CATCH
+		ENDCATCH
+		IF LOCAL:6 >= BASE:(FLAG:LOCALS):ＨＰ && HAVE_SKILL(FLAG:LOCALS,2407) && CFLAG:(FLAG:LOCALS):食いしばりフラグ == 0
+			PRINTFORM {LOCAL:6} DAMAGE
+			CALL VAR_HP,FLAG:LOCALS,-LOCAL:6,2
+			CFLAG:(FLAG:LOCALS):食いしばりフラグ = 1
+		ELSEIF LOCAL:6 >= BASE:(FLAG:LOCALS):ＨＰ && HAVE_SKILL(FLAG:LOCALS,[[スキル:ネバーギブアップ]]) && CFLAG:(FLAG:LOCALS):食いしばりフラグ == 0
+			PRINTFORM {LOCAL:6} DAMAGE
+			CALL VAR_HP,FLAG:LOCALS,-LOCAL:6,2
+			CFLAG:(FLAG:LOCALS):食いしばりフラグ = 1
+		ELSEIF LOCAL:6 >= BASE:(FLAG:LOCALS):ＨＰ && HAVE_SKILL(FLAG:LOCALS,2406) && CFLAG:(FLAG:LOCALS):食いしばりフラグ == 0
+			PRINTFORM {LOCAL:6} DAMAGE
+			CALL VAR_HP,FLAG:LOCALS,-LOCAL:6,1
+			CFLAG:(FLAG:LOCALS):食いしばりフラグ = 1
+		ELSEIF LOCAL:6 >= 0
+			PRINTFORM {LOCAL:6} DAMAGE
+			CALL VAR_HP,FLAG:LOCALS,-LOCAL:6,0
+		ENDIF
+		SIF FLAG:LOCALS > -1 && CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("SLEEP")
+			CFLAG:(FLAG:LOCALS):ステート = 0
+		;ダメージを受け、死亡しており、ハントスキルを使われていた場合は被ハントフラグを立てておく
+		IF FLAG:LOCALS > -1 && LOCAL:6 > 0 && CFLAG:(FLAG:LOCALS):ステート == GET_STATE_NUM("DYING")
+			TRYCCALLFORM ハントスキル_{CFLAG:ARG:入力行動}
+				CFLAG:(FLAG:LOCALS):被ハント = ARG + 1
+			CATCH
+			ENDCATCH
+		ENDIF
+		PRINTL
+	ENDIF
+NEXT
+WAIT
+
+;=======================================================
+;追撃可能かの判定
+;====================================================
+@COOPABLE_CHARA,ARG
+SELECTCASE GET_STATE(CFLAG:ARG:ステート)
+	CASE "DYING","STONE","PALYZE","BIND","FREEZE","SHOCK","SLEEP","PANIC","CHARM","HEAT","SLIP"
+	;死んでると駄目
+	;石になってると駄目
+	;麻痺してると駄目
+	;金縛りだと駄目
+	;凍ってると駄目
+	;感電してると駄目
+	;眠ってるとダメ
+	;魅了されてるとダメ
+	;混乱してるとダメ
+	;オーバーヒートでダメ
+	;転倒してると駄目
+		RETURN 0
+ENDSELECT
+
+RETURN 1
+
+
+;=======================================================
+;敵の1more値をダウンさせる
+;対象者	ARG
+;減少値	ARG:1
+;====================================================
+@ONE_MORE_POINT_DOWN,ARG,ARG:1
+SIF CFLAG:ARG:ボスフラグ
+	ARG:1 = 1
+CFLAG:ARG:１moreフラグ -= ARG:1

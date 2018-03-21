@@ -1,0 +1,133 @@
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_6
+;天体博物館クリア
+IF ダンジョンフラグ:89:1 > 0 && 闘技場フラグ:6:0 == 0
+;IF FLAG:闘技場ランク == 2 && FLAG:闘技場名声 >= 455
+	RESULTS = Rank Ｅ　ＶＳ Two Women
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@COLOSSEUM_6
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+PRINTW ＞You see a maid with a cold atmosphere and...
+IF FINDCHARA_B(4510) >= 0
+	LOCAL = 1
+ELSEIF FINDCHARA_B(4511) >= 0
+	LOCAL = 2
+ELSEIF FINDCHARA_B(4512) >= 0
+	LOCAL = 3
+ELSE
+	PRINTL [1]a cheerful woman
+	PRINTL [2]a cool woman
+	PRINTL [3]a sexy woman
+	$INPUT_LOOP
+	INPUT
+
+	IF RESULT > 0 && RESULT < 4
+		LOCAL= RESULT
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ENDIF
+
+PRINT ＞Yeah, a 
+IF LOCAL == 1
+	PRINT cheerful
+ELSEIF LOCAL == 2
+	PRINT cool
+ELSEIF LOCAL == 3
+	PRINT sexy
+ENDIF
+PRINTW  woman.
+PRINTW 「Though I was sent here by Victor, his words left me uneasy.」
+PRINTW 「...Here I come.」
+PRINTL
+PRINTW Mary and Nemissa appeared!
+
+CUSTOMDRAWLINE =
+WAIT
+CALL SET_ENEMY,8,4509,30,0,1
+ABL:(CHARANUM-1):スキル7 = 0
+ABL:(CHARANUM-1):スキル8 = 0
+
+CALL SET_ENEMY,10,4509+LOCAL,30,0,1
+IF LOCAL == 1
+	ABL:(CHARANUM-1):スキル1 = 1301
+	ABL:(CHARANUM-1):スキル2 = 705
+ELSEIF LOCAL == 2
+	ABL:(CHARANUM-1):スキル1 = 1401
+	ABL:(CHARANUM-1):スキル2 = 805
+ELSEIF LOCAL == 3
+	ABL:(CHARANUM-1):スキル1 = 1211
+	ABL:(CHARANUM-1):スキル2 = 905
+ENDIF
+
+
+CALL BATTLE_START
+CUSTOMDRAWLINE =
+PRINTW 「Vic...tor...I..fa...iled...」
+PRINTW 「...」
+PRINTW You received the fainted women as your prize and left the ring.
+PRINTW Mary and Nemissa became slaves.
+CALL ADD_NEW_COMPANION,4509,500
+CALL ADD_NEW_COMPANION,4509+LOCAL,500
+
+CUSTOMDRAWLINE =
+WAIT
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+PRINTW Received ￥30000 and fame increased by 125.
+MONEY += 30000
+FLAG:名声 += 125
+FLAG:闘技場名声 += 125
+SAVESTR:ランダム対戦チーム =
+CALL SELECT_COLOSSEUM_RANDOMBATTLE
+闘技場フラグ:6:0 = 1
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+RETURN 1
+
+;未実装
+;メアリの思考パターン
+@SET_ACTION_4509,ARG
+;味方の中で一番ＨＰが低く、かつ飛具相性が1未満or999ではないキャラにＧＵＮ攻撃
+
+;全員の中で一番ＨＰが低いキャラクターを狙う
+CFLAG:ARG:入力行動 = 2101
+CFLAG:ARG:ターゲット = -1
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート >= GET_STATE_NUM("STONE")
+		CONTINUE
+	SIF MAXBASE:(FLAG:LOCALS):飛具 < 1 || MAXBASE:(FLAG:LOCALS):飛具 == 999
+		CONTINUE
+	IF FLAG:LOCALS > -1 && CFLAG:ARG:ターゲット == -1 
+		CFLAG:ARG:ターゲット = LOCAL
+		CONTINUE
+	ENDIF
+	IF FLAG:LOCALS > -1 && BASE:(FLAG:LOCALS):ＨＰ < BASE:((POS(CFLAG:ARG:ターゲット))):ＨＰ
+		CFLAG:ARG:ターゲット = LOCAL
+	ENDIF
+NEXT
+
+IF CFLAG:ARG:ターゲット == -1
+	CFLAG:ARG:入力行動 = -1
+	CFLAG:ARG:防御フラグ = 1
+ENDIF

@@ -1,0 +1,196 @@
+;-------------------------------------------------
+;玉キック
+;SM系コマンド、レベル3
+;ちんこアリ限定かつ、気力がものっそい減るが、針並みの苦痛。また、若干快Cもある
+;ふたたまパッチが出たらまた別だけど、オトコ専用コマンドとか正直ヤなのでふたなりでも可能
+;-------------------------------------------------
+;ふたなりのたまのあるなしに配慮してふたなりの場合股間を蹴る文章にしてぼかす
+
+;実行判定
+;ちんこ＆玉がなければならない、服を着ていても別に問題なく蹴れる（でも流石に抵抗するので……）
+@CHECK_COM_ABLE155
+
+;オトコかふたなりじゃないとダメ
+SIF HAVE_CLITORIS(TARGET)
+	RETURN 0
+SIF !USE_PENIS(TARGET,3)
+	RETURN 0
+SIF !USE_HAND(PLAYER)
+	RETURN 0
+
+
+;従順が３以下かマゾッ気が３以下の場合、縛られているか、アイマスクを付けていなければならない
+IF ABL:0 <= 3 || ABL:9 <= 3
+	SIF TEQUIP:19 == 0 && TEQUIP:18 == 0
+		RETURN 0
+ENDIF
+
+;オナホール使用中はダメ
+SIF TEQUIP:12
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+;三角木馬騎乗中はダメ
+SIF TEQUIP:41
+	RETURN 0
+;オトコのASSIの場合、従順4以上かサドじゃないとできない。女は普通に可能
+IF ASSIPLAY && TALENT:ASSI:140 == 1
+	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0
+		RETURN 0
+ENDIF
+RETURN 1
+
+;-------------------------------------------------
+@ACT_COM155
+IF TALENT:TARGET:140 == 1
+	PRINTL Kick balls
+	TSTR:0 = 玉キック
+ELSE
+	PRINTL Kick pussy
+	TSTR:0 = 股間蹴り
+ENDIF
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 200
+DOWNBASE:TARGET:気力 += 500
+
+;強力な痛み・xFEARx・Subservience・Deviation・反感ソース、若干の快C
+SOURCE:TARGET:痛み = 4500
+SOURCE:TARGET:恐れ = 3000
+SOURCE:TARGET:屈従 = 1300
+SOURCE:TARGET:逸脱 = 1200
+SOURCE:TARGET:反感 = 1200
+SOURCE:TARGET:快Ｃ = 10
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;苦痛のパラメータによる苦痛のソース増加は先に処理しておく
+IF PALAM:10 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.00
+ELSEIF PALAM:10 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 1.50
+ELSEIF PALAM:10 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 2.00
+ELSEIF PALAM:10 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 2.50
+ELSEIF PALAM:10 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 3.00
+ENDIF
+
+;マゾッ気が強いとＣPleasure・屈服が増加
+IF ABL:9 == 0
+	TIMES SOURCE:TARGET:快Ｃ , 1.00
+	TIMES SOURCE:TARGET:屈従 , 1.00
+ELSEIF ABL:9 < 3
+	TIMES SOURCE:TARGET:快Ｃ , 1.50
+	TIMES SOURCE:TARGET:屈従 , 1.10
+ELSEIF ABL:9 < 6
+	TIMES SOURCE:TARGET:快Ｃ , 2.50
+	TIMES SOURCE:TARGET:屈従 , 1.30
+ELSEIF ABL:9 < 10
+	TIMES SOURCE:TARGET:快Ｃ , 3.50
+	TIMES SOURCE:TARGET:屈従 , 1.50
+ELSE
+	TIMES SOURCE:TARGET:快Ｃ , 5.00
+	TIMES SOURCE:TARGET:屈従 , 1.70
+ENDIF
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:6+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:6+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;LesbianEXP
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+
+;===================================================
+;地の文
+;===================================================
+@MESSAGE_COM155
+PRINTFORM %CALLNAME:PLAYER%は
+;縄などで緊縛中
+IF TEQUIP:19
+	PRINTFORM %CALLNAME:TARGET%の縛り方を変え、
+;アイマスク
+ELSEIF TEQUIP:18
+	PRINTFORM 何も見えていない%CALLNAME:TARGET%に命令し、
+ELSE
+	PRINTFORM %CALLNAME:TARGET%に命令し、
+ENDIF
+PRINTL 股を開かせた
+
+;対象がオトコか否か
+IF TALENT:TARGET:140 == 1
+	PRINT 不安げに揺れる睾丸
+ELSE
+	PRINT 何も知らずにしている股間
+ENDIF
+PRINT に狙いを定め、
+
+;調教者がサド
+IF TALENT:PLAYER:83
+	PRINTL 脚を振りかぶり、全力で蹴りあげた
+ELSE
+	PRINTL 蹴りあげた
+ENDIF
+
+PRINTFORM %CALLNAME:TARGET%は
+;縄などで緊縛中
+SIF TEQUIP:19
+	PRINT 縛りあげられながらも、
+IF TALENT:マゾ
+	PRINTW 身をよじり、悶絶しているが、その顔はどこか恍惚としている……
+ELSE
+	PRINTW 身をよじり、悶絶している……
+ENDIF
+
+
+
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_155
+RETURN COMTYPE("ハード系")
+
+

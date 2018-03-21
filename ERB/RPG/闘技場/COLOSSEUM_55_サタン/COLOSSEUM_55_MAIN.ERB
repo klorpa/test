@@ -1,0 +1,151 @@
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_55
+;IF サタン撃破 != FLAG:周回回数
+IF FLAG:闘技場名声 >= 1000 && 闘技場フラグ:55:0 == 0
+	RESULTS = Rank ＸＸＸ　ＶＳ Tyrant Satan
+	RETURN 1
+ENDIF
+
+
+;====================
+;内容
+;====================
+@COLOSSEUM_55
+#DIM L_NO
+#DIM OPTION
+OPTION = 0
+
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+PRINTW You feel a brutally Dark aura…
+PRINTW Advance？
+$_SELECT
+PRINTL [0] Yes
+PRINTL [1] No
+;PRINTFORML [2] デバッグ用：PC全員のレベルを能力を99に(現在\@ GETBIT(OPTION,2) ? ON # OFF \@)
+;PRINTFORML [3] デバッグ用：解析度MAX(現在\@ GETBIT(OPTION,3) ? ON # OFF \@)
+;PRINTFORML [4] デバッグ用：HPMP可視化(現在\@ GETBIT(OPTION,4) ? ON # OFF \@)
+$INP
+ONEINPUT
+IF RESULT == 1
+	RETURN -1
+;#;ELSEIF INRANGE(RESULT,1,4)
+;#;	INVERTBIT OPTION,RESULT
+;#; CLEARLINE 6
+;#; GOTO _SELECT
+ELSEIF RESULT != 0
+	CLEARLINE 1
+	GOTO INP
+ENDIF
+PRINTW You made up your Mind and entered the arena…
+PRINTL 1 Tyrant Satan　appeared
+
+;デバッグ用PC超強化モード
+;#; IF GETBIT(OPTION,2)
+;#;		FOR LOCAL:1,1,7
+;#;			LOCAL = POS(LOCAL:1)
+;#;			SIF LOCAL < 0
+;#;				CONTINUE
+;#;			BASE:LOCAL:LV = 200
+;#;			BASE:LOCAL:力 = 99
+;#;			BASE:LOCAL:知恵 = 99
+;#;			BASE:LOCAL:魔力 = 99
+;#;			BASE:LOCAL:耐力 = 99
+;#;			BASE:LOCAL:速さ = 99
+;#;			BASE:LOCAL:運 = 99
+;#;			CALL SYNC_STATUS(LOCAL)
+;#;			CALL HEALTH_CHARA(LOCAL)
+;#;		NEXT
+;#;	ENDIF
+;デバッグ用 サタン解析度を最大に
+;#;	SIF GETBIT(OPTION,3)
+;#;		サタン解析度 = 1000
+
+発狂モード = 0
+誘惑の果実 = 0
+
+CUSTOMDRAWLINE =
+WAIT
+
+;CALL SET_ENEMY,14,[[キャラ:サタン]],99,0,1
+
+;===============================================================================
+;四文字様チキチキここから
+;CSV取り込みした場合削除してください
+;===============================================================================
+CALL SET_ENEMY,14,3301,99,0,1
+;デバッグ用 サタンボスフラグ解除
+;#;	SIF GETBIT(OPTION,4)
+;#;		CFLAG:(CHARANUM-1):ボスフラグ = 0
+NAME:(CHARANUM-1) = サタン
+CALLNAME:(CHARANUM-1) = サタン
+L_NO = NO:(CHARANUM-1)
+SWAP サタン解析度,FLAG:(20000+L_NO)
+CFLAG:(CHARANUM-1):行動回数 = 5
+;一切補正を含まない分能力値が凶悪
+;(本来の能力は18+LV(99)*1.5=168±5辺りが妥当である)
+BASE:(CHARANUM-1):力 = 150
+BASE:(CHARANUM-1):知恵 = 120
+BASE:(CHARANUM-1):魔力 = 150
+BASE:(CHARANUM-1):耐力 = 120
+BASE:(CHARANUM-1):速さ = 100
+BASE:(CHARANUM-1):運 = 100
+;合計能力740。ポケモンもびっくり
+;相性セット
+BASE:(CHARANUM-1):精神 = 0
+BASE:(CHARANUM-1):神経 = 0
+BASE:(CHARANUM-1):万能 = 50
+BASE:(CHARANUM-1):破魔 = 0
+BASE:(CHARANUM-1):呪殺 = 0
+;全BS無効
+FOR LOCAL,GETNUM(BASE,"HAPPY"),GETNUM(BASE,"DYING")+1
+	BASE:(CHARANUM-1):LOCAL = 0
+	MAXBASE:(CHARANUM-1):LOCAL = 0
+NEXT
+;===============================================================================
+;四文字様チキチキここまで
+;===============================================================================
+
+CALL サタン相性セット(CHARANUM-1,3)
+CALL SYNC_STATUS(CHARANUM-1)
+MAXBASE:(CHARANUM-1):ＨＰ = 30000
+MAXBASE:(CHARANUM-1):ＭＰ = 99999
+CALL HEALTH_CHARA,(CHARANUM-1)
+CSTR:(CHARANUM-1):思考パターン = サタン
+
+CALL BATTLE_START
+;戦闘終了後処理
+
+
+;===============================================================================
+;四文字様チキチキここから
+;四文字様から間借りしていた解析度を返す
+;===============================================================================
+SWAP サタン解析度,FLAG:(20000+L_NO)
+;===============================================================================
+;四文字様チキチキここまで
+;===============================================================================
+
+CUSTOMDRAWLINE =
+PRINTW ＞Satan was defeated
+;#;SIF CALLNAME:MASTER == "イカサマ"
+;#;	PRINTW チート乙
+
+;解除したインストールソフトを返しておく
+CALL SKILL_2504_INSTALLSOFT("RESET")
+
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+;サタン撃破 = FLAG:周回回数
+闘技場フラグ:55:0 = 1
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+RETURN 1

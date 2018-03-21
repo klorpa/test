@@ -1,0 +1,176 @@
+;-------------------------------------------------
+;三角木馬
+;-------------------------------------------------
+@CHECK_COM_ABLE108
+;解除はいつでも可能
+SIF TEQUIP:TARGET:"Wooden horse"
+	RETURN 1
+;縛ってないとダメ
+SIF !TEQUIP:TARGET:Rope
+	RETURN 0
+;服従か隷属でないとダメ
+SIF !TALENT:TARGET:服従 && !TALENT:TARGET:隷属
+	RETURN 0
+;調教者がサドっ気LV3以上かサド持ちでないとダメ
+SIF ABL:PLAYER:サドっ気 < 3 && TALENT:PLAYER:サド == 0
+	RETURN 0
+SIF !EXIST_ITEM(27)
+	RETURN 0
+;Cがあいてないとダメ
+SIF !USE_CLI(TARGET)
+	RETURN 0
+;Aがあいてないとダメ
+SIF !USE_ANUS(TARGET)
+	RETURN 0
+;Vがあいてないとダメ
+SIF !USE_VAGINA(TARGET)
+	RETURN 0
+;お風呂場プレイ中はダメ
+SIF TEQUIP:31
+	RETURN 0
+;野外プレイ中はダメ
+SIF TEQUIP:25
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+RETURN 1
+
+@ACT_COM108
+PRINTL Wooden horse
+TSTR:0 = 三角木馬
+;CALL KOJO_MESSAGE_COM
+INVERTBIT TEQUIP:"Wooden horse" , 0
+DOWNBASE:TARGET:体力 += 400
+DOWNBASE:TARGET:気力 += 600
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+SIF HAVE_VAGINA(TARGET)
+	SOURCE:TARGET:道具快Ｖ = 300
+SOURCE:TARGET:道具快Ａ = 300
+SOURCE:TARGET:痛み = 1500
+SOURCE:TARGET:逸脱 = 600
+SOURCE:TARGET:露出 = 200
+SOURCE:TARGET:反感 = 1500
+SOURCE:TARGET:屈従 = 600
+SOURCE:TARGET:恐れ = 600
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;苦痛のパラメータによる苦痛のソース増加は先に処理しておく
+IF PALAM:10 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.00
+ELSEIF PALAM:10 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 1.50
+ELSEIF PALAM:10 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 2.00
+ELSEIF PALAM:10 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 2.50
+ELSEIF PALAM:10 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 3.00
+ENDIF
+;再生処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:1 == 1
+	SOURCE:TARGET:痛み += 500
+	SOURCE:TARGET:反感 += 1000
+ENDIF
+
+;V経験
+IF HAVE_VAGINA(TARGET)
+	CALL ADDS_EXP("Ｖ経験", 1, TARGET)
+	TFLAG:V経験を伴うコマンド = 1
+ENDIF
+;A経験
+CALL ADDS_EXP("Ａ経験", 1, TARGET)
+
+;AbnormalEXP
+SIF TALENT:TARGET:処女 == 1
+	CALL ADDS_ABNORMAL_EXP("Lost virginity（Wooden horse）", TARGET)
+
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", 3, TARGET)
+	CALL ADDS_EXP("レズ経験", 3, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", 3, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", 3, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+TFLAG:28 = 5
+RETURN 1
+
+;-------------------------------------------------
+;三角木馬乗馬中
+;-------------------------------------------------
+@EQUIP_COM108
+PRINTL ＜三角木馬乗馬中＞
+DOWNBASE:TARGET:体力 += 250
+DOWNBASE:TARGET:気力 += 300
+SIF HAVE_VAGINA(TARGET)
+	SOURCE:TARGET:道具快Ｖ += 300
+SOURCE:TARGET:道具快Ａ += 300
+SOURCE:TARGET:痛み += 1500
+SOURCE:TARGET:逸脱 += 600
+SOURCE:TARGET:露出 += 200
+SOURCE:TARGET:反感 += 1500
+SOURCE:TARGET:屈従 += 600
+SOURCE:TARGET:恐れ += 600
+;V経験
+SIF TALENT:オトコ == 0
+	CALL ADDS_EXP("Ｖ経験", 1, TARGET)
+
+;A経験
+CALL ADDS_EXP("Ａ経験", 1, TARGET)
+
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+;調教者→調教対象
+TFLAG:28 = 2
+RETURN 1
+
+;--------------------------------------------------
+;調教時メッセージ
+;--------------------------------------------------
+@MESSAGE_COM108
+PRINTL 
+;装着時
+IF TEQUIP:TARGET:"Wooden horse"
+	PRINTFORM %CALLNAME:TARGET%を木馬に乗せると、
+	IF ABL:マゾっ気 >= 5 || TALENT:マゾ
+		PRINTL 悲鳴とも嬌声ともとれぬ声をあげていた……
+	ELSE
+		PRINTL 激しい苦痛から声にならない声をあげていた……
+	ENDIF
+;解除時
+ELSE
+	PRINTFORM %CALLNAME:TARGET%を木馬から降ろしてやると、
+	IF ABL:マゾっ気 >= 5 || TALENT:マゾ
+		PRINTL 少し残念そうな顔をしていた……
+	ELSE
+		PRINTL ほっとしたような顔をしていた……
+	ENDIF
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_108
+RETURN COMTYPE("ハード系")
+

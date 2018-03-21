@@ -1,0 +1,226 @@
+
+@SET_ACTION_サタン,ARG
+#DIM CHARA
+#DIM 強化ランク
+VARSET 強化ランク
+;毎ターン最初に耐性破壊
+IF CFLAG:ARG:行動した回数 == 0
+	CALL SKILL_2504_RESISTBREAK
+ENDIF
+FOR LOCAL,1,7
+	SIF POS(LOCAL) < 0
+		CONTINUE
+	SIF GROUPMATCH(GET_STATE(CFLAG:POS(LOCAL):ステート),"STONE","DYING")
+		CONTINUE	
+	;味方の入力行動に魔法反射があった場合発狂(行動回数増加、ランダム行動が必ず神の裁き)
+	IF GROUPMATCH(CFLAG:POS(LOCAL):入力行動,[[スキル:MagicalMirror]],[[スキル:マカラカーン]],[[スキル:結界符・魔法]])
+		発狂モード = 1
+		CFLAG:ARG:行動回数 = 6
+	ENDIF
+NEXT
+
+;初回行動は必ず衣
+IF FLAG:経過ターン数 == 0 && CFLAG:ARG:行動した回数 == 0
+	;PRINTW 汝の衣は無力なり
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,DEF_SKILL_汝の衣は無力なり
+
+;HP1500以下になったターンの最初にディアラハン
+ELSEIF BASE:ARG:ＨＰ < 1500 && CFLAG:ARG:行動した回数 == 0
+	;PRINTW ディアラハン
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:ディアラハン]]
+	RETURN
+
+;4n+3ターン目は神の息吹orデカジャ
+ELSEIF FLAG:経過ターン数 % 4 == 3
+	;2回目以降はなにもしない
+	IF CFLAG:ARG:行動した回数
+		CFLAG:ARG:入力行動 = -1
+		RETURN
+	ENDIF
+	;PRINTW 神の息吹orデ・カジャ
+	;神の息吹orデ・カジャ
+	FOR LOCAL,1,7
+		CHARA = POS(LOCAL)
+		SIF CHARA < 0
+			CONTINUE
+		強化ランク = ( CFLAG:CHARA:攻撃強化 + CFLAG:CHARA:防御強化 + CFLAG:CHARA:命中強化 + CFLAG:CHARA:回避強化 + CFLAG:CHARA:魔法威力強化 + CFLAG:CHARA:魔法効果強化 ) / 6
+		;強化ランク平均が16(突撃の狼煙2回分)に満たない場合、神の息吹(全体99999ダメージ)
+		IF 強化ランク < 16
+			CALL CHECK_ACTIONABLE_AND_SET,ARG,DEF_SKILL_神の息吹
+			RETURN
+		ENDIF
+	NEXT
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:デ・カジャ]]
+
+;4n+4ターン目orHPが半減した時に誘惑の果実を使用
+ELSEIF CFLAG:ARG:行動した回数 == 0 && BASE:ARG:ＨＰ < 15000 && ( !誘惑の果実  || GROUPMATCH(FLAG:経過ターン数%4,0) )
+	;PRINTW 誘惑の果実
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,DEF_SKILL_誘惑の果実
+	誘惑の果実 = 1
+
+;いずれかの能力が最低まで下がっている時ランダムにデ・クンダ
+;神の裁きより優先度が高い
+ELSEIF GROUPMATCH(-16,CFLAG:ARG:攻撃強化,CFLAG:ARG:防御強化,CFLAG:ARG:魔法威力強化,CFLAG:ARG:魔法効果強化,CFLAG:ARG:命中強化,CFLAG:ARG:回避強化) && !RAND:4
+	;PRINTW デ・クンダ
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:デ・クンダ]]
+
+;反射感知での発狂orHP1/4以下かつ4n+2,4n+3ターン目に神の裁き
+ELSEIF 発狂モード || ( BASE:ARG:ＨＰ < 7500 && GROUPMATCH(FLAG:経過ターン数%4,1,2) && CFLAG:ARG:行動した回数 == 0 )
+	;PRINTW 神の裁き
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,DEF_SKILL_神の裁き
+
+;以降、ランダムパターン
+ELSEIF BASE:ARG:ＨＰ < 7500
+	;PRINTW パターンＣ
+	CALL SET_ACTION_サタンＣ,ARG
+ELSEIF BASE:ARG:ＨＰ < 15000
+	;PRINTW パターンＢ
+	CALL SET_ACTION_サタンＢ,ARG
+ELSE
+	;PRINTW パターンＡ
+	CALL SET_ACTION_サタンＡ,ARG
+ENDIF
+
+@SET_ACTION_サタンＡ,ARG
+#DIM 仮入力行動
+仮入力行動 = -1
+;HP15000以上の行動
+;メギドラオン(5％)
+;マハンマオン・マハムドオン(10％)
+;○○ダイン(45％)
+;それ以外の行動(スク・カジャ、ラク・カジャ、マカ・カジャ、ランダマイザ、色即是空、各8%)
+SELECTCASE RAND:100
+CASE IS < 5
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:メギドラオン]]
+CASE IS < 15
+	;対象(ランダムに1人選択)に有効なほうを選択
+	CALL RANDOM_TARGET, ARG, [[スキル:マハンマオン]]
+	CALL SATAN_GET_WEAK(ARG,CFLAG:ARG:ターゲット)
+	SELECTCASE GET_TYPE(RESULT:1)
+	CASE "破魔"
+		仮入力行動 = [[スキル:マハンマオン]]
+	CASE "呪殺"
+		仮入力行動 = [[スキル:マハムドオン]]
+	ENDSELECT
+CASE IS < 60
+	;対象(ランダムに1人選択)に一番有効なダイン系に変更
+	CALL RANDOM_TARGET, ARG, [[スキル:アギダイン]]
+	CALL SATAN_GET_WEAK(ARG,CFLAG:ARG:ターゲット)
+	SELECTCASE GET_TYPE(RESULT:2)
+	CASE "火炎"
+		仮入力行動 = [[スキル:アギダイン]]
+	CASE "氷結"
+		仮入力行動 = [[スキル:ブフダイン]]
+	CASE "電撃"
+		仮入力行動 = [[スキル:ジオダイン]]
+	CASE "衝撃"
+		仮入力行動 = [[スキル:ザンダイン]]
+	CASE "地変"
+		仮入力行動 = [[スキル:マグダイン]]
+	ENDSELECT
+CASEELSE
+	SELECTCASE RAND:5
+	CASE 0
+		;PRINTW スク・カジャ
+		CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:スク・カジャ]]
+	CASE 1
+		;PRINTW マカ・カジャ
+		CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:マカ・カジャ]]
+	CASE 2
+		;PRINTW ラク・カジャ
+		CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:ラク・カジャ]]
+	CASE 3
+		;PRINTW ランダマイザ
+		CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:ランダマイザ]]
+	CASE 4
+		;PRINTW 色即是空
+		CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:色即是空]]
+	ENDSELECT
+ENDSELECT
+SIF 仮入力行動 == -1
+	RETURN
+CALL CHECK_ACTIONABLE,ARG,仮入力行動
+SIF !RESULT
+	RETURN
+CFLAG:ARG:入力行動 = 仮入力行動
+
+
+
+@SET_ACTION_サタンＢ,ARG
+#DIM 仮入力行動
+仮入力行動 = -1
+;HP15000未満の行動
+;メギドラオン(15％)
+;○○ダイン(65％)
+;色即是空(20%)
+SELECTCASE RAND:100
+CASE IS < 15
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:メギドラオン]]
+CASE IS < 80
+	;対象(ランダムに1人選択)に一番有効なダイン系に変更
+	CALL RANDOM_TARGET, ARG, [[スキル:マハ・ラギダイン]]
+	CALL SATAN_GET_WEAK(ARG,CFLAG:ARG:ターゲット)
+	SELECTCASE GET_TYPE(RESULT:2)
+	CASE "火炎"
+		仮入力行動 = [[スキル:マハ・ラギダイン]]
+	CASE "氷結"
+		仮入力行動 = [[スキル:マハ・ブフダイン]]
+	CASE "電撃"
+		仮入力行動 = [[スキル:マハ・ジオダイン]]
+	CASE "衝撃"
+		仮入力行動 = [[スキル:マハ・ザンダイン]]
+	CASE "地変"
+		仮入力行動 = [[スキル:マハ・マグダイン]]
+	ENDSELECT
+CASEELSE
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:色即是空]]
+ENDSELECT
+SIF 仮入力行動 == -1
+	RETURN
+CALL CHECK_ACTIONABLE,ARG,仮入力行動
+SIF !RESULT
+	RETURN
+CFLAG:ARG:入力行動 = 仮入力行動
+
+@SET_ACTION_サタンＣ,ARG
+#DIM 仮入力行動
+仮入力行動 = -1
+;HP7500未満の行動
+;メギドラオン(25％)
+;全体に○○ダイン(65％)
+;マハムドオン・マハンマオン(10%)
+SELECTCASE RAND:100
+CASE IS < 25
+	CALL CHECK_ACTIONABLE_AND_SET,ARG,[[スキル:メギドラオン]]
+CASE IS < 90
+	;ランダムな属性攻撃
+	CALL RANDOM_TARGET, ARG, [[スキル:デッドリーバーン]]
+	SELECTCASE RAND:5
+	CASE 0
+		仮入力行動 = [[スキル:デッドリーバーン]]
+	CASE 1
+		仮入力行動 = [[スキル:周極の巨砲]]
+	CASE 2
+		仮入力行動 = [[スキル:暗黒の雷光]]
+	CASE 3
+		仮入力行動 = [[スキル:破壊の星風]]
+	CASE 4
+		仮入力行動 = [[スキル:大地の怒り]]
+	ENDSELECT
+CASEELSE
+	;対象(ランダムに1人選択)に有効なほうを選択
+	CALL RANDOM_TARGET, ARG, [[スキル:マハンマオン]]
+	CALL SATAN_GET_WEAK(ARG,CFLAG:ARG:ターゲット)
+	SELECTCASE GET_TYPE(RESULT:1)
+	CASE "破魔"
+		仮入力行動 = [[スキル:マハンマオン]]
+	CASE "呪殺"
+		仮入力行動 = [[スキル:マハムドオン]]
+	ENDSELECT
+ENDSELECT
+SIF 仮入力行動 == -1
+	RETURN
+CALL CHECK_ACTIONABLE,ARG,仮入力行動
+SIF !RESULT
+	RETURN
+CFLAG:ARG:入力行動 = 仮入力行動

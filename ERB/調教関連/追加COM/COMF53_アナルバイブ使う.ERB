@@ -1,0 +1,265 @@
+;-------------------------------------------------
+;アナルバイブ使う
+;道具使用コマンド、レベル2
+;アナル触手させる
+;-------------------------------------------------
+@CHECK_COM_ABLE53
+
+;アナルバイブ実行判定
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;解除はいつでも可能
+SIF TEQUIP:PLAYER:14
+	RETURN 1
+
+;小人体型持ちは、双方が調教者と調教対象ならOK
+;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
+;SIF TALENT:PLAYER:142 && (TALENT:MASTER:144 == 0 && TALENT:PLAYER:142 == 0)
+SIF TALENT:PLAYER:小人体型 && PLAYER != MASTER && TALENT:MASTER:144 == 0
+	RETURN 0
+;アイテムを持っているか、アイテムなし設定でないとダメ
+SIF !EXIST_ITEM(5)
+	RETURN 0
+
+SIF !USE_ANUS(PLAYER)
+	RETURN 0
+
+RETURN 1
+
+@CHECK_COM_ABLE171
+
+;触手アナル
+SIF TEQUIP:25 == 0
+	RETURN 0
+
+@ACT_COM53
+;-------------------------------------------------
+;特殊派生処理
+;-------------------------------------------------
+IF TEQUIP:25
+	PRINTL Anal tentacle
+	;アナル触手させる
+	TSTR:0 = アナル触手させる
+	SELECTCOM = 171
+ELSE
+	PRINTL Use Anal vibrator
+	;アナルバイブ使う
+	TSTR:0 = アナルバイブ使う
+ENDIF
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:PLAYER:14 == 0
+	TEQUIP:PLAYER:14 = 1
+ELSE
+	TEQUIP:PLAYER:14 = 0
+ENDIF
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+LOSEBASE:0 += 10
+LOSEBASE:1 += 10
+
+SOURCE:4 = 10
+SOURCE:13 = 10
+SOURCE:17 = 10
+
+SOURCE:PLAYER:道具快Ａ = 250
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;アナル触手なら、触手体液がアナルに付く
+SIF TEQUIP:25
+		CALL SET_STAIN("アナル", "粘液", PLAYER)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;A経験
+;EXP:PLAYER:1 += 2
+;PRINTL ＡEXP＋２(調教者)
+CALL ADDS_EXP("Ａ経験", 2, PLAYER)
+
+;LesbianEXP
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:40%+{A}
+;	PRINTFORML %EXPNAME:40%(調教者)+{A}
+;	EXP:40 += A
+;	EXP:PLAYER:40 += A
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:41%+{A}
+;	PRINTFORML %EXPNAME:41%(調教者)+{A}
+;	EXP:41 += A
+;	EXP:PLAYER:41 += A
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	
+	
+ENDIF
+
+;触手召喚時、TentacleEXPのリセットをする
+;SIF TEQUIP:25 == 1
+;	T = 0
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM53
+;アナルバイブ挿入中
+IF TEQUIP:25
+	PRINTL ＜Anal tentacle insertion(trainer)＞
+	;アナル触手挿入中(調教者)
+ELSE
+	PRINTL ＜Anal vibrator insertion(trainer)＞
+	;アナルバイブ挿入中(調教者)
+ENDIF
+
+SOURCE:PLAYER:道具快Ａ += 125
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;自慰実行時は経験＋１
+IF SELECTCOM == 11
+	;EXP:PLAYER:1 += 2
+	;PRINTL ＡEXP＋２(調教者)
+	CALL ADDS_EXP("Ａ経験", 2, PLAYER)
+ELSE
+	;EXP:PLAYER:1 += 1
+	;PRINTL ＡEXP＋１(調教者)
+	CALL ADDS_EXP("Ａ経験", 1, PLAYER)
+ENDIF
+
+;TentacleEXP加算
+SIF TEQUIP:25 == 1
+	CALL ADDS_EXP("触手経験", 1, PLAYER)
+;	T += 1
+
+
+RETURN 1
+
+;-------------------------------------------------
+;調教時テキスト
+;-------------------------------------------------
+;53,アナルバイブ使う
+;-------------------------------------------------
+@MESSAGE_COM53
+;装着時
+IF TEQUIP:PLAYER:14
+	PRINTFORML %CALLNAME:PLAYER%は菊穴にアナルバイブをあてがった……
+	PRINTFORM %CALLNAME:PLAYER%は
+	;ＡEXP180以上＋淫乱か娼婦
+	IF EXP:PLAYER:1 > 180 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT とろけきった表情で、自らのお尻を広げ
+	;ＡEXP140以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 140 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT 挿入を待ち焦がれるように腰をくねらせ
+	;ＡEXP100以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 100 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT 頬を染め、期待にお尻を揺らめかせ
+	;ＡEXP70以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 70 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT すぼまりに与えられるバイブの刺激に身体を震わせ
+	;ＡEXP40以上
+	ELSEIF EXP:PLAYER:1 > 40
+		PRINT 期待と否定の入り混じったような複雑な表情をし
+	;ＡEXP20以上
+	ELSEIF EXP:PLAYER:1 > 20
+		PRINT 恥じらいに染まった顔を伏せ
+	;それ以外
+	ELSE
+		PRINT 不浄の穴を犯す恥辱と屈辱感にまみれた表情をし
+	ENDIF
+	PRINTL ている……
+	PRINTFORM %CALLNAME:PLAYER%は
+	;潤滑LV4以上
+	PRINTFORMW アヌスにバイブを挿し込んだ
+;解除時
+ELSE
+	PRINTFORML %CALLNAME:PLAYER%はアヌスからアナルバイブを抜いた
+	PRINTFORM %CALLNAME:PLAYER%は
+	;ＡEXP180以上＋淫乱か娼婦
+	IF EXP:PLAYER:1 > 180 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT 秘唇と口から涎をたらしながら、お尻を広げ続け
+	;ＡEXP140以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 140 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT 潤んだ瞳でお尻を振っ
+	;ＡEXP100以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 100 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT 物足りなさそうにお尻を突き出し
+	;ＡEXP70以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 70 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINT 少し名残惜しそうにお尻を揺らし
+	;ＡEXP40以上
+	ELSEIF EXP:PLAYER:1 > 40
+		PRINT お尻をもじもじさせつつも、どこかほっとした表情をうかべ
+	;ＡEXP20以上
+	ELSEIF EXP:PLAYER:1 > 20
+		PRINT 強制的な排泄感に頬を染め
+	;それ以外
+	ELSE
+		PRINT 刺激に辛そうな表情で耐え
+	ENDIF
+	PRINTFORMW ている……
+ENDIF
+
+;-------------------------------------------------
+;171,アナル触手させる
+;-------------------------------------------------
+@MESSAGE_COM171
+;装着時
+IF TEQUIP:PLAYER:14
+	PRINTFORM 長大な触手が%CALLNAME:PLAYER%の
+	;潤滑LV4以上
+	SIF PALAM:PLAYER:4 >= PALAMLV:4
+		PRINTFORM 粘液にまみれた
+	PRINTFORML アナルに潜り込んだ
+	PRINTFORM %CALLNAME:PLAYER%は
+	;ＡEXP180以上＋淫乱か娼婦
+	IF EXP:PLAYER:1 > 180 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINTFORM とろけきった表情で、肛悦を受け入れ
+	;ＡEXP140以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 140 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINTFORM 強い肛悦に腰をくねらせ
+	;ＡEXP100以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 100 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINTFORM 頬を染めながらも、ゆらゆらとお尻を揺らめかせ
+	;ＡEXP70以上＋淫乱か娼婦
+	ELSEIF EXP:PLAYER:1 > 70 && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+		PRINTFORM すぼまりに与えられる刺激に、身体を震わせ
+	;ＡEXP40以上
+	ELSEIF EXP:PLAYER:1 > 40
+		PRINTFORM 期待と否定の入り混じった、複雑な表情をし
+	;ＡEXP20以上
+	ELSEIF EXP:PLAYER:1 > 20
+		PRINTFORM 恥じらいに染まった顔を伏せ、肛虐に耐え
+	;それ以外
+	ELSE
+		PRINTFORM 不浄の穴を犯される恥辱と屈辱感にまみれた表情をし
+	ENDIF
+	PRINTFORMW ている……
+;解除時
+ELSE
+	PRINTFORMW 触手は%CALLNAME:PLAYER%のアヌスから引き抜かれた
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_53
+RETURN COMTYPE("対調教者道具系")
+

@@ -1,0 +1,221 @@
+;-------------------------------------------------
+;自慰見せつけ
+;-------------------------------------------------
+@CHECK_COM_ABLE127
+
+;下半身下着をつけている、スカート以外の下半身上着を履いている、下の空いてない全身上着を着ているとダメ
+SIF !USE_CLI(PLAYER) && !USE_PENIS(PLAYER) && !ITEM_PENIS(PLAYER)
+	RETURN 0
+RETURN 1
+
+@ACT_COM127
+;自慰見せつけ
+
+PRINTL Show Off Masturbation
+TSTR:0 = 自慰見せつけ
+
+;CALL KOJO_MESSAGE_COM
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 0
+
+;プレイヤーの技巧をみる
+IF ABL:PLAYER:技巧 == 0
+	B = 800
+ELSEIF ABL:PLAYER:技巧 == 1
+	B = 1600
+ELSEIF ABL:PLAYER:技巧 == 2
+	B = 2400
+ELSEIF ABL:PLAYER:技巧 == 3
+	B = 3200
+ELSEIF ABL:PLAYER:技巧 == 4
+	B = 4000
+ELSE
+	B = 2800 + (ABL:PLAYER:技巧 * 400)
+ENDIF
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:PLAYER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+LOCAL:99 = B
+
+;再装填処理中は射精ゲージは20分の1に
+IF CFLAG:PLAYER:9 > 0
+	B /= 20
+	LOCAL:99 /= 20
+ENDIF
+
+	BASE:PLAYER:99 += LOCAL:99
+;調教者→調教者
+TFLAG:28 = 8
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+LOSEBASE:0 += 5
+LOSEBASE:1 += 35
+
+SOURCE:露出 = 200
+SOURCE:不潔 = 100
+SOURCE:逸脱 = 150
+SOURCE:TARGET:反感 = 250
+
+;-------------------------------------------------
+;特殊ソース処理
+;他のコマンドと性質がかなり違うのでほとんど特殊で定義する
+;-------------------------------------------------
+;PALAM:欲情をみる
+SELECTCASE GETPALAMLV(TARGET, GETNUM(PALAM, "DESIRE"))
+	CASE 0
+		SOURCE:TARGET:欲情 = 0
+	CASE 1
+		SOURCE:TARGET:欲情 = 25
+	CASE 2
+		SOURCE:TARGET:欲情 = 50
+	CASE 3
+		SOURCE:TARGET:欲情 = 100
+	CASE 4
+		SOURCE:TARGET:欲情 = 200
+	CASEELSE
+		SOURCE:TARGET:欲情 = 400
+ENDSELECT
+SELECTCASE ABL:TARGET:露出癖
+	CASE 0
+		SOURCE:TARGET:恐れ = 100
+	TIMES SOURCE:欲情 , 0.00
+	CASE 1
+		SOURCE:TARGET:恐れ = 50
+	TIMES SOURCE:欲情 , 0.40
+	CASE 2
+		SOURCE:TARGET:恐れ = 20
+		TIMES SOURCE:欲情 , 0.60
+	CASE 3
+		SOURCE:TARGET:恐れ = 10
+		TIMES SOURCE:欲情 , 0.75
+	CASE 4
+		SOURCE:TARGET:恐れ = 10
+		TIMES SOURCE:欲情 , 0.90
+	CASEELSE
+		SOURCE:TARGET:恐れ = 0
+		SOURCE:欲情 = SOURCE:欲情 * (100 + (ABL:露出癖 - 5) * 10) / 100
+ENDSELECT
+;IF PALAM:欲情 < PALAMLV:1
+;	SOURCE:欲情 = 25
+;ELSEIF PALAM:欲情 < PALAMLV:2
+;	SOURCE:欲情 = 50
+;ELSEIF PALAM:欲情 < PALAMLV:3
+;	SOURCE:欲情 = 100
+;ELSEIF PALAM:欲情 < PALAMLV:4
+;	SOURCE:欲情 = 200
+;ELSE
+;	SOURCE:欲情 = 400
+;ENDIF
+;ABL:自慰中毒をみる
+IF ABL:自慰中毒 == 0
+	SOURCE:性行動 = 25
+	SOURCE:屈従 = 100
+	TIMES SOURCE:不潔 , 4.00
+	TIMES SOURCE:欲情 , 1.00
+ELSEIF ABL:自慰中毒 == 1
+	SOURCE:性行動 = 50
+	SOURCE:屈従 = 80
+	TIMES SOURCE:不潔 , 2.50
+	TIMES SOURCE:欲情 , 1.05
+ELSEIF ABL:自慰中毒 == 2
+	SOURCE:性行動 = 75
+	SOURCE:屈従 = 70
+	TIMES SOURCE:不潔 , 1.50
+	TIMES SOURCE:欲情 , 1.10
+ELSEIF ABL:自慰中毒 == 3
+	SOURCE:性行動 = 100
+	SOURCE:屈従 = 60
+	TIMES SOURCE:不潔 , 1.00
+	TIMES SOURCE:欲情 , 1.20
+ELSEIF ABL:自慰中毒 == 4
+	SOURCE:性行動 = 125
+	SOURCE:屈従 = 50
+	TIMES SOURCE:不潔 , 0.50
+	TIMES SOURCE:欲情 , 1.35
+ELSE
+	SOURCE:性行動 = 90 + (ABL:自慰中毒 * 12)
+	SOURCE:屈従 = 0
+	TIMES SOURCE:不潔 , 0.10
+	SOURCE:欲情 = SOURCE:欲情 * (150 + (ABL:自慰中毒 - 5) * 10) / 100
+ENDIF
+
+
+;調教者にFEELＣ、FEELＢ
+SOURCE:PLAYER:0 = 80
+SOURCE:PLAYER:3 = 80
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:16 += 20
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 14
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;射精に関係なく行われる処理はここから
+;調教者の指⇔調教者のＰの汚れが移動
+IF HAVE_PENIS(PLAYER)
+	CALL MOVE_STAIN("手", PLAYER, "ペニス", PLAYER)
+;調教者の指⇔調教者のＶの汚れが移動
+ELSE
+	CALL MOVE_STAIN("ヴァギナ", PLAYER, "ペニス", PLAYER)
+ENDIF
+
+;IF TALENT:オトコ == 0 && TALENT:PLAYER:オトコ == 0
+;	PRINTFORML LesbianEXP＋1
+;	EXP:レズ経験 += 1
+;	CALL ADDS_EXP("レズ経験", 1, TARGET)
+;ELSEIF TALENT:オトコ && TALENT:PLAYER:オトコ
+;	PRINTFORML ＢＬEXP＋1
+;	EXP:ＢＬ経験 += 1
+;	CALL ADDS_EXP("ＢＬ経験", 1, TARGET)
+;ENDIF
+
+;調教者がふたなり
+;SIF TALENT:PLAYER:ふたなり
+;	SOURCE:屈従 /= 2
+
+;MasturbEXP
+;EXP:PLAYER:自慰経験 += 1
+;PRINTFORML MasturbEXP＋1(%CALLNAME:PLAYER%)
+CALL ADDS_EXP("自慰経験", 1, PLAYER)
+RETURN 1
+
+@MESSAGE_COM127
+IF TEQUIP:主導権
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%に命令され目の前で自慰を行った…
+ELSE
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%に見せ付けるように目の前で自慰を行った…
+ENDIF
+		
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_127
+RETURN COMTYPE("助手・レズ系")
+
+

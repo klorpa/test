@@ -1,0 +1,421 @@
+
+;===============================================================================
+;===============================================================================
+@SHOW_TENT_ABL(ARG,ARGS)
+#FUNCTION
+SELECTCASE ARG
+CASE -2 ;ÉXÉâÉCÉÄ
+	RETURNF ARGS == "é©à‘íÜì≈" ? 0 # 4
+CASE -3 ;ÉIÅ[ÉN
+	RETURNF ARGS == "é©à‘íÜì≈" ? 0 # 6
+CASE -4 ;ÉCÉkÉKÉ~
+	RETURNF ARGS == "é©à‘íÜì≈" ? 0 # 7
+CASE -5 ; ÉoÉtÉHÉÅÉbÉg
+	RETURNF ARGS == "é©à‘íÜì≈" ? 0 # 10
+CASE -6 ; ÉPÉãÉxÉçÉX(åoå±ÇÊÇËMAGèdéã)
+	RETURNF ARGS == "é©à‘íÜì≈" ? 0 # 8
+CASEELSE
+	RETURNF ABL:ARG:ARGS
+ENDSELECT
+
+;===============================================================================
+;===============================================================================
+@SHOW_TENT_TALENT(ARG,ARGS)
+#FUNCTION
+SELECTCASE ARG
+CASE IS < 0
+	LOCAL = CSVTALENT(SHOW_TENT_ACTNO(ARG),GETNUM(TALENT,ARGS),0)
+	RETURNF LOCAL
+CASEELSE
+	RETURNF TALENT:ARG:ARGS
+ENDSELECT
+
+;===============================================================================
+;SHOW_TENT_COM0 é©à‘
+;äÓñ{íl   = DesireÅ{MasturbAddict
+;è¡ñ’åWêî = 10
+;ãqîΩâû   = 4
+;ãqïsï]   = é©à‘ÉåÉxÉã * 10
+;===============================================================================
+@SHOW_TENT_COM0(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG,"é©à‘íÜì≈")
+LOCAL:1 = LOCAL * 4 - SHOW_TENT_ONA(ARG) * 10
+;#; PRINTFORM {LOCAL,2}âÒé©à‘
+IF ARG > 0
+	DOWNBASE:ARG:0 += LOCAL * 10
+	TCVAR:ARG:älìæé©à‘åoå± += LOCAL
+ENDIF
+RETURN LOCAL:1
+
+;===============================================================================
+;SHOW_TENT_COM1 ÇuÇî∆Ç∑
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] + î∆Ç≥ÇÍÇÈë§ÇÃó~ñ]/2 + SexAddict
+;è¡ñ’åWêî = ë}ì¸ë§10ÅAîÌë}ì¸ë§20(Çuägí£éû40)
+;MAGåWêî  = 10(ëŒè€Ç™ãzé˚)
+;ãqîΩâû   = 8
+;ãqïsï]   = ëŒè€ÇuÉåÉxÉã*10
+;===============================================================================
+@SHOW_TENT_COM1(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG:1,"ó~ñ]") / 2 + SHOW_TENT_ABL(ARG:1,"ÉZÉbÉNÉXíÜì≈")
+LOCAL:1 = LOCAL * 8 - SHOW_TENT_VAGINA(ARG:1) * 10
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%ÇÃÇuÇî∆Ç∑
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 10
+	TCVAR:ARG:älìæê´ååoå± += LOCAL
+	LOCAL:2 = LOCAL / 2
+	EX:ARG:0 += LOCAL:2
+	TCVAR:ARG:älìæéÀê∏åoå± += LOCAL:2
+	TCVAR:ARG:älìæ‰SéÀåoå± += LOCAL:2
+ELSE
+	LOCAL:2 = LOCAL / 2
+ENDIF
+IF ARG:1 >= 0
+	LOCAL:1 = LOCAL * 20
+	TCVAR:(ARG:1):älìæÇuåoå± += LOCAL
+	TCVAR:(ARG:1):älìæê∏âtåoå± += LOCAL:2
+	TCVAR:(ARG:1):älìæ‰SéÀåoå± += LOCAL:2
+	EX:(ARG:1):1 += LOCAL / 2
+	;BestialEXP
+	SIF SHOW_TENT_èbä≠(ARG) && !SHOW_TENT_èbä≠(ARG:1)
+			TCVAR:(ARG:1):älìæãzåååoå± += LOCAL
+	;ëÃäiç∑Ç…âûÇ∂ÇΩExpandEXP
+	IF ( ARG >= 0 && ëÃäiç∑(ARG,ARG:1) > 2 ) || ( ARG < 0 && TALENT:(ARG:1):è¨êlëÃå^ )
+		TCVAR:(ARG:1):älìæÇ`ägí£åoå± += LOCAL
+		LOCAL:1 += LOCAL * 20
+	ENDIF
+	DOWNBASE:(ARG:1):0 += LOCAL:1
+	SIF BASE:(ARG:1):1 >= DOWNBASE:(ARG:1):0
+		DOWNBASE:(ARG:1):0 += LOCAL:1 / 2
+	SIF TALENT:(ARG:1):èàèó || TALENT:(ARG:1):çƒê∂èàèó
+		LOCAL:1 += 20
+
+	;òJñíÜîDêPÇÃÉtÉâÉOÇïtó^]
+	CALL òJñíÜèoÇµ(ARG,ARG:1,LOCAL/2,"+")
+
+ENDIF
+
+CALL SHOW_TENT_MAG_EXCHANGE(ARG,ARG:1,LOCAL,10)
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL)
+
+RETURN LOCAL:1
+
+
+;===============================================================================
+;SHOW_TENT_COM2 Ç`Çî∆Ç∑
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] + î∆Ç≥ÇÍÇÈë§ÇÃó~ñ]/2 + SexAddict/2
+;è¡ñ’åWêî = ë}ì¸ë§10ÅAîÌë}ì¸ë§30(Çuägí£éû50)
+;MAGåWêî  = 8(ëŒè€Ç™ãzé˚)
+;ãqîΩâû   = 10
+;ãqïsï]   = ëŒè€Ç`ÉåÉxÉã * 10
+;===============================================================================
+@SHOW_TENT_COM2(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG:1,"ó~ñ]") / 2 + SHOW_TENT_ABL(ARG:1,"ÉZÉbÉNÉXíÜì≈") / 2
+LOCAL:1 = LOCAL * 8 - SHOW_TENT_ANUS(ARG:1) * 10
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%ÇÃÇ`Çî∆Ç∑
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 10
+	TCVAR:ARG:älìæê´ååoå± = LOCAL
+	TCVAR:ARG:älìæéÀê∏åoå± = LOCAL / 2
+	EX:ARG:0+=LOCAL/2
+ENDIF
+IF ARG:1 >= 0
+	LOCAL:1 = LOCAL * 30
+	TCVAR:(ARG:1):älìæÇ`åoå± += LOCAL
+	EX:(ARG:1):2 += LOCAL / 2
+	;BestialEXP
+	SIF SHOW_TENT_èbä≠(ARG) && !SHOW_TENT_èbä≠(ARG:1)
+			TCVAR:(ARG:1):älìæãzåååoå± += LOCAL
+	;ëÃäiç∑Ç…âûÇ∂ÇΩExpandEXP
+	IF ( ARG >= 0 && ëÃäiç∑(ARG,ARG:1) > 2 ) || ( ARG < 0 && TALENT:(ARG:1):è¨êlëÃå^ )
+		TCVAR:(ARG:1):älìæÇ`ägí£åoå± += LOCAL
+		LOCAL:1 += LOCAL * 20
+	ENDIF
+	DOWNBASE:(ARG:1):0 += LOCAL:1
+	SIF BASE:(ARG:1):1 >= DOWNBASE:(ARG:1):0
+		DOWNBASE:(ARG:1):0 += LOCAL:1 / 2
+		
+	;òJñíÜîDêPÇÃÉtÉâÉOÇïtó^
+	IF TALENT:(ARG:1):íjÇÃñ∫
+		SIF CFLAG:(ARG:1):òJñíÜÇÃíÜèoéÅÇ…ÇÊÇÈébíËïÉêe == -1 || !RAND:3
+			CFLAG:(ARG:1):òJñíÜÇÃíÜèoéÅÇ…ÇÊÇÈébíËïÉêe = ARG
+		CFLAG:(ARG:1):å⁄ãqÇÃíÜèoéÅÇ…ÇÊÇÈîDêPîªíË += LOCAL / 2
+	ENDIF
+ENDIF
+CALL SHOW_TENT_MAG_EXCHANGE(ARG,ARG:1,LOCAL,10)
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL)
+
+
+RETURN LOCAL:1
+
+;===============================================================================
+;SHOW_TENT_COM3 çAÇî∆Ç∑
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] + î∆Ç≥ÇÍÇÈë§ÇÃãZçI/2 + î∆Ç≥ÇÍÇÈë§ÇÃê∏âtíÜì≈
+;è¡ñ’åWêî = ë}ì¸ë§10ÅAîÌë}ì¸ë§10Å`20(ãZçIÇ≈ïœâª)
+;MAGåWêî  = 7(ëŒè€Ç™ãzé˚)
+;ãqîΩâû   = 7
+;ãqïsï]   = ëŒè€å˚ÉåÉxÉã * 5
+;===============================================================================
+@SHOW_TENT_COM3(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG:1,"ãZçI") / 2 + SHOW_TENT_ABL(ARG:1,"ê∏âtíÜì≈")
+LOCAL:1 = LOCAL * 7 - SHOW_TENT_MOUSE(ARG:1) * 5
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%ÇÃçAÇî∆Ç∑
+IF ARG >= 0
+	TCVAR:ARG:älìæéÀê∏åoå± += LOCAL / 2
+ENDIF
+IF ARG:1 >= 0
+	IF ABL:(ARG:1):ãZçI < 4
+		LOCAL:1 = LOCAL * 20
+	ELSE
+		LOCAL:1 = LOCAL * ( ABL:(ARG:1):ãZçI < 7 ? 10 # 15 )
+		TCVAR:(ARG:1):älìæÉtÉFÉâåoå± += LOCAL
+	ENDIF
+	TCVAR:(ARG:1):älìæê∏âtåoå± += LOCAL / 2
+	DOWNBASE:(ARG:1):0 += LOCAL:1
+	SIF BASE:(ARG:1):1 >= DOWNBASE:(ARG:1):0
+		DOWNBASE:(ARG:1):0 += LOCAL:1 / 2
+ENDIF
+CALL SHOW_TENT_MAG_EXCHANGE(ARG,ARG:1,LOCAL,8)
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL)
+
+RETURN LOCAL:1
+
+;===============================================================================
+;SHOW_TENT_COM4 ÇbÇà§ïè
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] + î∆Ç≥ÇÍÇÈë§ÇÃó~ñ] / 2
+;è¡ñ’åWêî = é¿çsé“10ÅAëŒè€10
+;MAGåWêî  = 4(é¿çsé“Ç™ãzé˚)
+;ãqîΩâû   = 4
+;ãqïsï]   = ëŒè€VÉåÉxÉã * 10
+;===============================================================================
+@SHOW_TENT_COM4(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG:1,"ó~ñ]") / 2
+LOCAL:1 = LOCAL * 4 - SHOW_TENT_VAGINA(ARG:1) * 10
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%ÇÃÇbÇà§ïè
+
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 10
+ENDIF
+IF ARG:1 >= 0
+	LOCAL:1 = LOCAL * 10
+	EX:(ARG:1):0 += LOCAL
+	DOWNBASE:(ARG:1):0 += LOCAL:1
+	SIF BASE:(ARG:1):1 >= DOWNBASE:(ARG:1):0
+		DOWNBASE:(ARG:1):0 += LOCAL:1 / 2
+ENDIF
+;MAGïœä∑(î∆Ç∑ë§Ç™ãzé˚)
+CALL SHOW_TENT_MAG_EXCHANGE(ARG:1,ARG,LOCAL,4)
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL)
+
+RETURN LOCAL:1
+
+;===============================================================================
+;SHOW_TENT_COM5 ÉtÉFÉâÉ`ÉI
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] + Technique/2 + SemenAddict
+;è¡ñ’åWêî = é¿çsé“10ÅAëŒè€20
+;MAGåWêî  = 7(é¿çsé“Ç™ãzé˚)
+;ãqîΩâû   = 6
+;ãqïsï]   = é¿çsé“å˚ÉåÉxÉã * 5
+;===============================================================================
+@SHOW_TENT_COM5(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG,"ãZçI") / 2 + SHOW_TENT_ABL(ARG,"ê∏âtíÜì≈")
+LOCAL:1 = LOCAL * 6 - SHOW_TENT_MOUSE(ARG) * 5
+
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%Ç…ÉtÉFÉâÉ`ÉI
+
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 10
+	TCVAR:(ARG:1):älìæÉtÉFÉâåoå± += LOCAL
+	TCVAR:(ARG:1):älìæê∏âtåoå± += LOCAL / 2
+ENDIF
+IF ARG:1 >= 0
+	TCVAR:(ARG:1):älìæéÀê∏åoå± += LOCAL / 2
+	EX:(ARG:1):0 += LOCAL
+	LOCAL:1 = LOCAL * 20
+	DOWNBASE:(ARG:1):0 += LOCAL:1
+	SIF BASE:(ARG:1):1 >= DOWNBASE:(ARG:1):0
+		DOWNBASE:(ARG:1):0 += LOCAL:1 / 2
+ENDIF
+;MAGïœä∑(î∆Ç∑ë§Ç™ãzé˚)
+CALL SHOW_TENT_MAG_EXCHANGE(ARG:1,ARG,LOCAL,7)
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL/2)
+
+RETURN LOCAL:1
+
+;===============================================================================
+;SHOW_TENT_COM6 Ç`Çà§ïè
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] / 2 + î∆Ç≥ÇÍÇÈë§ÇÃó~ñ]
+;è¡ñ’åWêî = é¿çsé“10ÅAëŒè€15
+;MAGåWêî  = 4(é¿çsé“Ç™ãzé˚)
+;ãqîΩâû   = 3
+;ãqïsï]   = ëŒè€Ç`ÉåÉxÉã*10
+;===============================================================================
+@SHOW_TENT_COM6(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") / 2 + SHOW_TENT_ABL(ARG:1,"ó~ñ]")
+LOCAL:1 = LOCAL * 3 - SHOW_TENT_ANUS(ARG:1) * 10
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%ÇÃÇ`Çà§ïè
+
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 10
+ENDIF
+IF ARG:1 >= 0
+	TCVAR:(ARG:1):älìæÇ`åoå± += LOCAL
+	EX:(ARG:1):2 += LOCAL
+	LOCAL:1 = LOCAL * 15
+	DOWNBASE:(ARG:1):0 += LOCAL:1
+	SIF BASE:(ARG:1):1 >= DOWNBASE:(ARG:1):0
+		DOWNBASE:(ARG:1):0 += LOCAL:1 / 2
+ENDIF
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL/2)
+CALL SHOW_TENT_MAG_EXCHANGE(ARG:1,ARG,LOCAL,7)
+
+RETURN LOCAL:1
+
+;===============================================================================
+;SHOW_TENT_COM7 ÉLÉX
+;äÓñ{íl   = î∆Ç∑ë§ÇÃó~ñ] + î∆Ç≥ÇÍÇÈë§ÇÃó~ñ]
+;è¡ñ’åWêî = é¿çsé“5ÅAëŒè€5
+;MAGåWêî  = 1(ëäå›)
+;ãqîΩâû   = 2
+;äeïsï]   = é¿çsé“å˚ÉåÉxÉã + ëŒè€å˚ÉåÉxÉã
+;===============================================================================
+@SHOW_TENT_COM7(ARG,ARG:1)
+LOCAL = SHOW_TENT_ABL(ARG,"ó~ñ]") + SHOW_TENT_ABL(ARG:1,"ó~ñ]")
+LOCAL:1 = LOCAL * 2 - SHOW_TENT_MOUSE(ARG) - SHOW_TENT_MOUSE(ARG:1)
+;#; PRINTFORM {LOCAL,2}âÒ%SHOW_TENT_ACTNAME(ARG:1),20,LEFT%Ç∆ÉLÉX
+
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 5
+ENDIF
+IF ARG >= 0
+	DOWNBASE:ARG:0 += LOCAL * 5
+ENDIF
+CALL SHOW_TENT_SEX_SAME(ARG,ARG:1,LOCAL)
+CALL SHOW_TENT_MAG_EXCHANGE(ARG,ARG:1,LOCAL,1)
+CALL SHOW_TENT_MAG_EXCHANGE(ARG:1,ARG,LOCAL,1)
+RETURN LOCAL:1
+
+;ÉåÉYÅEÇaÇkÉvÉåÉCÇ…ÇÊÇÈåoå±ëùâ¡
+@SHOW_TENT_SEX_SAME(ARG,ARG:1,ARG:2)
+SIF SHOW_TENT_SEX(ARG) != SHOW_TENT_SEX(ARG:1)
+	RETURN
+IF SHOW_TENT_SEX(ARG)
+	SIF ARG >= 0
+		TCVAR:ARG:älìæÇaÇkåoå± += ARG:2
+	SIF ARG:1 >= 0
+		TCVAR:(ARG:1):älìæÇaÇkåoå± += ARG:2
+ELSE
+	SIF ARG >= 0
+		TCVAR:ARG:älìæÉåÉYåoå± += ARG:2
+	SIF ARG:1 >= 0
+		TCVAR:(ARG:1):älìæÉåÉYåoå± += ARG:2
+ENDIF
+
+;===============================================================================
+;SHOW_TENT_SEX ê´ï 
+;===============================================================================
+@SHOW_TENT_SEX(ARG)
+#FUNCTION
+SELECTCASE ARG
+CASE IS < 0
+	RETURNF 1
+CASEELSE
+	RETURNF IS_MALE(ARG)
+ENDSELECT
+
+
+
+;===============================================================================
+;ÇuégÇ¢ÇΩÇ¢ìx(çÇÇ¢íˆégÇ¢ÇΩÇ≠Ç»Ç¢)
+;===============================================================================
+;0 ç°Ç∑ÇÆìÀÇ¡Ç±Ç‹ÇπÇÎ
+;1 é¿ópîÕàÕì‡
+;2 ïKóvÇ∆Ç†ÇÁÇŒ
+;3 Ç«Ç§ÇµÇƒÇ‡ïKóvÇ∆Ç†ÇÁÇŒ
+;4 ê‚ëŒÇ…åô
+;5 ñ≥óù
+@SHOW_TENT_VAGINA(ARG)
+#FUNCTION
+SIF ARG < 0 || !HAVE_VAGINA(ARG)
+	RETURNF 5
+LOCAL =  1 - ABL:ARG:Çuä¥äo / 3
+;èàèóÇÕÇ≥Ç¡Ç≥Ç∆ÉuÉ`îjÇËÇΩÇ¢
+SIF TALENT:ARG:èàèó
+	LOCAL -= 3
+;à˙óê
+SIF IS_BITCHY(ARG)
+	LOCAL -= 1
+SIF TALENT:ARG:ÉZÉbÉNÉXã∂
+	LOCAL -= 1
+SIF äÎåØì˙(ARG)
+	LOCAL -= MIN(äÎåØì˙(ARG),2)
+SIF TALENT:ARG:Ç”ÇΩÇ»ÇË
+	LOCAL += 1
+SIF IS_BEAST(ARG)
+	LOCAL += 3
+;éÂÇÃÉàÉÅÇ»ÇÒÇƒéËÇ™èoÇπÇÈÇ©
+SIF IS_LOVER(ARG)
+	LOCAL += ä◊óé(ARG)
+RETURNF LIMIT(LOCAL,0,4)
+
+;Ç`égÇ¢ÇΩÇ¢ìx(çÇÇ¢íˆégÇ¢ÇΩÇ≠Ç»Ç¢)
+@SHOW_TENT_ANUS(ARG)
+#FUNCTION
+SIF ARG < 0
+	RETURNF 5
+LOCAL =  1 - ABL:ARG:Ç`ä¥äo / 3
+;à˙óêÇ©ïûè]
+SIF IS_BITCHY(ARG) || IS_SLAVERY(ARG)
+	LOCAL -= ä◊óé(ARG)
+SIF TALENT:ARG:êKåäã∂Ç¢
+	LOCAL -= 1
+SIF IS_LOOKSLIKE_MALE(ARG)
+	LOCAL += 3
+SIF IS_BEAST(ARG)
+	LOCAL += 3
+;ÉàÉÅÇ≈Ç‡êKÇ»ÇÁè≠ÇµíÔçRÇ™îñÇ¢
+SIF TALENT:ARG:êeà§
+	LOCAL += ä◊óé(ARG)-1
+RETURNF LIMIT(LOCAL,0,5)
+
+;Ç®ÇµÇ·Ç‘ÇËÉåÉxÉã(çÇÇ¢íˆâ∫éË)
+@SHOW_TENT_MOUSE(ARG)
+#FUNCTION
+SIF ARG < 0
+	RETURNF 5
+LOCAL =  1 - ABL:ARG:ãZçI / 3
+;ïûè]
+SIF IS_SLAVERY(ARG)
+	LOCAL -= ä◊óé(ARG)
+SIF TALENT:ARG:ê„égÇ¢
+	LOCAL -= 1
+SIF TALENT:ARG:å£êgìI
+	LOCAL -= 1
+SIF IS_LOOKSLIKE_MALE(ARG)
+	LOCAL += 3
+SIF IS_BEAST(ARG)
+	LOCAL += 3
+;ÉàÉÅÇ≈Ç‡å˚Ç»ÇÁÇ©Ç»ÇËíÔçRÇ™îñÇ¢
+SIF IS_ENGAGE(ARG)
+	LOCAL += 1
+RETURNF LIMIT(LOCAL,0,5)
+
+;é©à‘ÉåÉxÉã
+@SHOW_TENT_ONA(ARG)
+#FUNCTION
+SIF ARG < 0
+	RETURNF 5
+LOCAL =  5 - ABL:ARG:é©à‘íÜì≈ / 3 - ABL:ARG:ãZçI / 4
+;à˙óê
+SIF IS_BITCHY(ARG)
+	LOCAL -= ä◊óé(ARG)
+SIF TALENT:ARG:é©à‘ã∂Ç¢
+	LOCAL -= 2
+SIF TALENT:ARG:é©à‘ÇµÇ‚Ç∑Ç¢
+	LOCAL -= 1
+SIF IS_MALE(ARG)
+	LOCAL += 2
+SIF IS_LOOKSLIKE_MALE(ARG)
+	LOCAL += 3
+SIF IS_BEAST(ARG)
+	LOCAL += 5
+RETURNF LIMIT(LOCAL,0,5)

@@ -1,0 +1,124 @@
+;-------------------------------------------------
+;愛撫
+;愛撫系コマンド　レベル2
+;-------------------------------------------------
+@ACT_COM0
+
+PRINTL Caress
+TSTR:0 = 愛撫
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 5
+DOWNBASE:TARGET:気力 += 50
+
+SOURCE:TARGET:快Ｃ = 80
+SOURCE:TARGET:快Ｂ = 80
+SOURCE:TARGET:情愛 = 50
+SOURCE:TARGET:性行動 = 60
+SOURCE:TARGET:露出 = 20
+SOURCE:TARGET:不潔 = 30
+SOURCE:TARGET:逸脱 = 20
+SOURCE:TARGET:反感 = 20
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 20
+
+;舌を使う調教では、調教者の舌使いによって、快感のソース増加
+;IF TALENT:PLAYER:52
+;	TIMES SOURCE:TARGET:快Ｃ , 1.50
+;	TIMES SOURCE:TARGET:快Ｂ , 1.50
+;	TIMES SOURCE:TARGET:情愛 , 1.50
+;ENDIF
+;猫舌は減少
+;IF TALENT:PLAYER:54
+;	TIMES SOURCE:TARGET:快Ｃ , 0.75
+;	TIMES SOURCE:TARGET:快Ｂ , 0.75
+;	TIMES SOURCE:TARGET:情愛 , 0.75
+;ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;IF (STAIN:TARGET:0 >= 2 && (STAIN:TARGET:0 != 16 && STAIN:TARGET:0 != 17) && ASSIPLAY == 0 && TALENT:MASTER:64 == 0) || TEQUIP:20
+IF !PLAY_KISS(PLAYER, TARGET)
+;奴隷の口の汚れがあるときキスはない（愛液と母乳よごれはＯＫ、汚れ無視か助手調教時は問題なし）
+;ボールギャグ使用中もなし
+	SOURCE:TARGET:不潔 = 0
+;	SOURCE:TARGET:快Ｃ /= 2
+	SOURCE:TARGET:情愛 /= 4
+	SOURCE:TARGET:液体 /= 2
+ELSE
+	;汚臭鈍感
+	SIF TALENT:61
+		SOURCE:TARGET:不潔 /= 4
+	;汚臭敏感
+	SIF TALENT:62
+		SOURCE:TARGET:不潔 *= 3
+	;自尊心
+	SIF TALENT:15
+		SOURCE:TARGET:不潔 *= 2
+	IF STAIN:PLAYER:0
+	;主人の口の汚れがあると不潔150%
+		SOURCE:TARGET:不潔 *= 3
+		SOURCE:TARGET:不潔 /= 2
+	ENDIF
+	SIF TALENT:PLAYER:舌使い
+		TIMES SOURCE:TARGET:情愛 , 1.50
+	SIF TALENT:PLAYER:猫舌
+		TIMES SOURCE:TARGET:情愛 , 0.75
+	;奴隷の口⇔調教者の口の汚れが移動
+	CALL MOVE_STAIN("口", TARGET, "口", PLAYER)
+ENDIF
+CALL MOVE_STAIN("胸", TARGET, "手", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 5
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;調教者が猫舌持ちの場合は、調教者にSadoEXPを追加
+IF TALENT:PLAYER:54
+	CALL ADDS_EXP("嗜虐快楽経験", 1, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 2
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_0
+RETURN COMTYPE("愛撫系")
+

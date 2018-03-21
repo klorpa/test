@@ -1,0 +1,170 @@
+;-------------------------------------------------
+;胸自慰
+;愛撫系コマンド、レベル3
+;-------------------------------------------------
+@JUMP_COM10
+;-------------------------------------------------
+;特殊派生処理
+;-------------------------------------------------
+;前コマンドが騎乗位か騎乗位アナルで調教者が同じ場合は騎乗乳房自慰にジャンプ
+IF (PREVCOM == 66) && TFLAG:60 && TFLAG:前回の調教者 == PLAYER
+	CALL COM_ABLE_COMMON, 505
+	SIF RESULT
+		RETURN 505
+ELSEIF (PREVCOM == 67) && TFLAG:60 && TFLAG:前回の調教者 == PLAYER
+	CALL COM_ABLE_COMMON, 512
+	SIF RESULT
+		RETURN 512
+ENDIF
+RETURN -1
+@ACT_COM10
+
+
+SIF TEQUIP:28
+	PRINT Release
+PRINTL Breast Masturbation
+
+;調教対象→調教対象
+TFLAG:28 = 4
+
+TSTR:0 = 胸自慰
+;CALL KOJO_MESSAGE_COM
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 5
+DOWNBASE:TARGET:気力 += 50
+
+SOURCE:TARGET:快Ｂ = 50
+SOURCE:TARGET:性行動 = 40
+SOURCE:TARGET:恐れ = 100
+SOURCE:TARGET:中毒充足 = 100
+SOURCE:TARGET:露出 = 200
+SOURCE:TARGET:屈従 = 400
+SOURCE:TARGET:逸脱 = 150
+SOURCE:TARGET:反感 = 150
+IF TEQUIP:28
+	SOURCE:TARGET:液体 = 50
+	SOURCE:TARGET:逸脱 += 100
+ENDIF
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 150
+
+;中毒による中毒充足のソースは先に処理しておく
+;自慰中毒を見る
+SIF ABL:15 == 0
+	TIMES SOURCE:TARGET:中毒充足 , 0.00
+SIF ABL:15 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.30
+SIF ABL:15 == 2
+	TIMES SOURCE:TARGET:中毒充足 , 0.60
+SIF ABL:15 == 3
+	TIMES SOURCE:TARGET:中毒充足 , 0.90
+SIF ABL:15 == 4
+	TIMES SOURCE:TARGET:中毒充足 , 1.20
+SIF ABL:15 == 5
+	TIMES SOURCE:TARGET:中毒充足 , 1.50
+SIF ABL:15 == 6
+	TIMES SOURCE:TARGET:中毒充足 , 1.80
+SIF ABL:15 == 7
+	TIMES SOURCE:TARGET:中毒充足 , 2.10
+SIF ABL:15 == 8
+	TIMES SOURCE:TARGET:中毒充足 , 2.40
+SIF ABL:15 == 9
+	TIMES SOURCE:TARGET:中毒充足 , 3.00
+SIF ABL:15 >= 10
+	TIMES SOURCE:TARGET:中毒充足 , 5.00
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷の指⇔奴隷のＢの汚れが移動
+CALL MOVE_STAIN("手", TARGET, "胸", TARGET)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;ビデオ撮影時は経験にプラス
+IF TEQUIP:28
+	CALL ADDS_EXP("自慰経験", 2, TARGET)
+	;PRINTL MasturbEXP＋２
+	CALL ADDS_EXP("調教自慰経験", 2, TARGET)
+	;PRINTL FrcMasturEXP＋２
+ELSE
+	CALL ADDS_EXP("自慰経験", 1, TARGET)
+	;PRINTL MasturbEXP＋１
+	CALL ADDS_EXP("調教自慰経験", 1, TARGET)
+	;PRINTL FrcMasturEXP＋１
+ENDIF
+IF TEQUIP:28
+	CALL ADDS_ABNORMAL_EXP("Public masturbation", TARGET)
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+ENDIF
+
+A = 3
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+@COM_ORDER_10, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "欲望", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "露出癖", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "自慰中毒", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "MARK", "快楽刻印", 3, ARG, ARG:1
+
+CALL ADD_COM_ORDER, "PALAM", "欲情", 3, ARG, ARG:1
+
+CALL ADD_COM_ORDER, "TALENT", "自制心", -5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥じらい", -5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥薄い", 2, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "自慰しやすい", 5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "快感に素直", 5, ARG, ARG:1
+SIF !TALENT:ARG:淫乱 && !TALENT:ARG:娼婦
+	CALL ADD_COM_ORDER, "TALENT", "快感の否定", -1, ARG, ARG:1
+SIF TEQUIP:ARG:Aphrodisiac
+	CALL ADD_COM_ORDER, "EXTRA", "Aphrodisiac", 8, ARG, ARG:1
+SIF TEQUIP:ARG:ビデオカメラ
+	CALL ADD_COM_ORDER, "EXTRA", "Video camera", -10, ARG, ARG:1
+CALL ADD_COM_ORDER, "RELATION", , , ARG, ARG:1
+	
+;-------------------------------------------------
+;実行値
+;難易度上昇 公開で+10
+;-------------------------------------------------
+@COM_ORDER_NUM_10
+RETURN 33
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_10
+RETURN COMTYPE("愛撫系")

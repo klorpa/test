@@ -1,0 +1,231 @@
+
+;スキル名
+@SKILL_NAME_3016,ARG
+RESULTS = CliffPowder
+
+
+;　命中
+@SKILL_HITRATE_3016, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_3016, ARG
+RETURN 30
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_3016,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_3016,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_3016, ARG
+RETURN 1
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_3016,ARG
+RETURN 0
+
+;　相性
+@SKILL_TYPE_3016,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_3016
+RETURN 0
+;魔法
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_3016
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_3016
+RETURN 2
+
+;　射程
+@SKILL_RANGE_3016,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_3016,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_3016
+RETURN 2
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_3016,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_3016
+RETURN 0
+;継承不可
+
+;速度補正
+@SKILL_SPEED_3016, ARG = -1
+RETURN 5
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_3016,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_3016
+RETURN 1
+
+;スキル変化？用ランク
+@SKILL_RANK_3016
+RETURN 0
+;変化不可
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_3016,ARG,ARG:1
+SIF CFLAG:ARG:PTフラグ > 0
+	ITEM:1016 -= 1
+
+;仲間が使った場合
+IF CFLAG:(ARG):PTフラグ
+	;LOCAL:9に対象者、ARGに使用者、PTフラグ == 2はPTにいる仲間、PTフラグ == 1はPTにいない仲間、PTフラグ == 0は敵
+	FOR LOCAL:9,0,CHARANUM
+		;使用者はスルー
+		SIF (LOCAL:9) == ARG
+			CONTINUE
+		;PTに居ない人間は無理
+		SIF CFLAG:(LOCAL:9):PTフラグ == 1 && (ABL:(LOCAL:9):種族 == 0 || ABL:(LOCAL:9):種族 > 45)
+			CONTINUE
+		;レンタル中は排除
+		SIF CFLAG:(LOCAL:9):労役フラグ == 3
+			CONTINUE
+		SIF TALENT:(LOCAL:9):非戦闘員
+			CONTINUE
+		;ＣＯＭＰにもPTにもいない悪魔を排除
+		SIF CFLAG:(LOCAL:9):所属ＣＯＭＰ == -1 && CFLAG:(LOCAL:9):PTフラグ < 2
+			CONTINUE
+		SIF CFLAG:(LOCAL:9):この場に居ないフラグ == 1
+			CONTINUE
+		SIF CFLAG:(LOCAL:9):PTフラグ == 0
+			CONTINUE
+
+		
+		IF CFLAG:(LOCAL:9):ステート == GET_STATE_NUM("DYING")
+			CFLAG:(LOCAL:9):ステート = 0
+			CFLAG:(LOCAL:9):ステート経過ターン = 0
+			CALL VAR_HP,(LOCAL:9),MAXBASE:(LOCAL:9):ＨＰ
+			PRINTFORML %CALLNAME:(LOCAL:9)%は息を吹き返した
+		ELSE
+			CALL ALL_CURE_STATE, (LOCAL:9), 1
+			CALL ALL_HEAL, (LOCAL:9), 1
+		ENDIF
+		;PRINTFORM 　　TARGET:[{CPOS(LOCAL:9),2}] %CALLNAME:(LOCAL:9),20,LEFT%　>>>>>>　
+		;回復量
+		;LOCAL = MAXBASE:(LOCAL:9):ＨＰ
+		;PRINTFORMW {LOCAL}回復
+		;CALL VAR_HP,LOCAL:9,LOCAL,3
+		;CFLAG:(LOCAL:9):ステート = 0
+	NEXT
+;敵が使った場合
+ELSE
+	FOR LOCAL:9,7,17
+LOCAL:8 = POS(LOCAL:9)
+;LOCAL:7 = POS(ARG)
+
+		;使用者はスルー
+		SIF LOCAL:8 == ARG
+			CONTINUE
+		SIF LOCAL:8 < 0
+			CONTINUE
+		IF CFLAG:(LOCAL:8):ステート == GET_STATE_NUM("DYING")
+			CFLAG:(LOCAL:8):ステート = 0
+			CFLAG:(LOCAL:8):ステート経過ターン = 0
+			CALL VAR_HP,(LOCAL:8),MAXBASE:(LOCAL:8):ＨＰ
+			PRINTFORML %CALLNAME:(LOCAL:8)%は息を吹き返した
+		ELSE
+			CALL ALL_CURE_STATE, (LOCAL:8), 1
+			CALL ALL_HEAL, (LOCAL:8), 1
+		ENDIF
+	NEXT
+ENDIF
+	CALL DEAD_CHARA,ARG
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+
+;====================================================
+;戦闘中以外での実行
+;====================================================
+@ACTION_FIELD_3016,ARG,ARG:1
+ITEM:1016 -= 1
+PRINTFORML Used some %ITEMNAME_E(1016)%.
+
+FOR LOCAL:9,0,CHARANUM
+	;使用者はスルー
+	SIF (LOCAL:9) == ARG
+		CONTINUE
+	;PTに居ない人間は無理
+	SIF CFLAG:(LOCAL:9):PTフラグ == 1 && (ABL:(LOCAL:9):種族 == 0 || ABL:(LOCAL:9):種族 > 45)
+		CONTINUE
+	SIF CFLAG:(LOCAL:9):労役フラグ == 3
+		CONTINUE
+	SIF TALENT:(LOCAL:9):非戦闘員
+		CONTINUE
+	SIF CFLAG:(LOCAL:9):所属ＣＯＭＰ == -1 && CFLAG:(LOCAL:9):PTフラグ != 2
+		CONTINUE
+	SIF CFLAG:(LOCAL:9):この場に居ないフラグ == 1
+		CONTINUE
+
+	IF CFLAG:(LOCAL:9):ステート == GET_STATE_NUM("DYING")
+		CFLAG:(LOCAL:9):ステート = 0
+		CFLAG:(LOCAL:9):ステート経過ターン = 0
+		CALL VAR_HP,(LOCAL:9),MAXBASE:(LOCAL:9):ＨＰ
+		PRINTFORML %CALLNAME:(LOCAL:9)%は息を吹き返した
+	ELSE
+		CALL ALL_CURE_STATE, (LOCAL:9) , 1
+		CALL ALL_HEAL, (LOCAL:9), 1
+	ENDIF
+NEXT
+CALL DEAD_CHARA,ARG
+WAIT
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_3016
+PRINTL Restores all HP and removes status elements from all allies at the cost of the user life.
+;使用者を犠牲に、味方全体のＨＰと全てのバッドステータスを全回復する。
+
+@最大所持数_3016
+RETURN 10
+
+@道具購入条件_3016
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_3016,ARG
+SIF CFLAG:ARG:PTフラグ == 0
+	RETURN 1
+SIF ITEM:1016 < 1 || CFLAG:ARG:アイテム使用能力 < 1
+	RETURN 0
+RETURN 1
+;アイテムの個数チェック
+
+;魔貨交換可能か
+@ITEM_EXCHANGE_3016
+RETURN 1
+

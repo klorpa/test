@@ -1,0 +1,2552 @@
+;SELF.ERB、奴隷からの奉仕などのイベント
+;-------------------------------------------------
+;夜終了時及び朝に起こるイベント ターゲット選択
+;-------------------------------------------------
+@EVENT_NIGHT_SELF
+#DIM 夜這いリスト , 200
+#DIM 夜這い可能人数 , 1
+
+;キャラ登録数が1以下の時は引き返す
+SIF CHARANUM <= 1
+	RETURN 1
+VARSET 夜這いリスト , -1
+夜這い可能人数 = 0
+B = 0
+REPEAT CHARANUM
+	;主人ならスキップ
+	SIF COUNT == MASTER
+		CONTINUE
+	SIF CFLAG:COUNT:夜這い不許可
+		CONTINUE
+	;対象がその場にいないなら除外
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+	;レンタル中は除外
+	SIF CFLAG:COUNT:労役フラグ == 3
+		CONTINUE
+	;上司に連れて行かれると除外
+	SIF CFLAG:COUNT:上司来襲 == 1
+		CONTINUE
+	;体力が500以下なら除外
+	SIF BASE:COUNT:0 <= 500
+		CONTINUE
+	;反発刻印がある場合は除外
+	SIF MARK:COUNT:3 >= 1
+		CONTINUE
+	;陥落素質が無い場合は除外
+	SIF 陥落(COUNT) == 0
+		CONTINUE
+	;他の所に行ってる伽羅は除外
+	SIF CFLAG:COUNT:ＮＴＲ夜這い
+		CONTINUE
+	;最も好感度の高いキャラのIDが0未満である場合は除外
+	SIF FAVORITE_1_ID(COUNT) < 0
+		CONTINUE
+	夜這いリスト:夜這い可能人数 = COUNT
+	夜這い可能人数 += 1
+REND
+IF 夜這い可能人数 == 0
+	B = -1
+	RETURN 1
+ENDIF
+
+;まず、メインキャラを選ぶ
+B = 0
+
+;Bにランダム選択されたキャラのキャラ登録番号を入れる・0の時はやり直し
+$REPLAY0
+B = 夜這いリスト:(RAND:夜這い可能人数)
+;対象判定,Bが行動者,Eが被害者,Gが判定用
+E = FAVORITE_1(B)
+;FOR G, 0, CHARANUM
+;	SIF CFLAG:B:(CFLAG:G:キャラ固有の番号+2000) > CFLAG:B:(CFLAG:E:キャラ固有の番号+2000)
+;	E = G
+;NEXT
+;対象の好感度が行動者より主人が高かった場合夜這い無し
+SIF E != MASTER && FAVORITE(E,MASTER)  > FAVORITE(E,B)
+	RETURN 1
+;対象が射精ができる場合
+IF HAVE_PENIS(E)
+	Y = 1
+;できない場合
+ELSE
+	Y = 0
+ENDIF
+
+;相手が主人の場合は構ったフラグ
+IF FLAG:ＮＴＲ機能
+	SIF E == MASTER
+		CFLAG:B:構ったフラグ = 1
+ENDIF
+
+;-------------------------------------------------
+;夜終了時に起こるイベント
+;-------------------------------------------------
+
+;7種8パターン
+;対象C 相手V
+;対象C 相手A
+;対象V 相手C
+;対象A 相手C
+;両者C（素）・両者C（貝）
+;自慰
+;一緒に寝る
+
+;7つの組み合わせ
+;対象（男）*相手（男）
+	;対象C 相手A
+	;対象A 相手C
+;対象（男）*相手（フタ）
+	;対象C 相手V
+	;対象C 相手A
+	;対象A 相手C
+	;両者C（素）
+;対象（フタ）*相手（男）
+	;対象C 相手A
+	;対象V 相手C
+	;対象A 相手C
+	;両者C（素）
+;対象（フタ）*相手（フタ）
+	;対象C 相手V
+	;対象C 相手A
+	;対象V 相手C
+	;対象A 相手C
+	;両者C（素）
+;対象（女）*相手（男・フタ）
+	;対象V 相手C
+	;対象A 相手C
+	;両者C（素）
+;対象（男・フタ）*相手（女）
+	;対象C 相手V
+	;対象C 相手A
+	;両者C（素）
+;対象（女）*相手（女）
+	;両者C（貝）
+;※自慰は条件無し、一緒に寝るは性別の条件無し
+
+;ランダムに発生するかとチェックし、実行不可ならば再度チェック
+;当たり7ハズレ2。実行可能に当たる前にハズレに当たったら終了
+;ただし、上位の陥落素質ががあれば必ず発生
+
+LOCAL = TARGET
+TARGET = B
+
+$LOOP_N
+IF TALENT:B:6 || TALENT:B:7 || TALENT:B:8
+	R = RAND:7
+ELSE
+	R = RAND:9
+ENDIF
+
+IF R == 0
+	;対象C 相手V（処女及び再生処女を持たず、V感覚2以上、欲望3以上で男でない、対象が男もしくはフタナリ場合）
+	IF TALENT:B:0 == 0 && TALENT:B:1 == 0 && ABL:B:4 >= 2 && ABL:B:1 >= 3 && Y == 1 && !IS_MALE(B) && Y == 1
+		CALL SELF_NIGHT6
+	ELSE
+		GOTO LOOP_N
+	ENDIF
+ELSEIF R == 1
+	;対象C 相手A（A感覚3以上、欲望4以上、対象が男もしくはフタナリ場合）
+	IF ABL:B:5 >= 3 && ABL:B:1 >= 4 && Y == 1 && Y == 1
+		CALL SELF_NIGHT31
+	ELSE
+		GOTO LOOP_N
+	ENDIF
+ELSEIF R == 2
+	;対象V 相手C（対象が処女及び再生処女を持たず男でない、ターゲットのＣ感覚3以上、欲望3以上で男もしくはフタナリの場合）
+	IF TALENT:E:0 == 0 && TALENT:E:1 == 0 && IS_MALE(E) == 0 && ABL:B:3 >= 3 && ABL:B:1 >= 3 && HAVE_PENIS(B)
+		CALL SELF_NIGHT32
+	ELSE
+		GOTO LOOP_N
+	ENDIF
+ELSEIF R == 3
+	;対象A 相手C（対象のA感覚3以上、ターゲットのＣ感覚3以上、欲望4以上で男もしくはフタナリの場合）
+	IF ABL:E:5 >= 3 && ABL:B:3 >= 3 && ABL:B:1 >= 4 && HAVE_PENIS(B)
+		CALL SELF_NIGHT33
+	ELSE
+		GOTO LOOP_N
+	ENDIF
+ELSEIF R == 4
+	;（両者C（素股）・両者C（貝合わせ））（どちらか片方でも男でない場合）
+	IF !IS_MALE(E) || !IS_MALE(B)
+		CALL SELF_NIGHT34
+	ELSE
+		GOTO LOOP_N
+	ENDIF
+ELSEIF R == 5
+	CALL SELF_NIGHT35
+ELSEIF R == 6
+	;一緒に寝る(恋慕または親愛が必要)
+	IF TALENT:B:3 || TALENT:B:6
+		CALL SELF_NIGHT36
+	ELSE
+		GOTO LOOP_N
+	ENDIF
+ELSE
+	TARGET = LOCAL
+	RETURN 0
+ENDIF
+TARGET = LOCAL
+
+;-------------------------------------------------
+;夜イベント ソースの計算
+;-------------------------------------------------
+;夜這い（対象C 相手V）
+@SELF_NIGHT6
+DRAWLINE
+TFLAG:13 = 9
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;ＶSensitivity
+IF ABL:B:4 <= 2
+	A += 1
+ELSEIF ABL:B:4 <= 4
+	A += 2
+ELSEIF ABL:B:4 <= 7
+	A += 3
+ELSEIF ABL:B:4 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:4 - 10) / 3
+ENDIF
+
+;ＣSensitivity（対象）
+IF ABL:E:3 <= 2
+	A += 1
+ELSEIF ABL:E:3 <= 4
+	A += 2
+ELSEIF ABL:E:3 <= 7
+	A += 3
+ELSEIF ABL:E:3 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:E:3 - 10) / 3
+ENDIF
+
+;SemenAddict
+IF ABL:B:16 <= 1
+	A += 1
+ELSEIF ABL:B:16 <= 2
+	A += 2
+ELSEIF ABL:B:16 <= 5
+	A += 3
+ELSEIF ABL:B:16 <= 7
+	A += 4
+ELSEIF ABL:B:16 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:16 - 10) / 4
+ENDIF
+
+;SexAddict
+IF ABL:B:18 <= 1
+	A += 1
+ELSEIF ABL:B:18 <= 2
+	A += 2
+ELSEIF ABL:B:18 <= 4
+	A += 3
+ELSEIF ABL:B:18 <= 6
+	A += 4
+ELSEIF ABL:B:18 <= 8
+	A += 5
+ELSEIF ABL:B:18 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:18 - 10) / 3
+ENDIF
+
+;娼婦
+SIF TALENT:B:7
+	A += 1
+;セックス狂
+SIF TALENT:B:75
+	A += 2
+;ＶSensitive
+SIF TALENT:B:104
+	A += 1
+;献身的
+SIF TALENT:B:63
+	A += 1
+;獰猛もしくは狡猾
+SIF TALENT:B:202 || TALENT:B:205
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,E)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:E%)+{A}
+	EXP:B:40 += A
+	EXP:E:40 += A
+ENDIF
+
+IF HAVE_PENIS(B)
+	EXP:B:3 += A/2
+	PRINTFORML %EXPNAME_E(3)%＋{A/2}
+ENDIF
+
+IF CFLAG:B:101 > 1 && CFLAG:B:108 == 0
+	EXP:B:5 += A/2
+	CFLAG:B:101 += A/2
+ENDIF
+
+EXP:E:3 += A/2
+EXP:B:0 += A/2
+EXP:B:2 += A/4
+EXP:E:2 += A/4
+EXP:B:4 += A/2
+EXP:E:4 += A/2
+EXP:B:20 += A/2
+EXP:B:22 += A/4
+JUEL:B:1 += A*100
+PRINTFORML %EXPNAME_E(3)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(0)%＋{A/2}
+PRINTFORML %EXPNAME_E(2)%＋{A/4}
+PRINTFORML %EXPNAME_E(2)%(%CALLNAME:E%)＋{A/4}
+PRINTFORML %EXPNAME_E(4)%＋{A/2}
+PRINTFORML %EXPNAME_E(4)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(20)%＋{A/2}
+PRINTFORML %EXPNAME_E(22)%＋{A/4}
+PRINTFORML %PALAMNAME_E(1)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*60}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*40}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+JUEL:B:5 += A*60
+JUEL:B:7 += A*40
+JUEL:B:8 += A*40
+PRINTL 
+PRINTFORMW After doing it \@ (A/2) > 1 ? {A/2} times # \@, their desire satified, the two fell into a deep sleep while huddled together...
+;{A/2}回の行為の後、想いを遂げた二人は繋がったまま抱き合い、深い眠りに落ちた……
+
+DRAWLINE
+
+RETURN 0
+
+
+;夜這い（対象C 相手A）
+@SELF_NIGHT31
+DRAWLINE
+TFLAG:13 = 31
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;ＡSensitivity
+IF ABL:B:5 <= 2
+	A += 1
+ELSEIF ABL:B:5 <= 4
+	A += 2
+ELSEIF ABL:B:5 <= 7
+	A += 3
+ELSEIF ABL:B:5 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:5 - 10) / 3
+ENDIF
+
+;ＣSensitivity（対象）
+IF ABL:E:3 <= 2
+	A += 1
+ELSEIF ABL:E:3 <= 4
+	A += 2
+ELSEIF ABL:E:3 <= 7
+	A += 3
+ELSEIF ABL:E:3 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:E:3 - 10) / 3
+ENDIF
+
+;SemenAddict
+IF ABL:B:16 <= 1
+	A += 1
+ELSEIF ABL:B:16 <= 2
+	A += 2
+ELSEIF ABL:B:16 <= 5
+	A += 3
+ELSEIF ABL:B:16 <= 7
+	A += 4
+ELSEIF ABL:B:16 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:16 - 10) / 3
+ENDIF
+
+;SexAddict
+IF ABL:B:18 <= 1
+	A += 1
+ELSEIF ABL:B:18 <= 2
+	A += 2
+ELSEIF ABL:B:18 <= 4
+	A += 3
+ELSEIF ABL:B:18 <= 6
+	A += 4
+ELSEIF ABL:B:18 <= 8
+	A += 5
+ELSEIF ABL:B:18 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:18 - 10) / 3
+ENDIF
+
+;娼婦
+SIF TALENT:B:7
+	A += 1
+;献身的
+SIF TALENT:B:63
+	A += 1
+;尻穴狂い
+SIF TALENT:B:76
+	A += 2
+;ＡSensitive
+SIF TALENT:B:106
+	A += 1
+;獰猛もしくは狡猾
+SIF TALENT:B:202 || TALENT:B:205
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,E)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:E%)+{A}
+	EXP:B:40 += A
+	EXP:E:40 += A
+ELSEIF IS_GAY(B,E)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	PRINTFORML %EXPNAME_E(41)%(%CALLNAME:E%)+{A}
+	EXP:B:41 += A
+	EXP:E:41 += A
+ENDIF
+
+EXP:E:3 += A/2
+PRINTFORML %EXPNAME_E(3)%(%CALLNAME:E%)＋{A/2}
+
+IF HAVE_PENIS(B)
+	EXP:B:3 += A/2
+	PRINTFORML %EXPNAME_E(3)%＋{A/2}
+ENDIF
+
+EXP:B:1 += A/2
+EXP:B:2 += A/4
+EXP:E:2 += A/4
+EXP:B:4 += A/2
+EXP:E:4 += A/2
+EXP:B:20 += A/2
+JUEL:B:2 += A*100
+JUEL:B:5 += A*70
+JUEL:B:7 += A*30
+JUEL:B:8 += A*40
+PRINTFORML %EXPNAME_E(1)%＋{A/2}
+PRINTFORML %EXPNAME_E(2)%＋{A/4}
+PRINTFORML %EXPNAME_E(2)%(%CALLNAME:E%)＋{A/4}
+PRINTFORML %EXPNAME_E(4)%＋{A/2}
+PRINTFORML %EXPNAME_E(4)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(20)%＋{A/2}
+PRINTFORML %PALAMNAME_E(2)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*70}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*30}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+PRINTL 
+PRINTFORMW After doing it \@ (A/2) > 1 ? {A/2} times # \@, %CALLNAME:E% fell asleep on your chest...
+;{A/2}回の行為の後、そのままあなたの胸の上で眠ってしまった……
+
+DRAWLINE
+
+RETURN 0
+
+
+;夜這い（対象V 相手C）
+@SELF_NIGHT32
+DRAWLINE
+TFLAG:13 = 32
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 2
+ELSEIF ABL:B:1 <= 4
+	A = 3
+ELSEIF ABL:B:1 <= 7
+	A = 4
+ELSEIF ABL:B:1 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;ＣSensitivity
+IF ABL:B:3 <= 2
+	A += 2
+ELSEIF ABL:B:3 <= 4
+	A += 3
+ELSEIF ABL:B:3 <= 7
+	A += 4
+ELSEIF ABL:B:3 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:3 - 10) / 3
+ENDIF
+
+;ＶSensitivity（対象）
+IF ABL:E:4 <= 2
+	A += 1
+ELSEIF ABL:E:4 <= 4
+	A += 2
+ELSEIF ABL:E:4 <= 7
+	A += 3
+ELSEIF ABL:E:4 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:E:4 - 10) / 3
+ENDIF
+
+;SexAddict
+IF ABL:B:18 <= 1
+	A += 1
+ELSEIF ABL:B:18 <= 2
+	A += 2
+ELSEIF ABL:B:18 <= 4
+	A += 3
+ELSEIF ABL:B:18 <= 6
+	A += 4
+ELSEIF ABL:B:18 <= 8
+	A += 5
+ELSEIF ABL:B:18 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:18 - 10) / 3
+ENDIF
+
+;自慰狂い
+SIF TALENT:B:74
+	A += 2
+;ＣSensitive
+SIF TALENT:B:102
+	A += 1
+;獰猛もしくは残虐
+SIF TALENT:B:202 || TALENT:B:207
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,E)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:E%)+{A}
+	EXP:B:40 += A
+	EXP:E:40 += A
+ENDIF
+
+EXP:B:3 += A/2
+PRINTFORML %EXPNAME_E(3)%＋{A/2}
+
+IF HAVE_PENIS(E)
+	EXP:E:3 += A/2
+	PRINTFORML %EXPNAME_E(3)%(%CALLNAME:E%)＋{A/2}
+ENDIF
+
+IF CFLAG:E:101 > 1 && CFLAG:E:108 == 0
+	EXP:E:5 += A/2
+	CFLAG:E:101 += A/2
+ENDIF
+
+EXP:E:0 += A/2
+EXP:B:2 += A/4
+EXP:E:2 += A/4
+EXP:B:4 += A/2
+EXP:E:4 += A/2
+PRINTFORML %EXPNAME_E(20)%＋{A/2}
+JUEL:B:0 += A*100
+JUEL:B:5 += A*50
+JUEL:B:6 += A*60
+JUEL:B:8 += A*40
+PRINTFORML %EXPNAME_E(0)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(2)%＋{A/4}
+PRINTFORML %EXPNAME_E(2)%(%CALLNAME:E%)＋{A/4}
+PRINTFORML %EXPNAME_E(4)%＋{A/2}
+PRINTFORML %EXPNAME_E(4)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(20)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*50}
+PRINTFORML %PALAMNAME_E(6)% Orbs＋{A*60}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+PRINTL 
+PRINTFORMW After %CALLNAME:B% came inside \@ (A/2) > 1 ? {A/2} times # \@, you fell asleep while cuddled together...
+;%CALLNAME:B%は膣内に{A/2}回精液を吐き出すと、二人交わったまま眠りについた……
+
+DRAWLINE
+
+RETURN 0
+
+
+;夜這い（対象A 相手C）
+@SELF_NIGHT33
+DRAWLINE
+TFLAG:13 = 33
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 2
+ELSEIF ABL:B:1 <= 4
+	A = 3
+ELSEIF ABL:B:1 <= 7
+	A = 4
+ELSEIF ABL:B:1 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;ＣSensitivity
+IF ABL:B:3 <= 2
+	A += 2
+ELSEIF ABL:B:3 <= 4
+	A += 3
+ELSEIF ABL:B:3 <= 7
+	A += 4
+ELSEIF ABL:B:3 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:3 - 10) / 3
+ENDIF
+
+;ＡSensitivity（対象）
+IF ABL:E:5 <= 2
+	A += 1
+ELSEIF ABL:E:5 <= 4
+	A += 2
+ELSEIF ABL:E:5 <= 7
+	A += 3
+ELSEIF ABL:E:5 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:E:5 - 10) / 3
+ENDIF
+
+;SexAddict
+IF ABL:B:18 <= 1
+	A += 1
+ELSEIF ABL:B:18 <= 2
+	A += 2
+ELSEIF ABL:B:18 <= 4
+	A += 3
+ELSEIF ABL:B:18 <= 6
+	A += 4
+ELSEIF ABL:B:18 <= 8
+	A += 5
+ELSEIF ABL:B:18 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:18 - 10) / 3
+ENDIF
+
+;自慰狂い
+SIF TALENT:B:74
+	A += 2
+;ＣSensitive
+SIF TALENT:B:102
+	A += 1
+;獰猛もしくは残虐
+SIF TALENT:B:202 || TALENT:B:207
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,E)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:E%)+{A}
+	EXP:B:40 += A
+	EXP:E:40 += A
+ELSEIF IS_GAY(B,E)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	PRINTFORML %EXPNAME_E(41)%(%CALLNAME:E%)+{A}
+	EXP:B:41 += A
+	EXP:E:41 += A
+ENDIF
+
+EXP:B:3 += A/2
+PRINTFORML %EXPNAME_E(3)%＋{A/2}
+
+IF HAVE_PENIS(E)
+	EXP:E:3 += A/2
+	PRINTFORML %EXPNAME_E(3)%(%CALLNAME:E%)＋{A/2}
+ENDIF
+
+EXP:E:1 += A/2
+EXP:B:2 += A/4
+EXP:E:2 += A/4
+EXP:B:4 += A/2
+EXP:E:4 += A/2
+PRINTFORML %EXPNAME_E(20)%＋{A/2}
+JUEL:B:0 += A*100
+JUEL:B:5 += A*40
+JUEL:B:6 += A*70
+JUEL:B:8 += A*40
+PRINTFORML %EXPNAME_E(1)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(2)%＋{A/4}
+PRINTFORML %EXPNAME_E(2)%(%CALLNAME:E%)＋{A/4}
+PRINTFORML %EXPNAME_E(4)%＋{A/2}
+PRINTFORML %EXPNAME_E(4)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %EXPNAME_E(20)%(%CALLNAME:E%)＋{A/2}
+PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*40}
+PRINTFORML %PALAMNAME_E(6)% Orbs＋{A*70}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+PRINTL 
+PRINTFORMW After cumming inside %CALLNAME:E% \@ (A/2) > 1 ? {A/2} times # \@, you fell asleep, feeling statisfied...
+;%CALLNAME:E%の腸内に{A/2}回精液を吐き出すと、満足して眠りについた……
+
+DRAWLINE
+
+RETURN 0
+
+
+;夜這い（両者C（素股）・両者C（貝合わせ））
+@SELF_NIGHT34
+DRAWLINE
+TFLAG:13 = 34
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 2
+ELSEIF ABL:B:1 <= 4
+	A = 3
+ELSEIF ABL:B:1 <= 7
+	A = 4
+ELSEIF ABL:B:1 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;Servicing
+IF ABL:B:7 <= 2
+	A += 1
+ELSEIF ABL:B:7 <= 4
+	A += 2
+ELSEIF ABL:B:7 <= 7
+	A += 3
+ELSEIF ABL:B:7 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:7 - 10) / 3
+ENDIF
+
+;ＣSensitivity
+IF ABL:B:3 <= 2
+	A += 2
+ELSEIF ABL:B:3 <= 4
+	A += 3
+ELSEIF ABL:B:3 <= 7
+	A += 4
+ELSEIF ABL:B:3 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:3 - 10) / 3
+ENDIF
+
+;ＣSensitivity（対象）
+IF ABL:E:3 <= 2
+	A += 1
+ELSEIF ABL:E:3 <= 4
+	A += 2
+ELSEIF ABL:E:3 <= 7
+	A += 3
+ELSEIF ABL:E:3 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:E:3 - 10) / 3
+ENDIF
+
+;自慰狂い
+SIF TALENT:B:74
+	A += 2
+;ＣSensitive
+SIF TALENT:B:102
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,E)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:E%)+{A}
+	EXP:B:40 += A
+	EXP:E:40 += A
+ENDIF
+
+IF Y == 1
+	EXP:E:3 += A/2
+	EXP:B:20 += A
+	PRINTFORML %EXPNAME_E(3)%(%CALLNAME:E%)＋{A/2}
+	PRINTFORML %EXPNAME_E(20)%＋{A}
+ELSEIF HAVE_PENIS(B)
+	EXP:B:3 += A/2
+	EXP:E:20 += A
+	PRINTFORML %EXPNAME_E(3)%＋{A/2}
+	PRINTFORML %EXPNAME_E(20)%(%CALLNAME:E%)＋{A}
+ENDIF
+
+EXP:B:2 += A/4
+EXP:E:2 += A/4
+JUEL:B:0 += A*100
+JUEL:B:5 += A*50
+JUEL:B:6 += A*50
+JUEL:B:8 += A*40
+PRINTFORML %EXPNAME_E(2)%＋{A/4}
+PRINTFORML %EXPNAME_E(2)%(%CALLNAME:E%)＋{A/4}
+PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*50}
+PRINTFORML %PALAMNAME_E(6)% Orbs＋{A*50}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+PRINTL 
+PRINTFORMW Afterwards, they fell asleep while huddled together...
+;その後、二人は抱き合ったまま眠りに落ちていった……
+
+DRAWLINE
+
+RETURN 0
+
+
+;夜自慰
+@SELF_NIGHT35
+DRAWLINE
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;Exhibitionism
+IF ABL:B:8 <= 2
+	A += 1
+ELSEIF ABL:B:8 <= 4
+	A += 2
+ELSEIF ABL:B:8 <= 7
+	A += 3
+ELSEIF ABL:B:8 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:8 - 10) / 4
+ENDIF
+
+;MasturbAddict
+IF ABL:B:15 <= 2
+	A += 2
+ELSEIF ABL:B:15 <= 4
+	A += 3
+ELSEIF ABL:B:15 <= 7
+	A += 4
+ELSEIF ABL:B:15 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:15 - 10) / 4
+ENDIF
+
+;自慰しやすい
+SIF TALENT:B:60
+	A += 2
+;自慰狂い（Cだと重複するので他より弱く）
+SIF TALENT:B:74
+	A += 1
+
+;CVAB判定
+$LOOP_N_M
+IF TALENT:B:140
+	R = RAND:3
+ELSE
+	R = RAND:4
+ENDIF
+
+IF R == 0
+	;C判定
+	TFLAG:13 = 35
+	CALL KOJO_MESSAGE_EVENT
+	;ＣSensitivity
+	IF ABL:B:3 <= 2
+		A += 1
+	ELSEIF ABL:B:3 <= 4
+		A += 2
+	ELSEIF ABL:B:3 <= 7
+		A += 3
+	ELSEIF ABL:B:3 <= 10
+		A += 4
+	ELSE
+		A += 4 + (ABL:B:3 - 10) / 3
+	ENDIF
+	;自慰狂い
+	SIF TALENT:B:74
+		A += 2
+	;ＣSensitive
+	SIF TALENT:B:102
+		A += 1
+	SIF A == 0
+		A = 1
+	IF HAVE_PENIS(B)
+		EXP:B:3 += A/2
+		PRINTFORML %EXPNAME_E(3)%＋{A/2}
+		IF ABL:B:8 >= 5
+			;BUKKAKE
+			EXP:E:20 += A/2
+			PRINTFORML %EXPNAME_E(20)%(%CALLNAME:E%)＋{A/2}
+		ENDIF
+	ENDIF
+	JUEL:B:0 += A*60
+	PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*60}
+ELSEIF R == 1
+	;A判定（A感覚2以上）
+	IF  ABL:B:5 >= 2
+		TFLAG:13 = 35
+		CALL KOJO_MESSAGE_EVENT
+		;ＡSensitivity
+		IF ABL:B:5 <= 2
+			A += 1
+		ELSEIF ABL:B:5 <= 4
+			A += 2
+		ELSEIF ABL:B:5 <= 7
+			A += 3
+		ELSEIF ABL:B:5 <= 10
+			A += 4
+		ELSE
+			A += 4 + (ABL:B:5 - 10) / 3
+		ENDIF
+		;尻穴狂い
+		SIF TALENT:B:76
+			A += 2
+		;ＡSensitive
+		SIF TALENT:B:106
+			A += 1
+		SIF A == 0
+			A = 1
+		EXP:B:1 += A/2
+		PRINTFORML %EXPNAME_E(1)%＋{A/2}
+		JUEL:B:2 += A*60
+		PRINTFORML %PALAMNAME_E(2)% Orbs＋{A*60}
+	ELSE
+		GOTO LOOP_N_M
+	ENDIF
+ELSEIF R == 2
+	;B判定
+	TFLAG:13 = 35
+	CALL KOJO_MESSAGE_EVENT
+	;ＢSensitivity
+	IF ABL:B:6 <= 2
+		A += 1
+	ELSEIF ABL:B:6 <= 4
+		A += 2
+	ELSEIF ABL:B:6 <= 7
+		A += 3
+	ELSEIF ABL:B:6 <= 10
+		A += 4
+	ELSE
+		A += 4 + (ABL:B:6 - 10) / 3
+	ENDIF
+	;淫乳
+	SIF TALENT:B:77
+		A += 2
+	;ＢSensitive
+	SIF TALENT:B:108
+		A += 1
+	SIF A == 0
+		A = 1
+	IF TALENT:B:149
+		EXP:B:54 += A/2
+		PRINTFORML %EXPNAME_E(54)%＋{A/2}
+	ENDIF
+	JUEL:B:3 += A*60
+	PRINTFORML %PALAMNAME_E(3)% Orbs＋{A*60}
+ELSEIF R == 3
+	;V判定（処女及び再生処女を持っていない）
+	IF TALENT:B:0 == 0 && TALENT:B:1 == 0
+		TFLAG:13 = 35
+		CALL KOJO_MESSAGE_EVENT
+		;ＶSensitivity
+		IF ABL:B:4 <= 2
+			A += 1
+		ELSEIF ABL:B:4 <= 4
+			A += 2
+		ELSEIF ABL:B:4 <= 7
+			A += 3
+		ELSEIF ABL:B:4 <= 10
+			A += 4
+		ELSE
+			A += 4 + (ABL:B:4 - 10) / 3
+		ENDIF
+		;セックス狂
+		SIF TALENT:B:75
+			A += 2
+		;ＶSensitive
+		SIF TALENT:B:104
+			A += 1
+		SIF A == 0
+			A = 1
+		EXP:B:0 += A/2
+		PRINTFORML %EXPNAME_E(0)%＋{A/2}
+		JUEL:B:1 += A*60
+		PRINTFORML %PALAMNAME_E(1)% Orbs＋{A*60}
+	ELSE
+		GOTO LOOP_N_M
+	ENDIF
+ENDIF
+
+EXP:B:2 += A/4
+EXP:B:10 += A/2
+JUEL:B:6 += A*50
+JUEL:B:7 += A*30
+JUEL:B:8 += A*40
+JUEL:B:9 += A*30
+PRINTFORML %EXPNAME_E(2)%＋{A/4}
+PRINTFORML %EXPNAME_E(10)%＋{A/2}
+PRINTFORML %PALAMNAME_E(6)% Orbs＋{A*50}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*30}
+PRINTFORML %PALAMNAME_E(8)% Orbs＋{A*40}
+PRINTFORMW %PALAMNAME_E(9)% Orbs＋{A*30}
+PRINTL 
+PRINTFORMW When it was over, %CALLNAME:B% fell asleep with a satified sigh.
+;行為が終わると、%CALLNAME:B%は小さくため息をついて眠りに落ちた
+
+DRAWLINE
+
+RETURN 0
+
+
+;一緒に寝る
+@SELF_NIGHT36
+DRAWLINE
+TFLAG:13 = 36
+CALL KOJO_MESSAGE_EVENT
+
+;Obedience
+IF ABL:B:0 <= 6
+	A = 3
+ELSEIF ABL:B:0 <= 8
+	A = 4
+ELSEIF ABL:B:0 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:0 - 10) / 4
+ENDIF
+
+;Servicing
+IF ABL:B:7 <= 6
+	A += 4
+ELSEIF ABL:B:7 <= 8
+	A += 5
+ELSEIF ABL:B:7 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:7 - 10) / 3
+ENDIF
+
+;親愛
+SIF TALENT:B:6
+	A += 1
+;幼児／幼児退行または幼稚
+SIF TALENT:B:150 || TALENT:B:151
+	A += 2
+;妻または夫
+SIF TALENT:B:170 || TALENT:B:171
+	A += 1
+;子供
+SIF TALENT:B:175
+	A += 2
+;友愛
+SIF TALENT:B:201
+	A += 1
+
+SIF A == 0
+	A = 1
+
+EXP:B:23 += A/4
+EXP:E:23 += A/4
+
+;幼児／幼児退行または幼稚且つ対象が歌唱技能3以上
+IF (TALENT:B:150 || TALENT:B:151) && ABL:E:14 >= 3
+	EXP:E:64 += A/5
+	PRINTFORML %EXPNAME_E(64)%(%CALLNAME:E%) ＋{A/5}
+ENDIF
+
+JUEL:B:5 += A*100
+PRINTFORML %EXPNAME_E(23)%＋{A/4}
+PRINTFORML %EXPNAME_E(23)%(%CALLNAME:E%)＋{A/4}
+PRINTFORMW %PALAMNAME_E(5)% Orbs ＋{A*100}
+PRINTL 
+IF TALENT:B:150 || TALENT:B:151
+	PRINTFORMW %CALLNAME:B% is sleeping with a peaceful expression on %HIS_HER(B)% face.
+	;は安らかな表情で寝息を立てている
+ELSE
+	PRINTFORMW %CALLNAME:B% fell asleep with a joyful expresson on %HIS_HER(B)% face.
+	;は小さくおやすみを言って眠りについた
+ENDIF
+
+DRAWLINE
+
+RETURN 0
+
+;-------------------------------------------------
+;朝イベント1
+;-------------------------------------------------
+@EVENT_NEWDAY_SELF
+;ランダムに発生するかとチェックし、実行不可ならば再度チェック
+;当たり9ハズレ2。実行可能に当たる前にハズレに当たったら終了
+;ただし、上位の陥落素質ががあれば必ず発生
+SIF B == -1
+	RETURN 0
+;上司に連れて行かれると除外
+SIF CFLAG:B:上司来襲 == 1
+	RETURN 0
+	
+LOCAL = TARGET
+TARGET = B
+$LOOP_M
+IF TALENT:B:6 || TALENT:B:7 || TALENT:B:8
+	R = RAND:9
+ELSE
+	R = RAND:11
+ENDIF
+;実行者の主人への好感度が他のキャラへの好感度より高いと必ずハズレ
+	FOR G, 0, CHARANUM
+		SIF G != MASTER && FAVORITE(B,G) > FAVORITE(B,MASTER)
+			R = 11
+	NEXT
+	
+;構ったフラグ
+IF FLAG:ＮＴＲ機能
+	CFLAG:B:構ったフラグ = 1
+ENDIF
+	
+IF R == 0
+	;朝騎乗位/貝合わせ判定
+	IF ((TALENT:B:0 == 0 && TALENT:B:1 == 0 && ABL:B:4 >= 3 && ABL:B:7 >= 7 && Y == 1) || (ABL:B:3 >= 3 && ABL:B:7 >= 7 && Y == 0)) && !IS_MALE(B)
+		CALL SELF_MORNING_3
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 1
+	;朝騎乗位A判定(VかAか、処女かオトコか判定以外基本的に騎乗位と同じ)
+	IF ABL:B:5 >= 3 && ABL:B:7 >= 7 && Y == 1
+		CALL SELF_MORNING_24
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 2
+	;朝パイズリ判定
+	IF ABL:B:7 >= 5 && TALENT:B:110 == 0 && !IS_MALE(B) && Y == 1
+		CALL SELF_MORNING_2
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 3
+	;朝キス判定(奉仕精神が6以上、恋慕または親愛が必要)
+	IF ABL:B:7 >= 6 && (TALENT:B:3 || TALENT:B:6)
+		CALL SELF_MORNING_25
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 4
+	;朝フェラ/クンニ判定
+	CALL SELF_MORNING_1
+ELSEIF R == 5
+	;朝食判定(奉仕精神が6以上、料理技能3以上が必要)
+	IF ABL:B:7 >= 6 && ABL:B:12 >= 3
+		CALL SELF_MORNING_26
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 6
+	;起きたら隣で寝てる判定(恋慕または親愛が必要)
+	IF TALENT:B:3 || TALENT:B:6
+		CALL SELF_MORNING_27
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 7
+	;朝の足コキ判定(サドっ気1以上が必要)
+	IF ABL:B:10 >= 1 && (HAVE_PENIS(MASTER))
+		CALL SELF_MORNING_28
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSEIF R == 8
+	;お寝小判定(おもらし癖が必要)
+	IF TALENT:B:57 == 1
+		CALL SELF_MORNING_30
+	ELSE
+		GOTO LOOP_M
+	ENDIF
+ELSE
+	TARGET = LOCAL
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;朝イベント2
+;-------------------------------------------------
+;上位の陥落素質があれば半分の確率で発生
+IF TALENT:B:6 || TALENT:B:7 || TALENT:B:8
+	R = RAND:2
+ELSE
+	R = RAND:4
+ENDIF
+
+IF R == 0
+	;朝の搾りたてミルク判定(奉仕精神が6以上、母乳体質、噴乳中毒1以上、が必要)
+	IF ABL:B:7 >= 6 && TALENT:B:149 && ABL:B:19 >= 1
+		CALL SELF_MORNING_29
+	ENDIF
+ENDIF
+TARGET = LOCAL
+RETURN 0
+
+;-------------------------------------------------
+;朝イベント ソースの計算
+;-------------------------------------------------
+;朝騎乗位/貝合わせ
+@SELF_MORNING_3
+DRAWLINE
+TFLAG:13 = 3
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+IF Y == 1
+;騎乗位
+	;ＶSensitivity
+	IF ABL:B:4 <= 2
+		A += 1
+	ELSEIF ABL:B:4 <= 4
+		A += 2
+	ELSEIF ABL:B:4 <= 7
+		A += 3
+	ELSEIF ABL:B:4 <= 10
+		A += 4
+	ELSE
+		A += 4 + (ABL:B:4 - 10) / 3
+	ENDIF
+
+	;SemenAddict
+	IF ABL:B:16 <= 1
+		A += 1
+	ELSEIF ABL:B:16 <= 2
+		A += 2
+	ELSEIF ABL:B:16 <= 5
+		A += 3
+	ELSEIF ABL:B:16 <= 7
+		A += 4
+	ELSEIF ABL:B:16 <= 10
+		A += 5
+	ELSE
+		A += 5 + (ABL:B:16 - 10) / 4
+	ENDIF
+
+	;SexAddict
+	IF ABL:B:18 <= 1
+		A += 1
+	ELSEIF ABL:B:18 <= 2
+		A += 2
+	ELSEIF ABL:B:18 <= 4
+		A += 3
+	ELSEIF ABL:B:18 <= 6
+		A += 4
+	ELSEIF ABL:B:18 <= 8
+		A += 5
+	ELSEIF ABL:B:18 <= 10
+		A += 6
+	ELSE
+		A += 6 + (ABL:B:18 - 10) / 3
+	ENDIF
+
+	;セックス狂
+	SIF TALENT:B:75
+		A += 2
+	;ＶSensitive
+	SIF TALENT:B:104
+		A += 1
+ELSE
+;貝合わせの場合暫定措置で、レズっ気及びレズ中毒を代入
+;コマンド貝合わせはSexEXP入らないので…
+	;ＣSensitivity
+	IF ABL:B:3 <= 2
+		A += 1
+	ELSEIF ABL:B:3 <= 4
+		A += 2
+	ELSEIF ABL:B:3 <= 7
+		A += 3
+	ELSEIF ABL:B:3 <= 10
+		A += 4
+	ELSE
+		A += 4 + (ABL:B:3 - 10) / 3
+	ENDIF
+
+	;Lesbianism
+	IF ABL:B:11 <= 1
+		A += 1
+	ELSEIF ABL:B:11 <= 2
+		A += 2
+	ELSEIF ABL:B:11 <= 5
+		A += 3
+	ELSEIF ABL:B:11 <= 7
+		A += 4
+	ELSEIF ABL:B:11 <= 11
+		A += 5
+	ELSE
+		A += 5 + (ABL:B:11 - 10) / 4
+	ENDIF
+
+	;LesbianAddict
+	IF ABL:B:17 <= 1
+		A += 1
+	ELSEIF ABL:B:17 <= 2
+		A += 2
+	ELSEIF ABL:B:17 <= 4
+		A += 3
+	ELSEIF ABL:B:17 <= 6
+		A += 4
+	ELSEIF ABL:B:17 <= 8
+		A += 5
+	ELSEIF ABL:B:17 <= 10
+		A += 6
+	ELSE
+		A += 6 + (ABL:B:17 - 10) / 3
+	ENDIF
+
+	;ＣSensitive
+	SIF TALENT:B:102
+		A += 1
+ENDIF
+
+;娼婦
+SIF TALENT:B:7
+	A += 1
+;献身的
+SIF TALENT:B:63
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,MASTER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:40 += A
+	EXP:MASTER:40 += A
+ENDIF
+
+IF Y == 1
+	;騎乗位
+	EXP:MASTER:3 += A/2
+	PRINTFORML %EXPNAME_E(3)%(%CALLNAME:MASTER%)＋{A/2}
+	IF HAVE_PENIS(B) && !IS_MALE(TARGET)
+		EXP:B:3 += A/2
+		EXP:B:20 += A
+		PRINTFORML %EXPNAME_E(3)%＋{A/2}
+		PRINTFORML %EXPNAME_E(20)%＋{A}
+	ELSE
+		EXP:B:20 += A/2
+		PRINTFORML %EXPNAME_E(20)%＋{A/2}
+	ENDIF
+
+	IF CFLAG:B:101 > 1 && CFLAG:B:108 == 0
+		EXP:B:5 += A/2
+		CFLAG:B:101 += A/2
+	ENDIF
+
+	EXP:B:0 += A/2
+	EXP:B:4 += A/2
+	JUEL:B:1 += A*100
+	PRINTFORML %EXPNAME_E(0)%＋{A/2}
+	PRINTFORML %EXPNAME_E(4)%＋{A/2}
+	SIF EXP:B:5 > 0 && (TALENT:B:3 || TALENT:B:6)
+		PRINTFORML %EXPNAME_E(5)%＋{A/2}
+	PRINTFORML %PALAMNAME_E(1)% Orbs＋{A*100}
+ELSE
+	;貝合わせ
+	JUEL:B:0 += A*100
+	PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*20}
+ENDIF
+
+JUEL:B:5 += A*70
+JUEL:B:7 += A*30
+JUEL:B:8 += A*40
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*70}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*30}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+DRAWLINE
+
+RETURN 0
+
+
+;朝騎乗位A
+@SELF_MORNING_24
+DRAWLINE
+TFLAG:13 = 24
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;ＡSensitivity
+IF ABL:B:5 <= 2
+	A += 1
+ELSEIF ABL:B:5 <= 4
+	A += 2
+ELSEIF ABL:B:5 <= 7
+	A += 3
+ELSEIF ABL:B:5 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:5 - 10) / 3
+ENDIF
+
+;SemenAddict
+IF ABL:B:16 <= 1
+	A += 1
+ELSEIF ABL:B:16 <= 2
+	A += 2
+ELSEIF ABL:B:16 <= 5
+	A += 3
+ELSEIF ABL:B:16 <= 7
+	A += 4
+ELSEIF ABL:B:16 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:16 - 10) / 3
+ENDIF
+
+;SexAddict
+IF ABL:B:18 <= 1
+	A += 1
+ELSEIF ABL:B:18 <= 2
+	A += 2
+ELSEIF ABL:B:18 <= 4
+	A += 3
+ELSEIF ABL:B:18 <= 6
+	A += 4
+ELSEIF ABL:B:18 <= 8
+	A += 5
+ELSEIF ABL:B:18 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:18 - 10) / 3
+ENDIF
+
+;娼婦
+SIF TALENT:B:7
+	A += 1
+;献身的
+SIF TALENT:B:63
+	A += 1
+;尻穴狂い
+SIF TALENT:B:76
+	A += 2
+;ＡSensitive
+SIF TALENT:B:106
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,MASTER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:40 += A
+	EXP:MASTER:40 += A
+ELSEIF IS_GAY(B,MASTER)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	PRINTFORML %EXPNAME_E(41)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:41 += A
+	EXP:MASTER:41 += A
+ENDIF
+
+EXP:MASTER:3 += A/2
+PRINTFORML %EXPNAME_E(3)%(%CALLNAME:MASTER%)＋{A/2}
+
+IF HAVE_PENIS(B)
+	EXP:B:3 += A/2
+	EXP:B:20 += A
+	PRINTFORML %EXPNAME_E(3)%＋{A/2}
+	PRINTFORML %EXPNAME_E(20)%＋{A}
+ELSE
+	EXP:B:20 += A/2
+	PRINTFORML %EXPNAME_E(20)%＋{A/2}
+ENDIF
+
+EXP:B:1 += A/2
+EXP:B:4 += A/2
+JUEL:B:2 += A*100
+JUEL:B:5 += A*70
+JUEL:B:7 += A*30
+JUEL:B:8 += A*40
+PRINTFORML %EXPNAME_E(1)%＋{A/2}
+PRINTFORML %EXPNAME_E(4)%＋{A/2}
+PRINTFORML %PALAMNAME_E(2)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*70}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*30}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*40}
+DRAWLINE
+
+RETURN 0
+
+
+;朝パイズリ
+@SELF_MORNING_2
+DRAWLINE
+TFLAG:13 = 2
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;ＢSensitivity
+IF ABL:B:6 <= 2
+	A += 1
+ELSEIF ABL:B:6 <= 4
+	A += 2
+ELSEIF ABL:B:6 <= 7
+	A += 3
+ELSEIF ABL:B:6 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:6 - 10) / 3
+ENDIF
+
+;SemenAddict
+IF ABL:B:16 <= 1
+	A += 1
+ELSEIF ABL:B:16 <= 2
+	A += 2
+ELSEIF ABL:B:16 <= 5
+	A += 3
+ELSEIF ABL:B:16 <= 7
+	A += 4
+ELSEIF ABL:B:16 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:16 - 10) / 3
+ENDIF
+
+;MilkingAddict
+IF TALENT:B:149
+	IF ABL:B:19 <= 2
+		A += 1
+	ELSEIF ABL:B:19 <= 4
+		A += 2
+	ELSEIF ABL:B:19 <= 7
+		A += 3
+	ELSEIF ABL:B:19 <= 10
+		A += 4
+	ELSE
+		A += 4 + (ABL:B:19 - 10) / 4
+	ENDIF
+ENDIF
+
+;隷属
+SIF TALENT:B:8
+	A += 1
+;汚臭鈍感
+SIF TALENT:B:61
+	A += 1
+;汚臭敏感
+SIF TALENT:B:62
+	A -= 1
+;献身的
+SIF TALENT:B:63
+	A += 1
+;淫乳
+SIF TALENT:B:77
+	A += 2
+;ＢSensitive
+SIF TALENT:B:108
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,MASTER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:40 += A
+	EXP:MASTER:40 += A
+ENDIF
+
+EXP:MASTER:3 += A/2
+PRINTFORML %EXPNAME_E(3)%(%CALLNAME:MASTER%)＋{A/2}
+
+EXP:B:22 += A
+EXP:B:20 += A/2
+SIF TALENT:B:149
+	EXP:B:54 += A/2
+JUEL:B:3 += A*80
+JUEL:B:5 += A*100
+JUEL:B:7 += A*30
+JUEL:B:8 += A*70
+PRINTFORML %EXPNAME_E(22)%＋{A}
+PRINTFORML %EXPNAME_E(20)%＋{A/2}
+SIF TALENT:B:149
+	PRINTFORML %EXPNAME_E(54)%＋{A/2}
+PRINTFORML %PALAMNAME_E(3)% Orbs＋{A*80}
+;の珠
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*100}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*30}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*70}
+DRAWLINE
+
+RETURN 0
+
+
+;朝キス
+@SELF_MORNING_25
+DRAWLINE
+TFLAG:13 = 25
+CALL KOJO_MESSAGE_EVENT
+
+;Obedience
+IF ABL:B:0 <= 6
+	A = 3
+ELSEIF ABL:B:0 <= 8
+	A = 4
+ELSEIF ABL:B:0 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:0 - 10) / 3
+ENDIF
+
+;Servicing
+IF ABL:B:7 == 6
+	A += 4
+ELSEIF ABL:B:7 <= 8
+	A += 5
+ELSEIF ABL:B:7 <= 10
+	A += 6
+ELSE
+	A += 6 + (ABL:B:7 - 10) / 2
+ENDIF
+
+;親愛
+SIF TALENT:B:6
+	A += 3
+;献身的
+SIF TALENT:B:63
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,MASTER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:MASTER%)+{A}
+	EXP:40 += A
+	EXP:MASTER:40 += A
+ELSEIF IS_GAY(B,MASTER)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	PRINTFORML %EXPNAME_E(41)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:41 += A
+	EXP:MASTER:41 += A
+ENDIF
+
+EXP:B:23 += A/2
+EXP:B:キス経験 += A/2
+JUEL:B:5 += A*80
+JUEL:B:8 += A*20
+PRINTFORML %EXPNAME_E(23)%＋{A/2}
+PRINTFORML KissEXP＋{A/2}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*80}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*20}
+DRAWLINE
+
+RETURN 0
+
+
+;朝フェラ/クンニ
+@SELF_MORNING_1
+DRAWLINE
+TFLAG:13 = 1
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;Servicing
+IF ABL:B:7 <= 2
+	A += 1
+ELSEIF ABL:B:7 <= 4
+	A += 2
+ELSEIF ABL:B:7 <= 7
+	A += 3
+ELSEIF ABL:B:7 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:7 - 10) / 3
+ENDIF
+
+IF Y == 1
+;フェラ
+	;SemenAddict
+	IF ABL:B:16 <= 1
+		A += 1
+	ELSEIF ABL:B:16 <= 2
+		A += 2
+	ELSEIF ABL:B:16 <= 5
+		A += 3
+	ELSEIF ABL:B:16 <= 7
+		A += 4
+	ELSEIF ABL:B:16 <= 10
+		A += 5
+	ELSE
+		A += 5 + (ABL:B:16 - 10) / 2
+	ENDIF
+ELSE
+;クンニ
+	;とりあえずレズ中毒
+	IF ABL:B:17 <= 1
+		A += 1
+	ELSEIF ABL:B:17 <= 2
+		A += 2
+	ELSEIF ABL:B:17 <= 4
+		A += 3
+	ELSEIF ABL:B:17 <= 6
+		A += 4
+	ELSEIF ABL:B:17 <= 8
+		A += 5
+	ELSEIF ABL:B:17 <= 10
+		A += 6
+	ELSE
+		A += 6 + (ABL:B:17 - 10) / 2
+	ENDIF
+ENDIF
+
+;隷属
+SIF TALENT:B:8
+	A += 1
+;汚臭鈍感
+SIF TALENT:B:61
+	A += 1
+;汚臭敏感
+SIF TALENT:B:62
+	A -= 1
+;献身的
+SIF TALENT:B:63
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,MASTER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:40 += A
+	EXP:MASTER:40 += A
+ELSEIF (IS_GAY(B,MASTER) && 0)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	PRINTFORML %EXPNAME_E(41)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:41 += A
+	EXP:MASTER:41 += A
+ENDIF
+
+IF Y == 1
+;フェラ
+	EXP:MASTER:3 += A/2
+	PRINTFORML %EXPNAME_E(3)%(%CALLNAME:MASTER%)＋{A/2}
+
+	EXP:B:22 += A
+	EXP:B:20 += A/2
+	PRINTFORML %EXPNAME_E(22)%＋{A}
+	PRINTFORML %EXPNAME_E(20)%＋{A/2}
+;クンニには特に無し
+ENDIF
+
+JUEL:B:5 += A*70
+JUEL:B:7 += A*30
+JUEL:B:8 += A*80
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*70}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*30}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*80}
+DRAWLINE
+
+RETURN 0
+
+
+;朝食
+@SELF_MORNING_26
+DRAWLINE
+TFLAG:13 = 26
+CALL KOJO_MESSAGE_EVENT
+
+;Obedience
+IF ABL:B:0 <= 6
+	A = 1
+ELSEIF ABL:B:0 <= 8
+	A = 2
+ELSEIF ABL:B:0 <= 10
+	A = 3
+ELSE
+	A = 3 + (ABL:B:0 - 10) / 4
+ENDIF
+
+;Servicing
+IF ABL:B:7 <= 6
+	A += 2
+ELSEIF ABL:B:7 <= 8
+	A += 3
+ELSEIF ABL:B:7 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:7 - 10) / 3
+ENDIF
+
+;Cooking
+IF ABL:B:12 <= 2
+	A += 2
+ELSEIF ABL:B:12 <= 4
+	A += 3
+ELSEIF ABL:B:12 <= 7
+	A += 4
+ELSEIF ABL:B:12 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:12 - 10) / 2
+ENDIF
+
+;楽観的または目立ちたがり且つ歌唱技能2以上
+IF (TALENT:B:25 || TALENT:B:28) && ABL:B:14 >= 2
+	IF ABL:B:14 <= 4
+		A += 1
+	ELSEIF ABL:B:14 <= 7
+		A += 2
+	ELSEIF ABL:B:14 <= 10
+		A += 3
+	ELSE
+		A += 3 + (ABL:B:14 - 10) / 4
+	ENDIF
+ENDIF
+
+;恋慕
+SIF TALENT:B:3
+	A += 1
+;親愛
+SIF TALENT:B:6
+	A += 2
+;献身的
+SIF TALENT:B:63
+	A += 1
+
+;エプロン有り
+SIF ITEM:23 == 1
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF TALENT:B:3 || TALENT:B:6
+	EXP:B:23 += A/3
+	PRINTFORML %EXPNAME_E(23)%＋{A/3}
+ENDIF
+EXP:B:61 += A/3
+SIF (TALENT:B:25 || TALENT:B:28) && ABL:B:14 >= 2
+	EXP:B:64 += A/5
+JUEL:B:5 += A*60
+JUEL:B:8 += A*70
+PRINTFORML %EXPNAME_E(61)%＋{A/3}
+SIF (TALENT:B:25 || TALENT:B:28) && ABL:B:14 >= 2
+	PRINTFORML %EXPNAME_E(64)%＋{A/5}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*60}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*70}
+DRAWLINE
+
+RETURN 0
+
+
+;起きたら隣で寝てる
+@SELF_MORNING_27
+DRAWLINE
+TFLAG:13 = 27
+CALL KOJO_MESSAGE_EVENT
+
+;Obedience
+IF ABL:B:0 <= 2
+	A = 2
+ELSEIF ABL:B:0 <= 4
+	A = 3
+ELSEIF ABL:B:0 <= 7
+	A = 4
+ELSEIF ABL:B:0 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:0 - 10) / 3
+ENDIF
+
+;Servicing
+IF ABL:B:7 <= 2
+	A += 1
+ELSEIF ABL:B:7 <= 4
+	A += 2
+ELSEIF ABL:B:7 <= 7
+	A += 3
+ELSEIF ABL:B:7 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:7 - 10) / 4
+ENDIF
+
+;親愛
+SIF TALENT:B:6
+	A += 2
+;幼児／幼児退行または幼稚
+SIF TALENT:B:150 || TALENT:B:151
+	A += 1
+;子供
+SIF TALENT:B:175
+	A += 2
+
+SIF A == 0
+	A = 1
+
+;とりあえずLesbianEXP、ＢＬEXPは無しで
+EXP:B:23 += A/4
+EXP:MASTER:23 += A/4
+JUEL:B:5 += A*60
+PRINTFORML %EXPNAME_E(23)%＋{A/4}
+PRINTFORML %EXPNAME_E(23)%(%CALLNAME:MASTER%)＋{A/4}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*60}
+DRAWLINE
+
+RETURN 0
+
+
+;朝の足コキ
+@SELF_MORNING_28
+DRAWLINE
+TFLAG:13 = 28
+CALL KOJO_MESSAGE_EVENT
+
+;Desire
+IF ABL:B:1 <= 2
+	A = 1
+ELSEIF ABL:B:1 <= 4
+	A = 2
+ELSEIF ABL:B:1 <= 7
+	A = 3
+ELSEIF ABL:B:1 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:B:1 - 10) / 4
+ENDIF
+
+;Servicing
+IF ABL:B:7 <= 6
+	A += 2
+ELSEIF ABL:B:7 <= 8
+	A += 3
+ELSEIF ABL:B:7 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:7 - 10) / 4
+ENDIF
+
+;Sadism
+IF ABL:B:10 <= 1
+	A += 2
+ELSEIF ABL:B:10 <= 3
+	A += 3
+ELSEIF ABL:B:10 <= 6
+	A += 4
+ELSEIF ABL:B:10 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:10 - 10) / 2
+ENDIF
+
+;サド
+SIF TALENT:B:83
+	A += 1
+
+SIF A == 0
+	A = 1
+
+IF IS_LESBIAN(B,MASTER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	PRINTFORML %EXPNAME_E(40)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:40 += A
+	EXP:MASTER:40 += A
+ELSEIF IS_GAY(B,MASTER)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	PRINTFORML %EXPNAME_E(41)%(%CALLNAME:MASTER%)+{A}
+	EXP:B:41 += A
+	EXP:MASTER:41 += A
+ENDIF
+
+EXP:MASTER:3 += A/2
+PRINTFORML %EXPNAME_E(3)%(%CALLNAME:MASTER%)＋{A/2}
+
+IF Y == 1
+	EXP:B:20 += A/2
+	PRINTFORML %EXPNAME_E(20)%＋{A/2}
+ENDIF
+
+EXP:B:32 += A/2
+JUEL:B:5 += A*30
+JUEL:B:8 += A*80
+PRINTFORML %EXPNAME_E(32)%＋{A/2}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*30}
+PRINTFORMW %PALAMNAME_E(8)% Orbs＋{A*80}
+DRAWLINE
+
+RETURN 0
+
+;お寝小
+@SELF_MORNING_30
+DRAWLINE
+TFLAG:13 = 30
+CALL KOJO_MESSAGE_EVENT
+
+;ＣSensitivity
+IF ABL:B:3 <= 2
+	A = 2
+ELSEIF ABL:B:3 <= 4
+	A = 3
+ELSEIF ABL:B:3 <= 7
+	A = 4
+ELSEIF ABL:B:3 <= 10
+	A = 5
+ELSE
+	A = 5 + (ABL:B:3 - 10) / 3
+ENDIF
+
+;Exhibitionism
+IF ABL:B:8 <= 2
+	A += 2
+ELSEIF ABL:B:8 <= 4
+	A += 3
+ELSEIF ABL:B:8 <= 7
+	A += 4
+ELSEIF ABL:B:8 <= 10
+	A += 5
+ELSE
+	A += 5 + (ABL:B:8 - 10) / 3
+ENDIF
+
+;自慰狂い
+SIF TALENT:B:74
+	A += 2
+;ＣSensitive
+SIF TALENT:B:102
+	A += 1
+;幼児／幼児退行または幼稚
+SIF TALENT:B:150 || TALENT:B:151
+	A += 2
+;子供は驚異的な早さで成長するので、TALENT:子供はとりあえず対象外
+
+SIF A == 0
+	A = 1
+
+EXP:B:31 += A/4
+JUEL:B:0 += A*60
+JUEL:B:7 += A*50
+JUEL:B:9 += A*40
+JUEL:B:100 += A*20
+PRINTFORML %EXPNAME_E(31)%＋{A/4}
+PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*60}
+PRINTFORML %PALAMNAME_E(7)% Orbs＋{A*50}
+PRINTFORML %PALAMNAME_E(9)% Orbs＋{A*40}
+PRINTFORMW %PALAMNAME_E(100)% Orbs＋{A*20}
+DRAWLINE
+
+RETURN 0
+
+
+;朝の搾りたてミルク
+@SELF_MORNING_29
+DRAWLINE
+TFLAG:13 = 29
+CALL KOJO_MESSAGE_EVENT
+
+;Servicing
+IF ABL:B:7 <= 6
+	A = 2
+ELSEIF ABL:B:7 <= 8
+	A = 3
+ELSEIF ABL:B:7 <= 10
+	A = 4
+ELSE
+	A = 4 + (ABL:7 - 10) / 3
+ENDIF
+
+;MilkingAddict
+IF ABL:B:19 <= 1
+	A += 1
+ELSEIF ABL:B:19 <= 3
+	A += 2
+ELSEIF ABL:B:19 <= 6
+	A += 3
+ELSEIF ABL:B:19 <= 10
+	A += 4
+ELSE
+	A += 4 + (ABL:B:19 - 10) / 2
+ENDIF
+
+;献身的
+SIF TALENT:B:63
+	A += 1
+;淫乳
+SIF TALENT:B:77
+	A += 2
+;ＢSensitive
+SIF TALENT:B:108
+	A += 1
+
+SIF A == 0
+	A = 1
+
+EXP:B:54 += A/2
+JUEL:B:3 += A*40
+JUEL:B:5 += A*60
+JUEL:B:9 += A*40
+PRINTFORML %EXPNAME_E(54)%＋{A/2}
+PRINTFORML %PALAMNAME_E(3)% Orbs＋{A*40}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*60}
+PRINTFORMW %PALAMNAME_E(9)% Orbs＋{A*40}
+DRAWLINE
+
+RETURN 0
+
+
+;-------------------------------------------------
+;調教後に起こるイベント
+;-------------------------------------------------
+@SELF_CHECK
+;強精神剤の反動
+IF TEQUIP:34 > 0 && (TFLAG:44>0 || TFLAG:45>0 || TFLAG:46>0 || TFLAG:47>0)
+	CALL SELF_CHECK3
+;調教後レズおよびＢＬプレイ、調教後セックスどちらか一つ（強精神剤の反動が起こる時は無効）
+ELSE
+	IF ASSI >= 0
+		A = NO:ASSI
+		IF (TALENT:4 || TALENT:7) && GET_RELATION(TARGET, ASSI) > 100 && BASE:0 >= 500 && TEQUIP:34 <= 2 && (IS_LESBIAN(ASSI,TARGET) || IS_GAY(ASSI,TARGET))
+			CALL SELF_CHECK1
+		ELSEIF ((TALENT:3 || TALENT:6) || ((TALENT:4 || TALENT:5 || TALENT:7 || TALENT:8) && ABL:4 >= 3)) && TALENT:0 == 0 && TALENT:1 == 0 && BASE:0 >= 500 && TEQUIP:34 <= 2 && CFLAG:MASTER:11 && (HAVE_PENIS(MASTER)) && !IS_MALE(TARGET)
+			CALL SELF_CHECK2
+		ENDIF
+	ELSEIF ((TALENT:3 || TALENT:6) || ((TALENT:4 || TALENT:5 || TALENT:7 || TALENT:8) && ABL:4 >= 3)) && TALENT:0 == 0 && TALENT:1 == 0 && BASE:0 >= 500 && TEQUIP:34 <= 2 && CFLAG:MASTER:11 && (HAVE_PENIS(MASTER)) && !IS_MALE(TARGET)
+		CALL SELF_CHECK2
+	ENDIF
+
+	;調教後搾乳、調教後自慰。どれか一つ
+	IF ABL:3 >= 4 && (ABL:19 > ABL:15) && TALENT:149 && !IS_MALE(TARGET)
+		CALL SELF_CHECK4
+	ELSEIF ABL:15
+		CALL SELF_CHECK5
+	ENDIF
+ENDIF
+
+
+;レズおよびＢＬプレイ
+@SELF_CHECK1
+;イベント口上呼び出し
+DRAWLINE
+TFLAG:13 = 4
+CALL KOJO_MESSAGE_EVENT
+
+;レズ中毒もしくはＢＬ中毒
+N = 1
+IF ABL:17 == 1 || ABL:21 == 1
+	N += 1
+ELSEIF ABL:17 == 2 || ABL:21 == 2
+	N += 2
+ELSEIF ABL:17 == 3 || ABL:21 == 3
+	N += 3
+ELSEIF ABL:17 == 4 || ABL:21 == 4
+	N += 5
+ELSEIF ABL:17 >= 5 || ABL:21 >= 5
+	N += 7
+ENDIF
+IF ABL:ASSI:17 == 1 || ABL:ASSI:21 == 1
+	N += 1
+ELSEIF ABL:ASSI:17 == 2 || ABL:ASSI:21 == 2
+	N += 2
+ELSEIF ABL:ASSI:17 == 3 || ABL:ASSI:21 == 3
+	N += 5
+ELSEIF ABL:ASSI:17 == 4 || ABL:ASSI:21 == 4
+	N += 8
+ELSEIF ABL:ASSI:17 >= 5 || ABL:ASSI:21 >= 5
+	N += 13
+ENDIF
+
+;愛称処理
+;A = NO:ASSI
+N *= GET_RELATION(TARGET, ASSI)
+N /= 100
+
+;両刀
+SIF TALENT:81
+	M += 3
+
+IF IS_LESBIAN(TARGET,ASSI)
+	PRINTFORML %EXPNAME_E(40)%＋{N*20}
+ELSEIF IS_GAY(TARGET,ASSI)
+	PRINTFORML %EXPNAME_E(41)%＋{N*20}
+ENDIF
+SIF N*100*ABL:0/500 > 0
+	PRINTFORML %EXPNAME_E(2)%＋{N*100*ABL:0/500}
+PRINTFORML %PALAMNAME_E(0)% Orbs＋{N*100*ABL:0}
+PRINTFORML %PALAMNAME_E(6)% Orbs＋{N*200}
+
+IF IS_LESBIAN(TARGET,ASSI)
+	EXP:40 += N*20
+ELSEIF IS_GAY(TARGET,ASSI)
+	EXP:41 += N*20
+ENDIF
+EXP:2 += N*100*ABL:0/500
+JUEL:0 += N*100*ABL:0
+JUEL:6 += N*200
+
+IF (TALENT:139 && TALENT:ASSI:139) || (IS_GAY(TARGET,ASSI))
+	PRINTFORML %EXPNAME_E(3)%＋{N}
+	PRINTFORML %EXPNAME_E(20)%＋{N}
+	PRINTFORML %EXPNAME_E(21)%＋{N}
+	PRINTFORML %EXPNAME_E(22)%＋{N}
+	PRINTFORML %PALAMNAME_E(6)% Orbs＋{N*100}
+	PRINTFORML %PALAMNAME_E(7)% Orbs＋{N*100}
+	PRINTFORML %PALAMNAME_E(9)% Orbs＋{N*100}
+	EXP:3 += N
+	EXP:20 += N
+	EXP:21 += N
+	EXP:22 += N
+	JUEL:6 += N*100
+	JUEL:7 += N*100
+	JUEL:9 += N*100
+ELSEIF TALENT:ASSI:139
+	PRINTFORML %EXPNAME_E(20)%＋{N}
+	PRINTFORML %PALAMNAME_E(7)% Orbs＋{N*100*(ABL:2+ABL:7)}
+	PRINTFORML %PALAMNAME_E(8)% Orbs＋{N*100*(ABL:2+ABL:7)}
+	EXP:20 += N
+	JUEL:7 += N*100*(ABL:2+ABL:7)
+	JUEL:8 += N*100*(ABL:2+ABL:7)
+ELSEIF TALENT:139
+	PRINTFORML %EXPNAME_E(3)%＋{N}
+	PRINTFORML %PALAMNAME_E(9)% Orbs＋{N*100}
+	EXP:3 += N
+	JUEL:9 += N*100
+ELSE
+	PRINTFORML %PALAMNAME_E(7)% Orbs＋{N*50*(ABL:2+ABL:7)}
+	PRINTFORML %PALAMNAME_E(8)% Orbs＋{N*50*(ABL:2+ABL:7)}
+	JUEL:7 += N*50*(ABL:2+ABL:7)
+	JUEL:8 += N*50*(ABL:2+ABL:7)
+ENDIF
+
+IF TALENT:ASSI:83
+	PRINTFORML %EXPNAME_E(30)%＋{N}
+	PRINTFORML %CALLNAME:ASSI%の%EXPNAME_E(32)%＋{N}
+	IF N*100*ABL:8 > 0
+		PRINTFORML %PALAMNAME_E(10)% Orbs＋{N*100*ABL:9}
+		JUEL:10 += N*100*ABL:9
+	ENDIF
+		EXP:30 += N
+		EXP:ASSI:32 += N
+ENDIF
+
+WAIT
+DRAWLINE
+
+;調教後セックス
+@SELF_CHECK2
+;イベント口上呼び出し
+DRAWLINE
+TFLAG:13 = 5
+CALL KOJO_MESSAGE_EVENT
+
+S = 1
+;V感覚
+IF ABL:4 == 1
+	S += 1
+ELSEIF ABL:4 == 2
+	S += 2
+ELSEIF ABL:4 == 3
+	S += 3
+ELSEIF ABL:4 == 4
+	S += 4
+ELSEIF ABL:4 >= 5
+	S += 5
+ENDIF
+
+;欲望と奉仕精神によるボーナス
+IF ABL:1 >= 5 && ABL:7 >= 5 && PALAM:5 >= PALAMLV:5
+	S += 3
+ELSEIF ABL:1 >= 4 && ABL:7 >= 4 && PALAM:5 >= PALAMLV:4
+	S += 2
+ELSEIF ABL:1 >= 3 && ABL:7 >= 3 && PALAM:5 >= PALAMLV:3
+	S += 1
+ENDIF
+
+;セックス狂い
+SIF TALENT:75
+	S += 3
+
+;主人の射精制限
+SIF S > CFLAG:MASTER:11
+	S = CFLAG:MASTER:11
+
+PRINTFORML %EXPNAME_E(0)%＋{S}
+PRINTFORML %EXPNAME_E(4)%＋{S}
+SIF CFLAG:101 > 0 && CFLAG:108 == 0
+	PRINTFORML %EXPNAME_E(5)%＋{S/2}
+PRINTFORML %EXPNAME_E(20)%＋{S/2}
+PRINTFORML %PALAMNAME_E(1)% Orbs＋{S*400}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{S*200}
+PRINTFORMW %PALAMNAME_E(6)% Orbs＋{S*400}
+EXP:0 += S
+EXP:4 += S
+IF CFLAG:101 > 0 && CFLAG:108 == 0
+	EXP:5 += S/2
+	CFLAG:101 += S/2
+ENDIF
+EXP:20 += S/2
+JUEL:1 += S*400
+JUEL:5 += S*200
+JUEL:6 += S*400
+CFLAG:MASTER:11 -= S
+WAIT
+
+
+@SELF_CHECK3
+;イベント口上呼び出し
+DRAWLINE
+TFLAG:13 = 6
+CALL KOJO_MESSAGE_EVENT
+
+;強精神薬による絶頂チェック
+D = 0
+;強精神薬の効果が残ったまま調教を終了した場合の処理
+;通常時の効果が再現できそうにないので同時多重絶頂したという処理に変更
+;Dは多重絶頂の種類を示す(1の場合は○絶頂、2の場合は○＋△絶頂、4の場合は四重絶頂となっている)
+SIF TFLAG:44
+	D += 1
+SIF TFLAG:45
+	D += 1
+SIF TFLAG:46
+	D += 1
+SIF TFLAG:47
+	D += 1
+C = D * TFLAG:44
+V = D * TFLAG:45
+A = D * TFLAG:46
+B = D * TFLAG:47
+
+PRINTFORML %EXPNAME_E(2)%＋{TFLAG:44 + TFLAG:45 + TFLAG:46 + TFLAG:47}
+SIF C > 0
+	PRINTFORML %PALAMNAME_E(0)% Orbs＋{C*1000}
+SIF V > 0
+	PRINTFORML %PALAMNAME_E(1)% Orbs＋{V*1000}
+SIF A > 0
+	PRINTFORMW %PALAMNAME_E(2)% Orbs＋{A*1000}
+SIF B > 0
+	PRINTFORML %PALAMNAME_E(3)% Orbs＋{B*1000}
+PRINTL 
+EXP:2 += TFLAG:44 + TFLAG:45 + TFLAG:46 + TFLAG:47
+JUEL:0 += C*1000
+JUEL:1 += V*1000
+JUEL:2 += A*1000
+JUEL:3 += B*1000
+
+;リセット
+TFLAG:44 = 0
+TFLAG:45 = 0
+TFLAG:46 = 0
+TFLAG:47 = 0
+TEQUIP:34 = 0
+
+;副作用で体力が500に
+SIF BASE:0 > 500
+	BASE:0 = 500
+WAIT
+
+
+@SELF_CHECK4
+;イベント口上呼び出し
+DRAWLINE
+TFLAG:13 = 7
+CALL KOJO_MESSAGE_EVENT
+
+
+;噴乳中毒による搾乳チェック
+;オトコはだめ。母乳体質、MilkingAddict、一定能力、体力が必要
+M = 1
+
+IF ABL:19 == 1
+	M += 1
+ELSEIF ABL:19 == 2
+	M += 2
+ELSEIF ABL:19 == 3
+	M += 3
+ELSEIF ABL:19 == 4
+	M += 5
+ELSEIF ABL:19 >= 5
+	M += 7
+ENDIF
+;欲望と奉仕精神によるボーナス
+IF ABL:1 >= 5 && ABL:7 >= 5 && PALAM:5 >= PALAMLV:5
+	M += 3
+ELSEIF ABL:1 >= 4 && ABL:7 >= 4 && PALAM:5 >= PALAMLV:4
+	M += 2
+ELSEIF ABL:1 >= 3 && ABL:7 >= 3 && PALAM:5 >= PALAMLV:3
+	M += 1
+ENDIF
+;自慰しやすい
+SIF TALENT:60
+	M += 2
+;淫乳
+SIF TALENT:77
+	M += 3
+
+
+PRINTFORML %EXPNAME_E(54)%＋{M}
+PRINTFORMW %PALAMNAME_E(3)% Orbs＋{M*300}
+PRINTFORML %PALAMNAME_E(6)% Orbs＋{M*50}
+PRINTFORML %PALAMNAME_E(8)% Orbs＋{M*20}
+EXP:54 += M
+JUEL:3 += M*300
+JUEL:6 += M*50
+JUEL:8 += M*20
+IF ABL:0+ABL:8+ABL:9 >= 10
+	PRINTFORML %PALAMNAME_E(9)% Orbs＋{M*150}
+	JUEL:9 += M*150
+ENDIF
+WAIT
+
+
+@SELF_CHECK5
+;イベント口上呼び出し
+DRAWLINE
+TFLAG:13 = 8
+CALL KOJO_MESSAGE_EVENT
+
+
+;自慰中毒による自慰チェック
+A = 1
+;自慰中毒を見る
+IF ABL:15 == 1
+	A += 1
+ELSEIF ABL:15 == 2
+	A += 2
+ELSEIF ABL:15 == 3
+	A += 3
+ELSEIF ABL:15 == 4
+	A += 5
+ELSEIF ABL:15 >= 5
+	A += 7
+ENDIF
+
+;欲望とＣ感覚によるボーナス
+IF ABL:1 >= 5 && ABL:3 >= 5 && PALAM:5 >= PALAMLV:5
+	A += 3
+ELSEIF ABL:1 >= 4 && ABL:3 >= 4 && PALAM:5 >= PALAMLV:4
+	A += 2
+ELSEIF ABL:1 >= 3 && ABL:3 >= 3 && PALAM:5 >= PALAMLV:3
+	A += 1
+ENDIF
+
+;自慰しやすい
+SIF TALENT:60
+	A += 2
+;自慰狂い
+SIF TALENT:74
+	A += 3
+
+;助手が鼓舞
+IF ASSI >= 0
+	SIF TALENT:ASSI:136
+		A += 1
+ENDIF
+
+PRINTFORML %EXPNAME_E(10)%＋{A}
+PRINTFORML %PALAMNAME_E(0)% Orbs＋{A*500}
+PRINTFORML %PALAMNAME_E(5)% Orbs＋{A*100}
+PRINTFORMW %PALAMNAME_E(6)% Orbs＋{A*250}
+EXP:10 += A
+JUEL:0 += A*500
+JUEL:5 += A*100
+JUEL:6 += A*250
+IF ABL:0+ABL:8+ABL:9 >= 10 && TIME == 0
+	PRINTFORML %PALAMNAME_E(9)% Orbs＋{A*200}
+	JUEL:9 += A*200
+ENDIF
+WAIT
+

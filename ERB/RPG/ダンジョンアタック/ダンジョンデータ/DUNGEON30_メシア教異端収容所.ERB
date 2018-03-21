@@ -1,0 +1,794 @@
+;=======================================================================
+;メシア教異端収容所
+;作者：トドもどき
+;フラグ管理
+;0,1　宝箱フラグ
+;2　突入時フラグ
+;3　ラーメド撃破フラグ
+;4　アイン救出フラグ
+;10，11，13　ゲート管理フラグ
+;20～24　捕らわれている人たちの救出フラグ
+;=======================================================================
+
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_30
+SIF 依頼フラグ:70:0 != 6
+	RETURN 0
+RETURN 1
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_30
+RESULTS = 異端収容所
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_30
+PRINT 異端収容所
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL １Ｆ
+	CASE 1
+		PRINTL ２Ｆ
+	CASE 2
+		PRINTL ３Ｆ
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_30,ARG
+FLAG:現M = 0
+FLAG:現X = 22
+FLAG:現Y = 1
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_30
+FLAG:脱出スキル禁止 = 1
+CALLF FINDCHARA_B([[キャラ:アイン]])
+LOCAL = RESULT:1
+CALL MESSAGE_WINDOW_D, , "＞" + CALLNAME:MASTER + "は" + CALLNAME:LOCAL + "を助け出すためにメシア教の異端収容所にたどり着いた/＞現在ファントムの手によって陽動作戦が行われている/＞そのためこちらの警備は手薄になっているようだ"
+CALL MESSAGE_WINDOW_D, , "＞しかし、仕損じれば次はないだろう/＞一発勝負で" + CALLNAME:LOCAL + "を助け出してやらねばならない…"
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_30
+CALLF FINDCHARA_B([[キャラ:アイン]])
+LOCAL = RESULT:1
+CALL MESSAGE_WINDOW_D, , "＞" + CALLNAME:MASTER + "は無事" + CALLNAME:LOCAL + "を助け出すことができた/＞不安が大きかったのだろう、" + CALLNAME:LOCAL + "は" + CALLNAME:MASTER + "の背中におぶさって離れないというかのようにしがみ付いている"
+CALL MESSAGE_WINDOW_D, , "＞しかし、" + CALLNAME:LOCAL + "を狙う勢力は数多い/＞それはファントムすらも例外ではない　異能者の量産は大きなリターンになるからだ/＞…" + CALLNAME:MASTER + "も今後の身の振り方を考える必要があるかもしれない…"
+CALL MESSAGE_WINDOW_D, , "＞…それにしても、だ/＞自分はなぜ" + CALLNAME:LOCAL + "が気になるのだろうか"
+CALL MESSAGE_WINDOW_D, , "＞いや、答えは分かり切っている/＞自分は" + CALLNAME:LOCAL + "が好きなのだろう"
+IF (TALENT:(LOCAL):恋慕 || TALENT:(LOCAL):親愛)
+	CALL MESSAGE_WINDOW_D, , "＞そしてまた、" + CALLNAME:LOCAL + "も自分を好いてくれている/＞本当にうれしいことだ"
+ELSE
+	CALL MESSAGE_WINDOW_D, , "＞" + CALLNAME:LOCAL + "が自分の事をどう考えているのかは分からないが…/＞正直に言って気恥ずかしい、聞いてみる気にはなれない"
+ENDIF
+CALL MESSAGE_WINDOW_D, , "＞さて、大切な" + CALLNAME:LOCAL + "を守るため、" + CALLNAME:MASTER + "はどうするべきだろうか…"
+依頼フラグ:70:0 = 7
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_30,ARG,ARG:1
+IF FLAG:現M == 1 && ARG == 7 && ARG:1 == 8
+	IF ダンジョンフラグ:30:10 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている"
+		RETURN 0
+	ELSE
+		RETURN 1
+	ENDIF
+ELSEIF FLAG:現M == 1 && ARG == 1 && ARG:1 == 8
+	IF ダンジョンフラグ:30:11 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている"
+		RETURN 0
+	ELSE
+		RETURN 1
+	ENDIF
+ELSEIF FLAG:現M == 1 && ARG == 3 && ARG:1 == 6
+	IF FLAG:現X <= 6 && FLAG:現Y <= 6
+		RETURN 1
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている"
+		RETURN 0
+	ENDIF
+ELSEIF FLAG:現M == 2 && ARG == 8 && ARG:1 == 7
+	IF ダンジョンフラグ:30:3 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞どうやら電子ロックがかかっているようだ"
+		RETURN 0
+	ELSEIF ダンジョンフラグ:30:13 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞ＩＤ:ゲヘナで扉を開けますか？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:LOCAL + "はＩＤ:ゲヘナを使った"
+			ダンジョンフラグ:30:13 = 1
+		ENDIF
+		RETURN 1
+	ELSE
+		RETURN 1
+	ENDIF
+ELSE
+	CALL CAN_ENTER,ARG,ARG:1
+	RETURN RESULT
+ENDIF
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_30
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 26
+		FLAG:最大Y = 19
+		;			 			 01234567890123456789012345
+		CALL MAKE_FLOOR_LINE, 0,"                          "
+		CALL MAKE_FLOOR_LINE, 1," 621111 121 4 4 1 1 4 128 "
+		CALL MAKE_FLOOR_LINE, 2,"      1 1 1 2 2 1 1 2 1   "
+		CALL MAKE_FLOOR_LINE, 3," 111121 1 1111111 11111   "
+		CALL MAKE_FLOOR_LINE, 4," 1    1 1   2 2 1 1 2 1   "
+		CALL MAKE_FLOOR_LINE, 5," 1124 1 1   4 4 121 4 111 "
+		CALL MAKE_FLOOR_LINE, 6,"        1                 "
+		CALL MAKE_FLOOR_LINE, 7," 11111111                 "
+		CALL MAKE_FLOOR_LINE, 8," 1                        "
+		CALL MAKE_FLOOR_LINE, 9," 11111111                 "
+		CALL MAKE_FLOOR_LINE,10," 1      1                 "
+		CALL MAKE_FLOOR_LINE,11," 124  421                 "
+		CALL MAKE_FLOOR_LINE,12," 1      1                 "
+		CALL MAKE_FLOOR_LINE,13," 124  421                 "
+		CALL MAKE_FLOOR_LINE,14," 1      1                 "
+		CALL MAKE_FLOOR_LINE,15," 11111111                 "
+		CALL MAKE_FLOOR_LINE,16," 2      1                 "
+		CALL MAKE_FLOOR_LINE,17," 6      1                 "
+		CALL MAKE_FLOOR_LINE,18,"                          "
+
+	CASE 1
+		FLAG:最大X = 17
+		FLAG:最大Y = 19
+		;						 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1," 721 1 121111111 "
+		CALL MAKE_FLOOR_LINE, 2,"   1 1 1 1 2 2 1 "
+		CALL MAKE_FLOOR_LINE, 3," 111 1 1 1 1 1 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1   1 1 1     2 "
+		CALL MAKE_FLOOR_LINE, 5," 11111 1 1 1 4 4 "
+		CALL MAKE_FLOOR_LINE, 6,"   2   1 1 2 2   "
+		CALL MAKE_FLOOR_LINE, 7," 6 11111 1111111 "
+		CALL MAKE_FLOOR_LINE, 8," 2     2         "
+		CALL MAKE_FLOOR_LINE, 9," 1     1         "
+		CALL MAKE_FLOOR_LINE,10," 1 4 4 1         "
+		CALL MAKE_FLOOR_LINE,11," 1 2 2 1         "
+		CALL MAKE_FLOOR_LINE,12," 1111111         "
+		CALL MAKE_FLOOR_LINE,13," 1 2 2 1         "
+		CALL MAKE_FLOOR_LINE,14," 2 4 4 1         "
+		CALL MAKE_FLOOR_LINE,15," 4     1         "
+		CALL MAKE_FLOOR_LINE,16,"       1         "
+		CALL MAKE_FLOOR_LINE,17," 7111111         "
+		CALL MAKE_FLOOR_LINE,18,"                 "
+
+		
+		;W 一方通行壁
+		DA:3:6 = 12
+
+	CASE 2
+		FLAG:最大X = 17
+		FLAG:最大Y = 9
+		;						 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1," 1 1111121111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1 1 2      2  1 "
+		CALL MAKE_FLOOR_LINE, 3," 121 1 1 11111 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1     2 2     1 "
+		CALL MAKE_FLOOR_LINE, 5," 1 92111 4 1 121 "
+		CALL MAKE_FLOOR_LINE, 6," 2   111   2 1 1 "
+		CALL MAKE_FLOOR_LINE, 7," 7 11111211111 1 "
+		CALL MAKE_FLOOR_LINE, 8,"                 "
+
+		
+		;宝箱の設置
+		CALL SET_TILE,5,3,ダンジョンフラグ:30:0,0,3
+		CALL SET_TILE,7,3,ダンジョンフラグ:30:1,0,3
+		;G ID:ゲヘナ扉
+		DA:8:7 = 13 ;ダンジョンフラグ:30:13対応
+		CALL SET_TILE,8,7,ダンジョンフラグ:30:13,0,2
+		CALL SET_TILE,9,7,ダンジョンフラグ:30:13,1,1
+
+
+	CASEELSE
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_30
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_30
+	RETURN RESULT
+	
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_30
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_30
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 20 
+				IF FLAG:現Y == 1
+					IF ダンジョンフラグ:30:4 == 0
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "ここはメシア教に逆らう異端者を収容する施設です"
+						;ミレニアムまだない…はずだし
+					ELSE
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "な　なにが起こったのでしょう？/上の方が騒がしいようですが"
+					ENDIF
+				ELSEIF FLAG:現Y == 5
+					IF ダンジョンフラグ:30:4 == 0
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "神はいつも見守っていて下さります/平和のためにこの施設はあるのです"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "神はどうなさったのでしょう？/この施設が騒ぎに巻き込まれたのは初めてです"
+					ENDIF
+				ENDIF
+			ELSEIF FLAG:現X == 12 && FLAG:現Y == 1
+				IF ダンジョンフラグ:30:4 == 0
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "おーい　助けてくれよー"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "おーい　置いてかないでくれよー/まぁ　見張りがいなけりゃこんなカギはチョチョイのチョイだけどな"
+				ENDIF
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 5
+				IF ダンジョンフラグ:30:4 == 0
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "ねぇ　助けて！/アタシがナニしたって言うの？"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "アンタが騒ぎを起こしたのかい？/やるねぇ/アタシも逃げちゃおうっと"
+				ENDIF
+			ELSEIF FLAG:現X == 3 && FLAG:現Y == 11
+				IF ダンジョンフラグ:30:20 == 0
+					CALL MESSAGE_WINDOW_D, "少女", "お願い　助けて/アタシがナニしたって言うの？"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "少女", "ありがとう/連れてこられてすぐに頭に変なものかぶらされて調べられたの/私、よくわからないからってずっと閉じ込められてたの"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:20 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 13
+				IF ダンジョンフラグ:30:21 == 0
+					CALL MESSAGE_WINDOW_D, "女", "ねぇ助けて　私何も悪いことしてないわよ"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "女", "ありがとう/何だかわからないけどここには多くの女性が連れてこられたみたい"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:21 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 4
+				IF ダンジョンフラグ:30:4 == 0
+					CALLF FINDCHARA_B([[キャラ:アイン]])
+					LOCAL = RESULT:1
+					CALL MESSAGE_WINDOW_D, "", "＞ＩＤ:ゲヘナを使って侵入した異端収容所最深部/＞その牢に" + CALLNAME:LOCAL + "はいた…"
+					CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "はすぐさま牢をこじ開け、" + CALLNAME:LOCAL+ "にもう安心だ、と声をかけてやった…"
+					CALL MESSAGE_WINDOW_D, CALLNAME:LOCAL, CALLNAME:MASTER + "…私のために…　来てくれたの？"
+					CALL INPUT_YN, "そうだ", "……"
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, CALLNAME:LOCAL,"……ありがとう/とりあえずここから逃げましょう"
+					ELSE
+						CALL MESSAGE_WINDOW_D, CALLNAME:LOCAL,"……ありがとう/ううん……　今はいいの……"
+					ENDIF
+					CALL MESSAGE_WINDOW_D, "","＞これで" + CALLNAME:LOCAL + "を助け出すことはできた/＞あとは援軍が来る前にさっさとここから逃げ出すだけだ…"
+					ダンジョンフラグ:30:4 = 1
+					FLAG:脱出スキル禁止 = 0
+					CFLAG:LOCAL:この場に居ないフラグ = 0
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞空の牢屋がある…"
+			ENDIF
+		CASE 1
+			IF FLAG:現Y == 15
+				IF ダンジョンフラグ:30:10 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチがある…/＞押しますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞スイッチを押した…/＞どこかで扉が開いた音がした"
+						ダンジョンフラグ:30:10 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチはもう押した…"
+				ENDIF
+			ELSEIF FLAG:現X == 15
+				IF ダンジョンフラグ:30:11 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチがある…/＞押しますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞スイッチを押した…/＞どこかで扉が開いた音がした"
+						ダンジョンフラグ:30:11 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチはもう押した…"
+				ENDIF
+			ELSEIF FLAG:現X == 3 && FLAG:現Y == 14
+				IF ダンジョンフラグ:30:22 == 0
+					CALL MESSAGE_WINDOW_D, "女", "……/誰？/あいつらとは違うようね……"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "女", "助かったわ/この奥に実験室があるの　でも私に言わせると拷問部屋ね/・・・・・あなたいい目をしてるわ　何かやるのね　がんばって"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:22 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 5 && FLAG:現Y == 10
+				IF ダンジョンフラグ:30:23 == 0
+					CALLF FINDCHARA_B([[キャラ:アイン]])
+					LOCAL = RESULT:1
+					CALL MESSAGE_WINDOW_D, "女の子", "たすけてよー！　こわいよー！"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "女の子", "わーい！　ありがとう/わたし" + CALLNAME:LOCAL + "/ユウカイされたの"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:23 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 13
+				IF ダンジョンフラグ:30:24 == 0
+					CALL MESSAGE_WINDOW_D, "少女？", "おーい　助けてくれよ"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "少女？", "助かったー/なんか女ばかりの中で男は僕だけだったよ/白衣着た連中は間違っただの変身してるとか言い争って/間違えたんならさっさと帰してくれればいいのになー"
+						CALL MESSAGE_WINDOW_D, "", "＞…男だったのか…"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:24 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞空の牢屋がある…"
+			ENDIF
+		CASE 2
+			CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+		CASEELSE
+	ENDSELECT
+
+ELSE
+	CALL MESSAGE_WINDOW_D, , "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_30,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	IF ダンジョンフラグ:30:4 == 0
+		CALLF FINDCHARA_B([[キャラ:アイン]])
+		LOCAL = RESULT:1
+		CALL MESSAGE_WINDOW_D, , "＞" + CALLNAME:LOCAL + "を助け出すまで脱出するわけにはいかない…"
+		RETURN 1
+	ELSE
+		CALL DUNGEON_EXIT
+		RETURN 1
+	ENDIF
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_30
+	RETURN RESULT
+	
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_30
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_30
+	RETURN RESULT
+
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+	
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	SELECTCASE FLAG:現M
+		CASE 1
+		CASE 2
+			CALL MESSAGE_WINDOW_D, , "＞It's a pitfall!"
+			CALL DUNGEON_WORP,1,3,5
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 20 
+				IF FLAG:現Y == 1
+					IF ダンジョンフラグ:30:4 == 0
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "ここはメシア教に逆らう異端者を収容する施設です"
+						;ミレニアムまだない…はずだし
+					ELSE
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "な　なにが起こったのでしょう？/上の方が騒がしいようですが"
+					ENDIF
+				ELSEIF FLAG:現Y == 5
+					IF ダンジョンフラグ:30:4 == 0
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "神はいつも見守っていて下さります/平和のためにこの施設はあるのです"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "メシア教徒", "神はどうなさったのでしょう？/この施設が騒ぎに巻き込まれたのは初めてです"
+					ENDIF
+				ENDIF
+			ELSEIF FLAG:現X == 12 && FLAG:現Y == 1
+				IF ダンジョンフラグ:30:4 == 0
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "おーい　助けてくれよー"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "おーい　置いてかないでくれよー/まぁ　見張りがいなけりゃこんなカギはチョチョイのチョイだけどな"
+				ENDIF
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 5
+				IF ダンジョンフラグ:30:4 == 0
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "ねぇ　助けて！/アタシがナニしたって言うの？"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア教徒", "アンタが騒ぎを起こしたのかい？/やるねぇ/アタシも逃げちゃおうっと"
+				ENDIF
+			ELSEIF FLAG:現X == 3 && FLAG:現Y == 11
+				IF ダンジョンフラグ:30:20 == 0
+					CALL MESSAGE_WINDOW_D, "少女", "お願い　助けて/アタシがナニしたって言うの？"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "少女", "ありがとう/連れてこられてすぐに頭に変なものかぶらされて調べられたの/私、よくわからないからってずっと閉じ込められてたの"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:20 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 13
+				IF ダンジョンフラグ:30:21 == 0
+					CALL MESSAGE_WINDOW_D, "女", "ねぇ助けて　私何も悪いことしてないわよ"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "女", "ありがとう/何だかわからないけどここには多くの女性が連れてこられたみたい"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:21 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 4
+				IF ダンジョンフラグ:30:4 == 0
+					CALLF FINDCHARA_B([[キャラ:アイン]])
+					LOCAL = RESULT:1
+					CALL MESSAGE_WINDOW_D, "", "＞ＩＤ:ゲヘナを使って侵入した異端収容所最深部/＞その牢に" + CALLNAME:LOCAL + "はいた…"
+					CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "はすぐさま牢をこじ開け、" + CALLNAME:LOCAL+ "にもう安心だ、と声をかけてやった…"
+					CALL MESSAGE_WINDOW_D, CALLNAME:LOCAL, CALLNAME:MASTER + "　…私のために…　来てくれたの？"
+					CALL INPUT_YN, "そうだ", "……"
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, CALLNAME:LOCAL,"……ありがとう/とりあえずここから逃げましょう"
+					ELSE
+						CALL MESSAGE_WINDOW_D, CALLNAME:LOCAL,"……ありがとう/ううん……　今はいいの……"
+					ENDIF
+					CALL MESSAGE_WINDOW_D, "","＞これで" + CALLNAME:LOCAL + "を助け出すことはできた/＞あとは援軍が来る前にさっさとここから逃げ出すだけだ…"
+					ダンジョンフラグ:30:4 = 1
+					FLAG:脱出スキル禁止 = 0
+					CFLAG:LOCAL:この場に居ないフラグ = 0
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞空の牢屋がある…"
+			ENDIF
+		CASE 1
+			IF FLAG:現Y == 15
+				IF ダンジョンフラグ:30:10 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチがある…/＞押しますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞スイッチを押した…/＞どこかで扉が開いた音がした"
+						ダンジョンフラグ:30:10 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチはもう押した…"
+				ENDIF
+			ELSEIF FLAG:現X == 15
+				IF ダンジョンフラグ:30:11 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチがある…/＞押しますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞スイッチを押した…/＞どこかで扉が開いた音がした"
+						ダンジョンフラグ:30:11 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞スイッチはもう押した…"
+				ENDIF
+			ELSEIF FLAG:現X == 3 && FLAG:現Y == 14
+				IF ダンジョンフラグ:30:22 == 0
+					CALL MESSAGE_WINDOW_D, "女", "……/誰？/あいつらとは違うようね……"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "女", "助かったわ/この奥に実験室があるの　でも私に言わせると拷問部屋ね/・・・・・あなたいい目をしてるわ　何かやるのね　がんばって"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:22 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 5 && FLAG:現Y == 10
+				IF ダンジョンフラグ:30:23 == 0
+					CALLF FINDCHARA_B([[キャラ:アイン]])
+					LOCAL = RESULT:1
+					CALL MESSAGE_WINDOW_D, "女の子", "たすけてよー！　こわいよー！"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "女の子", "わーい！　ありがとう/わたし" + CALLNAME:LOCAL + "/ユウカイされたの"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:23 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSEIF FLAG:現X == 13
+				IF ダンジョンフラグ:30:24 == 0
+					CALL MESSAGE_WINDOW_D, "少女？", "おーい　助けてくれよ"
+					CALL MESSAGE_WINDOW_D, "", "＞助けますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "少女？", "助かったー/なんか女ばかりの中で男は僕だけだったよ/白衣着た連中は間違っただの変身してるとか言い争って/間違えたんならさっさと帰してくれればいいのになー"
+						CALL MESSAGE_WINDOW_D, "", "＞…男だったのか…"
+						CALL INCREASE_LC, -5
+						ダンジョンフラグ:30:24 = 1
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞空の牢屋がある…"
+			ENDIF
+		CASE 2
+			IF FLAG:現Y == 5
+				IF ダンジョンフラグ:30:3 == 0
+					CALLF FINDCHARA_B([[キャラ:アイン]])
+					LOCAL = RESULT:1
+					CALL MESSAGE_WINDOW_D, "", "＞部屋の中に見覚えのある男がいる…"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "フッフッフ　やってきたな！/メシア教に対するテロリストをこれから処刑するところだというのに…/" + CALLNAME:MASTER + "、君は妨害するつもりか？"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "神の秩序を乱さんとする者はすべて滅ぼさなくてはならないのだ！！"
+					CALL MESSAGE_WINDOW_D, "", "＞戦士　ラーメドが１体出た！" , , , , , , , , , "CENTER"
+					PRINTFORML
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CUSTOMDRAWLINE =
+					CALL SET_ENEMY,9, 4765 ,60, 0 , 5 ;ラーメド
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+					CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+					BASE:(CHARANUM-1):力 += 3
+					BASE:(CHARANUM-1):知恵 += 3
+					BASE:(CHARANUM-1):魔力 += 3
+					BASE:(CHARANUM-1):耐力 += 3
+					BASE:(CHARANUM-1):速さ += 2
+					CALL BATTLE_START
+					PRINTFORML
+					CALL MESSAGE_WINDOW_D, "ラーメド", "そ……　そんなバカな……/まさかキミにやられるとは思っていなかったよ……/しかたがない……"
+					CALL MESSAGE_WINDOW_D, "", "＞ラーメドを倒した/＞しかし殊勝に聞こえる台詞と裏腹に/＞当のラーメドは余裕ありげにこちらを見ている…"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "真の力を出させてもらおうか！"
+					CALL MESSAGE_WINDOW_D, "", "＞そう言うなりラーメドの全身に光の線が走っていく！/＞これはまるで" + CALLNAME:LOCAL + "と同じ…/＞！　この男が例のメシア教の試作型か！"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "私は神に愛されたエリートだ　選ばれしものなのだ/だからこういう特別な力を持っているのだ"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "くっくっく/私は…　私の力は…　神のそれであり……/私の意志は神の意志だ！！"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "キミはここで消える！　私が決めた！/キミは地獄へ落ちる！　私が決めた！"
+					CALL MESSAGE_WINDOW_D, "", "＞どうやらこの男は力を得たことで更に高慢になっているようだ…/＞一度ここは、上には上がいるという現実を突きつけてやるべきだろう"
+					CALL MESSAGE_WINDOW_D, "ラーメド", "さぁ　最後の時を受けよ！/ハレルヤッ！"
+					CALL MESSAGE_WINDOW_D, "", "＞戦士　ラーメドが１体出た！" , , , , , , , , , "CENTER"
+					PRINTFORML
+					CUSTOMDRAWLINE =
+					CALL SET_ENEMY,9, 4765 ,65, 0 , 5 ;ラーメド
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+					CFLAG:(CHARANUM-1):ＭＰ補正 += 1500
+					MAXBASE:(CHARANUM-1):破魔 = 0
+					MAXBASE:(CHARANUM-1):呪殺 = 0
+					BASE:(CHARANUM-1):力 += 6
+					BASE:(CHARANUM-1):知恵 += 6
+					BASE:(CHARANUM-1):魔力 += 6
+					BASE:(CHARANUM-1):耐力 += 6
+					BASE:(CHARANUM-1):速さ += 5
+					CALL BATTLE_START
+					PRINTFORML
+					CALL MESSAGE_WINDOW_D, "ラーメド", "クァッ！　クァッ！/そんな　そそんな　ソンナ/バババババカな……/そンなソんナ……"
+					CALL MESSAGE_WINDOW_D, "", "＞今度こそラーメドを倒した/＞しかしどうやらまだ息はあるようだ…"
+					CALL MESSAGE_WINDOW_D, "", "＞持ち帰りますか？"
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "はラーメドを奴隷として連れて帰ることにした……"
+						CALL MESSAGE_WINDOW_D, "", "＞ラーメドを手に入れた"
+						CALL ADD_NEW_COMPANION,4765,0
+					ELSE
+						CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "はラーメドに止めを刺した/＞何やらラーメドの肉体はグズグズと崩れ去ってしまった…"
+					ENDIF
+					CALL MESSAGE_WINDOW_D, "", "＞ふと見ると足元にＩＤカードと思しきものが転がっている…/＞ラーメドが持っていたのだろう"
+					CALL MESSAGE_WINDOW_D, "", "＞ＩＤ:ゲヘナを手に入れた"
+					ダンジョンフラグ:30:3 = 1
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+				ELSE
+					CALL MESSAGE_WINDOW_D, , "＞誰もいない…"
+				ENDIF
+			ENDIF
+		CASEELSE
+	ENDSELECT
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_30
+IF FLAG:現X == 5
+	CALL GET_TREASURE, 1029 , 1 , FLAG:現ダンジョン, LOCAL , 0
+	ダンジョンフラグ:30:0 = 1
+ELSE
+	CALL GET_TREASURE, 1002 , 1 , FLAG:現ダンジョン, LOCAL , 1
+	ダンジョンフラグ:30:1 = 1
+ENDIF
+
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_30
+SELECTCASE FLAG:現M
+	CASE 0
+		IF FLAG:現Y == 1
+			CALL DUNGEON_UPSTAIRS,1,1,1
+		ELSE
+			CALL DUNGEON_UPSTAIRS,1,1,17
+		ENDIF
+	CASE 1
+		CALL DUNGEON_UPSTAIRS,2,1,7
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_30
+SELECTCASE FLAG:現M
+	CASE 1
+		IF FLAG:現Y == 1
+			CALL DUNGEON_DOWNSTAIRS,0,1,1
+		ELSE
+			CALL DUNGEON_DOWNSTAIRS,0,1,17
+		ENDIF
+	CASE 2
+		CALL DUNGEON_DOWNSTAIRS,1,1,7
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_30
+	FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_30
+RETURN 55, 42, 48, 65
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_30
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_30
+SELECTCASE RAND:100
+	CASE IS < 40
+		RETURN 1
+	CASE IS < 80
+		RETURN 2
+	CASEELSE
+		RETURN 3
+ENDSELECT
+;=======================================================================
+;敵の総数
+;=======================================================================
+@ENEMY_NUM_30, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_30, ARG
+SELECTCASE RAND:100
+	CASE IS < 15
+		;15%でパワー
+		RETURN 360,45
+	CASE IS < 35
+		;20%でマッハ
+		RETURN 907,42
+	CASE IS < 50
+		;15%でジンニヤー(ジンの代理)
+		RETURN 426,47
+	CASE IS < 65
+		;15%でトロール
+		RETURN 564,44
+	CASE IS < 85
+		;20%でドゥン
+		RETURN 827,46
+	CASEELSE
+		;15%でテンプルナイト(ジエレーターの代理)
+		RETURN 3110,48
+ENDSELECT
+

@@ -1,0 +1,1167 @@
+
+;=======================================================================
+;図書館
+;
+;ダンジョンフラグ:24:0 = 1.ボス
+;ダンジョンフラグ:24:1 = 1.初回
+;ダンジョンフラグ:24:2 = 1.メッセージ
+;ダンジョンフラグ:24:3-11 = 1.本
+;ダンジョンフラグ:24:12 = 本を読んだ回数
+;ダンジョンフラグ:24:13 = 1.白伏見
+;ダンジョンフラグ:24:14 = 1.どうでもいい
+;ダンジョンフラグ:24:15 = 1.ヤス
+;ダンジョンフラグ:24:16 = 1.白鐘
+;ダンジョンフラグ:24:17 = 1.異界へ
+;ダンジョンフラグ:24:18 = 1.ガキ
+;ダンジョンフラグ:24:19 = 1.BOSS強さ
+;ダンジョンフラグ:24:30-31 = 1.アイテム
+
+;ダンジョンナンバー24
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_24
+;（エコービルクリアor初台シェルタークリアor原宿クリア）ボス撃破前
+SIF (ダンジョンフラグ:1:1 == 1 || ダンジョンフラグ:34:8 == 1 || ダンジョンフラグ:61:0 == 5)&& !ダンジョンフラグ:24:0
+	RETURN 1
+RETURN 0
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_24
+RESULTS = Library
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_24
+PRINT Public Library 
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL   Ｂ１Ｆ
+	CASE 1, 6
+		PRINTL   １Ｆ
+	CASE 2
+		PRINTL   ２Ｆ
+	CASE 3
+		PRINTL   ３Ｆ
+	CASE 4
+		PRINTL   ４Ｆ
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+;@TILE_MARK_24_4_4_6
+;IF ダンジョンフラグ:24:17 == 1
+;	RESULTS = 記
+;ELSE
+;	RESULTS = ！
+;ENDIF
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_24,ARG
+;IF ダンジョンフラグ:24:0 == 0 || ダンジョンフラグ:24:17 == 1
+	FLAG:現M = 1
+	FLAG:現X = 3
+	FLAG:現Y = 6
+;ELSEIF ダンジョンフラグ:24:0 == 1 && ダンジョンフラグ:24:17 == 0
+;	FLAG:現M = 6
+;	FLAG:現X = 1
+;	FLAG:現Y = 4
+;ENDIF
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_24
+IF ダンジョンフラグ:24:1 == 0
+	CALL SHOW_PICTURE, "NONFLOORD"
+	CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% received a request to investagate a library that sank into another world/＞You must investigate the cause of this and reselve the incident%\@BASE:MASTER:LV < 10?/＞Mayone said it would be simple but you can't afford to be careless#\@%"
+	ダンジョンフラグ:24:1 = 1
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_24,ARG,ARG:1
+IF DA:ARG:(ARG:1) == 12
+	IF ダンジョンフラグ:24:12 >= 9
+		CALL MESSAGE_WINDOW_D, "", "＞You feel an evil air from the other side/＞Open the door？"
+		CALL INPUT_YN_D
+		SIF RESULT == 1
+			RETURN 0
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞The door is shut by a mysterious power"
+		RETURN 0
+	ENDIF
+ELSEIF DA:ARG:(ARG:1) == 22 && ダンジョンフラグ:24:12 >= 9
+	CALL MESSAGE_WINDOW_D, "", "＞The door is shut by a mysterious power"
+	RETURN 0
+ENDIF
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_24
+SELECTCASE FLAG:現M
+	CASE 0
+	;B1階
+		FLAG:最大X = 7
+		FLAG:最大Y = 10
+
+							    ;0123456
+		CALL MAKE_FLOOR_LINE, 0,"       "
+		CALL MAKE_FLOOR_LINE, 1," 11111 "
+		CALL MAKE_FLOOR_LINE, 2," 1  2  "
+		CALL MAKE_FLOOR_LINE, 3," 1 A1A "
+		CALL MAKE_FLOOR_LINE, 4," 1 A1A"
+		CALL MAKE_FLOOR_LINE, 5," 1  G  "
+		CALL MAKE_FLOOR_LINE, 6," 1  B  "
+		CALL MAKE_FLOOR_LINE, 7," 2     "
+		CALL MAKE_FLOOR_LINE, 8," E     "
+		CALL MAKE_FLOOR_LINE, 9,"       "
+							    ;0123456
+		;A 本3-6
+		DA:3:3 = ダンジョンフラグ:24:3 ? 1 # 34
+		DA:3:4 = ダンジョンフラグ:24:4 ? 1 # 44
+		DA:5:3 = ダンジョンフラグ:24:5 ? 1 # 54
+		DA:5:4 = ダンジョンフラグ:24:6 ? 1 # 64
+		;ボス
+		DA:4:6 = ダンジョンフラグ:24:0 ? 1 # 4
+		;G ボス前の扉
+		DA:4:5 = 12
+	CASE 1
+	;1階
+		FLAG:最大X = 11
+		FLAG:最大Y = 11
+							    ;01234567890
+		CALL MAKE_FLOOR_LINE, 0,"           "
+		CALL MAKE_FLOOR_LINE, 1," 11111111A "
+		CALL MAKE_FLOOR_LINE, 2," 1       2 "
+		CALL MAKE_FLOOR_LINE, 3," 1  111  B "
+		CALL MAKE_FLOOR_LINE, 4," 1  2 1    "
+		CALL MAKE_FLOOR_LINE, 5," 1 11 11 6 "
+		CALL MAKE_FLOOR_LINE, 6," 1 11 C1 2 "
+		CALL MAKE_FLOOR_LINE, 7," 2 G  1  1 "
+		CALL MAKE_FLOOR_LINE, 8," E 8  1  1 "
+		CALL MAKE_FLOOR_LINE, 9,"      1111 "
+		CALL MAKE_FLOOR_LINE,10,"           "
+							    ;01234567890
+		;A ガキ
+		DA:9:1 = IS_LOOKSLIKE_MALE(MASTER) || ダンジョンフラグ:24:18 ? 1 # 184
+		;B 本7
+		DA:9:3 = ダンジョンフラグ:24:7 ? 1 # 74
+		;C メッセージ
+		DA:6:6 = ダンジョンフラグ:24:2 ? 1 # 11
+		;G 出口前の扉
+		DA:3:7 = 22
+	CASE 2
+	;2階
+		FLAG:最大X = 11
+		FLAG:最大Y = 11
+							    ;01234567890
+		CALL MAKE_FLOOR_LINE, 0,"           "
+		CALL MAKE_FLOOR_LINE, 1," 1111 1111 "
+		CALL MAKE_FLOOR_LINE, 2," 1  1 1  1 "
+		CALL MAKE_FLOOR_LINE, 3," 1  1 1  1 "
+		CALL MAKE_FLOOR_LINE, 4," 1  2 1  2 "
+		CALL MAKE_FLOOR_LINE, 5," 1 11 11 7 "
+		CALL MAKE_FLOOR_LINE, 6," 1 A1 11   "
+		CALL MAKE_FLOOR_LINE, 7," 2    1  6 "
+		CALL MAKE_FLOOR_LINE, 8," E    1  2 "
+		CALL MAKE_FLOOR_LINE, 9,"      1111 "
+		CALL MAKE_FLOOR_LINE,10,"           "
+							    ;01234567890
+		;A 本8
+		DA:3:6 = ダンジョンフラグ:24:8 ? 1 # 84
+
+	CASE 3
+	;3階
+		FLAG:最大X = 11
+		FLAG:最大Y = 11
+							    ;01234567890
+		CALL MAKE_FLOOR_LINE, 0,"           "
+		CALL MAKE_FLOOR_LINE, 1," A 6211  B "
+		CALL MAKE_FLOOR_LINE, 2," 2    2  1 "
+		CALL MAKE_FLOOR_LINE, 3," 1   11  1 "
+		CALL MAKE_FLOOR_LINE, 4," 1   11  1 "
+		CALL MAKE_FLOOR_LINE, 5," 11  11211 "
+		CALL MAKE_FLOOR_LINE, 6," 11  11  2 "
+		CALL MAKE_FLOOR_LINE, 7," 2    2  7 "
+		CALL MAKE_FLOOR_LINE, 8," E    1    "
+		CALL MAKE_FLOOR_LINE, 9,"      111C "
+		CALL MAKE_FLOOR_LINE,10,"           "
+							    ;01234567890
+		;A 本9
+		DA:1:1 = ダンジョンフラグ:24:9 ? 1 # 94
+		;B 宝箱30
+		DA:9:1 = ダンジョンフラグ:24:30 ? 1 # 303
+		;C 本10
+		DA:9:9 = ダンジョンフラグ:24:10 ? 1 # 104
+
+	CASE 4
+	;4階
+		FLAG:最大X = 11
+		FLAG:最大Y = 11
+							    ;01234567890
+		CALL MAKE_FLOOR_LINE, 0,"           "
+		CALL MAKE_FLOOR_LINE, 1," 127 11 A1 "
+		CALL MAKE_FLOOR_LINE, 2," 1   11  1 "
+		CALL MAKE_FLOOR_LINE, 3," 1    1 B1 "
+		CALL MAKE_FLOOR_LINE, 4," 1211 2  2 "
+		CALL MAKE_FLOOR_LINE, 5," 1 1111  1 "
+		CALL MAKE_FLOOR_LINE, 6," 1    1  1 "
+		CALL MAKE_FLOOR_LINE, 7," 2    1  1 "
+		CALL MAKE_FLOOR_LINE, 8," E    1  1 "
+		CALL MAKE_FLOOR_LINE, 9,"      1111 "
+		CALL MAKE_FLOOR_LINE,10,"           "
+							    ;01234567890
+		;本11
+		DA:8:3 = ダンジョンフラグ:24:11 ? 1 # 114
+		;宝箱31
+		DA:8:1 = ダンジョンフラグ:24:31 ? 1 # 313
+
+;	CASE 6
+;	;表一階
+;		FLAG:最大X = 12
+;		FLAG:最大Y = 8
+;
+;							    ;012345678901
+;		CALL MAKE_FLOOR_LINE, 0,"            "
+;		CALL MAKE_FLOOR_LINE, 1,"  11119     "
+;		CALL MAKE_FLOOR_LINE, 2,"  2 1111111 "
+;		CALL MAKE_FLOOR_LINE, 3," 11 1 1 1 1 "
+;		CALL MAKE_FLOOR_LINE, 4," 11 1 1 1 1 "
+;		CALL MAKE_FLOOR_LINE, 5," 2  1111111 "
+;		CALL MAKE_FLOOR_LINE, 6," 8          "
+;		CALL MAKE_FLOOR_LINE, 7,"            "
+;							    ;0123456
+;		;司書
+;		CALL SET_TILE,5,1,ダンジョンフラグ:24:0,1,4
+;		;
+;		CALL SET_TILE,4,3,ダンジョンフラグ:24:13,0,4
+;		;
+;		CALL SET_TILE,4,4,ダンジョンフラグ:24:14,0,4
+;		;刑事
+;		CALL SET_TILE,6,3,ダンジョンフラグ:24:15,0,4
+;		;
+;		CALL SET_TILE,8,4,ダンジョンフラグ:42:16,0,4
+;		;入り口
+;		CALL SET_TILE,10,4,ダンジョンフラグ:24:17,0,4
+	CASEELSE
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_24
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TRESURING_CALLING_24
+	RETURN 1
+;==========
+;イベントの処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENTING_CALLING_24
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1, 7
+	RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M-1, 6
+	RETURN 1
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_24,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+IF DA:(FLAG:現X):(FLAG:現Y) == 11
+	CALL MESSAGE_WINDOW_D, "", "＞Suddenly、a voice came from nowhere"
+	CALL MESSAGE_WINDOW_D, "Voice", "Hohohohohohohohohoho/It became another world、welcome to my building"
+	ダンジョンフラグ:24:2 = 1
+	CALL CLEAR_TILE
+;==========
+;出口の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TRESURING_CALLING_24
+	RETURN 1
+;==========
+;イベントの処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENTING_CALLING_24
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1, 7
+	RETURN 1
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M-1, 6
+	RETURN 1
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	RETURN 0
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_24
+IF FLAG:現M < 4
+	FLAG:エンカウント率 =( FLAG:未遭遇歩数 - 5) * 5
+ELSEIF FLAG:現M == 4
+	FLAG:エンカウント率 = (FLAG:未遭遇歩数 * 7 - 5) + 10
+ELSE
+	FLAG:エンカウント率 = 0
+ENDIF
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_24
+RETURN 7, 4, 14, 22
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_24
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_24
+RETURN CLASS_NUM_COMMON("初級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_24, ARG
+RETURN ENEMY_NUM_COMMON("初級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_24, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+	;一階
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖魔モコイLv6
+				RETURN [[キャラ:モコイ]], 9
+			CASE IS < 30
+				;15%　妖精ノッカー　Lv4
+				RETURN [[キャラ:ノッカー]], 7
+			CASE IS < 40
+				;10%　妖精ゴブリン　Lv7
+				RETURN [[キャラ:ゴブリン]], 7
+			CASE IS < 50
+				;15%　妖鬼コボルト　Lv5
+				RETURN [[キャラ:コボルト]], 8
+			CASE IS < 60
+				;ナハトコボルト
+				RETURN 467, 7
+			CASE IS < 70
+				;15%　魔獣カーシー　Lv6
+				RETURN [[キャラ:カーシー]], 9
+			CASE IS < 85
+				;15%　妖鳥チョンチョン　Lv4
+				RETURN [[キャラ:チョンチョン]], 7
+			CASE IS < 100
+				;15%　外道ガキ　Lv4
+				RETURN [[キャラ:ガキ]], 7
+		ENDSELECT
+	CASE 1
+	;二階
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖魔モコイLv6
+				RETURN [[キャラ:モコイ]], 9
+			CASE IS < 30
+				;15%　妖精ノッカー　Lv4
+				RETURN [[キャラ:ノッカー]], 10
+			CASE IS < 40
+				;10%　妖精ゴブリン　Lv7
+				RETURN [[キャラ:ゴブリン]], 10
+			CASE IS < 50
+				;15%　妖鬼コボルト　Lv5
+				RETURN [[キャラ:コボルト]], 8
+			CASE IS < 60
+				;ナハトコボルト
+				RETURN 467, 7
+			CASE IS < 70
+				;15%　魔獣カーシー　Lv6
+				RETURN [[キャラ:カーシー]], 9
+			CASE IS < 85
+				;15%　妖鳥チョンチョン　Lv4
+				RETURN [[キャラ:チョンチョン]], 10
+			CASE IS < 100
+				;15%　外道ガキ　Lv4
+				RETURN [[キャラ:ガキ]], 10
+		ENDSELECT
+	CASE 2
+	;三階
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖魔インプLv9
+				RETURN [[キャラ:インプ]], 9
+			CASE IS < 30
+				;15%　妖精ブラウニー　Lv11
+				RETURN [[キャラ:ブラウニー]], 11
+			CASE IS < 40
+				;10%　妖鬼オーク　Lv11
+				RETURN [[キャラ:オーク]], 11
+			CASE IS < 55
+				;15%　龍王ワーム　Lv10
+				RETURN [[キャラ:ワーム]], 10
+			CASE IS < 70
+				;15%　妖鳥チョンチョン　Lv4
+				RETURN [[キャラ:チョンチョン]], 10
+			CASE IS < 85
+				;15%　妖鳥ヒッポウ　Lv10
+				RETURN [[キャラ:ヒッポウ]], 10
+			CASE IS < 100
+				;15%　外道ゾンビくん　Lv7
+				RETURN [[キャラ:ゾンビくん]], 10
+		ENDSELECT
+	CASE 3
+	;四階
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖魔インプLv9
+				RETURN [[キャラ:インプ]], 9
+			CASE IS < 30
+				;15%　妖鬼オーク　Lv11
+				RETURN [[キャラ:オーク]], 11
+			CASE IS < 45
+				;15%　龍王ワーム　Lv10
+				RETURN [[キャラ:ワーム]], 10
+			CASE IS < 60
+				;15%　妖鳥ヒッポウ　Lv10
+				RETURN [[キャラ:ヒッポウ]], 10
+			CASE IS < 75
+				;15%　外道ゾンビコップ　Lv9
+				RETURN [[キャラ:ゾンビコップ]], 9
+			CASE IS < 90
+				;10%　魔神アガートラーム　Lv8
+				RETURN [[キャラ:アガートラーム]], 8
+			CASE IS < 100
+				;15%　堕天使アンドラス　Lv8
+				RETURN [[キャラ:アンドラス]], 8
+		ENDSELECT
+	CASE 4
+	;地下一階
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖魔インプLv9
+				RETURN [[キャラ:インプ]], 12
+			CASE IS < 30
+				;15%　妖鬼オーク　Lv11
+				RETURN [[キャラ:オーク]], 14
+			CASE IS < 45
+				;15%　龍王ワーム　Lv10
+				RETURN [[キャラ:ワーム]], 13
+			CASE IS < 60
+				;15%　妖鳥ヒッポウ　Lv10
+				RETURN [[キャラ:ヒッポウ]], 13
+			CASE IS < 75
+				;15%　外道ゾンビコップ　Lv9
+				RETURN [[キャラ:ゾンビコップ]], 12
+			CASE IS < 85
+				;10%　魔神アガートラーム　Lv8
+				RETURN [[キャラ:アガートラーム]], 11
+			CASE IS < 100
+				;15%　堕天使ガギソン　Lv12
+				RETURN [[キャラ:ガギソン]], 12
+		ENDSELECT
+	CASEELSE
+
+ENDSELECT
+
+;=======================================================================
+;イベントまとめ
+;=======================================================================
+@EVENTING_CALLING_24
+CALL SHOW_PICTURE, "D"
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0
+		CALL MESSAGE_WINDOW_D, "", "＞The basement of the library that sank into another world/＞There was a demon in the center of the book-filled room"
+		CALL MESSAGE_WINDOW_D, "鬼女 Fuguruma", "Stupid humans、collecting so many letter that you don't read/Doing such wasteful things"
+		CALL MESSAGE_WINDOW_D, "", @"＞A female demon with the upper half of a glowing green woman and and bottom half being an oxcart/＞turned around and saw %CALLNAME:MASTER%"
+		IF IS_LOOKSLIKE_MALE(MASTER)
+			CALL MESSAGE_WINDOW_D, "鬼女 Fuguruma", "Oh……/A good-looking man has come/Hohohohohohohoho/I'll squeeze out your MAG until your dying breath"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "鬼女 Fuguruma", "Hohohohohohohoho/As for you、I'll exterminate you、/Crying uselessly as much as you wish"
+		ENDIF
+		IF FLAG:戦闘難易度 >= 3 && FLAG:周回回数 >= 1 && BASE:MASTER:LV >= 21
+			CALL MESSAGE_WINDOW_D, "", "＞2 Brute Oni appeared！/＞鬼女 Fuguruma appeared！"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞鬼女 Fuguruma appeared！"
+		ENDIF
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		IF FLAG:戦闘難易度 >= 3 && FLAG:周回回数 >= 1 && BASE:MASTER:LV >= 21
+			ダンジョンフラグ:24:19 = 1
+			;オニ
+			CALL SET_ENEMY,8,[[キャラ:オニ]],20,0,1
+			;マハ・マグナス
+			ABL:(CHARANUM-1):スキル5 = 1505
+			;タルカジャ
+			ABL:(CHARANUM-1):スキル6 = 501
+			;暴れまくり
+			ABL:(CHARANUM-1):スキル7 = 203
+			ABL:(CHARANUM-1):スキル8 = 0
+			CFLAG:(CHARANUM-1):速度補正 += 10
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			;オニ
+			CALL SET_ENEMY,10,[[キャラ:オニ]],20,0,1
+			;マハ・マグナス
+			ABL:(CHARANUM-1):スキル5 = 1505
+			;タルカジャ
+			ABL:(CHARANUM-1):スキル6 = 501
+			;暴れまくり
+			ABL:(CHARANUM-1):スキル7 = 203
+			ABL:(CHARANUM-1):スキル8 = 0
+			CFLAG:(CHARANUM-1):速度補正 += 10
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+		;フグルマ
+			CALL SET_ENEMY,9,[[キャラ:フグルマ]],22,0,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CSTR:(CHARANUM-1):思考パターン = 611
+			CFLAG:(CHARANUM-1):速度補正 = 15
+			ABL:(CHARANUM-1):スキル2 = 401
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+		ELSE
+			CALL SET_ENEMY,9,[[キャラ:フグルマ]],16,0,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+			CSTR:(CHARANUM-1):思考パターン = 611
+			ABL:(CHARANUM-1):スキル2 = 401
+			ABL:(CHARANUM-1):スキル5 = 704
+			MAXBASE:(CHARANUM-1):剣撃 = 150
+			MAXBASE:(CHARANUM-1):氷結 = 200
+			MAXBASE:(CHARANUM-1):水撃 = 200
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+		ENDIF
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		IF IS_LOOKSLIKE_MALE(MASTER)
+			CALL MESSAGE_WINDOW_D, "鬼女 Fuguruma", "Mortifying…/If I had enough living MAG…"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "鬼女 Fuguruma", "Oooooooh、what to say/Tough I worked so hard to bring this building into this world……"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "＞鬼女 Fuguruma collapsed…/＞The library was returned/＞You got ￥50000 as a reward"
+		MONEY += 50000
+		ダンジョンフラグ:24:0 = 1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		FLAG:脱出スキル禁止 = 0
+		FLAG:脱出 = 1
+		RETURN 1
+	CASE 18
+		CALL MESSAGE_WINDOW_D, "", "＞A crowd of Gaki block the waY"
+		IF IS_LOOKSLIKE_MALE(MASTER)
+			CALL MESSAGE_WINDOW_D, "Gaki", "It's a human"
+			CALL MESSAGE_WINDOW_D, "Gaki", "マズソウダナ"
+			CALL MESSAGE_WINDOW_D, "Gaki", "クッチマオウゼ"
+			CALL MESSAGE_WINDOW_D, "Gaki", "ソウシヨウ、ソウシヨウ"
+			CALL MESSAGE_WINDOW_D, "Gaki", "クワセロオオ！！"
+			CALL MESSAGE_WINDOW_D, "", "＞10 Gaki appeared！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,7,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,8,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,9,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,10,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,11,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,12,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,13,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,14,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,15,[[キャラ:ガキ]],13,0,0
+			CALL SET_ENEMY,16,[[キャラ:ガキ]],13,0,0
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			ダンジョンフラグ:24:18 = 1
+		ELSE
+			CALL MESSAGE_WINDOW_D, "Gaki", "Hahahaha、a human woman"
+			CALL MESSAGE_WINDOW_D, "Gaki", "ココヲ通リタイナラ股ヲ開ケ"
+			CALL MESSAGE_WINDOW_D, "Gaki", "俺達ニモヤラセロ"
+			CALL MESSAGE_WINDOW_D, "", "＞Will you obey the Gaki's demands to rape you？"
+			CALL INPUT_YN_D
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "Gaki", "Gyahaha"
+				CALL MESSAGE_WINDOW_D, "Gaki", "It's a pervert"
+				CALL MESSAGE_WINDOW_D, "Gaki", "What a weak-headed woman"
+				CALL MESSAGE_WINDOW_D, "", @"＞飢えたガキの群れが醜い陰茎を晒して%CALLNAME:MASTER%に群がった/＞唇に無理やりに肉棒をねじこまれ、両手で奉仕を強要され/＞他のガキがしがみつく様にして乳房を貪り"
+				CALL MESSAGE_WINDOW_D, "", @"＞%\@TALENT:MASTER:男の娘?#アソコと\@%アナルを同時に乱暴に突き上げられる/＞むせかえる様な精液の臭いとガキの体臭があたりに満ちる……"
+				CALL MESSAGE_WINDOW_D, "", @"＞やがて輪姦に飽きたのだろう/＞ガキは%\@TALENT:MASTER:男の娘?肛門#両穴\@%から精液を零す%CALLNAME:MASTER%を押えつけると…/＞その細い腕を%\@TALENT:MASTER:男の娘?アナル#アソコ\@%へと突き入れた/＞裂けるような鈍い痛みと共に%CALLNAME:MASTER%の意識は途絶えた……"
+				CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+				CALL SHOW_PICTURE, "EMPTY"
+				CALL SHOW_PICTURE, "NONFLOORD"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% was raped by a ring of Gaki"
+				;処女
+				IF TALENT:MASTER:再生処女 || TALENT:MASTER:処女
+					PRINTFORML \@ TALENT:MASTER:処女 ? Virginity # Restored Virginity \@ Lost
+					PRINTL Virginity Lost
+					TALENT:MASTER:処女 = 0
+					TALENT:MASTER:再生処女 = 0
+					PRINTL AbnormalEXP + 1
+					EXP:MASTER:異常経験 += 1
+				ENDIF
+				IF TALENT:MASTER:男の娘
+					PRINTL ＡEXP + 150
+					EXP:MASTER:Ａ経験 += 150
+				ELSE
+					PRINTL ＶEXP + 100
+					EXP:MASTER:Ｖ経験 += 100
+					PRINTL ＡEXP + 80
+					EXP:MASTER:Ａ経験 += 80
+				ENDIF
+				PRINTL ClimaxEXP + 50
+				EXP:MASTER:絶頂経験 += 50
+				PRINTL SexEXP + 50
+				EXP:MASTER:性交経験 += 50
+				IF TALENT:MASTER:男の娘 == 0
+					PRINTL CreampieEXP + 55
+					EXP:MASTER:膣射経験 += 55
+				ENDIF
+				PRINTL SemenEXP + 30
+				EXP:MASTER:精液経験 += 30
+				PRINTL ServicPlsEXP + 70
+				EXP:MASTER:奉仕快楽経験 += 70
+				IF TALENT:MASTER:男の娘
+					PRINTL BlowjobEXP + 65
+					EXP:MASTER:フェラ経験 += 65
+				ELSE
+					PRINTL BlowjobEXP + 35
+					EXP:MASTER:フェラ経験 += 35
+				ENDIF
+				PRINTL MasoEXP + 30
+				EXP:MASTER:苦痛快楽経験 += 30
+				;Ｖ,ＡExpandEXP
+				IF EXP:MASTER:52 == 0 && EXP:MASTER:53 == 0 
+					EXP:MASTER:50 += 1
+					PRINTL AbnormalEXP＋１
+				ENDIF
+				IF TALENT:MASTER:男の娘
+					PRINTL ＡExpandEXP + 60
+					EXP:MASTER:Ａ拡張経験 += 60
+				ELSE
+					PRINTL ＶExpandEXP + 30
+					EXP:MASTER:Ｖ拡張経験 += 30
+					PRINTL ＡExpandEXP + 30
+					EXP:MASTER:Ａ拡張経験 += 30
+				ENDIF
+				PRINTL 
+				PRINTW 
+				IF PREGNANCY_ABLE(MASTER)
+					PRINTFORMW %CALLNAME:MASTER% became【Pregnant】
+					CALL PREGNANCY_CHECK, MASTER, 4
+					CALL SET_FATHERINFO, MASTER, 1093, 0, "Gaki"
+					CALL CHANGE_N_STATUS, MASTER
+					TALENT:MASTER:妊娠 = 1
+				ENDIF
+				CALL SHOW_PICTURE, "EMPTY"
+				CALL SHOW_PICTURE, "NONFLOORD"
+				CALL MESSAGE_WINDOW_D, "", @"＞When %CALLNAME:MASTER% woke up/＞the crowd of gaki left for somewhere…/＞Her strength was used up from being raped……/＞It is too difficult to continue the search today"
+				FLAG:脱出 = 1
+			ELSEIF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "Gaki", "ヤラセロオオ！！"
+				CALL MESSAGE_WINDOW_D, "", "＞10 Gaki appeared！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,7,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,8,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,9,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,10,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,11,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,12,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,13,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,14,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,15,[[キャラ:ガキ]],13,0,0
+				CALL SET_ENEMY,16,[[キャラ:ガキ]],13,0,0
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+			ENDIF
+			ダンジョンフラグ:24:18 = 1
+			CALL CLEAR_TILE
+		ENDIF
+	CASE 3 TO 11
+		CALL MESSAGE_WINDOW_D, "", "＞There is a bookshelf/＞Examine it？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+				CASE 3
+					CALL MESSAGE_WINDOW_D, "", "＞『Captured 23-Year-Old Female Teacher-Extra Curricular Class-』/＞Erotic fiction was on the bookshelf"
+				CASE 4
+					CALL MESSAGE_WINDOW_D, "", "＞『Magic Warrior Magical☆Dolly-Anal Rape Hell-』/＞Indecent comics were found on the bookshelf"
+				CASE 5
+					CALL MESSAGE_WINDOW_D, "", "＞『Holy Rape School-Snow Queen Edition-』/＞Erotic fiction was on the bookshelf"
+				CASE 6
+					CALL MESSAGE_WINDOW_D, "", "＞『Three High School Girl Slaves Makai School Edition』/＞Indecent comics were found on the bookshelf"
+				CASE 7
+					CALL MESSAGE_WINDOW_D, "", "＞『Coolest Monthly』/＞Teen magazines were found on the bookshelf"
+				CASE 8
+					CALL MESSAGE_WINDOW_D, "", "＞『Burn My Dread』/＞A music magazine was on the bookshelf"
+				CASE 9
+					CALL MESSAGE_WINDOW_D, "", "＞『My Service Maid　-But Would You Love a Zouma？-』/＞Erotic fiction was on the bookshelf"
+				CASE 10
+					CALL MESSAGE_WINDOW_D, "", "＞『Monthly Ayakashi』/＞Occult magazines were found on the bookshelf"
+				CASE 11
+					CALL MESSAGE_WINDOW_D, "", "＞『神に作られし聖女-被虐調教編-』/＞Erotic fiction was on the bookshelf"
+			ENDSELECT
+			ダンジョンフラグ:24:(DA:(FLAG:現X):(FLAG:現Y)/10) = 1
+			ダンジョンフラグ:24:12 += 1
+			SELECTCASE ダンジョンフラグ:24:12
+				CASE 1
+					CALL MESSAGE_WINDOW_D, "", "＞A voice came fromm nowhere"
+					CALL MESSAGE_WINDOW_D, "Voice", "Please don't thouch the books needlessly"
+				CASE 5
+					CALL MESSAGE_WINDOW_D, "", "＞A voice came fromm nowhere"
+					CALL MESSAGE_WINDOW_D, "Voice", "Human、please don't touch the books with your dirty hands"
+				CASE 9
+					CALL MESSAGE_WINDOW_D, "", "＞A voice came fromm nowhere"
+					CALL MESSAGE_WINDOW_D, "Voice", "Stupid human/picking up only vulgar books/If you don't understand the value of books you won't return alive！！"
+					FLAG:脱出スキル禁止 = 1
+			ENDSELECT
+			CALL CLEAR_TILE
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞You left the bookshelf"
+		ENDIF
+;		ELSEIF FLAG:現X == 4 && FLAG:現Y == 6 && ダンジョンフラグ:24:0 == 1
+;			CALL HUGURUMA_TERMINAL
+;	CASE 6
+;		IF FLAG:現X == 5 && FLAG:現Y == 1
+;			PRINTFORML ＞司書がいる
+;			PRINTFORMW 「こちら平崎市立中央図書館に何かご用ですか？」
+;
+;		ELSEIF FLAG:現X == 4 && FLAG:現Y == 3 && ダンジョンフラグ:24:13 == 0
+;			PRINTFORML ＞ストレートのロングヘアが印象的な眼鏡をかけた女子高生がいる
+;			SIF イベントフラグ:9:0 >= 1
+;				PRINTFORMW ＞月光館学園生徒のようだ
+;			PRINTFORMW 「すごい本の数」
+;			PRINTFORMW 「自分の知らない知識が、こんなにあるのかと思うと気が遠くなるわ」 
+;			ダンジョンフラグ:24:13 = 1
+;
+;		ELSEIF FLAG:現X == 4 && FLAG:現Y == 4 && ダンジョンフラグ:24:14 == 0
+;			PRINTFORML ＞物静かな男子高校生がいる
+;			PRINTFORMW ＞隣にいる少女とデートなのだろうか
+;			ダンジョンフラグ:24:14 = 1
+;
+;		ELSEIF FLAG:現X == 6 && FLAG:現Y == 3 && ダンジョンフラグ:24:15 == 0
+;			PRINTFORML ＞スーツを着たさえない男がいる
+;			PRINTFORMW 「君もさぼっているのかい」
+;			PRINTFORMW 「い、いや、僕はさぼっているわけじゃないよ」
+;			PRINTFORMW 「こう見えても僕は刑事だからね」
+;			ダンジョンフラグ:24:15 = 1
+;
+;		ELSEIF FLAG:現X == 8 && FLAG:現Y == 4 && ダンジョンフラグ:24:16 == 0
+;			PRINTFORMW ＞帽子を被った線の細い少年がいる
+;			IF ダンジョンフラグ:42:0 >= 1
+;				PRINTFORML 「こんにちは」
+;				PRINTFORMW 「あの時はお世話になりました」
+;			ENDIF
+;			PRINTFORML 「ここの蔵書数は凄いですね」
+;			PRINTFORMW 「下手な大学図書館より揃っています」
+;			ダンジョンフラグ:34:16 = 1
+;
+;		ELSEIF FLAG:現X == 10 && FLAG:現Y == 4 && ダンジョンフラグ:24:17 == 0
+;			PRINTFORML ＞本棚から奇妙な気配を感じた
+;			PRINTFORMW ＞調べますか？
+;			CALL INPUT_YN
+;			IF RESULT == 0
+;				PRINTFORMW 一冊の本を手に取ると本に吸い込まれる様にして異界へと飛ばされた
+;				ダンジョンフラグ:24:17 = 1
+;				CALL DUNGEON_WORP,4,4,4
+;			ENDIF
+;		ENDIF
+;	CASEELSE
+ENDSELECT
+RETURN 1
+;=======================================================================
+;宝箱まとめ
+;=======================================================================
+@TRESURING_CALLING_24
+SELECTCASE FLAG:現M
+	CASE 3
+		;火除神符
+		CALL GET_TREASURE,1031,1,24,30
+	CASE 4
+		;Dis-Poison
+		CALL GET_TREASURE,1017,2,24,31
+ENDSELECT
+RETURN 0
+
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+@DUNGEON_ELEVATOR_24, ARG
+VARSET RESULT, -1
+VARSET RESULTS
+RESULT:1 = 0
+RESULT:2 = 1
+RESULT:3 = 2
+RESULT:4 = 3
+RESULT:5 = 4
+RESULTS:1 = Ｂ１Ｆ
+RESULTS:2 = １Ｆ
+RESULTS:3 = ２Ｆ
+RESULTS:4 = ３Ｆ
+RESULTS:5 = ４Ｆ
+RETURN -1
+
+@SET_ACTION_611,ARG
+;1more
+IF CFLAG:ARG:１moreフラグ == 2
+	IF 現HP割合(ARG) >= 50
+		IF ダンジョンフラグ:24:19 == 1
+			IF RAND:2 == 0
+				;マハラギ・オン
+				CALL CHECK_ACTIONABLE,ARG,705
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 705
+				CALL RANDOM_TARGET,ARG,705
+				RETURN 1
+			ELSE
+				;子守唄
+				CALL CHECK_ACTIONABLE,ARG,1223
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 1223
+				CALL RANDOM_TARGET,ARG,1223
+				RETURN 1
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				;マハラギ
+				CALL CHECK_ACTIONABLE,ARG,704
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 704
+				CALL RANDOM_TARGET,ARG,704
+				RETURN 1
+			ELSE
+				;ファイアブレス
+				CALL CHECK_ACTIONABLE,ARG,708
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 708
+				CALL RANDOM_TARGET,ARG,708
+				RETURN 1
+			ENDIF
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			;夢見針
+			CALL CHECK_ACTIONABLE,ARG,105
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 105
+			CALL RANDOM_TARGET,ARG,105
+			RETURN 1
+		ELSE
+			;ドルミナー
+			CALL CHECK_ACTIONABLE,ARG,105
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 105
+			CALL RANDOM_TARGET,ARG,105
+			RETURN 1
+		ENDIF
+	ENDIF
+ELSEIF CFLAG:MASTER:攻撃強化 > 4 || CFLAG:MASTER:命中強化 > 4 || CFLAG:MASTER:防御強化 > 4 || CFLAG:MASTER:命中強化 > 4
+	IF RAND:2 == 0
+		;デカジャ
+		CFLAG:(CHARANUM-1):速度補正 = 15
+		CALL CHECK_ACTIONABLE,ARG,509
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 509
+		CALL RANDOM_TARGET,ARG,509
+		RETURN 1
+	ELSE
+		IF RAND:2 == 0
+			IF ダンジョンフラグ:24:19 == 1
+				;マハラギ・オン
+				CALL CHECK_ACTIONABLE,ARG,705
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 705
+				CALL RANDOM_TARGET,ARG,705
+				RETURN 1
+			ELSE
+				;ファイアブレス
+				CALL CHECK_ACTIONABLE,ARG,708
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 708
+				CALL RANDOM_TARGET,ARG,708
+				RETURN 1
+			ENDIF
+		ELSE
+			;子守唄
+			CALL CHECK_ACTIONABLE,ARG,1223
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 1223
+			CALL RANDOM_TARGET,ARG,1223
+			RETURN 1
+		ENDIF
+	ENDIF
+ELSEIF 現HP割合(ARG) >= 50
+	SELECTCASE RAND:100
+		;20％で夢見針
+		CASE IS < 20
+			CALL CHECK_ACTIONABLE,ARG,105
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 105
+			CALL RANDOM_TARGET,ARG,105
+			RETURN 1
+		;20％でアギラオ
+		CASE IS < 40
+			CALL CHECK_ACTIONABLE,ARG,702
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 702
+			CALL RANDOM_TARGET,ARG,702
+			RETURN 1
+		;20％でマハ･ラギ
+		CASE IS < 60
+			IF ダンジョンフラグ:24:19 == 1
+				CALL CHECK_ACTIONABLE,ARG,705
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 705
+				CALL RANDOM_TARGET,ARG,705
+				RETURN 1
+			ELSE
+				CALL CHECK_ACTIONABLE,ARG,704
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 704
+				CALL RANDOM_TARGET,ARG,704
+				RETURN 1
+			ENDIF
+		;10％でファイアブレス
+		CASE IS < 60
+			CALL CHECK_ACTIONABLE,ARG,708
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 708
+			CALL RANDOM_TARGET,ARG,708
+			RETURN 1
+		;10％でドルミナー
+		CASE IS < 80
+			CALL CHECK_ACTIONABLE,ARG,1222
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 1222
+			CALL RANDOM_TARGET,ARG,1222
+			RETURN 1
+		;10％で通常攻撃
+		CASE IS < 100
+			CALL CHECK_ACTIONABLE,ARG,0
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 0
+			CALL RANDOM_TARGET,ARG,0
+			RETURN 1
+	ENDSELECT
+ELSEIF 現HP割合(ARG) < 50
+	SELECTCASE RAND:100
+		;5％でディア
+		CASE IS < 5
+			CALL CHECK_ACTIONABLE,ARG,401
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 401
+			CALL RANDOM_TARGET,ARG,401
+			RETURN 1
+		;20％で夢見針
+		CASE IS < 25
+			CALL CHECK_ACTIONABLE,ARG,105
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 702
+			CALL RANDOM_TARGET,ARG,702
+			RETURN 1
+		;30％でマハ･ラギ
+		CASE IS < 55
+			CALL CHECK_ACTIONABLE,ARG,704
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 704
+			CALL RANDOM_TARGET,ARG,704
+			RETURN 1
+		CASE IS < 75
+			;20％で子守唄
+			CALL CHECK_ACTIONABLE,ARG,1223
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 1223
+			CALL RANDOM_TARGET,ARG,1223
+			RETURN 1
+		CASE IS < 85
+			;10％でマハラギ・オン
+			IF ダンジョンフラグ:24:19 == 1
+				CALL CHECK_ACTIONABLE,ARG,705
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 705
+				CALL RANDOM_TARGET,ARG,705
+				RETURN 1
+			ELSE
+				;ファイアブレス
+				CALL CHECK_ACTIONABLE,ARG,708
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 708
+				CALL RANDOM_TARGET,ARG,708
+				RETURN 1
+			ENDIF
+		;15％で通常攻撃
+		CASE IS < 100
+			CALL CHECK_ACTIONABLE,ARG,0
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 0
+			CALL RANDOM_TARGET,ARG,0
+			RETURN 1
+	ENDSELECT
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+
+;@HUGURUMA_TERMINAL
+;CUSTOMDRAWLINE =
+;PRINTL ＞本棚には一冊の日記帳と此方の世界に来た時に開いた本が置いてある。
+;PRINTL
+;PRINTL [1]探索の記録を残す
+;PRINTL [2]異界から帰る
+;DRAWLINE
+;PRINTL [0]何もしない
+;$INPUT_LOOP_B01
+;INPUT
+;IF RESULT == 0
+;	RETURN 1
+;ELSEIF RESULT == 1
+;	CALL TITLE_SAVEGAME
+;ELSEIF RESULT == 2
+;	PRINTL 本を開くと身体が光に包まれた…
+;	FLAG:脱出 = 1
+;	RETURN 1
+;ELSE
+;	GOTO INPUT_LOOP_B01
+;ENDIF
+;RESTART
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_24
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:5
+	CASE 0
+		RETURN [[キャラ:カーシー]] , 3 + RAND:10 , CSVBASE([[キャラ:カーシー]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ガキ]] , 3 + RAND:10 , CSVBASE([[キャラ:ガキ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:コボルト]] , 3 + RAND:10 , CSVBASE([[キャラ:コボルト]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 3
+		RETURN [[キャラ:オーク]] , 3 + RAND:10 , CSVBASE([[キャラ:オーク]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 4
+		RETURN [[キャラ:インプ]] , 3 + RAND:10 , CSVBASE([[キャラ:インプ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+

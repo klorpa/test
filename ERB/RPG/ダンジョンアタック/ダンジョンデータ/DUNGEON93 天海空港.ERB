@@ -1,0 +1,856 @@
+;ライセンスフリー
+;=======================================================================
+;天海空港
+;ダンジョンナンバー93　ＭＡＰ0~3
+;フラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):1 （1～3）イベント・（4・5）クリアフラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):2~4 扉フラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):5 メッセンジャーフラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):6 レイ戦闘・組織譲渡フラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):7 ウィルペ戦闘フラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):8 ユダ幽霊フラグ
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_93
+IF 依頼フラグ:34:0 == 1
+	RETURN 1
+ENDIF
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_93
+RESULTS = Amami Airport
+@FLOORNAME_93
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL ・１F
+	CASE 1
+		PRINTL ・２F
+	CASE 2
+		PRINTL ・Ｂ１Ｆ
+	CASE 3
+		PRINTL ・３Ｆ
+ENDSELECT
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_93, ARG
+FLAG:現M = 0
+FLAG:現X =18
+FLAG:現Y =19
+;CALL AUTOMAP
+RETURN 0
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_93
+IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 0
+	CALL SHOW_PICTURE, "D"
+	CALL MESSAGE_WINDOW_D, "", "＞It seems the target demon is on floor ３."
+	CALL MESSAGE_WINDOW_D, "", "＞First though, you decided to join the Phantom Society summoner that was sent earlier."
+FLAG:脱出スキル禁止 = 1
+ENDIF
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_93, ARG, ARG:1
+RESULT = 1
+SELECTCASE DA:ARG:(ARG:1)
+	CASE 12
+		;上にしか進めない＝上からは無理
+		;上である時＝現在のYがARG:1より小さいとき
+		IF ARG:1 > FLAG:現Y
+			CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, ARG, ARG:1)
+			RETURN 0
+		ENDIF
+	CASE 22
+		IF ARG:1 < FLAG:現Y
+			CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, ARG, ARG:1)
+			RETURN 0
+		ENDIF
+	CASE 32
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 0
+		CALL MESSAGE_WINDOW_D, "System", "This door is locked."
+		;このドアはロックされています
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 1
+		ENDIF
+	CASE 42
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 0
+		CALL MESSAGE_WINDOW_D, "System", "This door is locked."
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 1
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):3 == 0
+		CALL MESSAGE_WINDOW_D, "System", "This door is locked."
+		ENDIF
+	CASE 52
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 0
+			CALL MESSAGE_WINDOW_D, "System", "This door is locked."
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):7 == 0 && ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3
+				CALL MESSAGE_WINDOW_D, "", "＞扉の前に立つと, 強い熱を向こうから感じた"
+				CALL MESSAGE_WINDOW_D, "", "＞とっさにしゃがんだ次の瞬間, /強い衝撃があなたを襲い, あなたは気を失った……"
+				CALL MESSAGE_WINDOW_D, "", "………"
+				CALL MESSAGE_WINDOW_D, "", "……"
+				CALL MESSAGE_WINDOW_D, "", "…"
+				CALL MESSAGE_WINDOW_D, "", "＞どうやら空港を占拠した悪魔が管理室を爆発させたようだ"
+				CALL MESSAGE_WINDOW_D, "", "＞管理室にいたユダは助からなかった"
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):6 == 2
+				CALL MESSAGE_WINDOW_D, "","＞クズノハのレイを組織に渡し空港を占拠していた悪魔を排除したことにより, /口座に￥65000が支払われ, 名声160を得た"
+				MONEY += 65000
+				FLAG:名声 += 160
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):6 == 1
+				CALL MESSAGE_WINDOW_D, "","＞クズノハのレイを倒し空港を占拠した悪魔を排除したことにより, /口座に￥35000が支払われ, 名声110を得た"
+				MONEY += 35000
+				FLAG:名声 += 110
+			ELSE
+				CALL MESSAGE_WINDOW_D, "","＞空港を占拠していた悪魔を排除したことにより, /口座に￥15000が支払われ, 名声60を得た"
+				MONEY += 15000
+				FLAG:名声 += 60
+			ENDIF
+			;クリアフラグ
+				ダンジョンフラグ:(FLAG:現ダンジョン):1 = 4
+				CALL CLEAR_TILE
+				FLAG:脱出スキル禁止 = 0
+				FLAG:脱出 = 1
+			RETURN 1
+		ENDIF
+	ENDIF
+	CASEELSE
+		CALL CAN_ENTER,ARG,ARG:1
+ENDSELECT
+RETURN RESULT
+
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_93
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 37
+		FLAG:最大Y = 21 
+							;	  0123456789012345678901234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "                                     "
+   		CALL MAKE_FLOOR_LINE, 1, "    m1111111111 1 a 1 1111111111m    "
+   		CALL MAKE_FLOOR_LINE, 2, "    1      1 11 1 $ 1 11 1      1    "
+   		CALL MAKE_FLOOR_LINE, 3, "   11    111 A( 11111 (D 111    11   "
+   		CALL MAKE_FLOOR_LINE, 4, "   #   121 1 ][ 11111 [] 1 121   #   "
+   		CALL MAKE_FLOOR_LINE, 5, " 11111   1 1 ][   m   [] 1 1   11111 "
+   		CALL MAKE_FLOOR_LINE, 6, " 1   1 121 1 ][ 11111 [] 1 121 1   1 "
+   		CALL MAKE_FLOOR_LINE, 7, " 1 b21   1 1 ][ 1   1 [] 1 1   12c 1 "
+   		CALL MAKE_FLOOR_LINE, 8, " 1   1 321 1 )B 1 X 1 C) 1 123 1   1 "
+   		CALL MAKE_FLOOR_LINE, 9, " 11111   111 11 1 2 1 11 111   11111 "
+   		CALL MAKE_FLOOR_LINE,10, "             11111111111             "
+   		CALL MAKE_FLOOR_LINE,11, "            1111111111111            "
+   		CALL MAKE_FLOOR_LINE,12, "            1111111111111            "
+   		CALL MAKE_FLOOR_LINE,13, "            1111111111111            "
+   		CALL MAKE_FLOOR_LINE,14, "             11 11 11 11             "
+   		CALL MAKE_FLOOR_LINE,15, "            1111111111111            "
+   		CALL MAKE_FLOOR_LINE,16, "               1111111               "
+   		CALL MAKE_FLOOR_LINE,17, "               1111111               "
+   		CALL MAKE_FLOOR_LINE,18, "                11111                "
+   		CALL MAKE_FLOOR_LINE,19, "                11111                "
+   		CALL MAKE_FLOOR_LINE,20, "                  8                  "
+
+	CASE 1
+		;2F
+		FLAG:最大X = 29 
+		FLAG:最大Y = 14 
+		;						 0123456789012345678901234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                             "
+		CALL MAKE_FLOOR_LINE, 1," 11111      1 a 1      11111 "
+		CALL MAKE_FLOOR_LINE, 2," 1 2 1      1 $ 1      1 2 1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 y 1  111 11111 111  1 y 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1   1  111 11111 111  1   1 "
+		CALL MAKE_FLOOR_LINE, 5," 111111 111   2   111 111111 "
+		CALL MAKE_FLOOR_LINE, 6,"      1 1111111111111 1      "
+		CALL MAKE_FLOOR_LINE, 7," 111  2 1 1 2 1 2 1 1 2  111 "
+		CALL MAKE_FLOOR_LINE, 8,"   1 1111 1 T 1 1 1 1111 1   "
+		CALL MAKE_FLOOR_LINE, 9," b21 1113 1       1 3111 12c "
+		CALL MAKE_FLOOR_LINE,10,"   1 2    111111111    2 1   "
+		CALL MAKE_FLOOR_LINE,11,"   111        2        111   "
+		CALL MAKE_FLOOR_LINE,12,"              Y              "
+		CALL MAKE_FLOOR_LINE,13,"                             "
+
+
+	CASE 2
+		;B1F
+		FLAG:最大X = 33
+		FLAG:最大Y = 13
+							;	  0123456789012345678901234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "                                 "
+   		CALL MAKE_FLOOR_LINE, 1, "     111 11111   a   11111 111   "
+   		CALL MAKE_FLOOR_LINE, 2, "     2 1 1   1   $   1   1 1 2   "
+   		CALL MAKE_FLOOR_LINE, 3, "   3 1 1 1 1 111111111 1 1 1 1 3 "
+   		CALL MAKE_FLOOR_LINE, 4, "   1   1 1 2 111111111 2 1 1   1 "
+   		CALL MAKE_FLOOR_LINE, 5, "   11111111111111 11111111111111 "
+   		CALL MAKE_FLOOR_LINE, 6, "              11 Z 11            "
+   		CALL MAKE_FLOOR_LINE, 7, "   11111      11 2 11      11111 "
+   		CALL MAKE_FLOOR_LINE, 8, "   1   1  111111111111111  1   1 "
+   		CALL MAKE_FLOOR_LINE, 9, "   1 b211111  1111111  111112c 1 "
+   		CALL MAKE_FLOOR_LINE,10, "   1   1  2             2  1   1 "
+   		CALL MAKE_FLOOR_LINE,11, "   11111  s             i  11111 "
+   		CALL MAKE_FLOOR_LINE,12, "                                 "
+
+
+	CASE 3
+		;3F
+		FLAG:最大X = 9
+		FLAG:最大Y = 12
+							;	  0123456789
+   		CALL MAKE_FLOOR_LINE, 0, "         "
+   		CALL MAKE_FLOOR_LINE, 1, "    a    "
+   		CALL MAKE_FLOOR_LINE, 2, "  1 2 1  "
+   		CALL MAKE_FLOOR_LINE, 3, " 1111111 "
+   		CALL MAKE_FLOOR_LINE, 4, "    %    "
+   		CALL MAKE_FLOOR_LINE, 5, "   111   "
+   		CALL MAKE_FLOOR_LINE, 6, " 1111111 "
+   		CALL MAKE_FLOOR_LINE, 7, "  11111  "
+   		CALL MAKE_FLOOR_LINE, 8, "    2    "
+   		CALL MAKE_FLOOR_LINE, 9, "   1U1   "
+   		CALL MAKE_FLOOR_LINE,10, "   111   "
+   		CALL MAKE_FLOOR_LINE,11, "         "
+   		
+   		
+	CASE 10
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_COMMON_93_1, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1
+		RESULTS = ↑
+	CASE 2
+		RESULTS = ↓
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_93_2, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1
+		RESULTS = ↑
+	CASE 2
+		RESULTS = ↓
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_93_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE  2 , 3 
+		RESULTS = ↑
+	CASE  1 , 4
+		RESULTS = ↓
+	CASE  5
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 1 || ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASE  6
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):8 == 0
+		RESULTS = !
+		ENDIF
+	ELSE
+	RESULTS = □
+	ENDIF
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_93_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 2 , 3 , 4
+		RESULTS = Ｅ
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_93, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "["
+		RETURN 11
+	CASE "]"
+		RETURN 21
+	CASE "("
+		RETURN 12
+	CASE ")"
+		RETURN 22
+	CASE "#"
+		RETURN 32
+	CASE "$"
+		RETURN 42
+	CASE "%"
+		RETURN 52
+	CASE "A"
+		RETURN 14
+	CASE "B"
+		RETURN 24
+	CASE "C"
+		RETURN 34
+	CASE "D"
+		RETURN 44
+	CASE "m"
+		RETURN 54
+	CASE "y"
+		RETURN 64
+	CASE "i"
+		RETURN 74
+	CASE "s"
+		RETURN 84
+	CASE "X"
+		RETURN 6004
+	CASE "Y"
+		RETURN 6104
+	CASE "Z"
+		RETURN 6204
+	CASE "U"
+		RETURN 6304
+	CASE "a"
+		RETURN 29
+	CASE "b"
+		RETURN 39
+	CASE "c"
+		RETURN 49
+ENDSELECT
+
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_93, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:70~99
+;LOCAL:4 イベント
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+		LOCAL:4++
+	CASE 5
+		;DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:5 * 10 + 5
+		;LOCAL:5++
+	CASE 6
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:6 * 10 + 6
+		LOCAL:6++
+	CASE 7
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:7 * 10 + 7
+		LOCAL:7++
+	CASE 8
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:8 * 10 + 8
+		LOCAL:8++
+	CASE 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+		LOCAL:9++
+
+ENDSELECT
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_93
+CALL EVENT_DUNGEON_93
+RETURN RESULT
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_93, ARG
+;ARG = 進入時の向き　0の場合ワープなど
+CALL EVENT_DUNGEON_93, ARG , 0
+RETURN RESULT
+
+@EVENT_DUNGEON_93, ARG, ARG:1
+#DIM 交渉可能キャラ , 7
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+;==========
+;出口の処理
+;==========
+	CASE 8
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4 || ダンジョンフラグ:(FLAG:現ダンジョン):1 == 5
+		CALL DUNGEON_EXIT
+		ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞You can't leave before finishing the mission."
+		FLAG:現Y = 19
+		ENDIF
+	RETURN 1
+;==========
+;扉の処理
+;==========
+	CASE 2
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+		
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_93
+		RETURN 1
+;==========
+;イベント
+;==========
+	CASE 4
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE  2 , 3 
+				CALL SHOW_FORCEMOVE, "UUUUUU", "D", , ,  ""
+	CASE  1 , 4
+				CALL SHOW_FORCEMOVE, "DDDDDD", "D", , ,  ""
+	CASE 5
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 1 || ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):5 == 0
+				CALL MESSAGE_WINDOW_D, "Summoner", "Sorry!/The system was taken over by a demon in the management office!"
+				CALL MESSAGE_WINDOW_D, "Summoner", "Please unlock it at the central procedure counter."
+				CALL MESSAGE_WINDOW_D, "Summoner", "真っ正面のエレベーターは２階で, ３階のロックは地下で外せるんで, その順番で外していってください"
+			ダンジョンフラグ:(FLAG:現ダンジョン):5 = 1
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):5 == 1
+				CALL MESSAGE_WINDOW_D, "Summoner", "中央の手続きカウンターでロックを外して左右のエレベーターで２階に向かってください"
+		ENDIF
+	ENDIF
+	CASE 6
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):8 == 0
+				CALL MESSAGE_WINDOW_D, "Man's Voice", "…お前は… あの時の…"
+				CALL MESSAGE_WINDOW_D, "Man's Voice", "……私の使っていたものが/地下の, 廃棄物処理場に…/捨てられているのだ…"
+				CALL MESSAGE_WINDOW_D, "Man's Voice", "どうか, 役立ててくれ…/そして, 何が正しいのか, /教えてくれ……"
+		ダンジョンフラグ:(FLAG:現ダンジョン):8 = 1
+		ENDIF
+	ENDIF
+	CASE 7
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4 && ダンジョンフラグ:(FLAG:現ダンジョン):8 == 1
+		CALL MESSAGE_WINDOW_D, "", "＞Waste Disposal Treatement area"
+		CALL MESSAGE_WINDOW_D, "Man's Voice", "よく来た…"
+		CALL MESSAGE_WINDOW_D, "Man's Voice", "ここに静かに…眠っている…………かつて我が……使いし……/…ＣＯＭＰ……"
+		CALL MESSAGE_WINDOW_D, "Man's Voice", "……もはや…屍として…奏でる…こと…/叶わぬが…中に…仲魔がいたら/…起こしてやってくれ…"
+		CALL MESSAGE_WINDOW_D, "Man's Voice", "ここ……の奥だ……"
+		CALL MESSAGE_WINDOW_D, "", "＞You found the wreckage of the saxophone-shaped ＣＯＭＰ in the garbage"
+		CALL MESSAGE_WINDOW_D, "", "＞From the ＣＯＭＰs 「Memory Core」 you salvaged some demons."
+		;ＣＯＭＰに入っていた「パワー・メモリ」から悪魔を手に入れた
+		CALL ADD_NEW_COMPANION,[[キャラ:インキュバス]],500
+		CALL ADD_NEW_COMPANION,[[キャラ:バンシー]],500
+		CALL ADD_NEW_COMPANION,[[キャラ:モムノフ]],500
+		CALL ADD_NEW_COMPANION,[[キャラ:ケライノー]],500
+		CALL MESSAGE_WINDOW_D, "Man's Voice", "……これで……この世に……/残せし…ものは…何も…無く…/……もはや……消る…のみ………"
+		CALL MESSAGE_WINDOW_D, "Man's Voice", "……なれど……/いかに…生きるべき…だったのか……/それだ……け…が…………"
+		CALL MESSAGE_WINDOW_D, "", "…………"
+		CALL MESSAGE_WINDOW_D, "", "＞The voice has gone quiet..."
+		;声の気配は消えた……
+		ダンジョンフラグ:(FLAG:現ダンジョン):8 = 2
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞Waste Disposal Treatement area"
+	ENDIF
+	CASE 8
+		CALL MESSAGE_WINDOW_D, "", "＞Shuttle platform"
+		CALL MESSAGE_WINDOW_D, "", "The shuttle is not running"
+	CASE 600
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 1
+			CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+			CALL MESSAGE_WINDOW_D, "System", ".../１F gate lock has been released."
+			ダンジョンフラグ:(FLAG:現ダンジョン):1 = 2
+			ダンジョンフラグ:(FLAG:現ダンジョン):2 = 1
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+			CALL MESSAGE_WINDOW_D, "System", "The door lock has been released."
+		ENDIF
+	CASE 610
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+			CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+			CALL MESSAGE_WINDOW_D, "", "＞A man and a woman are fighting here."
+			;＞男と女が戦っている
+			CALL MESSAGE_WINDOW_D, "", "＞The man is Judah, who was sent here first."
+			;男の方は先に来ていたユダだ
+			CALL MESSAGE_WINDOW_D, "", "＞The woman is wearing a white suit and is not known to you."
+			;白いスーツの女の方は誰かわからない
+			CALL MESSAGE_WINDOW_D, "", "＞Do you want to assist Judah?"
+			;ユダを助けに入りますか？
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				ダンジョンフラグ:(FLAG:現ダンジョン):6 = 1
+				CALL MESSAGE_WINDOW_D, "Woman", "Oh?/You are getting reinforcements?!"
+				;女", "あっ, と./増援!？
+				CALL MESSAGE_WINDOW_D, "", "/＞1 Human Rei Reiho appeared!/"
+				;人間 レイ･レイホゥが１体出た!
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:レイ]], 35, 0, 1
+				CFLAG:(CHARANUM-1):ＨＰ補正 = +1000
+				CFLAG:(CHARANUM-1):ＭＰ補正 = +1000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				BASE:(CHARANUM-1):力 += 5
+				BASE:(CHARANUM-1):知恵 += 5
+				BASE:(CHARANUM-1):魔力 += 5
+				BASE:(CHARANUM-1):耐力 += 5
+				BASE:(CHARANUM-1):速さ += 5
+				BASE:(CHARANUM-1):運 += 5
+				ABL:(CHARANUM-1):スキル1 = [[スキル:マハンマオン]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:不屈の闘志]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:メギド]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:マハ・ラギオン]]
+				ABL:(CHARANUM-1):スキル5 = 0
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "Rai", "I....I lost..."
+				;レイ", "私が…負けちゃうなんて…
+				CALL MESSAGE_WINDOW_D, "", "＞Human Rei Reiho was defeated..."
+				;人間 レイ･レイホゥは倒れた…
+				CALL MESSAGE_WINDOW_D, "Judah", "You saved me."
+				;君のお陰で助かった
+				CALL MESSAGE_WINDOW_D, "Judah", "This woman is in an organistation hostile to the Phantom Society./She is Rei Reiho, of the Kuzunoha."
+				;この女はファントム・ソサエティに敵対する組織/クズノハの女, レイ･レイホゥだ
+				CALL MESSAGE_WINDOW_D, "Judah", "The organisation will greatly appreciate you defeating her."
+				;この女を倒したとなると, 組織は君を大きく評価するだろう
+				CALL MESSAGE_WINDOW_D, "Judah", "Well, what do want to do with her?/You could keep her for yourself,/or turn her in to the Phantom Society for an additional reward./The coice is yours."
+				;この女をどうする？/奴隷にするのも, 組織に渡してより報酬を貰うのも倒した君次第だ
+				CALL MESSAGE_WINDOW_D, "", "＞Do you want to keep the defeated Rei Reiho?"
+				;倒れているレイ･レイホゥを連れ帰りますか？
+				CALL INPUT_YN_D,"Yes","No"
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "", "＞Rei Reiho became a slave"
+					CALL ADD_NEW_COMPANION,[[キャラ:レイ]],200
+				ELSEIF RESULT == 1
+					CALL MESSAGE_WINDOW_D, "Judah", "Alright, lets turn her in to the organisation then."
+					;わかった, 彼女は組織で預かろう
+					ダンジョンフラグ:(FLAG:現ダンジョン):6 = 2
+				ENDIF
+			ELSEIF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "", "＞Suddenly, the white-suited woman ceased fighting and escaped..."
+				;突然白いスーツの女は戦いをやめ去っていった……
+				CALL MESSAGE_WINDOW_D, "Judah", "Huh, I though I'd loose that one..."
+				;私が迷っているというのか……
+				CALL MESSAGE_WINDOW_D, "", "＞Judah noticed you..."
+				;ユダはあなたに気付いた……
+				CALL MESSAGE_WINDOW_D, "Judah", "You are backup?"
+				;君が後続か
+				CALL MESSAGE_WINDOW_D, "Judah", "This woman was from an organistation hostile to the Phantom Society./She is Rei Reiho, of the Kuzunoha./And she is though, I can tell you that much."
+				;の女はファントム・ソサエティに敵対する組織/クズノハの女, レイ･レイホゥだ/彼女は手強い.手を出さなくて正解だ
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "Judah", "...it seems she managed to beat me even more than I though."
+			;……あの女との戦闘で思ったよりもダメージを受けてしまった
+			CALL MESSAGE_WINDOW_D, "Judah", "Could you go on ahead?/I'll recover some, then catch up."
+			;先に行ってくれるか？/回復次第, 私も後を追う
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "Judah", "If you operate the precudure counter of Ｂ１Ｆ,/that will open the door to the control room on the ３rd floor./And be careful."
+				;Ｂ１Ｆの手続きカウンターを操作すれば３階の管理室の扉が開くはすだ/気を付けろよ
+			ダンジョンフラグ:(FLAG:現ダンジョン):7 = 1
+			ELSEIF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "Judah", "Really?.../Please operate the precudure counter of Ｂ１Ｆ,/that will open the door to the control room on the ３rd floor./That where our target should be."
+				;そうか……/３階の管理室の扉を開くためにＢ１Ｆの手続きカウンターを操作してくれ/管理室の悪魔は私が相手しておこう
+				CALL MESSAGE_WINDOW_D, "Judah", "Maybe I'll be able to help after you operated the procedure counter of Ｂ１Ｆ."
+				;Ｂ１Ｆの手続きが終わったら助勢を頼む
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "System", "..../The front gate has been unlocked."
+			;正面ゲートのロックを解除します
+			ダンジョンフラグ:(FLAG:現ダンジョン):1 = 3
+			ダンジョンフラグ:(FLAG:現ダンジョン):3 = 1
+		ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+				CALL MESSAGE_WINDOW_D, "System", "The door lock has been released."
+		ENDIF
+	CASE 620
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3
+				CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+				CALL MESSAGE_WINDOW_D, "System", "..../３F gate lock released."
+				ダンジョンフラグ:(FLAG:現ダンジョン):4 = 1
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+				CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+				CALL MESSAGE_WINDOW_D, "System", "Please release the ２F lock first."
+				;先に２Fのロックを解除してください
+		ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞Procedure counter"
+				CALL MESSAGE_WINDOW_D, "System", "The door lock has been released."
+		ENDIF
+	CASE 630
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4 || ダンジョンフラグ:(FLAG:現ダンジョン):1 == 5
+				CALL MESSAGE_WINDOW_D, "", "＞Airport control room"
+		ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞Airport control room"
+				CALL MESSAGE_WINDOW_D, "Demon", "I..../Winpe.../Electricity...born of the sea..."
+				;我は……/ウィンペ……/電異…の海に生まれしもの……
+				CALL MESSAGE_WINDOW_D, "Winpe", "Who calls me again.../マニ……トゥ……の呪縛を解きし……呼び……し/Who are you?/Who?..."
+				;我を再び呼ぶ者は誰か……/マニ……トゥ……の呪縛を解きし……呼び……し/者はは/だ, 誰か……
+				CALL MESSAGE_WINDOW_D, "", "＞1 Cyber Winpe appeared!"
+				;電霊　ウィンペが出た!
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:ウィンペ]], 30, 0, 1
+				CFLAG:(CHARANUM-1):ＨＰ補正 = +1000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "Winpe", "Uguuaaa....!!"
+				;ウグアアアーー………!!
+				CALL MESSAGE_WINDOW_D, "", "/＞When Winpe disappeared, all monitors in the control room began to light up.../"
+				;ウィンペの姿が消えると, 管理室のモニターが光始めた……
+				CALL MESSAGE_WINDOW_D, "Computer", "マニトゥ…マニトゥ…/マニトゥ…マニトゥ………"
+				;コンピュータ", "マニトゥ…マニトゥ…/マニトゥ…マニトゥ………
+				CALL MESSAGE_WINDOW_D, "Computer", "マニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニトゥ/マニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニトゥ/マニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニトゥマニ………"
+				CALL MESSAGE_WINDOW_D, "", "＞The light is getting very intense.../It seems a catastropic overload is about to occur..."
+				;光が強くなっている……/今にも爆発しそうだ……
+				CALL MESSAGE_WINDOW_D, "Judah", "Come here!/Quickly!"
+				;こっちだ!/はやく来い!
+				CALL MESSAGE_WINDOW_D, "", "＞The next moment,/you where hit by a strong shockwave and lost consciousness.."
+				;次の瞬間, /強い衝撃があなたを襲い, あなたは気を失った……
+				CALL MESSAGE_WINDOW_D, "", "........."
+				CALL MESSAGE_WINDOW_D, "", "....."
+				CALL MESSAGE_WINDOW_D, "", "..."
+				CALL MESSAGE_WINDOW_D, "", "＞You and Judah survived the explosion."
+				CALL MESSAGE_WINDOW_D, "Judah", "That was a close one./We where lucky to make it."
+				;まさに紙一重だったな/無事生還できて何よりだ
+				CALL MESSAGE_WINDOW_D, "Judah", "...you know, if you don't survive, you won't get a reward."
+				;……生きていなければ何も手に入らないからな
+				CALL MESSAGE_WINDOW_D, "Judah", "So you should be more careful./Well, that was quite a bit of work./Anyway, lets meet again. Later."
+				;ご苦労だった/また, どこかで会おう
+				CALL MESSAGE_WINDOW_D, "", "＞You seperated from Judah, to receive your reward."
+				;ユダと別れ, 報酬を受け取った
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):6 == 2
+			CALL MESSAGE_WINDOW_D, "","＞For defeating the demon and handing Rei Reiho of the Kuzunoha to the organization,/you received ￥80000 and got 250 fame."
+			MONEY += 80000
+			FLAG:名声 += 250
+	ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):6 == 1
+			CALL MESSAGE_WINDOW_D, "","＞For defeating the demon and Rei of the Kuzunoha,/you received ￥50000 and got 200 fame."
+			;＞クズノハのレイを倒し空港を占拠した悪魔を倒したことにより, /口座に￥50000が支払われ, 名声200を得た
+			MONEY += 50000
+			FLAG:名声 += 200
+	ELSE
+			CALL MESSAGE_WINDOW_D, "","＞For defeating the demon who had occupied the airport,/you received ￥30000 and got 150 fame."
+			;＞空港を占拠した悪魔を倒したことにより, /口座に￥30000が支払われ, 名声150を得た
+			MONEY += 30000
+			FLAG:名声 += 150
+	ENDIF
+;クリアフラグ
+ダンジョンフラグ:(FLAG:現ダンジョン):1 = 5
+			CALL CLEAR_TILE
+			FLAG:脱出スキル禁止 = 0
+			FLAG:脱出 = 1
+			RETURN 1
+		ENDIF
+		ENDSELECT
+		RETURN 1
+	RETURN 1
+
+;========================
+;その他
+;========================
+	CASE 9
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+			;エレベーター
+			CASE 2
+				CALL DUNGEON_ELEVATOR, 29
+			CASE 3
+				CALL DUNGEON_ELEVATOR, 39
+			CASE 4
+				CALL DUNGEON_ELEVATOR, 49
+		ENDSELECT
+		RETURN 1
+ENDSELECT
+RETURN 0
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+@DUNGEON_ELEVATOR_93, ARG
+VARSET RESULT, -1
+VARSET RESULTS
+SELECTCASE ARG
+	CASE 29
+		RESULT:1 = 0
+		RESULT:2 = 1
+		RESULT:3 = 3
+		RESULT:4 = 2
+		RETURN -1
+	CASE 39
+		RESULT:1 = 0
+		RESULT:2 = 1
+		RESULT:3 = 2
+		RETURN -1
+	CASE 49
+		RESULT:1 = 0
+		RESULT:2 = 1
+		RESULT:3 = 2
+		RETURN -1
+ENDSELECT
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_93
+FLAG:エンカウント率 = FLAG:未遭遇歩数*4
+SIF FLAG:未遭遇歩数 < 6
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_93
+RETURN 25, 20, 26, 30
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_93
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_93
+RETURN CLASS_NUM_COMMON("中級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお, ここで帰った数字は下限を種族数, 上限を10として自動的に調整されます
+;=======================================================================
+@ENEMY_NUM_93, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_93, ARG
+SELECTCASE FLAG:現M
+	;１Ｆ, ２Ｆでの遭遇
+	CASE 0 , 1
+		SELECTCASE RAND:100
+			CASE IS < 10
+				RETURN [[キャラ:モー・ショボー]],20
+			CASE IS < 20
+				RETURN [[キャラ:イッポンダタラ]],20
+			CASE IS < 30
+				RETURN [[キャラ:アークエンジェル]],22
+			CASE IS < 40
+				RETURN [[キャラ:ヤトノカミ]],22
+			CASE IS < 50
+				RETURN [[キャラ:ビルヴィス]],21
+			CASE IS < 60
+				RETURN [[キャラ:オバリヨン]],21
+			CASE IS < 70
+				RETURN [[キャラ:ジャックフロスト]],20
+			CASE IS < 80
+				RETURN [[キャラ:トウビョウ]],20
+			CASE IS < 90
+				RETURN [[キャラ:くびなしライダー]],21
+			CASEELSE
+				RETURN [[キャラ:グルル]], 21
+		ENDSELECT
+		;Ｂ１Ｆでの遭遇
+		CASE 2
+		SELECTCASE RAND:100
+			CASE IS < 10
+				RETURN [[キャラ:モー・ショボー]],23
+			CASE IS < 20
+				RETURN [[キャラ:イッポンダタラ]],23
+			CASE IS < 30
+				RETURN [[キャラ:アークエンジェル]],24
+			CASE IS < 40
+				RETURN [[キャラ:ヤトノカミ]],24
+			CASE IS < 50
+				RETURN [[キャラ:ビルヴィス]],24
+			CASE IS < 60
+				RETURN [[キャラ:オバリヨン]],24
+			CASE IS < 70
+				RETURN [[キャラ:ジャックフロスト]],24
+			CASE IS < 80
+				RETURN [[キャラ:トウビョウ]],24
+			CASE IS < 90
+				RETURN [[キャラ:くびなしライダー]],24
+			CASEELSE
+				RETURN [[キャラ:グルル]], 24
+		ENDSELECT
+		;３Ｆでの遭遇
+		CASE 3
+		SELECTCASE RAND:8
+			CASE IS == 0
+				RETURN [[キャラ:ジャックランタン]], 26
+			CASE IS == 1
+				RETURN [[キャラ:ミシャグジさま]],26
+			CASE IS == 2
+				RETURN [[キャラ:ヤトノカミ]],26
+			CASE IS == 3
+				RETURN [[キャラ:メズキ]],26
+			CASE IS == 4
+				RETURN [[キャラ:ゴズキ]],26
+			CASE IS == 5
+				RETURN [[キャラ:ヤトノカミ]], 26
+			CASE IS == 6
+				RETURN [[キャラ:タクヒ]], 26
+			CASEELSE
+				RETURN [[キャラ:グルル]],26
+		ENDSELECT
+	ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_93
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:トウビョウ]] , 3 + RAND:10 , CSVBASE([[キャラ:トウビョウ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:メズキ]] , 3 + RAND:10 , CSVBASE([[キャラ:メズキ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:ゴズキ]] , 3 + RAND:10 , CSVBASE([[キャラ:ゴズキ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_93
+#LOCALSIZE 3
+LOCAL = FLAG:現M + 70
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します.
+	;例えば0の場合, 0版のマップの0番目の宝箱であることを表しています.
+	CASE 0
+		CALL GET_TREASURE_MONEY, 0 , 2000 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 1
+		CALL GET_TREASURE, [[アイテム:Bead]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 100
+		CALL GET_TREASURE, [[アイテム:OxBezoar]] , 2 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 101
+		CALL GET_TREASURE, [[アイテム:ＳＰＡＳ12]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 200
+		CALL GET_TREASURE_MONEY, 0 , 2000 , FLAG:現ダンジョン, LOCAL , LOCAL:1		
+	CASE 201
+		CALL GET_TREASURE, [[アイテム:BalmOfLife]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+ENDSELECT
+RETURN 1

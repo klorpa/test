@@ -1,0 +1,3313 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SET_MASTER.ERB
+;	Facility	:MASTERの能力設定関連の処理群です
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/05/01		Ｐ						ペルソナ選択時の表示がおかしかったのを修正
+;	003		2011/06/22		Ｐ						ペルソナ選択時の表示がおかしかったのを修正,サバトマの追加処理を廃止
+;	004		2011/06/24		Ｐ						一体のみの悪魔を初期ペルソナ化できないように
+;	005		2011/08/18		Wikiの中の人			男の娘で爆乳を選べるように
+;	006		2012/08/21		豚の娘の豚				Adept、ペルソナ使いあなたに道具知識１を付与、初期パートナー入手をPRESENT_SLAVEに分離
+;	007		2012/08/21		f						達人あなたを選択可能に
+;	008		2014/03/21		通りすがりのたかし		性別変更時に虹色のキャンディ用の処理を追加
+;	009		2014/04/06		Ｊ( 'ー`)し				悪魔狩人あなたと何かを追加
+;	010		2015/01/01		Iz						異能者強化パッチV4として、各クラスの改訂、素質追加
+;	011		2015/01/05		Iz						不具合修正
+;	012		2015/01/27		Iz						達人強化パッチとして、達人の素質調整等
+;	013		2016/07/04		Ｏ式					チェフェイ加入イベント追加
+;	014		2016/12/27		Ｊ( 'ー`)し				初回便器あなたでチェフェイ加入イベント追加
+;	015		2017/02/07		名無し					初期ピクシーを全書登録にする選択肢の追加
+;	016		2017/06/29		ああああ				元性別の扱いを変更
+;	017		2017/06/29		ああああ				元性別を使わないことに
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;========================================================================
+;主人をキャラメイク
+;========================================================================
+@SET_MASTER
+LOCAL = CHARANUM - 1
+CALL SET_MASTER_BASIC
+$SET_MAJORING
+CALL SET_MASTER_MAJORING
+CALL SET_MASTER_NAME
+
+
+;========================================================================
+;主人の基本的な性別・体格等の設定
+;========================================================================
+@SET_MASTER_BASIC
+SIF FLAG:周回回数 > 0
+	CALL SET_MASTER_TALENT_R
+CALL SET_MASTER_SEX
+CALL SET_MASTER_FRAME
+CALL SET_MASTER_INVERT
+CALL SET_MASTER_SEXLIFE
+CALL SET_MASTER_BUST
+
+
+PRINTL Do you want to set sexual experience?
+CALL INPUT_YN,"Yes","No"
+IF RESULT == 0
+	;ITEM:5051 = 1
+	CALL SET_MASTER_ORALSEX
+	CALL SET_MASTER_ANALSEX
+	CALL SET_MASTER_SLAVERY
+ENDIF
+
+ABL:MASTER:従順 = MIN(ABL:MASTER:従順, 10)
+ABL:MASTER:欲望 = MIN(ABL:MASTER:欲望, 10)
+ABL:MASTER:技巧 = MIN(ABL:MASTER:技巧, 10)
+ABL:MASTER:Ｖ感覚 = MIN(ABL:MASTER:Ｖ感覚, 10)
+ABL:MASTER:Ａ感覚 = MIN(ABL:MASTER:Ａ感覚, 10)
+ABL:MASTER:奉仕精神 = MIN(ABL:MASTER:奉仕精神, 10)
+ABL:MASTER:マゾっ気 = MIN(ABL:MASTER:マゾっ気, 10)
+ABL:MASTER:精液中毒 = MIN(ABL:MASTER:精液中毒, 10)
+ABL:MASTER:セックス中毒 = MIN(ABL:MASTER:セックス中毒, 10)
+CALL MASTER_HUKUSO
+CALL CLOTHES_INITIALIZE,MASTER
+
+;FOR LOCAL,0,1200
+;	ITEM:(6000+LOCAL) = 1
+;NEXT
+;CALL CLOTHES_SETTING_USUALLY_A,MASTER
+;FOR LOCAL,0,1200
+;	ITEM:(6000+LOCAL) = 0
+;NEXT
+;FOR LOCAL,0,12
+;	LOCAL:1 = CFLAG:MASTER:(40+LOCAL)
+;	CALL GET_ITEM, (6000+LOCAL:1) , 1 ,
+;NEXT
+;========================================================================
+;主人の素質リセット
+;========================================================================
+@SET_MASTER_TALENT_R
+PRINTL Do you want to reset any appearance and characteristica changes?
+;デモナイズド・あなた合体等で変化した素質をリセットしますか？
+PRINTL ※This will turn your character back into a normal human.
+PRINTL    Any aquired talents will be reset.
+PRINTL [0]Don't reset
+;リセットしない
+PRINTL [1]Reset to normal human
+;普通の人間の肉体に戻す
+CALL INPUTINT,0,1
+IF RESULT == 0
+	PRINTL
+	RETURN
+ENDIF
+;人間の体に戻す
+;TALENT:MASTER:獣 = 0
+;TALENT:MASTER:鳥 = 0
+;TALENT:MASTER:爬虫類 = 0
+;TALENT:MASTER:不定形 = 0
+;TALENT:MASTER:魚 = 0
+;TALENT:MASTER:人化 = 0
+;TALENT:MASTER:異形 = 0
+;TALENT:MASTER:天使 = 0
+;TALENT:MASTER:動物耳 = 0
+;TALENT:MASTER:狐 = 0
+;TALENT:MASTER:月光浴 = 0
+;TALENT:MASTER:小人体型 = 0
+;TALENT:MASTER:機械の乙女 = 0
+
+
+;サマナーから達人までの戦闘素質と非人型素質をCSV参照してリセット
+FOR LOCAL,0,343
+	TALENT:MASTER:(LOCAL) = CSVTALENT(NO:MASTER,LOCAL,0)
+NEXT
+;肉体部位素質・継承タイプ素質リセット
+;FOR LOCAL,1,43
+;	TALENT:MASTER:(300+LOCAL) = CSVTALENT(NO:MASTER,300+LOCAL,0)
+;NEXT
+;TALENT:MASTER:頭 = 1
+;TALENT:MASTER:目 = 1
+;TALENT:MASTER:口 = 1
+;TALENT:MASTER:腕 = 1
+;TALENT:MASTER:足 = 1
+;TALENT:MASTER:鉤爪 = 0
+;TALENT:MASTER:羽 = 0
+;TALENT:MASTER:鉤足 = 0
+;TALENT:MASTER:尾 = 0
+;TALENT:MASTER:毛皮 = 0
+;TALENT:MASTER:武器 = 0
+;TALENT:MASTER:射撃武器 = 0
+;TALENT:MASTER:触手 = 0
+;TALENT:MASTER:嘴 = 0
+
+;========================================================================
+;主人の性別設定
+;========================================================================
+@SET_MASTER_SEX
+;虹色のキャンディ用処理
+IF TALENT:MASTER:オトコ
+	CFLAG:MASTER:元男の娘 = TALENT:MASTER:男の娘
+	;男の娘あなたは胸サイズ自由に設定できるので保存。男の娘から♂に変えて虹飴のケースは考えてない。
+	SIF TALENT:MASTER:男の娘
+		CFLAG:MASTER:元胸サイズ = BUST(MASTER)	
+ELSE
+	CFLAG:MASTER:元処女 = TALENT:MASTER:処女
+	CFLAG:MASTER:元ふたなり = TALENT:MASTER:ふたなり
+	;CFLAG:MASTER:元Ｖ敏感 = TALENT:MASTER:Ｖ敏感
+	;CFLAG:MASTER:元Ｖ鈍感 = TALENT:MASTER:Ｖ鈍感
+	CFLAG:MASTER:元Ｖ感覚 = ABL:MASTER:Ｖ感覚
+	CFLAG:MASTER:元胸サイズ = BUST(MASTER)
+ENDIF
+
+;周回プレイ用処理
+CALL SET_初期衣装, "帽子" , -1
+CALL SET_初期衣装, "服" , -1
+CALL SET_初期衣装, "下衣" , -1
+CALL SET_初期衣装, "全身服" , -1
+CALL SET_初期衣装, "手" , -1
+CALL SET_初期衣装, "下着（上）" , -1
+CALL SET_初期衣装, "下着（下）" , -1
+CALL SET_初期衣装, "全身下着" , -1
+CALL SET_初期衣装, "靴下" , -1
+CALL SET_初期衣装, "靴" , -1
+CALL SET_初期衣装, "上着" , -1
+CALL SET_初期衣装, "その他" , -1
+
+PRINTL What is your gender?
+PRINTLC [0]♂
+PRINTLC [1]♀
+PRINTLC [2]Crossdresser
+PRINTLC [3]Futa
+PRINTL 
+CALL INPUTINT,0,1,2,3
+SELECTCASE RESULT
+	CASE 0
+		NO:MASTER = 0
+		TALENT:MASTER:処女 = 0
+		TALENT:MASTER:オトコ = 1
+		TALENT:MASTER:ふたなり = 0
+		TALENT:MASTER:男の娘 = 0
+		TALENT:MASTER:絶壁 = 1
+		MAXBASE:MASTER:2 = 10000
+		MAXBASE:MASTER:99 = 10000
+		ABL:MASTER:Ｖ感覚 = 0
+		CALL SET_初期衣装, "服" , [[衣装:上着]]
+		CALL SET_初期衣装, "下衣" , [[衣装:ズボン]]
+		CALL SET_初期衣装, "下着（下）" , [[衣装:トランクス]]
+		CALL SET_初期衣装, "靴下" , [[衣装:靴下]]
+		CALL SET_初期衣装, "靴" , [[衣装:ブーツ]]
+		PRINTW Gender: Start as ♂
+	CASE 1
+		NO:MASTER = 4999
+		TALENT:MASTER:処女 = 0
+		TALENT:MASTER:オトコ = 0
+		TALENT:MASTER:ふたなり = 0
+		TALENT:MASTER:男の娘 = 0
+		MAXBASE:MASTER:2 = 10000
+		MAXBASE:MASTER:99 = 10000
+		CALL SET_初期衣装, "服" , [[衣装:ブラウス]]
+		CALL SET_初期衣装, "下衣" , [[衣装:スカート]]
+		CALL SET_初期衣装, "下着（上）" , [[衣装:ブラジャー]]
+		CALL SET_初期衣装, "下着（下）" , [[衣装:パンティ]]
+		CALL SET_初期衣装, "靴下" , [[衣装:靴下]]
+		CALL SET_初期衣装, "靴" , [[衣装:ブーツ]]
+		PRINTW Gender: Start as ♀
+	CASE 2
+		NO:MASTER = 0
+		TALENT:MASTER:オトコ = 1
+		TALENT:MASTER:男の娘 = 1
+		TALENT:MASTER:ふたなり = 0
+		MAXBASE:MASTER:2 = 10000
+		MAXBASE:MASTER:99 = 10000
+		ABL:MASTER:Ｖ感覚 = 0
+		CALL SET_初期衣装, "服" , [[衣装:上着]]
+		CALL SET_初期衣装, "下衣" , [[衣装:ズボン]]
+		CALL SET_初期衣装, "下着（下）" , [[衣装:トランクス]]
+		CALL SET_初期衣装, "靴下" , [[衣装:靴下]]
+		CALL SET_初期衣装, "靴" , [[衣装:ブーツ]]
+		PRINTW Start as [Crossdresser]
+	CASE 3
+		NO:MASTER = 4999
+		TALENT:MASTER:オトコ = 0
+		TALENT:MASTER:ふたなり = 1
+		TALENT:MASTER:男の娘 = 0
+		MAXBASE:MASTER:2 = 10000
+		MAXBASE:MASTER:99 = 10000
+		CALL SET_初期衣装, "服" , [[衣装:ブラウス]]
+		CALL SET_初期衣装, "下衣" , [[衣装:スカート]]
+		CALL SET_初期衣装, "下着（上）" , [[衣装:ブラジャー]]
+		CALL SET_初期衣装, "下着（下）" , [[衣装:パンティ]]
+		CALL SET_初期衣装, "靴下" , [[衣装:靴下]]
+		CALL SET_初期衣装, "靴" , [[衣装:ブーツ]]
+		PRINTW Start as [Futa]
+ENDSELECT
+;虹色のキャンディ用処理
+IF TALENT:MASTER:オトコ
+	;CFLAG:MASTER:元性別 = 1
+	CFLAG:MASTER:元男の娘 = 0
+ELSE
+	;CFLAG:MASTER:元性別 = 0
+	CFLAG:MASTER:元処女 = 0
+	CFLAG:MASTER:元ふたなり = 0
+	;CFLAG:MASTER:元Ｖ敏感 = 0
+	;CFLAG:MASTER:元Ｖ鈍感 = 0
+	CFLAG:MASTER:元Ｖ感覚 = 0
+	SIF !CFLAG:MASTER:元男の娘
+		CFLAG:MASTER:元胸サイズ = 1
+ENDIF
+
+CALL CLOTHES_INITIALIZE,MASTER
+IF FLAG:周回回数 == 0
+	;そこまで影響はないがイメージ的に初期の体力・気力を変更。単なるイメージってことで
+	MAXBASE:MASTER:0 = (TALENT:MASTER:オトコ && TALENT:MASTER:男の娘 == 0) ? 2500 # 1800
+	MAXBASE:MASTER:1 = (TALENT:MASTER:オトコ && TALENT:MASTER:男の娘 == 0) ? 1500 # 2000
+ENDIF
+;全快処理
+BASE:MASTER:0 = MAXBASE:MASTER:0
+BASE:MASTER:1 = MAXBASE:MASTER:1
+
+RETURN
+
+;========================================================================
+;主人の体型設定
+;========================================================================
+@SET_MASTER_FRAME
+TALENT:MASTER:小柄体型 = 0
+TALENT:MASTER:小人体型 = 0
+TALENT:MASTER:大柄 = 0
+TALENT:MASTER:巨体 = 0
+PRINTL 
+PRINTL What is your body type?
+PRINTL [0]Normal
+PRINTL [1]Petite
+PRINTL [2]Fairy Size
+PRINTL [3]Large
+PRINTL [4]Giant Size
+PRINTL [5]Oumitsunu Size
+PRINTL [6]Yasomagatsu Size
+PRINTL [7]Kuzuryu Size
+CALL INPUTINT,0,1,2,3,4,5,6,7
+SELECTCASE RESULT
+	CASE 1
+		TALENT:MASTER:小柄体型 = 1
+	CASE 2
+		TALENT:MASTER:小人体型 = 1
+	CASE 3
+		TALENT:MASTER:大柄 = 1
+	CASE 4, 5, 6, 7
+		TALENT:MASTER:巨体 = 1
+ENDSELECT
+PRINTL
+RETURN
+
+;========================================================================
+;主人の同性愛設定
+;========================================================================
+@SET_MASTER_INVERT
+TALENT:MASTER:男嫌い = 0
+TALENT:MASTER:女嫌い = 0
+TALENT:MASTER:両刀 = 0
+PRINTFORML %NAME:MASTER%'s disposition?
+PRINTL [0]I have a taste for both men and women
+IF TALENT:MASTER:オトコ
+	PRINTL [1]I have an interest in training female demons
+	PRINTL [2]I can't touch men without getting a rash...
+	PRINTL [3]In fact, I am allergic to women!
+ELSE
+	PRINTL [1]I’m not a serious lesbian but it does "bother" me a bit.
+	PRINTL [2]In this world, males are unnecessary!
+	PRINTL [3]Just me is enough woman!
+ENDIF
+CALL INPUTINT,0,1,2,3
+SELECTCASE RESULT
+	CASE 0
+		TALENT:MASTER:両刀 = 1
+	CASE 1
+		TALENT:MASTER:83 = 0
+		IF TALENT:MASTER:オトコ
+			TALENT:MASTER:男嫌い = 0
+		ELSE
+			TALENT:MASTER:女嫌い = 0
+		ENDIF
+	CASE 2
+		TALENT:MASTER:両刀 = 0
+		TALENT:MASTER:男嫌い = 1
+	CASE 3
+		TALENT:MASTER:両刀 = 0
+		TALENT:MASTER:女嫌い = 1
+ENDSELECT
+PRINTL
+RETURN
+
+;========================================================================
+;主人の性生活設定
+;========================================================================
+@SET_MASTER_SEXLIFE
+MARK:MASTER:快楽刻印 = 0
+MARK:MASTER:屈服刻印 = 0
+TALENT:MASTER:服従 = 0
+PRINTL Any experience?
+IF TALENT:MASTER:オトコ
+	PRINTL [0]Actually a virgin.
+	PRINTL [1]Just finishied losing my virginity.
+	PRINTL [2]Experience is rich.
+	PRINTL [3]"Man slut" is a compliment.
+ELSE
+	PRINTL [0]Actively a virgin.
+	PRINTL [1]What is a non-virgin?
+	PRINTL [2]Experience is rich.
+	PRINTL [3]Opens crotch to everyone.
+ENDIF
+CALL INPUTINT,0,1,2,3
+SELECTCASE RESULT
+	CASE 0
+		IF TALENT:MASTER:オトコ == 0
+			TALENT:MASTER:処女 = 1
+			EXP:MASTER:Ｖ経験 = 0
+		ELSE
+			EXP:MASTER:性交経験 = 0
+		ENDIF
+	CASE 1
+		IF TALENT:MASTER:オトコ == 0
+			TALENT:MASTER:処女 = 0
+			EXP:MASTER:Ｖ経験 += RAND:3+1
+			EXP:MASTER:性交経験 = EXP:MASTER:Ｖ経験
+			EXP:MASTER:膣射経験 = 1
+			EXP:MASTER:精液経験 = EXP:MASTER:Ｖ経験
+		ELSE
+			EXP:MASTER:性交経験 = RAND:10+2
+		ENDIF
+	CASE 2
+		IF TALENT:MASTER:オトコ == 0
+			TALENT:MASTER:処女 = 0
+			EXP:MASTER:Ｖ経験 += RAND:30+10
+			EXP:MASTER:性交経験 = EXP:MASTER:Ｖ経験
+			EXP:MASTER:膣射経験 = 15
+			EXP:MASTER:精液経験 = EXP:MASTER:Ｖ経験
+		ELSE
+			EXP:MASTER:性交経験 = RAND:30+10
+		ENDIF
+	CASE 3
+		IF TALENT:MASTER:オトコ == 0
+			TALENT:MASTER:処女 = 0
+			EXP:MASTER:Ｖ経験 += RAND:150+50
+			EXP:MASTER:性交経験 = EXP:MASTER:Ｖ経験
+			EXP:MASTER:膣射経験 = EXP:MASTER:Ｖ経験*2
+			EXP:MASTER:精液経験 = EXP:MASTER:Ｖ経験*2
+			ABL:MASTER:Ｖ感覚 += 2
+			ABL:MASTER:セックス中毒 += 1
+		ELSE
+			EXP:MASTER:性交経験 = RAND:100+50
+		ENDIF
+ENDSELECT
+PRINTL
+RETURN
+
+;========================================================================
+;主人のバスト設定
+;========================================================================
+@SET_MASTER_BUST
+TALENT:MASTER:絶壁 = 0
+TALENT:MASTER:貧乳 = 0
+TALENT:MASTER:巨乳 = 0
+TALENT:MASTER:爆乳 = 0
+IF TALENT:MASTER:オトコ && TALENT:MASTER:男の娘 != 1
+	TALENT:MASTER:絶壁 = 1
+	RETURN
+ENDIF
+PRINTL Your chest size?
+IF TALENT:MASTER:男の娘
+	PRINTL [0]Common male's chest
+	PRINTL [1]I have slight breasts and am often teased about them
+	PRINTL [2]On the level of a little girl's and I'm worried they won't stop growing
+	PRINTL [3]Large enough that they clearly aren't a trick
+	PRINTL [4]So large a bra is needed
+	;明示されていないが爆乳も可
+ELSE
+	PRINTL [0]Flat Chest
+	PRINTL [1]Small Breasts
+	PRINTL [2]Normal Breasts
+	PRINTL [3]Big Boobs
+	PRINTL [4]HUGE TITS
+ENDIF
+CALL INPUTINT,0,1,2,3,4
+SELECTCASE RESULT
+	CASE 0
+		TALENT:MASTER:絶壁 = 1
+	CASE 1
+		TALENT:MASTER:貧乳 = 1
+	CASE 3
+		TALENT:MASTER:巨乳 = 1
+	CASE 4
+		TALENT:MASTER:爆乳 = 1
+ENDSELECT
+PRINTL
+RETURN
+
+;========================================================================
+;主人のフェラチオ経験
+;========================================================================
+@SET_MASTER_ORALSEX
+PRINTL Blowjob experience?
+PRINTL [0]No
+PRINTL [1]Several times
+PRINTL [2]Hasty to get cock
+PRINTL [3]Loves sucking cocks
+PRINTFORML [4]I drink a glass of semen everyday. without any MILFs %UNICODE(0x2661)%
+CALL INPUTINT,0,1,2,3,4
+SELECTCASE RESULT
+	CASE 0
+		EXP:MASTER:フェラ経験 = 0
+	CASE 1
+		EXP:MASTER:フェラ経験 += RAND:6+2
+		EXP:MASTER:精液経験 += EXP:MASTER:フェラ経験
+	CASE 2
+		EXP:MASTER:フェラ経験 += RAND:30+10
+		EXP:MASTER:精液経験 += EXP:MASTER:フェラ経験
+	CASE 3
+		EXP:MASTER:フェラ経験 += RAND:160+40
+		EXP:MASTER:精液経験 += EXP:MASTER:フェラ経験
+		ABL:MASTER:奉仕精神 += 1
+		ABL:MASTER:技巧 += 1
+		ABL:MASTER:欲望 += 1
+	CASE 4
+		EXP:MASTER:フェラ経験 += RAND:200+100
+		EXP:MASTER:精液経験 += EXP:MASTER:フェラ経験
+		ABL:MASTER:奉仕精神 += 2
+		ABL:MASTER:精液中毒 += 1
+		ABL:MASTER:技巧 += 1
+		ABL:MASTER:欲望 += 1
+		ABL:MASTER:マゾっ気 += 1
+ENDSELECT
+PRINTL
+RETURN
+
+;========================================================================
+;主人のＡEXP
+;========================================================================
+@SET_MASTER_ANALSEX
+PRINTL Any experience in the ass?
+PRINTL [0]No
+PRINTL [1]Touched with a finger
+PRINTL [2]Has anal sex experience
+PRINTFORML [3]Taking it in the ass is irresistible %UNICODE(0x2661)%
+PRINTL [4]Aches when not being filled
+CALL INPUTINT,0,1,2,3,4
+SELECTCASE RESULT
+	CASE 0
+		EXP:MASTER:Ａ経験 = 0
+	CASE 1
+		EXP:MASTER:Ａ経験 += RAND:6+2
+		EXP:MASTER:精液経験 += EXP:MASTER:Ａ経験/2
+	CASE 2
+		EXP:MASTER:Ａ経験 += RAND:30+10
+		EXP:MASTER:精液経験 += EXP:MASTER:Ａ経験/2
+	CASE 3
+		EXP:MASTER:Ａ経験 += RAND:160+40
+		EXP:MASTER:精液経験 += EXP:MASTER:Ａ経験/2
+		ABL:MASTER:Ａ感覚 += 2
+		ABL:MASTER:欲望 += 1
+	CASE 4
+		EXP:MASTER:Ａ経験 += RAND:200+100
+		EXP:MASTER:精液経験 += EXP:MASTER:Ａ経験/2
+		ABL:MASTER:Ａ感覚 += 3
+		ABL:MASTER:欲望 += 1
+		ABL:MASTER:マゾっ気 += 1
+ENDSELECT
+PRINTL
+RETURN
+
+;========================================================================
+;主人の奴隷遍歴
+;========================================================================
+@SET_MASTER_SLAVERY
+PRINTL The circumstances in Phantom Society?
+PRINTL [0]No shady stuff as a novice Summoner
+PRINTL [1]There's some sexual relations
+PRINTL [2]Start as a cumdumpster
+CALL INPUTINT,0,1,2
+FLAG:主人出自 = RESULT
+IF RESULT == 0
+	PRINTL
+	RETURN
+ENDIF
+LOCAL = EXP:MASTER:性交経験 - EXP:MASTER:Ｖ経験
+EXP:MASTER:フェラ経験 += MIN(100,EXP:MASTER:フェラ経験*RESULT*5)
+EXP:MASTER:Ａ経験 += MIN(100,EXP:MASTER:Ａ経験*RESULT*5)
+EXP:MASTER:異常経験 = RESULT*2
+MARK:MASTER:快楽刻印 = 2
+MARK:MASTER:屈服刻印 = RESULT+1
+ABL:MASTER:技巧 += 1
+ABL:MASTER:欲望 += 1
+ABL:MASTER:マゾっ気 += MAX(0, RESULT - 1)
+IF TALENT:MASTER:オトコ == 0
+	EXP:MASTER:Ｖ経験 += MIN(100,EXP:MASTER:Ｖ経験*RESULT*5)
+	EXP:MASTER:膣射経験 += EXP:MASTER:Ｖ経験 * 2
+ENDIF
+EXP:MASTER:性交経験 += EXP:MASTER:Ｖ経験 + EXP:MASTER:Ａ経験 + LOCAL
+EXP:MASTER:精液経験 += EXP:MASTER:膣射経験 + (EXP:MASTER:Ａ経験+EXP:MASTER:フェラ経験)*2
+TALENT:MASTER:服従 = (RESULT == 2)
+PRINTL
+RETURN
+
+;========================================================================
+;主人の専攻分野
+;========================================================================
+@SET_MASTER_MAJORING
+#LOCALSIZE 2
+
+;戦闘素質等のリセット
+CALL SET_MASTER_MAJORING_RESET
+
+PRINTL After all, who are you?
+PRINTL ※The game assumes that you're a Summoner.
+PRINTL The game might not be balanced on roles other than Summoner.
+PRINTL
+$ REPICK_MAJOR
+PRINTL [0]Devil Summoner
+;SIF FLAG:周回回数 > 0
+	PRINTL [1]Persona User(Harder)
+;SIF FLAG:周回回数 > 0
+	PRINTL [2]Adept (Surely a masochist)
+PRINTL [3]Tourist(Super Masochistic)
+PRINTL [4]Avatar tuner(I don't know)
+SIF FLAG:経験ED数 > 0
+	PRINTL [5]Master (Unknown)
+SIF FLAG:ダンテ撃破 > 0 && FLAG:経験ED数 > 5
+	PRINTL [6]Devil Hunter(Maybe null)
+PRINTL [7]Devil Shifter(Not sure)
+SIF FLAG:経験ED数 > 3
+	PRINTL [8]Devil Hybrid(?)
+PRINTL [9]Fool (ULTRA Masochistic)
+
+;CALL INPUTINT,0,(FLAG:周回回数 > 0),(FLAG:周回回数 > 0)*2,3
+CALL INPUTINT,0,1,2,3,4,(FLAG:経験ED数 > 0)*5,(FLAG:ダンテ撃破 > 0)*6,7,(FLAG:経験ED数 > 3)*8,9
+CALL SET_MASTER_MAJORING_DESCRIPTION,RESULT
+SIF RESULT == -1
+	GOTO REPICK_MAJOR
+
+SELECTCASE RESULT
+	;デビルサマナー
+	CASE 0
+		TALENT:MASTER:サマナー = 5
+		TALENT:MASTER:サクセサー = 1
+		TALENT:MASTER:道具知識 = 3
+		TALENT:MASTER:ガンスリンガー = 1
+		CSTR:MASTER:30 = A summoner of the Phantom Society.
+		;ファントムソサエティに所属するサマナー。
+		CFLAG:MASTER:73  = 1
+		LOCAL:1 = 0
+		;不屈の闘志は引き継げない
+		CLEARBIT FLAG:主人獲得スキル, 50
+		IF FLAG:主人獲得スキル
+			PRINTL You can learn skills depending on your fallen record.
+			;陥落ボーナスにより自動効果をスキルを習得することができます
+			PRINTL Do you want to learn them now?
+			;習得させてもよろしいですか？
+			PRINTL ※Skills you don't decide to learn here, can't be learned this lap.
+			;※ここで習得しなかったスキルは、この周回中習得できません
+			CALL INPUT_YN,"Yes","No"
+			IF RESULT == 0
+				FOR LOCAL, 0, 64
+					IF GETBIT(FLAG:主人獲得スキル, LOCAL)
+						IF MASTER_SKILL(LOCAL) >= 0
+							CALL LEARN_SKILL, MASTER, MASTER_SKILL(LOCAL)
+						ELSE
+							CLEARBIT FLAG:主人獲得スキル, LOCAL
+						ENDIF
+					ENDIF
+				NEXT
+			ENDIF
+		ENDIF
+	;ペルソナ使い
+	CASE 1
+		TALENT:MASTER:ペルソナ使い = 1
+		BASE:MASTER:ＭＰ = 25
+		ABL:MASTER:スキル9 = 2304
+		;P･チェンジ
+		;CALLF STRFLAG_EV("ベルベットルーム使用可能", 1, [[イベント:ペルソナ]])
+		CALL SET_MASTER_MAJORING_PERSONA
+		CSTR:MASTER:30 = A persona user of the Phantom Society.
+		;ファントムソサエティに所属するペルソナ使い。
+		CFLAG:MASTER:73  = 2
+	;Adept
+	CASE 2
+		TALENT:MASTER:異能者 = 1
+		;TALENT:MASTER:道具知識 = 1
+		BASE:MASTER:ＭＰ = 25
+		CALL SET_MASTER_MAJORING_MAGIC
+		CSTR:MASTER:30 = An adept of the Phantom Society.
+		;ファントムソサエティに所属する異能者。
+		CFLAG:MASTER:73  = 3
+	;一般人
+	CASE 3
+		BASE:MASTER:力 = 1
+		BASE:MASTER:知恵 = 1
+		BASE:MASTER:魔力 = 1
+		BASE:MASTER:耐力 = 1
+		BASE:MASTER:速さ = 1
+		BASE:MASTER:運 = 1
+		CSTR:MASTER:30 = A mysterious member of the Phantom Society. Seems ordinary though.
+		;ただの凡人でありながらファントムソサエティに所属する謎多き人物。
+		CFLAG:MASTER:73  = 4
+	;Avatar tuner
+	CASE 4
+		TALENT:MASTER:喰奴 = 1
+		TALENT:MASTER:ガンスリンガー = 1
+		TALENT:MASTER:サマナー = 3
+		BASE:MASTER:ＭＰ = 25
+		ABL:MASTER:スキル9 = 2310
+		ABL:MASTER:初期リンク悪魔攻撃相性 = 0
+		ABL:MASTER:初期リンク悪魔最低攻撃回数 = 1
+		ABL:MASTER:初期リンク悪魔最大攻撃回数 = 1
+		ABL:MASTER:初期リンク悪魔射程 = 1
+		ABL:MASTER:初期リンク悪魔攻撃範囲 = 1
+		CALL SET_MASTER_MAJORING_AVATAR
+		CSTR:MASTER:30 = An avatar tuner of the Phantom Society.
+		;ファントムソサエティに所属する喰奴。
+		CFLAG:MASTER:被変身フラグ = 0
+		CFLAG:MASTER:73  = 5
+	;Master
+	CASE 5
+		TALENT:MASTER:達人 = 1
+		BASE:MASTER:ＭＰ = 30
+		CALL SET_MASTER_MAJORING_TECHNIC
+		CSTR:MASTER:30 = An expert of the Phantom Society.
+		;ファントムソサエティに所属する達人。
+		CFLAG:MASTER:73  = 6
+	;デビルハンター
+	CASE 6
+		;とりあえず劣化ダンテ風にしておく
+		ABL:MASTER:種族 = 36
+		CSTR:MASTER:種族名 = HalfDemon
+		BASE:MASTER:剣撃 = 75
+		BASE:MASTER:飛具 = 75
+		BASE:MASTER:打撃 = 75
+		BASE:MASTER:戦技 = 75
+		BASE:MASTER:火炎 = 75
+		BASE:MASTER:氷結 = 75
+		BASE:MASTER:電撃 = 75
+		BASE:MASTER:衝撃 = 75
+		BASE:MASTER:神経 = 0
+		BASE:MASTER:精神 = 0
+		BASE:MASTER:破魔 = 50
+		BASE:MASTER:呪殺 = 0
+		BASE:MASTER:地変 = 150
+		BASE:MASTER:水撃 = 125
+		BASE:MASTER:疾風 = 75
+		BASE:MASTER:重力 = 150
+		BASE:MASTER:核熱 = 125
+		BASE:MASTER:万能 = 100
+		BASE:MASTER:サイコ = 0
+		;
+		ABL:MASTER:スキル1 = 2951
+		ABL:MASTER:スキル2 = 515
+		ABL:MASTER:スキル3 = 2957
+		ABL:MASTER:スキル4 = 2958
+
+		ABL:MASTER:習得スキル1 = 2955
+		ABL:MASTER:習得LV1 = 7
+		ABL:MASTER:習得スキル2 = 2418
+		ABL:MASTER:習得LV2 = 13
+		ABL:MASTER:習得スキル3 = 2952
+		ABL:MASTER:習得LV3 = 17
+		ABL:MASTER:習得スキル4 = 129
+		ABL:MASTER:習得LV4 = 27
+		ABL:MASTER:習得スキル5 = 2953
+		ABL:MASTER:習得LV5 = 33
+		ABL:MASTER:習得スキル6 = 2954
+		ABL:MASTER:習得LV6 = 37
+		ABL:MASTER:習得スキル7 = 2956
+		ABL:MASTER:習得LV7 = 45
+
+		TALENT:MASTER:サクセサー = 1
+		TALENT:MASTER:道具知識 = 3
+		TALENT:MASTER:ガンスリンガー = 1
+	
+		CSTR:MASTER:30 = A demon hunter who can also 'call'. Contracted by the Phantom Society.
+		;ファントムソサエティに雇われた悪魔も"鳴かせる"悪魔狩人。
+		CFLAG:MASTER:73  = 7
+		CFLAG:MASTER:所属ＣＯＭＰ = -1
+		CFLAG:MASTER:合体不可 = 1
+		
+		ITEM:Caliburn += 1
+		ITEM:Ｌ＆Ｏ     += 1
+
+	;Devil shifter
+	CASE 7
+		TALENT:MASTER:デビルシフター = 1
+		BASE:MASTER:ＭＰ = 25
+		ABL:MASTER:スキル9 = 2310
+		ABL:MASTER:スキル10 = 2311
+		ABL:MASTER:初期リンク悪魔攻撃相性 = 0
+		ABL:MASTER:初期リンク悪魔最低攻撃回数 = 1
+		ABL:MASTER:初期リンク悪魔最大攻撃回数 = 1
+		ABL:MASTER:初期リンク悪魔射程 = 1
+		ABL:MASTER:初期リンク悪魔攻撃範囲 = 1
+		CALL SET_MASTER_MAJORING_SHIFTER
+		CSTR:MASTER:30 = A devil shifter of the Phantom Society.
+		;ファントムソサエティに所属するデビルシフター。
+		CFLAG:MASTER:被変身フラグ = 0
+		CFLAG:MASTER:リンク悪魔 = -1
+		CFLAG:MASTER:73  = 10
+
+	;悪魔人
+	CASE 8
+;外見イメージは合体後アキラあたりか。　スキルは打撃、火炎メインで。
+		ABL:MASTER:種族 = 73
+		CSTR:MASTER:種族名 = 悪魔人
+		BASE:MASTER:剣撃 = 100
+		BASE:MASTER:飛具 = 100
+		BASE:MASTER:打撃 = 75
+		BASE:MASTER:戦技 = 75
+		BASE:MASTER:火炎 = -50
+		BASE:MASTER:氷結 = 125
+		BASE:MASTER:電撃 = 100
+		BASE:MASTER:衝撃 = 100
+		BASE:MASTER:神経 = 125
+		BASE:MASTER:精神 = 100
+		BASE:MASTER:破魔 = 50
+		BASE:MASTER:呪殺 = 50
+		BASE:MASTER:地変 = 100
+		BASE:MASTER:水撃 = 125
+		BASE:MASTER:疾風 = 100
+		BASE:MASTER:重力 = 100
+		BASE:MASTER:核熱 = 0
+		BASE:MASTER:万能 = 100
+		BASE:MASTER:サイコ = 125
+		;
+		ABL:MASTER:スキル1 = [[スキル:暴れまくり]]
+		ABL:MASTER:スキル2 = [[スキル:ファイアブレス]]
+		ABL:MASTER:スキル3 = [[スキル:サバトマ]]
+		ABL:MASTER:スキル4 = [[スキル:ひっかき]]
+
+		ABL:MASTER:習得スキル1 = 514
+		ABL:MASTER:習得LV1 = 7
+		ABL:MASTER:習得スキル2 = 237
+		ABL:MASTER:習得LV2 = 13
+		ABL:MASTER:習得スキル3 = 511
+		ABL:MASTER:習得LV3 = 17
+		ABL:MASTER:習得スキル4 = 2406
+		ABL:MASTER:習得LV4 = 27
+		ABL:MASTER:習得スキル5 = 229
+		ABL:MASTER:習得LV5 = 33
+		ABL:MASTER:習得スキル6 = 2425
+		ABL:MASTER:習得LV6 = 38
+		ABL:MASTER:習得スキル7 = 741
+		ABL:MASTER:習得LV7 = 45
+		ABL:MASTER:習得スキル8 = 2062
+		ABL:MASTER:習得LV8 = 50
+		
+		TALENT:MASTER:頭 = 1
+		TALENT:MASTER:目 = 1
+		TALENT:MASTER:口 = 1
+		TALENT:MASTER:鉤爪 = 1
+		TALENT:MASTER:足 = 1
+		TALENT:MASTER:尾 = 1
+		TALENT:MASTER:腕 = 1
+		TALENT:MASTER:打撃 = 1
+		TALENT:MASTER:火炎 = 1
+
+		ABL:MASTER:攻撃相性 = 2
+		ABL:MASTER:最低攻撃回数 = 1
+		ABL:MASTER:最大攻撃回数 = 1
+		ABL:MASTER:射程 = 1
+		ABL:MASTER:攻撃範囲 = 1
+		EQUIP:MASTER:剣 = 0
+		EQUIP:MASTER:銃 = 0
+		EQUIP:MASTER:頭 = 0
+		EQUIP:MASTER:胴 = 0
+		EQUIP:MASTER:腕 = 0
+		EQUIP:MASTER:足 = 0
+		EQUIP:MASTER:アクセサリ = 0
+		
+		TALENT:MASTER:道具知識 = 3
+		CSTR:MASTER:30 = A demon hybrid of the Phantom Society.
+		;ファントムソサエティに所属する悪魔人間。
+		CFLAG:MASTER:73  = 8
+		CFLAG:MASTER:所属ＣＯＭＰ = -1
+		CFLAG:MASTER:合体不可 = 1
+
+
+	;たけし　とりあえず仮実装　あくまでネタなので難易度は放棄
+	CASE 9
+		BASE:MASTER:力 = 1
+		BASE:MASTER:知恵 = 1
+		BASE:MASTER:魔力 = 1
+		BASE:MASTER:耐力 = 1
+		BASE:MASTER:速さ = 1
+		BASE:MASTER:運 = 1
+		ABL:MASTER:種族 = 10
+		CSTR:MASTER:種族名 = Fool
+		;愚者
+		BASE:MASTER:剣撃 = 500
+		BASE:MASTER:飛具 = 500
+		BASE:MASTER:打撃 = 500
+		BASE:MASTER:戦技 = 500
+		BASE:MASTER:火炎 = 500
+		BASE:MASTER:氷結 = 500
+		BASE:MASTER:電撃 = 500
+		BASE:MASTER:衝撃 = 500
+		BASE:MASTER:神経 = 500
+		BASE:MASTER:精神 = 500
+		BASE:MASTER:破魔 = 500
+		BASE:MASTER:呪殺 = 500
+		BASE:MASTER:地変 = 500
+		BASE:MASTER:水撃 = 500
+		BASE:MASTER:疾風 = 500
+		BASE:MASTER:重力 = 500
+		BASE:MASTER:核熱 = 500
+		BASE:MASTER:万能 = 500
+		BASE:MASTER:サイコ = 500
+		CSTR:MASTER:30 = ただの凡人でありながらファントムソサエティに所属する謎多き《愚者》。
+		CFLAG:MASTER:73 = 9
+		CFLAG:MASTER:所属ＣＯＭＰ = -1
+		CFLAG:MASTER:合体不可 = 1
+ENDSELECT
+PRINTL
+
+;観光客とたけしあなたは確認入れる
+IF CFLAG:MASTER:73 == 4 || CFLAG:MASTER:73 == 9
+	CALL SET_MASTER_RECHECK
+	SIF RESULT == 1
+		RESTART
+ENDIF
+;========================================================================
+;主人の専攻分野リセット
+;========================================================================
+@SET_MASTER_MAJORING_RESET
+#DIM CSV_あなた = 4999
+;戦闘系素質を消去(サマナーと、サクセサーから弓術まで)
+TALENT:MASTER:サマナー = 0
+FOR LOCAL, 220, 253
+	TALENT:MASTER:LOCAL = 0
+NEXT
+
+;継承タイプを消去(剣撃からサイコまで)
+FOR LOCAL, 320, 342
+	TALENT:MASTER:LOCAL = 0
+NEXT
+
+;種族・耐性を元に戻す(種族と剣撃からサイコまでの耐性)
+ABL:MASTER:種族 = 0
+CSTR:MASTER:種族名 = Human 
+FOR LOCAL, 40, 59
+	BASE:MASTER:LOCAL = CSVBASE(CSV_あなた, LOCAL)
+NEXT
+
+;レベルと能力値も戻す(異能者とか選んでやめたときのために)
+FOR LOCAL, 30, 37
+	BASE:MASTER:LOCAL = CSVBASE(CSV_あなた, LOCAL)
+NEXT
+
+;ペルソナはがし
+FOR LOCAL, 1, 3
+	LOCALS = 所持ペルソナ{LOCAL}
+	SIF EQUIP:MASTER:LOCALS
+		CALL PERSONA_UNEQUIPMENT(MASTER, EQUIP:MASTER:LOCALS)
+NEXT
+;スキル
+FOR COUNT,60,67,1
+	ABL:MASTER:COUNT = 0
+NEXT
+;習得スキル
+FOR COUNT,101,140,1
+	ABL:MASTER:COUNT = 0
+NEXT
+
+;========================================================================
+;高難度専攻分野用の再確認
+;========================================================================
+@SET_MASTER_RECHECK
+PRINTW There is a sign of extraordinarily heinous difficulty....
+PRINTL Would you like to begin with this?
+CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	RETURN 1
+
+PRINTL Are you really sure about this?
+CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	RETURN 1
+
+SIF CFLAG:MASTER:73 == 4
+	CALL SET_MASTER_TOURIST
+
+RETURN 0
+
+;========================================================================
+;主人の初期ペルソナ
+;========================================================================
+@SET_MASTER_MAJORING_PERSONA
+VARSET LOCAL
+;---- EDIT 003 MOD START -------------------------
+;名前表示の字数を統一
+FOR LOCAL, 1, 11
+	SIF DITEMTYPE:LOCAL:ペルソナ("NO") == 0
+		CONTINUE
+	SIF CSVCFLAG(DITEMTYPE:LOCAL:ペルソナ("NO"), GETNUM(CFLAG, "１体のみ"), 0)
+		CONTINUE
+	;名前表示
+	PRINTFORM [{LOCAL,3}] %CSVNAME(DITEMTYPE:LOCAL:ペルソナ("NO"), 0),30,LEFT%
+	PRINTFORM (%GET_ALI1(DITEMTYPE:LOCAL:ペルソナ("属性LD")),7%/
+	PRINTFORML %GET_ALI2(DITEMTYPE:LOCAL:ペルソナ("属性LC")),7%)
+NEXT
+IF CFLAG:MASTER:初期ペルソナナンバー
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	PRINTFORM [{LOCAL,3}] %CSVNAME(DITEMTYPE:LOCAL:ペルソナ("NO"), 0),30,LEFT%
+	PRINTFORM (%GET_ALI1(DITEMTYPE:LOCAL:ペルソナ("属性LD")),7%/
+	PRINTFORML %GET_ALI2(DITEMTYPE:LOCAL:ペルソナ("属性LC")),7%)
+ENDIF
+PRINTFORML [100] % "Sarasvati",30,LEFT%(  Light/    Law)
+PRINTFORML [101] % "Scathach",30,LEFT%(  Light/Neutral)
+PRINTFORML [102] % "Kikuri-hime",30,LEFT%(  Light/  Chaos)
+PRINTFORML [103] % "Angel",30,LEFT%(Neutral/    Law)
+PRINTFORML [104] % "Jack Frost",30,LEFT%(Neutral/Neutral)
+PRINTFORML [105] % "Mokoi",30,LEFT%(Neutral/  Chaos)
+PRINTFORML [106] % "Moh Shuvuu",30,LEFT%(   Dark/    Law)
+PRINTFORML [107] % "Zombie Girl",30,LEFT%(   Dark/Neutral)
+PRINTFORML [108] % "Lilim",30,LEFT%(   Dark/  Chaos)
+PRINTFORML Please choose your initial persona.
+PRINTFORML Your persona affinity will be the same as the affinity of the initial persona.
+PRINTL
+;---- EDIT 003 MOD END   -------------------------
+CFLAG:MASTER:PTフラグ = 2
+$INPUT_LOOP
+INPUT
+IF RESULT < 0 || RESULT > 108
+	GOTO INPUT_LOOP
+ELSEIF RESULT == 100
+	ABL:MASTER:初期ペルソナ = [[キャラ:サラスヴァティ]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 1
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 12
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 11
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 4
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 7
+	DITEMTYPE:LOCAL:ペルソナ("運") = 5
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ディア]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:夢見針]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:マカ・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:慈愛の祈り]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:トラエスト]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 18
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 19
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:リカーム]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 22
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:重力の壁]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:メ・ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 26
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:デ・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 32
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:ディアラハン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 38
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:メ・ディアラハン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 42
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:サマリカーム]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 101
+	ABL:MASTER:初期ペルソナ = [[キャラ:スカアハ]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 12
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 4
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 10
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 6
+	DITEMTYPE:LOCAL:ペルソナ("運") = 3
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ラク・ンダ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:ザン]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:クロズディ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:一分の活泉]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 7
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:ザンマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 15
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:コーチング]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 18
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:アドバイス]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:マハ・ザンマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 30
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:煌天の会心]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 36
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:メ・ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 38
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:雄叫び]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 44
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:コンセントレイト]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 47
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:刹那五月雨撃]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 102
+	ABL:MASTER:初期ペルソナ = [[キャラ:キクリヒメ]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 4
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 9
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 9
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 6
+	DITEMTYPE:LOCAL:ペルソナ("運") = 7
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ムド]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:ディア]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:リカーム]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:ポズムディ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:ブフ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 18
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:マハムド]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:マハ・ブフ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 22
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:セクシーダンス]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:メ・ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 30
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:ムドオン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 34
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:ディアラハン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 36
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:闇の審判]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 40
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:サマリカーム]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 103
+	ABL:MASTER:初期ペルソナ = [[キャラ:エンジェル]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 8
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 8
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 7
+	DITEMTYPE:LOCAL:ペルソナ("運") = 7
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ディア]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:ハンマ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:ガル]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:メ・ディア]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:ガルーラ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 18
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:マハンマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:光の裁き]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 30
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:エンジェルアロー]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 17
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:メ・ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 35
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:ハマオン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 36
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:リカーム]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 40
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:穢れ無き威光]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 104
+	ABL:MASTER:初期ペルソナ = [[キャラ:ジャックフロスト]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 6
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 6
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 8
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 6
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 8
+	DITEMTYPE:LOCAL:ペルソナ("運") = 9
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ディア]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:ブフ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:パトラ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:ブフーラ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:アイスブレス]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:ソニックパンチ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 22
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:高揚の歌]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:アトミック・ブフーラ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:スク・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 30
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:ブフダイン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 32
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:ディアラハン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 40
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:タル・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 48
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:マハ・ブフダイン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 105
+	ABL:MASTER:初期ペルソナ = [[キャラ:モコイ]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 8
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 6
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 6
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 7
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 6
+	DITEMTYPE:LOCAL:ペルソナ("運") = 7
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ジオ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:ポズムディ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:ショートジャブ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:デ・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:マリンカリン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 17
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:スク・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 18
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:ジオンガ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:ソニックパンチ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 22
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:淀んだ空気]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 28
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:スクカジャオート]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 34
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:モコイブーメラン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 38
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:マカ・カジャ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 42
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:トラフーリ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 106
+	ABL:MASTER:初期ペルソナ = [[キャラ:モー・ショボー]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 5
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 7
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 14
+	DITEMTYPE:LOCAL:ペルソナ("運") = 4
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ディア]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:自爆]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:ザン]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:ひっかき]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:玉砕破]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 17
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:ディアラマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 18
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:羽ばたき]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:マハ・ザン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 21
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:マハ・ザンマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 26
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:ディアラハン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 34
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:ザンダイン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 38
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:衝撃の壁]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 46
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:マハ・ザンダイン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == 107
+	ABL:MASTER:初期ペルソナ = [[キャラ:ゾンビちゃん]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 15
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 2
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 2
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 15
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 2
+	DITEMTYPE:LOCAL:ペルソナ("運") = 4
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ひっかき]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:治癒促進(小)]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:食いしばり]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:毒ひっかき]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:一分の活泉]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:暴れまくり]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 21
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:セクシーダンス]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:治癒促進(中)]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 25
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:ブレインシェイク]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 28
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:三分の活泉]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 30
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:アクセルクロー]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 36
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:治癒促進(大)]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 40
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:不屈の闘志]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+	;PRINTW test
+ELSEIF RESULT == 108
+	ABL:MASTER:初期ペルソナ = [[キャラ:リリム]]
+	CALL SYNC_STATUS, MASTER
+	LOCAL = CFLAG:MASTER:初期ペルソナナンバー
+	DITEMTYPE:LOCAL:ペルソナ("LV") = 15
+	DITEMTYPE:LOCAL:ペルソナ("力") = 3
+	DITEMTYPE:LOCAL:ペルソナ("知恵") = 7
+	DITEMTYPE:LOCAL:ペルソナ("魔力") = 9
+	DITEMTYPE:LOCAL:ペルソナ("耐力") = 5
+	DITEMTYPE:LOCAL:ペルソナ("速さ") = 8
+	DITEMTYPE:LOCAL:ペルソナ("運") = 8
+	DITEMTYPE:LOCAL:ペルソナ("スキル1") = [[スキル:ラク・ンダ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル2") = [[スキル:マリンカリン]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル3") = [[スキル:ジオ]]
+	DITEMTYPE:LOCAL:ペルソナ("スキル4") = [[スキル:サバトマ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル1") = [[スキル:タル・ンダ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV1") = 16
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル2") = [[スキル:マハ・ジオ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV2") = 17
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル3") = [[スキル:スク・ンダ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV3") = 20
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル4") = [[スキル:ジオンガ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV4") = 22
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル5") = [[スキル:セクシーダンス]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV5") = 24
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル6") = [[スキル:マハ・ジオンガ]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV6") = 28
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル7") = [[スキル:テンタラフー]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV7") = 30
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル8") = [[スキル:マハムド]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV8") = 36
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル9") = [[スキル:ジオダイン]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV9") = 40
+	DITEMTYPE:LOCAL:ペルソナ("習得スキル10") = [[スキル:ファイナルヌード]]
+	DITEMTYPE:LOCAL:ペルソナ("習得LV10") = 50
+ELSEIF RESULT == CFLAG:MASTER:初期ペルソナナンバー
+	;処理なし
+ELSEIF DITEMTYPE:RESULT:ペルソナ("NO")
+	IF CFLAG:MASTER:初期ペルソナナンバー == 0
+		CFLAG:MASTER:初期ペルソナナンバー = 50
+		WHILE 1
+			SIF !DITEMTYPE:(CFLAG:MASTER:初期ペルソナナンバー):ペルソナ("装備状態")
+				BREAK
+			CFLAG:MASTER:初期ペルソナナンバー++
+		WEND
+	ENDIF
+	FOR LOCAL, 0, 100
+		DITEMTYPE:(CFLAG:MASTER:初期ペルソナナンバー):LOCAL = DITEMTYPE:RESULT:LOCAL
+	NEXT
+	DITEMTYPE:(CFLAG:MASTER:初期ペルソナナンバー):ペルソナ("装備状態") = 3
+	DITEMTYPE:(CFLAG:MASTER:初期ペルソナナンバー):ペルソナ("ペルソナ所持者") = CFLAG:MASTER:キャラ固有の番号
+	ABL:MASTER:初期ペルソナ = DITEMTYPE:(CFLAG:MASTER:初期ペルソナナンバー):ペルソナ("NO")
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+;========================================================================
+;主人の初期スキル
+;========================================================================
+@SET_MASTER_MAJORING_MAGIC
+VARSET LOCAL
+
+$SELECT_CLASS
+CUSTOMDRAWLINE =
+SIF LOCAL:11 == 0
+	PRINTFORML Please select your class aptitude.
+PRINTFORML □Class1: \@ LOCAL:10 ? %CSVNAME(4700+LOCAL:10,0),10,LEFT% # %"EMPTY",10,LEFT%\@ □Class2：\@ LOCAL:11 ? %CSVNAME(4700+LOCAL:11,0),10,LEFT% # %"EMPTY",10,LEFT%\@
+DRAWLINE
+SIF LOCAL:11
+	GOTO PRINT_MASTER
+FOR LOCAL,1, 21
+	IF LOCAL:10 != LOCAL
+		PRINTFORML [{LOCAL,2}] %CSVNAME(4700+LOCAL,0)% 　　%CSVCSTR(4700+LOCAL,50,0)%
+		PRINT 　　 
+		FOR LOCAL:1,1,7
+			PRINTFORM %GET_BASESTATUS_E(LOCAL:1)%：{CSVBASE(4700+LOCAL,GETNUM(BASE,GET_BASESTATUS(LOCAL:1)),0)}　
+		NEXT
+		PRINTL
+		LOCAL:(20+LOCAL) = 1
+	ENDIF
+NEXT
+DRAWLINE
+$INPUT_LOOP
+INPUT
+IF RESULT > 0 && RESULT < 21 && RESULT != LOCAL:10
+	IF LOCAL:10 == 0
+		LOCAL:10 = RESULT
+	ELSE
+		LOCAL:11 = RESULT
+	ENDIF
+	GOTO SELECT_CLASS
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+$PRINT_MASTER
+;主人の能力を初期化&代入
+TALENT:MASTER:サマナー = 0
+TALENT:MASTER:道具知識 = 2
+TALENT:MASTER:ガンスリンガー = 0
+FOR LOCAL,1,7
+	BASE:MASTER:GET_BASESTATUS(LOCAL) = CSVBASE(4700+LOCAL:10,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)+CSVBASE(4700+LOCAL:11,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)
+NEXT
+
+ABL:MASTER:スキル1 = 529
+ABL:MASTER:スキル2 = CSVABL(4700+LOCAL:10,GETNUM(ABL,"スキル1"),0)
+ABL:MASTER:スキル3 = CSVABL(4700+LOCAL:11,GETNUM(ABL,"スキル1"),0)
+
+FOR LOCAL,4,FLAG:スキル数+1
+	ABL:MASTER:("スキル" + TOSTR(LOCAL)) = 0
+NEXT
+FOR LOCAL,0,10
+	LOCALS = 習得スキル{LOCAL*2+1}
+	LOCALS:1 = 習得スキル{LOCAL*2+2}
+	LOCALS:2 = 習得LV{LOCAL*2+1}
+	LOCALS:3 = 習得LV{LOCAL*2+2}
+	ABL:MASTER:LOCALS = CSVABL(4700+LOCAL:10,GETNUM(ABL,LOCALS),0)
+	ABL:MASTER:(LOCALS:2) = CSVABL(4700+LOCAL:10,GETNUM(ABL,LOCALS:2),0)
+	ABL:MASTER:(LOCALS:1) = CSVABL(4700+LOCAL:11,GETNUM(ABL,LOCALS),0)
+	ABL:MASTER:(LOCALS:3) = CSVABL(4700+LOCAL:11,GETNUM(ABL,LOCALS:2),0)
+NEXT
+FOR LOCAL,1,7
+	PRINTFORM %GET_BASESTATUS_E(LOCAL)%：{BASE:MASTER:GET_BASESTATUS(LOCAL)}　
+NEXT
+	PRINTL
+	DRAWLINE
+	PRINTL Skills to learn:
+	DRAWLINE
+	;初期スキル
+	FOR LOCAL,1,8
+		LOCALS = スキル{LOCAL}
+		SIF ABL:MASTER:LOCALS == 0
+			BREAK
+		CALLFORM SKILL_NAME_{ABL:MASTER:LOCALS}
+		PRINTFORMLC %RESULTS% (initial)
+	NEXT
+	PRINTL
+	;習得スキル
+	FOR LOCAL,1,20
+		LOCALS = 習得スキル{LOCAL}
+		LOCALS:1 = 習得LV{LOCAL}
+		SIF ABL:MASTER:LOCALS == 0
+			BREAK
+		CALLFORM SKILL_NAME_{ABL:MASTER:LOCALS}
+		PRINTFORMLC %RESULTS%(LV{ABL:MASTER:(LOCALS:1)})
+		SIF LOCAL % 4 == 0
+			PRINTL
+	NEXT
+IF LOCAL:10 == 5 || LOCAL:11 == 5
+    TALENT:MASTER:道具知識 = 1
+ENDIF
+IF LOCAL:10 == 11 || LOCAL:11 == 11
+    TALENT:MASTER:道具知識 = 2
+ENDIF
+IF LOCAL:10 == 12 || LOCAL:11 == 12
+    TALENT:MASTER:サクセサー = 1
+ENDIF
+IF LOCAL:10 == 15 || LOCAL:11 == 15
+	TALENT:MASTER:サマナー = 1
+	TALENT:MASTER:道具知識 = 1
+ENDIF
+IF LOCAL:10 == 16 || LOCAL:11 == 16
+	TALENT:MASTER:ガンスリンガー = 1
+ENDIF
+IF LOCAL:10 == 17 || LOCAL:11 == 17
+	TALENT:MASTER:道具知識 = 3
+ENDIF
+IF LOCAL:10 == 18 || LOCAL:11 == 18
+    TALENT:MASTER:道具知識 = 2
+ENDIF
+	PRINTW
+	PRINTL Please pick one of these skills.
+	CUSTOMDRAWLINE =
+	IF LOCAL:10 == 16 || LOCAL:11 == 16
+		PRINTL [0]Summoner
+		PRINTL [1]Successor
+		PRINTL [2]Item knowhow
+		PRINTL [4]I do not need
+		PRINTL [5]Return
+		CALL INPUTINT,0,1,2,4,5
+	ELSEIF LOCAL:10 == 12 || LOCAL:11 ==12
+		PRINTL [0]Summoner
+		PRINTL [2]Item knowhow
+		PRINTL [3]Gunslinger
+		PRINTL [4]I do not need
+		PRINTL [5]Return
+		CALL INPUTINT,0,2,3,4,5
+	ELSE
+		PRINTL [0]Summoner
+		PRINTL [1]Successor
+		PRINTL [2]Item knowhow
+		PRINTL [3]Gunslinger
+		PRINTL [4]I do not need
+		PRINTL [5]Return
+		CALL INPUTINT,0,1,2,3,4,5
+	ENDIF
+		DRAWLINE
+SELECTCASE RESULT
+	CASE 0
+		TALENT:MASTER:サマナー = 1
+		IF LOCAL:10 == 15 || LOCAL:11 == 15
+			TALENT:MASTER:サマナー = 3
+		ENDIF
+	CASE 1
+		TALENT:MASTER:サクセサー = 1
+	CASE 2
+		TALENT:MASTER:道具知識 = 3
+		IF LOCAL:10 == 17 || LOCAL:11 == 17
+			TALENT:MASTER:アイテム習熟 = 1
+		ENDIF
+	CASE 3
+		TALENT:MASTER:ガンスリンガー = 1
+	CASE 4
+		PRINTL 
+		PRINTL Well, I will not add it in particular.
+		PRINTW 
+	CASE 5
+	JUMP SET_MASTER_MAJORING
+
+ENDSELECT
+	
+	DRAWLINE
+	PRINTL Is this good?
+	CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	RESTART
+CFLAG:MASTER:3031  = 4700+LOCAL:10,0
+CFLAG:MASTER:3032  = 4700+LOCAL:11,0
+IF LOCAL:10 == 1 || LOCAL:11 == 1
+    TALENT:MASTER:気丈 = 1
+ENDIF
+IF LOCAL:10 == 2 || LOCAL:11 == 2
+    TALENT:MASTER:獰猛 = 1
+ENDIF
+IF LOCAL:10 == 3 || LOCAL:11 == 3
+    TALENT:MASTER:反抗的 =1
+ENDIF
+IF LOCAL:10 == 4 || LOCAL:11 == 4
+    TALENT:MASTER:冷静 = 1
+ENDIF
+IF LOCAL:10 == 6 || LOCAL:11 == 6
+    TALENT:MASTER:献身的 = 1
+ENDIF
+IF LOCAL:10 == 7 || LOCAL:11 == 7
+    TALENT:MASTER:調合知識 = 1
+ENDIF
+IF LOCAL:10 == 8 || LOCAL:11 == 8
+    TALENT:MASTER:治療 = 1    
+ENDIF
+IF LOCAL:10 == 9 || LOCAL:11 == 9
+    TALENT:MASTER:プライド高い = 1
+ENDIF
+IF LOCAL:10 == 10 || LOCAL:11 == 10
+    TALENT:MASTER:魅力 = 1
+ENDIF
+IF LOCAL:10 == 13 || LOCAL:11 == 13
+    TALENT:MASTER:自制心 = 1
+ENDIF
+IF LOCAL:10 == 14 || LOCAL:11 == 14
+    TALENT:MASTER:触手使役術 = 1
+ENDIF
+IF LOCAL:10 == 18 || LOCAL:11 == 18
+    TALENT:MASTER:魅惑 = 1
+ENDIF
+;========================================================================
+;主人の変身悪魔
+;========================================================================
+@SET_MASTER_MAJORING_AVATAR
+PRINTL Please choose your devil transformation.
+PRINTL
+IF TALENT:MASTER:オトコ == 1
+	PRINTL [0]Baal
+	PRINTL [1]Sraosha
+	PRINTL [2]Mara
+	CALL INPUTINT,0,1,2
+	SELECTCASE RESULT
+		CASE 0
+			CFLAG:MASTER:初期リンク悪魔 = 3808
+			CFLAG:MASTER:リンク悪魔 = 3808
+			TALENT:MASTER:電撃 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ジオ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:光の壁]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:テトラジャ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 14
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:バイコウハ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 28
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:マハ・ジオダイン]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 42
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:メギドラオン]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 56
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:天罰]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 70
+			CDFLAG:MASTER:マントラ:1 = 10000
+			CDFLAG:MASTER:マントラ:16 = 10000
+		CASE 1
+			CFLAG:MASTER:初期リンク悪魔 = 3809
+			CFLAG:MASTER:リンク悪魔 = 3809
+			TALENT:MASTER:支援 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ラク・カジャ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ガル]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:気功(小)]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 14
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:デ・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 28
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ディアラハン]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 42
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:パワーブレス]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 56
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:アムリタ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 70
+			CDFLAG:MASTER:マントラ:1 = 10000
+			CDFLAG:MASTER:マントラ:5 = 10000
+		CASE 2
+			CFLAG:MASTER:初期リンク悪魔 = 3810
+			CFLAG:MASTER:リンク悪魔 = 3810
+			TALENT:MASTER:打撃 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:突撃]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:タル・カジャ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:一分の活泉]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 14
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:誘惑]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 28
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:刹那五月雨撃]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 42
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:絶妙打]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 56
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:冥界の門]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 70
+			CDFLAG:MASTER:マントラ:1 = 10000
+			CDFLAG:MASTER:マントラ:2 = 10000
+		ENDSELECT
+ELSE
+	PRINTL [0]Ishtar
+	PRINTL [1]Valkyrie
+	PRINTL [2]Mara
+	CALL INPUTINT,0,1,2
+	SELECTCASE RESULT
+		CASE 0
+			CFLAG:MASTER:初期リンク悪魔 = 3811
+			CFLAG:MASTER:リンク悪魔 = 3811
+			TALENT:MASTER:精神 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:マリンカリン]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ザン]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:慈愛の祈り]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 14
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:デ・クンダ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 28
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:サマリカーム]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 42
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:ファイナルヌード]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 56
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:アムリタ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 70
+			CDFLAG:MASTER:マントラ:1 = 10000
+			CDFLAG:MASTER:マントラ:5 = 10000
+		CASE 1
+			CFLAG:MASTER:初期リンク悪魔 = 3812
+			CFLAG:MASTER:リンク悪魔 = 3812
+			TALENT:MASTER:剣撃 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ラク・ンダ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:アドバイス]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 14
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:切り落とし]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 28
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:テトラカーン]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 42
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:虚空斬波]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 56
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:不屈の闘志]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 70
+			CDFLAG:MASTER:マントラ:1 = 10000
+			CDFLAG:MASTER:マントラ:2 = 10000
+		CASE 2
+			CFLAG:MASTER:初期リンク悪魔 = 3813
+			CFLAG:MASTER:リンク悪魔 = 3813
+			TALENT:MASTER:呪殺 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ムド]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:シバブー]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:一分の魔脈]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 14
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:誘惑]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 28
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:アラクノワイヤー]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 42
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:闇の審判]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 56
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:千年の呪怨]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 70
+			CDFLAG:MASTER:マントラ:1 = 10000
+			CDFLAG:MASTER:マントラ:56 = 10000
+		ENDSELECT
+ENDIF
+
+;========================================================================
+;主人の達人としての技能
+;========================================================================
+@SET_MASTER_MAJORING_TECHNIC
+VARSET LOCAL
+VARSET LOCAL:14
+VARSET LOCAL:15
+
+;LOCAL:12は基本技能専攻分野1、LOCAL:13は達人技能専攻分野2
+
+$SELECT_T_CLASS1
+CUSTOMDRAWLINE =
+SIF LOCAL:12 == 0
+	PRINTFORML Please select basic skill.
+PRINTFORML □Class1：\@ LOCAL:12 ? %CSVNAME(4700+LOCAL:12,0),10,LEFT% # %"EMPTY",10,LEFT%\@
+DRAWLINE
+SIF LOCAL:12
+	GOTO SELECT_T_CLASS2	
+FOR LOCAL,1, 21
+	IF LOCAL:12 != LOCAL
+		PRINTFORML [{LOCAL,2}] %CSVNAME(4700+LOCAL,0)% 　　%CSVCSTR(4700+LOCAL,50,0)%
+		PRINT 　　 
+		FOR LOCAL:1,1,7
+			PRINTFORM %GET_BASESTATUS_E(LOCAL:1)%：{CSVBASE(4700+LOCAL,GETNUM(BASE,GET_BASESTATUS(LOCAL:1)),0)}　
+		NEXT
+		PRINTL
+		LOCAL:(20+LOCAL) = 1
+	ENDIF
+NEXT
+DRAWLINE
+$INPUT_LOOP2
+INPUT
+IF RESULT > 0 && RESULT < 21 && RESULT != LOCAL:12
+	LOCAL:12 = RESULT
+	GOTO SELECT_T_CLASS1
+ELSE
+	GOTO INPUT_LOOP2
+ENDIF
+
+$SELECT_T_CLASS2
+CUSTOMDRAWLINE =
+SIF LOCAL:13 == 0
+	PRINTFORML Please select master skill.
+PRINTFORML □Class2：\@ LOCAL:13 ? %CSVNAME(4700+LOCAL:13,0),10,LEFT% # %"EMPTY",10,LEFT%\@
+DRAWLINE
+SIF LOCAL:13
+	GOTO PRINT_MASTER2
+FOR LOCAL:14,51,61
+	IF LOCAL:14 < 61
+		IF LOCAL:13 != LOCAL:14
+			PRINTFORML [{LOCAL:14,2}] %CSVNAME(4700+LOCAL:14,0)% 　　%CSVCSTR(4700+LOCAL:14,50,0)%
+			PRINT 　　 
+			FOR LOCAL:15,1,7
+				PRINTFORM %GET_BASESTATUS_E(LOCAL:15)%：{CSVBASE(4700+LOCAL:14,GETNUM(BASE,GET_BASESTATUS(LOCAL:15)),0)}　
+			NEXT
+			PRINTL
+			LOCAL:(40+LOCAL:14) = 1
+		ENDIF
+	ENDIF
+NEXT
+DRAWLINE
+$INPUT_LOOP3
+INPUT
+IF RESULT > 50 && RESULT < 61 && RESULT != LOCAL:13
+	LOCAL:13 = RESULT
+	GOTO SELECT_T_CLASS2
+ELSE
+	GOTO INPUT_LOOP3
+ENDIF
+
+
+$PRINT_MASTER2
+;主人の能力を初期化&代入
+TALENT:MASTER:サマナー = 1
+TALENT:MASTER:道具知識 = 0
+TALENT:MASTER:ガンスリンガー = 0
+TALENT:MASTER:サクセサー = 0
+FOR LOCAL,1,7
+	BASE:MASTER:GET_BASESTATUS(LOCAL) = CSVBASE(4700+LOCAL:12,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)+CSVBASE(4700+LOCAL:13,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)
+NEXT
+
+ABL:MASTER:スキル1 = 529
+ABL:MASTER:スキル2 = CSVABL(4700+LOCAL:12,GETNUM(ABL,"スキル1"),0)
+ABL:MASTER:スキル3 = CSVABL(4700+LOCAL:13,GETNUM(ABL,"スキル1"),0)
+ABL:MASTER:スキル4 = CSVABL(4700+LOCAL:13,GETNUM(ABL,"スキル2"),0)
+
+
+FOR LOCAL,5,FLAG:スキル数+1
+	ABL:MASTER:("スキル" + TOSTR(LOCAL)) = 0
+NEXT
+FOR LOCAL,0,10
+	LOCALS = 習得スキル{LOCAL*2+1}
+	LOCALS:1 = 習得スキル{LOCAL*2+2}
+	LOCALS:2 = 習得LV{LOCAL*2+1}
+	LOCALS:3 = 習得LV{LOCAL*2+2}
+	ABL:MASTER:LOCALS = CSVABL(4700+LOCAL:12,GETNUM(ABL,LOCALS),0)
+	ABL:MASTER:(LOCALS:2) = CSVABL(4700+LOCAL:12,GETNUM(ABL,LOCALS:2),0)
+	ABL:MASTER:(LOCALS:1) = CSVABL(4700+LOCAL:13,GETNUM(ABL,LOCALS),0)
+	ABL:MASTER:(LOCALS:3) = CSVABL(4700+LOCAL:13,GETNUM(ABL,LOCALS:2),0)
+NEXT
+
+SELECTCASE LOCAL:13
+	CASE 51 TO 52
+		ABL:MASTER:習得スキル17 = [[スキル:気合]]
+		ABL:MASTER:習得LV17 = 20
+		ABL:MASTER:習得スキル19 = [[スキル:三分の魔脈]]
+		ABL:MASTER:習得LV19 = 30
+		TALENT:MASTER:サクセサー = 1
+	CASE 53
+		ABL:MASTER:習得スキル17 = [[スキル:気合]]
+		ABL:MASTER:習得LV17 = 20
+		ABL:MASTER:習得スキル19 = [[スキル:三分の魔脈]]
+		ABL:MASTER:習得LV19 = 30
+		TALENT:MASTER:ガンスリンガー = 1
+	CASEELSE
+		ABL:MASTER:習得スキル17 = [[スキル:三分の魔脈]]
+		ABL:MASTER:習得LV17 = 20
+		ABL:MASTER:習得スキル19 = [[スキル:コンセントレイト]]
+		ABL:MASTER:習得LV19 = 30
+		TALENT:MASTER:道具知識 = 3
+ENDSELECT
+
+;作業中
+
+FOR LOCAL,1,7
+	PRINTFORM %GET_BASESTATUS_E(LOCAL)%：{BASE:MASTER:GET_BASESTATUS(LOCAL)}　
+NEXT
+	PRINTL
+	DRAWLINE
+	PRINTL Skill to learn:
+	DRAWLINE
+	;初期スキル
+	FOR LOCAL,1,8
+		LOCALS = スキル{LOCAL}
+		SIF ABL:MASTER:LOCALS == 0
+			BREAK
+		CALLFORM SKILL_NAME_{ABL:MASTER:LOCALS}
+		PRINTFORMLC %RESULTS% (initial)
+	NEXT
+	PRINTL
+	;習得スキル
+	FOR LOCAL,1,21
+		LOCALS = 習得スキル{LOCAL}
+		LOCALS:1 = 習得LV{LOCAL}
+		SIF ABL:MASTER:LOCALS == 0
+			BREAK
+		CALLFORM SKILL_NAME_{ABL:MASTER:LOCALS}
+		PRINTFORMLC %RESULTS%(LV{ABL:MASTER:(LOCALS:1)})
+		SIF LOCAL % 4 == 0
+			PRINTL
+	NEXT
+	PRINTL
+	;CUSTOMDRAWLINE =
+	DRAWLINE
+	PRINTL Is this good?
+	CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	RESTART
+CFLAG:MASTER:3031  = 4700+LOCAL:12,0
+CFLAG:MASTER:3032  = 4700+LOCAL:13,0
+IF LOCAL:12 == 1
+    TALENT:MASTER:気丈 = 1
+ENDIF
+IF LOCAL:12 == 2
+    TALENT:MASTER:獰猛 = 1
+ENDIF
+IF LOCAL:12 == 3
+    TALENT:MASTER:反抗的 =1
+ENDIF
+IF LOCAL:12 == 4
+    TALENT:MASTER:冷静 = 1
+ENDIF
+IF LOCAL:12 == 6
+    TALENT:MASTER:献身的 = 1
+ENDIF
+IF LOCAL:12 == 7
+    TALENT:MASTER:調合知識 = 1
+ENDIF
+IF LOCAL:12 == 8
+    TALENT:MASTER:治療 = 1    
+ENDIF
+IF LOCAL:12 == 9
+    TALENT:MASTER:プライド高い = 1
+ENDIF
+IF LOCAL:12 == 10
+    TALENT:MASTER:魅力 = 1
+ENDIF
+IF LOCAL:12 == 13
+    TALENT:MASTER:自制心 = 1
+ENDIF
+IF LOCAL:12 == 14
+    TALENT:MASTER:触手使役術 = 1
+ENDIF
+IF LOCAL:12 == 18
+    TALENT:MASTER:魅惑 = 1
+ENDIF
+
+;========================================================================
+;主人の変身悪魔_デビルシフター
+;========================================================================
+@SET_MASTER_MAJORING_SHIFTER
+
+	FOR LOCAL, 1 ,20
+		ABL:MASTER:("初期変身悪魔スキル" + TOSTR(LOCAL)) = 0
+	NEXT
+	FOR LOCAL, 1 ,20
+		ABL:MASTER:("初期変身悪魔習得スキル" + TOSTR(LOCAL)) = 0
+	NEXT
+	FOR LOCAL, 0, 21
+		TALENT:MASTER:GET_SUCCESSION(LOCAL) = 0
+	NEXT
+
+PRINTL Please choose your devil transformation.
+PRINTL
+IF TALENT:MASTER:オトコ == 1
+	PRINTL [0]Thanatos
+	PRINTL [1]Kresnik
+	PRINTL [2]Kurama Tengu
+	PRINTL [3]Incubus
+	PRINTL [4]Jack O' Lantern
+	PRINTL [5]Kukunochi
+	PRINTL [6]Rakshasa
+	PRINTL [7]Phoenix
+	PRINTL [8]Oni
+	PRINTL [9]Momunofu
+	CALL INPUTINT,0,1,2,3,4,5,6,7,8,9
+	SELECTCASE RESULT
+		CASE 0
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:タナトス]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:タナトス]]
+			TALENT:MASTER:呪殺 = 1
+			TALENT:MASTER:破魔 = 1
+			TALENT:MASTER:剣撃 = 1
+			LOCALS:1 = ギリシア神話の死神。寿命の尽きた人間のもとを訪れ、その魂を連れていく。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ハンマ]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:ムド]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:テトラジャ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:利剣乱舞]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:マハンマ]] ;[[スキル:バイコウハ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:マハムド]] ;[[スキル:バイエイハ]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 17
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:剛切断]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 23
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:ドムディ]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 27
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:デスバウンド]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:メギド]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 37
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:マハムドオン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 45
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:マハンマオン]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:ブレイブザッパー]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 56
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:メギドラオン]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 70
+		CASE 1
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:クルースニク]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:クルースニク]]
+			TALENT:MASTER:剣撃 = 1
+			;TALENT:MASTER:飛具 = 1
+			;TALENT:MASTER:破魔 = 1
+			TALENT:MASTER:火炎 = 1
+			TALENT:MASTER:衝撃 = 1
+			LOCALS:1 = 光の加護を受けた善なる吸血鬼始末人。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:マハ・ラギ]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:マハ・ザン]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:ハマオン]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:アギラオ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:イナズマ突き]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:気功(中)]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:デスバウンド]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:マハ・ラギダイン]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:マハ・ザンダイン]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:狼牙天誅斬]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 50
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:パワーブレス]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 56
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:竜巻]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 60
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:虚空斬波]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 70
+		CASE 2
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:クラマテング]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:クラマテング]]
+			TALENT:MASTER:飛具 = 1
+			TALENT:MASTER:衝撃 = 1
+			TALENT:MASTER:破魔 = 1
+			LOCALS:1 = 牛若丸に武術と兵法を教え鍛えた大天狗。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:マハンマ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:九十九針]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:羽ばたき]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:タル・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ソニックブーム]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:天羽の舞]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:破魔の雷光]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:フォッグブレス]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:ソニックウィング]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:暗波双飛爪]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:竜巻]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 50
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:伍絶切羽]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 56
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:高天烈風弾]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 62
+		CASE 3
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:インキュバス]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:インキュバス]]
+			TALENT:MASTER:神経 = 1
+			TALENT:MASTER:精神 = 1
+			TALENT:MASTER:支援 = 1
+			LOCALS:1 = 女性に淫らな行為を働いて堕落させる夢魔。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:誘惑]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:地獄突き]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:シバブー]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:タル・ンダ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:バインドボイス]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:雄叫び]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:魔界の調べ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 25
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:淫魔の乱舞]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 27
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:フォッグブレス]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:淀んだ空気]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 35
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:溶解ブレス]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 37
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:三分の魔脈]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:ランダマイザ]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 60
+		CASE 4
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:ジャックランタン]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:ジャックランタン]]
+			TALENT:MASTER:火炎 = 1
+			TALENT:MASTER:核熱 = 1
+			;TALENT:MASTER: = 1
+			LOCALS:1 = ハロウィンのかぼちゃの灯火のお化け。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ドルミナー]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:アギ]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:フレイ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:マハ・ラギ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:アギラオ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:パララアイ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:フレイラ]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:ダイナミック・アギラオ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:暗黒狂焔乱舞]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:炎の乱舞]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:マハ・ラギダイン]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:フレイダイン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 50
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:地獄の業火]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 56
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:ニュークリアミサイル]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 60
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:デッドリーバーン]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 70
+		CASE 5
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:ククノチ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:ククノチ]]
+			TALENT:MASTER:飛具 = 1
+			TALENT:MASTER:防御 = 1
+			TALENT:MASTER:衝撃 = 1
+			TALENT:MASTER:支援 = 1
+			LOCALS:1 = イザナギとイザナミの間に生まれた樹木の神。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:シングルショット]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ザン]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:スク・カジャ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:タル・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ディアラマ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:雄叫び]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:マハ・ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 25
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:徒花一閃]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 27
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:溶解ブレス]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:マハ・ザンダイン]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 37
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:グランドタック]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 45
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:テトラカーン]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 50
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:マカラカーン]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 56
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:ラスタキャンディ]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 60
+		CASE 6
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:ラクシャーサ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:ラクシャーサ]]
+			TALENT:MASTER:飛具 = 1
+			TALENT:MASTER:打撃 = 1
+			TALENT:MASTER:剣撃 = 1
+			LOCALS:1 = 月のない夜に出没する悪鬼。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:突撃]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:シングルショット]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:暗夜剣]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:暴れまくり]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ファイアブレス]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:剛切断]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:連続撃ち]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 26
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:パニックボイス]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 28
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:デスバウンド]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 30
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:絶妙打]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 33
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:刹那五月雨撃]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 37
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:木っ端微塵斬り]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:狼牙天誅斬]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 50
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:虚空斬波]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 70
+		CASE 7
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:フェニックス]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:フェニックス]]
+			TALENT:MASTER:回復 = 1
+			TALENT:MASTER:火炎 = 1
+			TALENT:MASTER:核熱 = 1
+			LOCALS:1 = 永遠の時を生きるという伝説上の鳥。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:炎の壁]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:メ・ディア]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:アギ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:フレイ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ディアラマ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:熱風]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:フレイラ]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:リカーム]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 25
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:デ・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 27
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:メ・ディアラマ]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:サマリカーム]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 35
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:マハ・ラギダイン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 37
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:三分の魔脈]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:リカームドラ]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 47
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:ヒートカイザー]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 56
+		ENDSELECT
+ELSE
+	PRINTL [0]Kushinada-Hime
+	PRINTL [1]Fortuna
+	PRINTL [2]Pallas Athena
+	PRINTL [3]Dullahan
+	PRINTL [4]Succubus
+	PRINTL [5]Lorelei
+	PRINTL [6]Yuki Jyorou
+	PRINTL [7]Black Widow
+	PRINTL [8]Oni
+	PRINTL [9]Momunofu
+	CALL INPUTINT,0,1,2,3,4,5,6,7,8,9
+	SELECTCASE RESULT
+		CASE 0
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:クシナダヒメ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:クシナダヒメ]]
+			TALENT:MASTER:回復 = 1
+			TALENT:MASTER:支援 = 1
+			;TALENT:MASTER:防御 = 1
+			LOCALS:1 = スサノオの妻。豊饒の女神ともいわれている。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:夢見針]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ディア]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:アギ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:テトラジャ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ラク・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:慈愛の祈り]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:ディアラマ]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:リカーム]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 25
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:エストマ]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 27
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:ディアラハン]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:勇奮の舞]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 37
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:メ・ディアラハン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 40
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:サマリカーム]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 42
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:アムリタ]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 46
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:ラスタキャンディ]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 56
+		CASE 1
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:フォルトゥナ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:フォルトゥナ]]
+			TALENT:MASTER:回復 = 1
+			TALENT:MASTER:衝撃 = 1
+			TALENT:MASTER:疾風 = 1
+			LOCALS:1 = ローマ神話に伝えられる運命の女神。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ディア]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ザン]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:ガル]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:マハ・ガル]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:マハ・ザン]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 10
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:メ・ディア]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 13
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:ガルーラ]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 17
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 20
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:ディアラマ]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 23
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:リカーム]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 27
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:メ・ディアラマ]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 33
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:マハ・ガルダイン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 35
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:マハ・ザンダイン]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 37
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:リムドーラ]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 45
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:旋風陣]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 60
+		CASE 2
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:パラスアテナ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:パラスアテナ]]
+			TALENT:MASTER:剣撃 = 1
+			TALENT:MASTER:防御 = 1
+			TALENT:MASTER:支援 = 1
+			LOCALS:1 = ギリシャ神話の女神、オリンポス十二神の一柱。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:かすみ斬り]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:マハンマ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:メ・ディア]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:スク・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ヒートウェイブ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:二段突き]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:タル・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:デスバウンド]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:龍牙旋回]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:狼牙天誅斬]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:パワーブレス]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 50
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:マカラカーン]] ;[[スキル:テトラカーン]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 56
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:虚空斬波]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 70
+		CASE 3
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:デュラハン]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:デュラハン]]
+			TALENT:MASTER:剣撃 = 1
+			TALENT:MASTER:打撃 = 1
+			TALENT:MASTER:呪殺 = 1
+			LOCALS:1 = ケルト神話において、死を予言しに現れる不吉な妖精。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ヤマオロシ]] ;[[スキル:ギロチンブレイド]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:地獄突き]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:ヘルズアイ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:バインドボイス]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ドムディ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:暴れまくり]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:剛切断]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:デスブレス]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:デスバウンド]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:絶妙打]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:地母の晩餐]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:狼牙天誅斬]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 50
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:死んでくれる？]] ;[[スキル:千年の呪怨]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 60
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:不屈の闘志]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 70
+		CASE 4
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:サキュバス]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:サキュバス]]
+			TALENT:MASTER:電撃 = 1
+			TALENT:MASTER:精神 = 1
+			TALENT:MASTER:呪殺 = 1
+			LOCALS:1 = 夢の中に入り、性的な夢を見せ精気を吸い取る夢魔。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:誘惑]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:マリンカリン]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:ジオ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:タル・ンダ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ダムド]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ジオンガ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 15
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:マハムド]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 17
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:デ・クンダ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 23
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:淫魔の乱舞]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 25
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:ジオダイン]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 27
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:闇の審判]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 33
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:ダムドラオン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 37
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:ファイナルヌード]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:超メギド]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 56
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:メギドラオン]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 70
+		CASE 5
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:ローレライ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:ローレライ]]
+			TALENT:MASTER:重力 = 1
+			TALENT:MASTER:精神 = 1
+			;TALENT:MASTER:氷結 = 1
+			TALENT:MASTER:水撃 = 1
+			LOCALS:1 = ドイツ伝承に伝わる水の妖精。甘い歌声によって舟人を狂わせる。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:マリンカリン]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:アクア]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:グライ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:子守唄]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:パニックボイス]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:キャンディボイス]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:マハ・アクエス]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:マハ・グライバ]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:魔界の調べ]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:永眠の誘い]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:マハ・アクダイン]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:ダムドラオン]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 56
+			ABL:MASTER:初期変身悪魔習得スキル15 = [[スキル:アクアリータイド]]
+			ABL:MASTER:初期変身悪魔習得LV15 = 65
+			;歌唱スキル
+			;ABL:MASTER:初期変身悪魔習得スキル10 = 2829;『炎のランナー』[[スキル:]]
+			;ABL:MASTER:初期変身悪魔習得LV10 = 19
+			;ABL:MASTER:初期変身悪魔習得スキル11 = 2830;『嵐を呼ぶ男』[[スキル:]]
+			;ABL:MASTER:初期変身悪魔習得LV11 = 26
+			;ABL:MASTER:初期変身悪魔習得スキル12 = 2833;『君の瞳は一万ボルト』[[スキル:]]
+			;ABL:MASTER:初期変身悪魔習得LV12 = 28
+			ABL:MASTER:初期変身悪魔習得スキル13 = 2831;『凍らすライン』[[スキル:]]
+			ABL:MASTER:初期変身悪魔習得LV13 = 30
+			ABL:MASTER:初期変身悪魔習得スキル14 = 2832;『ボンバーガール』[[スキル:]]
+			ABL:MASTER:初期変身悪魔習得LV14 = 40
+		CASE 6
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:ユキジョロウ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:ユキジョロウ]]
+			TALENT:MASTER:氷結 = 1
+			TALENT:MASTER:精神 = 1
+			TALENT:MASTER:呪殺 = 1
+			LOCALS:1 = 「死」を表す白装束を身にまとい、人を凍死させる雪の妖怪。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:ブフ]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:ムド]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:マカジャマ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:ラク・ンダ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:子守唄]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:ブフーラ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:マハ・ブフーラ]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:マハムドオン]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:ブフダイン]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 33
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:絶対零度]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 37
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:闇の審判]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 45
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:誘惑の霧]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 50
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:千年の呪怨]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 60
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:大冷界]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 70
+		CASE 7
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:ブラックウィドウ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:ブラックウィドウ]]
+			TALENT:MASTER:戦技 = 1
+			TALENT:MASTER:飛具 = 1
+			TALENT:MASTER:神経 = 1
+			LOCALS:1 = 「黒い未亡人」という名を持つ毒蜘蛛が化身した魔女。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:毒ひっかき]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:マヒ針]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:シバブー]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:ラク・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ザンマ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:スクカジャオート]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:天羽の舞]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:巻きつき]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 25
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:パララ・ウェブ]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 27
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:心の叫び]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:スパイククロー]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 37
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:アラクノワイヤー]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 45
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:伍絶切羽]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 50
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:桜花閃乱]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 56
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:アイアンクロウ]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 60
+		ENDSELECT
+ENDIF
+
+	SELECTCASE RESULT
+		CASE 8
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:オニ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:オニ]]
+			TALENT:MASTER:剣撃 = 1
+			TALENT:MASTER:火炎 = 1
+			TALENT:MASTER:地変 = 1
+			LOCALS:1 = 日本各地の民話に登場する、恐ろしい物、強い物を象徴する妖怪。
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:アギ]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:マグナ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:唐竹割り]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:ラク・ンダ]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 10
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:暴れまくり]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 13
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:ファイアブレス]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 17
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:剛切断]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 20
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:アースブレイク]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 23
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:牙折り]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 27
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:火砕烈風破]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 33
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:ガイアブレイク]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 37
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:木っ端微塵斬り]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:狼牙天誅斬]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 50
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:三分の活泉]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 56
+			ABL:MASTER:初期変身悪魔習得スキル13 = [[スキル:虚空斬波]]
+			ABL:MASTER:初期変身悪魔習得LV13 = 70
+		CASE 9
+			CFLAG:MASTER:初期リンク悪魔 = [[キャラ:モムノフ]]
+			CFLAG:MASTER:リンク悪魔 = [[キャラ:モムノフ]]
+			LOCALS:1 = 古代日本神話の武神。武に生きる者たちの魂。
+			TALENT:MASTER:剣撃 = 1
+			TALENT:MASTER:打撃 = 1
+			TALENT:MASTER:支援 = 1
+			ABL:MASTER:初期変身悪魔スキル1 = [[スキル:サバトマ]]
+			ABL:MASTER:初期変身悪魔スキル2 = [[スキル:一文字斬り]]
+			ABL:MASTER:初期変身悪魔スキル3 = [[スキル:突撃]]
+			ABL:MASTER:初期変身悪魔スキル4 = [[スキル:スク・ンダ]]
+			ABL:MASTER:初期変身悪魔習得スキル1 = [[スキル:暗夜剣]]
+			ABL:MASTER:初期変身悪魔習得LV1 = 7
+			ABL:MASTER:初期変身悪魔習得スキル2 = [[スキル:暴れまくり]]
+			ABL:MASTER:初期変身悪魔習得LV2 = 13
+			ABL:MASTER:初期変身悪魔習得スキル3 = [[スキル:タル・カジャ]]
+			ABL:MASTER:初期変身悪魔習得LV3 = 17
+			ABL:MASTER:初期変身悪魔習得スキル4 = [[スキル:武者車]]
+			ABL:MASTER:初期変身悪魔習得LV4 = 23
+			ABL:MASTER:初期変身悪魔習得スキル5 = [[スキル:切り落とし]]
+			ABL:MASTER:初期変身悪魔習得LV5 = 27
+			ABL:MASTER:初期変身悪魔習得スキル6 = [[スキル:タルカジャオート]]
+			ABL:MASTER:初期変身悪魔習得LV6 = 30
+			ABL:MASTER:初期変身悪魔習得スキル7 = [[スキル:気合]]
+			ABL:MASTER:初期変身悪魔習得LV7 = 33
+			ABL:MASTER:初期変身悪魔習得スキル8 = [[スキル:デスバウンド]]
+			ABL:MASTER:初期変身悪魔習得LV8 = 35
+			ABL:MASTER:初期変身悪魔習得スキル9 = [[スキル:絶妙打]]
+			ABL:MASTER:初期変身悪魔習得LV9 = 37
+			ABL:MASTER:初期変身悪魔習得スキル10 = [[スキル:天驚地爆断]]
+			ABL:MASTER:初期変身悪魔習得LV10 = 45
+			ABL:MASTER:初期変身悪魔習得スキル11 = [[スキル:三分の活泉]]
+			ABL:MASTER:初期変身悪魔習得LV11 = 56
+			ABL:MASTER:初期変身悪魔習得スキル12 = [[スキル:虚空斬波]]
+			ABL:MASTER:初期変身悪魔習得LV12 = 70
+	ENDSELECT
+
+CUSTOMDRAWLINE =
+	IF CSVCSTR(CFLAG:MASTER:初期リンク悪魔,GETNUM(CSTR,"種族名"),0) != ""
+		PRINTFORM %CSVCSTR(CFLAG:MASTER:初期リンク悪魔,GETNUM(CSTR,"種族名"),0)%　
+	ELSE
+		PRINTFORM %STR:CSVABL(CFLAG:MASTER:初期リンク悪魔,GETNUM(ABL,"種族"),0)%　
+	ENDIF
+PRINTFORML %CSVNAME(CFLAG:MASTER:初期リンク悪魔,0),10,LEFT%
+
+	DRAWLINE
+	;説明
+	LOCALS = %LOCALS:1%
+	PRINTFORML %LOCALS%
+
+DRAWLINE
+	FOR COUNT,1,7
+		LOCAL:(COUNT) = CSVBASE(CFLAG:MASTER:初期リンク悪魔,GETNUM(BASE,GET_BASESTATUS(COUNT)),0)
+		LOCAL:(COUNT) = 100 * CSVBASE(CFLAG:MASTER:初期リンク悪魔 , GETNUM(BASE , GET_BASESTATUS(COUNT)) , 0)
+		LOCAL:(COUNT) /= 18 + CSVBASE(CFLAG:MASTER:初期リンク悪魔 , GETNUM(BASE , "LV") , 0) * 3 / 2
+	NEXT
+	PRINTL □Base Stats
+	FOR COUNT,1,7
+		PRINTFORM %GET_BASESTATUS_E(COUNT)%：{LOCAL:(COUNT)}　
+	NEXT
+
+	PRINTL
+	DRAWLINE
+	;相性を表示
+	PRINTL □Resistances
+	FOR COUNT:2, 0, FLAG:相性数
+		CALL SET_AISYOU_COLOR, CSVBASE(CFLAG:MASTER:初期リンク悪魔 , GETNUM(BASE , GET_TYPE(COUNT:2)) , 0)
+		;属性名の先頭１文字で表す
+		PRINTFORM %SUBSTRING(GET_TYPE_E(COUNT:2), 0, 2)%
+	NEXT
+
+	PRINTL
+	DRAWLINE
+	;初期スキル
+	PRINTL □Initial Skills
+	FOR LOCAL,1,8
+		LOCALS = 初期変身悪魔スキル{LOCAL}
+		SIF ABL:MASTER:LOCALS == 0
+			BREAK
+		CALLFORM SKILL_NAME_{ABL:MASTER:LOCALS}
+		;PRINTFORMLC %RESULTS% 
+		PRINTFORM %RESULTS% 　
+	NEXT
+
+	PRINTL
+	DRAWLINE
+	;習得スキル
+	PRINTL □Skill Focus
+	FOR LOCAL, 0, 21
+		SIF TALENT:MASTER:GET_SUCCESSION(LOCAL)
+			PRINTFORM %GET_SUCCESSION_E(LOCAL)%　
+	NEXT
+
+	PRINTL
+	;CUSTOMDRAWLINE =
+	DRAWLINE
+	PRINTL Is this good?
+	CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	RESTART
+
+;========================================================================
+;主人の名前設定
+;========================================================================
+@SET_MASTER_NAME
+PRINTFORMW Currently, the master's name is %NAME:MASTER%, Nickname is %CALLNAME:MASTER%
+PRINTL Do you want to change your name?
+
+PRINTL [0]I like it
+PRINTL [1]Change
+;PRINTL [2]選択する
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT == 1
+	$INPUTS_NAME
+	PRINTL Enter name:
+	INPUTS
+	LOCALS = %RESULTS%
+	PRINTL Enter nickname:
+	INPUTS
+	LOCALS:1 = %RESULTS%
+	DRAWLINE
+	PRINTFORML Name:%LOCALS%　Nickname:%LOCALS:1%
+	PRINTL Is this ok?
+	CALL INPUT_YN,"Yes","No"
+	IF RESULT == 0
+		NAME:MASTER = %LOCALS%
+		CALLNAME:MASTER = %LOCALS:1%
+	ELSEIF RESULT == 1
+		GOTO INPUTS_NAME
+	ENDIF
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+;========================================================================
+;観光客用プレオープニング
+;========================================================================
+@SET_MASTER_TOURIST
+FOR COUNT,0,20
+	PRINTL 
+NEXT
+
+PRINTW 「あら。見つかってしまったわね」
+PRINTW ＞ 非日常の世界から逃げる事にした君の前に、いつの間にか豪奢な服を着た美女が立っていた。
+PRINTW 「フフ…　こんな普通の場所がアジトとは思いませんでしたわ。人払いに苦労しましたのよ」
+PRINTW 「私はマヨーネ。目障りなハエを、始末するように、承ってまいりました」
+PRINTW ＞ ……いや、待て。
+PRINTW ＞ 一瞬だけ絶望したが、よく見れば相手は華奢な女一人だけだ。
+PRINTW ＞ なんとかこの女を組み伏せれば、まだ生き残れるチャンスはある。
+PRINTW 「……そういう事ですか。実は思ったほどに深入りしていなかったようですわね」
+PRINTW 「せっかくだから、華々しく爆死していただこうかと思っていましたが」
+PRINTW ＞ 美女が奇妙な絵柄の日傘を開くと、その背後に緑黄色の光が満ち溢れた。
+PRINTW ＞ ……その直後に現われた光景に、あなたは身も世もない悲鳴を上げて腰を抜かした。
+PRINTL 
+PRINTW ＞ そこには怨念に満ちた表情の女を映した、巨大な紫色の鏡があった。
+PRINTW ＞ 下半身、右半身を無惨にも引き千切られたような姿の醜怪な巨人がいた。
+PRINTW ＞ 全身から水滴を迸らせ、奇妙なことに猛禽のような嘴を備えた、あまりにも巨大な蛇がいた。
+PRINTW ＞ 轟々と音を立てて燃えさかる毛皮に包まれた、鼠のような奇妙な生き物が、それも２匹いた。
+PRINTW ＞ 光の背後から次々と、世にもおぞましく冒涜的にして容貌魁偉な……。
+PRINTW ＞ ……悪魔、としか言いようのない、正体のつかめない何かが続々と出現していた。
+;むらさきカガミ、ミズチ、ヴェータラ、カソ×２。
+PRINTW 「そうとなれば気楽にいきましょう。私みずからの手で奴隷にしてあげるわ」
+PRINTL
+PRINTL Are you sure you want to resist?
+CALL INPUT_YN,"Yes","No"
+IF RESULT == 0
+	PRINTL Really, do you resist?
+	CALL INPUT_YN,"Yes","No"
+	PRINTL
+	IF RESULT == 0
+		;ここで戦闘を挿入して、万が一勝てたらマヨーネを奴隷にした状態でスタートできるとかどうだろう。
+		PRINTW ＞ 意を決して女に掴みかかろうとした次の瞬間、女が口に手を当てて何かを呟いた。
+		PRINTW ＞ 途端にあなたは転倒する。そのまま起き上がる事はない。
+		PRINTW ＞ あなたの体は動かない。
+		PRINTW ＞ まるで生きている心地がしない。
+		PRINTW 「あらあら、ついうっかり呪殺してしまったわ。道返玉のストックはまだあったかしら」
+	ENDIF
+ENDIF
+PRINTW ………
+PRINTW ……
+PRINTW …
+PRINTW 「そういえば、殺すつもりでいたから名前を忘れてしまったわ。確か資料によると……」
+PRINTL 
+EXP:MASTER:フェラ経験 = EXP:MASTER:フェラ経験 * 2
+EXP:MASTER:Ａ経験 = EXP:MASTER:Ａ経験 * 2
+EXP:MASTER:異常経験 += 2
+MARK:MASTER:屈服刻印 = 3
+ABL:MASTER:技巧 += 1
+ABL:MASTER:欲望 += 1
+ABL:MASTER:マゾっ気 += 1
+IF TALENT:MASTER:オトコ == 0
+	EXP:MASTER:Ｖ経験 = EXP:MASTER:Ｖ経験 * 2
+ENDIF
+EXP:MASTER:性交経験 = EXP:MASTER:Ｖ経験 + EXP:MASTER:Ａ経験
+TALENT:MASTER:服従 = 1
+
+;==================================================================
+;オープニング
+;==================================================================
+@OPENING
+;あなたの番号を4999に統一。周回時を考えてここで処理
+NO:MASTER = 4999
+PRINTL Do you want to see the opening?
+CALL INPUT_YN,"Yes","No"
+CALLFORM OPENING_MESSAGE_{RESULT}
+
+MONEY:2 = 10000
+PRINTL From the organisations reserves, you received ￥3000 and some basic gear.
+;ソサエティから準備金として￥3000と、粉末のようなアイテム、
+PRINTW You also got a ＣＯＭＰ with an already contracted Fairy Pixie and data on some others.
+;妖精ピクシーと契約済みのＣＯＭＰと数体の悪魔のデータを手に入れました。
+PRINTW On the ＣＯＭＰ, the new summoner software 「DemonTraining.exe」 is installed.
+;ＣＯＭＰには新米サマナー指南ソフト「悪魔調教典.exe」がインストールされています。
+;ピクシーを悪魔全書に登録されているステータスにするか否か
+;一旦悪魔をキャラ登録
+CALL ADD_NEW_COMPANION,501,200,1
+;指定悪魔を全書登録してるかチェック
+IF STRFLAG_NUM_CPD_FIND("NO", NO:(RESULT:1)) > -1
+	PRINTL You already have data on Pixie in your compendium.
+	PRINTL Would you like to try and summon the compendium Pixie, instead of a generic one?
+	PRINTW ※If the stored Pixie is too powerful, this will fail
+	;ピクシーを悪魔全書に登録されている個体にしますか？
+	CALL INPUT_YN,"Yes","No"
+	IF RESULT == 0
+		;一旦キャラNUMを登録
+		LOCAL:3 = GETCHARA([[キャラ:ピクシー]])
+		;全書登録されている悪魔で、全書登録データを閲覧する場合、登録情報を参照
+		CALL STRFLAG_NUM_CPD(LOCAL:3,"REFER")
+		;初期化する能力を記述
+		CFLAG:(LOCAL:3):初期LV = BASE:(LOCAL:3):LV
+		BASE:(LOCAL:3):ＥＸＰ = BASE:(LOCAL:3):LV* (BASE:(LOCAL:3):LV+1) * (BASE:(LOCAL:3):LV-1) * 5 /3
+
+		CFLAG:(LOCAL:3):能力強化回数 = 0
+		FOR LOCAL,0,6
+			CFLAG:(LOCAL:3):(GET_BASESTATUS(LOCAL) + "強化回数") = 0
+		NEXT
+		CALL SYNC_STATUS,LOCAL:3
+		CALL HEALTH_CHARA,LOCAL:3
+		
+		;基本能力値合計が18 + Lv * 1.5 + 5 + 264 ( = Lv * 1.5 + 287)より大きい場合、不可
+		LOCAL:4 += MAX(0, BASE:(LOCAL:3):力 + BASE:(LOCAL:3):知恵 + BASE:(LOCAL:3):魔力 + BASE:(LOCAL:3):耐力 + BASE:(LOCAL:3):速さ + BASE:(LOCAL:3):運 - BASE:(LOCAL:3):LV * 3 / 2 - 287) * 100000 / POWER(2, FLAG:戦闘難易度-1)
+		IF LOCAL:4 >= 100000
+			PRINT It is too powerful, a generic Pixie will be used instead.
+			;強化しすぎです、通常のピクシーとなります
+			DELCHARA LOCAL:3
+			CALL ADD_NEW_COMPANION,501,200,1
+		;悪魔のレベル>主人のレベルだった場合も不可
+		ELSEIF BASE:(LOCAL:3):LV > BASE:MASTER:LV
+			PRINTW It's lvl is too high, a generic Pixie will be used instead.
+			;レベルが高すぎます、通常のピクシーとなります
+			DELCHARA LOCAL:3
+			CALL ADD_NEW_COMPANION,501,200,1
+		ELSE
+		ENDIF
+	ELSE
+		IF CALLNAME:MASTER != "You"
+			IF TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘
+				CSTR:(RESULT:1):二人称 = %CALLNAME:MASTER%-chan
+			ELSE
+				CSTR:(RESULT:1):二人称 = %CALLNAME:MASTER%-kun
+			ENDIF
+		ENDIF
+		ABL:(RESULT:1):スキル3 = [[スキル:アギ]]
+		;MASTERと相性を持たせる
+		CFLAG:(RESULT:1):キャラ相性1 = 0
+		CFLAG:(RESULT:1):キャラ相性値1 = 150
+	ENDIF
+ELSE
+	IF RESULT == 1
+		IF CALLNAME:MASTER != "You"
+			IF TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘
+				CSTR:(RESULT:1):二人称 = %CALLNAME:MASTER%-chan
+			ELSE
+				CSTR:(RESULT:1):二人称 = %CALLNAME:MASTER%-kun
+			ENDIF
+		ENDIF
+		ABL:(RESULT:1):スキル3 = [[スキル:アギ]]
+		;MASTERと相性を持たせる
+		CFLAG:(RESULT:1):キャラ相性1 = 0
+		CFLAG:(RESULT:1):キャラ相性値1 = 150
+	ENDIF
+ENDIF
+
+SIF FLAG:20501 < 100
+	FLAG:20501 = 100
+SIF FLAG:21001 < 1
+	FLAG:21001 = 1
+SIF FLAG:20401 < 1
+	FLAG:20401 = 1
+SIF FLAG:20901 < 1
+	FLAG:20901 = 1
+SIF FLAG:21093 < 1
+	FLAG:21093 = 1
+SIF FLAG:20551 < 1
+	FLAG:20551 = 1
+SIF FLAG:20951 < 1
+	FLAG:20951 = 1
+;引っかかる人は居ないと思うけど罠。
+ITEM:CliffPowder += 1
+
+
+@OPENING_MESSAGE_0
+IF TALENT:MASTER:サマナー || TALENT:MASTER:ペルソナ使い || TALENT:MASTER:異能者 || TALENT:MASTER:喰奴 || TALENT:MASTER:達人 || TALENT:MASTER:デビルシフター
+	SELECTCASE FLAG:主人出自
+		CASE 0
+			PRINTFORMW ＞An office to serve as a safe house was prepared for %CALLNAME:MASTER%, who became a member of the phantom society.
+			PRINTFORMW ＞From today on, this will be %CALLNAME:MASTER%'s base.
+			PRINTFORMW ＞%CALLNAME:MASTER%'s boss, Mayone, said:
+			PRINTL
+			PRINTW 「You are now a member of the Phanton Society.」
+			;「これで貴方はファントムの構成員となったわけだけど」
+			PRINTW 「Your first goal should be to earn us some money.」
+			;「まずはお金を稼ぐ事を目標にするべきかしらね」
+			PRINTW 「In our business, there are always expenses. Therefore, we must have a steady income of funds.」
+			;「こういう稼業では何かとお金がかかるもの、先立つ物があって損はしないわ」
+			PRINTW 「Well, you are still new. Earning us some cash would be a good way to prove your value to us.」
+			;「何より、まだ無名な貴方が組織に役立つ事を示す一番簡単な方法は、稼いだ資金を組織に上納することですからね」
+			IF ABL:MASTER:料理技能 >= 9
+				PRINTW 「By the way, I don't expect you will be able to make enough money just working an honest job」
+				PRINTW 「No, the Phantom Society would not mind you trying that route. Yes, we don't mind」
+				PRINTW 「Though that is no way to earn lots of money, nothing stops you from becoming a pastry chef」
+			ELSE
+				PRINTL 「Still, an amateur like you will likely have trouble getting enough funds
+				;「とはいえ組織の運営に役立つだけの資金を集めるのは素人では苦労するでしょう」
+				PRINTW  to contribute to the organisation.」
+				PRINTL 「There is no deadline for the payments, but if your contributions stagnate,
+				;「期限は特に無いけれど、納金が滞るようであれば組織内での出世は絶望的だと思いなさい」
+				PRINTW  I don't think you'll have much of a chance to advance within the organisation.」
+			ENDIF
+		CASE 1
+			PRINTFORML ＞同僚達と組み、彼らの性欲を処理しつつ戦闘をサポートしていた%CALLNAME:MASTER%に、
+			PRINTW ＞ある日、一人の構成員として独立して任務に就くよう辞令が下った
+			PRINTW ＞拠点として宛がわれた事務所へ辿り着くと、既に上司であるマヨーネが待っていた。
+			PRINTL
+			PRINTW 「From today on, you'll work on your own, not as someones assistant like you did until now.」
+			;「今日から貴方は、これまでの様に誰かの補助ではなく貴方自身の為に仕事をこなすことになるわ」
+			PRINTW 「And your new field of work doesn't include the sexual satifaction of co-workers.
+			;「勿論その仕事には同僚達の性欲の処理は含まれてないけれど。フフ、安心した？それとも残念だったかしら？」
+			PRINTW  Well, are you happy? Or will you miss it?」
+			PRINTW 「Anyway, you should focus on earning us some money for now.」
+			;「当面はお金を稼ぐ事を目標にするといいわ」
+			PRINTW 「In our business, there are always expenses. Therefore we must have a stady income of funds.」
+			PRINTW 「And the easiest way to show us your value to the organisation, is earning us some cash.」
+			;「何より、貴方が組織に役立つ事を示す一番簡単な方法は、稼いだ資金を組織に上納することですからね」
+			IF ABL:MASTER:料理技能 >= 9
+				PRINTW 「By the way, I don't expect you will be able to make enough money just working an honest job」
+				PRINTW 「No, the Phantom Society would not mind you trying that route. Yes, we don't mind」
+				PRINTW 「Though that is no way to earn lots of money, nothing stops you from becoming a pastry chef」
+			ELSE
+				PRINTL 「Still, an amateur like you will likely have trouble getting enough funds
+				PRINTW  to contribute to the organisation.」
+				PRINTL 「There is no deadline for the payments, but if your contributions stagnate,
+				PRINTW  I don't think you'll have much of a chance to advance within the organisation.」
+			ENDIF
+		CASE 2
+			PRINTL ＞ファントムソサエティの性欲処理用便器として設置され、
+			PRINTFORMW ＞精力的に彼らに奉仕してその欲望を受け止めていた%CALLNAME:MASTER%は、ある日見慣れぬ場所に連れ出された
+			PRINTW ＞そこはセーフハウスを兼ねた事務所であり、今日からここを拠点に組織のため任務をこなせということだった。
+			PRINTW ＞腕利きのサマナーであるマヨーネはこう言った。
+			PRINTL
+			PRINTW 「組織に所属する男達の情欲を一身に受け止めようとする」
+			PRINTW 「そんな貴方の従順さが評価されたようよ……実の所、ほとんど上層部の気紛れのようなものだけど」
+			PRINTW 「おめでとう、今日から貴方は自由の身よ」
+			PRINTW 「もっとも、私達に利する行いを続ける限り、ですけれど」
+			PRINTW 「人間として組織の為に働くのか、玩具は玩具らしく男達の便器に戻るのかも貴方の自由ですわ」
+			PRINTW 「でも人として暮らしたいと思うのなら…まずは先立つ物を稼ぎなさい」
+			PRINTW 「資金を上納して、組織の役に立つ事を示していれば、少なくとも奴隷や玩具の身に堕ちる事はないわ」
+			PRINTW 「Still, an amateur like you will likely have trouble getting enough funds
+			PRINTW  to contribute to the organisation.」
+			PRINTW 「期限は特に無いけれど、納金が滞るようであれば組織内での扱いは向上しないと思いなさい」
+	ENDSELECT
+	;EASY
+	;ELSEIF TALENT:MASTER:服従 == 1
+	;	PRINTFORMW 「これは貴方にとって最後のチャンス」
+	;	PRINTFORMW 「50日までに150万の資金を集められなかった場合…フフフ、貴方は元通りの性処理玩具に逆戻りよ」
+
+	PRINTFORMW ＞ Mayone Smirks
+
+	IF ABL:MASTER:料理技能 >= 9
+		PRINTW 「でも、わかるでしょう？」
+		PRINTW 「確かにあなたは真っ当な方法で、何も後ろ暗い事をせずに指令を達成する事ができるわ」
+		PRINTW 「行列の出来る人気店になろうと、フランチャイズ経営を始めようと大いに結構」
+		PRINTW 「でもそこはファントム・ソサエティの息がかかった場所で、あなたはその責任者になるのよ」
+		PRINTW 「あなたの腕前に期待する、全ての客に応対しなさい。それが料理の腕ではなかったとしても」
+		PRINTW 「今さら戦えとも手を汚せとも言わない。けれど今さら潔白になろうとするのも不毛ではなくて？」
+		PRINTW 「……以前の借りもありますもの、奴隷の一人くらいならロハで譲ってさしあげますわ」
+	ELSEIF TALENT:MASTER:服従 == 1
+		;現システムを反映　売春してもはした金にしかならない主人公（笑
+		PRINTW 「貴方みたいな使い古された汚らしい肉便器にお金を払ってくれる酔狂な人なんてそうはいないわ」
+		;PRINTW 「いてもフィネガンぐらいのものよ」
+		PRINTFORMW 「あるいは悪魔なら\@TALENT:MASTER:オトコ == 0 ? ガバガバ # ユルユル \@の貴方みたいなのでも使ってくれるのかしら？」
+		;PRINTW スサノオ「あぁん？　悪魔舐めてんのか！？」
+		;PRINTW ツクヨミ「ガバガバはいりませんね」
+		PRINTW 「フフ…眉一つ動かさないのね、可愛くないわ」
+		PRINTW 「さて…本題だけれど、貴方の身体を売っても大したお金にはならないのは解っているでしょう？」
+		PRINTW 「だから、特別に貴方には私の奴隷を貸してあげる…感謝なさい」
+	ELSE
+		PRINTW 「Using your position in the Society, there are many ways to earn money.」
+		;「ソサエティの立場を利用すれば資金を稼ぐ手段なんていくらでもある、そうですわね？」
+		PRINTW 「Are you aware of them?」
+		PRINTW 「There are request from 'sponsors', colloseum fights, bounty hunting,...」
+		;「"スポンサー"からの依頼、コロシアムのファイトマネー、ソサエティの賞金首……」
+		PRINTW 「And are other ways to earn decently too.」
+		;「まともに稼いでもいいですけれど」
+		PRINTW 「You can train humans or demons...then sell them, or make them work for you.」
+		;「オンナノコの悪魔や人間を貴方の奴隷に調教して……売り払うなり、春を売らせるなり」
+		PRINTW 「Well, I'd focus on training, but use what you like best.」
+		;「そうね、私ならオンナノコを使うのが一番好みかしら」
+		IF TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘
+			PRINTW 「Of course, you have the option to prostitute yourself. That could get rough, though」
+			IF MARK:MASTER:屈服刻印 == 2
+				PRINTW 「簡単よ。いつも貴方が同僚や接待相手にやっている事を、お客にしてあげればいいのですから」
+				PRINTW 「……考えただけで我慢が出来ない、なんて顔をしてるわね。フフフ」
+			ENDIF
+		ENDIF
+		PRINTW 「That reminds me, I haven't yet decided what to do with our newest catches.」
+		;「そうそう、先日私が捕まえたオンナノコの処遇が決まっていないの」
+		PRINTW 「If you want, I wouldn't mind giving you one of them.」
+		;「よければ貴方にお譲りしましょうか？」
+	ENDIF
+	;---- EDIT 006 ADD START -------------------------
+	CALL PRESENT_SLAVE,1
+	;---- EDIT 006 ADD END ---------------------------
+
+ELSEIF CFLAG:MASTER:73  == 7
+	IF RAND:2 == 0
+		PRINTFORMW ＞%CALLNAME:MASTER% was active as a devil hunter
+		;PRINTW ＞とある事件のおり、事務所とその周囲数百mが異界と化す事件に巻き込まれ
+		;PRINTW ＞事務所を含め全ての建造物が崩落・倒壊し、見事な廃墟を作り出す結果となり
+		PRINTW ＞But %CALLNAME:MASTER% was in terrible debt。
+		PRINTFORMW ＞That's why, %CALLNAME:MASTER% was approached as a devil hunter
+		PRINTW ＞As a substitute for paying the debt, %CALLNAME:MASTER% now worked for Phantom Society。
+		PRINTW 　…………
+		PRINTW 　……
+		PRINTW 　…
+		PRINTW 
+		PRINTFORMW ＞ファントムソサエティの雇われ構成員となった%CALLNAME:MASTER%にセーフハウスを兼ねた事務所が用意された
+		PRINTFORMW ＞今日から、ここが%CALLNAME:MASTER%の拠点となる
+		PRINTFORMW ＞ 雇われとは言え%CALLNAME:MASTER%の直属の上司となったマヨーネはこう言った。
+		PRINTL
+		PRINTW 「You are now a member of the Phantom Society.」
+		PRINTW 「Your first goal should be to earn us some money.」
+		PRINTW 「In our business, there are always expenses. Therefore, we must have a steady income of funds.」
+		PRINTW 「…それにファントムが代替したとは言え、何時までも借金を抱えたままと言うのは貴方としても情けないでしょう？」
+		PRINTW 「少なくとも悪魔狩人としての腕には自信がおありでしょう？なら、しっかりと稼いで組織に上納なさい」
+		IF ABL:MASTER:料理技能 >= 9
+			PRINTW 「By the way, I don't expect you will be able to make enough money just working an honest job」
+			PRINTW 「No, the Phantom Society would not mind you trying that route. Yes, we don't mind」
+			PRINTW 「Though that is no way to earn lots of money, nothing stops you from becoming a pastry chef」
+		ELSE
+			PRINTW 「とはいえ組織の運営に役立つだけの資金を集めるのは悪魔狩人でも苦労するでしょう」
+			PRINTW 「期限は特に無いけれど、納金が滞るようであればよいよ後が無いと思いなさい」
+		ENDIF
+	ELSE
+		;ライセンスフリー　作者：ひとしゅらちゃん挺身追跡隊
+		;更新：2014/05/11
+		PRINTFORMW ＞とある街の入り組んだ路地裏の一角に、%CALLNAME:MASTER%の事務所は存在している。
+		PRINTFORMW ＞新設のそれは前%CALLNAME:MASTER%が使っていた事務所と比べればはるかに良い物件だが
+		PRINTFORMW ＞勿論それは%CALLNAME:MASTER%の為に無料で用意された建物ではない。
+		PRINTW ＞悪魔は腐るほど出てきて事務所を荒してくれるのに
+		PRINTW ＞どこかの赤い誰かの様に仕事とお金だけは何時もない。
+		PRINTW ＞悪魔達の手によってボロボロにされた事務所を立て直す為にはもはや一人の力では無理だった。
+		PRINTFORMW ＞そういうこともあって、%CALLNAME:MASTER%は雇われる形でファントムソサエティに参入する事となった。
+		PRINTW 　…………
+		PRINTW 　………
+		PRINTW 　……
+		PRINTW 　…
+		PRINTW 
+		PRINTW 「ようこそファントムソサエティへ、デビルバスター」
+		PRINTW 
+		PRINTW 直属の上司、そして監視役であるマヨーネが新しい事務所を訪ねてきた。
+		PRINTW 
+		PRINTW 「これで貴方はファントムの犬よ」
+		PRINTW 「気に入らないかしら？　だったら最低限発言力だけでも身に着ける事ね」
+		PRINTW 「今の貴方はお金も発言力もないただの下っ端デビルバスターなのだから」
+		PRINTW 
+		PRINTFORMW ＞なるほど、と納得しながらピザを一切れ手に取り%CALLNAME:MASTER%は口へと運ぶ
+		PRINTW 
+		PRINTW 「少しでも評価が欲しいのであればお金を稼ぎなさい」
+		PRINTW 「ファントムソサエティでは実力が全てよ」
+		PRINTW 「お金も、居場所も、全て強くなって組織へ上納金という形で証明すればいいわ」
+		PRINTW 「働き次第では幹部への昇格だってあり得る」
+		PRINTW 「嫌いじゃないでしょ、そういう話は？」
+		PRINTW 
+		PRINTW ＞そこまではどうするか解らないが、実にシンプルな話だ
+		PRINTW ＞ファントムの為に働いて金を上納金と言う形で返す。
+		PRINTFORMW ＞Gunで撃つ事と剣で斬る事以外にあまり芸が広くない%CALLNAME:MASTER%にとっては解りやすい話だ。
+		PRINTW 
+		PRINTW 「まずは借金を返す事を考えて働きなさい」
+		PRINTW 「期限は特にはないけどあまりに滞るのであれば此方にも考えがあると思いなさい」
+		PRINTW 「……ところで貴方が食べているのは何かしら？」
+		PRINTW 
+		PRINTW ＞手の中にあるピザを見せながら
+		PRINTW ＞それは勿論借金して頼んだオリーブ抜きのピザだと答える。
+		PRINTW ＞それを聞いて呆れた様子を見せるマヨーネの姿を軽く笑い飛ばす。
+		PRINTW 
+		PRINTFORMW ＞つまるところ%CALLNAME:MASTER%がやる事は今までどおりと変わりはしない。
+		PRINTW ＞ソサエティから支給された文鎮代わりのＣＯＭＰを抜けば
+		PRINTW ＞とある件で譲り受ける事が出来たルーチェ＆オンブラと
+		PRINTW ＞"教団"からの横流しで手に入れたCaliburnぐらいしか財産になる物はない
+		PRINTW ＞つまりは立場が変わっただけでやる事自体は全く変わっていない
+		PRINTW ＞むしろ組織が仕事を斡旋してくれる分、前よりも稼ぎは良いぐらいかもしれない
+		PRINTW 
+		PRINTW 「ファントム・ソサエティに借金を背負って入って来たのに結構乗り気ね？」
+		PRINTW 「普通その稼業の人間とはいえ、悪魔と戦う事になればうんざりするものだけど」
+		PRINTW 
+		PRINTW ＞マヨーネが楽観的な態度を気にしたのかそんな事を聞いてくる。
+		PRINTW ＞故に悪魔すら"鳴か"すデビルバスターとしてはこう答えるしかない。
+		PRINTW 
+		PRINTW ＞悪魔とのパーティーをクレイジーに楽しめなきゃデビルバスターは名乗れない、と
+		PRINTW 
+	ENDIF
+
+	PRINTW 「そうそう、先日私が捕まえたオンナノコの処遇が決まっていないの」
+	PRINTW 「よければ貴方にお譲りしましょうか？」
+	CALL PRESENT_SLAVE,1
+ELSEIF CFLAG:MASTER:73  == 8
+	PRINTW ＞……事故のようなものだったのだ。　
+	PRINTW ＞さして興味もない音楽を聴きにライブハウスに行って、何かに巻き込まれるまでは悪魔の存在すら知らなかった。
+	PRINTW ＞そこで何が起こったのかは思い出せない。　ただ、そこで意識を失い気が付いた時には、自分は変容していた。
+	PRINTW ＞体の右半分はほとんど変化はない。　しかし左腕と左足は獣毛に覆われ、ナイフのように鋭い鉤爪さえ生えている。
+	PRINTW ＞そして何より、頭の中に何か凶暴な物がいる。　虎視眈々と己を狙っているのだ。
+	PRINTW ＞何が何だかわからないまま拘束され、そのまま軟禁されている。
+	PRINTW 　…………
+	PRINTW 　……
+	PRINTW 　…
+	PRINTW 
+	PRINTFORMW ＞%CALLNAME:MASTER%を軟禁している組織はファントムソサエティというらしい。
+	PRINTFORMW ＞そこの構成員であるダークサマナー、マヨーネは、%CALLNAME:MASTER%のことを悪魔人間と呼んだ。
+	PRINTW ＞悪魔と人間が合体し、人間の自我を残した稀有な存在であると。本来ならモルモット確定らしいのだが……
+	PRINTW ＞条件付きで自由を取り戻す手段があるのだという。
+	PRINTW ＞それが、悪魔人間としての力をファントムに提供する事。　そうする事で資金を稼ぎ、己を買い戻すことができる、と。
+	PRINTFORMW ＞そう語ったマヨーネの言葉をける選択は、%CALLNAME:MASTER%にはなかった。
+	PRINTL
+	PRINTW 「You are now a member of the Phanton Society.」
+	PRINTW 「Your first goal should be to earn us some money.」
+	PRINTW 「In our business, there are always expenses. Therefore, we must have a steady income of funds.」
+	PRINTW 「自覚はないかもしれないけれど、あなたには悪魔の力がある。しっかりと稼いで組織に上納なさい」
+	PRINTW 「納金が滞るようなら、いつでもモルモットへの転職は可能だから」
+	PRINTW 「そうそう、先日私が捕まえたオンナノコの処遇が決まっていないの」
+	PRINTW 「よければ貴方にお譲りしましょうか？」
+	CALL PRESENT_SLAVE,1
+ELSEIF CFLAG:MASTER:73  == 9
+	;どうやら能力１＆全相性500というネタモードの模様。割と書いてて胸が苦しくなるのはきっと気のせいだろう。
+	;とりあえず文章だけ書いて演出とかブン投げる。著作権なんぞ宣言せん。
+	PRINTW 　「たけしへ　ご飯作っておきました。お母さんパートに行ってきます。
+	PRINTW 　　ちゃんと食べてね。今晩はたけしの好きなカレーです。」
+	PRINTW 　…………
+	PRINTW 　……
+	PRINTW 　…
+	PRINTW 
+	PRINTW ｶｰﾁｬﾝの作り置きのご飯をたべ暗い自室に引きこもる。
+	PRINTW 最近太陽の日差しすら痛い。
+	PRINTW 
+	PRINTW 
+	PRINTW カチカチ・・・
+	PRINTW 
+	PRINTW ネットの掲示板にとある怪しいリンクを発見した
+	PRINTW 
+	PRINTW eramegaten…？どこで区切るのだろう。
+	PRINTW 『悪魔を召還して君もヒーローだ！』
+	PRINTW 『ギリギリの生活を楽しみたいあなたに仲魔とのハーレムのような性生活』
+	PRINTW 『あのヒロインともあんなこともこんなことも』
+	PRINTW 
+	PRINTW そんな怪しげな記述がならぶ。
+	PRINTW 新しいゲームだろうか。最近は遊ぶのすら億劫になってきた。
+	PRINTW このようなジョークじみたものも夢中で集め盛り上がった頃があった。
+	PRINTW ダウンロード数が目に映る。
+	PRINTW 
+	PRINTW ゼロ。
+	PRINTW 
+	PRINTW ………
+	PRINTW 
+	PRINTW 今時こんなものを好き好んで入れるものなんて早々いないにしても
+	PRINTW 誰も落としていないとは。このまま誰の目にも付かずに埋もれるのだろう。
+	PRINTW 
+	PRINTW こんな風になってしまった自分のように？
+	PRINTW 
+	PRINTW eramegaten.7z
+	PRINTW 
+	PRINTW 随分珍しい拡張子じゃないか。少しだけ気に入った。
+	PRINTW 
+	PRINTW 　　解凍　　　　　　[ 0％]
+	PRINTW 　　解凍･･　　　　　[20％]
+	PRINTW 　　解凍････　　　　[40％]
+	PRINTW 　　解凍･･････　　　[60％]
+	PRINTW 　　解凍････････　　[60％]
+	PRINTW 　　解凍･･････････　[80％]
+	PRINTW 　　解凍････････････[完了]
+	PRINTW 
+	PRINTW カチカチッ　慣れきった動作で起動する。
+	PRINTW 
+	PRINTW 「あなたが《愚者》ね」
+	PRINTW 妖しい魅力をたたえた女性が微笑む
+	PRINTW 「私はファントム・ソサエティのマヨーネ。あなたの上司」
+	PRINTW 成程。そういう趣向か。凝ったゲームじゃないか。
+	PRINTW 突如画面の中の女性の姿が掻き消える。
+	PRINTW 背中から突如出てきた腕２つが自分の胸の前で交差され同時に頭に柔らかなもの２つが押し付けられる。
+	PRINTW 「選びなさい。今ここで死ぬのか、組織に忠誠を誓うか」
+	PRINTW 　…………
+	PRINTW 　……
+	PRINTW 　…
+	PRINTW 
+	PRINTW 『ツー…ツー…』
+	PRINTW 『ええ、上手く行ったわ。一人息子を地獄の底に放り込むなんて随分な「おかあさん」ね？』
+	PRINTW 『あんなゴミに一体何ができるのかしら、即死するだけじゃなくて？』
+	PRINTW 『"信じている"？ 何を？』
+	PRINTW 『………そう、後悔はしないのね？』
+	PRINTW 　…………
+	PRINTW 　……
+	PRINTW 　…
+	PRINTW 
+	PRINTW 
+	PRINTW Ｊ( 'ー`)し < たけしへ、つらいもしれませんが
+	PRINTW 　　　　　　　頑張って下さい、全裸で
+ELSE
+	PRINTW ＞ 実の所、君を軟禁しているマフィアらしき組織の名を知ったのは今日が初めてだ。
+	PRINTW ＞ ファントム・ソサエティ。彼らは君に２つの選択肢を提示した。
+	PRINTW ＞ 下された指令を果たして正式な構成員になり、組織の支援下で収入を得て生活していくか。
+	PRINTW ＞ ……あるいは。
+	PRINTW ＞ 無論、今だけ従ったフリをして逃亡する道もある。だが君にそれが可能かは怪しいものだ。
+	PRINTW ＞ 何故って、君の監視役に宛がわれた相手はどこから見ても化け物かエイリアンにしか見えないのだから。
+	PRINTW 「150万。それがあなたの保釈金ですわ」
+	PRINTW ＞ ソサエティとやらの一員であるらしい、マヨ‐ネという豪奢な女性からの指令はごく簡潔だった。
+	PRINTW ＞ ￥の価値がかつての100倍以上に膨れ上がった昨今、その額は人一人の身代金としても法外だ。
+	;こうでも解釈しないと……150万て。
+	PRINTW 「もちろん端金ですけど、今までの財産から支払う事も、あなたの知己に借金する事も許さない」
+	PRINTW 「家族やお友達は……そうね、彼らが不幸になったら連絡してあげるわ。すぐにわかるから」
+	PRINTW 「無事に稼ぎ終えたら後はご自由に。この国ではシノギというのかしら、それも全部あなたのものよ」
+	PRINTW 「働く意志と能力があるなら好待遇が約束されておりますわ。そうそう、会員割引も付きますわね」
+	PRINTW ＞ つまり、密売Gun器や違法薬物を所持して後ろ暗い立場になれ、という事らしい。
+	PRINTW 「誠実に実績を積み重ねていれば、また会う事もあるでしょう。でなければ最期の自由をせいぜい満喫しなさい」
+	PRINTW ＞ それだけ言うと、マヨーネはきびすを返し、監視役だった化け物を引き連れて部屋を出て行く。
+	PRINTW 「ああ、最後に」
+	PRINTW ＞ 傘の一振りで化け物を魔法のように消失させ、ドアの前で振り返ってマヨーネは言った。
+	PRINTW 「あなたが新米サマナーの遺体から剥いで隠し持っていたＣＯＭＰと悪魔、そのままあなたが引き継いで結構」
+	PRINTW 「ただの人間が扱うには過ぎた利器ですから、悪魔に魂を乗っ取られないようせいぜい気を付けなさい」
+	PRINTW ＞ マヨーネは去っていった
+ENDIF
+
+PRINTL
+PRINTL ＞Although there is no real deadline to pay the funds,
+;資金を納めるのに期限は無いが、何かしら組織の役に立つ事をしなければ地位は向上しないだろう
+PRINTL ＞your position within the organisation won't improve unless you contribute.
+PRINTW ＞ First, you should aim for a payment of ￥10,000.
+;まずは￥1万を支払うことを目標とした
+PRINTL
+
+;便器あなたかつ初回時のみチェフェイ加入選択
+IF FLAG:主人出自 == 2 && FLAG:周回回数 == 0
+	PRINTL
+	PRINTW At the edge of your vision, in the boundary between consciousness and unconsciousness, something was there. You───
+	PRINTL [0]found nothing wrong
+	PRINTL [1]thought something was off
+	CALL INPUTINT,0,1
+	IF RESULT == 1
+		PRINTL 『ドカン』と派手にコミカルな音を立て、視界が煙に覆われた
+		PRINTW 　…………
+		PRINTW 　……
+		PRINTW 　…
+		PRINTW 
+		PRINTW 煙が晴れ、目に映ったのは犬上家然と『地面から生えた足』
+		PRINTW しばし呆然と見守っていると、「どっこいしょ」と埋まった穴から抜け出してきたのは狐耳の少女だった
+		PRINTW 「わらわはチェフェイ。欲望の捌け口が己の欲望を叶える側になるとは奇縁だね」
+		PRINTW 少女はコホン、と誤魔化すよう咳払いとともにこちらに見向き姿勢を正す
+		PRINTW 「Ufufu、お前みたいな珍妙な運命に欲望を揺がす存在は好物だよ」
+		PRINTW 「わらわの力、その欲望のために貸してやらう」
+		PRINTW ＞『狐に化かされる』これは…新しいプレイ？
+		PRINTW 　
+		PRINTW 　
+		PRINTW ＞……最後に舌を噛んだのは見なかったことにしておこう
+		CALL ADD_NEW_COMPANION,810,200,1
+		BASE:(CHARANUM-1):LV = 5
+		BASE:(CHARANUM-1):力 = 1
+		BASE:(CHARANUM-1):知恵 = 3
+		BASE:(CHARANUM-1):魔力 = 4
+		BASE:(CHARANUM-1):耐力 = 4
+		BASE:(CHARANUM-1):速さ = 6
+		BASE:(CHARANUM-1):運 = 7
+		BASE:(CHARANUM-1):ＥＸＰ = 200
+		ABL:(CHARANUM-1):スキル4 = 1001
+		ABL:(CHARANUM-1):スキル5 = 401
+		CALL SYNC_STATUS,(GETCHARA(810))
+		CALL HEALTH_CHARA,(GETCHARA(810))
+		FLAG:10810 = 1
+	ELSE
+		PRINTL そう、特になにもなかった
+		PRINTW 　…………
+		PRINTW 　……
+		PRINTW 　…
+		IF TALENT:MASTER:サマナー || TALENT:MASTER:ペルソナ使い || TALENT:MASTER:異能者 || TALENT:MASTER:喰奴 || TALENT:MASTER:達人
+			PRINTW ＞The demon you where given introduced herself.
+			PRINTW 「I'm Fairy Pixie! I'm looking forward to working with you♪」
+		ELSE
+			PRINTW ＞ The demon who was hinding all this time spoke to you.
+			PRINTW 「I was saved. I'm Fairy Pixie! Nice to meet you♪」
+		ENDIF
+		PRINTW 「Getting all this money might be tough.」
+		PRINTW 「But don't worry, I'll help you.」
+		PRINTW 「Let's do our best together!」
+		PRINTW ＞Your small companion gave you an enouraging smile.
+	ENDIF
+;狐面なし
+ELSEIF ITEM:5051 == 0
+	IF TALENT:MASTER:サマナー || TALENT:MASTER:ペルソナ使い || TALENT:MASTER:異能者 || TALENT:MASTER:喰奴 || TALENT:MASTER:達人
+		PRINTW ＞The demon you where given introduced herself.
+		;＞支給された悪魔が話しかけてきた
+		PRINTW 「I'm Fairy Pixie! I'm looking forward to working with you♪」
+		;「私、Fairy ピクシー！ これからよろしくね♪」
+	ELSE
+		PRINTW ＞ The demon who was hinding all this time spoke to you.
+		;＞ 今までずっと隠れていた悪魔が話しかけてきた
+		PRINTW 「I was saved. I'm Fairy Pixie! Nice to meet you♪」
+		;「助かったー。じゃ、改めまして、私は妖精 ピクシー！ これからもよろしくね♪」
+	ENDIF
+	PRINTW 「Getting all this money might be tough.」
+	;「お金を一杯ためなきゃなんて、大変かもしれないけど」
+	PRINTW 「But don't worry, I'll help you.」
+	;「おねーさんが手伝ってあげるから、きっと大丈夫だよ」
+	PRINTW 「Let's do our best together!」
+	;「一緒にがんばろうね！」
+	PRINTW ＞Your small companion gave you an enouraging smile.
+	;小さな仲魔はにっこりと微笑んだ
+
+;狐面あり
+ELSE
+	PRINTL
+	PRINTW Suddenly, you felt you were being watched from the corner of the room
+	PRINTL When you looked……You saw a faded image of a fox on the wall
+	PRINTL [0]………Smells like a beast？
+	PRINTL [1]Somewhat immature
+	PRINTL [2]Just your imagination
+	CALL INPUTINT,0,1,2
+	IF RESULT < 2
+		PRINTW 「I am Chefei. Arara, another human full of greed」
+		PRINTW 「Ufufu, that's good! That's good! I love humans that are honest like me」
+		PRINTW 「Using my power, I realized lots of desires！」
+		PRINTW ＞With a pleasant smile and a small kimono,
+		PRINTW ＞Something was talking…light dizziness…ringing in your ears…feeling light……
+		PRINTW 
+		PRINTW ＞It was not bad to be bewitched by a fox………………you felt
+		PRINTL 
+		PRINTW ＞The fox face disappeared
+		CALL ADD_NEW_COMPANION,810,200,1
+		BASE:(CHARANUM-1):LV = 5
+		BASE:(CHARANUM-1):力 = 1
+		BASE:(CHARANUM-1):知恵 = 3
+		BASE:(CHARANUM-1):魔力 = 4
+		BASE:(CHARANUM-1):耐力 = 4
+		BASE:(CHARANUM-1):速さ = 6
+		BASE:(CHARANUM-1):運 = 7
+		BASE:(CHARANUM-1):ＥＸＰ = 200
+		ABL:(CHARANUM-1):スキル4 = 1001
+		ABL:(CHARANUM-1):スキル5 = 401
+		CALL SYNC_STATUS,(GETCHARA(810))
+		CALL HEALTH_CHARA,(GETCHARA(810))
+		FLAG:10810 = 1
+		ITEM:5051 = 0
+	ELSE
+		IF TALENT:MASTER:サマナー || TALENT:MASTER:ペルソナ使い || TALENT:MASTER:異能者 || TALENT:MASTER:喰奴 || TALENT:MASTER:達人
+			PRINTW ＞The demon you where given introduced herself.
+			PRINTW 「I'm Fairy Pixie! I'm looking forward to working with you♪」
+		ELSE
+			PRINTW ＞ The demon who was hinding all this time spoke to you.
+			PRINTW 「I was saved. I'm Fairy Pixie! Nice to meet you♪」
+		ENDIF
+		PRINTW 「Getting all this money might be tough.」
+		PRINTW 「But don't worry, I'll help you.」
+		PRINTW 「Let's do our best together!」
+		PRINTW ＞Your small companion gave you an encouraging smile.
+	ENDIF
+ENDIF
+PRINTL
+
+; 幹部エンド迎えてるなら幹部候補あつかいOP
+IF GETBIT(FLAG:発見ED,0)
+	PRINTL ＞そう言えば去り際にマヨーネが怪しげな紙の束を一つ、
+	PRINTW ＞手元へと残していったことを思い出す
+	PRINTW 『幹部と幹部候補に対する給金および福利厚生についてのお知らせ』
+	PRINTW 『振り込み先指定について』
+	PRINTW 『諸手続き書類の提出先と期限について』
+	PRINTW 『施設利用時の注意』
+	PRINTW 『カスタムCOMP注文のオススメ』
+	SELECTCASE RAND:3
+		CASE 0
+			PRINTW 『今年のCOMPは傘型が熱い！！』(何故かこれだけ手書きで可愛いイラスト付きだ)
+		CASE 1
+			PRINTW 『ナウなヤングは傘型COMPがクール！！』(何故かこれだけ手書きでファンシーなイラスト付きだ)
+		CASE 2
+			PRINTW 『イケてるあなたのCOMPは傘型で決まり！！』(何故かこれだけ手書きで少女漫画風なイラスト付きだ)
+	ENDSELECT
+	PRINTW ………
+	PRINTW ……
+	PRINTW …
+	PRINTL ＞ファントム・ソサエティ、所謂悪の組織の割に随分と真っ当な会社運営のようだ
+	PRINTL ＞正直なぜ自分が幹部候補であるか──あるいはただの手違いか──は不明だが
+	PRINTW ＞貰えるものは貰っておいて問題はないだろう
+	PRINTW ………
+	PRINTW ……
+	PRINTW …
+ENDIF
+
+
+@OPENING_MESSAGE_1
+IF TALENT:MASTER:サマナー || TALENT:MASTER:ペルソナ使い || TALENT:MASTER:異能者 || TALENT:MASTER:喰奴 || TALENT:MASTER:達人 || TALENT:MASTER:デビルシフター
+	;---- EDIT 006 ADD START -------------------------
+	CALL PRESENT_SLAVE,0
+	;---- EDIT 006 ADD END ---------------------------
+ENDIF

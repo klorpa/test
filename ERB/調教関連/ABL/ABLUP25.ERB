@@ -1,0 +1,160 @@
+;キス中毒の可否
+@ISABLUP25
+;陥落していない場合は５まで
+IF ABL:キス中毒 >= 10
+	RETURN 0
+ELSEIF ABL:キス中毒 >= 5 && !陥落(TARGET) && TARGET != MASTER
+	RETURN 0
+ENDIF
+
+CALL DECIDE_ABLUP25
+
+IF Z == 0
+	RETURN 0
+ELSE
+	RETURN 1
+ENDIF
+
+
+;KissAddict
+@ABLUP25
+$ABLUP_LOOP
+
+DRAWLINE
+;陥落していない場合は５まで
+IF ABL:キス中毒 >= 10
+	PRINTW The abiltiy has been MAXed already.
+	RETURN 0
+ELSEIF ABL:キス中毒 >= 5 && !陥落(TARGET) && TARGET != MASTER
+	PRINTW The abiltiy has been MAXed already.
+	RETURN 0
+ENDIF
+
+CALL DECIDE_ABLUP25
+
+
+
+PRINT [0] - 
+PRINT SUBMIT Orbs×
+PRINTV A
+PRINT , 
+PRINTFORM KissEXP
+PRINTV B
+PRINT  required
+PRINT ....
+
+IF I == 0
+	PRINT ＯＫ
+ELSE
+	SIF I & 1
+		PRINT Not Enough Orbs 
+	SIF I & 2
+		PRINT Not Enough EXP 
+ENDIF
+PRINTL 
+
+
+
+IF Z == 0
+	WAIT
+	RETURN
+ENDIF
+
+PRINTLC [100] - Quit
+PRINTFORMLC   %" " * 42%
+PRINTLC [200] - Auto-upgrade ability
+
+
+INPUT
+IF (RESULT < 0 || RESULT > 1) && RESULT != 100 && RESULT != 200
+	RESTART
+ELSEIF I != 0 && RESULT == 0
+	PRINTL Conditions are not met
+	RETURN 0
+ELSEIF J != 0 && RESULT == 1
+	PRINTL Conditions are not met
+	RETURN 0
+ELSEIF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 200
+	CALL AUTOMAX, 25
+	RETURN 0
+ENDIF
+
+ABL:キス中毒 += 1
+
+IF RESULT == 0 || RESULT == 1
+	JUEL:恭順 -= A
+ENDIF
+
+PRINT The level kiss addiction is now 
+;キス中毒のレベルが
+PRINTFORM {ABL:キス中毒}
+PRINTW .
+GOTO ABLUP_LOOP
+
+
+;自慰中毒LVUP判定
+@DECIDE_ABLUP25
+;条件別にＯＫかダメかを記録する
+I = 0
+J = 0
+;能力アップ可能なら1にする
+Z = 0
+
+IF ABL:キス中毒 == 0
+	A = 3000
+	B = 20
+ELSEIF ABL:キス中毒 == 1
+	A = 6000
+	B = 40
+ELSEIF ABL:キス中毒 == 2
+	A = 12000
+	B = 60
+ELSEIF ABL:キス中毒 == 3
+	A = 20000
+	B = 80
+ELSEIF ABL:キス中毒 == 4
+	A = 40000
+	B = 100
+ELSEIF ABL:キス中毒 == 5
+	A = 45000
+	B = 140
+ELSEIF ABL:キス中毒 == 6
+	A = 50000
+	B = 180
+ELSEIF ABL:キス中毒 == 7
+	A = 55000
+	B = 220
+ELSEIF ABL:キス中毒 == 8
+	A = 60000
+	B = 260
+ELSEIF ABL:キス中毒 == 9
+	A = 70000
+	B = 300
+ENDIF
+
+;中毒しやすい
+IF TALENT:72
+	TIMES A , 0.50
+ENDIF
+
+
+
+
+;恭順の珠で上げる
+IF JUEL:恭順 < A
+	I |= 1
+ENDIF
+
+;KissEXPが必要
+SIF EXP:キス経験 < B
+	I |= 2
+
+IF I == 0
+	Z = 1
+ENDIF
+
+
+RETURN 1
+

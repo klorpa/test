@@ -1,0 +1,198 @@
+;-------------------------------------------------
+;拡張バルーン
+;ハードな調教コマンド、レベル4
+;-------------------------------------------------
+@COMNAME148
+RESULTS = Expanding Balloon
+SIF TEQUIP:22
+	RESULTS = Defenselate Balloon
+@ACT_COM148
+PRINTL Balloon dilator
+TSTR:0 = 拡張バルーン
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:22 == 0
+	TEQUIP:22 = 1
+ELSE
+	TEQUIP:22 = 0
+ENDIF
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 150
+DOWNBASE:TARGET:気力 += 200
+
+SOURCE:TARGET:道具快Ａ = 200
+SOURCE:TARGET:痛み = 800
+SOURCE:TARGET:露出 = 300
+SOURCE:TARGET:屈従 = 400
+SOURCE:TARGET:逸脱 = 700
+SOURCE:TARGET:反感 = 700
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 700
+
+;Aへの苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+IF EXP:1 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 3.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF EXP:1 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 0.80
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF EXP:1 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 0.60
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:1 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.40
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 1.00
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 0.60
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.30
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+CALL ADDS_EXP("Ａ経験", 25, TARGET)
+;PRINTL ＡEXP＋５
+
+;IF EXP:52 == 0 && EXP:53 == 0 
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+;	CALL ADDS_ABNORMAL_EXP("Expansion first experience", TARGET)
+;ENDIF
+
+CALL ADDS_EXP("Ａ拡張経験", 1, TARGET)
+;PRINTL ＡExpandEXP＋1
+
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	PRINTFORML %EXPNAME_E(40)%+{A}
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	PRINTFORML %EXPNAME_E(41)%+{A}
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM148
+;拡張バルーン
+
+PRINTL ＜拡張バルーン挿入中＞
+
+DOWNBASE:TARGET:体力 += 75
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:道具快Ａ += 100
+SOURCE:TARGET:露出 += 150
+SOURCE:TARGET:屈従 += 200
+SOURCE:TARGET:逸脱 += 350
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 350
+
+;Aへの苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+A = 400
+B = 350
+IF EXP:1 < EXPLV:1
+	TIMES A , 3.00
+	TIMES B , 3.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES A , 1.20
+	TIMES B , 2.00
+ELSEIF EXP:1 < EXPLV:3
+	TIMES A , 0.80
+	TIMES B , 1.50
+ELSEIF EXP:1 < EXPLV:4
+	TIMES A , 0.60
+	TIMES B , 1.20
+ELSEIF EXP:1 < EXPLV:5
+	TIMES A , 0.40
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES A , 0.20
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES A , 1.20
+	TIMES B , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES A , 1.00
+	TIMES B , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES A , 0.60
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES A , 0.30
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES A , 0.20
+ENDIF
+SOURCE:TARGET:痛み += A
+SOURCE:TARGET:反感 += B
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+CALL ADDS_EXP("Ａ経験", 3, TARGET)
+;PRINTL ＡEXP＋３
+
+CALL ADDS_EXP("Ａ拡張経験", 1, TARGET)
+;PRINTL ＡExpandEXP＋1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_148
+RETURN COMTYPE("ハード系")
+
+
+
+

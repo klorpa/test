@@ -1,0 +1,427 @@
+;コードブレーカー
+;作成日時　2011/05/19
+;2011/05/20　気持ち軽量化　コメントを追加
+;2011/05/30　景品を設定
+;2011/06/02　表示周りを変更　引数のチェックがおかしかったのを修正
+
+;ARG
+;1:ムー大陸　2:ビエンの街　3:新宿
+@NANDI, ARG
+PRINTL ナンディさん：
+PRINTL 「ナマステ！　ワタシ、インドから来たナンディさんネ。
+PRINTW 　また会えた人　おひさネ　うれしネー」
+PRINTL 「コードブレーカー　ネ　やってネ。
+PRINTW 　アナタ数当てるだけ　こんどヒントついた　簡単ネ」
+PRINTL 「1回1　メタルカードネ　アナタどうするネ？」
+$INPUT_START
+
+;難易度設定
+SELECTCASE ARG
+	CASE 1
+		;桁数
+		LOCAL = 3
+		;各桁の最大値
+		LOCAL:1 = 6
+		;回答許容回数
+		LOCAL:2 = 8
+		;賞品文字列
+		LOCALS = Kappa Cloak,ChakraDrop,RiotBomb,NitrogenCylinder,NapalmBomb,Dis-Stone,Dis-Paralyze,Dis-Poison
+	CASE 2
+		;桁数
+		LOCAL = 5
+		;各桁の最大値
+		LOCAL:1 = 8
+		;回答許容回数
+		LOCAL:2 = 8
+		;賞品文字列
+		LOCALS = Fallen Angel Wings,Phantom Cloak,Kappa Cloak,ChakraDrop,RiotBomb,NitrogenCylinder,NapalmBomb,Medicine
+	CASEELSE
+		;桁数
+		LOCAL = 4
+		;各桁の最大値
+		LOCAL:1 = 8
+		;回答許容回数
+		LOCAL:2 = 8
+		;賞品文字列
+		LOCALS = ChakraPot,Baal Cloak,Butterfly Cloak,ChakraDrop,RiotBomb,NitrogenCylinder,NapalmBomb,Medicine
+ENDSELECT
+CALL INPUT_SELECT(1, "ゲームスタート", 2, "アドバイスを聞く", 9, "外に出る")
+
+IF RESULT == 2
+	PRINTL ナンディさん：
+	PRINTFORMW 「ナンディさん　1から{LOCAL:1}まで　{LOCAL}桁の数　ＡＮＳＷＥＲに入れるネ」
+	PRINTL 「▲ ▼ボタンで数を変えて　決定ボタンで決定ネ。　JUDGEに H B 出るね。
+	PRINTL 　Hはヒット　数も位置も当たりネ。　Bはブロー　数だけ当たり位置ちがうネ。
+	PRINTW 　全部Hで　大当たりネ」
+	PRINTL 　｢HINTは　その数あるかないか出すよ。　マルマルはその数そこに入ってる。
+	PRINTL 　マルは　その数どっかにあるよー。　×はその数ないあるよ。
+	PRINTW 　HINTうまく使って当ててネ」
+	PRINTW 「早く当てる　いいモノもらえる　がんばってネ」
+	PRINTL ナンディさん：
+	PRINTL 「アナタどうするネ？」
+	GOTO INPUT_START
+ELSEIF RESULT == 9
+	PRINTL ナンディさん：
+	PRINTL 「インドのナンディさん　いつでも待ってるヨ。　また来てネ　ナマステ」
+	RETURN 0
+ELSEIF RESULT == 1
+	IF ITEM:メタルカード < 1
+		PRINTL ナンディさん：
+		PRINTL 「メタルカード持ってない。
+		PRINTL 　コードブレーカーできない。
+		PRINTW 　また来てネ　メタルカード持ってネ　ナマステ」
+		RETURN 0
+	ENDIF
+	ITEM:メタルカード--
+	CALL CODE_BREAKER, LOCAL, LOCAL:1, LOCAL:2, LOCALS
+	LOCAL = RESULT
+	PRINTL
+	PRINTL ナンディさん：
+	IF LOCAL < 0
+		PRINTL 「残念ネ。　もう一度やるか？」
+	ELSE
+		;賞品獲得
+		SPLIT LOCALS, ",", LOCALS
+		CALL GET_ITEMS(LOCALS:(LOCAL-1), 1)
+		PRINT 「おめでとうサンネ。　賞品は
+		PRINTFORM %LOCALS:(LOCAL-1)%
+		PRINTL ネ　よかったネ！
+		PRINTL 　もう一度やるか？」
+	ENDIF
+ENDIF
+
+GOTO INPUT_START
+
+;引数
+;ARG:0 桁数(3～5)
+;ARG:1 数字の上限(桁数～9)
+;ARG:2 回答可能な回数(1～9)
+;ARGS:0 賞品名(カンマ区切り)
+;戻り値 正解した場合掛かった手数　正解出来なかった場合-1
+@CODE_BREAKER, ARG:0 = 4, ARG:1 = 6, ARG:2 = 8, ARGS:0 = "賞品１,賞品２,賞品３,賞品４,賞品５,賞品６,賞品７,賞品８,賞品９,"
+#LOCALSIZE 300
+REDRAW 0
+SIF ARG:0 < 3
+	ARG:0 = 3
+SIF ARG:0 > 5
+	ARG:0 = 5
+SIF ARG:1 > 9
+	ARG:1 = 9
+SIF ARG:1 < ARG:0
+	ARG:1 = ARG:0
+SIF ARG:2 > 9
+	ARG:2 = 9
+SIF ARG:2 < 1
+	ARG:2 = 1
+VARSET LOCAL, 0
+
+;表示用 LOCALS:0～9 全角０～９
+;LOCALS:11～19 賞品名1～9
+SPLIT "０,１,２,３,４,５,６,７,８,９,　," + ARGS:0, ",", LOCALS
+
+;現在の入力手数
+LOCAL:10 = 0
+
+;正解設定
+;LOCAL:11 正解1桁目
+;LOCAL:12 正解2桁目
+;LOCAL:13 正解3桁目
+;LOCAL:14 正解4桁目
+;LOCAL:15 正解5桁目
+FOR LOCAL, 11, ARG:0 + 11
+	LOCAL:1 = RAND:(ARG:1) + 1
+	FOR LOCAL:2, LOCAL - 1, 10, -1
+		IF LOCAL:(LOCAL:2) == LOCAL:1
+			LOCAL:1++
+			SIF LOCAL:1 > ARG:1
+				LOCAL:1 = 1
+			LOCAL:2 = LOCAL
+			CONTINUE
+		ENDIF
+	NEXT
+	LOCAL:(LOCAL) = LOCAL:1
+NEXT
+
+;PRINTFORM 正解は
+;FOR LOCAL, 11, ARG:0 + 11
+;	PRINTFORM {LOCAL:(LOCAL)}
+;NEXT
+;PRINTFORMW です
+
+;入力処理
+;LOCAL:21 入力中1桁目
+;LOCAL:22 入力中2桁目
+;LOCAL:23 入力中3桁目
+;LOCAL:24 入力中4桁目
+;LOCAL:25 入力中5桁目
+VARSET LOCAL, 1, 21, 21 + ARG:0
+
+$INPUT_LOOP
+
+;入力済みデータやヒント等の表示
+PRINTL
+PRINTL  　　　　　　　【ＣＯＤＥ　ＢＲＥＡＫＥＲ】
+
+IF LOCAL:(90 + LOCAL:10) == ARG:0 || LOCAL:10 == ARG:2
+	LOCALS:21 =  
+	LOCAL = (18 - ARG:0 * 3) / 2
+	REPEAT LOCAL
+		LOCALS:21 += " "
+	REND
+	REPEAT ARG:0
+		LOCALS:21 += " " + LOCALS:(LOCAL:(COUNT + 11))
+	REND
+	LOCAL = 18 - ARG:0 * 3 - LOCAL
+	REPEAT LOCAL
+		LOCALS:21 += " "
+	REND
+	LOCAL:1 = 1
+ELSE
+	LOCAL:1 = 0
+	LOCALS:21 = 　　　　　　　　　
+ENDIF
+
+LOCAL = (26 - STRLENS(LOCALS:(11 + LOCAL:10 - LOCAL:1))) / 2
+PRINTFORML 　┏━ANSWER(1～{ARG:1})━━┓　┏━━━━ＰＲＩＺＥ━━━━┓
+PRINTFORML 　┃%LOCALS:21%┃　┃%LOCALS:10,LOCAL%%LOCALS:(11+LOCAL:10-LOCAL:1)%%LOCALS:10,26-LOCAL-STRLENS(LOCALS:(11+LOCAL:10-LOCAL:1))%┃
+PRINTFORML 　┗━━━━━━━━━┛　┗━━━━━━━━━━━━━┛
+PRINTL  　　　　　　　　　　　JUDGE　　 │ HINT
+
+REPEAT MAX(ARG:2, ARG:1)
+	IF COUNT <= ARG:2
+		;入力済みデータの表示
+		PRINTFORM %LOCALS:(COUNT + 1)%回目 
+		FOR LOCAL, 0, 5
+			IF LOCAL:(COUNT * 10 + LOCAL + 111) == 0
+				PRINT － 
+			ELSE
+				PRINTFORM %LOCALS:(LOCAL:(COUNT * 10 + LOCAL + 111))% 
+			ENDIF
+		NEXT
+
+		PRINT  
+
+		LOCAL:1 = LOCAL:(91 + COUNT)
+		LOCAL:2 = LOCAL:(101 + COUNT)
+		SETCOLOR 0x20e0e0
+		FOR LOCAL, 0, 5
+			IF LOCAL:1 == 0 && LOCAL:2 == 0
+				PRINT   
+			ELSEIF LOCAL:1 > 0
+				PRINT H 
+				LOCAL:1--
+			ELSE
+				PRINT B 
+				LOCAL:2--
+			ENDIF
+		NEXT
+		RESETCOLOR
+	ELSE
+		PRINT  　　　　　　　　　　　　　　　　
+	ENDIF
+
+	IF COUNT < ARG:1
+		;ヒントの表示
+		PRINTFORM │ %LOCALS:(COUNT + 1)%：
+		LOCAL:1 = 0
+		FOR LOCAL, 0, ARG:0
+			;解答としてありえるケースのうち、各桁にその数字が存在するケースの合計件数
+			LOCAL:1 += LOCAL:(COUNT * 10 + LOCAL + 201)
+		NEXT
+		FOR LOCAL, 0, ARG:0
+			IF LOCAL:200 == 0
+				;1手目が未入力の状態
+				PRINT －
+			ELSEIF LOCAL:(COUNT * 10 + LOCAL + 201) == 0
+				;全ケース中、その数字がその桁にある可能性は0件
+				SETCOLOR 0x60e0e0
+				PRINT ×
+				RESETCOLOR
+			ELSEIF LOCAL:1 == LOCAL:200
+				IF LOCAL:200 == LOCAL:(COUNT * 10 + LOCAL + 201)
+					;全ケース中、その数字がその桁にあるケース以外存在しない
+					SETCOLOR 0xe040a0
+					PRINT ◎
+					RESETCOLOR
+				ELSE
+					;全ケース中、その数字がいずれかの桁にあるケース以外存在しない
+					SETCOLOR 0xe0e044
+					PRINT ○
+					RESETCOLOR
+				ENDIF
+			ELSE
+				PRINT －
+			ENDIF
+			PRINT  
+		NEXT
+		PRINTL 
+	ELSE
+		PRINTL │
+	ENDIF
+REND
+
+IF LOCAL:(90 + LOCAL:10) == ARG:0
+;正解が出たので、手数を返す
+	REDRAW 1
+	RETURN LOCAL:10
+ELSEIF LOCAL:10 == ARG:2
+;回数が制限を越えたので終了
+	REDRAW 1
+	RETURN -1
+ENDIF
+
+;入力用ボタン作成
+PRINT 　
+REPEAT ARG:0
+	PRINTBUTTON "▲ ", COUNT
+REND
+PRINTL 
+
+PRINT 　
+REPEAT ARG:0
+	PRINTFORM %LOCALS:(LOCAL:(COUNT + 21))% 
+REND
+PRINTL 
+
+PRINT 　
+REPEAT ARG:0
+	PRINTBUTTON "▼ ", COUNT + 10
+REND
+
+PRINTBUTTON "　　　　[決定] ", 100
+
+INPUT
+IF RESULT >= 0
+	IF RESULT < 10
+		LOCAL:(RESULT + 21)++
+		SIF LOCAL:(RESULT + 21) > ARG:1
+			LOCAL:(RESULT + 21) = 1
+	ELSEIF RESULT < 20
+		LOCAL:(RESULT + 11)--
+		SIF LOCAL:(RESULT + 11) < 1
+			LOCAL:(RESULT + 11) = ARG:1
+	ENDIF
+ENDIF
+
+IF RESULT != 100
+	CLEARLINE 10 + MAX(ARG:1, ARG:2)
+	GOTO INPUT_LOOP
+ENDIF
+
+;LOCAL:1 = ヒット数
+;LOCAL:2 = ブロー数
+LOCAL:1 = 0
+LOCAL:2 = 0
+REPEAT ARG:0
+	FOR LOCAL, 0, ARG:0
+		IF LOCAL:(COUNT + 21) == LOCAL:(LOCAL + 11)
+			IF COUNT == LOCAL
+				LOCAL:1++
+			ELSE
+				LOCAL:2++
+			ENDIF
+		ENDIF
+	NEXT
+REND
+
+;LOCAL:91～99   Ｈ保存用1～9回目
+;LOCAL:101～109 Ｂ保存用1～9回目
+;LOCAL:111～119 入力保存用1回目 ～
+;LOCAL:191～199 入力保存用9回目
+REPEAT ARG:0
+	LOCAL:(COUNT + LOCAL:10 * 10 + 111) = LOCAL:(COUNT + 21)
+REND
+LOCAL:(LOCAL:10 + 91) = LOCAL:1
+LOCAL:(LOCAL:10 + 101) = LOCAL:2
+
+;入力済み手数を加算
+LOCAL:10++
+
+;ヒントの解析
+;比較用変数初期設定(とりうる最小の値)
+REPEAT ARG:0 + 1
+	LOCAL:(COUNT + 30) = COUNT
+REND
+VARSET LOCAL, 0, 200, 200 + ARG:1 * 10 + ARG:0
+
+$HINT_LOOP
+;とりうる全ての回答で、入力済みデータ全てについて、矛盾を検索
+;矛盾フラグ
+LOCAL:4 = 0
+REPEAT LOCAL:10
+	;LOCAL:2 = ヒット数
+	;LOCAL:3 = ブロー数
+	LOCAL:2 = 0
+	LOCAL:3 = 0
+
+	;比較用変数が正解だった場合と、過去の入力済みデータを照らし合わせ
+	FOR LOCAL, 0, ARG:0
+		FOR LOCAL:1, 0, ARG:0
+			IF LOCAL:(COUNT * 10 + LOCAL + 111) == LOCAL:(LOCAL:1 + 31)
+				IF LOCAL == LOCAL:1
+					LOCAL:2++
+					BREAK
+				ELSE
+					LOCAL:3++
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	NEXT
+	IF LOCAL:(91 + COUNT) != LOCAL:2 || LOCAL:(101 + COUNT) != LOCAL:3
+		;過去のHBデータと矛盾あり
+		LOCAL:4 = 1
+		BREAK
+	ENDIF
+REND
+
+IF LOCAL:4 == 0
+	;矛盾がないケースを1件加算
+	LOCAL:200++
+	;LOCAL:211～299に、各桁に該当する数字が何件あったかを記録
+	;LOCAL:211　1桁目に1があった件数
+	;LOCAL:212　2桁目に1があった件数
+	;LOCAL:221　1桁目に2があった件数…
+	REPEAT ARG:0
+		LOCAL:((LOCAL:(31 + COUNT) * 10) + COUNT + 191)++
+	REND
+ENDIF
+
+;次のケース
+FOR LOCAL, ARG:0, 0, -1
+	;桁上がりチェック
+	IF LOCAL:(30 + LOCAL) >= ARG:1
+		LOCAL:(30 + LOCAL) = 0
+		;最上位の桁が溢れたら終了
+		SIF LOCAL == 1
+			LOCAL:30 = 1
+	ELSE
+		LOCAL:(30 + LOCAL)++
+		;上位の桁と重複していないかチェック
+		LOCAL:9 = 0
+		FOR LOCAL:1, LOCAL - 1, 0, -1
+			IF LOCAL:(30 + LOCAL) == LOCAL:(30 + LOCAL:1)
+				;重複してたフラグ
+				LOCAL:9++
+				BREAK
+			ENDIF
+		NEXT
+		IF LOCAL:9
+			;重複してたので、同じ桁でもう1回加算
+			LOCAL++
+		ELSEIF LOCAL == ARG:0
+			;最下位の桁まで重複してなかったので、終了
+			BREAK
+		ELSE
+			;重複してなかったので、下位の桁に戻る
+			LOCAL += 2
+		ENDIF
+	ENDIF
+NEXT
+
+IF LOCAL:30 == 1
+	CLEARLINE 10 + MAX(ARG:1, ARG:2)
+	GOTO INPUT_LOOP
+ELSE
+	GOTO HINT_LOOP
+ENDIF

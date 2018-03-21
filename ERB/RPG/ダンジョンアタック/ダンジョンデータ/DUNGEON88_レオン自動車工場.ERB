@@ -1,0 +1,1378 @@
+
+;=======================================================================
+;レオン自動車工場
+;ボス・ムーウィス
+;ダンジョンナンバー88
+;
+;
+;
+;フラグ使用状況
+;ダンジョンフラグ:88:1		レオン自動車工場クリアフラグ（0:クリア前、1:クリア後）
+;ダンジョンフラグ:88:2		レオン自動車工場突入フラグ（0:入ってない、1:入ったことある、2:ネミッサと入ったことある）
+;ダンジョンフラグ:88:3		ムーウィス撃破フラグ（0:倒してない、1:倒した）
+;
+;
+;ダンジョンフラグ:88:5		非常用電源（0:キー入手前、1:キー入手済み、2:非常用電源起動済み）
+
+
+;時事系列的に天体博物館＞闘技場イベントってことにして、クリア前に闘技場でネミッサを仲間にすると依頼が消えダンジョンボスは他のサマナーに倒される。
+;ウラベクエストに関係なくカツオ達はネミッサ入りのＣＯＭＰを手に入れてサマナーとして活動している感じ。
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_88
+;ムーウィスの襲撃イベント終了済みでレオン自動車工場クリア前、か、レオン自動車工場クリア済み
+IF (イベントフラグ:27:0 == 1 && ダンジョンフラグ:88:1 == 0) || ダンジョンフラグ:88:1 == 1
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_88
+RESULTS = Leon Automotive Plant
+;Leon Automobile Factory
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_88
+PRINT Leon Automotive Plant 
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL １Ｆ
+	CASE 1
+		PRINTL ２Ｆ
+	CASE 2
+		PRINTL ３Ｆ
+	CASE 3
+		PRINTL ４Ｆ
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_88, ARG
+FLAG:現M = 0
+FLAG:現X = 9
+FLAG:現Y = 24
+;CALL AUTOMAP
+RETURN 0
+
+;=======================================================================
+;攻略開始時のイベント
+;=======================================================================
+@EVENT_DUNGEON_START_88
+;クリア前でネミッサと入ったことがない
+IF ダンジョンフラグ:88:1 == 0 && ダンジョンフラグ:88:2 != 2
+	;ネミッサがパーティ内にいる
+	IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+		PRINTW You went to the Leon Automotive Plant...
+		;レオン自動車工場の前へとやってきた……
+		PRINTL 　
+		;ネミッサと入ったことない
+		IF ダンジョンフラグ:88:2 != 2
+			PRINTW 「Moowis is her esomewhere...」
+			PRINTW 「A clue to my memories...it will not escape this time!」
+			PRINTW Together with the motivated Nemissa, you entered the factory.
+			;意気込むネミッサと共に工場内へと足を踏み入れた。
+			
+			;ネミッサと入ったことあるへ
+			ダンジョンフラグ:88:2 = 2
+		ENDIF
+	ELSE
+		;入ったことない
+		IF ダンジョンフラグ:88:2 == 0
+			PRINTW Moowis must be somewhere in this factory.
+			PRINTW However, because Nemissa isn't with you, it may avoid you.
+			PRINTL 　
+			PRINTW It might be necessary to bring Nemissa if you want to fight Moowis...
+			
+			;入ったことあるへ
+			ダンジョンフラグ:88:2 = 1
+		ENDIF
+	ENDIF
+ENDIF
+
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_88
+PRINTL 　
+;ムーウィス撃破済みでレオン自動車工場クリアしてない
+IF ダンジョンフラグ:88:3 == 1 && ダンジョンフラグ:88:1 == 0
+	PRINTW For defeating Moowis, you where pay a reward from the Leon Automotive Plant.
+	PRINTL 　
+	PRINTW You received ￥40000 and your fame increased by 30.
+	
+	MONEY += 40000
+	FLAG:名声 += 30
+	
+	;レオン自動車工場クリアフラグ
+	ダンジョンフラグ:88:1 = 1
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_88, ARG, ARG:1
+;SELECTCASE DA:ARG:(ARG:1)
+;ENDSELECT
+
+;非常用電源起動してない
+IF FLAG:現M == 0 && ARG == 16 && ARG:1 == 18
+	IF FLAG:現X < ARG
+		PRINTL オートロックがかかっているため
+		PRINTW I doesn't look like you can open it from here.
+		;こちらからは開きそうにない。
+		RETURN 0
+	ENDIF
+ELSEIF FLAG:現M == 1 && ARG == 21 && ARG:1 == 23 && ダンジョンフラグ:88:5 != 2
+	PRINTW It's an elevator, but it seems to have no power...
+	;エレベーターのようだが電源が落ちているようだ……
+	RETURN 0
+;カギ持ってる、扉開けてない
+;ELSEIF FLAG:現M == 1 && ARG == 21 && ARG:1 == 23 && ダンジョンフラグ:88:2 == 4 && ダンジョンフラグ:88:6 == 0
+;	PRINTW 持っていたカギで扉を開けた……
+;	;扉開錠フラグ開けたへ
+;	ダンジョンフラグ:88:6 = 1
+;	RETURN 0
+ENDIF
+
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内、3～9が代入されているマスに、個別の番号を与える処理を実行します。
+;この処理を行った後、これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合、「2番のマップ＝３Ｆで、左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚、0～2はどのマップにも大量に設置されるので、ここでは基本的に個別の番号を与えません。
+
+
+@MAKE_FLOOR_88
+SELECTCASE FLAG:現M
+	CASE 0
+	;１階
+		FLAG:最大X = 29 
+		FLAG:最大Y = 26 
+							;	  01234567890123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                             "
+		CALL MAKE_FLOOR_LINE, 1, " 1       A     1   1   1  13 "
+		CALL MAKE_FLOOR_LINE, 2, " 1       2     1 11111111111 "
+		CALL MAKE_FLOOR_LINE, 3, " 1    1111111111   1     1   "
+		CALL MAKE_FLOOR_LINE, 4, " 1    1111     1 111    111  "
+		CALL MAKE_FLOOR_LINE, 5, " 1   11111     1 11111111113 "
+		CALL MAKE_FLOOR_LINE, 6, " 1   1 111     1   1    111  "
+		CALL MAKE_FLOOR_LINE, 7, " 1   1 1111    121 1     1   "
+		CALL MAKE_FLOOR_LINE, 8, " 1   1 4111    1   1     1   "
+		CALL MAKE_FLOOR_LINE, 9, " 11111 1111    1 111     1   "
+		CALL MAKE_FLOOR_LINE,10, " 1111111111    1 11111111111 "
+		CALL MAKE_FLOOR_LINE,11, "         2                2  "
+		CALL MAKE_FLOOR_LINE,12, "   1111111111111       11111 "
+		CALL MAKE_FLOOR_LINE,13, "   1           1    3  11111 "
+		CALL MAKE_FLOOR_LINE,14, "   1           1   111 11111 "
+		CALL MAKE_FLOOR_LINE,15, "   1           1   111 11111 "
+		CALL MAKE_FLOOR_LINE,16, "   1  1111111  1  11111111   "
+		CALL MAKE_FLOOR_LINE,17, "   1  1     1  1   1111  1   "
+		CALL MAKE_FLOOR_LINE,18, "   1111     111121 1111  123 "
+		CALL MAKE_FLOOR_LINE,19, "   11         11 1       1   "
+		CALL MAKE_FLOOR_LINE,20, "   1  1111111  1 1       1   "
+		CALL MAKE_FLOOR_LINE,21, "   1  1411111  1 1      1113 "
+		CALL MAKE_FLOOR_LINE,22, "   1111111111111 111111111   "
+		CALL MAKE_FLOOR_LINE,23, "         2                   "
+		CALL MAKE_FLOOR_LINE,24, "         8                   "
+		CALL MAKE_FLOOR_LINE,25, "                             "
+		
+		;作業員２
+		;作業員１
+		
+	CASE 1
+	;２階
+		FLAG:最大X = 29 
+		FLAG:最大Y = 26 
+							;	  01234567890123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                             "
+		CALL MAKE_FLOOR_LINE, 1, " 1111111 A 11111111111111111 "
+		CALL MAKE_FLOOR_LINE, 2, " 1    11 2 11              1 "
+		CALL MAKE_FLOOR_LINE, 3, " 1    1111111              1 "
+		CALL MAKE_FLOOR_LINE, 4, " 1    1111111  1111111111111 "
+		CALL MAKE_FLOOR_LINE, 5, " 1       1     111111111 4 1 "
+		CALL MAKE_FLOOR_LINE, 6, " 1       1     1         1 1 "
+		CALL MAKE_FLOOR_LINE, 7, " 1       1     4         1 1 "
+		CALL MAKE_FLOOR_LINE, 8, " 1       1     1         1 1 "
+		CALL MAKE_FLOOR_LINE, 9, " 1     14111   1         1 1 "
+		CALL MAKE_FLOOR_LINE,10, " 1             1         1 1 "
+		CALL MAKE_FLOOR_LINE,11, " 1             1         1 1 "
+		CALL MAKE_FLOOR_LINE,12, " 1             1         1 1 "
+		CALL MAKE_FLOOR_LINE,13, " 1   11       13        11 1 "
+		CALL MAKE_FLOOR_LINE,14, " 1111111114111131114111111 1 "
+		CALL MAKE_FLOOR_LINE,15, " 1   11       1         33 1 "
+		CALL MAKE_FLOOR_LINE,16, " 1            1            1 "
+		CALL MAKE_FLOOR_LINE,17, " 1            4            1 "
+		CALL MAKE_FLOOR_LINE,18, " 1            1            1 "
+		CALL MAKE_FLOOR_LINE,19, " 1            1            1 "
+		CALL MAKE_FLOOR_LINE,20, " 1        11  1            1 "
+		CALL MAKE_FLOOR_LINE,21, " 1        1111111114111111 1 "
+		CALL MAKE_FLOOR_LINE,22, " 1               111111111 1 "
+		CALL MAKE_FLOOR_LINE,23, " 1               111 2 111 1 "
+		CALL MAKE_FLOOR_LINE,24, " 1111111111111111111 a 11111 "
+		CALL MAKE_FLOOR_LINE,25, "                             "
+		
+		;落とし穴？４
+		;							CALL DUNGEON_WORP,0,25,5
+		;	CALL DUNGEON_WORP,0,15,7
+		;悪魔
+		;CALL DUNGEON_WORP,0,10,12	CALL DUNGEON_WORP,0,19,14
+		;CALL DUNGEON_WORP,0,14,18
+		
+		;成長するサマナー
+		
+	CASE 2
+	;３階
+		FLAG:最大X = 29 
+		FLAG:最大Y = 26 
+							;	  01234567890123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                             "
+		CALL MAKE_FLOOR_LINE, 1, " 1111111 A 11111111111111111 "
+		CALL MAKE_FLOOR_LINE, 2, " 1     1 2 11    11        1 "
+		CALL MAKE_FLOOR_LINE, 3, " 1     111111    11  11111 1 "
+		CALL MAKE_FLOOR_LINE, 4, "        11111  4111111   1 1 "
+		CALL MAKE_FLOOR_LINE, 5, "        11111      111   1 1 "
+		CALL MAKE_FLOOR_LINE, 6, " 111111     1       1    1 1 "
+		CALL MAKE_FLOOR_LINE, 7, "   1  11111 411111  1      1 "
+		CALL MAKE_FLOOR_LINE, 8, " T21  1   1   1  1  111111 1 "
+		CALL MAKE_FLOOR_LINE, 9, "   1  1   1         1      1 "
+		CALL MAKE_FLOOR_LINE,10, " 12111111 111111 1111      1 "
+		CALL MAKE_FLOOR_LINE,11, "   11 2 1 11 2 1           1 "
+		CALL MAKE_FLOOR_LINE,12, " 1111 4 1 11 1 1111111111111 "
+		CALL MAKE_FLOOR_LINE,13, "                             "
+		CALL MAKE_FLOOR_LINE,14, " 111113   3113 113  3 1  3 1 "
+		CALL MAKE_FLOOR_LINE,15, "   1      1  1   1  1 1  2 1 "
+		CALL MAKE_FLOOR_LINE,16, "   1  1   1  1   1  1 111111 "
+		CALL MAKE_FLOOR_LINE,17, "   1  11111  11111  12111111 "
+		CALL MAKE_FLOOR_LINE,18, "   1  1   1  1   1  1   1  1 "
+		CALL MAKE_FLOOR_LINE,19, "   1111   11111111111   1111 "
+		CALL MAKE_FLOOR_LINE,20, "   1  1   1  1   1      1  1 "
+		CALL MAKE_FLOOR_LINE,21, "   1  1   1  1   1  1   1  1 "
+		CALL MAKE_FLOOR_LINE,22, "   111111111111111 111111111 "
+		CALL MAKE_FLOOR_LINE,23, "                   1 2 1     "
+		CALL MAKE_FLOOR_LINE,24, "                   1 a 1     "
+		CALL MAKE_FLOOR_LINE,25, "                             "
+		
+		;フリーのサマナー
+		;メモ、電源キー、電源室
+		
+	CASE 3
+	;４階
+		FLAG:最大X = 29 
+		FLAG:最大Y = 26 
+							;	  01234567890123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                             "
+		CALL MAKE_FLOOR_LINE, 1, "       1 A 1     11111111111 "
+		CALL MAKE_FLOOR_LINE, 2, "       1 2 1         1     1 "
+		CALL MAKE_FLOOR_LINE, 3, "     1111111         1     1 "
+		CALL MAKE_FLOOR_LINE, 4, " 1     14111111      1     1 "
+		CALL MAKE_FLOOR_LINE, 5, " 1       1    1      1     1 "
+		CALL MAKE_FLOOR_LINE, 6, " 1       1    1      1     1 "
+		CALL MAKE_FLOOR_LINE, 7, " 1       4    4      1     1 "
+		CALL MAKE_FLOOR_LINE, 8, " 1       1           4     1 "
+		CALL MAKE_FLOOR_LINE, 9, " 1       1                 1 "
+		CALL MAKE_FLOOR_LINE,10, " 1       1                 1 "
+		CALL MAKE_FLOOR_LINE,11, " 1     11111               1 "
+		CALL MAKE_FLOOR_LINE,12, " 1     1 2 1               1 "
+		CALL MAKE_FLOOR_LINE,13, " 1     1 4 11141111111111111 "
+		CALL MAKE_FLOOR_LINE,14, " 1     1   1         1   4 1 "
+		CALL MAKE_FLOOR_LINE,15, " 1     11111         1   1 1 "
+		CALL MAKE_FLOOR_LINE,16, " 1       1           1   1 1 "
+		CALL MAKE_FLOOR_LINE,17, " 11111111111         1   1 1 "
+		CALL MAKE_FLOOR_LINE,18, " 1         1         1   1 1 "
+		CALL MAKE_FLOOR_LINE,19, " 1         111111111111111 1 "
+		CALL MAKE_FLOOR_LINE,20, " 1         1         1     1 "
+		CALL MAKE_FLOOR_LINE,21, " 1         1     111111111 1 "
+		CALL MAKE_FLOOR_LINE,22, " 1         1     111111111 1 "
+		CALL MAKE_FLOOR_LINE,23, " 1         1     111 2 111 1 "
+		CALL MAKE_FLOOR_LINE,24, " 1111111111111111111 a 11111 "
+		CALL MAKE_FLOOR_LINE,25, "                             "
+		
+		
+		;作業員3
+		;落とし穴？４
+		;CALL DUNGEON_WORP,2,9,7	CALL DUNGEON_WORP,2,14,7
+		;									CALL DUNGEON_WORP,2,21,8
+		;モニタールーム		CALL DUNGEON_WORP,1,14,13
+		;										CALL DUNGEON_WORP,1,25,14
+		
+	CASE 10
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+;ARG:1、ARG:2はそれぞれX座標とY座標
+;ARGはその座標に現在代入されている番号
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内、3～9が代入されているマスに、個別の番号を与える処理を実行します。
+;この処理を行った後、これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合、「2番のマップ＝３Ｆで、左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚、0～2はどのマップにも大量に設置されるので、ここでは基本的に個別の番号を与えません。
+;
+;何個目のARGタイプのマスなのか、は左上の(0,0)から右まで探し、その後一つ下の段に移って同様に探す、というのを右下まで繰り返して数えます。
+@MAKE_FLOOR_LINE_COMMON_88, ARG, ARG:1, ARG:2
+#LOCALSIZE 10
+;LOCAL:0～9 それぞれ何個目のARGなのかを記憶しています
+;LOCAL:3 宝箱→使用フラグはダンジョンフラグ:70~74
+;指定された座標が(0,0)である場合、つまり新しいマップを読み込んだ時はLOCALを消去します
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		;宝箱は多くの場合、開けたフラグが立っていると床を代入します
+		;そのマップでどの宝箱を開けたかは、そのマップの宝箱管理用変数の何番目のビットが立っているかで判断します
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4 TO 8
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:ARG * 10 + ARG
+		LOCAL:ARG++
+	CASE 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+		LOCAL:ARG++	
+	
+ENDSELECT
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_88, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "A"
+		RETURN 29
+	CASE "a"
+		RETURN 39
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;TILE_MARK_COMMON_{FLAG:現ダンジョン}_X
+;=======================================================================
+;ARG:1、ARG:2がX座標とY座標
+;ARGはそこに代入されている値
+;RESULTSに代入した文字がマップに表示されますが、必ず全角1文字分になるようにしてください。そうでないと表示が崩れます。
+
+
+@TILE_MARK_COMMON_88_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;落とし穴を"●"と表示
+	CASE 100 , 101 , 103 , 104 , 105 , 301 , 302 , 303 , 305 , 306
+		RESULTS = ●
+	;メッセンジャーを緑色で"ｍ"と表示
+	CASE 0 , 1 , 2 , 106 , 200 , 300
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASE 102
+		;新宿でオザワが倒されている
+		IF ダンジョンフラグ:42:新宿フラグ("オザワ") > 1
+			SETCOLOR 0x00ff00
+			RESULTS = ｍ
+		ELSE
+			RESULTS = ！
+		ENDIF
+	CASEELSE
+		;特に設定しない場合、"！"と表示されます
+		RETURN 1
+ENDSELECT
+
+
+;イベントタイル特殊表示
+;末尾の_4はイベントであることを示す4
+;@TILE_MARK_COMMON_88_4, ARG , ARG:1 , ARG:2
+;SELECTCASE ARG / 10
+	;メッセンジャーを緑色で"ｍ"と表示
+	;CASE 0 TO 2 , 100 , 101 , 300
+	;	SETCOLOR 0x00ff00
+	;	RESULTS = ｍ
+;	CASEELSE
+		;特に設定しない場合、"！"と表示されます
+;		RETURN 1
+;ENDSELECT
+
+;特殊タイルの表示
+;末尾の_9は特殊タイルであることを示す9
+@TILE_MARK_COMMON_88_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 2 , 3
+		RESULTS = Ｅ
+	CASEELSE
+		;特に設定しない場合、"■"が表示されます
+		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_88
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+;% 10は10で割ったあまり、つまり下一桁がでてきます
+;そして、下一桁はタイルの種類を表す
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_88
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_88
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_88
+	RETURN RESULT
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;１Ｆイベント
+		;作業員２
+		CASE 0
+			CALL DUNGEON_88_W02
+		;作業員１
+		CASE 1
+			CALL DUNGEON_88_W01
+		;２Ｆイベント
+		;落とし穴
+		CASE 100
+			CALL DUNGEON_WORP,0,25,5
+		;落とし穴
+		CASE 101
+			CALL DUNGEON_WORP,0,15,7
+		;悪魔
+		CASE 102
+			CALL DUNGEON_88_D01
+		;落とし穴
+		CASE 103
+			CALL DUNGEON_WORP,0,10,12
+		;落とし穴
+		CASE 104
+			CALL DUNGEON_WORP,0,19,14
+		;落とし穴
+		CASE 105
+			CALL DUNGEON_WORP,0,14,18
+		;成長するサマナー
+		CASE 106
+			CALL DUNGEON_88_S00
+		;３Ｆイベント
+		;フリーのサマナー
+		CASE 200
+			CALL DUNGEON_88_S01
+		;非常用電源室キー
+		CASE 201
+			CALL DUNGEON_88_KEY00
+		;非常用電源室
+		CASE 202
+			CALL DUNGEON_88_KEY01
+		;４Ｆイベント
+		;作業員3
+		CASE 300
+			CALL DUNGEON_88_W03
+		;落とし穴
+		CASE 301
+			CALL DUNGEON_WORP,2,9,7
+		;落とし穴
+		CASE 302
+			CALL DUNGEON_WORP,2,14,7
+		;落とし穴
+		CASE 303
+			CALL DUNGEON_WORP,2,21,8
+		;モニタールーム、ムーウィス戦
+		CASE 304
+			CALL DUNGEON_88_BOSS
+		;落とし穴
+		CASE 305
+			CALL DUNGEON_WORP,1,14,13
+		;落とし穴
+		CASE 306
+			CALL DUNGEON_WORP,1,25,14
+	ENDSELECT
+ELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_88,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_88
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_88
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_88
+	RETURN RESULT
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;１Ｆイベント
+		;作業員２
+		CASE 0
+			CALL DUNGEON_88_W02
+			RETURN 0
+		;作業員１
+		CASE 1
+			CALL DUNGEON_88_W01
+			RETURN 0
+		;２Ｆイベント
+		;落とし穴
+		CASE 100
+			CALL DUNGEON_WORP,0,25,5
+			RETURN 0
+		;落とし穴
+		CASE 101
+			CALL DUNGEON_WORP,0,15,7
+			RETURN 0
+		;悪魔
+		CASE 102
+			CALL DUNGEON_88_D01
+			RETURN 0
+		;落とし穴
+		CASE 103
+			CALL DUNGEON_WORP,0,10,12
+			RETURN 0
+		;落とし穴
+		CASE 104
+			CALL DUNGEON_WORP,0,19,14
+			RETURN 0
+		;落とし穴
+		CASE 105
+			CALL DUNGEON_WORP,0,14,18
+			RETURN 0
+		;成長するサマナー
+		CASE 106
+			CALL DUNGEON_88_S00
+			RETURN 0
+		;３Ｆイベント
+		;フリーのサマナー
+		CASE 200
+			CALL DUNGEON_88_S01
+			RETURN 0
+		;非常用電源室キー
+		CASE 201
+			CALL DUNGEON_88_KEY00
+			RETURN 0
+		;非常用電源室
+		CASE 202
+			CALL DUNGEON_88_KEY01
+			RETURN 0
+		;４Ｆイベント
+		;作業員3
+		CASE 300
+			CALL DUNGEON_88_W03
+			RETURN 0
+		;落とし穴
+		CASE 301
+			CALL DUNGEON_WORP,2,9,7
+			RETURN 0
+		;落とし穴
+		CASE 302
+			CALL DUNGEON_WORP,2,14,7
+			RETURN 0
+		;落とし穴
+		CASE 303
+			CALL DUNGEON_WORP,2,21,8
+			RETURN 0
+		;モニタールーム、ムーウィス戦
+		CASE 304
+			CALL DUNGEON_88_BOSS
+			RETURN 0
+		;落とし穴
+		CASE 305
+			CALL DUNGEON_WORP,1,14,13
+			RETURN 0
+		;落とし穴
+		CASE 306
+			CALL DUNGEON_WORP,1,25,14
+			RETURN 0
+	ENDSELECT
+;ENDIF
+;RETURN 0
+
+;========================
+;その他
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+			;エレベーター
+			CASE 2
+				CALL DUNGEON_ELEVATOR, 29
+			CASE 3
+				CALL DUNGEON_ELEVATOR, 39
+		ENDSELECT
+		RETURN 1
+ENDIF
+RETURN 0
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+;ARGはそのエレベーターのタイル
+@DUNGEON_ELEVATOR_88, ARG
+VARSET RESULT, -1
+VARSET RESULTS
+SELECTCASE ARG
+	CASE 29
+		RESULT:1 = 0
+		RESULT:2 = 1
+		RESULT:3 = 2
+		RESULT:4 = 3
+		RETURN -1
+	CASE 39
+		RESULT:1 = 1
+		RESULT:2 = 2
+		RESULT:3 = 3
+		RETURN -1
+ENDSELECT
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_88
+SELECTCASE FLAG:現M
+	CASE 0 , 1 , 2 , 3 , 4 , 5
+		FLAG:エンカウント率 = FLAG:未遭遇歩数 * 5
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数 * 5
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_88
+RETURN 20, 20, 25, 35
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_88
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;RETURN X でXが種類の数になります
+;あまりいろんなのが混ざっているとCOOPがとりにくくなったり
+;敵の攻撃属性が多くなる傾向にあるので、
+;種類の数は1・2種類を主体に時々3種類くらいを基本にするのが望ましいと思われます
+;=======================================================================
+@CLASS_NUM_88
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 1
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 35
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+ENDSELECT
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお、ここで帰った数字は下限を種族数、上限を10として自動的に調整されます
+;=======================================================================
+@ENEMY_NUM_88, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+		RETURN RAND(ARG, ARG*2+1)
+	CASE 1
+		RETURN RAND(ARG, ARG*2+2)
+	CASE 2 , 3
+		RETURN RAND(ARG, ARG*2+3)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_88, ARG
+SELECTCASE FLAG:現M
+	;１Ｆ
+	CASE 0
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:リャナンシー]],19
+			CASE IS < 35
+				RETURN [[キャラ:くびなしライダー]],19
+			CASE IS < 55
+				RETURN [[キャラ:グルル]],19
+			CASE IS < 70
+				RETURN [[キャラ:ヤトノカミ]],22
+			CASE IS < 80
+				RETURN [[キャラ:アークエンジェル]],24
+			CASE IS < 90
+				RETURN [[キャラ:ザントマン]],21
+			CASE IS < 100
+				RETURN [[キャラ:カタキラウワ]],20
+		ENDSELECT
+	;２Ｆ
+	CASE 1
+		SELECTCASE RAND:100
+			CASE IS < 10
+				RETURN [[キャラ:リャナンシー]],19
+			CASE IS < 20
+				RETURN [[キャラ:くびなしライダー]],19
+			CASE IS < 30
+				RETURN [[キャラ:グルル]],19
+			CASE IS < 45
+				RETURN [[キャラ:ヤトノカミ]],22
+			CASE IS < 60
+				RETURN [[キャラ:アークエンジェル]],24
+			CASE IS < 70
+				RETURN [[キャラ:マッドガッサー]],26
+			CASE IS < 80
+				RETURN [[キャラ:ニスロク]],28
+			CASE IS < 90
+				RETURN [[キャラ:ザントマン]],22
+			CASE IS < 100
+				RETURN [[キャラ:カタキラウワ]],21
+		ENDSELECT
+	;３、４Ｆ
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 10
+				RETURN [[キャラ:くびなしライダー]],19
+			CASE IS < 20
+				RETURN [[キャラ:グルル]],20
+			CASE IS < 35
+				RETURN [[キャラ:ヤトノカミ]],23
+			CASE IS < 40
+				RETURN [[キャラ:マッドガッサー]],26
+			CASE IS < 50
+				RETURN [[キャラ:マッドガッサー]],27
+			CASE IS < 60
+				RETURN [[キャラ:ニスロク]],28
+			CASE IS < 65
+				RETURN [[キャラ:ニスロク]],29
+			CASE IS < 70
+				RETURN [[キャラ:ザントマン]],22
+			CASE IS < 80
+				RETURN [[キャラ:ザントマン]],23
+			CASE IS < 90
+				RETURN [[キャラ:カタキラウワ]],22
+			CASE IS < 100
+				RETURN [[キャラ:カタキラウワ]],22
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_88
+#LOCALSIZE 3
+;宝箱のフラグ管理用変数の番号
+LOCAL = FLAG:現M + 70
+;そのマップの何番目の宝箱か
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+
+;/10はIDを10で割る。つまり、下一桁をなくして、二桁目と三桁目を二桁の数字として取り出している
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+	;１Ｆ
+	CASE 0
+		CALL GET_TREASURE, [[アイテム:ScryingBall]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 1
+		CALL GET_TREASURE, [[アイテム:BalmOfLife]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 2
+		;適当
+		CALL GET_TREASURE, [[アイテム:スキルカード【ジオンガ】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 3
+		CALL GET_TREASURE, [[アイテム:Dis-Poison]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 4
+		CALL GET_TREASURE, [[アイテム:LuIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;２Ｆ
+	CASE 100
+		CALL GET_TREASURE, [[アイテム:Full Face]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 101
+		CALL GET_TREASURE, [[アイテム:ChakraPot]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 102
+		CALL GET_TREASURE, [[アイテム:BalmOfLife]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 103
+		;適当
+		CALL GET_TREASURE, [[アイテム:StIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;３Ｆ
+	CASE 200
+		CALL GET_TREASURE, [[アイテム:InIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 201
+		;適当
+		CALL GET_TREASURE, [[アイテム:AgIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 202
+		CALL GET_TREASURE, [[アイテム:MagicalMirror]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 203
+		CALL GET_TREASURE, [[アイテム:ScryingBall]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 204
+		CALL GET_TREASURE, [[アイテム:RevivalBead]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 205
+		CALL GET_TREASURE, [[アイテム:Aerojet]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+ENDSELECT
+RETURN 1
+;=======================================================================
+;階段置き場
+;=======================================================================
+;上り階段処理
+@UPSTAIRS_88
+;SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+;	;IDで分岐
+;	;１Ｆ上り階段
+;	CASE 0
+;			;@DUNGEON_UPSTAIRS_ID , 階段を進んだ先のマップ番号 , 移動先のタイルのID
+;			;２Ｆ＝マップ番号1番の0番目の下り階段 = 1 * 1000 + 0 * 10 + 7 = 1007へと飛ぶ
+;			CALL DUNGEON_UPSTAIRS_ID, 1 , 1007
+;	CASE 100
+;			CALL DUNGEON_UPSTAIRS_ID, 2 , 2007
+;	CASE 200
+;			CALL DUNGEON_UPSTAIRS_ID, 3 , 3007
+;	CASE 300
+;			CALL DUNGEON_UPSTAIRS_ID, 4 , 4007
+;	CASEELSE
+;ENDSELECT
+
+;入り組んだダンジョンで階段がたくさん入り乱れている状態であれば、上記のように階段毎に指定してあげる必要があります。
+;しかしこのエコービルは1つのマップに上り階段が１つ、下り階段が１つ、上の階に進む＝マップ番号が一つ増えるという構造になっています
+;なので、下記のように書けば一行で済みます
+CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , (FLAG:現M + 1) * 1000 + 7
+RETURN 1
+
+;下り階段処理
+@DOWNSTAIRS_88
+;上り階段同様に、エコービルは下り階段も1行で記述できます
+CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , (FLAG:現M - 1) * 1000 + 6
+RETURN 1
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_88
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0 , 1 , 2 , 3
+		RETURN [[キャラ:グルル]] , 3 + RAND:10 , CSVBASE([[キャラ:グルル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+
+
+
+
+
+
+
+;=======================================================================
+;イベント
+;=======================================================================
+;非常用電源室キー
+@DUNGEON_88_KEY00
+;非常用電源キー手に入れてない
+IF ダンジョンフラグ:88:5 == 0
+	;ネミッサがパーティ内にいる
+	IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+		PRINTW 「Huh? Something just blicked there...」
+		;「ん？　今、何か光ったみたい……。」
+		PRINTW 「A key. Someone must have lost it.」
+		;「カギだ。　カギが落ちてる。」
+		PRINTW When you looked where Nemissa was, there was a key on the ground.
+		;不意に立ち止まったネミッサの示すほうを見てみると、そこには鍵が落ちていた。
+		PRINTL 　
+		PRINTW Is it for the factory?
+		;この工場のものだろうか？
+		PRINTL 　
+		PRINTW You got the 「Emergency Power Key」.
+		;「非常用電源キー」を手に入れた。
+	ELSE
+		PRINTFORMW While walking along a passage, %CALLNAME:MASTER% saw something glittering in the corner of %HIS_HER(MASTER)% view.
+		;通路を歩く%CALLNAME:MASTER%の視界の隅に何か光るものが映った。
+		PRINTW When you went to look for it's source, you found a key on the ground.
+		;近づいて見てみると、それは鍵だった。
+		PRINTL 　
+		PRINTW Is it for the factory?
+		PRINTL 　
+		PRINTW You got the 「Emergency Power Key」.
+	ENDIF
+	;非常用電源キー手に入れたへ
+	ダンジョンフラグ:88:5 = 1
+;非常用電源キー手に入れた
+ELSE
+	PRINTW There seems to be nothing here.
+ENDIF
+;----------------------------------------------------
+;非常用電源室
+@DUNGEON_88_KEY01
+;非常用電源キー手に入れてない
+IF ダンジョンフラグ:88:5 == 0
+	PRINTW This seems to be an emergency power room...
+	;非常用電源室のようだ……
+	PRINTL 　
+	PRINTW However, you can't operate it because the controls are locked.
+	;配電盤に鍵がかかっている為に操作できない。
+	PRINTW If you where able to activate power here, the second elecvator would likely become functional...
+	;ここの電源を入れれば第二エレベーターが動かせるようだが……
+;非常用電源キー手に入れた
+ELSEIF ダンジョンフラグ:88:5 == 1
+	PRINTW  This seems to be an emergency power room...
+	PRINTL 　
+	PRINTW You should be able to reactvate the second elevator here...
+	;ここで、第二エレベーターの操作ができるはずだ……
+	PRINTL 　
+	PRINTL 『...second elevator activated.』
+	;『………第二エレベーターを起動させます。』
+	PRINTW When you used the key you found to unlock the controls and activate power, this message was shown.
+	;拾った鍵を使って配電盤を操作するとエレベーター起動のメッセージが流れた。
+	PRINTL 　
+	;ネミッサがパーティ内にいる
+	IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+		PRINTW 「まったく、めんどうね。」
+		PRINTFORMW 「でも、これで先に進めるわね。　急ぐわよ、%CALLNAME:MASTER%。」
+	ELSE
+		PRINTW You should be able to proceed now...
+		;これで、先に進めるはずだ……
+	ENDIF
+	;非常用電源起動済みへ
+	ダンジョンフラグ:88:5 = 2
+;非常用電源起動済み
+ELSEIF ダンジョンフラグ:88:5 == 2
+	PRINTW It's the emergency power room.
+	;ここは非常用電源室だ
+	PRINTW Since you already activated it, there is no more you can do here...
+	;もう用はない……
+ENDIF
+;----------------------------------------------------
+;従業員１
+@DUNGEON_88_W01
+PRINTW There is a male employee here...
+;従業員の男がいる……
+PRINTL 　
+;レオン自動車工場クリア前
+IF ダンジョンフラグ:88:1 == 0
+	;天海空港でレイ･レイホゥを奴隷にしたか組織に渡している
+	IF ダンジョンフラグ:93:6 == 1 || ダンジョンフラグ:93:6 == 2
+		PRINTW 「Before you came...I saw some kind of robot.」
+		;「この前さ……ここでロボットを見たんだよ。」
+		PRINTW 「It was making this really weird sound while walking...」
+		;「がしゃんがしゃんって、音がしてて。　歩いてたんだが……。」
+		PRINTW 「....hm, I guess I must be tired...」
+		;「……俺、疲れてるのかな……。」
+	ELSE
+		;レイ･レイホゥがファントム探しに来てたイメージ
+		PRINTW 「Before you came...I saw some kind of robot.」
+		PRINTW 「There was a really strange sound while it was walking...」
+		;「がしゃんがしゃんって、音がしてて。　歩いてて……。」
+		PRINTL 　
+		PRINTW 「And I saw a white shape before...」
+		;「その前は、白い人影を見たし……。」
+		PRINTW 「...maybe a ghost possessed the robot?」
+		;「……俺、憑かれてるのかな……。」
+	ENDIF
+	PRINTW 遠い目をする男と別れ先を急いだ……
+;レオン自動車工場クリア後
+ELSEIF ダンジョンフラグ:88:1 == 1
+	PRINTW 「Before you came...there was some kind of accident...」
+	;「この前さ……ここで事故があったらしいんだ……。」
+	PRINTW 「There was a terrible sound from somewhere above....it was really scary...」
+	;「上の方からすごい音がして……怖かったよ……。」
+	PRINTW 「And before that, I saw that odd robot...what is going on?...」
+	;「その前はロボットを見たし……なにが起きてるんだろ……。」
+	PRINTW You left he man with his uneasy thoughts...
+	;不安そうな男と別れ歩き出した……
+ENDIF
+;----------------------------------------------------
+;従業員２
+@DUNGEON_88_W02
+PRINTW There is a male employee here...
+PRINTL 　
+;レオン自動車工場クリア前
+IF ダンジョンフラグ:88:1 == 0
+	PRINTW 「Hey you.　You are not one of the work-force are you?」
+	;「あー、そこのキミ。　ここの関係者じゃないよね？」
+	PRINTW 「Outsiders will only cause trouble.　The power supply has been all haywire already...」
+	;「部外者が入ってきちゃ困るよー。　まったく、この前も電源がイタズラされて……。」
+	PRINTW You left the rambling man and moved on...
+	;ブツブツと言ってる男を無視し歩き出した……
+;レオン自動車工場クリア後
+ELSEIF ダンジョンフラグ:88:1 == 1
+	PRINTW 「Hey you.　You are not one of the work-force are you?」
+	PRINTW 「Outsiders will only cause trouble...definitely.」
+	;「部外者が入ってきちゃ困るよー。　まったく……。」
+	PRINTW You left the rambling man and moved on...
+ENDIF
+;----------------------------------------------------
+;従業員３
+@DUNGEON_88_W03
+PRINTW There is a male employee here...
+PRINTL 　
+;非常用電源キー手に入れてない
+IF ダンジョンフラグ:88:5 == 0
+	PRINTW 「Hey, did you see a key here somewhere?」
+	;「あんた、どこかでカギを見なかった？」
+	PRINTW 「It's the key for the emergency power room on ３Ｆ.」
+	;「３Ｆにある、非常用電源室のカギなんだけど。」
+	PRINTW You left the man looking for a key and moved on...
+	;鍵を探す男と別れ歩き出した……
+;非常用電源キー手に入れた
+ELSEIF ダンジョンフラグ:88:5 == 1
+	PRINTW 「Hey, did you see a key here somewhere?」
+	PRINTW 「It's the key for the emergency power room on ３Ｆ.」
+	PRINTL 　
+	PRINTW 「Without that, the second elevator won't come back on....what should I do...」
+	;「あれがないと、第二エレベーターが起動できないな……どうしよう……。」
+	PRINTW You left the man looking for a key and moved on...
+;非常用電源起動済み
+ELSEIF ダンジョンフラグ:88:5 == 2
+	PRINTW 「Hey, did you see a key here somewhere?」
+	PRINTW 「It's the key for the emergency power room on ３Ｆ.」
+	PRINTL 　
+	PRINTW 「Without that, the second elevator won't come back on...What, you got it active again?」
+	;「あれがないと、第二エレベーターが起動できない……って、エレベーター動いてるの？」
+	PRINTW 「Is that so...well, will things be alright now?」
+	;「そうか……、それなら、いいのかな……？」
+	PRINTW You left the man who seemed more at ease now and moved on...
+	;一人うなずく男と別れ歩き出した……
+ENDIF
+;----------------------------------------------------
+;悪魔
+;真４ネタを入れておく
+@DUNGEON_88_D01
+;新宿でオザワが倒されている
+IF ダンジョンフラグ:42:新宿フラグ("オザワ") > 1
+	PRINTW There is a demon here...
+	PRINTL 　
+	PRINTW 「Huh...it's a summoner...」
+	;「はぁ……。　なんだ、サマナーか……。」
+	PRINTW 「I'm depressed....go somewhere else...」
+	;「オレは落ち込んでるんだ……どっか行ってくれ……。」
+	PRINTL 　
+	PRINTW 「赤玉さえ、なけりゃなぁ……。」
+	PRINTW You left the demon dressed like a chef and moved on...
+	;料理人の格好をした悪魔と別れ歩き出した……
+ELSE
+	PRINTW No-one seems to be here.
+ENDIF
+;----------------------------------------------------
+;フリーのサマナー
+@DUNGEON_88_S01
+;レオン自動車工場クリア前
+PRINTW There is a frustrated summoner here...
+;だるそうなサマナーがいる……
+PRINTL 　
+IF ダンジョンフラグ:88:1 == 0
+	;非常用電源起動前
+	IF ダンジョンフラグ:88:5 != 2
+		PRINTW 「When I heard that demons appeared, I came here to earn some money...」
+		;「ここに悪魔が出るようになったって聞いて稼ぎに来たんだけど……。」
+		PRINTW 「But there's an elevator here that won't move, it's troublesome...」
+		;「動かないエレベーターがあったりで、面倒だなぁ……。」
+		PRINTW You spoke a bit to the summoner that was fiddling with his ＣＯＭＰ...
+		;だるそうにＣＯＭＰをいじるサマナーと歩き出した……
+	;非常用電源起動済み
+	ELSEIF ダンジョンフラグ:88:5 == 2
+		PRINTW 「When I heard that demons appeared, I came here to earn some money...」
+		PRINTW 「But there's an elevator here that won't move, it's troublesome...」
+		;「動かないエレベーターがあったりで、面倒だ……。」
+		PRINTW 「Oh? You got it to work? Maybe I'll go over there later.」
+		;「えっ？　動くようになった？　それじゃ、後で行ってみるかな。」
+		PRINTW You spoke a bit to the summoner that was fiddling with his ＣＯＭＰ...
+	ENDIF
+;レオン自動車工場クリア後
+ELSEIF ダンジョンフラグ:88:1 == 1
+	PRINTW 「I heard that the leaver of the demons here was defeated, but the other demons still appear.」
+	;「ここの主が倒されたって聞いたけど、雑魚の悪魔はいなくならないね。」
+	PRINTW 「So I guess I'll stay some more too...」
+	;「しばらく、ここで稼ぐかなぁ……。」
+	PRINTW You spoke a bit to the summoner that was fiddling with his ＣＯＭＰ...
+ENDIF
+;----------------------------------------------------
+;成長するサマナー
+;天体博物館のクリア状況で分岐
+@DUNGEON_88_S00
+PRINTW There is a summoner from the organisation here...
+;組織のサマナーがいる……
+PRINTL 　
+;レオン自動車工場クリア前
+IF ダンジョンフラグ:88:1 == 0
+	;天体博物館クリア状態あなたがクリア
+	IF ダンジョンフラグ:89:1 == 1 || ダンジョンフラグ:89:1 == 2 || ダンジョンフラグ:89:1 == 3
+		PRINTW 「You...you are the one who defeated Charol J....」
+		;「アンタは……キャロルＪを倒したって言う……。」
+		PRINTW 「And now you are here, are you aiming to solve this too?」
+		;「ここにいるってコトは、アンタも狙いは同じってワケか。」
+		PRINTW 「Damn! Well, you got ahead of me at the museum but this time I won't lose!」
+		;「クソッ！　博物館じゃ先をこされたが、今度は負けねえぜ！」
+		PRINTW You spoke to the man for a bit, then moved on...
+		;男はひとしきり話すと、探索へと戻っていった……
+	;天体博物館クリア状態他人がクリア
+	ELSEIF ダンジョンフラグ:89:1 == 4
+		;あなたのレベルが３５以上
+		IF BASE:MASTER:LV >= 35
+			PRINTW 「Well! Oh, it's you!?」
+			;「なっ！　あ、アンタは！？」
+			PRINTW 「No way...you want to defeat the leader demon here?」
+			;「まさか……、アンタも、ここに出るって言う悪魔を倒すために？」
+			PRINTL 　
+			PRINTW 「....Aww hahaha! You'll be cometing with the guy that has been compared to Finnegan in skill...」
+			;「……なんてこった！　フィネガンにも匹敵するってヤツと競うことになるとは……。」
+			PRINTW 「And I won't lose to you!」
+			;「だが、負けるわけにはっ！」
+		ELSE
+			PRINTW 「Ah, you are...?」
+			;「アンタは……？」
+			PRINTW 「Huh, so you are also aiming for my prey here.」
+			;「そうか、同じ獲物を狙うライバルってワケか。」
+			PRINTW 「Well, I've been compared to Finnegan in skill, I can't afford to lose to the likes of you...」
+			;「フィネガンほどの使い手ならともかく、アンタに負けるわけにはいかないな……。」
+			PRINTW 「It might be bad for you, but I'll be the one to defeat this prey!」
+			;「悪いが、この獲物もオレが倒させてもらうぜ！」
+		ENDIF
+		PRINTW You spoke to the man for a bit, then moved on...
+	ENDIF
+;レオン自動車工場クリア後
+ELSEIF ダンジョンフラグ:88:1 == 1
+	;天体博物館クリア状態あなたがクリア
+	IF ダンジョンフラグ:89:1 == 1 || ダンジョンフラグ:89:1 == 2 || ダンジョンフラグ:89:1 == 3
+		PRINTW 「So you did it again...」
+		;「先をこされてしまったか……。」
+		PRINTW 「Damn! At this rate, I'll never catch up....」
+		;「クソッ！　これじゃ、いつまでたっても……。」
+		PRINTW You left the frustrated man and moved on...
+		;憤る男と別れ歩き出した……
+	;天体博物館クリア状態他人がクリア
+	ELSEIF ダンジョンフラグ:89:1 == 4
+		PRINTW 「For me to lose this time...」
+		;「今回はオレの負けか……。」
+		PRINTW 「Well, I'll have to get stronger...」
+		;「もっと、強くなりてぇ……。」
+		PRINTW You left the defeated man and moved on...
+		;打ちひしがれる男と別れ歩き出した……
+	ENDIF
+ENDIF
+;----------------------------------------------------
+;ムーウィス戦
+@DUNGEON_88_BOSS
+
+;ムーウィス撃破前
+IF ダンジョンフラグ:88:3 == 0
+	;ネミッサがパーティ内にいる
+	IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+		PRINTW It seems to be a control room...
+		;ここはモニタールームのようだ……
+		PRINTL 　
+		PRINTW In the middle of it was Moowis, who had been using parts from the factory to further reinforce it's robotic body.
+		;その中央に、工場内の部品を使って以前よりも凶悪な姿となったムーウィスが立っていた。
+		PRINTL 　
+		PRINTW 「Nemissa……貴様ノ存在ハ、我ガ主ニトッテ脅威トナル。」
+		PRINTW 「今度コソ、貴様ヲ消シ去ッテクレル。」
+		PRINTL 　
+		PRINTW 「Stop it the threats. It's up to you whether Nemissa will be threat to you.」
+		;「脅威、脅威って失礼ね。　ネミッサが脅威になるかどうかはあんた次第よ。」
+		PRINTW 「Moowis, what do you know about Nemissa?」
+		;「ムーウィス、あんた何でネミッサの事を知ってるの？」
+		PRINTW 「Do you know the one who confined Nemissa?」
+		;「ネミッサを閉じ込めたヤツを知ってるんでしょ？」
+		PRINTW 「Is it your leader who confined me? Tell me.」
+		;「その主ってのがネミッサを閉じ込めたの？　どうなのよ。」
+		PRINTL 　
+		PRINTW 「ン？　何ヲ言ッテイル？　我ラガ主ヲ忘レタト言ウノカ？」
+		PRINTW ネミッサの矢継ぎ早の質問にムーウィスの口から戸惑いの混ざった言葉がもれた。
+		PRINTL 　
+		PRINTW 「我ラガってどういう事よ？　アタシも関係あるってこと？」
+		PRINTW 「あーもう！　遠まわしなのはたくさん！」
+		PRINTW 「全部話してもらうわ。　あんたが何者でネミッサの何を知っているのか！」
+		PRINTL 　
+		PRINTW 「記憶ガ失ワレタノカ……。　ソレトモ、イズレ目覚メルノカ……。」
+		PRINTW 「貴様ガ消滅スレバ、ソノ答エハ、ヒトツトナル。　滅ビヨネミッサ……ソレガ私ノ答エダ。」
+		PRINTW After saying so, Moowis extended it's arms made from parts of machinery and attacked.
+		;それだけ言うと、ムーウィスは重機のパーツで作られた巨大な腕を振り上げ襲い掛かってきた。
+		PRINTL 　
+		
+		;戦闘
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		
+		;他のイベントとの調整でムーウィスのレベルを40に（原作は36）
+		CALL SET_ENEMY,9,1115,40,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):スキル1 = [[スキル:アギ]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:アギラオ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ラギオン]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:メギド]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:メギドラ]]
+		ABL:(CHARANUM-1):スキル6 = [[スキル:なぎ払い]]
+		
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		
+		PRINTW 「ガガ…グ……グ……。」
+		PRINTW 「コ、コノ体ヲ持ッテシテデモ……貴様ヲ滅ボセヌノカ……。」
+		PRINTL 　
+		PRINTW 「モ…モット……モット……大キナチカラヲ……テ…手ニ入レテ……。」
+		PRINTL 　
+		PRINTW 「Are you going to run away again?」
+		;「クッ、また逃げるつもり？」
+		;キャロルＪがパーティ内にいる
+		IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+			PRINTL 　
+			PRINTL Carol J.:
+			PRINTW 「Oh, I won't let you escape」
+			;「おっと、逃がさねえぜ！」
+		ENDIF
+		PRINTL 　
+		PRINTW 「グググ、ギギ………ググ……。」
+		PRINTFORML %CALLNAME:MASTER%との戦闘に敗れ、ボロボロになった体を引きずり逃げようとしたムーウィスが、
+		PRINT ネミッサ
+		;キャロルＪがパーティ内にいる
+		IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+			PRINT とキャロルＪ
+		ENDIF
+		PRINTW に阻まれ苛立った声をあげた。
+		PRINTL 　
+		PRINTL 　
+		PRINTW 「ムーウィス！　ネミッサのこと、話してもらうわよ！」
+		PRINTL 　
+		PRINTW 「ネミッサ……ヤハリ貴様カラハ逃レラレヌカ……。」
+		PRINTW 「滅ビヲツカサドルモノ……貴様サエイナケレバ……マニトゥハ……。」
+		PRINTW 次々と体を構成していたパーツが落ちていく中、ムーウィスはネミッサを睨みつぶやく。
+		PRINTL 　
+		PRINTW 「滅び？　滅びって何なの？　それに…マニトゥって！？」
+		PRINTL 　
+		PRINTW 「フフフ……ダガ…私ハ一人デハナイ……。」
+		PRINTW 「第二…第三ノ私ガ…必ズ…貴様ヲ……ソ、ソシテマニトゥハ……。」
+		PRINTW 「マニトゥ…ハ……。」
+		PRINTL 　
+		PRINTW 「M-moowis! I still have more to ask! Moowis! Moowis!!」
+		;「ム、ムーウィス！　まだ聞きたい事があるのよ！　ムーウィス！　ムーウィス！！」
+		PRINTW Without replying to Nemissa, Moowis's body collapsed and stopped moving.
+		;詰め寄るネミッサに答えないまま、ムーウィスの体は崩れ動かなくなった。
+		PRINTL 　
+		PRINTW 「Nooo! Why?! I had finally found a clue!」
+		;「もぉぉぉ！！　なんでよ！　やっと手がかりをつかんだのに！」
+		PRINTW Nemissa loudly voiced her frustration, as the remnants of Moowis turned into a small mountain of metal scraps.
+		;鉄くずの山となったムーウィスの残骸を前にネミッサが苛立ち声をあげる。
+		PRINTL 　
+		PRINTW Now that Moowis had been defeated, Nemissa won't be stalked by it again.
+		;ムーウィスを倒したことでネミッサが狙われることはないだろう。
+		PRINTW マニトゥと呼ばれる存在も気にはなるが、今は帰るとしよう……
+		
+		CUSTOMDRAWLINE -
+		;ムーウィス撃破フラグ
+		ダンジョンフラグ:88:3 = 1
+		
+		FLAG:脱出 = 1
+		
+	ELSE
+		PRINTW It seems to be a control room...
+		PRINTL 　
+		PRINTW Something seems odd here...
+		;“何か”がいたような気配があるが、今はいないようだ……
+		PRINTL 　
+		;キャロルＪがパーティ内にいる
+		IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+			PRINTW 「Hey...I think Moowis is here...」
+			;「こいつぁ……、ムーウィスの気配はしやがる……。」
+			PRINTW 「It...didn't escape, it's hiding...We'll have to draw it out with something...」
+			;「が……逃げたのか、隠れたのか……。　“何か”でおびき寄せる必要があるな……。」
+			PRINTL 　
+			PRINTW As Carol J. said, you'll have to find a way to draw Moowis out of hiding...
+			;キャロルＪの言うとおり、ムーウィスと戦うためには、どうにかしておびき寄せる必要がありそうだ……
+		ELSE
+			PRINTW It seems Moowis is hiding here. You'll have to draw it out with something....or someone.
+			;ムーウィスと戦うためには、どうにかしておびき寄せる必要がありそうだ……
+		ENDIF
+	ENDIF
+;ムーウィス撃破後
+ELSEIF ダンジョンフラグ:88:3 == 1
+	PRINTW It seems to be a control room...
+	PRINTL 　
+	PRINTW Nobody is here...
+	;ネミッサがパーティ内にいる
+	IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+		PRINTL 　
+		PRINTW 「Moowis...what am I?...」
+		;「ムーウィス……。　アタシは……。」
+	ENDIF
+ENDIF
+;----------------------------------------------------

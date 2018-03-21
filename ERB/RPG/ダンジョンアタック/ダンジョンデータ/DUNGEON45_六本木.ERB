@@ -1,0 +1,1791 @@
+
+;=======================================================================
+;六本木
+;ボス・黒おじさん
+;ダンジョンナンバー45　ＭＡＰ0~6
+;=======================================================================
+;ダンジョンフラグ:45:0 = 1.ネビロス初回撃破　2.撃破後に六本木に来た　3.アリス出現
+;ダンジョンフラグ:45:1 = 1.OP表示
+;ダンジョンフラグ:45:2 = 1.アリス出現　2.アリス消滅
+;ダンジョンフラグ:45:3 = 1. 魔人フラグ
+;ダンジョンフラグ:45:4 = 1. 男女判定
+;ダンジョンフラグ:45:5 = 1.肉便器を使用した
+;ダンジョンフラグ:45:6 = 1.エッチな遊びを断る
+;ダンジョンフラグ:45:10 = 1.アリスに会った　2.赤＆黒おじさんと話した　3.アリスと奴隷ごっこorチャクラPOTあげた　4.赤おじさん初戦壷がない　 5.赤おじさん壷入り　6.ネビロス初回撃破　7.黒おじさんが仲間になった
+;ダンジョンフラグ:45:11 = 1.女の子を成仏させた
+;ダンジョンフラグ:45:12 = 1.よしこの霊魂を成仏させた
+;ダンジョンフラグ:45:13 = 1.アリスに会い、赤おじさんと話した
+;ダンジョンフラグ:45:14 = 1.アリスに会い、黒おじさんと話した
+;ダンジョンフラグ:45:15 = 1.壷を入手
+;ダンジョンフラグ:45:16 = 1.よしこを導いた何か
+;ダンジョンフラグ:45:17 = 1.肉便器一号
+;ダンジョンフラグ:45:18 = 1.肉便器二号
+;ダンジョンフラグ:45:19 = 1.死体置き場
+;ダンジョンフラグ:45:20-29 = 1.宝箱、トラップ
+;ダンジョンフラグ:45:30 = 1.アリスと奴隷ごっこした
+;ダンジョンフラグ:45:31-35 = 1. アリスと奴隷ごっこ
+;ダンジョンフラグ:45:40 = 1.赤おじさんに見初められた　2.赤おじさんとフュージョンした
+;ダンジョンフラグ:45:41 = 1.赤おじさんとフュージョンして妊娠したよ　2.赤おじさんが仲魔になった
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_45
+IF ダンジョンフラグ:18:22 == 1
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_45
+RESULTS = Roppongi
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_45
+PRINT Roppongi 
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Connection aisle
+		;連絡通路
+	CASE 1
+		PRINTL Ｂ１Ｆ
+	CASE 2
+		PRINTL １Ｆ
+	CASE 3
+		PRINTL ２Ｆ
+	CASE 4
+		PRINTL ３Ｆ
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_45,ARG
+;階数
+FLAG:現M = 0
+FLAG:現X = 5
+FLAG:現Y = 5
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_45
+IF ダンジョンフラグ:45:1 == 0 
+	CALL MESSAGE_WINDOW_D, "",@"＞Roppongi is a mysterious neutral zone,/＞wrapped in a barrier and not claimed by Gaeans or Mesians./＞Following a directive from the higher-ups of the Phantom Society,/＞%CALLNAME:MASTER% came to investigate."
+	;メシア教、ガイア教どちらにも属さぬ、結界に包まれた謎の中立地帯・六本木/＞ファントム・ソサエティの上層部の指令により%CALLNAME:MASTER%は捜査を命じられ、かの地を訪れた
+	ダンジョンフラグ:45:1 = 1
+ENDIF
+
+IF ダンジョンフラグ:45:2 == 2
+	ダンジョンフラグ:45:2 = 1
+ENDIF
+
+IF ダンジョンフラグ:45:0 == 1
+	ダンジョンフラグ:45:0 = 2
+ENDIF
+
+;魔人ポイントの決定
+ダンジョンフラグ:45:3 = RAND(1, 37)
+
+;男女フラグ
+SIF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+	ダンジョンフラグ:45:4 = 1
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_45,ARG,ARG:1
+SELECTCASE DA:ARG:(ARG:1)
+CASE 12
+	IF ダンジョンフラグ:45:0 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞This door is locked with a strong magical barrier."
+		;強い魔力で扉は閉ざされている"
+		RETURN 0
+	ELSEIF ダンジョンフラグ:45:0 >= 1 
+		RETURN 1
+	ENDIF
+CASE 22
+	IF ダンジョンフラグ:45:10 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞This door is locked with a strong magical barrier."
+		RETURN 0
+	ELSE
+		RETURN 1
+	ENDIF
+CASE 32
+	IF ARG:1 < FLAG:現Y
+		CALL MESSAGE_WINDOW_D, "", "＞Disco"
+		;ディスコ
+	ENDIF
+ENDSELECT
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_COMMON_45_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1
+		RESULTS = 昇
+	CASE 2
+		RESULTS = 降
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_45_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 100
+		SIF ダンジョンフラグ:45:10 < 5 || ダンジョンフラグ:45:2 == 1
+		SETCOLOR 0xFFFF00
+		RESULTS = \@(ダンジョンフラグ:45:10 < 5 || ダンジョンフラグ:45:2 == 1) ?Ａ#□\@
+	CASE 200
+		SETCOLOR 0xFF0000
+		RESULTS = ！
+	CASE 300
+		RESULTS = ！
+	CASE 400
+		RESULTS = \@ダンジョンフラグ:45:15 ?□#！\@
+	CASE 500
+		RESULTS = \@ダンジョンフラグ:45:3 ?！#□\@
+	CASE 600
+		RESULTS = \@ダンジョンフラグ:45:16 ?□#ｍ\@
+	CASE 700
+	SIF ダンジョンフラグ:45:11 == 0
+		SETCOLOR 0x00ff00
+		RESULTS = \@ダンジョンフラグ:45:11 ?□#ｍ\@
+	CASE 10
+	SIF ダンジョンフラグ:45:0 == 0
+		SETCOLOR 0x00ff00
+		RESULTS = \@ダンジョンフラグ:45:0 ?□#ｍ\@
+	CASE  20
+		RESULTS = \@ダンジョンフラグ:45:10 >= 4 && ダンジョンフラグ:45:19 == 0 ?！#□\@
+	CASE  30
+		RESULTS = \@ダンジョンフラグ:45:12 ?□#ｍ\@
+ENDSELECT
+
+@TILE_MARK_COMMON_45_5, ARG , ARG:1 , ARG:2
+	RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?罠#□\@
+
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_45
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 7 
+		FLAG:最大Y = 7 
+;							    ;01234567
+		CALL MAKE_FLOOR_LINE, 0,"       "
+		CALL MAKE_FLOOR_LINE, 1," 11111 "
+		CALL MAKE_FLOOR_LINE, 2," 1   1 "
+		CALL MAKE_FLOOR_LINE, 3," 1   1 "
+		CALL MAKE_FLOOR_LINE, 4," 2   2 "
+		CALL MAKE_FLOOR_LINE, 5," !   8 "
+		CALL MAKE_FLOOR_LINE, 6,"       "
+
+	CASE 1
+	;地下１階
+		FLAG:最大X = 17
+		FLAG:最大Y = 16
+;								 012345678901234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1," 1 E 111111 11 3 "
+		CALL MAKE_FLOOR_LINE, 2," 1 2 1    1  1 2 "
+		CALL MAKE_FLOOR_LINE, 3," 11111 3211121 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1   1       121 "
+		CALL MAKE_FLOOR_LINE, 5," 1 1   1 N 1 1   "
+		CALL MAKE_FLOOR_LINE, 6," 1 111 1 2 1 111 "
+		CALL MAKE_FLOOR_LINE, 7," 121 2 11111   1 "
+		CALL MAKE_FLOOR_LINE, 8,"   1 1PPP11111 1 "
+		CALL MAKE_FLOOR_LINE, 9,"   1         1 1 "
+		CALL MAKE_FLOOR_LINE,10," 121fH2M2P   1 1 "
+		CALL MAKE_FLOOR_LINE,11,"   1     2   1 1 "
+		CALL MAKE_FLOOR_LINE,12," 6 1 W2M2H S 1 1 "
+		CALL MAKE_FLOOR_LINE,13," 2 1       2 2 1 "
+		CALL MAKE_FLOOR_LINE,14," 111111111111111 "
+		CALL MAKE_FLOOR_LINE,15,"                 "
+
+	CASE 2
+	;１階
+		FLAG:最大X = 30
+		FLAG:最大Y = 15
+								;012345678901234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                              "
+		CALL MAKE_FLOOR_LINE, 1," 1111111 E 1111111111 3 3 3 1 "
+		CALL MAKE_FLOOR_LINE, 2," 1   1 1 2          1 2 2 2 1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 1   111111111111 1 1111111 "
+		CALL MAKE_FLOOR_LINE, 4," 1 11111 1        2 1       1 "
+		CALL MAKE_FLOOR_LINE, 5," 1 1     1 12h D 11 111111111 "
+		CALL MAKE_FLOOR_LINE, 6," 1     1 1 1   2    1         "
+		CALL MAKE_FLOOR_LINE, 7," 1  A111 1 11111D 1112111112# "
+		CALL MAKE_FLOOR_LINE, 8," 1   1   1 2  D11 1       1   "
+		CALL MAKE_FLOOR_LINE, 9," 111 11111 11  1  111112D 1 1 "
+		CALL MAKE_FLOOR_LINE,10," 1 2 1 2 1     d  1   1   1 2 "
+		CALL MAKE_FLOOR_LINE,11," 1 3 1 7 1111111111 6 1 T 111 "
+		CALL MAKE_FLOOR_LINE,12," 1   1              2 1 2 1 2 "
+		CALL MAKE_FLOOR_LINE,13," 1111111111111111111111 111 1 "
+		CALL MAKE_FLOOR_LINE,14,"                              "
+
+	CASE 3
+		;二階
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+;								 012345678901234567
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1," 1 E 1111111 111 "
+		CALL MAKE_FLOOR_LINE, 2," 1 2 1 2   1 1   "
+		CALL MAKE_FLOOR_LINE, 3," 11111 1 1 1 1 6 "
+		CALL MAKE_FLOOR_LINE, 4," 1       2 1 1 2 "
+		CALL MAKE_FLOOR_LINE, 5," P 121111111 1 1 "
+		CALL MAKE_FLOOR_LINE, 6," 1   1     1 1 1 "
+		CALL MAKE_FLOOR_LINE, 7," 11111 YJ  1 1 1 "
+		CALL MAKE_FLOOR_LINE, 8," 1   1 11  1 1 1 "
+		CALL MAKE_FLOOR_LINE, 9," 1 m 1 F   2 1 1 "
+		CALL MAKE_FLOOR_LINE,10," 1 2 1 1   1 121 "
+		CALL MAKE_FLOOR_LINE,11," 111 1 2 111 1 1 "
+		CALL MAKE_FLOOR_LINE,12," 1   1 1 2 1 1 2 "
+		CALL MAKE_FLOOR_LINE,13," 1 D1111 3 P21 7 "
+		CALL MAKE_FLOOR_LINE,14," 1     1     1   "
+		CALL MAKE_FLOOR_LINE,15," 1121  1111PP111 "
+		CALL MAKE_FLOOR_LINE,16,"                 "
+
+	CASE 4
+		;三階
+		FLAG:最大X = 17
+		FLAG:最大Y = 15
+;								 012345678901234567
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1," 1 E 11111111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1 2 1       1 2 "
+		CALL MAKE_FLOOR_LINE, 3," 11111 321 121 7 "
+		CALL MAKE_FLOOR_LINE, 4,"         1 1     "
+		CALL MAKE_FLOOR_LINE, 5," D B D 3 1 11111 "
+		CALL MAKE_FLOOR_LINE, 6," 2 2 2 2 1   2 1 "
+		CALL MAKE_FLOOR_LINE, 7," 1111111 111 1 1 "
+		CALL MAKE_FLOOR_LINE, 8," 1111111 1   1   "
+		CALL MAKE_FLOOR_LINE, 9," 1111111 1 11111 "
+		CALL MAKE_FLOOR_LINE,10,"     D   1 1   1 "
+		CALL MAKE_FLOOR_LINE,11," 123 2 111 1 m 1 "
+		CALL MAKE_FLOOR_LINE,12," 1   1   2 1 2 1 "
+		CALL MAKE_FLOOR_LINE,13," 111111111111111 "
+		CALL MAKE_FLOOR_LINE,14,"                 "
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_45, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:84~99
+;LOCAL:4 イベント
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+20), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4 TO 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:ARG * 10 + ARG
+		LOCAL:ARG++
+ENDSELECT
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_45, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "A"
+		RETURN 1004
+	CASE "B"
+		RETURN 2004
+	CASE "N"
+		RETURN 3004
+	CASE "W"
+		RETURN 4004
+	CASE "m"
+		RETURN 5004
+	CASE "Y"
+		RETURN 6004
+	CASE "h"
+		RETURN 7004
+	CASE "D"
+		RETURN 104
+	CASE "S"
+		RETURN 204
+	CASE "J"
+		RETURN 304
+	CASE "H"
+		RETURN 15
+	CASE "M"
+		RETURN 25
+	CASE "P"
+		RETURN 35
+	CASE "F"
+		RETURN 12
+	CASE "f"
+		RETURN 22
+	CASE "d"
+		RETURN 32
+	CASE "!"
+		RETURN 19
+	CASE "#"
+		RETURN 29
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_45
+CALL EVENT_DUNGEON_45
+RETURN RESULT
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_45,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+CALL EVENT_DUNGEON_45, ARG , 0
+RETURN RESULT
+
+@EVENT_DUNGEON_45, ARG, ARG:1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+
+;==========
+;出口の処理
+;==========
+CASE 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;==========
+;扉の処理
+;==========
+CASE 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+;========
+;宝の処理
+;========
+CASE 3
+	CALL TREASURE_45, DA:(FLAG:現X):(FLAG:現Y) / 10
+	RETURN 1
+;=======
+;階段
+;=======
+CASE 9
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y)  / 10
+	CASE 1
+		PRINTL There's a staircase leading up, go up?  
+		CALL INPUT_YN,"Yes","No"
+		SIF RESULT == 0
+			CALL DUNGEON_WORP,2,26,7
+	CASE 2
+	PRINTL There's a staircase leading down, go down? 
+		CALL INPUT_YN,"Yes","No"
+		SIF RESULT == 0
+			CALL DUNGEON_WORP,0,1,3
+	ENDSELECT
+
+
+CASE 6
+	CALL UPSTAIRS_45
+	RETURN RESULT
+
+CASE 7
+	CALL DOWNSTAIRS_45
+	RETURN RESULT
+;========
+;罠の処理
+;========
+CASE 5
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+CASE 15
+	CALL DUNGEON_TRAP_HP,10
+CASE 25
+	CALL DUNGEON_TRAP_MP,10
+CASE 35
+	CALL DUNGEON_TRAP_POISON,40
+ENDSELECT
+;==========
+;イベント
+;==========
+CASE 4
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 100
+	;一階　ALICE
+	IF ダンジョンフラグ:45:10 == 0  
+		CALL MESSAGE_WINDOW_D, "", "＞There is a lovely girl carrying a doll here..."
+		;人形を抱いた可愛らしい女の子がいる"
+		CALL MESSAGE_WINDOW_D, "Girl", @"Heya, \@ダンジョンフラグ:45:4 ? big brother#older sister\@./Where are you from?"
+		;ねえねえ\@ダンジョンフラグ:45:4 ? big brother#older sister\@/どこから来たの？"
+			CALL INPUT_SELECT_D, @"[0]Another city/[1]The Phantom Society/[2]A makai/[3]Ignore her"
+			;他の街/[1]ファントム・ソサエティ/[2]魔界/[3]無視する
+				SELECTCASE RESULT
+					CASE 0
+						CALL MESSAGE_WINDOW_D, "Girl", "You are from another town?/That's nice."
+						;他の街から来たの？/いいなぁ
+						CALL MESSAGE_WINDOW_D, "Girl", "I can't leave this town..."
+						;あたしはこの街から出ちゃダメなの…
+						CALL MESSAGE_WINDOW_D, "Girl", "The old guys would get angry..."
+						;おじさん達に怒られちゃうから…
+					CASE 1
+						CALL MESSAGE_WINDOW_D, "Girl", "Phantom Society?"
+						;ファントム・ソサエティ？
+						CALL MESSAGE_WINDOW_D, "Girl", "You came from a weirdly name place."
+						;変わった名前の所から来たんだね
+					CASE 2
+						CALL MESSAGE_WINDOW_D, "Girl", "Huh, you came from a makai?"
+						;へー魔界から来たんだ？
+						CALL MESSAGE_WINDOW_D, "Girl",@"Then why does \@ダンジョンフラグ:45:4 ? big brother#older sister\@ look like a human?"
+						;はどうして人間の格好をしてるの？
+					CASE 3
+						CALL MESSAGE_WINDOW_D, "Girl", "What's wrong?"
+						;どうしたの？
+						CALL MESSAGE_WINDOW_D, "Girl",@"\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@, don't you know where you come from?"
+						;も何処から来たのか解らないの？
+				ENDSELECT
+
+		CALL MESSAGE_WINDOW_D, "Alice", "My name is Alice."
+		CALL MESSAGE_WINDOW_D, "Alice", @"Hey.../\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@, I have a request."
+		CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@, will you be my friend?"
+		;、友達になってくれる？
+			$INPUT_LOOP_ALICE
+				CALL INPUT_YN_D,"Yes","No"
+				IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "Alice", "Thank you♪"
+						;ありがとう♪
+						CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@, I want you to introduce yourself/to Uncle Red and Uncle Black."
+						;を赤おじさんと黒おじさんに紹介したいの
+						ダンジョンフラグ:45:10 = 1
+				ELSE
+						CALL MESSAGE_WINDOW_D, "Alice", @"\@RAND:2 == 0 ?You don't really dislike me, right?#Well, you actually want to be my friend, right?\@"
+						;あたしの事嫌いなの？#本当は友達になりたいよね？
+						GOTO INPUT_LOOP_ALICE
+				ENDIF
+	ENDIF
+
+	IF ダンジョンフラグ:45:10 == 1 
+		CALL MESSAGE_WINDOW_D, "Alice", "Uncle Black works in the basement./And Uncle Red should be on the third floor./You should go meet them there."
+		;黒おじさんは地下でお仕事してるの/赤おじさんは三階にいるはずだから行ってみてほしいな
+	ENDIF
+
+	IF ダンジョンフラグ:45:10 == 2 && !ダンジョンフラグ:45:6
+		CALL MESSAGE_WINDOW_D, "", "＞The pretty girl Alice is here, holding her doll."
+		;人形を抱いた可愛らしい女の子 アリスがいる
+		CALL MESSAGE_WINDOW_D, "Alice", @"Heya, \@ダンジョンフラグ:45:4 ? big brother#older sister\@."
+		IF FLAG:ムフフ展開 || ダンジョンフラグ:45:5 == 1 ||  ダンジョンフラグ:45:40 == 2
+			CALL MESSAGE_WINDOW_D, "Alice", @"あたしとエッチな遊びしよう？/\@ダンジョンフラグ:45:4 ? big brother#older sister\@は奴隷の役ね♪"
+				CALL INPUT_YN_D,"Yes","No"
+					IF RESULT == 0
+						CALL ALICE_TRAINING
+					ELSE
+						CALL MESSAGE_WINDOW_D, "Alice", @"What!/\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@ is mean!"
+						;えーん！/\@ダンジョンフラグ:45:4 ? big brother#older sister\@の意地悪！
+						ダンジョンフラグ:45:6 = 1
+					ENDIF
+		ENDIF
+	ENDIF
+	IF ダンジョンフラグ:45:10 == 2
+		CALL MESSAGE_WINDOW_D, "Alice", "I want a chakra pot./Please give me one♪"
+		;チャクラポットが欲しいの/ちょうだい♪
+		IF ITEM:1026 >= 1 
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "Alice",@"Thank you./\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@ is so nice."
+				;ありがとう/優しい
+				ダンジョンフラグ:45:10 = 1
+				ITEM:1026 -= 1 
+				ダンジョンフラグ:45:10 = 3
+			ELSE
+				CALL MESSAGE_WINDOW_D, "Alice", @"Uh, \@ダンジョンフラグ:45:4 ? big brother#older sister\@ is stingy."
+				;、ケチなんだね
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "Alice",  "Oh, you don't have one?/I want you to get one for me."
+			;持ってないの？/あたしの為に取ってきて欲しいな
+		ENDIF
+	ENDIF
+	IF ダンジョンフラグ:45:10 == 3 || ダンジョンフラグ:45:10 == 4
+		IF ダンジョンフラグ:45:10 == 3
+			SIF ダンジョンフラグ:45:30 == 1
+				CALL MESSAGE_WINDOW_D, "Alice", "Oh, that was fun♪"
+				;ああ、楽しかった♪
+			CALL MESSAGE_WINDOW_D, "Alice", @"Hey, \@ダンジョンフラグ:45:4 ? big brother#older sister\@, \@ダンジョンフラグ:45:30 ?はどうして奴隷なのに生きてるの？#what are you living for?\@"
+			;ねぇ、\@ダンジョンフラグ:45:4 ? big brother#older sister\@\@ダンジョンフラグ:45:30 ?はどうして奴隷なのに生きてるの？#はどうして生きてるの？\@"
+				IF ダンジョンフラグ:45:30 == 1
+					CALL INPUT_SELECT_D, @"[0]奴隷にも生きる権利はある/[1]お許しください、ご主人様/[2]奴隷ではない/[3]どうでもいい"
+					;奴隷にも生きる権利はある/[1]お許しください、ご主人様/[2]奴隷ではない/[3]どうでもいい
+				ELSE
+					CALL INPUT_SELECT_D, @"[0]To save as many as possible from suffering/[1]To gain absolute power/[2]To find a reason/[3]I don't care"
+					;[0]苦しんでいる人を一人でも多く救う為/[1]絶対の力を手に入れる為/[2]その理由を探す為に生きている/[3]どうでもいい
+				ENDIF
+					SELECTCASE RESULT
+						CASE 0
+							CALL INCREASE_LC,10
+							CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:30 ?うふふ…奴隷なのに？#Hm...\@"
+							;うふふ…奴隷なのに？#ふ～ん
+						CASE 1
+							CALL INCREASE_LC, -10
+							CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:30 ?ふふふ…よくわかってるね#So how are you going to get that?\@"
+							;ふふふ…よくわかってるね#それで何をするの？
+						CASE 2
+							CALL INCREASE_LD,10
+							CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:30 ?奴隷だよ？#Hm, so you don't know yet...\@"
+							;奴隷だよ？#よくわかんない…
+						CASE 3
+							CALL INCREASE_LD,-10
+							CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:30 ?そんなんだから奴隷なんだよ？#Hey, answer seriously.\@"
+							;そんなんだから奴隷なんだよ？#もう、まじめに答えてよー
+					ENDSELECT
+
+			CALL MESSAGE_WINDOW_D, "Alice", @"Well then....\@ダンジョンフラグ:45:30 ?奴隷の#\@\@ダンジョンフラグ:45:4 ? big brother#older sister\@\ I have a request."
+			;じゃあ…\@ダンジョンフラグ:45:30 ?奴隷の#\@\@ダンジョンフラグ:45:4 ? big brother#older sister\@\にお願いがあるの
+			CALL MESSAGE_WINDOW_D, "Alice", @"/Will　you　die　for　me　？" , , , , , , "FADE" , , , "CENTER"
+			;死　ん　で　く　れ　る　？
+			CALL INPUT_YN_D,"Yes","No"
+					SIF RESULT == 0
+						CALL SHINDEAGERU
+					CALL MESSAGE_WINDOW_D, "Alice", "Why?"
+					;どうして？
+					CALL MESSAGE_WINDOW_D, "Alice", "Even though you said you are my friend..."
+					;友達なのに…
+					CALL MESSAGE_WINDOW_D, "Alice", "Why wont you die?"
+					;どうして、死んでくれないの？
+					CALL MESSAGE_WINDOW_D, "", "＞Alice tilted her head quizzically./＞Then she twisted the head of her doll/＞in a direction that would kill a human."
+					;アリスは不思議そうに首を傾げながら/＞手にした人形の首をありえない方向まで捻る
+					CALL MESSAGE_WINDOW_D, "Alice", "If you won't die..."
+					;死んでくれないなら…
+					CALL MESSAGE_WINDOW_D, "Alice", @"I will have to kill you \@ダンジョンフラグ:45:4 ? big brother#older sister\@."
+					;を殺してあげるね
+					CALL MESSAGE_WINDOW_D, "？？？", "Oh my, your friend shouldn't bother you Alice."
+					;おやおや、アリスを困らせるとはいけないお友達だ
+					CALL MESSAGE_WINDOW_D, "", "＞Uncle Red came."
+					;赤おじさんが現われた
+					CALL MESSAGE_WINDOW_D, "", "＞Uncle Reds appearance shifted into that/＞of a huge demon covered with hard scales..."
+					;赤おじさんは硬い鱗に覆われた巨大な悪魔の姿になっていく……
+					CALL MESSAGE_WINDOW_D, "Belial", @"\@ダンジョンフラグ:45:41 ?It seems you didn't get enough punishment yet./#\@On behalf of Alice, I will punish her bad friend."
+					;貴方にはお仕置きが足りないようですね/#\@アリスに代わってこの赤おじさんが悪いお友達を懲らしめてあげよう
+		ELSEIF ダンジョンフラグ:45:10 == 4
+			CALL MESSAGE_WINDOW_D, "Belial", @"\@ダンジョンフラグ:45:41 ?何度でも痛い目をみさせてあげましょう#懲りずに来るとは愚か者めっ！！\@"
+		ENDIF
+		CALL BELIAL_WAKIMI
+		SIF ダンジョンフラグ:45:10 < 5
+			ダンジョンフラグ:45:10 = 4
+	ENDIF
+
+	IF ダンジョンフラグ:45:2 == 1
+		CALL MESSAGE_WINDOW_D, "泣き声", "……えーん…えーん…えーん…"
+		CALL MESSAGE_WINDOW_D, "", "＞You feel the presence of a mighty demon..."
+		;強大な悪魔の気配がする…
+		IF (RAND:100 < 10) || (FINDCHARA_B([[キャラ:ベリアル]],1) == 2 || FINDCHARA_B([[キャラ:ネビロス]],1) == 2)
+			SIF  FINDCHARA_B([[キャラ:ネビロス]],1) == 2
+				CALL MESSAGE_WINDOW_D, "Nebiros", "I'll call Alice's lost soul back here."
+				;迷子になっているアリスの魂をここに呼びだそう
+			SIF  FINDCHARA_B([[キャラ:ベリアル]],1) == 2
+				CALL MESSAGE_WINDOW_D, "Belial", "I can draw Alice near with my signs./The rest is up to you."
+				;わたしの気配でアリスが近づいてくる/あとは貴様次第だ
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+				CALL MESSAGE_WINDOW_D, "", "＞Fiend Alice appeared!"
+				;魔人アリスLv39　ランク4
+				CALL SET_ENEMY,9,[[キャラ:アリス]],65,0,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 = 3000
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CFLAG:(CHARANUM-1):速度補正 = 1
+				BASE:(CHARANUM-1):知恵 += 11
+				BASE:(CHARANUM-1):魔力 += 12
+				BASE:(CHARANUM-1):耐力 += 11
+				BASE:(CHARANUM-1):速さ += 11
+				BASE:(CHARANUM-1):運 += 11
+				ABL:(CHARANUM-1):スキル1 = 1408;死んでくれる？
+				ABL:(CHARANUM-1):スキル2 = 108;刹那五月雨撃
+				ABL:(CHARANUM-1):スキル3 = 1432;呪殺ガードブレイク
+				ABL:(CHARANUM-1):スキル4 = 2416;マカカジャオート
+				ABL:(CHARANUM-1):スキル5 = 1213;キャンディボイス
+				ABL:(CHARANUM-1):スキル6 = 2003;メギドラオン
+				ABL:(CHARANUM-1):スキル7 = 512;コンセントレイト
+				BASE:(CHARANUM-1):火炎 = 150
+				BASE:(CHARANUM-1):氷結 = 100
+				BASE:(CHARANUM-1):神経 = 0
+				BASE:(CHARANUM-1):精神 = 0
+				BASE:(CHARANUM-1):破魔 = 150
+				BASE:(CHARANUM-1):呪殺 = 0
+				BASE:(CHARANUM-1):地変 = 100
+				BASE:(CHARANUM-1):重力 = 100
+				BASE:(CHARANUM-1):核熱 = 150
+				MAXBASE:(CHARANUM-1):火炎 = 150
+				MAXBASE:(CHARANUM-1):氷結 = 100
+				MAXBASE:(CHARANUM-1):神経 = 0
+				MAXBASE:(CHARANUM-1):精神 = 0
+				MAXBASE:(CHARANUM-1):破魔 = 150
+				MAXBASE:(CHARANUM-1):呪殺 = 0
+				MAXBASE:(CHARANUM-1):地変 = 100
+				MAXBASE:(CHARANUM-1):重力 = 100
+				MAXBASE:(CHARANUM-1):核熱 = 150
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+				IF ダンジョンフラグ:45:0 == 3 && (FINDCHARA_B([[キャラ:ベリアル]],1) == 2 || FINDCHARA_B([[キャラ:ネビロス]],1) == 2)
+					SIF  FINDCHARA_B([[キャラ:ネビロス]],1) == 2
+						CALL MESSAGE_WINDOW_D, "Nebiros", "Alice, please wake up."
+						;アリスよ、目を覚ましなさい
+					SIF  FINDCHARA_B([[キャラ:ベリアル]],1) == 2
+						CALL MESSAGE_WINDOW_D, "Belial", "We came to pick you up, Alice."
+						;迎えに来たぞ、アリス
+						CALL MESSAGE_WINDOW_D, "Alice",@"\@FINDCHARA_B([[キャラ:ベリアル]],1) == 2 ?Uncle Red....#\@\@FINDCHARA_B([[キャラ:ネビロス]],1) == 2 ?Uncle Black...#\@/You came to pick me up?"
+						;赤おじさん…、#\@\@FINDCHARA_B([[キャラ:ネビロス]],1) == 2 ?黒おじさん…#\@/私を迎えに来てくれたの？"
+					SIF  FINDCHARA_B([[キャラ:ネビロス]],1) == 2
+						CALL MESSAGE_WINDOW_D, "Nebiros", @"Yes, thats right./I have lend my power to your \@ダンジョンフラグ:45:4 ? big brother#older sister\@.\@!(FINDCHARA_B([[キャラ:ベリアル]],1) == 2) ?/Will Alice also lend %HIM_HER(MASTER)% her power?#\@"
+						;"ああ、そうだよ/今はこの\@ダンジョンフラグ:45:4 ? big brother#older sister\@に力を貸している\@!(FINDCHARA_B([[キャラ:ベリアル]],1) == 2) ?/アリスの力も貸してくれないかい？#\@"
+					SIF  FINDCHARA_B([[キャラ:ベリアル]],1) == 2
+						CALL MESSAGE_WINDOW_D, "Belial", @"\@FINDCHARA_B([[キャラ:ネビロス]],1) == 2 ?We both#I\@ have come./Let's help your \@ダンジョンフラグ:45:4 ? big brother#older sister\@ together."
+						;わたし\@FINDCHARA_B([[キャラ:ネビロス]],1) == 2 ?達#\@と共に/この\@ダンジョンフラグ:45:4 ? big brother#older sister\@に力を貸そうではないか"
+					CALL MESSAGE_WINDOW_D, "Alice", @"Yup...\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@ is my \@ダンジョンフラグ:45:31 ?slave#friend\@ after all./I'll play with you♪"
+					;うん……\@ダンジョンフラグ:45:4 ? big brother#older sister\@はあたしの\@ダンジョンフラグ:45:31 ?奴隷#友達\@だもの/一緒に遊んであげるね♪
+					CALL MESSAGE_WINDOW_D, "", "＞Fiend Alice became an intermediary"
+					CALL ADD_NEW_COMPANION,4104,200,1
+					IF RESULT == 1
+						LOCAL = GETCHARA([[キャラ:アリス]])
+						IF ダンジョンフラグ:45:31 > 0
+							ABL:LOCAL:サドっ気 = 1
+							EXP:LOCAL:嗜虐快楽経験  += 10
+							IF ダンジョンフラグ:45:31 > 1
+								TALENT:LOCAL:倒錯的 = 1
+								TALENT:LOCAL:サド = 1
+								ABL:LOCAL:技巧 = 1
+								ABL:LOCAL:サドっ気 = 1
+								EXP:LOCAL:嗜虐快楽経験  += 10
+							ENDIF
+						ENDIF
+					ENDIF
+					SIF FLAG:24104 < 100
+						FLAG:24104 = 100
+					ダンジョンフラグ:45:2 = 3
+					RETURN
+				ELSE
+					CALL MESSAGE_WINDOW_D, "Alice", "Thanks for coming to visit me."
+					;ありがとう、会いに来てくれて
+					CALL MESSAGE_WINDOW_D, "Alice", "But, I can't go with you.../I'm sorry."
+					;でも、一緒に行けないの…/ごめんね
+					CALL MESSAGE_WINDOW_D, "Alice", @"Please come to play with me again, \@ダンジョンフラグ:45:4 ? big brother#older sister\@."
+					;また遊んでね
+					CALL MESSAGE_WINDOW_D, "", "＞Fiend Alice left..."
+				ENDIF
+			CALL MESSAGE_WINDOW_D, "", "＞The demonic presence faded away..."
+			;悪魔の気配は消えた…
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "......./...../..."
+			CALL MESSAGE_WINDOW_D, "", "＞You felt something weird for a moment..."
+			;どうやら気のせいだったようだ…
+		ENDIF
+		ダンジョンフラグ:45:2 = 2
+	ENDIF
+	CASE 200
+	;ロリコン赤
+	IF ダンジョンフラグ:45:10 == 1 && !ダンジョンフラグ:45:13
+		CALL MESSAGE_WINDOW_D, "", "＞There is a small gentleman dressed in a red suit here."
+		;＞赤いスーツに身を包んだ小太りの紳士がいる
+		CALL MESSAGE_WINDOW_D, "Uncle Red", "You are Alice's new friend."
+		;君がアリスの新しいお友達か
+		CALL MESSAGE_WINDOW_D, "Uncle Red", "Because she get's lonely, I hope you get along well."
+		;彼女は寂しがりだからね、仲良くしてやってくれ
+		IF (TALENT:MASTER:小柄体型 == 1 || TALENT:MASTER:小人体型 == 1) && (ダンジョンフラグ:45:4 == 0)
+			CALL MESSAGE_WINDOW_D, "",@"＞男の視線がネットリと%CALLNAME:MASTER%に絡みつくのを感じた…"
+			ダンジョンフラグ:45:40 = 1
+		ENDIF
+		ダンジョンフラグ:45:13 = 1
+		SIF ダンジョンフラグ:45:14 == 1
+			ダンジョンフラグ:45:10 = 2
+		RETURN
+	ELSEIF ダンジョンフラグ:45:13 == 1 && ダンジョンフラグ:45:40 == 1 
+		CALL MESSAGE_WINDOW_D, "", "＞There is a small gentleman dressed in a red suit here."
+		CALL MESSAGE_WINDOW_D, "Uncle Red", "おやおや、迷子にでもなったのかね？"
+		CALL MESSAGE_WINDOW_D, "", @"＞肉厚の手の平が不躾に%CALLNAME:MASTER%の腰を触ってきた"
+			CALL INPUT_SELECT_D, @"[0]Scold him/[1]Shake of his hand"
+			;おねだりする/[1]手を振り払う
+				SELECTCASE RESULT
+					CASE 0
+						CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は甘い声で赤おじさんにおねだりした"
+						CALL MESSAGE_WINDOW_D, "Uncle Red", "いけない子だね、そんな子にはお仕置きをしなくてはいけない"
+						CALL MESSAGE_WINDOW_D, "", "＞赤おじさんは硬い鱗に覆われた巨大な悪魔の姿になった"
+						CALL MESSAGE_WINDOW_D, "", @"＞丸太の様に太い腕が\@TALENT:MASTER:小柄体型 ?小柄な#\@\@TALENT:MASTER:小人体型 ?小人ほどのサイズしかない#\@%CALLNAME:MASTER%の身体を捕らえ/＞巨体に相応しい赤黒い男根が%CALLNAME:MASTER%の口腔を無理やりに犯しはじめた"
+						CALL MESSAGE_WINDOW_D, "", "………/……/…"
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は本性を現した赤おじさんに弄ばれた"
+							;処女
+							IF TALENT:MASTER:処女 || TALENT:MASTER:再生処女
+								CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/Virginity Lost\@TALENT:MASTER:処女 ?/AbnormalEXP＋１#\@"
+									TALENT:MASTER:処女 = 0
+									TALENT:MASTER:再生処女 = 0
+									SIF TALENT:MASTER:処女
+										EXP:MASTER:異常経験 += 1
+							ENDIF
+							IF TALENT:MASTER:140 == 0
+								CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/ＶEXP＋４０\@CFLAG:MASTER:108 == 0 ?　CreampieEXP＋５０#\@/\@ABL:MASTER:Ｖ感覚 < 10 ?ＶSensitivity＋１　#\@ＶExpandEXP＋３０"
+									EXP:MASTER:Ｖ経験 += 40
+									;子宮内避妊結界OFF
+									SIF CFLAG:MASTER:108 == 0
+										EXP:MASTER:膣射経験 += 50
+									SIF ABL:MASTER:Ｖ感覚 < 10
+										ABL:MASTER:Ｖ感覚 += 1
+									EXP:MASTER:Ｖ拡張経験 += 30
+							ENDIF
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/ＡEXP＋１０\@ABL:MASTER:Ａ感覚 < 10 ?　ＡSensitivity＋１#\@/ＡExpandEXP＋１５\@(EXP:MASTER:Ｖ拡張経験 == 0 || EXP:MASTER:Ａ拡張経験 == 0) ?　AbnormalEXP＋１#\@"
+								EXP:MASTER:Ａ経験 += 10
+								SIF ABL:MASTER:Ａ感覚 < 10
+									ABL:MASTER:Ａ感覚 += 1
+								EXP:MASTER:Ａ拡張経験 += 15
+								SIF EXP:MASTER:Ｖ拡張経験 == 0 || EXP:MASTER:Ａ拡張経験 == 0
+									EXP:MASTER:異常経験 += 1
+							CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/ClimaxEXP＋７０　SexEXP＋５０/BlowjobEXP＋１５　ServicPlsEXP＋１５/SemenEXP＋５５　MasoEXP＋１０"
+								EXP:MASTER:絶頂経験 += 70
+								EXP:MASTER:性交経験 += 50
+								EXP:MASTER:フェラ経験 += 15
+								EXP:MASTER:奉仕快楽経験 += 15
+								EXP:MASTER:精液経験 += 55
+								EXP:MASTER:苦痛快楽経験 += 10
+
+							CALL MESSAGE_WINDOW_D, "",@"＞床の上に転がされた%CALLNAME:MASTER%の下腹部はぽっこりと膨らんでいる"
+							CALL MESSAGE_WINDOW_D, "Uncle Red", "気を失ってしまったようだな"
+							IF PREGNANCY_ABLE(MASTER)
+								CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%はベリアルに【妊娠】させられた"
+									CALL PREGNANCY_CHECK, MASTER, 4
+									CALL SET_FATHERINFO, MASTER, 252, -1, "Belial"
+									TALENT:MASTER:妊娠 = 1
+									CALL CHANGE_N_STATUS, MASTER
+							ENDIF
+						ダンジョンフラグ:45:41 = 1
+						FLAG:脱出 = 1
+					CASE 1
+						CALL MESSAGE_WINDOW_D, "Uncle Red", "これは失礼/困った事があれば何時でも力になりますよ"
+				ENDSELECT
+		ダンジョンフラグ:45:40 = 2
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞There is an altar here."
+		;祭壇がある"
+		IF ダンジョンフラグ:45:0 == 2 && BASE:MASTER:LV >= 50
+		;&& ダンジョンフラグ:45:40 == 2 removed this requirement to be fair to male PCs
+			CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の手にする脇見の壷からベリアルの声が響く"
+			CALL MESSAGE_WINDOW_D, "Belial", "アリスを助けたいならば…/この壷を祭壇に捧げ私を解放しろ…"
+			CALL INPUT_SELECT_D, @"[0]Free him/[1]Ignore him"
+			;声に従う/[1]無視する
+				SELECTCASE RESULT
+					CASE 0
+						CALL MESSAGE_WINDOW_D, "Belial", "くっくっくっ…/愚かな人間め"
+						CALL MESSAGE_WINDOW_D, "Belial", "よくも私を封じてくれたな…"
+						CALL MESSAGE_WINDOW_D, "Belial", "我が怒り……思い知らせてくれるわっ！！"
+						CALL MESSAGE_WINDOW_D, "", "＞Tyrant Belial appeared!"
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+						;戦闘後の経験値処理をスキップする
+						FLAG:RESULTスキップ = 1
+						;魔王ベリアルLv50　ランク2
+						CALL SET_ENEMY,9,[[キャラ:ベリアル]],60,0,1
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+						CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+						BASE:(CHARANUM-1):力 += 10
+						BASE:(CHARANUM-1):知恵 += 5
+						BASE:(CHARANUM-1):魔力 += 5
+						BASE:(CHARANUM-1):耐力 += 10
+						BASE:(CHARANUM-1):速さ += 5
+						BASE:(CHARANUM-1):運 += 6
+						ABL:(CHARANUM-1):スキル4 = 108;刹那五月雨撃
+						ABL:(CHARANUM-1):スキル5 = 1903;フレイダイン
+						ABL:(CHARANUM-1):スキル6 = 711;デッドリーバーン
+						ABL:(CHARANUM-1):スキル7 = 2067;終わる世界
+						ABL:(CHARANUM-1):スキル8 = [[スキル:不屈の闘志]]
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						CALL BATTLE_START
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						;戦闘後の経験値処理をスキップする
+						FLAG:RESULTスキップ = 0
+						CALL MESSAGE_WINDOW_D, "Belial", "大した奴だ…"
+						CALL MESSAGE_WINDOW_D, "Belial", "この魔王ベリアル、貴様に力を貸そう"
+						CALL MESSAGE_WINDOW_D, "", "＞Tyrant Belial became an intermediary"
+						CALL ADD_NEW_COMPANION,[[キャラ:ベリアル]],500,1
+						SIF RESULT == 1
+							ABL:(RESULT:1):従順 = 1
+						ダンジョンフラグ:45:41 = 2
+						FLAG:10252 = 1
+						FLAG:14104 = 1
+						SIF FLAG:20252 < 100
+							FLAG:20252 = 100
+						ダンジョンフラグ:45:0 = 3
+					CASE 1
+						CALL MESSAGE_WINDOW_D, "Belial", "Hehehe.....a smart choice."
+						;くっくっくっ…賢明な判断だ
+				ENDSELECT
+			ダンジョンフラグ:45:2 = 1
+		ELSEIF ダンジョンフラグ:45:0 == 3
+			CALL MESSAGE_WINDOW_D, "", "＞There's nothing more you can do here."
+		ENDIF
+	ENDIF
+
+	CASE 300
+	;ロリコン黒
+	IF ダンジョンフラグ:45:10 == 1 && !ダンジョンフラグ:45:14
+		CALL MESSAGE_WINDOW_D, "", "＞There's a slim gentleman in a black suit here."
+		;黒いスーツに身を包んだ痩身の紳士がいた"
+		CALL MESSAGE_WINDOW_D, "Uncle Black", "Hm...I heard from Alice, but it's rare to get a visitor."
+		;ほう…アリスから聞いてはいたが珍しい来客だ
+		CALL MESSAGE_WINDOW_D, "Uncle Black", "Please get along with her."
+		;彼女と仲良くしてやってくれたまえ
+		CALL MESSAGE_WINDOW_D, "Uncle Black", "Well then, I'm busy with work./Please excuse me."
+		;それでは私は仕事が忙しいのでね、/失礼させてもらう
+		ダンジョンフラグ:45:14 = 1
+		IF ダンジョンフラグ:45:13 == 1
+			ダンジョンフラグ:45:10 = 2
+		ENDIF
+	ELSEIF ダンジョンフラグ:45:10 == 5 && ダンジョンフラグ:45:0 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞妖しげな気配を身にまとった黒おじさんの傍にアリスがいた"
+		CALL MESSAGE_WINDOW_D, "Alice", @"あの\@ダンジョンフラグ:45:4 ? big brother#older sister\@がね…死んでくれないの"
+		CALL MESSAGE_WINDOW_D, "Uncle Black",@"案ずる事はありませんよ/すぐに\@ダンジョンフラグ:45:4 ?彼等#彼女等\@をアリスのおもちゃにしてあげましょう"
+		CALL NEBIROS_BATTLE
+		CALL MESSAGE_WINDOW_D, "Nebiros", "If I die.../Alice will..."
+		;私が死ねば…/アリスは……
+		CALL MESSAGE_WINDOW_D, "", "＞Fallen Nebiros was defeated..."
+		CALL MESSAGE_WINDOW_D, "", "＞ネビロスの黒衣からピラーが転がり出てきた"
+		CALL MESSAGE_WINDOW_D, "", "＞金星のピラーを手に入れた！"
+		CALL MESSAGE_WINDOW_D, "", "＞After the battle, there was no sign of Alice..."
+		;戦いが終わるとそこにはアリスの姿はなかった……
+		ダンジョンフラグ:45:0 = 1
+		ダンジョンフラグ:45:10 = 6
+;		CALL MESSAGE_WINDOW_D, "",@"＞金星の力が%CALLNAME:MASTER%に力を与える…"
+;		CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%の全能力が上昇した！"
+;			BASE:MASTER:力 += 1
+;			BASE:MASTER:知恵 += 1
+;			BASE:MASTER:魔力 += 1
+;			BASE:MASTER:耐力 += 1
+;			BASE:MASTER:速さ += 1
+;			BASE:MASTER:運 += 1
+		CALL MESSAGE_WINDOW_D, "",@"＞For the successful investigation of Roppongi and the removal of the barrier,/the Phantom Society paid you a reward./＞%CALLNAME:MASTER% received 1000 Macca."
+		;＞六本木の調査に成功し結界を解いたことによりソサエティから報酬が支払われた/＞%CALLNAME:MASTER%は1000魔貨を得た
+		MONEY:1 += 1000
+		FLAG:脱出 = 1
+	ELSE 
+		CALL MESSAGE_WINDOW_D, "", "＞There is an altar here."
+		IF ダンジョンフラグ:45:0 == 2 && BASE:MASTER:LV >= 50
+			CALL MESSAGE_WINDOW_D, "", "＞ネビロスの残留思念がイヤらしい笑みを浮かべてこちらを見ている"
+			CALL MESSAGE_WINDOW_D, "Nebiros", "人間よ、輪廻の輪を外れ彷徨うアリスの魂を助けたいのだろう？"
+			CALL MESSAGE_WINDOW_D, "Nebiros", "望むならば…/その壷を祭壇に捧げよ…"
+			CALL INPUT_SELECT_D, @"[0]Free Nebiros/[1]Ignore him"
+			;ネビロスに従う/[1]無視する
+				SELECTCASE RESULT
+					CASE 0 
+						CALL MESSAGE_WINDOW_D, "Nebiros", "くっくっくっ…"
+						CALL MESSAGE_WINDOW_D, "Nebiros", "欲深い人間よ…/感謝するぞ"
+						CALL MESSAGE_WINDOW_D, "Nebiros", "貴様の働きのおかげでベリアルの力を得ることが出来る"
+						CALL MESSAGE_WINDOW_D, "Nebiros", "これでアリスは私だけのものだ"
+						CALL MESSAGE_WINDOW_D, "Belial", "ネビロスゥ…貴様、謀ッタナァァアアア"
+						CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の手にする壷からベリアルの怨嗟の声が響く"
+						CALL MESSAGE_WINDOW_D, "", @"＞ネビロスはベリアルの絶叫をニタリと嘲笑い/＞%CALLNAME:MASTER%に顔を向けた"
+						CALL MESSAGE_WINDOW_D, "Nebiros", "褒美に一度はこのネビロスを破ったその魂、/私とアリスの楽園に役立って貰おう！！"
+						;戦闘後の経験値処理をスキップする
+						FLAG:RESULTスキップ = 1
+						CALL NEBIROS_BATTLE
+						;戦闘後の経験値処理をスキップする
+						FLAG:RESULTスキップ = 0
+						CALL MESSAGE_WINDOW_D, "Nebiros", "Wait..."
+						;待て…
+						CALL MESSAGE_WINDOW_D, "Nebiros", "この堕天使ネビロスの力が無ければ、彼女を救う事は出来ぬぞ"
+						CALL MESSAGE_WINDOW_D, "Nebiros", "If you think of Alice, take me with you."
+						;アリスを想うならば私を連れていくがいい
+						CALL MESSAGE_WINDOW_D, "", "＞Fallen Nebiros became an intermediary"
+						CALL ADD_NEW_COMPANION,[[キャラ:ネビロス]],500,1
+						SIF RESULT == 1
+							ABL:(RESULT:1):従順 = 1
+						ダンジョンフラグ:45:10 = 7
+						FLAG:11710 = 1
+						FLAG:14104 = 1
+						SIF FLAG:21710 < 100
+							FLAG:21710 = 100
+						ダンジョンフラグ:45:0 = 3
+					CASE 1
+						CALL MESSAGE_WINDOW_D, "Nebiros", "愚か者め……"
+					ENDSELECT
+			ダンジョンフラグ:45:2 = 1
+		ELSEIF ダンジョンフラグ:45:0 == 3
+			CALL MESSAGE_WINDOW_D, "", "＞There's nothing more you can do here."
+		ENDIF
+	ENDIF
+	CASE 400
+	;脇見
+	IF ダンジョンフラグ:45:15 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞It's the center of the area guarded by the barrier..."
+		;結界に守られた部屋の中央……
+		CALL MESSAGE_WINDOW_D, "", "＞There was a small pot located here."
+		;＞そこには小さな壷が置かれていた
+		CALL MESSAGE_WINDOW_D, "", "＞You got the gushing jar."
+		;脇見の壷を手に入れた
+		ダンジョンフラグ:45:15 = 1
+	ENDIF
+	CASE 500
+		IF ダンジョンフラグ:45:3
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞You feel the presence of a strong demon..."
+			;強大な悪魔の気配がする…"
+			CALL MESSAGE_WINDOW_D, "", "......../...../..."
+			IF ダンジョンフラグ:45:3 == 1
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				IF !RAND:3
+					CALL MESSAGE_WINDOW_D, "", "＞Fiend Matador appeared!"
+					CALL SET_ENEMY,9,[[キャラ:マタドール]],40,0,1
+					BASE:(CHARANUM-1):知恵 += 10
+					BASE:(CHARANUM-1):魔力 += 10
+					BASE:(CHARANUM-1):運 += 10
+					CFLAG:(CHARANUM-1):ＨＰ補正 = 1575
+					CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					;FLAG:14101 = 1
+				ELSEIF RAND:2
+					CALL MESSAGE_WINDOW_D, "", "＞Fiend Hell's Angel appeared!"
+					CALL SET_ENEMY,9,[[キャラ:ヘルズエンジェル]],56,0,1
+					BASE:(CHARANUM-1):知恵 += 10
+					BASE:(CHARANUM-1):魔力 += 10
+					BASE:(CHARANUM-1):運 += 15
+					CFLAG:(CHARANUM-1):ＨＰ補正 = 1625
+					CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+					;FLAG:14102 = 1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞Fiend Daisoujou appeared!"
+					CALL SET_ENEMY,9,[[キャラ:大僧正]],82,0,1
+					BASE:(CHARANUM-1):運 += 25
+					CFLAG:(CHARANUM-1):ＨＰ補正 = 3605
+					CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+				ENDIF
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞You defeated the demon and it's presence disappeared..."
+				ダンジョンフラグ:45:3 = 0
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞You must have imagined it..."
+			ENDIF
+			ダンジョンフラグ:45:3 = 0
+		ENDIF
+	CASE 600
+	;よしお
+	IF ダンジョンフラグ:45:16 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞神聖な雰囲気をまとったローブ姿の人物がいる/＞ローブをまとったその姿から性別の判別は付かない"
+		CALL MESSAGE_WINDOW_D, "Person in a robe", "この地に囚われていた魂は神の国に送られるだろう/これからも正しき道を行くがいい、人の子よ"
+		CALL MESSAGE_WINDOW_D, "", "＞The mysterious person was wrapped in light and disappeared..."
+		ダンジョンフラグ:45:16 = 1
+	ENDIF
+	CASE 700
+	IF ダンジョンフラグ:45:11 == 0 
+		;フツコ？
+		CALL MESSAGE_WINDOW_D, "", "＞A girl is cowering in the corner of the room..."
+		;部屋の隅に少女がうずくまっている
+		CALL MESSAGE_WINDOW_D, "Girl", "It's so cold...help..."
+		;寒いの…助けて……
+		CALL MESSAGE_WINDOW_D, "Girl", "All the people in this town are dead..."
+		;この街の人はみんな死んでるのよ
+		CALL MESSAGE_WINDOW_D, "Girl", "Mom is dead and dad too...."
+		;私のお母さんも、お父さんも……
+		IF ITEM:1009 >= 1
+			CALL MESSAGE_WINDOW_D, "Girl", @"What's that...\@ダンジョンフラグ:45:4 ?older brother#sister\@ has a nice scent...."
+			;なんだか…\@ダンジョンフラグ:45:4 ?お兄さん#お姉さん\@からいい匂いがする…"
+			CALL MESSAGE_WINDOW_D, "Girl", "I want that..."
+			;それ、欲しいな……
+			CALL MESSAGE_WINDOW_D, "", "＞The girl pointed at a Balm of Life."
+			;少女は反魂香を指差した
+			;ベス
+			IF FINDCHARA_B(4501,0) == 2 || FINDCHARA_B(4501,1) == 2
+				ITEM:1009 -= 1
+				CALL INCREASE_LC,10
+				CALL INCREASE_LD,10
+				CALL MESSAGE_WINDOW_D, "", "＞Beth gave her the Balm of Life without hesitation."
+				;ベスは迷い無く反魂香を差し出した"
+				CALL MESSAGE_WINDOW_D, "Girl",  "Thank you...older sister..."
+				;ありがとう…お姉さん……
+				CALL MESSAGE_WINDOW_D, "", "＞The girl collapsed and quickly turned to ashes."
+				ダンジョンフラグ:45:11 = 1
+			ELSE
+				CALL INPUT_YN_D,"Give her a Balm of Life","Don't give it"
+					IF RESULT == 0
+						ITEM:1009 -= 1
+						CALL INCREASE_LC,10
+						CALL INCREASE_LD,10
+						CALL MESSAGE_WINDOW_D, "Girl",  "Thank you..."
+						;ありがとう……
+						CALL MESSAGE_WINDOW_D, "", "＞The girl collapsed and quickly turned to ashes."
+						;少女の身体が崩れ落ち、やがて灰になって消えていった
+						ダンジョンフラグ:45:11 = 1
+					ELSE
+						CALL MESSAGE_WINDOW_D, "Girl",  "もういいの…"
+						CALL MESSAGE_WINDOW_D, "Girl",  "Leave me alone"
+						;私の事は放っておいて
+					ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+	CASE 10
+	;BAR
+	IF !ダンジョンフラグ:45:0
+		IF FLAG:現M == 2
+			IF FLAG:現Y == 5
+				CALL MESSAGE_WINDOW_D, "Bartender", "ようこそいらっしゃい/人間のオアシス・六本木へ"
+				CALL MESSAGE_WINDOW_D, "Bartender", "ここでは酒も女も自由ですよ"
+					$BAR_LOOP
+					CALL INPUT_SELECT_D, "[1]Drink alcohol/[2]Listen to patrons/[0]Leave" , , , 2
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "Bartender", "See you."
+					ELSEIF RESULT == 1
+						CALL MESSAGE_WINDOW_D, "", "＞出された酒は血のように赤く、/＞生臭さで飲めたものではなかった"
+						GOTO BAR_LOOP
+					ELSEIF RESULT == 2
+						$BAR_LOOP_2
+						CALL INPUT_SELECT_D , "＞Who will you talk to?//[1]Gal/[2]Young man/[3]Youth/[0]Leave" , , , 2
+						IF RESULT == 0
+							GOTO BAR_LOOP
+						ELSEIF RESULT == 1
+							CALL MESSAGE_WINDOW_D, "Gal", "A girl who went mad was thrown in a back room here./She was rambling things that made no sence."
+							;奥の部屋には悪魔にとりつかれて/訳のわかんないことを言っている子が放り込まれているわ
+							CALL MESSAGE_WINDOW_D, "Gal", "She said everyone's dead./What nonsence, we are alive."
+							;みんな死んでるだってさ/バカバカし、私達生きてるちゅーの
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "Young man", "The girls who serve Uncle Red,/he allows us to use them as well."
+							;赤おじさんのはべらしている女の子たち、/俺達も使えるらしいぜ
+							CALL MESSAGE_WINDOW_D, "Young man", "Uncle Red is great."
+							;赤おじさんサマサマだぜ
+						ELSEIF RESULT == 3
+							CALL MESSAGE_WINDOW_D, "Youth", "Thanks to Uncle Red and Uncle Black,/no Gaeans or Mesians can enter this city."
+							;赤いおじさんと黒いおじさんのおかげで/メシア教もガイア教もこの街には手を出せないんだ
+							CALL MESSAGE_WINDOW_D, "Youth", "How they do that?/I have no idea."
+							;どうやっているのかだって？/それは知らないよ
+						ENDIF
+						GOTO BAR_LOOP_2
+					ENDIF
+			ELSEIF FLAG:現Y == 7 
+				CALL MESSAGE_WINDOW_D, "Youth", "I feel chilly somehow."
+				;何だか寒気がするんだ
+				CALL MESSAGE_WINDOW_D, "Youth", "I wonder if I caught a cold."
+				;風邪でもひいたのかな
+			ELSEIF FLAG:現Y == 8
+				CALL MESSAGE_WINDOW_D, "Gal", "Recently, my skin's been in a bad condition."
+				;最近肌の調子がよくないのよね
+				CALL MESSAGE_WINDOW_D, "Gal", "I wonder what's wrong..."
+				;どうしちゃったのかしら
+			ELSEIF FLAG:現Y == 9
+				CALL MESSAGE_WINDOW_D, "Devil Summoner", "For someone tired of battle like me,/this place was a relief."
+				;戦いに疲れていた俺にとってここは安住の地だ
+				CALL MESSAGE_WINDOW_D, "Devil Summoner", "But...sometimes I have weird thoughts./『It's to late now』『I should have left sooner』/I have a bad feeling."
+				;けどな……時々頭の片隅に/『もう遅い』『早くこの街から出るべきだった』/って考えが浮かぶんだ
+			ENDIF
+		ELSEIF FLAG:現M == 3 && FLAG:現Y == 13
+			CALL MESSAGE_WINDOW_D, "Petite girl",  "There is a mysterious pot that can seal a demon in the basement here."
+			;ここの地下にはどんな悪魔も封じてしまう不思議な壷があるんだって
+			CALL MESSAGE_WINDOW_D, "Petite girl",  "By the way...what is a demon?"
+			;ところで…悪魔って何？
+		;ロリコン赤の部屋
+		ELSEIF FLAG:現M == 4
+			IF FLAG:現Y == 10
+				CALL MESSAGE_WINDOW_D, "Petite girl",  "Uncle Red makes me be nice to the people who come here."
+				;赤おじさんは皆に優しくしてくれます
+				CALL MESSAGE_WINDOW_D, "",  "＞Somehow, the girl's eyes seem empty..."
+				;少女の瞳は何処か虚ろだ…
+			ELSEIF FLAG:現X == 1 && FLAG:現Y == 5
+				IF ダンジョンフラグ:45:17 == 1
+					CALL MESSAGE_WINDOW_D, "",  "＞A petite girl is here..."
+					;小柄な少女が居る……
+				ELSEIF ダンジョンフラグ:45:17 == 0
+					CALL MESSAGE_WINDOW_D, "",  "＞部屋の中には目隠しとボールギャグを施され/＞拘束具で幼い秘所を晒すようにＭ字に固定された小柄な少女がいた"
+						;ベス
+						IF FINDCHARA_B(4501,0) == 2 || FINDCHARA_B(4501,1) == 2
+							CALL INCREASE_LC,10
+							CALL INCREASE_LD,10
+							CALL MESSAGE_WINDOW_D, "", "＞ベスは少女を解放した"
+							CALL MESSAGE_WINDOW_D, "Girl", "私は……/肉便器としてここに置いていただいてるんです"
+							CALL MESSAGE_WINDOW_D, "", "＞解放された少女は虚ろな目をし、頑なに共に来る事を拒んだ"
+						ELSE
+							CALL MESSAGE_WINDOW_D, "", "＞What will you do?"
+							CALL INPUT_SELECT_D, @"[0]Help/[1]Ignore\@(TALENT:MASTER:140 == 1 || TALENT:MASTER:139 == 1) ?/[2]Use#\@"
+								SELECTCASE RESULT
+									CASE 0
+										CALL INCREASE_LC,3
+										CALL INCREASE_LD,3
+										CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%は少女を解放してあげた。"
+										CALL MESSAGE_WINDOW_D, "Girl", "私は……/肉便器としてここに置いていただいてるんです"
+										CALL MESSAGE_WINDOW_D, "", "＞解放された少女は虚ろな目をし、頑なに共に来る事を拒んだ"
+									CASE  1
+										CALL INCREASE_LC,-3
+										CALL INCREASE_LD,-3
+										CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%は少女を見捨ててその場を後にした"
+									CASE  2
+									IF (TALENT:MASTER:140 == 1 || TALENT:MASTER:139 == 1)
+										CALL INCREASE_LC,-10
+										CALL INCREASE_LD,-10
+										CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%が公衆便所を使用すると/＞公衆便所は切なげに喘いだ"
+										ダンジョンフラグ:45:5 = 1
+									ENDIF
+									ENDSELECT
+							ダンジョンフラグ:45:17 = 1
+						ENDIF
+				ENDIF
+			ELSEIF FLAG:現X == 5 && FLAG:現Y == 5
+				IF ダンジョンフラグ:45:18 == 1
+					CALL MESSAGE_WINDOW_D, "",  "＞A petite girl is here..."
+				ELSEIF ダンジョンフラグ:45:18 == 0
+					CALL MESSAGE_WINDOW_D, "",  "＞部屋の中には色素の薄い青白い肌の小柄な少女が、/＞目隠しをつけられ両手は後ろ手に縄で縛られている"
+					;ベス
+					IF FINDCHARA_B(4501,0) == 2 || FINDCHARA_B(4501,1) == 2
+						CALL INCREASE_LC,10
+						CALL INCREASE_LD,10
+						CALL MESSAGE_WINDOW_D, "", "＞ベスは少女を解放した"
+						CALL MESSAGE_WINDOW_D, "Girl", "お姉ちゃん……/私は…お姉ちゃん達と一緒には行けないの"
+						CALL MESSAGE_WINDOW_D, "",@"＞解放された少女は俯いたまま、%CALLNAME:MASTER%と共に来る事を拒んだ"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "", "＞What will you do?"
+						CALL INPUT_SELECT_D, @"[0]Help/[1]Ignore\@(TALENT:MASTER:140 == 1 || TALENT:MASTER:139 == 1) ?/[2]Use#\@"
+						;助ける/[1]無視する\@(TALENT:MASTER:140 == 1 || TALENT:MASTER:139 == 1) ?/[2]使用する#\@"
+							SELECTCASE RESULT
+								CASE 0
+									CALL INCREASE_LC,3
+									CALL INCREASE_LD,3
+									CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%は少女を解放してあげた。"
+									CALL MESSAGE_WINDOW_D, "Girl",@"\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@…/私は肉便器だから一緒には行けないの…"
+									CALL MESSAGE_WINDOW_D, "", "＞解放された少女は悲しげに共に来る事を拒んだ"
+								CASE  1
+									CALL INCREASE_LC,-3
+									CALL INCREASE_LD,-3
+									CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%は少女を見捨ててその場を後にした"
+								CASE 2
+									IF (TALENT:MASTER:140 == 1 || TALENT:MASTER:139 == 1)
+										CALL INCREASE_LC,-10
+										CALL INCREASE_LD,-10
+										CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%は公衆便所を使用した/公衆便所はなすがままにされながら細い声で悲鳴をあげる"
+										ダンジョンフラグ:45:5 = 1
+									ENDIF
+								ENDSELECT
+					ダンジョンフラグ:45:18 = 1
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+	CASE 20
+		IF ダンジョンフラグ:45:10 >= 4 && ダンジョンフラグ:45:19 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞This room is filled with the smell of dead."
+			;部屋の中は死臭に満ちていた
+			CALL MESSAGE_WINDOW_D, "", "＞There are corpses stacked in a casual manner..."
+			;積み重なるようにして無造作に死体が放置されている…
+			ダンジョンフラグ:45:19 = 1
+		ENDIF
+	CASE 30
+		IF ダンジョンフラグ:45:12 == 0
+			CALL MESSAGE_WINDOW_D, "Girl",@"Thank you...\@ダンジョンフラグ:45:4 ? big brother#older sister\@."
+			;ありがとう…
+			CALL MESSAGE_WINDOW_D, "", "＞The body of the girl trapped in this room turned to ashes and faded away."
+			;この部屋に閉じ込められていた少女達の身体が灰になり、消え去っていった
+			ダンジョンフラグ:45:12 = 1
+		ENDIF
+
+	ENDSELECT
+RETURN 1
+ENDSELECT
+RETURN 0
+
+;アリスの調教
+@ALICE_TRAINING
+CALL MESSAGE_WINDOW_D, "Alice", "うふふ♪"
+IF !(ダンジョンフラグ:45:31)
+	CALL MESSAGE_WINDOW_D, "Alice", "じゃあ……あたしの靴を舐めて/『私はご主人様の犬です』って言って欲しいな♪"
+	CALL MESSAGE_WINDOW_D, "",@"＞%CALLNAME:MASTER%は靴を舐め、/＞言われた通りに口上を述べた"
+	CALL MESSAGE_WINDOW_D, "Alice", @"ふふ…/\@ダンジョンフラグ:45:4 ? big brother#older sister\@は変態だね♪"
+ELSE
+	$RANDM_TRAINING
+	SELECTCASE RAND:5
+		CASE IS < 1
+			IF ITEM:4 >= 1 && TALENT:MASTER:処女 == 0 && (TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘 == 0) && !(ダンジョンフラグ:45:32)
+				CALL MESSAGE_WINDOW_D, "Alice", "そんじゃあ……コレを入れてあげる♪"
+				CALL MESSAGE_WINDOW_D, "", "＞アリスはバイブを手にして微笑んだ"
+				CALL MESSAGE_WINDOW_D, "Alice", "あたしが見ててあげるから、自分でして見せてね？"
+				CALL MESSAGE_WINDOW_D, "", "………/……/…"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は命じられるがままに/＞バイブで自慰をしてみせた"
+				CALL MESSAGE_WINDOW_D, "Alice", "うふふっ/お姉ちゃんはどうしようもない淫乱なんだね♪"
+				CALL MESSAGE_WINDOW_D, "Alice", "赤おじさんと黒おじさんにも見せてあげてね"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/\@TALENT:MASTER:再生処女 ?Restored Virginity Lost　#\@ＶEXP＋２/MasturbEXP＋１　FrcMasturEXP＋１"
+				SIF TALENT:MASTER:再生処女
+				TALENT:MASTER:再生処女 = 0
+				EXP:MASTER:Ｖ経験 += 2
+				EXP:MASTER:自慰経験 += 1
+				EXP:MASTER:調教自慰経験 += 1
+				ダンジョンフラグ:45:32 = 1
+			ELSE
+				GOTO RANDM_TRAINING
+			ENDIF
+		CASE IS < 2
+			IF ITEM:5 >= 1 && EXP:MASTER:1 >= 1 && !(ダンジョンフラグ:45:33)
+				CALL MESSAGE_WINDOW_D, "Alice", "そんじゃあ……コレを入れてあげる♪"
+				CALL MESSAGE_WINDOW_D, "",@"＞アリスはアナルバイブを%CALLNAME:MASTER%のアナルに差し入れた"
+				CALL MESSAGE_WINDOW_D, "Alice", "あたしが見ててあげるから、自分でして見せてね？"
+				CALL MESSAGE_WINDOW_D, "", "………/……/…"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は命じられるがままに/＞アナルバイブで自慰をしてみせた"
+				CALL MESSAGE_WINDOW_D, "Alice", @"ふ～ん/\@ダンジョンフラグ:45:4 ?お兄ちゃんは男の人なのに#お姉ちゃんは\@お尻が好きなんだ？"
+				CALL MESSAGE_WINDOW_D, "Alice", "赤おじさんと黒おじさんにも見せてあげたいな"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/ＡEXP＋２/MasturbEXP＋１/FrcMasturEXP＋１"
+				EXP:MASTER:Ａ経験 += 2
+				EXP:MASTER:自慰経験 += 1
+				EXP:MASTER:調教自慰経験 += 1
+				ダンジョンフラグ:45:33 = 1
+			ELSE
+				GOTO RANDM_TRAINING
+			ENDIF
+		CASE IS < 3
+			IF ITEM:13 >= 1 && !(ダンジョンフラグ:45:34)
+				CALL MESSAGE_WINDOW_D, "Alice", "じゃあ……これで叩いてあげるね！"
+				CALL MESSAGE_WINDOW_D, "", "＞アリスは鞭を手にして微笑んだ"
+				CALL MESSAGE_WINDOW_D, "", "………/……/…"
+				CALL MESSAGE_WINDOW_D, "", @"＞アリスは%CALLNAME:MASTER%を鞭で打った"
+				CALL MESSAGE_WINDOW_D, "Alice", @"どうしたの？　\@ダンジョンフラグ:45:4 ? big brother#older sister\@"
+				CALL MESSAGE_WINDOW_D, "Alice", "もっと苦しんでくれないとつまらないよ？/赤おじさんと黒おじさんにもいじめてもらおうかな"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/MasoEXP＋５"
+				EXP:MASTER:苦痛快楽経験 += 5
+				ダンジョンフラグ:45:34 = 1
+			ELSE
+				GOTO RANDM_TRAINING
+			ENDIF
+		CASE IS < 4
+			IF ITEM:17 >= 1 && ITEM:22 == 1 && ABL:MASTER:9 >= 1 && !(ダンジョンフラグ:45:35)
+				CALL MESSAGE_WINDOW_D, "Alice",@"じゃあ……\@ダンジョンフラグ:45:4 ? big brother#older sister\@は今日からあたしの奴隷ね♪"
+				CALL MESSAGE_WINDOW_D, "Alice", "口枷は勝手に外しちゃダメだからね？/反抗しなくなったら外してあげる♪"
+				CALL MESSAGE_WINDOW_D, "Alice", "まずはお散歩しに行こうね♪"
+				CALL MESSAGE_WINDOW_D, "", "………/……/…"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%はボールギャグをはめられ、/＞首輪をつけられて六本木の街を四つん這いで歩かされた"
+				CALL MESSAGE_WINDOW_D, "Alice",@"うふふ…/\@ダンジョンフラグ:45:4 ? big brother#older sister\@はどうしようもない変態マゾなんだね"
+				CALL MESSAGE_WINDOW_D, "Alice",@"赤おじさんと黒おじさんに\@ダンジョンフラグ:45:4 ? big brother#older sister\@を飼ってもいいって聞いてあげるね"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/BondageEXP＋２/OutExposeEXP＋２/AbnormalEXP＋１"
+				EXP:MASTER:緊縛経験 += 2
+				EXP:MASTER:野外露出経験 += 2
+				EXP:MASTER:異常経験 += 1
+				ダンジョンフラグ:45:35 = 1
+			ELSE
+				GOTO RANDM_TRAINING
+			ENDIF
+		CASE IS < 5
+			IF (TALENT:MASTER:オトコ == 1 || TALENT:MASTER:ふたなり == 1 || TALENT:MASTER:男の娘 == 1) && !(ダンジョンフラグ:45:36)
+				CALL MESSAGE_WINDOW_D, "Alice",@"それじゃあ……ふみふみしてあげる♪"
+				CALL MESSAGE_WINDOW_D, "", "＞アリスは可愛らしい靴でチンポを踏みつけながら微笑んだ"
+				CALL MESSAGE_WINDOW_D, "", "………/……/…"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%はアリスは可愛らしい靴でチンポを弄ばれた"
+				CALL MESSAGE_WINDOW_D, "Alice", "あはは……こんなことされているのに勃起してる♪"
+				CALL MESSAGE_WINDOW_D, "Alice", "変態おちんちんは赤おじさんと黒おじさんにちょん切って貰おうかな"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%の経験/MasoEXP＋５"
+				EXP:MASTER:苦痛快楽経験 += 5
+				ダンジョンフラグ:45:36 = 1
+			ELSE
+				GOTO RANDM_TRAINING
+			ENDIF
+		ENDSELECT
+ENDIF
+	ダンジョンフラグ:45:31 += 1
+	ダンジョンフラグ:45:10 = 3
+	ダンジョンフラグ:45:30 = 1
+	IF (ITEM:4 >= 1 && TALENT:MASTER:処女 == 0 && (TALENT:MASTER:オトコ == 0 || TALENT:MASTER:男の娘 == 0) && !(ダンジョンフラグ:45:32)) || (ITEM:5 >= 1 && EXP:MASTER:1 >= 1 && !(ダンジョンフラグ:45:33)) || ( ITEM:13 >= 1 && !(ダンジョンフラグ:45:34)) ||  (ITEM:17 >= 1 && ITEM:22 == 1 && ABL:MASTER:9 >= 1 && !(ダンジョンフラグ:45:35)) || ((TALENT:MASTER:オトコ == 1 || TALENT:MASTER:ふたなり == 1 || TALENT:MASTER:男の娘 == 1) && !(ダンジョンフラグ:45:36))
+		CALL MESSAGE_WINDOW_D, "Alice", @"\@ダンジョンフラグ:45:4 ? Big brother#Older sister\@, do you want to play some more?"
+		;、まだ遊んで欲しい？
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL ALICE_TRAINING
+			ENDIF
+	ENDIF
+
+;無敵ベリアルと脇見の壺
+@BELIAL_WAKIMI
+IF ダンジョンフラグ:45:15 == 1
+	CALL MESSAGE_WINDOW_D, "", @"＞Suddenly, the gushing jar that %CALLNAME:MASTER% had picked up/＞started shining with light."
+	;突如として%CALLNAME:MASTER%の持っていた脇見の壷が光を放った
+	CALL MESSAGE_WINDOW_D, "Belial", "T-that, the gushing jar!"
+	;そ、それは脇見の壷！！
+	CALL MESSAGE_WINDOW_D, "Belial", "Why, why do you have that!?"
+	;何故、貴様がそれを持っている！？
+	CALL MESSAGE_WINDOW_D, "Belial", "Nebiros, didn't you seal it away!?"
+	;ネビロスめ、封印したのではないのかっ！？"
+	CALL MESSAGE_WINDOW_D, "Belial", "Woaaaaaa..."
+	CALL MESSAGE_WINDOW_D, "", "＞Belial was sucked into the gushing jar."
+	;ベリアルは脇見の壷に吸い込まれていった"
+	CALL MESSAGE_WINDOW_D, "Alice", "Ahh!/Help me Uncle Black!"
+	;きゃー！/助けて黒おじさーん！
+	CALL MESSAGE_WINDOW_D, "", "＞Alice ran away crying..."
+	;泣き声と共にアリスの姿は消え去った
+	ダンジョンフラグ:45:10 = 5
+ELSE
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	CALL MESSAGE_WINDOW_D, "", "＞Tyrant Belial appeared!"
+	CALL SET_ENEMY,9,[[キャラ:ベリアル]],50,0,1
+	ABL:(CHARANUM-1):スキル5 = 0
+	ABL:(CHARANUM-1):スキル6 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 5000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+	BASE:(CHARANUM-1):剣撃 = 0
+	BASE:(CHARANUM-1):飛具 = 0
+	BASE:(CHARANUM-1):打撃 = 0
+	BASE:(CHARANUM-1):戦技 = 0
+	BASE:(CHARANUM-1):火炎 = 0
+	BASE:(CHARANUM-1):氷結 = 0
+	BASE:(CHARANUM-1):電撃 = 0
+	BASE:(CHARANUM-1):衝撃 = 0
+	BASE:(CHARANUM-1):神経 = 0
+	BASE:(CHARANUM-1):精神 = 0
+	BASE:(CHARANUM-1):破魔 = 0
+	BASE:(CHARANUM-1):呪殺 = 0
+	BASE:(CHARANUM-1):地変 = 0
+	BASE:(CHARANUM-1):水撃 = 0
+	BASE:(CHARANUM-1):疾風 = 0
+	BASE:(CHARANUM-1):重力 = 0
+	BASE:(CHARANUM-1):核熱 = 0
+	BASE:(CHARANUM-1):万能 = 0
+	BASE:(CHARANUM-1):サイコ = 0
+	MAXBASE:(CHARANUM-1):剣撃 = 0
+	MAXBASE:(CHARANUM-1):飛具 = 0
+	MAXBASE:(CHARANUM-1):打撃 = 0
+	MAXBASE:(CHARANUM-1):戦技 = 0
+	MAXBASE:(CHARANUM-1):火炎 = 0
+	MAXBASE:(CHARANUM-1):氷結 = 0
+	MAXBASE:(CHARANUM-1):電撃 = 0
+	MAXBASE:(CHARANUM-1):衝撃 = 0
+	MAXBASE:(CHARANUM-1):神経 = 0
+	MAXBASE:(CHARANUM-1):精神 = 0
+	MAXBASE:(CHARANUM-1):破魔 = 0
+	MAXBASE:(CHARANUM-1):呪殺 = 0
+	MAXBASE:(CHARANUM-1):地変 = 0
+	MAXBASE:(CHARANUM-1):水撃 = 0
+	MAXBASE:(CHARANUM-1):疾風 = 0
+	MAXBASE:(CHARANUM-1):重力 = 0
+	MAXBASE:(CHARANUM-1):核熱 = 0
+	MAXBASE:(CHARANUM-1):万能 = 0
+	MAXBASE:(CHARANUM-1):サイコ = 0
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL BATTLE_START
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	FLAG:現X += 1
+ENDIF
+
+;ネビロスとの戦闘
+@NEBIROS_BATTLE
+CALL MESSAGE_WINDOW_D, "", "＞Fallen Nebiros appeared!"
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+	;堕天使ネビロスLv40　ランク5
+	CALL SET_ENEMY,9,[[キャラ:ネビロス]],52,0,1
+		IF ダンジョンフラグ:45:0 == 2 
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+			BASE:(CHARANUM-1):LV += 8
+			BASE:(CHARANUM-1):知恵 += 10
+			BASE:(CHARANUM-1):魔力 += 10
+			BASE:(CHARANUM-1):耐力 += 10
+			BASE:(CHARANUM-1):速さ += 5
+			BASE:(CHARANUM-1):運 += 6
+			ABL:(CHARANUM-1):スキル6 = 2003;メギドラオン
+		ELSE
+			CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 4000
+			ABL:(CHARANUM-1):スキル6 = 2002;メギドラ
+		ENDIF
+	CFLAG:(CHARANUM-1):速度補正 = 15
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	ABL:(CHARANUM-1):スキル1 = 1003;ザンダイン
+	ABL:(CHARANUM-1):スキル2 = 1006;マハ・ザンダイン
+	ABL:(CHARANUM-1):スキル3 = 1403;丑の刻参り
+	ABL:(CHARANUM-1):スキル4 = 2416;マカカジャオート
+	ABL:(CHARANUM-1):スキル5 = 603;マカラカーン
+	ABL:(CHARANUM-1):スキル7 = 509;デ・カジャ
+	ABL:(CHARANUM-1):スキル8 = 512;コンセントレイト
+	BASE:(CHARANUM-1):飛具 = 110
+	BASE:(CHARANUM-1):氷結 = 50
+	BASE:(CHARANUM-1):精神 = 0
+	BASE:(CHARANUM-1):破魔 = 110
+	BASE:(CHARANUM-1):地変 = 110
+	BASE:(CHARANUM-1):水撃 = 50
+	BASE:(CHARANUM-1):重力 = 50
+	BASE:(CHARANUM-1):核熱 = 110
+	MAXBASE:(CHARANUM-1):飛具 = 110
+	MAXBASE:(CHARANUM-1):氷結 = 50
+	MAXBASE:(CHARANUM-1):精神 = 0
+	MAXBASE:(CHARANUM-1):破魔 = 110
+	MAXBASE:(CHARANUM-1):地変 = 110
+	MAXBASE:(CHARANUM-1):水撃 = 50
+	MAXBASE:(CHARANUM-1):重力 = 50
+	MAXBASE:(CHARANUM-1):核熱 = 110
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL BATTLE_START
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+
+;========
+;宝箱
+;========
+@TREASURE_45, ARG
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 100
+		LOCALS = ＨＰ
+		LOCAL = 10
+	CASE 101
+		LOCALS = ＨＰ
+		LOCAL = 10
+	CASE 200
+		LOCALS = Dis-Poison
+		LOCAL = 2
+	CASE 201
+		LOCALS = ChakraPot
+		LOCAL = 1
+	CASE 202
+		LOCALS = ＨＰ
+		LOCAL = 10
+	CASE 203
+		LOCALS = BalmOfLife
+		LOCAL = 1
+	CASE 300
+		LOCALS = AgIncense
+		LOCAL = 1
+	CASE 400
+		LOCALS = StIncense
+		LOCAL = 1
+	CASE 401
+		LOCALS = ＨＰ
+		LOCAL = 10
+	CASE 402
+		IF  FLAG:月齢 == 8
+			LOCALS = トパーズ
+		ELSE
+			LOCALS = ＨＰ
+			LOCAL = 10
+		ENDIF
+ENDSELECT
+IF LOCALS == "￥"
+	CALL GET_TREASURE_MONEY, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 20, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "魔貨"
+	CALL GET_TREASURE_MONEY, 1, LOCAL, FLAG:現ダンジョン, FLAG:現M + 20, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "MAG" || LOCALS == "ＭＡＧ"
+	CALL GET_TREASURE_MAG, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 20, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "ＨＰ" || LOCALS == "ＭＰ" || LOCALS == "POISON" || LOCALS == "PALYZE"
+	;LOCALS:1 種類 LOCAL ダメージ量or確率 LOCALS:2 相性
+	CALL GET_TREASURE_TRAP, LOCALS, LOCAL, GET_TYPE_NUM(LOCALS:1), FLAG:現ダンジョン, FLAG:現M + 20, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSE
+	IF GETNUM(ITEM, LOCALS) == -1
+		PRINTL ＞アイテム名の指定が間違ってます
+		PRINTW ＞アイテムの取得処理を中断します
+	ELSE
+		CALL GET_TREASURE, GETNUM(ITEM, LOCALS), LOCAL , FLAG:現ダンジョン, FLAG:現M + 20, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+	ENDIF
+ENDIF
+RETURN 1
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_45
+;位置とIDが対応しているはずなので、同IDの階段を探させれば良い
+	CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , DA:(FLAG:現X):(FLAG:現Y) + 1000 + 1
+RETURN 1
+
+@DOWNSTAIRS_45
+	CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , DA:(FLAG:現X):(FLAG:現Y) - 1000 - 1
+RETURN 1
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_45
+RETURN 45, 42, 47, 50
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_45
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASEELSE
+		IF ダンジョンフラグ:45:10 >= 4
+			FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+		ELSE
+			FLAG:エンカウント率 = 0
+		ENDIF
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_45
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_45
+RETURN CLASS_NUM_COMMON("上級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_45, ARG
+RETURN ENEMY_NUM_COMMON("上級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_45, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25%でサキュバス　Lv44
+				RETURN [[キャラ:サキュバス]], 44
+			CASE IS < 35
+				;10%でゾンビちゃん　Lv4　ランク12
+				RETURN [[キャラ:ゾンビちゃん]], 40
+			CASE IS < 45
+				;10%でゾンビナース　Lv8　ランク11
+				RETURN [[キャラ:ゾンビナース]], 41
+			CASE IS < 55
+				;10%でゾンビーサムライ　Lv30　ランク4
+				RETURN [[キャラ:ゾンビーサムライ]], 42
+			CASE IS < 65
+				;10%でゾンビーケンペイ　Lv30　ランク4
+				RETURN [[キャラ:ゾンビーケンペイ]], 42
+			CASE IS < 75
+				;10%でゾンビくん　Lv7　ランク11
+				RETURN [[キャラ:ゾンビくん]], 40
+			CASE IS < 85
+				;10%でゾンビコップ　Lv9　ランク11
+				RETURN [[キャラ:ゾンビコップ]], 42
+			CASE IS < 95
+				;10%で　コープス Lv32　ランク4
+				RETURN [[キャラ:コープス]], 44
+			CASE IS < 100
+				;10%でレギオン　Lv40　ランク1
+				RETURN [[キャラ:レギオン]], 43
+		ENDSELECT
+	CASE 1 , 3
+	;ゾンビーズ
+	SELECTCASE RAND:13
+		CASE IS < 1
+			RETURN [[キャラ:ゾンビちゃん]], 43
+		CASE IS < 2
+			RETURN [[キャラ:ゾンビナース]], 44
+		CASE IS < 3
+			RETURN [[キャラ:ゾンビーサムライ]], 45
+		CASE IS < 4
+			RETURN [[キャラ:ゾンビーケンペイ]], 45
+		CASE IS < 5
+			RETURN [[キャラ:ゾンビくん]], 43
+		CASE IS < 6
+			RETURN [[キャラ:ゾンビコップ]], 45
+		CASE IS < 7
+			RETURN [[キャラ:コープス]], 47
+		CASE IS < 8
+			RETURN [[キャラ:レギオン]], 46
+		CASE IS < 9
+			RETURN [[キャラ:マンイーター]], 45
+		CASE IS < 10
+			RETURN [[キャラ:シャドウ]], 49
+		CASE IS < 11
+			RETURN [[キャラ:ボディコニアン]], 44
+		CASE IS < 12
+			RETURN [[キャラ:ゾンビドッグ]], 40
+		CASE IS < 13
+			RETURN [[キャラ:ピシャーチャ]], 45
+		ENDSELECT
+	CASE 2
+	;アリスのお友達
+	SELECTCASE RAND:11
+		CASE IS < 1
+			RETURN [[キャラ:ピクシー]], 43
+		CASE IS < 2
+			RETURN [[キャラ:リリム]], 44
+		CASE IS < 3
+			RETURN [[キャラ:ナジャ]], 45
+		CASE IS < 4
+			RETURN [[キャラ:イナバシロウサギ]], 45
+		CASE IS < 5
+			RETURN [[キャラ:ゾンビナース]], 43
+		CASE IS < 6
+			RETURN [[キャラ:はなこ]], 45
+		CASE IS < 7
+			RETURN [[キャラ:ボディコニアン]], 45
+		CASE IS < 8
+			RETURN [[キャラ:ゾンビドッグ]], 46
+		CASE IS < 9
+			RETURN [[キャラ:ゾンビちゃん]], 45
+		CASE IS < 10
+			RETURN [[キャラ:コープス]], 44
+		CASE IS < 11
+			RETURN [[キャラ:タム・リン]], 44
+		ENDSELECT
+	CASE 4
+	;ロリコンの階
+	SELECTCASE RAND:10
+		CASE IS < 1
+			RETURN [[キャラ:アルプ]], 43
+		CASE IS < 2
+			RETURN [[キャラ:リリム]], 44
+		CASE IS < 3
+			RETURN [[キャラ:ナジャ]], 45
+		CASE IS < 4
+			RETURN [[キャラ:アチェリ]], 45
+		CASE IS < 5
+			RETURN [[キャラ:カハク]], 43
+		CASE IS < 6
+			RETURN [[キャラ:はなこ]], 45
+		CASE IS < 7
+			RETURN [[キャラ:モー・ショボー]], 45
+		CASE IS < 8
+			RETURN [[キャラ:コカクチョウ]], 46
+		CASE IS < 9
+			RETURN [[キャラ:ハーピー]], 45
+		CASE IS < 10
+			RETURN [[キャラ:シルフ]], 47
+	ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;特殊調整
+;=======================================================================
+@SET_ENEMY_STATUS_45, ARG
+SELECTCASE NO:ARG
+	CASE [[キャラ:ゾンビくん]], 43
+		ABL:(CHARANUM-1):スキル1 = 302
+		ABL:(CHARANUM-1):スキル2 = 322
+		ABL:(CHARANUM-1):スキル3 = 1202
+	CASE [[キャラ:ゾンビナース]], 44
+		ABL:(CHARANUM-1):スキル1 = 101
+		ABL:(CHARANUM-1):スキル2 = 1212
+		ABL:(CHARANUM-1):スキル3 = 102
+		ABL:(CHARANUM-1):スキル4 = 303
+	CASE [[キャラ:ゾンビちゃん]], 43
+		ABL:(CHARANUM-1):スキル1 = 302
+		ABL:(CHARANUM-1):スキル2 = 322
+		ABL:(CHARANUM-1):スキル3 = 1212
+	CASE [[キャラ:ゾンビコップ]]
+		ABL:(CHARANUM-1):スキル4 = 302
+		ABL:(CHARANUM-1):スキル5 = 112
+	CASE [[キャラ:ピクシー]]
+		ABL:(CHARANUM-1):スキル1 = [[スキル:放電]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:ハッピーステップ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:ディアラマ]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:羽ばたき]]
+	CASE [[キャラ:リリム]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:セクシーダンス]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:愛のムチ]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:マハ・ジオンガ]]
+	CASE [[キャラ:ナジャ]]
+		ABL:(CHARANUM-1):スキル1 = [[スキル:ジオダイン]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:メ・ディアラマ]]
+	CASE [[キャラ:はなこ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・アクア]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:バインドボイス]]
+	CASE [[キャラ:ピシャーチャ]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:嵐の乱舞]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:マハ・ジオンガ]]
+		ABL:(CHARANUM-1):スキル6 = [[スキル:デ・クンダ]]
+ENDSELECT
+
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+;ARGはそのエレベーターのタイル
+@DUNGEON_ELEVATOR_45, ARG
+;RESULT:1～5にエレベータが存在するマップの番号を代入し、RESULTS:1～5には表示したい名称を代入、RETURNでは-1を返しておく
+RESULT:1 = 1
+RESULT:2 = 2
+RESULT:3 = 3
+RESULT:4 = 4
+RESULTS:1 = Ｂ１Ｆ
+RESULTS:2 = １Ｆ
+RESULTS:3 = ２Ｆ
+RESULTS:4 = ３Ｆ
+RETURN -1
+
+
+
+@SHINDEAGERU
+PRINTFORMW %CALLNAME:MASTER%の心臓が鈍い痛みと共に停止した
+PRINTFORMW ゆっくりと体温が下がり死の気配が近づいてくるのを%CALLNAME:MASTER%は感じながら意識を失った…
+PRINTFORMW ………………
+PRINTFORMW …………
+PRINTFORMW ……
+PRINTFORMW 数日後
+PRINTFORML 
+PRINTFORMW %CALLNAME:MASTER%はアリスのお気に入りの玩具として弄ばれていた。
+PRINTFORMW 檻の中に囚われているもの
+PRINTFORMW 拘束具で吊るされているもの
+PRINTFORMW 十字架に逆さに磔にされているもの
+PRINTFORMW 彼女の為に用意された部屋には%CALLNAME:MASTER%の他に%CALLNAME:MASTER%の仲魔であった者や
+PRINTFORMW 年端のいかない少女らしき者達
+PRINTFORMW アリスの友達として連れて来られた者達は生ける屍となり、残酷な責め苦を受けていた
+PRINTFORMW 「うふふ…今日は何をして遊ぼうかしら」
+PRINTFORMW ある者の両穴にバイブを無造作にねじ込み
+PRINTFORMW ある者の肌に針を突き立て
+PRINTFORMW ある者の口腔に轡をはめ
+PRINTFORMW 少女は思いつきのままに責め苦を与え苦痛を与えていく
+PRINTFORMW ここにいる者は皆、少女の玩具であり奴隷であった
+PRINTFORMW どれほどの責めを受けようと、既に死した身は朽ち果てる事はない
+PRINTFORMW 主たる少女が飽きる日まで続く地獄の日々がそこには待っていた……
+PRINTW 
+PRINTW 　　　　　　　　――  Bad Ending No.040 ( アリスの玩具END -オ ト モ ダ チ- )
+CALL GLOBAL_BADEND_SET(40)
+CALL GAME_OVER
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_45
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:4
+	CASE 0
+		RETURN [[キャラ:ゾンビコップ]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビコップ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ゾンビーサムライ]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビーサムライ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:ゾンビーケンペイ]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビーケンペイ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 3
+		RETURN [[キャラ:ゾンビくん]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビくん]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+

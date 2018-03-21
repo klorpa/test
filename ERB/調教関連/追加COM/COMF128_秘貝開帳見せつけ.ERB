@@ -1,0 +1,258 @@
+;-------------------------------------------------
+;秘貝開帳
+;愛撫系コマンド、レベル2
+;-------------------------------------------------
+@CHECK_COM_ABLE128
+
+;処女の場合、露出癖3以上ないとダメ
+SIF TALENT:PLAYER:0 && ABL:PLAYER:8 < 3
+	RETURN 0
+
+SIF !USE_HAND(PLAYER)
+	RETURN 0
+
+SIF !USE_VAGINA(PLAYER)
+	RETURN 0
+
+;お風呂場プレイ中はプレイマットが無いとダメ
+IF TEQUIP:31
+	SIF !EXIST_ITEM(20)
+		RETURN 0
+ENDIF
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+;下半身下着をつけている、スカート以外の下半身上着を履いている、下の空いてない全身上着を着ているとダメ
+SIF !USE_CLI(PLAYER) && !USE_PENIS(PLAYER)
+	RETURN 0
+RETURN 1
+
+@ACT_COM128
+PRINTL Show Off Pussy
+TSTR:0 = 秘貝開帳見せつけ
+;CALL KOJO_MESSAGE_COM
+;膣内の精液量が2減少する
+TCVAR:PLAYER:101 = MAX(TCVAR:PLAYER:101 - 2, 0)
+;調教対象→調教対象
+TFLAG:28 = 4
+
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:0 += 5
+DOWNBASE:TARGET:1 += 20
+
+SOURCE:TARGET:露出 = 200
+SOURCE:TARGET:不潔 = 100
+SOURCE:TARGET:逸脱 = 150
+SOURCE:TARGET:反感 = 150
+;-------------------------------------------------
+;特殊ソース処理
+;他のコマンドと性質がかなり違うのでほとんど特殊で定義する
+;-------------------------------------------------
+
+;PALAM:欲情をみる
+IF PALAM:欲情 < PALAMLV:1
+	SOURCE:欲情 = 25
+ELSEIF PALAM:欲情 < PALAMLV:2
+	SOURCE:欲情 = 50
+ELSEIF PALAM:欲情 < PALAMLV:3
+	SOURCE:欲情 = 100
+ELSEIF PALAM:欲情 < PALAMLV:4
+	SOURCE:欲情 = 200
+ELSE
+	SOURCE:欲情 = 400
+ENDIF
+SELECTCASE ABL:TARGET:露出癖
+	CASE 0
+		SOURCE:TARGET:恐れ = 100
+	TIMES SOURCE:欲情 , 0.00
+	CASE 1
+		SOURCE:TARGET:恐れ = 50
+	TIMES SOURCE:欲情 , 0.40
+	CASE 2
+		SOURCE:TARGET:恐れ = 20
+		TIMES SOURCE:欲情 , 0.60
+	CASE 3
+		SOURCE:TARGET:恐れ = 10
+		TIMES SOURCE:欲情 , 0.75
+	CASE 4
+		SOURCE:TARGET:恐れ = 10
+		TIMES SOURCE:欲情 , 0.90
+	CASEELSE
+		SOURCE:TARGET:恐れ = 0
+		SOURCE:欲情 = SOURCE:欲情 * (100 + (ABL:露出癖 - 5) * 10) / 100
+ENDSELECT
+;ABL:自慰中毒をみる
+IF ABL:自慰中毒 == 0
+	SOURCE:性行動 = 25
+	SOURCE:屈従 = 100
+	TIMES SOURCE:不潔 , 4.00
+ELSEIF ABL:自慰中毒 == 1
+	SOURCE:性行動 = 50
+	SOURCE:屈従 = 80
+	TIMES SOURCE:不潔 , 2.50
+ELSEIF ABL:自慰中毒 == 2
+	SOURCE:性行動 = 75
+	SOURCE:屈従 = 70
+	TIMES SOURCE:不潔 , 1.50
+ELSEIF ABL:自慰中毒 == 3
+	SOURCE:性行動 = 100
+	SOURCE:屈従 = 60
+	TIMES SOURCE:不潔 , 1.00
+ELSEIF ABL:自慰中毒 == 4
+	SOURCE:性行動 = 125
+	SOURCE:屈従 = 50
+	TIMES SOURCE:不潔 , 0.50
+ELSE
+	SOURCE:性行動 = 90 + (ABL:自慰中毒 * 12)
+	SOURCE:屈従 = 0
+	TIMES SOURCE:不潔 , 0.10
+ENDIF
+
+
+SOURCE:PLAYER:快Ｃ = 43
+SOURCE:PLAYER:液体 = 10
+SOURCE:PLAYER:露出 = 300
+
+;ビデオ
+IF TEQUIP:28
+	SOURCE:PLAYER:液体 += 50
+	SOURCE:PLAYER:欲情 += 100
+ENDIF
+
+
+;処女、貞操観念
+IF TALENT:PLAYER:0
+	SOURCE:PLAYER:露出 += 300
+	IF TALENT:PLAYER:30
+		TIMES SOURCE:PLAYER:露出 , 2.00
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;調教者のＶ⇔指の汚れが移動
+CALL MOVE_STAIN("ヴァギナ", PLAYER, "手", PLAYER)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;露出癖Lv3以上でMasturbEXP加算
+IF ABL:PLAYER:8 >= 3
+	CALL ADDS_EXP("自慰経験", 1, PLAYER)
+	;PRINTL MasturbEXP＋１
+ENDIF
+;公開オナニー時はAbnormalEXP付加
+IF TEQUIP:28
+	CALL ADDS_ABNORMAL_EXP("Public masturbation", PLAYER)
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+ENDIF
+
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+@MESSAGE_COM128
+PRINTFORM %CALLNAME:PLAYER%は
+;Exhibitionism
+;露出癖LV8以上かつ恥じらい持ちでない＋淫乱or娼婦
+IF (ABL:PLAYER:8 >= 8 && !TALENT:35) && (TALENT:PLAYER:4 || TALENT:PLAYER:7)
+	IF TEQUIP:PLAYER:下着（下） == 620
+		PRINTFORML ラビアピアス\@ TEQUIP:PLAYER:靴下 == 805 || TEQUIP:PLAYER:靴下 == 807 ? から伸びる鎖を # に結んだ糸\@を両手で、クリピアスに結んだ糸を口で引き絞り膣口を完全に露にすると
+		PRINTFORML 手を使わず筋肉の収縮だけで膣口を拡げてみせた
+	ELSE
+		PRINTFORML 両手の指を陰唇にひっかけ、膣口ごと%CALLNAME:TARGET%に見せつけるように大きく拡げた
+	ENDIF
+	IF TCVAR:PLAYER:101  > 0
+		PRINTFORM うごめく膣内からは、さきほど射精した精液が、どろりと、だらしなくこぼれてきた……
+	ELSE
+		PRINTFORM やわらかそうな膣内は、たっぷりと粘液で濡れ、こちらを誘う様に、ひくひくとうごめいている…
+	ENDIF
+ELSEIF (ABL:PLAYER:8 >= 8 && !TALENT:35) && TALENT:PLAYER:4 == 0 && TALENT:PLAYER:7 == 0
+	PRINTFORML 両手の指を\@ TEQUIP:PLAYER:下着（下） == 620 ? ピアス # 陰唇\@にひっかけ、膣口ごと%CALLNAME:TARGET%に見せつけるように大きく拡げた
+	IF TCVAR:PLAYER:101 > 0
+		PRINTFORM 大きく拡げられた膣口は、さきほど射精した精液を垂れ流している……
+	ELSE
+		PRINTFORM %CALLNAME:PLAYER%の手が膣内部まで拡げて見せると、膣壁がぱくぱくと動き、愛液をとめどなく溢れさせている……
+	ENDIF
+ELSEIF (ABL:PLAYER:8 >= 8 && !TALENT:35)
+	IF TEQUIP:PLAYER:下着（下） == 620 && (TEQUIP:PLAYER:靴下 == 805 || TEQUIP:PLAYER:靴下 == 807)
+		PRINTFORML 両足を大きく拡げると、\@ TEQUIP:PLAYER:靴下 == 805 ? ストッキング # 網タイツ\@とつながったチェーンがピアスを引っ張り
+		PRINTL 自然と露になった膣口に、指を入れて自ら拡げていく
+	ELSE
+		PRINTFORML 両手の指を使って陰唇だけでなく、膣口も同時に拡げた
+	ENDIF
+	IF TCVAR:PLAYER:101 > 0
+		PRINTFORM %CALLNAME:PLAYER%の手が膣口をさらに左右に拡げると、さきほど射精した精液を垂れ流している……
+	ELSE
+		PRINTFORM 膣内を見られることに感じているのか、%CALLNAME:PLAYER%の頬は仄かに紅く染まっている
+	ENDIF
+ELSEIF ABL:PLAYER:8 >= 6 || (ABL:PLAYER:8 >= 4 && (TALENT:PLAYER:恋慕 || TALENT:PLAYER:親愛 || TALENT:PLAYER:淫乱 || TALENT:PLAYER:娼婦 || TALENT:PLAYER:服従 || TALENT:PLAYER:隷属))
+	PRINTFORM 嬉々とした表情で、片手で陰唇を拡げ、空いた手で陰核
+	SIF TEQUIP:PLAYER:下着（下） == 620
+		PRINT の上で愛液を帯びてヌラヌラと光るピアス
+	PRINTL を弄り始めた
+	IF TCVAR:PLAYER:101 > 0
+		PRINTFORM さらけ出された膣口は、さきほど射精したばかりの精液を、淫らに垂れ流している……
+	ELSE
+		PRINTFORM %CALLNAME:PLAYER%の手が陰核を刺激するたびに、膣口から愛液を滴らせている……
+	ENDIF
+ELSEIF ABL:PLAYER:8 >= 4
+	IF TEQUIP:PLAYER:下着（下） == 620
+		PRINT ピアス
+		SIF TEQUIP:PLAYER:靴下 == 805 || TEQUIP:PLAYER:靴下 == 807
+			PRINTFORM から伸びて\@ TEQUIP:PLAYER:靴下 == 805 ? ストッキング # 網タイツ\@を吊るしているチェーン
+		PRINT を摘んで引っ張り、自分の秘所を顕にした
+	ELSE
+		PRINTFORML 下腹部に手を置き、人差し指と中指でサインを作るように、%CALLNAME:TARGET%に自分の秘所を曝した
+	ENDIF
+	IF TCVAR:PLAYER:101 > 0
+		PRINTFORM さらけ出された膣口からは、さきほど射精した精液が、こぽこぽとこぼれてくる……
+	ELSE
+		PRINTFORM 広がった女陰からこちらを覗く膣口は、収めるべきモノを待ち望むかのように、愛液に濡れ、淫らに蠢いてる……
+	ENDIF
+ELSEIF ABL:PLAYER:8 >= 2
+	PRINTFORM 顔を真っ赤にしながらも、おずおずと、
+		SIF TEQUIP:PLAYER:下着（下） == 620
+			PRINT ラビアピアスをつまんで
+	PRINTFORM 性器をはっきり拡げて見せた
+ELSE
+	PRINTFORM 自分の
+	;ラビアピアス、小柄体型
+	IF TEQUIP:PLAYER:下着（下） == 620
+		PRINT 陰唇に打ち込まれたピアスに指をかけ
+	ELSEIF TALENT:PLAYER:100
+		PRINT 幼いワレメに指を挿し入れ
+	ELSE
+		PRINT クレヴァスに指を挿し入れ
+	ENDIF
+	PRINT 、左右に拡げて見せた
+ENDIF
+;調教者が恥じらい＋TrainingEXP200以下
+IF TALENT:TARGET:35 && EXP:TARGET:70 < 200
+	PRINTFORML %CALLNAME:PLAYER%の痴態を目の当たりにした%CALLNAME:TARGET%は
+	PRINTW 羞恥心を煽られ、朱に染まった顔を僅かにそむけてしまった
+ELSE
+	WAIT
+ENDIF
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_128
+RETURN COMTYPE("助手・レズ系")

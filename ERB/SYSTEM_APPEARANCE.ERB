@@ -1,0 +1,454 @@
+;========================================================
+;言うまでもなく某erastaのWS（わしが育てた）システムのパクry
+;あと髪型とか各種色設定
+
+;スリーサイズ表示処理
+;・eratenは妊娠期間短いので腹ポコ処理はしない。
+;・体重は人間と特定種族のみ。構造や材質が違うから仕方ないね。
+;・髪の色・髪型・瞳の色・肌の色の表示処理
+
+;※髪型は詳しい人追加してください。
+
+;以下使用箇所
+
+;BASE:23 P長(処理だけ作っておく)
+;BASE:24 身長
+;BASE:25 バスト
+;BASE:26 ウェスト
+;BASE:27 ヒップ
+;MAXBASE:28 サバ読み前の体重
+;BASE:28 体重
+;BASE:29 BMI
+
+;CFLAG:ARG:35 髪の色
+;CFLAG:ARG:36 髪型
+;CFLAG:ARG:37 瞳の色
+;CFLAG:ARG:38 肌の色
+;CFLAG:ARG:39 カップサイズ
+
+;その他のファイルで改造したところ
+;SHOP_NAMECHANGE.ERB 各種設定処理を追加
+;SHOW_STATUS.ERB スリーサイズ表示 魔乳・むちむちの表示分岐など
+;ITEM.ERB 肌の色関連をTALENTからCFLAGに
+;EVENT_P.ERB 妊娠発覚時にバスト1cm成長
+;SYSTEM_DAUGHTER.ERB 娘にスリーサイズ・外見を遺伝させる
+;-------------------------------------------------
+
+;-------------------------------------------------
+;スリーサイズの表示処理
+;-------------------------------------------------
+@SHOW_INFO_BODYSIZE, ARG
+CALL CALC_TAIJU(ARG)
+CALL DEFINITE_KOSINIKU(ARG)
+;幼児は表示なし
+IF BASE:ARG:24 > 0 && !TALENT:ARG:幼児／幼児退行
+	PRINTFORM Height：{BASE:ARG:24}cm
+
+	IF BASE:ARG:28 > 0 && (ABL:ARG:種族 == 0 || ABL:ARG:種族 == 32 || ABL:ARG:種族 == 36 || ABL:ARG:種族 == 43 || ABL:ARG:種族 ==44 || ABL:ARG:種族 == 45)
+		PRINTFORM   Weight：{BASE:ARG:28}kg
+		;体重
+	ELSE 
+		PRINTFORM   Weight：unknown
+		;不明
+	ENDIF
+
+	IF BASE:ARG:25 == 0 
+		PRINTFORM   Ｂ：unknown
+	ELSE
+		PRINTFORM   Ｂ：{BASE:ARG:25}cm
+		PRINT (
+		CALL SHOW_CUPSIZE(ARG)
+		PRINT )
+	ENDIF
+
+	IF BASE:ARG:26 == 0 
+		PRINTFORM   Ｗ：unknown
+	ELSE 
+		PRINTFORM   Ｗ：{BASE:ARG:26}cm
+	ENDIF
+
+	IF BASE:ARG:27 == 0 
+		PRINTFORM   Ｈ：unknown
+	ELSE 
+		PRINTFORM   Ｈ：{BASE:ARG:27}cm
+	ENDIF
+ENDIF
+
+;IF TALENT:ARG:オトコ || TALENT:ARG:ふたなり
+;	IF BASE:ARG:23 == 0
+;		PRINTFORM   ペニスサイズ：不明
+;	ELSE
+;		PRINTFORM   ペニスサイズ：{BASE:ARG:23}cm
+;	ENDIF
+;ENDIF
+PRINTL
+
+;-------------------------------------------------
+;カップサイズ測定
+;-------------------------------------------------
+@CHECK_CUPSIZE, ARG
+;Sはカップサイズ用変数、Xはバスト補正値、Yはウェスト補正値、Zは身長補正値
+X = ((((BASE:ARG:25 * 100) - (BASE:ARG:24 * 54)) * 100) / 250)
+Y = ((((BASE:ARG:24 * 38) - (BASE:ARG:26 * 100)) * 100) / 342)
+;妊娠時は妊娠発覚時のウェストから計算
+SIF TALENT:ARG:153
+	Y = ((((BASE:ARG:24 * 38) - ((BASE:ARG:26 - (CFLAG:123 / 100)) * 100)) * 100) / 342)
+Z = ((((BASE:ARG:24 * 100) - 15880) * 100) / 2300)
+S = X + Y + Z
+CFLAG:ARG:39 = 0
+;S += 450
+S += 550
+IF S > 0
+	;100未満を切り上げ
+	S -= S % 100
+	S += 100
+	;カップサイズ測定
+	CFLAG:ARG:39 = S / 100
+ENDIF
+
+X = 0
+Y = 0
+Z = 0
+S = 0
+
+;カップサイズから対象の胸資質を修正する
+IF CFLAG:ARG:39 >= 14
+	TALENT:ARG:126 = 1
+	TALENT:ARG:112 = 0
+	TALENT:ARG:111 = 0
+	TALENT:ARG:110 = 0
+	TALENT:ARG:109 = 0
+ELSEIF CFLAG:ARG:39 >= 8
+	TALENT:ARG:126 = 0
+	TALENT:ARG:112 = 1
+	TALENT:ARG:111 = 0
+	TALENT:ARG:110 = 0
+	TALENT:ARG:109 = 0
+ELSEIF CFLAG:ARG:39 >= 6
+	TALENT:ARG:126 = 0
+	TALENT:ARG:112 = 0
+	TALENT:ARG:111 = 1
+	TALENT:ARG:110 = 0
+	TALENT:ARG:109 = 0
+ELSEIF CFLAG:ARG:39 == 5
+	TALENT:ARG:126 = 0
+	TALENT:ARG:112 = 0
+	TALENT:ARG:111 = 0
+	TALENT:ARG:110 = 0
+	TALENT:ARG:109 = 0
+ELSEIF CFLAG:ARG:39 >= 3
+	TALENT:ARG:126 = 0
+	TALENT:ARG:112 = 0
+	TALENT:ARG:111 = 0
+	TALENT:ARG:110 = 0
+	TALENT:ARG:109 = 1
+ELSEIF CFLAG:ARG:39 >= 1
+	TALENT:ARG:126 = 0
+	TALENT:ARG:112 = 0
+	TALENT:ARG:111 = 0
+	TALENT:ARG:110 = 1
+	TALENT:ARG:109 = 0
+ENDIF
+;-------------------------------------------------
+;カップサイズ表示
+;-------------------------------------------------
+@SHOW_CUPSIZE, ARG
+CALL CHECK_CUPSIZE(ARG)
+	IF CFLAG:ARG:39 == 0
+		PRINT unknown
+	ELSEIF CFLAG:ARG:39 == 1
+		PRINT Flat
+		;測定不能
+	ELSEIF CFLAG:ARG:39 == 2
+		PRINT ＡＡ
+	ELSEIF CFLAG:ARG:39 == 3
+		PRINT Ａ
+	ELSEIF CFLAG:ARG:39 == 4
+		PRINT Ｂ
+	ELSEIF CFLAG:ARG:39 == 5
+		PRINT Ｃ
+	ELSEIF CFLAG:ARG:39 == 6
+		PRINT Ｄ
+	ELSEIF CFLAG:ARG:39 == 7
+		PRINT Ｅ
+	ELSEIF CFLAG:ARG:39 == 8
+		PRINT Ｆ
+	ELSEIF CFLAG:ARG:39 == 9
+		PRINT Ｇ
+	ELSEIF CFLAG:ARG:39 == 10
+		PRINT Ｈ
+	ELSEIF CFLAG:ARG:39 == 11
+		PRINT Ｉ
+	ELSEIF CFLAG:ARG:39 == 12
+		PRINT Ｊ
+	ELSEIF CFLAG:ARG:39 == 13
+		PRINT Ｋ
+	ELSEIF CFLAG:ARG:39 == 14
+		PRINT Ｌ
+	ELSEIF CFLAG:ARG:39 == 15
+		PRINT Ｍ
+	ELSEIF CFLAG:ARG:39 >= 16
+		PRINT Too big
+		;測定不能
+	ENDIF
+
+;-------------------------------------------------
+;ペニスサイズ設定(ひな形だけ)
+;-------------------------------------------------
+@CHECK_WS_P, ARG
+$WS_P_START
+IF BASE:ARG:24 == 0 || BASE:ARG:23 == 0
+	PRINTFORML %CALLNAME:ARG%のペニスサイズは未設定です
+ELSE
+	PRINTFORML %CALLNAME:ARG%のペニスサイズは{BASE:ARG:23}cmです
+ENDIF
+PRINTFORML サイズを指定してください[10-{BASE:ARG:24 / 8}]
+	INPUT
+IF RESULT >= 10 || RESULT <= (BASE:ARG:24 / 8)
+	BASE:ARG:23 = RESULT
+;大業物持ちには20%程度のボーナス
+	IF TALENT:ARG:大業物
+		O = 0
+		O = RAND:(BASE:ARG:23 / 5) + 1
+		PRINTFORML [Ladyｰkiller]持ちには{O}cmのボーナスポイントが追加されます
+		BASE:ARG:23 += O
+	O = 0
+	ENDIF
+	PRINTFORML ペニスサイズは{BASE:ARG:23}cmに設定されました。
+ELSE
+	PRINTFORML 不正な値です
+	GOTO WS_P_START
+ENDIF
+
+;-------------------------------------------------
+;体重計算
+;・男は身長が設定されていれば計算
+;・身長(メートル)の二乗にBMIを乗算で基本値+乳腰尻で補正
+;・バスト4cmごとに1kg増減
+;・ウェスト2cmごとに1kg増減
+;・ヒップ4cmごとに1kg増減
+;-------------------------------------------------
+@CALC_TAIJU, ARG
+;女と男の娘は身長とスリーサイズが設定されてなければ計算しない
+IF (!TALENT:ARG:オトコ || TALENT:ARG:男の娘) && (BASE:ARG:24 == 0 || BASE:ARG:25 == 0 || BASE:ARG:26 == 0 || BASE:ARG:27 == 0)
+	BASE:ARG:28 = 0
+;男は身長が設定されてなければ計算しない
+ELSEIF TALENT:ARG:オトコ && !TALENT:ARG:男の娘 && BASE:ARG:24 == 0
+	BASE:ARG:28 = 0
+;男はBMI22で計算
+ELSEIF TALENT:ARG:オトコ && !TALENT:ARG:男の娘
+	MAXBASE:ARG:28 = (BASE:ARG:24 * BASE:ARG:24 / 455)
+	BASE:ARG:28 = (BASE:ARG:24 * BASE:ARG:24 / 455)
+	;added base, since maxbase doesn't seem to do anything if set here
+;それ以外はBMI20でまず計算
+ELSE
+	MAXBASE:ARG:28 = (BASE:ARG:24 * BASE:ARG:24 / 500) + ((BASE:ARG:25 - (BASE:ARG:24 * 53 /100)) / 4) + ((BASE:ARG:26 - (BASE:ARG:24 * 38 / 100)) / 2) + ((BASE:ARG:27 - (BASE:ARG:24 * 54 /100)) / 4)
+	BASE:ARG:28 = (BASE:ARG:24 * BASE:ARG:24 / 500) + ((BASE:ARG:25 - (BASE:ARG:24 * 53 /100)) / 4) + ((BASE:ARG:26 - (BASE:ARG:24 * 38 / 100)) / 2) + ((BASE:ARG:27 - (BASE:ARG:24 * 54 /100)) / 4)
+	;女の子はサバ読む(身長170未満なら5.56% 170以上なら6.25%)
+	IF !TALENT:ARG:男の娘
+		IF BASE:ARG:24 < 170 || NO:ARG == 4197
+			BASE:ARG:28 = MAXBASE:ARG:28 *17 / 18
+		ELSE
+			BASE:ARG:28 = MAXBASE:ARG:28 *15 / 16
+		ENDIF
+	;男の娘
+	ELSE
+		BASE:ARG:28 = MAXBASE:ARG:28
+	ENDIF
+ENDIF
+;[スレンダー][むちむち]対応としてBMIを計算しておく 小数点以下1位まで記録するため10倍で
+IF BASE:ARG:24 > 0 && BASE:ARG:28 > 0
+	BASE:ARG:29 = BASE:ARG:28 * 100000 / (BASE:ARG:24 * BASE:ARG:24)
+ENDIF
+
+;-------------------------------------------------
+;スレンダーorむちむち判定
+;-------------------------------------------------
+@DEFINITE_KOSINIKU, ARG
+IF BASE:ARG:24 != 0 && BASE:ARG:28 != 0 && (!TALENT:ARG:オトコ || TALENT:ARG:男の娘)
+	IF BASE:ARG:29 < 185 || BASE:ARG:26 *10 < BASE:ARG:24 * 340 / 100
+		TALENT:ARG:スレンダー = 1
+		TALENT:ARG:むちむち = 0
+	ELSEIF BASE:ARG:29 >= 240 || BASE:ARG:26 *10 >= BASE:ARG:24 * 400 / 100
+		TALENT:ARG:スレンダー = 0
+		TALENT:ARG:むちむち = 1
+	ELSE
+		TALENT:ARG:スレンダー = 0
+		TALENT:ARG:むちむち = 0
+	ENDIF
+ELSEIF CSVTALENT(NO:ARG, 127, 0) == 1
+	TALENT:ARG:スレンダー = 1
+	TALENT:ARG:むちむち = 0
+ELSEIF CSVTALENT(NO:ARG, 128, 0) == 2
+	TALENT:ARG:スレンダー = 0
+	TALENT:ARG:むちむち = 2
+ELSEIF CSVTALENT(NO:ARG, 128, 0) == 1
+	TALENT:ARG:スレンダー = 0
+	TALENT:ARG:むちむち = 1
+ELSE
+	TALENT:ARG:スレンダー = 0
+	TALENT:ARG:むちむち = 0
+ENDIF
+
+;-------------------------------------------------
+;外見を表示させる。髪の色・髪型・瞳の色・肌の色の四種類。
+;-------------------------------------------------
+@SHOW_APPEARANCE, ARG
+PRINT Hair-color：
+CALL SHOW_HAIRCOLOR(ARG)
+PRINT 　Hair-style：
+CALL SHOW_HAIRSTYLE(ARG)
+PRINT 　Eye-color：
+CALL SHOW_EYECOLOR(ARG)
+PRINT 　Skin-color：
+;肌の色
+CALL SHOW_SKINCOLOR(ARG)
+PRINTL
+
+@SHOW_HAIRCOLOR, ARG
+IF CFLAG:ARG:35 == 0
+	PRINT undefined
+	;未設定
+ELSEIF CFLAG:ARG:35 == 1
+	PRINT black
+	;黒
+ELSEIF CFLAG:ARG:35 == 2
+	PRINT brown
+ELSEIF CFLAG:ARG:35 == 3
+	PRINT golden
+ELSEIF CFLAG:ARG:35 == 4
+	PRINT silver
+ELSEIF CFLAG:ARG:35 == 5
+	PRINT red
+ELSEIF CFLAG:ARG:35 == 6
+	PRINT blue
+ELSEIF CFLAG:ARG:35 == 7
+	PRINT green
+ELSEIF CFLAG:ARG:35 == 8
+	PRINT pink
+ELSEIF CFLAG:ARG:35 == 9
+	PRINT purple
+ELSEIF CFLAG:ARG:35 == 10
+	PRINT white
+ELSEIF CFLAG:ARG:35 == 11
+	PRINT red-brown
+ELSEIF CFLAG:ARG:35 == 12
+	PRINT light purple
+ELSEIF CFLAG:ARG:35 == 13
+	PRINT red-purple
+ELSEIF CFLAG:ARG:35 == 14
+	PRINT platinum
+ELSEIF CFLAG:ARG:35 == 15
+	PRINT ash brown
+ELSEIF CFLAG:ARG:35 == 16
+	PRINT orange
+ELSE
+	PRINT unknown
+ENDIF
+
+@SHOW_HAIRSTYLE, ARG
+IF TALENT:ARG:オトコ && !TALENT:ARG:男の娘
+	IF CFLAG:ARG:36 == 0
+		PRINT undefined
+	ELSEIF CFLAG:ARG:36 == 1
+		PRINT Bald
+	ELSEIF CFLAG:ARG:36 == 2
+		PRINT Buzz cut
+	ELSEIF CFLAG:ARG:36 == 3
+		PRINT Short hair
+	ELSEIF CFLAG:ARG:36 == 4
+		PRINT Mohawk
+	ELSEIF CFLAG:ARG:36 == 5
+		PRINT Chonmage
+	ELSEIF CFLAG:ARG:36 == 6
+		PRINT 七三
+	ELSEIF CFLAG:ARG:36 == 7
+		PRINT ロン毛
+	ELSEIF CFLAG:ARG:36 == 8
+		PRINT パンチパーマ
+	ELSEIF CFLAG:ARG:36 == 9
+		PRINT みずら髪
+	ELSEIF CFLAG:ARG:36 == 10
+		PRINT Pigtail
+	ELSE
+		PRINT unknown
+	ENDIF
+ELSE
+	IF CFLAG:ARG:36 == 0
+		PRINT undefined
+	ELSEIF CFLAG:ARG:36 == 1
+		PRINT Short Hair
+	ELSEIF CFLAG:ARG:36 == 2
+		PRINT Short Bob
+	ELSEIF CFLAG:ARG:36 == 3
+		PRINT Semi-long
+	ELSEIF CFLAG:ARG:36 == 4
+		PRINT Ponytail
+	ELSEIF CFLAG:ARG:36 == 5
+		PRINT Twintail
+	ELSEIF CFLAG:ARG:36 == 6
+		PRINT Straight Long
+	ELSEIF CFLAG:ARG:36 == 7
+		PRINT Updo
+	ELSEIF CFLAG:ARG:36 == 8
+		PRINT ゆるふわパーマ
+	ELSEIF CFLAG:ARG:36 == 9
+		PRINT Wavy Long
+	ELSEIF CFLAG:ARG:36 == 10
+		PRINT Braid
+	ELSEIF CFLAG:ARG:36 == 11
+		PRINT ツーサイドアップ
+	ELSEIF CFLAG:ARG:36 == 12
+		PRINT Odango
+	ELSEIF CFLAG:ARG:36 == 13
+		PRINT 和髪
+	ELSE
+		PRINT unknown
+	ENDIF
+ENDIF
+
+@SHOW_EYECOLOR, ARG
+IF CFLAG:ARG:37 == 0
+	PRINT undefined
+ELSEIF CFLAG:ARG:37 == 1
+	PRINT black
+ELSEIF CFLAG:ARG:37 == 2
+	PRINT brown
+ELSEIF CFLAG:ARG:37 == 3
+	PRINT golden
+ELSEIF CFLAG:ARG:37 == 4
+	PRINT silver
+ELSEIF CFLAG:ARG:37 == 5
+	PRINT red
+ELSEIF CFLAG:ARG:37 == 6
+	PRINT blue
+ELSEIF CFLAG:ARG:37 == 7
+	PRINT green
+ELSEIF CFLAG:ARG:37 == 8
+	PRINT purple
+ELSEIF CFLAG:ARG:37 == 9
+	PRINT gray
+ELSEIF CFLAG:ARG:37 == 10
+	PRINT light blue
+ELSE
+	PRINT unknown
+ENDIF
+
+@SHOW_SKINCOLOR, ARG
+IF CFLAG:ARG:38 == 0
+	PRINT undefined
+ELSEIF CFLAG:ARG:38 == 1
+	PRINT white
+ELSEIF CFLAG:ARG:38 == 2
+	PRINT brown
+	;褐色
+ELSEIF CFLAG:ARG:38 == 3
+	PRINT red
+ELSEIF CFLAG:ARG:38 == 4
+	PRINT blue
+ELSEIF CFLAG:ARG:38 == 5
+	PRINT green
+ELSE
+	PRINT unknown
+ENDIF
+

@@ -1,0 +1,152 @@
+;--------------------------------------------------------
+;組織からの通達
+;--------------------------------------------------------
+;[T.D.L./品川/警視庁(未実装)/東京タワー(未実装)]の
+;出現を制御するイベント
+;
+;上記4つはカテドラルの前提MAPで
+;依頼をこなすことでカテドラル通過を可能にしてくれる
+;ボスの強さは画一で60レベルダンジョン相当
+;雑魚は出現順で強化される
+;
+;早くから(銀座出現あたりから)依頼を受けるだけならできるという仕様に
+;ただそれだけだと、ダンジョンのレベルがこの4つだけで急激にあがりすぎる感あるので
+;納金で速度に制限をかける
+;
+;早くから依頼を受けれるのは中盤時点で(ルートは確定しないけど)各勢力にある程度協力できるようにするために
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_17
+SELECTCASE イベントフラグ:17:0
+	CASE 0
+		;20レベル装備陳列
+		IF FLAG:組織貢献度 + FLAG:名声 * 100 > 210000
+			RESULTS = Notification from the Organization
+			RETURN 1
+		ENDIF
+	CASE 1
+		;30レベル装備陳列
+		IF FLAG:組織貢献度 + FLAG:名声 * 100 > 460000 && (DAY  > STRFLAG_NUM_EV("最新通達日" , , , , 17))
+			RESULTS = Notification from the Organization
+			RETURN 1
+		ENDIF
+	CASE 2
+		;40レベル装備陳列
+		IF FLAG:組織貢献度 + FLAG:名声 * 100 > 1460000 && (DAY  > STRFLAG_NUM_EV("最新通達日" , , , , 17))
+			RESULTS = Notification from the Organization
+			;警視庁・タワーがないので一回スキップさせる
+			イベントフラグ:17:0 = 3
+			RETURN 0
+		ENDIF
+	CASE 3
+		;50レベル装備陳列
+		IF FLAG:組織貢献度 + FLAG:名声 * 100 > 3110000 && (DAY  > STRFLAG_NUM_EV("最新通達日" , , , , 17))
+			RESULTS = Notification from the Organization
+			RETURN 1
+		ENDIF
+;	CASE 4
+	;	;60レベル装備陳列
+	;	IF FLAG:組織貢献度 + FLAG:名声 * 100 > 5000000 && (DAY  > STRFLAG_NUM_EV("最新通達日" , , , , 17))
+	;		RESULTS = Notification from the Organization
+	;		RETURN 1
+	;	ENDIF
+ENDSELECT
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_17
+#LOCALSIZE 1
+#LOCALSSIZE 1
+CLEARBIT FLAG:イベント出現1, 17
+;同日に通達が来るのを防ぐためにとっておく
+CALLF STRFLAG_NUM_EV("最新通達日" , "=" , , DAY)
+CALL MESSAGE_WINDOW, "", "＞An e-mail came from Phantom Society", , , , , 4
+;一通目は予告
+IF イベントフラグ:17:0 == 0
+	CALL MESSAGE_WINDOW, "Email", "＞To the glorious summoners/＞gathered under Phantom Society/", , , , , 4
+	CALL MESSAGE_WINDOW, "Email", "＞Our projects are proceeding smoothly thanks to your achievements/＞But we still cannot afford to be careless/＞For the approaching time of the contract/＞We must hurry with soul collection", , , , , 4
+	CALL MESSAGE_WINDOW, "Email", "＞Phantom Society has recently/＞gained access to 4 new terminals/＞Those areas are ruled by strong demons/＞which you can recruit into your forces", , , , , 4
+	CALL MESSAGE_WINDOW, "Email", "＞However, contact to those areas is weak/＞It can be disconnected if you are careless/＞Thus Phantom Society/＞will offer the terminals in sequence", , , , , 4
+	CALL MESSAGE_WINDOW, "Email", "＞As soon as you are ready/＞an e-mail will be given to qualified summoners/＞By contributing to the organization/＞in Phantom Society、please show excellence", , , , , 4
+	イベントフラグ:17:0 = 1
+ELSE
+CALL EV_17_MAIN
+ENDIF
+
+@EV_17_MAIN
+SELECTCASE イベントフラグ:17:0
+	CASE 1
+		CALL MESSAGE_WINDOW, "Email", "＞To the glorious summoners/＞gathered under Phantom Society", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Your contribution was evaluated/＞For your excellence/＞We have decided to offer the data of 1 terminal to you", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Please refer to the attached file/＞And select the terminal data you wish to have/＞Please reply", , , , , 4
+	CASEELSE
+		CALL MESSAGE_WINDOW, "Email", "＞To the glorious summoners/＞gathered under Phantom Society", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Your contribution was evaluated/＞We have decided to offer to you/＞information of a terminal in Tokyo", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Please refer to the attached file/＞And select the terminal data you wish to have/＞Please reply", , , , , 4
+ENDSELECT
+LOCALS = 
+IF !ダンジョンフラグ:[[ダンジョン:T.D.L.]]:0
+	SIF LOCALS != ""
+		LOCALS += "/"
+	LOCALS += "[0] Tokyo Destinyland"
+ENDIF
+IF !ダンジョンフラグ:[[ダンジョン:品川]]:0
+	SIF LOCALS != ""
+		LOCALS += "/"
+	LOCALS += "[1] Shinagawa Cathedral"
+ENDIF
+;IF !ダンジョンフラグ:[[ダンジョン:警視庁]]:0
+;	SIF LOCALS != ""
+;		LOCALS += "/"
+;	LOCALS += [2] 警視庁
+;ENDIF
+;IF !ダンジョンフラグ:[[ダンジョン:東京タワー]]:0
+;	SIF LOCALS != ""
+;		LOCALS += "/"
+;	LOCALS += [3] 東京タワー
+;ENDIF
+$INPUT_LOOP
+CALL INPUT_SELECT_M, LOCALS, , "ログを残さない/ボタンを利用する", ,4
+LOCAL = RESULT
+SELECTCASE RESULT
+	CASE 0
+		CALL MESSAGE_WINDOW, "Email", "＞Tokyo Destinyland/＞Located in Ariake、Koto-ku/＞It is the theme park were a person's fate is decided", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Echidna is one of the executive officers of the Gaeans/＞and controls the place、using it as an advance base in the fight against the Messians", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞If you can negotiate well with her/＞there would be large profits for both the summoner and the organization", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Or by overthrowing Echidna and the Gaeans/＞We gain something we can use as leverage in negotiations with the Messians/＞Phantom Society will leave the choice to you/＞So best consider carefully", , , , , 4
+	CASE 1
+		CALL MESSAGE_WINDOW, "Email", "＞Shinagawa Cathedral/＞A Messian church in Shinagawa as the name implies", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞One of the central bases of the Messians/＞It is governed by archangel Haniel", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞The Messians are one of the biggest powers in Tokyo/＞No matter how they respond/＞this will certainly have a large influence on our projects", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "＞Any summoner that goes there/＞should act carefully", , , , , 4
+	CASE 2
+		CALL MESSAGE_WINDOW, "Email", "", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "", , , , , 4
+	CASE 3
+		CALL MESSAGE_WINDOW, "Email", "", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "", , , , , 4
+		CALL MESSAGE_WINDOW, "Email", "", , , , , 4
+ENDSELECT
+CALL MESSAGE_WINDOW, "", @"＞Go to %AUTO_SPLIT("Tokyo Destinyland/Shinagawa Cathedral/警視庁/東京タワー", "/", LOCAL)%？", , , , , 4
+CALL INPUT_YN_M( , , , , , 4)
+SIF RESULT
+	GOTO INPUT_LOOP
+CALL MESSAGE_WINDOW, "", "＞You replied to the e-mail……", , , , , 4
+;進行度と同数の数値を各ダンジョンのフラグに入れる
+SELECTCASE LOCAL
+	CASE 0
+		ダンジョンフラグ:[[ダンジョン:T.D.L.]]:0 = イベントフラグ:17:0
+	CASE 1
+		ダンジョンフラグ:[[ダンジョン:品川]]:0 = イベントフラグ:17:0
+	CASE 2
+		;ダンジョンフラグ:[[ダンジョン:警視庁]]:0 = イベントフラグ:10:0
+	CASE 3
+		;ダンジョンフラグ:[[ダンジョン:東京タワー]]:0 = イベントフラグ:10:0
+ENDSELECT
+;進行度を追加し、
+イベントフラグ:17:0++

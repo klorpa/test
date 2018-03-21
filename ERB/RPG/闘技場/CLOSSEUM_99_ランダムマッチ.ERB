@@ -1,0 +1,516 @@
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_99
+;IF 闘技場フラグ:3:0 == 0 && 闘技場フラグ:4:0 == 0
+	RESULTS = Random Colosseum Match
+	RETURN 1
+;ENDIF
+;RETURN 0
+
+
+;====================
+;内容
+;====================
+@COLOSSEUM_99
+#DIMS 対戦チーム
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+FLAG:RESULTスキップ = 1
+
+SIF SUBSTRING(SAVESTR:コロシアム・ランダムマッチ, 0, 1) != "/"
+	SAVESTR:コロシアム・ランダムマッチ = /%SAVESTR:コロシアム・ランダムマッチ%
+
+;戦闘相手決定…は一日の開始時に1週間先まで決める
+対戦チーム = %AUTO_SPLIT(SAVESTR:ランダム対戦チーム , "_" , 0)%
+;CALL SELECT_COLOSSEUM_RANDOMBATTLE
+
+;敵を配置
+TRYCCALLFORM COLOSSEUM_99_SET_ENEMY_%対戦チーム%
+CATCH
+	;名前を間違っちゃったとか
+	PRINTFORMW 対戦チームとして不正な名称%対戦チーム%が選択されました。選択をやり直します
+	SAVESTR:ランダム対戦チーム =
+	CALL SELECT_COLOSSEUM_RANDOMBATTLE
+	対戦チーム = %AUTO_SPLIT(SAVESTR:ランダム対戦チーム , "_" , 0)%
+	$LOOP
+	TRYCCALLFORM COLOSSEUM_99_SET_ENEMY_%対戦チーム%
+	CATCH
+		GOTO LOOP
+	ENDCATCH
+ENDCATCH
+;報酬はここに代入
+LOCAL = RESULT
+;そのチームを撃破した回数に応じて、報酬減算
+;一度勝利する度に報酬半減
+;STRFLAGつかおうとしたけど使い方忘れたので面倒くさくて直接アクセス
+IF TOINT(AUTO_SPLIT(SAVESTR:コロシアム・ランダムマッチ , "_" , 1 , 対戦チーム)) >= 63
+	LOCAL /= POWER(2 , 62)
+ELSE
+	LOCAL /= POWER(2 , TOINT(AUTO_SPLIT(SAVESTR:コロシアム・ランダムマッチ , "_" , 1 , 対戦チーム)))
+ENDIF
+
+;メッセージ表示
+
+FLAG:現ダンジョン = [[ダンジョン:コロシアムダンジョン]]
+FLAG:現M = 1
+FLAG:現X = 4
+FLAG:現Y = 6
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+DA:4:4 = 4
+CALL FLOOR_ANALYZE
+CALL SHOW_FLOOR
+CALL SHOW_NOW_FORMATION_P,0,2,,2
+
+CALL MESSAGE_WINDOW_D, "Moderator", "Ladiiiiiiiiies! and! Gentlemen!/Sorry to keep you waiting! Today's featured match is now!"
+CALL MESSAGE_WINDOW_D, "", @"＞On screen, %CALLNAME:MASTER% and the opposing team were shown..."
+
+TRYCALLFORM COLOSSEUM_MESSAGE_BEFORE_BATTLE_%対戦チーム%
+
+
+CALL MESSAGE_WINDOW_D, "Moderator", @"What kind of match will they show us today?/Let's begin right away!/Ready～...."
+CALL MESSAGE_WINDOW_D, "Moderator", @"Fight!!" , , , , , , , , , "CENTER"
+
+
+CALL BATTLE_START
+
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+FLAG:RESULTスキップ = 0
+
+SIF LOCAL <= 0
+	LOCAL = 1
+
+CALL MESSAGE_WINDOW_D, "", @"＞You got ￥{LOCAL*1000}"
+MONEY += LOCAL*1000
+CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% got {LOCAL} fame"
+FLAG:名声 += LOCAL
+FLAG:闘技場名声 += LOCAL
+
+;敵チームを倒した回数を加算
+SAVESTR:コロシアム・ランダムマッチ = %CALC_SPLIT(SAVESTR:コロシアム・ランダムマッチ , "_" , 1 , 対戦チーム , "+=" , TOSTR(1) )%
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+RETURN 1
+
+
+
+@COLOSSEUM_99_SET_ENEMY_F1
+CALL SET_ENEMY,8,[[キャラ:ノッカー]],8,0,1
+CALL SET_ENEMY,9,[[キャラ:ゴブリン]],8,0,1
+CALL SET_ENEMY,10,[[キャラ:コボルト]],8,0,1
+CALL SET_ENEMY,13,[[キャラ:ピクシー]],8,0,1
+CALL SET_ENEMY,15,[[キャラ:シルキー]],8,0,1
+RETURN 10
+
+@COLOSSEUM_99_SET_ENEMY_F2
+CALL SET_ENEMY,8,[[キャラ:エンジェル]],8,0,1
+CALL SET_ENEMY,9,[[キャラ:メリジェーヌ]],10,0,1
+CALL SET_ENEMY,10,[[キャラ:ハーピー]],8,0,1
+RETURN 10
+
+@COLOSSEUM_99_SET_ENEMY_F3
+CALL SET_ENEMY,8,[[キャラ:ガキ]],8,0,1
+CALL SET_ENEMY,9,[[キャラ:カハク]],9,0,1
+CALL SET_ENEMY,10,[[キャラ:ガキ]],8,0,1
+CALL SET_ENEMY,14,[[キャラ:ダークサマナー]],9,0,1
+RETURN 10
+
+@COLOSSEUM_99_SET_ENEMY_ランダムF
+;ランダムの種作成
+RANDOMIZE BASE:MASTER:ＥＸＰ + DAY
+;人数とレベルをセット
+LOCAL = ENEMY_NUM_COMMON("初級" , 3)
+LOCAL:1 = 63 / (LOCAL+3)
+;種族数をセット
+LOCAL:2 = CLASS_NUM_COMMON("初級")
+LOCALS =
+LOCALS += @"__{[[キャラ:ピクシー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:エンジェル]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ガキ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:チョンチョン]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ノッカー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:アプサラス]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ハーピー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:カブソ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ラタトスク]]}_{LOCAL:1}"
+CALL 闘技場ランダム配置 , LOCAL , LOCAL:2 , LOCALS
+;ランダムの種終わり
+RANDOMIZE GETTIME()
+RETURN 10
+
+@COLOSSEUM_99_SET_ENEMY_E1
+CALL SET_ENEMY,8,[[キャラ:メリジェーヌ]],12,0,1
+CALL SET_ENEMY,9,[[キャラ:ラミア]],14,0,1
+TALENT:(CHARANUM - 1):妊娠 = 1
+CALL SET_ENEMY,10,[[キャラ:アチェリ]],12,0,1
+CALL SET_ENEMY,14,[[キャラ:ダークサマナー]],14,0,1
+TALENT:(CHARANUM-1):オトコ = 1
+ABL:(CHARANUM - 1):スキル1 = [[スキル:OxBezoar]]
+ABL:(CHARANUM - 1):スキル2 = [[スキル:NapalmBomb]]
+ABL:(CHARANUM - 1):スキル4 = [[スキル:PoisonArrow]]
+RETURN 25
+
+@COLOSSEUM_99_SET_ENEMY_E2
+CALL SET_ENEMY,8,[[キャラ:カーシー]],12,0,1
+CALL SET_ENEMY,9,[[キャラ:ヒッポウ]],14,0,1
+CALL SET_ENEMY,10,[[キャラ:コボルト]],12,0,1
+CALL SET_ENEMY,14,[[キャラ:ダークサマナー]],14,0,1
+EXP:(CHARANUM-1):獣姦経験 = 30
+ABL:(CHARANUM - 1):スキル1 = [[スキル:OxBezoar]]
+ABL:(CHARANUM - 1):スキル2 = [[スキル:NapalmBomb]]
+ABL:(CHARANUM - 1):スキル4 = [[スキル:PoisonArrow]]
+RETURN 25
+
+@COLOSSEUM_99_SET_ENEMY_甲鱗様と加速要員
+FOR LOCAL , 7 , 13
+	CALL SET_ENEMY, LOCAL ,[[キャラ:エルフ]],5,0,1
+	CFLAG:(CHARANUM -1):速度補正 = 20
+	SIF LOCAL == 12
+		CSTR:(CHARANUM - 1):思考パターン = ラノワール
+	IF LOCAL == 7
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:ラク・ンダ]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:ラク・ンダ]]
+	ENDIF
+NEXT
+CALL SET_ENEMY,14,[[キャラ:ワーム]],21,0,1
+CSTR:(CHARANUM - 1):思考パターン = 甲鱗様
+ABL:(CHARANUM - 1):スキル6 = [[スキル:なぎ払い]]
+RETURN 25
+
+@COLOSSEUM_MESSAGE_BEFORE_BATTLE_甲鱗様と加速要員
+CALL MESSAGE_WINDOW_D, "", @"氷河期のあいだに繁栄を極めたこのワームは" , , , , , , "FADE" , , , "CENTER"
+CALL MESSAGE_WINDOW_D, "", @"ありとあらゆる人々にとって恐怖の的だった。" , , "再利用する" , , , , "FADE" , , , "CENTER"
+CALL MESSAGE_WINDOW_D, "", @"その巨体と狂暴な性格が呼び起こした悪夢は数知れない ――― " , , "再利用する" , , , , "FADE" , , , "CENTER"
+CALL MESSAGE_WINDOW_D, "", @"ソレはまさに、氷河期の災厄の象徴だった。" , , "再利用する" , , , , "FADE" , , , "CENTER"
+
+
+@SET_ACTION_ラノワール, ARG
+CALL CHECK_ACTIONABLE, ARG, [[スキル:突撃の狼煙]]
+IF RESULT == 1
+	CFLAG:ARG:入力行動 =  [[スキル:突撃の狼煙]]
+	CALL RANDOM_TARGET, ARG , [[スキル:突撃の狼煙]]
+	CFLAG:ARG:リンケージ参加者1 = ARG - 1
+	CFLAG:(ARG-1):リンケージ参加 = 1
+	CFLAG:ARG:リンケージ参加者2 = ARG - 2
+	CFLAG:(ARG-2):リンケージ参加 = 1
+	CFLAG:ARG:リンケージ参加者3 = ARG - 3
+	CFLAG:(ARG-3):リンケージ参加 = 1
+ELSE
+	CALL ランダム行動 , ARG
+ENDIF
+
+@SET_ACTION_甲鱗様, ARG
+IF FLAG:経過ターン数 == 0
+	CFLAG:ARG:入力行動 =  [[スキル:気合]]
+	CALL RANDOM_TARGET, ARG , [[スキル:気合]]
+ELSEIF FLAG:経過ターン数 == 1
+	CFLAG:ARG:入力行動 =  [[スキル:なぎ払い]]
+	CALL RANDOM_TARGET, ARG , [[スキル:気合]]
+ELSE
+	CALL ランダム行動 , ARG
+ENDIF
+
+@COLOSSEUM_99_SET_ENEMY_スリーフェアリーズ
+CALL SET_ENEMY,8,[[キャラ:ピクシー]],16,0,1
+ABL:(CHARANUM-1):スキル6 = [[スキル:マハ・ジオ]]
+CFLAG:(CHARANUM-1):速度補正 = 5
+CALL SET_ENEMY,9,[[キャラ:シルキー]],16,0,1
+ABL:(CHARANUM-1):スキル6 = [[スキル:マハ・ブフ]]
+CFLAG:(CHARANUM-1):速度補正 = 6
+CALL SET_ENEMY,10,[[キャラ:ピクシー]],16,0,1
+ABL:(CHARANUM-1):スキル6 = [[スキル:マハ・ジオ]]
+CFLAG:(CHARANUM-1):速度補正 = 5
+CSTR:(CHARANUM-1):思考パターン = フェアリーリーダー
+RETURN 25
+
+@SET_ACTION_フェアリーリ‐ダー, ARG
+CALL CHECK_ACTIONABLE, ARG, [[スキル:サンダーブラスト]]
+IF RESULT == 1
+	CFLAG:ARG:入力行動 =  [[スキル:サンダーブラスト]]
+	CALL RANDOM_TARGET, ARG , [[スキル:サンダーブラスト]]
+	CFLAG:ARG:リンケージ参加者1 = CHARANUM -3
+	CFLAG:(CHARANUM - 3):リンケージ参加 = 1
+	CFLAG:ARG:リンケージ参加者2 = CHARANUM -2
+	CFLAG:(CHARANUM - 2):リンケージ参加 = 1
+ELSE
+	CALL ランダム行動 , ARG
+ENDIF
+
+@COLOSSEUM_99_SET_ENEMY_ランダムE
+;ランダムの種作成
+RANDOMIZE BASE:MASTER:ＥＸＰ + DAY
+;人数とレベルをセット
+LOCAL = ENEMY_NUM_COMMON("初級" , 3)
+LOCAL:1 = 96 / (LOCAL+3)
+;種族数をセット
+LOCAL:2 = CLASS_NUM_COMMON("初級")
+LOCALS =
+LOCALS += @"__{[[キャラ:アガートラーム]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:アメノウズメ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:アンドラス]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:リリム]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:メリジェーヌ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ゾンビコップ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:アチェリ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:コカクチョウ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:カーシー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:キクリヒメ]]}_{LOCAL:1}"
+CALL 闘技場ランダム配置 , LOCAL , LOCAL:2 , LOCALS
+;ランダムの種終わり
+RANDOMIZE GETTIME()
+RETURN 25
+
+@COLOSSEUM_99_SET_ENEMY_D1
+CALL SET_ENEMY,7,[[キャラ:ハンニャ]],25,0,1
+CALL SET_ENEMY,9,[[キャラ:モムノフ]],25,0,1
+CALL SET_ENEMY,11,[[キャラ:オニ]],25,0,1
+RETURN 60
+
+@COLOSSEUM_99_SET_ENEMY_D2
+CALL SET_ENEMY,8,[[キャラ:サラマンダー]],24,0,1
+CALL SET_ENEMY,10,[[キャラ:ノーム]],24,0,1
+CALL SET_ENEMY,13,[[キャラ:シルフ]],24,0,1
+CALL SET_ENEMY,15,[[キャラ:ウンディーネ]],24,0,1
+RETURN 60
+
+@COLOSSEUM_99_SET_ENEMY_D3
+CALL SET_ENEMY,8,[[キャラ:ボディコニアン]],24,0,1
+CALL SET_ENEMY,9,[[キャラ:マンイーター]],24,0,1
+CALL SET_ENEMY,10,[[キャラ:ボディコニアン]],24,0,1
+CALL SET_ENEMY,14,[[キャラ:ハカイソウ]],25,0,1
+ABL:(CHARANUM - 1):スキル1 = [[スキル:ムドオン]]
+RETURN 60
+
+@COLOSSEUM_99_SET_ENEMY_ジャックブラザーズ
+CALL SET_ENEMY,8,[[キャラ:ジャックフロスト]],28,0,1
+ABL:(CHARANUM - 1):スキル5 = [[スキル:マハ・ブフーラ]]
+ABL:(CHARANUM - 1):スキル7 = [[スキル:氷の乱舞]]
+CALL SET_ENEMY,10,[[キャラ:ジャックランタン]],28,0,1
+ABL:(CHARANUM - 1):スキル2 = [[スキル:マハ・ラギオン]]
+ABL:(CHARANUM - 1):スキル6 = [[スキル:炎の乱舞]]
+RETURN 60
+
+@COLOSSEUM_99_SET_ENEMY_今日のわんこ
+CALL SET_ENEMY,7,[[キャラ:カーシー]],20,0,1
+ABL:(CHARANUM - 1):スキル1 = [[スキル:マヒかみつき]]
+ABL:(CHARANUM - 1):スキル3 = [[スキル:ディアラマ]]
+CALL SET_ENEMY,8,[[キャラ:イヌガミ]],24,0,1
+ABL:(CHARANUM - 1):スキル3 = [[スキル:ディアラマ]]
+CALL SET_ENEMY,9,[[キャラ:オルトロス]],24,0,1
+ABL:(CHARANUM - 1):スキル3 = [[スキル:メガクロー]]
+CALL SET_ENEMY,10,[[キャラ:ヤツフサ]],24,0,1
+CALL SET_ENEMY,11,[[キャラ:ゾンビドッグ]],20,0,1
+RETURN 60
+
+@COLOSSEUM_99_SET_ENEMY_ランダムD
+;ランダムの種作成
+RANDOMIZE BASE:MASTER:ＥＸＰ + DAY
+;人数とレベルをセット
+LOCAL = ENEMY_NUM_COMMON("初級" , 4)
+LOCAL:1 = 150 / (LOCAL+4)
+;種族数をセット
+LOCAL:2 = CLASS_NUM_COMMON("初級")
+LOCALS =
+LOCALS += @"__{[[キャラ:ハイピクシー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ヨモツシコメ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ペルセポネ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:カシマレイコ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:リャナンシー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ルサールカ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:コッパテング]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:グルル]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ノズチ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:サラマンダー]]}_{LOCAL:1}"
+CALL 闘技場ランダム配置 , LOCAL , LOCAL:2 , LOCALS
+;ランダムの種終わり
+RANDOMIZE GETTIME()
+RETURN 60
+
+@COLOSSEUM_99_SET_ENEMY_C1
+CALL SET_ENEMY,8,[[キャラ:プリンシパリティ]],31,0,1
+CALL SET_ENEMY,9,[[キャラ:パワー]],34,0,1
+CALL SET_ENEMY,10,[[キャラ:プリンシパリティ]],31,0,1
+CALL SET_ENEMY,13,[[キャラ:エンジェル]],30,0,1
+ABL:(CHARANUM - 1):スキル2 = [[スキル:ハマオン]]
+ABL:(CHARANUM - 1):スキル1 = [[スキル:ディアラマ]]
+ABL:(CHARANUM - 1):スキル3 = [[スキル:ペンパトラ]]
+ABL:(CHARANUM - 1):スキル4 = [[スキル:ガルーラ]]
+ABL:(CHARANUM - 1):スキル5 = [[スキル:メ・ディアラマ]]
+CALL SET_ENEMY,14,[[キャラ:ニケー]],32,0,1
+ABL:(CHARANUM - 1):スキル2 = [[スキル:マハコウハ]]
+ABL:(CHARANUM - 1):スキル3 = [[スキル:マハ・ザンマ]]
+CALL SET_ENEMY,15,[[キャラ:エンジェル]],30,0,1
+ABL:(CHARANUM - 1):スキル2 = [[スキル:ハマオン]]
+ABL:(CHARANUM - 1):スキル1 = [[スキル:ディアラマ]]
+ABL:(CHARANUM - 1):スキル3 = [[スキル:ペンパトラ]]
+ABL:(CHARANUM - 1):スキル4 = [[スキル:ガルーラ]]
+ABL:(CHARANUM - 1):スキル5 = [[スキル:メ・ディアラマ]]
+RETURN 120
+
+@COLOSSEUM_99_SET_ENEMY_C2
+CALL SET_ENEMY,8,[[キャラ:ヌエ]],31,0,1
+CALL SET_ENEMY,9,[[キャラ:セイギュウカイ]],36,0,1
+CALL SET_ENEMY,10,[[キャラ:ミズチ]],33,0,1
+CALL SET_ENEMY,13,[[キャラ:モスマン]],30,0,1
+CALL SET_ENEMY,14,[[キャラ:ダークサマナー]],30,0,1
+EXP:(CHARANUM-1):獣姦経験 = 100
+ABL:(CHARANUM - 1):スキル1 = [[スキル:OxBezoar]]
+ABL:(CHARANUM - 1):スキル2 = [[スキル:YamataNoDrink]]
+ABL:(CHARANUM - 1):スキル3 = [[スキル:MegidoStone]]
+ABL:(CHARANUM - 1):スキル4 = [[スキル:火炎の勾玉]]
+ABL:(CHARANUM - 1):スキル5 = [[スキル:SpiralBomb]]
+ABL:(CHARANUM - 1):スキル6 = [[スキル:StunGrenade]]
+CALL SET_ENEMY,15,[[キャラ:バジリスク]],30,0,1
+RETURN 120
+
+@COLOSSEUM_99_SET_ENEMY_C3
+CALL SET_ENEMY,7,[[キャラ:ネコマタ]],35,0,1
+ABL:(CHARANUM - 1):スキル3 = [[スキル:マハ・ザンマ]]
+ABL:(CHARANUM - 1):スキル2 = [[スキル:アクセルクロー]]
+ABL:(CHARANUM - 1):スキル1 = [[スキル:キャンディボイス]]
+CALL SET_ENEMY,9,[[キャラ:バステト]],38,0,1
+ABL:(CHARANUM - 1):スキル2 = [[スキル:ザンダイン]]
+CALL SET_ENEMY,10,[[キャラ:センリ]],35,0,1
+RETURN 120
+
+@COLOSSEUM_99_SET_ENEMY_C4
+CALL SET_ENEMY,8,[[キャラ:キンキ]],32,0,1
+CALL SET_ENEMY,9,[[キャラ:スイキ]],36,0,1
+CALL SET_ENEMY,10,[[キャラ:フウキ]],34,0,1
+RETURN 120
+
+@COLOSSEUM_99_SET_ENEMY_ランダムC
+;ランダムの種作成
+RANDOMIZE BASE:MASTER:ＥＸＰ + DAY
+;人数とレベルをセット
+LOCAL = ENEMY_NUM_COMMON("中級" , 3)
+LOCAL:1 = 444 / (LOCAL+9)
+;種族数をセット
+LOCAL:2 = CLASS_NUM_COMMON("中級")
+LOCALS =
+LOCALS += @"__{[[キャラ:ユキジョロウ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:グーラー]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:イソラ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:イシュタム]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ヴィーヴル]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ブラックウィドウ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:プリンシパリティ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:カラステング]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:デメテール]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ゴルゴン]]}_{LOCAL:1}"
+CALL 闘技場ランダム配置 , LOCAL , LOCAL:2 , LOCALS
+;ランダムの種終わり
+RANDOMIZE GETTIME()
+RETURN 120
+
+@COLOSSEUM_99_SET_ENEMY_ランダムB
+;ランダムの種作成
+RANDOMIZE BASE:MASTER:ＥＸＰ + DAY
+;人数とレベルをセット
+LOCAL = ENEMY_NUM_COMMON("中級" , 3)
+LOCAL:1 = 148*4 / (LOCAL+9)
+;種族数をセット
+LOCAL:2 = CLASS_NUM_COMMON("中級")
+LOCALS =
+LOCALS += @"__{[[キャラ:ディース]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:デュラハン]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ズェラロンズ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:タラスク]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:おしち]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:セイギュウカイ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:オセ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:カマソッソ]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:ヴィヴィアン]]}_{LOCAL:1}"
+LOCALS += @"__{[[キャラ:くちさけ]]}_{LOCAL:1}"
+CALL 闘技場ランダム配置 , LOCAL , LOCAL:2 , LOCALS
+;ランダムの種終わり
+RANDOMIZE GETTIME()
+RETURN 200
+
+;まだ未実装
+@COLOSSEUM_99_SET_ENEMY_ランダムA
+CALL COLOSSEUM_99_SET_ENEMY_ランダムB
+RETURN RESULT
+
+@闘技場ランダム配置 , ENEMY_NUM , CLASS_NUM , ARGS
+#DIM CLASS_NUM, 1
+#DIM ENEMY_NUM, 1
+#DIM MAXENEMY, 1
+#DIM MINENEMY, 1
+#DIM ENEMY, 20
+#DIM ENEMYLV, 20
+#DIMS 仮ENEMY , 20
+ARGS = %SUBSTRING(ARGS , 2)%
+ENEMY_NUM = LIMIT(ENEMY_NUM, CLASS_NUM, 10)
+VARSET ENEMY, -1
+ARGS = %RANDOM_SPLIT(ARGS , "__" , CLASS_NUM)%
+SPLIT ARGS , "__" , 仮ENEMY
+FOR LOCAL , 0 , CLASS_NUM
+	ENEMY:LOCAL = TOINT(AUTO_SPLIT(仮ENEMY:LOCAL , "_" , 0))
+	ENEMYLV:LOCAL = TOINT(AUTO_SPLIT(仮ENEMY:LOCAL , "_" , 1))
+NEXT
+
+;LOCAL:7~16に7~16を入れる
+FOR LOCAL, 7, 17
+	LOCAL:LOCAL = LOCAL
+NEXT
+;LOCAL:7~16をシャッフル
+FOR LOCAL, 7, 17
+	SWAP LOCAL:LOCAL, LOCAL:RAND(7, 17)
+NEXT
+
+;実際の配置
+FOR LOCAL, 0, ENEMY_NUM
+	LOCAL:1 = LOCAL:(LOCAL + 7)
+	SIF POS(LOCAL:1) >= 0
+		CONTINUE
+	LOCAL:2 = LOCAL < CLASS_NUM ? LOCAL # RAND:CLASS_NUM
+	CALL SET_ENEMY, LOCAL:1, ENEMY:(LOCAL:2), ENEMYLV:(LOCAL:2) , 1 , 1
+NEXT
+
+;戦闘相手決定
+@SELECT_COLOSSEUM_RANDOMBATTLE
+;対戦チーム表を前にシフトして空きを作る
+IF SAVESTR:ランダム対戦チーム != ""
+	SAVESTR:ランダム対戦チーム = %SHIFT_SPLIT(SAVESTR:ランダム対戦チーム , "_" , -1)%
+	SIF SUBSTRING(SAVESTR:ランダム対戦チーム , STRLENS(SAVESTR:ランダム対戦チーム)) != "_"
+		SAVESTR:ランダム対戦チーム += "_"
+ENDIF
+
+FOR LOCAL , 0 , 7-STRCOUNT(SAVESTR:ランダム対戦チーム , "_")
+	SELECTCASE FLAG:闘技場ランク
+		;Ｆランク
+		CASE 0
+			;LOCALS = %RAND_SPLIT(SUBSTRING("_F1" * 3 + "_F2" * 3 + "_F3" * 2 , 1))%
+			LOCALS = %RAND_SPLIT("F1_F2_F3_ランダムF" , "_")%
+		;Ｅランク
+		CASE 1
+			LOCALS = %RAND_SPLIT("E1_E2_甲鱗様と加速要員_スリーフェアリーズ_ランダムE" , "_")%
+		
+		;Ｄランク
+		CASE 2
+			LOCALS = %RAND_SPLIT("D1_D2_D3_今日のわんこ_ジャックブラザーズ_ランダムD" , "_")%
+		
+		;Ｃランク
+		CASE 3
+			LOCALS = %RAND_SPLIT("C1_C2_C3_C4_ランダムC" , "_")%
+		;Ｂランク
+		CASE 4
+			LOCALS = %RAND_SPLIT("ランダムB" , "_")%
+		;Ａランク
+		CASE 5
+			LOCALS = %RAND_SPLIT("ランダムA" , "_")%
+		;Ｓランク
+		CASEELSE
+			LOCALS = %RAND_SPLIT("ランダムS" , "_")%
+		
+	ENDSELECT
+	SAVESTR:ランダム対戦チーム += LOCALS + "_"
+NEXT

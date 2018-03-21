@@ -1,0 +1,125 @@
+@ＴＳ処理,ARG, 胸サイズ指定 = 0
+#DIM 胸サイズ指定
+	;胸のサイズが設定されて無いならランダム
+	IF CFLAG:ARG:元胸サイズ == 0
+		IF TALENT:ARG:オトコ
+			SELECTCASE RAND:100
+				CASE IS < 40
+					CFLAG:ARG:元胸サイズ = 3
+				CASE IS < 60
+					CFLAG:ARG:元胸サイズ = 2
+				CASE IS < 80
+					CFLAG:ARG:元胸サイズ = 4
+				CASE IS < 90
+					CFLAG:ARG:元胸サイズ = 5
+				CASE IS < 100
+					CFLAG:ARG:元胸サイズ = 1
+			ENDSELECT
+		ELSE
+			CFLAG:ARG:元胸サイズ = 1
+		ENDIF
+	ENDIF
+	SIF !EXP:ARG:ＴＳ経験
+		CALL 初ＴＳ処理,ARG
+	;性転換の処理
+	TALENT:ARG:オトコ = !TALENT:ARG:オトコ
+	SWAP TALENT:ARG:処女,CFLAG:ARG:元処女
+	SWAP TALENT:ARG:ふたなり,CFLAG:ARG:元ふたなり
+	;オトコでもＶ敏感/Ｖ鈍感がつけれるので変換しないよう修正
+	;ついでに元に戻せなくなるのを回避
+	;SWAP TALENT:ARG:Ｖ敏感,CFLAG:ARG:元Ｖ敏感
+	;SWAP TALENT:ARG:Ｖ鈍感,CFLAG:ARG:元Ｖ鈍感
+	SIF CFLAG:ARG:元Ｖ敏感
+		TALENT:ARG:Ｖ敏感 = 1
+	SIF CFLAG:ARG:元Ｖ鈍感
+		TALENT:ARG:Ｖ鈍感 = 1
+	SWAP ABL:ARG:会話タイプ,CFLAG:ARG:ＴＳ時会話タイプ
+	SWAP CFLAG:ARG:人化時会話タイプ,CFLAG:ARG:ＴＳ人化時会話タイプ
+	SWAP ABL:ARG:Ｖ感覚,CFLAG:ARG:元Ｖ感覚
+	SWAP CSTR:ARG:16,CSTR:ARG:11
+	SWAP CSTR:ARG:17,CSTR:ARG:12
+	;胸の処理
+	;現在の胸のサイズを保存
+	CFLAG:ARG:現胸サイズ = BUST(ARG)
+	SWAP CFLAG:ARG:現胸サイズ,CFLAG:ARG:元胸サイズ
+	TALENT:ARG:絶壁 = 0
+	TALENT:ARG:貧乳 = 0
+	TALENT:ARG:巨乳 = 0
+	TALENT:ARG:爆乳 = 0
+	IF 胸サイズ指定
+		SELECTCASE 胸サイズ指定
+			CASE 1
+				TALENT:ARG:絶壁 = 1
+			CASE 2
+				TALENT:ARG:貧乳 = 1
+			CASE 3
+			CASE 4
+				TALENT:ARG:巨乳 = 1
+			CASE 5
+				TALENT:ARG:爆乳 = 1
+		ENDSELECT
+	ELSE
+		SELECTCASE CFLAG:ARG:現胸サイズ
+			CASE 1
+				TALENT:ARG:絶壁 = 1
+			CASE 2
+				TALENT:ARG:貧乳 = 1
+			CASE 3
+			CASE 4
+				TALENT:ARG:巨乳 = 1
+			CASE 5
+				TALENT:ARG:爆乳 = 1
+		ENDSELECT
+	ENDIF
+	
+	;男の娘を入れ替え
+	SWAP TALENT:ARG:男の娘 , CFLAG:ARG:元男の娘
+	;異常経験等のテキストは表示させるかは時と場合による
+	;CALL ADDS_ABNORMAL_EXP , "ＴＳ" , ARG
+	;CALL SHOW_ABNORMAL_EXP , ARG
+
+	;PRINTL ＴＳ経験 + 1
+	;EXP:ARG:ＴＳ経験 += 1
+
+@初ＴＳ処理,ARG
+;性別再反転時（元に戻る時）に必要な情報の保存
+;ここらへんはYM用性別反転コマンドから借用
+;初回時に元の性別をCFLAG:1995に保存、元性別は使用しないものとする
+;処女の情報をCFLAG:1996に保存
+;胸の大きさをCFLAG:1997に保存
+;0:設定なし,1絶壁2貧乳3普通4巨乳5爆乳
+
+;ふたなりの情報をCFLAG:1998に保存
+
+;CFLAG:ARG:元性別 = TALENT:ARG:オトコ
+
+IF TALENT:ARG:オトコ
+	;男が初めてTSしたら処女に決まってんだろJK
+	CFLAG:ARG:元処女 = 1
+	;会話タイプが設定されてなかったら引継ぎ
+	SIF CFLAG:ARG:ＴＳ時会話タイプ == 0
+		CFLAG:ARG:ＴＳ時会話タイプ = ABL:ARG:会話タイプ
+	SIF CFLAG:ARG:人化時会話タイプ == 0
+		CFLAG:ARG:人化時会話タイプ = ABL:ARG:会話タイプ
+	SIF CFLAG:ARG:ＴＳ人化時会話タイプ == 0
+		CFLAG:ARG:ＴＳ人化時会話タイプ = CFLAG:ARG:人化時会話タイプ
+		
+	;一人称・二人称が設定されてなかったら引継ぎ
+	SIF CSTR:ARG:16 == ""
+		CSTR:ARG:16 = CSTR:ARG:11
+	SIF CSTR:ARG:17 == ""
+		CSTR:ARG:17 = CSTR:ARG:12
+ELSE
+	;会話タイプが設定されてなかったら引継ぎ
+	SIF CFLAG:ARG:ＴＳ時会話タイプ == 0
+		CFLAG:ARG:ＴＳ時会話タイプ = ABL:ARG:会話タイプ
+	SIF CFLAG:ARG:人化時会話タイプ == 0
+		CFLAG:ARG:人化時会話タイプ = ABL:ARG:会話タイプ
+	SIF CFLAG:ARG:ＴＳ人化時会話タイプ == 0
+		CFLAG:ARG:ＴＳ人化時会話タイプ = CFLAG:ARG:人化時会話タイプ
+	;一人称・二人称が設定されてなかったら引継ぎ
+	SIF CSTR:ARG:16 == ""
+		CSTR:ARG:16 = CSTR:ARG:11
+	SIF CSTR:ARG:17 == ""
+		CSTR:ARG:17 = CSTR:ARG:12
+ENDIF

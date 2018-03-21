@@ -1,0 +1,156 @@
+@CREATE_RANDOM_NAME_IF(生成法リスト, 親:0=-1, 親:1=-1, 親:2=-1)
+#DIMS DYNAMIC NAMES,17
+#DIMS DYNAMIC 最有力候補,1
+#DIMS DYNAMIC 生成法,1
+#DIMS DYNAMIC 生成法リスト,1
+#DIM DYNAMIC 親, 3
+#DIMS DYNAMIC 親の苗字, 3
+#DIM DYNAMIC 苗字選択, 1
+#DIM DYNAMIC CNT, 1
+#DIM DYNAMIC 育て, 1
+#DIM DYNAMIC 母, 1
+#DIM DYNAMIC 父, 1
+SIF 生成法リスト == ""
+	生成法リスト = EnglishFemale_EnglishMale_GermanFemale_GermanMale_FrenchFemale_FrenchMale_ItalianFemale_ItalianMale_SpanishFemale_SpanishMale_SwedishFemale_SwedishMale_FinnishFemale_FinnishMale_RussianFemale_RussianMale_ArabicFemale_ArabicMale_IndianFemale_IndianMale_GreekFemale_GreekMale_ChineseFemale_ChineseMale_JapaneseFemale_JapaneseMale_姫君風／中世日本_姫君風／近代日本_姫君風／中国伝奇_RandomFemale
+育て = 0
+母 = 1
+父 = 2
+FOR CNT, 0, 3
+	IF 親:CNT >= 0
+		;育ての親や父親が母と同一なら表示しない
+		IF CNT == 母 || 親:CNT != 親:母
+			IF STRCOUNT( NAME:(親:CNT), " " ) == 1
+				親の苗字:CNT = %AUTO_SPLIT( NAME:(親:CNT), " ", 0 ) + " "%
+			ELSEIF STRCOUNT( NAME:(親:CNT), "・" ) == 1
+				親の苗字:CNT = ・%AUTO_SPLIT( NAME:(親:CNT), "・", 1 )%
+			ELSE
+			;苗字を持たない親は見なかったことにする
+				親:CNT = -1 
+			ENDIF
+		ELSE
+			親:CNT = -1
+		ENDIF
+	ENDIF
+NEXT
+苗字選択 = -1
+最有力候補 = 
+$INPUT_LOOP
+FOR COUNT,0,100
+	生成法 = %AUTO_SPLIT(生成法リスト,"_",COUNT)%
+	SIF STRLENS(生成法) == 0
+		BREAK
+	TRYCCALLFORM NAMEDIC_%生成法%,0
+		PRINTFORMLC [{COUNT,2}]%生成法%
+	CATCH
+	ENDCATCH
+NEXT
+PRINTL 
+PRINTL 
+PRINTL [100]Enter a name manually
+;自分で名前を入力する
+IF 親:育て >= 0
+	IF 苗字選択 == 育て
+		SETCOLOR COLOR( "P-YELLOW" )
+	ENDIF
+	PRINTL [101]Give parents' first names of raising
+	;育ての親の苗字を付ける
+	RESETCOLOR
+ENDIF
+IF 親:母 >= 0
+	IF 苗字選択 == 母
+		SETCOLOR COLOR( "P-YELLOW" )
+	ENDIF
+	PRINTL [102]Mother's surname
+	;母親の苗字を付ける
+	RESETCOLOR
+ENDIF
+IF 親:父 >= 0
+	IF 苗字選択 == 父
+		SETCOLOR COLOR( "P-YELLOW" )
+	ENDIF
+	PRINTL [103]Father's surname
+	;父親の苗字を付ける
+	RESETCOLOR
+ENDIF
+DO
+	INPUT
+	SELECTCASE RESULT
+		CASE 100
+			PRINTL Please enter the name:
+			;名前を入力してください
+			INPUTS
+			最有力候補 = %RESULTS%
+			GOTO 確認
+		CASE 101 TO 103
+			IF 親:( RESULT - 101 ) >= 0
+				IF 苗字選択 == RESULT - 101
+					苗字選択 = -1
+				ELSE
+					苗字選択 = RESULT - 101
+				ENDIF
+			ENDIF
+			GOTO INPUT_LOOP
+		CASE 0 TO (STRCOUNT(生成法リスト,"_") + 1)
+			SWAP RESULT,COUNT
+			VARSET RESULTS
+			生成法 = %AUTO_SPLIT(生成法リスト,"_",COUNT)%
+			IF GROUPMATCH( 生成法, "日本人女性", "日本人男性" ) && 苗字選択 >= 0
+				TRYCCALLFORM NAMEDIC_%生成法%, 16, 親の苗字:苗字選択
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ELSE
+				TRYCCALLFORM NAMEDIC_%生成法%,16
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ENDIF
+			GOTO 選択
+	ENDSELECT
+LOOP 1
+
+$確認
+PRINTFORML 「%最有力候補%」, is this ok?
+;でよろしいですか？
+CALL INPUT_YN,"Yes","No"
+SIF RESULT == 1
+	GOTO INPUT_LOOP
+RESULTS = %最有力候補%
+RETURN
+
+$選択
+FOR COUNT,1,17
+	IF 苗字選択 >= 0
+		IF STRCOUNT( 親の苗字:苗字選択, " " ) == 1
+			NAMES:COUNT = %親の苗字:苗字選択%%RESULTS:(COUNT-1)%
+		ELSEIF STRCOUNT( 親の苗字:苗字選択, "・" ) == 1
+			NAMES:COUNT = %RESULTS:(COUNT-1)%%親の苗字:苗字選択%
+		ELSE
+		;選択が出来ているなら苗字を持っているはずだが、万一のときは苗字抜きで
+			NAMES:COUNT = %RESULTS:(COUNT-1)%
+		ENDIF
+	ELSE
+		NAMES:COUNT = %RESULTS:(COUNT-1)%
+	ENDIF
+	PRINTFORMLC [{COUNT,2}]%NAMES:COUNT%
+NEXT
+PRINTL 
+PRINTL 
+PRINTLC	[100]Generate new names
+;別の候補
+PRINTLC	[200]Pick something else
+;考え直す
+DO
+	INPUT
+	SELECTCASE RESULT
+		CASE 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+			最有力候補 = %NAMES:RESULT%
+			GOTO 確認
+		CASE 100
+			VARSET RESULTS
+			CALLFORM NAMEDIC_%生成法%,16
+			GOTO 選択
+		CASE 200
+			GOTO INPUT_LOOP
+	ENDSELECT
+LOOP 1

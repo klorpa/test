@@ -1,0 +1,290 @@
+; オラクル
+; 時間をおいて発動するようなスキルの作り方わかんないし即時発動
+; 内容は無印FESとPごちゃまぜで8種類。ただし、MP(=SP)回復は露骨にいやらしく確率を1%未満に下げておく
+; 原作のような行動消費しない回復支援行動でもないし別にどうでもいいのかもしれないけど
+; MP回復引くまでリロードゲーになるようならMP回復削除か……
+
+;スキル名
+@SKILL_NAME_532, ARG
+RESULTS = Oracle
+
+;　命中
+@SKILL_HITRATE_532, ARG
+RETURN 0
+
+;　威力
+@SKILL_POWER_532, ARG
+RETURN 0
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_532, ARG
+RETURN 0
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_532, ARG
+RETURN 0
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_532, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_532, ARG
+RETURN 64
+
+;　相性
+@SKILL_TYPE_532, ARG
+RETURN GET_TYPE_NUM("万能")
+;相性なし
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_532
+RETURN 2
+;MAGIC
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_532
+RETURN 0
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_532
+RETURN 2
+
+;　射程
+@SKILL_RANGE_532, ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_532, ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_532
+RETURN 4
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_532, ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_532
+RETURN 5
+
+@継承不能_532
+RETURN 1
+;継承不可
+
+;速度補正
+@SKILL_SPEED_532, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_532, ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_532
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_532
+RETURN 0
+;変化不可
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_532, ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_532, ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_532, ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_532, ARG
+RETURN 0
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_532, ARG, ARG:1
+;ARG:0…実行者のCHARA Num　ARG:1…対象のポジションNum
+
+;------------------------------------------------
+; CFLAG:ARG:オラクルフラグ 使用した日付
+; LOCAL:0 対象Chara Num
+; LOCAL:1 効果種別
+;	0.味方全員の状態異常を完治,		 20.00%
+;	1.味方全員に全カジャ効果,		 20.00%
+;	2.味方全員にクリティカル率上昇,	 20.00%
+;	3.味方全員に気合+集中,			 20.00%
+;	4.味方全員のHPを全快,			 10.00%
+;	5.味方全員のHPを1に,			  9.97%
+;	6.味方全員のMPを全快,			  0.02%
+;	7.味方全員のHPMPを全快,			  0.01%
+; LOCAL:2 一時計算用
+; LOCAL:7 カウンタ変数
+; LOCAL:8 範囲Un
+; LOCAL:9 範囲Up
+;------------------------------------------------
+; 初期化処理
+VARSET LOCAL, 0, 0, 10
+CFLAG:ARG:オラクルフラグ = DAY
+LOCAL:1 = RAND:10000
+SELECTCASE LOCAL:1
+	CASE IS < 1
+		LOCAL:1 = 7
+	CASE IS < 3
+		LOCAL:1 = 6
+	CASE IS < 1000
+		LOCAL:1 = 5
+	CASE IS < 2000
+		LOCAL:1 = 4
+	CASE IS < 4000
+		LOCAL:1 = 3
+	CASE IS < 6000
+		LOCAL:1 = 2
+	CASE IS < 8000
+		LOCAL:1 = 1
+	CASE IS < 10000
+		LOCAL:1 = 0
+	CASEELSE
+		; ここに来ることは無いはずだが……
+		LOCAL:1 = 5
+ENDSELECT
+; 範囲設定
+IF CFLAG:ARG:PTフラグ == 0
+	LOCAL:8 = 7
+	LOCAL:9 = 17
+ELSE
+	LOCAL:8 = 1
+	LOCAL:9 = 7
+ENDIF
+; オラクル本処理
+FOR LOCAL:7, LOCAL:8, LOCAL:9
+	LOCAL = POS(LOCAL:7)
+	; 空きポジションスキップ
+	SIF LOCAL < 0
+		CONTINUE
+	; DYINGスキップ
+	SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+		CONTINUE
+	; 分岐
+	SELECTCASE LOCAL:1
+		CASE 0
+			; アムリタから流用
+			CALL SKILL_CURE_STATE_532, CFLAG:LOCAL:ステート
+			IF RESULT == 1
+				PRINTFORML 　　TARGET:[{LOCAL:7,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　Status recovered!
+				CFLAG:LOCAL:ステート = 0
+				CFLAG:LOCAL:ステート経過ターン = 0
+			ENDIF
+		CASE 1
+			; ヒートライザから流用
+			CFLAG:LOCAL:攻撃強化 += 4
+			SIF CFLAG:LOCAL:攻撃強化 > 32
+				CFLAG:LOCAL:攻撃強化 = 32
+			CFLAG:LOCAL:防御強化 += 4
+			SIF CFLAG:LOCAL:防御強化 > 32
+				CFLAG:LOCAL:防御強化 = 32
+			CFLAG:LOCAL:魔法威力強化 += 4
+			SIF CFLAG:LOCAL:魔法威力強化 > 32
+				CFLAG:LOCAL:魔法威力強化 = 32
+			CFLAG:LOCAL:命中強化 += 4
+			SIF CFLAG:LOCAL:命中強化 > 32
+				CFLAG:LOCAL:命中強化 = 32
+			CFLAG:LOCAL:回避強化 += 4
+			SIF CFLAG:LOCAL:回避強化 > 32
+				CFLAG:LOCAL:回避強化 = 32
+		CASE 2
+			; レボリューションから流用
+			CFLAG:LOCAL:クリティカル強化 += 8
+			SIF CFLAG:LOCAL:クリティカル強化 > 8
+				CFLAG:LOCAL:クリティカル強化 = 8
+		CASE 3
+			; 気合、コンセントレイトから流用
+			CFLAG:LOCAL:気合フラグ = 1
+			CFLAG:LOCAL:集中フラグ = 1
+		CASE 4
+			; メ・ディアラハンから流用
+			PRINTFORM 　　TARGET:[{LOCAL:7,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　
+			LOCAL:2 = MAXBASE:LOCAL:ＨＰ
+			PRINTFORML HP {LOCAL:2 - BASE:LOCAL:ＨＰ}ＨＰ recovered
+			CALL VAR_HP, LOCAL, LOCAL:2, 3
+		CASE 5
+			; メ・ディアラハンから流用
+			PRINTFORM 　　TARGET:[{LOCAL:7,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　
+			LOCAL:2 = BASE:LOCAL:ＨＰ - 1
+			PRINTFORML HP {LOCAL:2} DAMAGE
+			CALL VAR_HP, LOCAL, -LOCAL:2, 3
+		CASE 6
+			; メ・ディアラハンから流用
+			PRINTFORM 　　TARGET:[{LOCAL:7,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　
+			LOCAL:2 = MAXBASE:LOCAL:ＭＰ
+			PRINTFORML MP {LOCAL:2 - BASE:LOCAL:ＭＰ}ＭＰ recovered
+			CALL VAR_MP, LOCAL, LOCAL:2, 3
+		CASE 7
+			; メ・ディアラハンから流用
+			PRINTFORM 　　TARGET:[{LOCAL:7,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　
+			LOCAL:2 = MAXBASE:LOCAL:ＨＰ
+			PRINTFORML HP {LOCAL:2 - BASE:LOCAL:ＨＰ}ＨＰ recovered
+			CALL VAR_HP, LOCAL, LOCAL:2, 3
+			LOCAL:2 = MAXBASE:LOCAL:ＭＰ
+			PRINTFORML MP {LOCAL:2 - BASE:LOCAL:ＭＰ}ＭＰ recovered
+			CALL VAR_MP, LOCAL, LOCAL:2, 3
+	ENDSELECT
+NEXT
+PRINTL  
+PRINTFORM For all \@ CFLAG:ARG:PTフラグ == 0 ? enemies # allies \@ 
+SELECTCASE LOCAL:1
+	CASE 0
+		PRINTFORMW ailments were cured!
+	CASE 1
+		PRINTFORMW all stats were raised!
+	CASE 2
+		PRINTFORMW critical rate rose significantly!
+	CASE 3
+		PRINTFORMW kiai and concentration effects granted!
+	CASE 4
+		PRINTFORMW HP fully recovered!
+	CASE 5
+		PRINTFORMW HP reduced to one!
+	CASE 6
+		PRINTFORMW MP fully recovered!
+	CASE 7
+		PRINTFORMW HP and MP fully recovered!
+ENDSELECT
+WAIT
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_532
+PRINTL Random effect. So-called パルプンテ
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_532, ARG
+; その日に使用してないこと
+; (闘技場やイベント、依頼で使用していたら探索では使用できないし逆も然り)
+SIF CFLAG:ARG:オラクルフラグ == DAY
+	RETURN 0
+RETURN 1
+
+
+;何のバッドステータスを治せるか
+@SKILL_CURE_STATE_532, ARG
+SELECTCASE GET_STATE(ARG)
+	CASE "GOOD", "DYING"
+		RETURN 0
+	CASEELSE
+		RETURN 1
+ENDSELECT
+

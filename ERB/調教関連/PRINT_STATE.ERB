@@ -1,0 +1,418 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:PRINT_STATE.ERB
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/04/22		黒天					SHOW_INFO_PALAM関数に引数を追加
+;													被調教者だけでなく調教者の状態も表示できるよう変更
+;	003		2011/04/24		P						PALAM表示のバーを変更
+;													PALAMの数値表示を、前のレベルがあがったところからいくつかに変更
+;	004		2011/04/25		P						上記の処理をさらに変更し、色を調整&オプションで表示形式を選べるように
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+@ARRANGE_CHARANAME
+;名前の表示の後の文字を揃えるための空白調整、Str.csvにて処理している
+C = NO:COUNT + 200
+PRINTS STR:C
+
+;==========================================================
+;<関数名>
+; SHOW_INFO_PALAM
+;<関数の説明>
+; 対象の現在のパラメータ状況を表示する。
+;<引数>
+; [ARG] 表示する対象の番号(初期値:-1)
+;       -1    : 被調教者(TARGET)
+;       -1以外: 調教者(あなた or 助手)
+;<戻り値>: なし
+;==========================================================
+@SHOW_INFO_PALAM, ARG=-1
+#DIM PLV, 1
+#LOCALSIZE 5
+;LOCAL 調教者/被調教者判別用
+SIF ARG < 0
+	ARG = TARGET
+LOCAL:4 = 0
+FOR LOCAL, 0, 15
+	LOCALS = %AUTO_SPLIT("快Ｃ/快Ｖ/快Ａ/快Ｂ/潤滑/恭順/欲情/屈服/習得/恥情/苦痛/恐怖/反感/不快/抑鬱", "/", LOCAL)%
+	SIF ARG == PLAYER && !GROUPMATCH(LOCALS, "快Ｃ", "快Ｖ", "快Ａ", "快Ｂ", "潤滑", "欲情")
+		CONTINUE
+	PRINTFORM %PALAMNAME_S(LOCALS)%
+	PLV = GETPALAMLV(PALAM:ARG:LOCALS, 17)
+	SELECTCASE PLV
+		CASE IS < 10
+			PRINTFORM Lv{PLV}
+		CASE 10
+			PRINT LvA
+		CASE 11
+			PRINT LvB
+		CASE 12
+			PRINT LvC
+		CASE 13
+			PRINT LvD
+		CASE 14
+			PRINT LvE
+		CASE 15
+			PRINT LvF
+		CASE 16
+			PRINT LvG
+		CASE 17
+			PRINT ???
+	ENDSELECT
+	PRINT  
+	SELECTCASE FLAG:PALAM表示設定
+		CASE 0
+			LOCAL:1 = PALAM:ARG:LOCALS
+			LOCAL:2 = PALAM:ARG:LOCALS-PALAMLV:PLV
+			LOCAL:3 = PALAMLV:(PLV+1)-PALAMLV:PLV
+		CASE 1
+			LOCAL:1 = PALAM:ARG:LOCALS
+			LOCAL:2 = PALAM:ARG:LOCALS
+			LOCAL:3 = PALAMLV:(PLV+1)
+		CASE 2
+			LOCAL:1 = PALAM:ARG:LOCALS - PALAMLV:PLV
+			LOCAL:2 = PALAM:ARG:LOCALS - PALAMLV:PLV
+			LOCAL:3 = PALAMLV:(PLV+1)-PALAMLV:PLV
+	ENDSELECT
+	IF PLV == 17 || (LOCALS == "LUBRIC" && PLV >= 5)
+		CALL PRINT_COLORBAR, 0, 1, 8, UNICODE(0x2584), UNICODE(0x2584), BARCOLORSET("青"), RESULT:1
+		PRINT  ( MAX!!) 
+	ELSE
+		CALL PRINT_COLORBAR, LOCAL:2, LOCAL:3, 8, UNICODE(0x2584), UNICODE(0x2584), BARCOLORSET("青"), RESULT:1
+		PRINT  (
+		;桁数を取得
+		LOCAL:2 = 1
+		WHILE 1
+			SIF PALAM:ARG:LOCALS / POWER(10, LOCAL:2) == 0
+				BREAK
+			LOCAL:2++
+		WEND
+		SELECTCASE LOCAL:2
+			CASE IS < 7
+				PRINTFORM {LOCAL:1, 6}
+			CASE IS < 11
+				PRINTFORM {LOCAL:1 / POWER(10, 3),5}K
+			CASE IS < 14
+				PRINTFORM {LOCAL:1 / POWER(10, 3),5}M
+			CASE IS < 17
+				PRINTFORM {LOCAL:1 / POWER(10, 3),5}G
+			CASE IS < 20
+				PRINTFORM {LOCAL:1 / POWER(10, 3),5}P
+		ENDSELECT
+		PRINT ) 
+	ENDIF
+	SIF ++(LOCAL:4) % FLAG:調教パラメータを並べる数 == 0
+		PRINTL 
+NEXT
+SIF LOCAL:4 % 3 > 0
+	PRINTL 
+RETURN 0
+@SHOW_INFO_ABL
+S = 0
+REPEAT 20
+	;表示概要
+	;　　　　 0,Obedience 　　　　 1,Desire 　　　　 2,Technique 　　　 3,ＣSensitivity
+	;　　　 4,ＶSensitivity 　　　 5,ＡSensitivity 　　　 6,ＢSensitivity 　　 7,Servicing
+	;　　　 8,Exhibitionism 　　 9,Masochism 　　10,Sadism 　　11,Lesbianism
+	;　　12,Cooking 　　13,Photography 　　14,Singing 　　15,MasturbAddict
+	;　　16,SemenAddict 　　17,LesbianAddict 18,SexAddict 　　19,MilkingAddict
+	;　　20,ＢＬism 　　21,ＢＬAddict
+	
+	IF ABL:T:COUNT > 0
+		;表示位置あわせ
+		IF COUNT == 7 || COUNT == 9 || COUNT == 10 || COUNT == 11 || COUNT == 12 || COUNT == 13 || COUNT == 14 || COUNT == 15 || COUNT == 16 || COUNT == 17 || COUNT == 19 || COUNT == 20 || COUNT == 21
+			PRINT 　　
+		ELSEIF COUNT == 3 || COUNT == 4 || COUNT == 5 || COUNT == 6 || COUNT == 8
+			PRINT 　　　
+		ELSEIF COUNT == 0 || COUNT == 1 || COUNT == 2
+			PRINT 　　　　
+		ENDIF
+		
+		;表示
+		PRINTFORM %ABLNAME_E(COUNT)%:LV
+		;数字の表示位置をそろえる
+		SIF ABL:T:COUNT < 10
+			PRINT  
+		PRINTFORM {ABL:T:COUNT}
+		S += 1
+		;改行するのか？ 続けて出力するのか？
+		IF S == 4
+			PRINTL 
+			S = 0
+		ELSE
+			PRINT 　
+		ENDIF
+	ENDIF
+REND
+PRINTL 
+
+;=============================================================================
+;PRINT_TALENT （素質）との入れ替え
+@SHOW_INFO_TALENT
+U = 0
+;リピート回数-1 の番号までの素質が表示される
+;リピート回数をあらかじめ大きめに設定（最大1000）しておくと、
+;素質の最大番号が増えたときに書き換える手間が減るが、
+;増やしすぎると処理速度に影響するので要注意
+REPEAT 200
+	IF TALENT:T:COUNT
+		PRINTFORM [%TALENTNAME_E(COUNT)%] 
+		
+		;改行するのか？ 続けて出力するのか？
+		U += 1
+		SIF U%6 == 0
+			PRINTL 
+	ENDIF
+REND
+;最後のループで改行してなかったら、ここで改行しておく
+SIF U%6 != 0
+	PRINTL 
+
+
+;=============================================================================
+;PRINT_MARK （刻印）との入れ替え
+@SHOW_INFO_MARK
+REPEAT 4
+	PRINTFORM %MARKNAME_E(COUNT)%:LV{MARK:T:COUNT} 
+	BAR MARK:T:COUNT, 3, 3
+	
+	;最後のループ以外では間隔をあける
+	SIF COUNT < 3
+		PRINT 　
+REND
+PRINTL 
+
+;=============================================================================
+;PRINT_EXP （経験）との入れ替え
+@SHOW_INFO_EXP
+X = 0
+S = 0
+REPEAT 42
+	;表示概要
+	;　　　 0.ＶEXP　　　 1.ＡEXP　　 2.ClimaxEXP　　 3.CumEXP
+	;　　 4.SexEXP　　 5.CreampieEXP 　　6.KissEXP	　10.MasturbEXP
+	;11.FrcMasturEXP	20.SemenEXP21.ServicPlsEXP　22.BlowjobEXP
+	;　　23.LoveEXP30.MasoEXP　　31.UrineEXP32.SadoEXP
+	;33.OutExposeEXP　　40.LesbianEXP　　41.ＢＬEXP　　50.AbnormalEXP
+	;　　51.BondageEXP　52.ＶExpandEXP　53.ＡExpandEXP　　54.MilkEXP
+	;　　55.TentacleEXP　　56.BloodsuckEXP　　57.BestialEXP　　60.BirthEXP
+	;　　61.HouseworkEXP　　62.FilmingEXP　　63.FilmedEXP　　64.SingEXP
+	;　　65.PracticeEXP　　70.TrainingEXP    80.ＴＳEXP　　82.GangbangEXP
+	;    84.CheatingEXP71.WaiterEXP　　72.ProstitEXP73.LendingEXP
+	;　74.LiveEXP　　75.ToiletEXP
+	
+	IF COUNT == 0
+		X = 0
+	ELSEIF COUNT == 1
+		X = 1
+	ELSEIF COUNT == 2
+		X = 2
+	ELSEIF COUNT == 3
+		X = 3
+		
+	ELSEIF COUNT == 4
+		X = 4
+	ELSEIF COUNT == 5
+		X = 5
+	ELSEIF COUNT == 6
+		X = 6
+	ELSEIF COUNT == 7
+		X = 10
+	ELSEIF COUNT == 8
+		X = 11
+		
+	ELSEIF COUNT == 9
+		X = 20
+	ELSEIF COUNT == 10
+		X = 21
+	ELSEIF COUNT == 11
+		X = 22
+	ELSEIF COUNT == 12
+		X = 23
+		
+	ELSEIF COUNT == 13
+		X = 30
+	ELSEIF COUNT == 14
+		X = 31
+	ELSEIF COUNT == 15
+		X = 32
+	ELSEIF COUNT == 16
+		X = 33
+		
+	ELSEIF COUNT == 17
+		X = 40
+	ELSEIF COUNT == 18
+		X = 41
+		
+	ELSEIF COUNT == 19
+		X = 50
+	ELSEIF COUNT == 20
+		X = 51
+	ELSEIF COUNT == 21
+		X = 52
+	ELSEIF COUNT == 22
+		X = 53
+		
+	ELSEIF COUNT == 23
+		X = 54
+	ELSEIF COUNT == 24
+		X = 55
+	ELSEIF COUNT == 25
+		X = 56
+	ELSEIF COUNT == 26
+		X = 57
+	ELSEIF COUNT == 27
+		X = 60
+		
+	ELSEIF COUNT == 28
+		X = 61
+	ELSEIF COUNT == 29
+		X = 62
+	ELSEIF COUNT == 30
+		X = 63
+	ELSEIF COUNT == 31
+		X = 64
+		
+	ELSEIF COUNT == 32
+		X = 65
+	ELSEIF COUNT == 33
+		X = 70
+	ELSEIF COUNT == 34
+		X = 71
+	ELSEIF COUNT == 35
+		X = 72
+		
+	ELSEIF COUNT == 36
+		X = 73
+	ELSEIF COUNT == 37
+		X = 74
+	ELSEIF COUNT == 38
+		X = 75
+	ELSEIF COUNT == 39
+		X = 80
+	ELSEIF COUNT == 40
+		X = 82
+	ELSEIF COUNT == 41
+		X = 84
+	ENDIF
+
+	IF EXP:T:X > 0
+		PRINTFORM %EXPNAME_E(X),12,LEFT%{EXP:T:X,11,RIGHT}
+		S += 1
+		
+		;改行するのか？ 続けて出力するのか？
+		IF S == 4
+			PRINTL 
+			S = 0
+		ELSE
+			PRINT 　 
+		ENDIF
+	ENDIF
+REND
+PRINTL 
+DRAWLINE
+;=============================================================================
+;SHOW_JUEL の珠表示部分を独立した関数に
+@SHOW_INFO_JUEL
+U = 0
+X = 0
+REPEAT 12
+	;表示順
+	; 0,FEELＣ　 1,FEELＶ　 2,FEELＡ　 3,FEELＢ
+	; 5,SUBMIT　 6,DESIRE　 7,SURREN　 8,LEARNI
+	; 9,SHAMEF　10,xPAINx　11,xFEARx 100,DENIAL
+	IF COUNT == 0
+		X = 0
+	ELSEIF COUNT == 1
+		X = 1
+	ELSEIF COUNT == 2
+		X = 2
+	ELSEIF COUNT == 3
+		X = 3
+		
+	ELSEIF COUNT == 4
+		X = 5
+	ELSEIF COUNT == 5
+		X = 6
+	ELSEIF COUNT == 6
+		X = 7
+	ELSEIF COUNT == 7
+		X = 8
+		
+	ELSEIF COUNT == 8
+		X = 9
+	ELSEIF COUNT == 9
+		X = 10
+	ELSEIF COUNT == 10
+		X = 11
+	ELSEIF COUNT == 11
+		X = 100
+		
+	ENDIF
+	
+	PRINTFORM 　%PALAMNAME_E(X)% Orbs:
+	;の珠
+	
+	;表示位置そろえる
+	IF FLAG:カスタムゲーム画面
+		IF JUEL:T:X < 10
+			PRINT        
+		ELSEIF JUEL:T:X < 100
+			PRINT       
+		ELSEIF JUEL:T:X < 1000
+			PRINT      
+		ELSEIF JUEL:T:X < 10000
+			PRINT     
+		ELSEIF JUEL:T:X < 100000
+			PRINT    
+		ELSEIF JUEL:T:X < 1000000
+			PRINT   
+		ELSEIF JUEL:T:X < 10000000
+			PRINT  
+		ENDIF
+	ELSE
+		IF JUEL:T:X < 10
+			PRINT      
+		ELSEIF JUEL:T:X < 100
+			PRINT     
+		ELSEIF JUEL:T:X < 1000
+			PRINT    
+		ELSEIF JUEL:T:X < 10000
+			PRINT   
+		ELSEIF JUEL:T:X < 100000
+			PRINT  
+		ENDIF
+	ENDIF
+	PRINTV JUEL:T:X
+	
+	;改行or表示位置あけ
+	U += 1
+	IF U%4 == 0
+		PRINTL 
+	ELSE
+		SIF FLAG:カスタムゲーム画面
+			PRINT 　
+		PRINT  
+	ENDIF
+REND
+
+;最後のループで改行してなかったら、ここで改行しておく
+SIF U%4 != 0
+	PRINTL 
+
+@SHOW_INFO_CLOTHES
+FOR LOCAL,0,12
+	IF CFLAG:GET_CLOTHESNAME(LOCAL)
+		PRINTFORM %GET_CLOTHESNAME(LOCAL),12,LEFT%:
+		CALL CLOTHES_NAME,LOCAL,T
+		PRINTL 
+	ENDIF
+NEXT
+
+
+

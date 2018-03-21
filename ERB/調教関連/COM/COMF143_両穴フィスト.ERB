@@ -1,0 +1,177 @@
+;-------------------------------------------------
+;両穴フィスト
+;ハードな調教コマンド、レベル4
+;-------------------------------------------------
+@ACT_COM143
+PRINTL Double Fisting
+TSTR:0 = 両穴フィスト
+;CALL KOJO_MESSAGE_COM
+
+;V経験を伴うコマンドのフラグ(処女膜再生対応)
+TFLAG:19 = 1
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 500
+DOWNBASE:TARGET:気力 += 300
+
+SOURCE:1 = 200
+SOURCE:TARGET:快Ａ = 200
+SOURCE:TARGET:痛み = 1800
+SOURCE:TARGET:露出 = 100
+SOURCE:TARGET:屈従 = 2000
+SOURCE:TARGET:逸脱 = 2000
+SOURCE:TARGET:反感 = 2000
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;フィストなどのVへの大きな苦痛は先に処理しておく
+;EXP:Ｖ経験をみる
+IF EXP:0 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 2.50
+	TIMES SOURCE:TARGET:反感 , 4.00
+ELSEIF EXP:0 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 2.00
+	TIMES SOURCE:TARGET:反感 , 3.50
+ELSEIF EXP:0 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 1.80
+	TIMES SOURCE:TARGET:反感 , 3.00
+ELSEIF EXP:0 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 1.60
+	TIMES SOURCE:TARGET:反感 , 2.50
+ELSEIF EXP:0 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 1.40
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF EXP:0 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 2.50
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 2.00
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 1.50
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 1.00
+ENDIF
+
+
+;フィストなどのAへの大きな苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+IF EXP:1 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 4.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 2.50
+	TIMES SOURCE:TARGET:反感 , 3.50
+ELSEIF EXP:1 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 2.40
+	TIMES SOURCE:TARGET:反感 , 3.00
+ELSEIF EXP:1 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 2.00
+	TIMES SOURCE:TARGET:反感 , 2.50
+ELSEIF EXP:1 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 1.80
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 1.60
+	TIMES SOURCE:TARGET:反感 , 1.50
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 2.50
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 2.00
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 1.50
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 1.00
+ENDIF
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;ＶEXP
+CALL  ADDS_EXP("Ｖ経験", 25, TARGET)
+
+;ＡEXP
+CALL ADDS_EXP("Ａ経験", 25, TARGET)
+;PRINTL ＡEXP＋２５
+
+;Ｖ,ＡExpandEXP
+;IF EXP:52 == 0 && EXP:53 == 0 
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+;	CALL ADDS_ABNORMAL_EXP("Expansion first experience", TARGET)
+;ENDIF
+
+CALL ADDS_EXP("Ｖ拡張経験", 5, TARGET)
+;PRINTL ＶExpandEXP＋5
+
+CALL ADDS_EXP("Ａ拡張経験", 5, TARGET)
+;PRINTL ＡExpandEXP＋5
+
+;LesbianEXP
+A = 2
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_143
+RETURN COMTYPE("ハード系")
+
+
+
+

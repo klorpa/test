@@ -1,0 +1,314 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:CPD_REGISTRATION.ERB
+;	Facility	:悪魔全書一般の処理
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		N鳥						新規作成
+;	002		2015/09/23		Rsp暇人					登録内容と違う能力を持つ仲魔を色つきで表示するように
+;	003		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;================================================================
+;@REGISTRATION_COMPENDIUM
+;@STRFLAG_NUM_CPD,ARG = -1,ARGS
+;@STRFLAG_NUM_CPD_FIND(ARGS,ARG)
+;@GET_CPD_STRFLAG,ARG = -1
+;@GET_CPD_STRFLAG_NUM(ARGS)
+;@GET_CPD_SAVESTR_NUM(ARG,ARGS)
+
+
+@CASTING_REGISTRATION_COMPENDIUM
+SIF ABL:COUNT:種族 == 0 || NO:COUNT == 4509
+	RETURN 0
+;元CSVが人間の場合も弾く（未対応であるため）
+SIF CSVABL((NO:COUNT),80,0) == 0
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+@UP_PRINT_REGISTRATION_COMPENDIUM
+PRINTFORML Please choose the demon you want to register in the compendium　\@ A > リスト表示数() ? ＜page.{P + 1}/{A / リスト表示数() + 1}＞ # \@　%NAME:MASTER% LV:{BASE:MASTER:LV,3}
+
+@REGISTRATION_COMPENDIUM
+;登録処理関数
+;LOCAL:1 種族
+;LOCAL:2 キャラ番号
+;LOCAL:3 キャラ登録番号
+;LOCAL:4 既存の全書データ呼び出し用キャラ登録番号
+;LOCAL:5 キャラリストのページ送り用
+;LOCAL:6 キャラ比較のページ送り用
+;LOCAL:7 能力表示のページ送り用
+;LOCAL:10 登録可否
+
+;キャラリストを表示
+LOCAL:8 = FLAG:ショップコマンド
+FLAG:ショップコマンド = 1201
+CALL INPUT_CHARA_LIST("Please choose the demon you want to register in the compendium", "CASTING_REGISTRATION_COMPENDIUM", "UP_PRINT_REGISTRATION_COMPENDIUM")
+FLAG:ショップコマンド = LOCAL:8
+IF RESULT == 1000
+	RETURN 0
+ENDIF
+
+;選択したキャラの能力を表示。
+
+LOCAL:1 = ABL:RESULT:種族
+LOCAL:2 = NO:RESULT
+LOCAL:3 = RESULT
+U = RESULT
+LOCAL:7 = 2
+
+;比較用のキャラ追加
+LOCAL:4 = CHARANUM
+CALL ADD_NEW_COMPANION,LOCAL:2,0,-1
+CALL STRFLAG_NUM_CPD(LOCAL:4,"REFER")
+CALL SYNC_STATUS,LOCAL:4
+CALL HEALTH_CHARA,LOCAL:4
+
+$PRINT_STATUS
+CUSTOMDRAWLINE =
+PRINTFORML  \@ U != LOCAL:4 ? Registered Demon # %" " * 18% \@
+LOCALS = \@ CSTR:U:種族名 != "" ? %CSTR:U:種族名% # %STR:(ABL:U:種族)% \@
+PRINTFORML %LOCALS%　　%NAME:U%　　
+TRYCCALLFORM SHOW_INFO_PAGE_{LOCAL:7}
+CATCH
+ENDCATCH
+
+
+;ステータスの表示切替用
+PRINTFORMLC \@ LOCAL:7 == 2 ? [1007]Previous page # %" " * 16% \@
+PRINTFORMLC                 
+PRINTFORMLC \@ LOCAL:7 == 1 ? [1009]Next page # %" " * 16% \@
+PRINTL 
+PRINTFORMLC \@ U != LOCAL:4 && LOCAL:4 > -1 ? [1010]Registered demon # %" " * 18% \@
+PRINTFORMLC \@ U != LOCAL:3 && LOCAL:4 > -1 ? [1011]Current demon # %" " * 18% \@
+PRINTL
+
+;登録するかどうか
+IF CSVCFLAG(LOCAL:2,(GETNUM(CFLAG,"全書召喚不可")),0) == 1 || (CSVCFLAG(LOCAL:2,(GETNUM(CFLAG,"合体条件有り")),0) == 1 && FLAG:(10000+LOCAL:2) == 0) || LOCAL:1 > 18
+	PRINTFORML Because this demon can't be summoned from the compendium, it wasn't registered.
+	PRINTFORML 　　　[9] Return
+	LOCAL:10 = 0
+ELSE
+	PRINTL Incense reinforcement is also registered, if you use much incense, the summoning price will get larger.
+	PRINTFORM \@ U == LOCAL:3 ? Register this demon? # Overwrite the registered demon? \@
+	PRINTL [0]Yes [9]No
+	LOCAL:10 = 1
+ENDIF
+$INPUT_LOOP
+INPUT
+IF RESULT == 1007 && LOCAL:7 == 2
+	LOCAL:7 = 1
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1009 && LOCAL:7 == 1
+	LOCAL:7 = 2
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1010 && U != LOCAL:4
+	U = LOCAL:4
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1011 && U != LOCAL:3
+	U = LOCAL:3
+	GOTO PRINT_STATUS
+ELSEIF RESULT <= FLAG:スキル数 && RESULT > 0
+	LOCALS = スキル{RESULT}
+	IF ABL:U:LOCALS > 0
+		SIF FLAG:スキル属性表示設定 == 1
+			CALL SKILL_EXPLAIN_PERFORMANCE, ABL:U:LOCALS, U
+		TRYCALLFORM SKILL_EXPLAIN_{ABL:U:LOCALS}
+		WAIT
+		GOTO PRINT_STATUS
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ELSEIF RESULT == 9
+	DELCHARA LOCAL:4
+	RESTART
+ELSEIF RESULT == 0 && LOCAL:10 == 1
+	DELCHARA LOCAL:4
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+CALL STRFLAG_NUM_CPD(LOCAL:3,"ADD")
+RESTART
+
+@STRFLAG_NUM_CPD,ARG = -1,ARGS
+#LOCALSSIZE 200
+VARSET LOCALS
+;使用SAVESTR:2000～6999。埋まりきることはまず無いと思います
+;ARGSがADDの場合、キャラ登録番号ARGのキャラの各種能力をSAVESTRに記載する。同じキャラ番号のが既にあるなら上書きする
+;ARGSがREFERの場合、キャラ登録番号ARGのキャラ番号のSAVESTRがある場合それを参照してABL等に上書きする
+;ARGSがCLEARの場合、最後のSAVESTRをキャラ登録番号ARGのSAVESTRに上書きして最後のを削除する。セーブデータ圧縮及び処理時間短縮のための処理
+;ARGSがDIFFの場合、キャラ登録番号ARGのキャラ番号のSAVESTRがある場合、それと登録内容が同じになるか比較し、同じであれば0を、異なれば文字色変更に変更後の色を代入して返す
+
+IF ARG < 0 || ARG >= CHARANUM
+	THROW "登録番号が異常です"
+	RETURN
+ENDIF
+
+LOCAL:5 = GET_CPD_STRFLAG_NUM("")
+
+IF ARGS == "CLEAR"
+	LOCAL = STRFLAG_NUM_CPD_FIND("NO",NO:ARG)
+	SIF LOCAL == -1
+		RETURN
+	LOCAL:1 = STRFLAG_NUM_CPD_FIND("",-1) - 1
+	SAVESTR:LOCAL = %SAVESTR:(LOCAL:1)%
+	SAVESTR:(LOCAL:1) = 
+ELSEIF ARGS == "ADD" || ARGS == "DIFF"
+	LOCALS = {NO:ARG}
+	FOR LOCAL:1,2,LOCAL:5
+		IF GETNUM(ABL,GET_CPD_STRFLAG(LOCAL:1)) > 0
+			LOCALS += "," + TOSTR(ABL:ARG:GET_CPD_STRFLAG(LOCAL:1))
+		ELSEIF GETNUM(BASE,GET_CPD_STRFLAG(LOCAL:1)) > 0
+			LOCALS += "," + TOSTR(BASE:ARG:GET_CPD_STRFLAG(LOCAL:1))
+		ELSEIF GETNUM(CFLAG,GET_CPD_STRFLAG(LOCAL:1)) > 0
+			LOCALS += "," + TOSTR(CFLAG:ARG:GET_CPD_STRFLAG(LOCAL:1))
+		ELSE
+			LOCALS = %LOCALS%,想定外の動作です
+		ENDIF
+	NEXT
+	;素質の書き込み
+	FOR LOCAL:1 , 0 , 159
+		SELECTCASE LOCAL:1
+			CASE 0
+				;処女
+				;CSVかARGのどっちかが処女なら処女で登録する
+				IF TALENT:ARG:処女 || CSVTALENT(NO:ARG , 0 , 0)
+					LOCALS += "," + TALENTNAME:(LOCAL:1)
+				;ARGが再生処女持ちであれば再生処女を追加する
+				ELSEIF TALENT:ARG:再生処女
+					LOCALS += ",RestoredVirgin"
+				ENDIF
+			CASE 1 , 3 TO 9 , 73 TO 77, 153 , 154
+				;書き込まない素質
+			CASE 145 , 155 , 83 , 84
+				;CSVを参照する素質
+				SIF CSVTALENT(NO:ARG , LOCAL:1 , 0)
+					LOCALS += "," + TALENTNAME:(LOCAL:1)
+			CASEELSE
+				;CSVを参照する素質
+				SIF TALENT:ARG:(LOCAL:1)
+					LOCALS += "," + TALENTNAME:(LOCAL:1)
+		ENDSELECT
+	NEXT
+	LOCAL = STRFLAG_NUM_CPD_FIND("NO",NO:ARG)
+	IF ARGS == "ADD"
+		SIF LOCAL == -1
+			LOCAL = STRFLAG_NUM_CPD_FIND("",-1)
+		SAVESTR:LOCAL = %NAME:ARG%,%LOCALS%
+	ELSE
+		IF CSVCFLAG(NO:ARG,(GETNUM(CFLAG,"全書召喚不可")),0) == 1 || (CSVCFLAG(NO:ARG,(GETNUM(CFLAG,"合体条件有り")),0) == 1 && FLAG:(10000+NO:ARG) == 0) || ABL:ARG:種族 > 18
+			文字色変更 = 0
+		ELSEIF LOCAL == -1
+			文字色変更 = 0x00FFFF
+		ELSEIF BASE:ARG:ＥＸＰ < TOINT(GET_CPD_SAVESTR_NUM(LOCAL,"ＥＸＰ"))
+			文字色変更 = 0xDC143C
+		ELSEIF LOCALS != SUBSTRING(SAVESTR:LOCAL,(STRFIND(SAVESTR:LOCAL,",")+1),-1)
+			文字色変更 = 0x00FFFF
+		ENDIF
+	ENDIF
+ELSEIF ARGS == "REFER"
+	LOCAL = STRFLAG_NUM_CPD_FIND("NO",NO:ARG)
+	SIF LOCAL == -1
+		RETURN
+	SPLIT SAVESTR:LOCAL, ",", LOCALS
+	FOR LOCAL:1,2,LOCAL:5
+		IF GETNUM(ABL,GET_CPD_STRFLAG(LOCAL:1)) > 0
+			ABL:ARG:GET_CPD_STRFLAG(LOCAL:1) = TOINT(LOCALS:(LOCAL:1))
+		ELSEIF GETNUM(BASE,GET_CPD_STRFLAG(LOCAL:1)) > 0
+			BASE:ARG:GET_CPD_STRFLAG(LOCAL:1) = TOINT(LOCALS:(LOCAL:1))
+		ELSEIF GETNUM(CFLAG,GET_CPD_STRFLAG(LOCAL:1)) > 0
+			CFLAG:ARG:GET_CPD_STRFLAG(LOCAL:1) = TOINT(LOCALS:(LOCAL:1))
+		ELSE
+			THROW "想定外の動作が発生しました。{LOCAL:5}"
+		ENDIF
+	NEXT
+	;素質
+	FOR LOCAL:1 , 0 , 159
+		;TODO: adding an || here is a work-arround for the differences between japanese and english version of the talent. If this code has been active long enough, it can probably get removed
+		IF TALENTNAME:(LOCAL:1) != "" && (+MATCH(LOCALS , TALENTNAME:(LOCAL:1)) || +MATCH(LOCALS , TALENTNAME_X(LOCAL:1)))
+			;SETCOLOR 0xffff00
+			;PRINTFORML [DEBUG] 素質[%TALENTNAME:(LOCAL:1)%]:({LOCAL:1})が一致しました。
+			;RESETCOLOR
+			TALENT:ARG:(LOCAL:1) = 1
+		ELSE
+			TALENT:ARG:(LOCAL:1) = 0
+		ENDIF
+	NEXT
+ENDIF
+
+RETURN
+
+
+@STRFLAG_NUM_CPD_FIND(ARGS,ARG)
+#FUNCTION
+#LOCALSSIZE 500
+;ARGSがARGなSAVESTRを探し、そのSAVESTR番号を返す
+;ARGが-1なら、空のSAVESTR番号で一番小さい番号を返す
+FOR LOCAL,2000,7000
+	IF SAVESTR:LOCAL == ""
+		SIF ARG == -1
+			RETURNF LOCAL
+		RETURNF -1
+	ENDIF
+	SPLIT SAVESTR:LOCAL, ",", LOCALS
+	SIF ARGS != "" && TOINT(LOCALS:(GET_CPD_STRFLAG_NUM(ARGS))) == ARG
+		RETURNF LOCAL
+NEXT
+
+RETURNF -2
+
+@GET_CPD_STRFLAG,ARG = -1
+#FUNCTIONS
+#DIMS REGISTRATIONS,100
+#LOCALSSIZE 100
+;STRFLAG_NUM_CPDでSAVESTRにARG番目に記載される能力を返す
+;力～運はBASEとCFLAG:強化回数を加えたものが基本値となることに注意
+;GETNUM(ABL or BASE or CFLAG,RESULTS)にかけて使用する
+
+;ARGS = NAME,NO,LV,St,St強化回数,In,In強化回数Ma,Ma強化回数,En,En強化回数,Ag,Ag強化回数,Lu,Lu強化回数,ＥＸＰ,能力強化回数,変異,変異レベル,スキル1,スキル2,スキル3,スキル4,スキル5,スキル6,スキル7,スキル8,習得スキル1,習得スキル2,習得スキル3,習得スキル4,習得スキル5,習得スキル6,習得スキル7,習得スキル8,習得スキル9,習得スキル10,習得スキル11,習得スキル12,習得スキル13,習得スキル14,習得スキル15,習得スキル16,習得スキル17,習得スキル18,習得スキル19,習得スキル20,習得LV1,習得LV2,習得LV3,習得LV4,習得LV5,習得LV6,習得LV7,習得LV8,習得LV9,習得LV10,習得LV11,習得LV12,習得LV13,習得LV14,習得LV15,習得LV16,習得LV17,習得LV18,習得LV19,習得LV20,変更相性1,変更相性値1,攻撃相性,射程,攻撃範囲
+REGISTRATIONS = NAME,NO,LV,力,力強化回数,知恵,知恵強化回数,魔力,魔力強化回数,耐力,耐力強化回数,速さ,速さ強化回数,運,運強化回数,ＥＸＰ,能力強化回数,変異,変異レベル,スキル1,スキル2,スキル3,スキル4,スキル5,スキル6,スキル7,スキル8,習得スキル1,習得スキル2,習得スキル3,習得スキル4,習得スキル5,習得スキル6,習得スキル7,習得スキル8,習得スキル9,習得スキル10,習得スキル11,習得スキル12,習得スキル13,習得スキル14,習得スキル15,習得スキル16,習得スキル17,習得スキル18,習得スキル19,習得スキル20,習得LV1,習得LV2,習得LV3,習得LV4,習得LV5,習得LV6,習得LV7,習得LV8,習得LV9,習得LV10,習得LV11,習得LV12,習得LV13,習得LV14,習得LV15,習得LV16,習得LV17,習得LV18,習得LV19,習得LV20,変更相性1,変更相性値1,攻撃相性,射程,攻撃範囲
+;SPLIT ARGS, ",", LOCALS
+SPLIT REGISTRATIONS, ",", LOCALS
+LOCALS:99 = %REGISTRATIONS%
+
+IF ARG < 0 || ARG > 99 || LOCALS:ARG == ""
+	RETURNF "登録されていません"
+ELSE
+	RETURNF LOCALS:ARG
+ENDIF
+
+
+@GET_CPD_STRFLAG_NUM(ARGS)
+#FUNCTION
+;STRFLAG_NUM_CPDでSAVESTRにARGSが何番目に記載されるかを返す
+SPLIT GET_CPD_STRFLAG(99), ",", LOCALS
+
+FOR LOCAL, 0, 100
+	IF LOCALS:LOCAL == ARGS
+		RETURNF LOCAL
+	ENDIF
+NEXT
+
+RETURNF -1
+
+
+@GET_CPD_SAVESTR_NUM(ARG,ARGS)
+#FUNCTIONS
+#LOCALSSIZE 100
+;SAVESTR:ARGに記載されているARGSの値を返す
+
+LOCAL = GET_CPD_STRFLAG_NUM(ARGS)
+SIF ARG < 2000 || ARG >= 7000
+	THROW "引数が異常です。{ARG}"
+SIF SAVESTR:ARG == "" || LOCAL < 0 || LOCAL > 99
+	RETURNF "登録されていません"
+
+SPLIT SAVESTR:ARG, ",", LOCALS
+RETURNF LOCALS:LOCAL
+

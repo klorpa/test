@@ -1,0 +1,69 @@
+;=================================================================================
+;インストールソフト・アクセサリによるレベルアップ時能力値ボーナス
+;=================================================================================
+;ARG   対象キャラ
+;ARG:1 試行回数
+@LVUP_BOOSTER,ARG,ARG:1
+#LOCALSIZE 2
+#LOCALSSIZE 1
+#DIM DYNAMIC 適用回数,1
+#DIMS DYNAMIC 能力値名,6 = "力","知恵","魔力","耐力","速さ","運"
+#DIMS DYNAMIC インストールソフト名,6 = "Hercules","Odysseus","Orpheus","Orion","Achilles","Theseus"
+#DIMS DYNAMIC アクセサリ名,6 = "Strength Source","Intel Source","Magic Source","Vitality source","Agility Source","Lucky Source"
+#DIM DYNAMIC 上昇値,6
+#DIM DYNAMIC ループ,1
+
+FOR 適用回数,0,ARG:1
+	;能力値名・インストール名・アクセサリ名をランダムにシャッフル
+	FOR ループ,6-1,0,-1
+		LOCAL = RAND(ループ+1)
+		LOCALS = %能力値名:ループ%
+		能力値名:ループ = %能力値名:LOCAL%
+		能力値名:LOCAL  = %LOCALS%
+
+		LOCALS = %インストールソフト名:ループ%
+		インストールソフト名:ループ = %インストールソフト名:LOCAL%
+		インストールソフト名:LOCAL  = %LOCALS%
+
+		LOCALS = %アクセサリ名:ループ%
+		アクセサリ名:ループ = %アクセサリ名:LOCAL%
+		アクセサリ名:LOCAL  = %LOCALS%
+	NEXT
+
+	;シャッフルした順番で能力値上昇判定
+	FOR ループ,0,6
+		IF !IS_HUMAN(ARG) && NUM_SUMMONER() && EQUIP:MASTER:(インストールソフト名:ループ)
+		ELSEIF EQUIP:ARG:アクセサリ == GETNUM(ITEM,アクセサリ名:ループ)
+		ELSE
+			CONTINUE
+		ENDIF
+		LOCAL  = 1250
+		LOCAL:1 = 100 - CFLAG:ARG:能力強化回数 - CFLAG:ARG:(能力値名:ループ+"強化回数") + BASE:ARG:LV
+		SIF LOCAL:1 == 0
+			LOCAL:1 = 1
+		LOCAL /= LOCAL:1
+		LOCAL *= 100
+		SIF RAND(10000) >= LOCAL
+			CONTINUE
+
+		上昇値:(GET_BASESTATUS_NUM(能力値名:ループ)-1) += 1
+		CFLAG:ARG:能力強化回数 += 1
+		CFLAG:ARG:(能力値名:ループ+"強化回数") += 1
+		MAXBASE:ARG:(能力値名:ループ) += 1
+		BREAK
+	NEXT
+NEXT
+
+SIF MAX(上昇値:0,上昇値:1,上昇値:2,上昇値:3,上昇値:4,上昇値:5) == 0
+	RETURN
+
+DRAWLINE
+PRINTFORML □ There was a stat increase caused by %!IS_HUMAN(ARG) ? "a ＣＯＭＰ programm" # "an Accessory"%
+FOR LOCAL,1,7
+	LOCALS = %GET_BASESTATUS(LOCAL)%
+	PRINTFORML %GET_BASESTATUS_E(LOCAL),4%：{BASE:ARG:LOCALS,4}({MAXBASE:ARG:LOCALS,4}) [ +{上昇値:(LOCAL-1),2}]
+NEXT
+DRAWLINE
+RETURN
+
+

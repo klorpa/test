@@ -1,0 +1,275 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SYSTEM_MANAGEMENT.ERB
+;	Facility	:店舗経営の処理に関する関数群です。
+;
+;	Licence		:不明
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;   002     2013/01/13		TR						労役中のキャラに○をつける部分を修正
+;	003		2014/09/19		ネトリス				労役：教会の処理を追加
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;========================================================
+;店舗情報
+;========================================================
+@SHOW_STATUS_MANAGEMENT,ARG
+;１行目に名前
+PRINTFORM %SAVESTR:(20+ARG),20,LEFT%
+SELECTCASE 店舗("種類", ARG)
+	CASE 10
+		PRINTFORML 　Store type: Public Toilet
+		;店舗の種類:
+		;3行目には規模と雇用人数
+		PRINTFORML Max users/day	:{店舗("規模",ARG),4}　No. of installed toilet stalls：{接客人数(ARG),2}/{店舗("接客雇用",ARG),2}
+		;4行目には人気と宣伝効果
+		PRINTFORML Popularity		:{店舗("人気",ARG),5} Ad effect：{店舗("宣伝効果",ARG),5}　　\@ 看板便器(ARG) > -1 ? Toilet Sign:%CALLNAME:看板便器(ARG)% # \@
+		;
+		;5行目には維持費
+		;※変更点ここから※
+		SIF [[店舗:宣伝フラグ]]:ARG == 0
+			PRINTFORML Current Ad Media: None
+		SIF [[店舗:宣伝フラグ]]:ARG == 1
+			PRINTFORML Current Ad Media: Flyers
+		SIF [[店舗:宣伝フラグ]]:ARG == 2
+			PRINTFORML Current Ad Media: Radio Ads
+		SIF [[店舗:宣伝フラグ]]:ARG == 3
+			PRINTFORML Current Ad Media: Paradigm X
+		SIF [[店舗:宣伝フラグ]]:ARG == 4
+			PRINTFORML Current Ad Media: Airship
+		SIF [[店舗:宣伝フラグ]]:ARG >= 1000000
+			PRINTFORML Current Ad Media: Big Campaign　Cost：{[[店舗:宣伝フラグ]]:ARG}
+		;※変更点ここまで※
+		PRINTFORML Maintenance cost:￥{ 500 + 店舗("規模",ARG) * 50 + 接客人数(ARG) * 200}
+		PRINTL
+		;6行目には基本の価格
+		PRINTL 【Product Base Price】
+		PRINTFORML Oral:{店舗("フェラ価格",ARG),3} Macca　　　Vaginal:{店舗("本番価格",ARG),3} Macca　　　Anal:{店舗("アナル価格",ARG),3} Macca　　　Creampie:{店舗("中出し価格",ARG),3} Macca
+	CASE 11
+		PRINTFORML 　Store type: Strip Club
+		PRINTFORML Max users/day:{店舗("規模",ARG) * 100,4}　Max Performers：{店舗("規模",ARG),2}
+		PRINTFORML Ad Effect:{店舗("宣伝効果",ARG),5}　Maintenance cost:￥{店舗("規模",ARG) * 500}
+	CASE 12
+		PRINTFORML 　Store type: Exhibition Theatre
+		PRINTFORML No. of Slaves:{店舗("規模",ARG),2} ＋ 10 Rentals
+		PRINTFORML Ad Effect:{店舗("宣伝効果",ARG),5}　Maintenance cost:￥{SHOW_TENT_維持費(ARG)}\@ SHOW_TENT_RENTAL_COST(ARG) ? ＋Rental Fee {SHOW_TENT_RENTAL_COST(ARG)} Macca # \@
+	;教会
+	CASE 13
+		PRINTFORML 　Store type: Messiah Church
+		PRINTFORML No. of people：{接客人数(ARG),2}/{店舗("接客雇用",ARG),2}
+	CASE 14
+		PRINTFORML 　Store type: Gaia Church
+		PRINTFORML No. of people：{接客人数(ARG),2}/{店舗("接客雇用",ARG),2}
+	CASE 15
+		PRINTFORML 　Store type: Church
+		PRINTFORML No. of people：{接客人数(ARG),2}/{店舗("接客雇用",ARG),2}
+	;
+ENDSELECT
+CUSTOMDRAWLINE ･
+
+;========================================================
+;労役でレベルアップ
+;========================================================
+
+;========================================================
+;コマンド表示
+;========================================================
+@PRINT_COMMAND_MANAGEMENT,ARG
+VARSET C , -1
+SELECTCASE [[店舗:種類]]:ARG
+	CASE 10
+		;規模拡張、設置数増加、
+		C:0 = 1
+		PRINTL [0]  - Toilet Settings
+		C:1 = 1
+		PRINTL [1]  - Expand toilet stalls
+		C:2 = 1
+		PRINTL [2]  - Client capacity Expansion
+		C:3 = 1
+		PRINTL [3]  - Basic useage fee settings
+		C:4 = 1
+		PRINTL [4]  - Basic available services
+		C:5 = 1
+		PRINTL [5]  - Advertise
+		C:6 = 1
+		PRINT [6]  - Current Income and Expense report mode　-　
+		SELECTCASE FLAG:公衆便所報告設定
+			CASE 0
+				PRINTL Detailed Report
+			CASE 1
+				PRINTL Simple Report
+			CASE 2
+				PRINTL Income and Expense only report
+		ENDSELECT
+
+		C:10 = 1
+		PRINTL [10] - Individual useage fee settings
+		C:11 = 1
+		PRINTL [11] - Individual available services
+		C:99 = 1
+		PRINTL [99] - Sell shop
+	CASE 11
+		C:0 = 1
+		PRINTL [0]  - Change performers
+		C:1 = 1
+		PRINTL [1]  - Expand theater
+		C:2 = 1
+		PRINTL [2]  - Advertise
+		C:3 = 1
+		PRINTFORML [3]  - \@GETBIT(FLAG:ストリップ劇場報告設定,ARG) ? Change to Simple Report # Change to Detailed Report\@
+		C:99 = 1
+		PRINTL [99] - Sell shop
+	CASE 12
+		C:0 = 1
+		PRINTL [0]  - Change performers
+		C:1 = 1
+		PRINTL [1]  - Rent demon
+		C:2 = 1
+		PRINTL [2]  - Expand facility
+		C:3 = 1
+		PRINTL [3]  - Advertise
+		C:4 = 1
+		PRINTFORML [4]  - \@GETBIT(VAR_店舗リザルト,ARG) ? Change to Simple Report # Change to Detailed Report\@
+		;#;C:5 = 1
+		;#;PRINTFORML [5]  - \@GETBIT(VAR_店舗リザルト,ARG+10) ? デバッグ情報非表示 # デバッグ情報表示 \@
+		C:99 = 1
+		PRINTL [99] - Sell shop
+	;教会
+	CASE 13, 14, 15
+		;規模拡張、設置数増加、
+		C:0 = 1
+		PRINTL [0]  - Resident servant selection
+		C:1 = 1
+		PRINTL [1]  - Expand resident slot
+		C:2 = 1
+		PRINTL [2]  - Renovate
+		C:3 = 1
+		PRINTL [3]  - Invite
+		C:11 = 1
+		PRINTL [11] - Individual service activity settings
+		C:99 = 1
+		PRINTL [99] - Sell shop
+ENDSELECT
+DRAWLINE
+PRINTL [100] - Return
+
+;========================================================
+;配置キャラリスト
+;========================================================
+@MANAGEMENT_CHARALIST,ARG,ARG:1
+REPEAT リスト表示数()
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF LOCAL < 0
+		CONTINUE
+	SIF CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	SIF ARG:1 == 0 && 接客人数(ARG) >= [[店舗:接客雇用]]:ARG
+		SETCOLOR 0x404040
+	;色セット
+	SIF CFLAG:LOCAL:労役フラグ == 10+ARG
+		SETCOLOR 0x33ffcc
+	CALL ARRANGE_CHARALIST, LOCAL
+	CALL ARRANGE_CHARALIFE, LOCAL
+	CALL ARRANGE_FALLTALENT, LOCAL
+	;EDIT002 MOD START ------------------------------
+	;SIF ARG:1 == 0 && 接客人数(ARG) >= [[店舗:接客雇用]]:ARG
+	SIF CFLAG:LOCAL:労役フラグ == 10+ARG
+	;EDIT002 MOD END   ------------------------------
+		PRINT 　○
+	PRINTL
+	RESETCOLOR
+REND
+PRINTL ○: Signifies a character is currently assigned to this building
+;この店舗で労役中のキャラ を表しています
+
+RESETCOLOR
+
+;========================================================
+;店舗に出る条件
+;========================================================
+@WORKABLE(ARG,ARG:1)
+#FUNCTION
+SELECTCASE [[店舗:種類]]:ARG
+	CASE 0
+		RETURNF 1
+
+	CASE 10
+		;縛り上げるだけなので、条件は無い
+		RETURNF 1
+	CASE 11
+		;主人は無理をする
+		SIF ARG:1 == MASTER
+			RETURNF 1
+		;露出癖がないと無理
+		SIF ABL:(ARG:1):露出癖 <= 0
+			RETURNF 0
+		;売却可能じゃないと無理
+		SIF CFLAG:(ARG:1):売却可能 == 0
+			RETURNF 0
+		RETURNF 1
+	CASE 12
+		;主人以外
+		SIF ARG:1 == MASTER
+			RETURNF 0
+		SIF IS_LOOKSLIKE_MALE(ARG:1) == 0
+			RETURNF 1
+		;オトコはヤる気がないとダメ
+		SIF 陥落(ARG:1)
+			RETURNF 1
+	;教会
+	CASE 13, 14, 15
+		;男はダメ
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+		;陥落していないとダメ
+		SIF 陥落(ARG:1) == 0
+			RETURNF 0
+		RETURNF 1
+
+ENDSELECT
+RETURNF 0
+
+
+
+;===========================================================
+;変数関係
+;=========================================================
+@店舗(ARGS,ARG)
+#FUNCTION
+LOCAL = 店舗項目(ARGS)
+IF LOCAL < 0
+	PRINTFORML エラー出たので0返します。%ARGS%なんて項目はないです
+	RETURNF 0
+ENDIF
+RETURNF DE:LOCAL:ARG
+
+@店舗演算(ARGS,ARG,ARG:1,ARGS:1)
+LOCAL = 店舗項目(ARGS)
+IF LOCAL < 0
+	PRINTFORML エラー出たので0返します。%ARGS%なんて項目はないので演算できないです。
+	RETURN 0
+ENDIF
+SELECTCASE ARGS:1
+	CASE "="
+		DE:LOCAL:ARG = ARG:1
+	CASE "+"
+		DE:LOCAL:ARG += ARG:1
+	CASE "-"
+		DE:LOCAL:ARG -= ARG:1
+	CASE "*"
+		DE:LOCAL:ARG *= ARG:1
+	CASE "/"
+		DE:LOCAL:ARG /= ARG:1
+	CASE "%"
+		DE:LOCAL:ARG %= ARG:1
+ENDSELECT
+
+@店舗項目(ARGS)
+#FUNCTION
+SIF LOCALS == ""
+	SPLIT "種類_制服_商品_人気_宣伝効果_料理完成度_料理人気_規模_接客雇用_ダミー_キッチン雇用_ダミー_性的サービス_おさわり価格_愛撫価格_フェラ価格_本番価格_アナル価格_中出し価格_処女価格_ダミー_ダミー_料理価格_酒価格_飲み物価格_維持費_名称_料理期待度_酒期待度_飲み物期待度_性的期待度_制服スカート_制服下着_制服おっぱい_制服淫具_乱交フラグ_ダミー_ダミー_ダミー_ダミー_ダミー_ダミー_ダミー_ダミー_ダミー_ダミー_ダミー_宣伝フラグ_役者１_役者２_役者３_役者４_役者５_役者６_役者７_役者８_役者９_役者１０_演目１_演目２_演目３_演目４_演目５_演目６_演目７_演目８_演目９_演目１０" , "_" , LOCALS
+RETURNF FINDELEMENT(LOCALS , ARGS)
+

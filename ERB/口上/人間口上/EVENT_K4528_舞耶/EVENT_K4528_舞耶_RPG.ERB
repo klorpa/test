@@ -1,0 +1,142 @@
+@BATTLE_MESSAGE_K4528, ARG,ARG:1 = 0
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = EMPTY
+;タイプ取得
+CALLFORM SKILL_EFECT_{LOCAL}
+IF LOCAL == 0
+	IF RAND:2 == 0
+		LOCALS = そこっ
+	ELSE
+		LOCALS = ほらっ
+	ENDIF
+ELSEIF LOCAL == [[スキル:ＧＵＮ]]
+	LOCALS = スナップシュート！
+ELSEIF LOCAL == [[スキル:クレセントミラー]]
+	LOCALS = クレセントミラー！
+;攻撃
+ELSEIF RESULT == 1 && RAND:3 == 0
+	CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+	IF RAND:2
+		LOCALS = 踊りなさい
+	ELSE
+		LOCALS = フリーズ！
+	ENDIF
+;回復
+ELSEIF RESULT == 2 && RAND:3 == 0
+	IF CFLAG:ARG:ターゲット > 6
+		LOCALS = みんな！
+	ELSE
+		LOCALS = だいじょうぶ！？
+	ENDIF
+;状態変化
+;ELSEIF RESULT == 3
+;特殊
+;ELSEIF RESULT == 4
+;状態回復
+;ELSEIF RESULT == 5
+ELSE
+	IF RAND:3 == 0
+		LOCALS = さぁ、行って！
+	ELSEIF RAND:2
+		LOCALS = チャオー
+	ELSE
+		LOCALS = ペルソナっ
+	ENDIF
+ENDIF
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+@BATTLE_EVENT_K4528, ARG, ARG:1, ARG:2
+SIF ARG < 0 && NO:ARG != 4528
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:4 == 0
+			LOCALS = みんなっ！　来てっ！
+		ELSEIF RAND:3 == 0
+			LOCALS = いいわね？　いくわよ！
+		ELSEIF RAND:2 == 0
+			LOCALS = チョメチョメターイム！
+		ELSE
+			LOCALS = レッツラゴー！！
+		ENDIF
+	CASE 2
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+				IF RAND:2
+					LOCALS = チョメチョメ完了！！
+				ELSE
+					LOCALS = ごめんなさい…
+				ENDIF
+		;弱点をついた。つまりCOOP
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+				LOCALS = やるわね…
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+			LOCALS = 邪魔しないで
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 25
+			LOCALS = まぁ、こんなもんかな？
+		ELSEIF ダメージ割合(ARG:1, ARG:2) <= 0
+			LOCALS = あちゃー…不味いわね…
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			LOCALS = あぁ…　月が…
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			IF RAND:2
+				LOCALS = ダメよ…こんなとこで…
+			ELSE
+				LOCALS = みんなの為にもこんなとこで…っ！
+			ENDIF
+		;無効
+		ELSEIF ARG:2 == 0
+			LOCALS = 無駄よ
+		;吸収
+		ELSEIF ARG:2 < 0
+			LOCALS = センキュー♪
+		ENDIF
+	CASE 15
+		LOCALS = あら、失敗しちゃった
+	CASE 16
+		LOCALS = お姉さんにひどいことしようとするからよ
+	CASE 17
+		LOCALS = あぁっ！
+	CASE 18
+		LOCALS = お・あ・ず・け
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+	
+@EVOLUTE_PERSONA_K4528,ARG
+IF CFLAG:ARG:ペルソナ強化フラグ == 1
+	PRINTFORMW 「天野舞耶、彼女のあなたの力になりたいという想いに」
+	PRINTFORMW 「常に彼女の傍に寄り添ってきたペルソナが応えようとしているようですぞ」
+	PRINTFORMW 「我が手助けし、ペルソナの新たな力を引き出してみせましょう」
+	PRINTL
+	PRINTW
+	PRINTW ペルソナ「マイア」がペルソナ「マイア・改」に生まれ変わった
+ELSE
+	PRINTFORMW 「天野舞耶、以前彼女の想いに応えたペルソナですが」
+	PRINTFORMW 「彼女のさらなる成長と想いに、またペルソナも新たな力を得ようとしているようです」
+	PRINTFORMW 「いままた我が手助けし、ペルソナの更なる力を引き出してみせましょう」
+	PRINTL
+	PRINTW
+	PRINTW ペルソナ「マイア・改」がペルソナ「アルテミス」に生まれ変わった
+ENDIF

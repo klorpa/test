@@ -1,0 +1,735 @@
+;==========================================================================
+;素材の忠誠度による素質変更
+;==========================================================================
+@MAKE_TALENT,ARG,ARG:1
+;コピー作成
+ADDVOIDCHARA
+REPEAT 200
+		TALENT:(CHARANUM-1):COUNT = TALENT:ARG:COUNT
+REND
+
+;ARG:1からポイントを取得
+LOCAL = ARG:1/200
+PRINTFORML {LOCAL} points are available for changes.
+;ポイントの範囲で素質を付け替えることが出来ます。
+SIF ABL:ARG:種族 != 45
+	PRINTL ※Loyalty will be decreased based on the amount of changes made
+	;The loyalty after coalescing decreases by the extent you use it
+WAIT
+CUSTOMDRAWLINE =
+LOCAL:1 = 0
+$PRINT
+PRINTFORML %STR:(ABL:ARG:種族)% %NAME:ARG% 
+PRINTFORML {LOCAL} points left
+;あと{LOCAL}ポイント
+U = ARG
+CALL NEW_PRINT_TALENT
+DRAWLINE
+
+CALLFORM PRINT_TALENT_{LOCAL:1},ARG
+PRINTL
+DRAWLINE
+
+PRINTFORMLC [1007] \@ LOCAL:1 == 0 ? Body properties # Mental properties \@
+;肉体・技術・性癖系素質 # 精神系素質
+PRINTLC [1000] Finish
+PRINTLC [1009] Reset
+$INPUT_LOOP
+INPUT
+IF RESULT == 1000
+	IF TALENT:ARG:オトコ == 1 && TALENT:ARG:処女 == 1
+		TALENT:ARG:処女 = 0
+		LOCAL += 5
+	ENDIF
+	IF TALENT:ARG:処女 && CSVTALENT(NO:ARG,0,0) == 0
+		EXP:ARG:性交経験 -= EXP:ARG:Ｖ経験
+		EXP:ARG:Ｖ経験 = 0
+		EXP:ARG:膣射経験 = 0
+		EXP:ARG:Ｖ拡張経験 = 0
+		EXP:ARG:出産経験 = 0
+		ABL:ARG:Ｖ感覚 = 0
+	ELSEIF TALENT:ARG:処女 == 0 && EXP:ARG:Ｖ経験 == 0 && CSVTALENT(NO:ARG,0,0)
+		EXP:ARG:性交経験 += 1
+		EXP:ARG:Ｖ経験 += 1
+	ENDIF
+	DELCHARA CHARANUM-1
+	RETURN (ARG:1 - ((ARG:1/200 -LOCAL)*200))
+ELSEIF RESULT == 1007
+	IF LOCAL:1 == 0
+		LOCAL:1 = 1
+	ELSE
+		LOCAL:1 = 0
+	ENDIF
+	GOTO PRINT
+ELSEIF RESULT == 1009
+	REPEAT 200
+		TALENT:ARG:COUNT = TALENT:(CHARANUM-1):COUNT
+;		TALENT:ARG:COUNT = 0
+;		SIF CSVTALENT(NO:ARG,COUNT,0)
+;			TALENT:ARG:COUNT = 1
+	REND
+	DELCHARA CHARANUM-1
+	RESTART
+ELSEIF RESULT < 200  && RESULT >= 0 && T:RESULT > -100
+	IF T:RESULT > LOCAL
+		PRINTW Insufficent points.
+		;ポイントが足りません
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+	IF TALENT:ARG:RESULT
+		PRINTFORMW %TALENTNAME_E(RESULT)% has been removed.
+		;を消去しました。
+		TALENT:ARG:RESULT = 0
+		LOCAL -= T:RESULT
+		GOTO PRINT
+	ELSE
+		PRINTFORMW %TALENTNAME_E(RESULT)% was aquired.
+		;を得ました。
+		TALENT:ARG:RESULT = 1
+		LOCAL -= T:RESULT
+		GOTO PRINT
+	ENDIF
+ELSE
+	CLEARLINE 1
+	GOTO INPUT_LOOP
+ENDIF
+
+;===========================
+;精神系素質表示
+;===========================
+@PRINT_TALENT_0,ARG
+PRINTFORML □Mental properties
+;精神系素質
+
+VARSET T,-100
+
+;表示
+
+;lillibilli
+;String size for allignement manupulation (first page)
+LOCAL:2 = 20
+
+IF TALENT:ARG:臆病
+	PRINTFORMLC [ 10] Del %"【Timid】",LOCAL:2,LEFT%( 4P)　　
+	T:10 = 4
+ELSE
+	PRINTFORMLC [ 10] Add %"【Timid】",LOCAL:2,LEFT%( 6P)　　
+	T:10 = 6
+ENDIF
+
+IF TALENT:ARG:反抗的
+	PRINTFORMLC [ 11] Del %"【Defiant】",LOCAL:2,LEFT%(10P)　　
+	T:11 = 10
+ELSE
+	PRINTFORMLC [ 11] Add %"【Defiant】",LOCAL:2,LEFT%( 4P)　　
+	T:11 = 4
+ENDIF
+
+IF TALENT:ARG:気丈
+	PRINTFORMLC [ 12] Del %"【Strong will】",LOCAL:2,LEFT%(16P)　　
+	T:12 = 16
+ELSE
+	PRINTFORMLC [ 12] Add %"【Strong will】",LOCAL:2,LEFT%( 4P)　　
+	T:12 = 4
+ENDIF
+
+IF TALENT:ARG:素直
+	PRINTFORMLC [ 13] Del %"【Docile】",LOCAL:2,LEFT%( 4P)　　
+	T:13 = 4
+ELSE
+	PRINTFORMLC [ 13] Add %"【Docile】",LOCAL:2,LEFT%(10P)　　
+	T:13 = 10
+ENDIF
+
+IF TALENT:ARG:大人しい
+	PRINTFORMLC [ 14] Del %"【Quiet】",LOCAL:2,LEFT%( 4P)　　
+	T:14 = 4
+ELSE
+	PRINTFORMLC [ 14] Add %"【Quiet】",LOCAL:2,LEFT%( 8P)　　
+	T:14 = 8
+ENDIF
+
+IF TALENT:ARG:プライド高い
+	PRINTFORMLC [ 15] Del %"【High pride】",LOCAL:2,LEFT%(10P)　　
+	T:15 = 10
+ELSEIF TALENT:ARG:プライド高い == 0 && TALENT:ARG:プライド低い == 0
+	PRINTFORMLC [ 15] Add %"【High pride】",LOCAL:2,LEFT%( 4P)　　
+	T:15 = 4
+ENDIF
+
+IF TALENT:ARG:生意気
+	PRINTFORMLC [ 16] Del %"【Sassy】",LOCAL:2,LEFT%( 8P)　　
+	T:16 = 8
+ELSE
+	PRINTFORMLC [ 16] Add %"【Sassy】",LOCAL:2,LEFT%( 2P)　　
+	T:16 = 2
+ENDIF
+
+IF TALENT:ARG:プライド低い
+	PRINTFORMLC [ 17] Del %"【Low pride】",LOCAL:2,LEFT%( 4P)　　
+	T:17 = 4
+ELSEIF TALENT:ARG:プライド高い == 0 && TALENT:ARG:プライド低い == 0
+	PRINTFORMLC [ 17] Add %"【Low pride】",LOCAL:2,LEFT%( 6P)　　
+	T:17 = 6
+ENDIF
+
+IF TALENT:ARG:ツンデレ
+	PRINTFORMLC [ 18] Del %"【Tsundere】",LOCAL:2,LEFT%(10P)　　
+	T:18 = 10
+ELSE
+	PRINTFORMLC [ 18] Add %"【Tsundere】",LOCAL:2,LEFT%( 8P)　　
+	T:18 = 8
+ENDIF
+
+IF TALENT:ARG:自制心
+	PRINTFORMLC [ 20] Del %"【Self control】",LOCAL:2,LEFT%(16P)　　
+	T:20 = 16
+ELSE
+	PRINTFORMLC [ 20] Add %"【Self control】",LOCAL:2,LEFT%( 6P)　　
+	T:20 = 6
+ENDIF
+
+IF TALENT:ARG:無関心
+	PRINTFORMLC [ 21] Del %"【Apathetic】",LOCAL:2,LEFT%(12P)　　
+	T:21 = 12
+ELSE
+	PRINTFORMLC [ 21] Add %"【Apathetic】",LOCAL:2,LEFT%(-6P)　　
+	T:21 = -6
+ENDIF
+
+IF TALENT:ARG:感情乏しい
+	PRINTFORMLC [ 22] Del %"【Lack emotions】",LOCAL:2,LEFT%(12P)　　
+	T:22 = 12
+ELSE
+	PRINTFORMLC [ 22] Add %"【Lack emotions】",LOCAL:2,LEFT%(-6P)　　
+	T:22 = -6
+ENDIF
+
+IF TALENT:ARG:好奇心
+	PRINTFORMLC [ 23] Del %"【Curious】",LOCAL:2,LEFT%(-5P)　　
+	T:23 = -5
+ELSEIF TALENT:ARG:保守的 == 0 && TALENT:ARG:好奇心 == 0
+	PRINTFORMLC [ 23] Add %"【Curious】",LOCAL:2,LEFT%( 5P)　　
+	T:23 = 5
+ENDIF
+
+IF TALENT:ARG:保守的
+	PRINTFORMLC [ 24] Del %"【Conservative】",LOCAL:2,LEFT%( 7P)　　
+	T:24 = 7
+ELSEIF TALENT:ARG:保守的 == 0 && TALENT:ARG:好奇心 == 0
+	PRINTFORMLC [ 24] Add %"【Conservative】",LOCAL:2,LEFT%( 4P)　　
+	T:24 = 4
+ENDIF
+
+IF TALENT:ARG:楽観的
+	PRINTFORMLC [ 25] Del %"【Optimistic】",LOCAL:2,LEFT%(-5P)　　
+	T:25 = -5
+ELSEIF TALENT:ARG:悲観的 == 0 && TALENT:ARG:楽観的 == 0
+	PRINTFORMLC [ 25] Add %"【Optimistic】",LOCAL:2,LEFT%( 5P)　　
+	T:25 = 5
+ENDIF
+IF TALENT:ARG:悲観的
+	PRINTFORMLC [ 26] Del %"【Pessimistic】",LOCAL:2,LEFT%( 8P)　　
+	T:26 = 8
+ELSEIF TALENT:ARG:悲観的 == 0 && TALENT:ARG:楽観的 == 0
+	PRINTFORMLC [ 26] Add %"【Pessimistic】",LOCAL:2,LEFT%(-4P)　　
+	T:26 = -4
+ENDIF
+
+IF TALENT:ARG:一線越えない
+	PRINTFORMLC [ 27] Del %"【Reserved】",LOCAL:2,LEFT%(15P)　　
+	T:27 = 15
+ELSE
+	PRINTFORMLC [ 27] Add %"【Reserved】",LOCAL:2,LEFT%( 6P)　　
+	T:27 = 6
+ENDIF
+IF TALENT:ARG:目立ちたがり
+	PRINTFORMLC [ 28] Del %"【Showｰoff】",LOCAL:2,LEFT%(-4P)　　
+	T:28 = -4
+ELSE
+	PRINTFORMLC [ 28] Add %"【Showｰoff】",LOCAL:2,LEFT%( 8P)　　
+	T:28 = 8
+ENDIF
+
+IF TALENT:ARG:貞操観念
+	PRINTFORMLC [ 30] Del %"【Virtuous】",LOCAL:2,LEFT%( 6P)　　
+	T:30 = 6
+ELSEIF TALENT:ARG:貞操観念 == 0 && TALENT:ARG:貞操無頓着 == 0
+	PRINTFORMLC [ 30] Add %"【Virtuous】",LOCAL:2,LEFT%( 5P)　　
+	T:30 = 5
+ENDIF
+IF TALENT:ARG:貞操無頓着
+	PRINTFORMLC [ 31] Del %"【Virtueless】",LOCAL:2,LEFT%( 4P)　　
+	T:31 = 4
+ELSEIF TALENT:ARG:貞操観念 == 0 && TALENT:ARG:貞操無頓着 == 0
+	PRINTFORMLC [ 31] Add %"【Virtueless】",LOCAL:2,LEFT%( 6P)　　
+	T:31 = 6
+ENDIF
+
+IF TALENT:ARG:抑圧
+	PRINTFORMLC [ 32] Del %"【Repressed】",LOCAL:2,LEFT%(18P)　　
+	T:32 = 18
+ELSEIF TALENT:ARG:抑圧 == 0 && TALENT:ARG:解放 == 0
+	PRINTFORMLC [ 32] Add %"【Repressed】",LOCAL:2,LEFT%(-8P)　　
+	T:32 = -8
+ENDIF
+IF TALENT:ARG:解放
+	PRINTFORMLC [ 33] Del %"【Liberated】",LOCAL:2,LEFT%(-8P)　　
+	T:33 = -8
+ELSEIF TALENT:ARG:抑圧 == 0 && TALENT:ARG:解放 == 0
+	PRINTFORMLC [ 33] Add %"【Liberated】",LOCAL:2,LEFT%(18P)　　
+	T:33 = 18
+ENDIF
+
+IF TALENT:ARG:抵抗
+	PRINTFORMLC [ 34] Del %"【Reluctant】",LOCAL:2,LEFT%(16P)　　
+	T:34 = 16
+ELSE
+	PRINTFORMLC [ 34] Add %"【Reluctant】",LOCAL:2,LEFT%(-6P)　　
+	T:34 = -6
+ENDIF
+
+IF TALENT:ARG:恥じらい
+	PRINTFORMLC [ 35] Del %"【Shy】",LOCAL:2,LEFT%( 6P)　　
+	T:35 = 6
+ELSEIF TALENT:ARG:恥じらい == 0 && TALENT:ARG:恥薄い == 0
+	PRINTFORMLC [ 35] Add %"【Shy】",LOCAL:2,LEFT%( 6P)　　
+	T:35 = 6
+ENDIF
+
+IF TALENT:ARG:恥薄い
+	PRINTFORMLC [ 36] Del %"【Shameless】",LOCAL:2,LEFT%( 5P)　　
+	T:36 = 5
+ELSEIF TALENT:ARG:恥じらい == 0 && TALENT:ARG:恥薄い == 0
+	PRINTFORMLC [ 36] Add %"【Shameless】",LOCAL:2,LEFT%( 7P)　　
+	T:36 = 7
+ENDIF
+
+IF TALENT:ARG:弱味
+	PRINTFORMLC [ 37] Del %"【Weak point】",LOCAL:2,LEFT%(-6P)　　
+	T:37 = -6
+ELSE
+	PRINTFORMLC [ 37] Add %"【Weak point】",LOCAL:2,LEFT%(12P)　　
+	T:37 = 12
+ENDIF
+
+
+IF TALENT:ARG:献身的
+	PRINTFORMLC [ 63] Del %"【Devoted】",LOCAL:2,LEFT%(-5P)　　
+	T:63 = -5
+ELSE
+	PRINTFORMLC [ 63] Add %"【Devoted】",LOCAL:2,LEFT%( 8P)　　
+	T:63 = 8
+ENDIF
+
+IF TALENT:ARG:小悪魔
+	PRINTFORMLC [ 87] Del %"【Little devil】",LOCAL:2,LEFT%(-6P)　　
+	T:87 = -6
+ELSE
+	PRINTFORMLC [ 87] Add %"【Little devil】",LOCAL:2,LEFT%(10P)　　
+	T:87 = 10
+ENDIF
+
+IF TALENT:ARG:狂気
+	PRINTFORMLC [141] Del %"【Insane】",LOCAL:2,LEFT%(24P)　　
+	T:141 = 24
+ELSE
+	PRINTFORMLC [141] Add %"【Insane】",LOCAL:2,LEFT%(-12P)　 
+	T:141 = -12
+ENDIF
+IF TALENT:ARG:幼稚
+	PRINTFORMLC [151] Del %"【Childlike】",LOCAL:2,LEFT%(-5P)　　
+	T:151 = -5
+ELSE
+	PRINTFORMLC [151] Add %"【Childlike】",LOCAL:2,LEFT%(10P)　　
+	T:151 = 10
+ENDIF
+
+
+;===========================
+;肉体・技術・性癖系素質表示
+;===========================
+@PRINT_TALENT_1,ARG
+PRINTL □ Body properties
+;肉体・技術・性癖素質
+
+;lillibilli
+;String size for allignement manupulation (second page)
+LOCAL:2 = 20
+
+IF TALENT:ARG:オトコ == 0
+	IF TALENT:ARG:処女
+		PRINTFORMLC [  0] Del %"【Virgin】",LOCAL:2,LEFT%(-5P)　　
+		T:0 = -5
+	ELSE
+		PRINTFORMLC [  0] Add %"【Virgin】",LOCAL:2,LEFT%(26P)　　
+		T:0 = 26
+	ENDIF
+ENDIF
+
+IF TALENT:ARG:痛みに弱い
+	PRINTFORMLC [ 40] Del %"【Pain vulnerable】",LOCAL:2,LEFT%( 4P)　　
+	T:40 = 4
+ELSEIF TALENT:ARG:痛みに強い == 0 && TALENT:ARG:痛みに弱い == 0
+	PRINTFORMLC [ 40] Add %"【Pain vulnerable】",LOCAL:2,LEFT%(10P)　　
+	T:40 = 10
+ENDIF
+IF TALENT:ARG:痛みに強い
+	PRINTFORMLC [ 41] Del %"【Pain tolerant】",LOCAL:2,LEFT%(10P)　　
+	T:41 = 10
+ELSEIF TALENT:ARG:痛みに強い == 0 && TALENT:ARG:痛みに弱い == 0
+	PRINTFORMLC [ 41] Add %"【Pain tolerant】",LOCAL:2,LEFT%( 6P)　　
+	T:41 = 6
+ENDIF
+
+IF TALENT:ARG:濡れやすい
+	PRINTFORMLC [ 42] Del %"【Easy to wet】",LOCAL:2,LEFT%(-6P)　　
+	T:42 = -6
+ELSEIF TALENT:ARG:濡れにくい == 0 && TALENT:ARG:濡れやすい == 0
+	PRINTFORMLC [ 42] Add %"【Easy to wet】",LOCAL:2,LEFT%(12P)　　
+	T:42 = 12
+ENDIF
+IF TALENT:ARG:濡れにくい
+	PRINTFORMLC [ 43] Del %"【Hard to wet】",LOCAL:2,LEFT%(10P)　　
+	T:43 = 10
+ELSEIF TALENT:ARG:濡れにくい == 0 && TALENT:ARG:濡れやすい == 0
+	PRINTFORMLC [ 43] Add %"【Hard to wet】",LOCAL:2,LEFT%(-6P)　　
+	T:43 = -6
+ENDIF
+
+IF TALENT:ARG:習得早い
+	PRINTFORMLC [ 50] Del %"【Fast learning】",LOCAL:2,LEFT%(-7P)　　
+	T:50 = -7
+ELSEIF TALENT:ARG:習得遅い == 0 && TALENT:ARG:習得早い == 0
+	PRINTFORMLC [ 50] Add %"【Fast learning】",LOCAL:2,LEFT%(12P)　　
+	T:50 = 12
+ENDIF
+IF TALENT:ARG:習得遅い
+	PRINTFORMLC [ 51] Del %"【Slow learning】",LOCAL:2,LEFT%( 8P)　　
+	T:51 = 8
+ELSEIF TALENT:ARG:習得遅い == 0 && TALENT:ARG:習得早い == 0
+	PRINTFORMLC [ 51] Add %"【Slow learning】",LOCAL:2,LEFT%(-6P)　　
+	T:51 = -6
+ENDIF
+
+IF TALENT:ARG:舌使い
+	PRINTFORMLC [ 52] Del %"【Skilled tongue】",LOCAL:2,LEFT%(-6P)　　
+	T:52 = -6
+ELSE
+	PRINTFORMLC [ 52] Add %"【Skilled tongue】",LOCAL:2,LEFT%(11P)　　
+	T:52 = 11
+ENDIF
+
+IF TALENT:ARG:針さばき
+	PRINTFORMLC [ 53] Del %"【Needle mastery】",LOCAL:2,LEFT%(-6P)　　
+	T:53 = -6
+ELSE
+	PRINTFORMLC [ 53] Add %"【Needle mastery】",LOCAL:2,LEFT%(11P)　　
+	T:53 = 11
+ENDIF
+
+IF TALENT:ARG:猫舌
+	PRINTFORMLC [ 54] Del %"【Cat tongue】",LOCAL:2,LEFT%( 9P)　　
+	T:54 = 9
+ELSE
+	PRINTFORMLC [ 54] Add %"【Cat tongue】",LOCAL:2,LEFT%(-4P)　　
+	T:54 = -4
+ENDIF
+
+IF TALENT:ARG:薬毒耐性
+	PRINTFORMLC [ 56] Del %"【Drug resistant】",LOCAL:2,LEFT%(20P)　　
+	T:56 = 20
+ELSE
+	PRINTFORMLC [ 56] Add %"【Drug resistant】",LOCAL:2,LEFT%(-8P)　　
+	T:56 = -8
+ENDIF
+
+IF TALENT:ARG:おもらし癖
+	PRINTFORMLC [ 57] Del %"【Peeing habbit】",LOCAL:2,LEFT%(-4P)　　
+	T:57 = -4
+ELSE
+	PRINTFORMLC [ 57] Add %"【Peeing habbit】",LOCAL:2,LEFT%(10P)　　
+	T:57 = 10
+ENDIF
+
+IF TALENT:ARG:自慰しやすい
+	PRINTFORMLC [ 60] Del %"【Masturbation lover】",LOCAL:2,LEFT%(-5P)　　
+	T:60 = -5
+ELSE
+	PRINTFORMLC [ 60] Add %"【Masturbation lover】",LOCAL:2,LEFT%(10P)　　
+	T:60 = 10
+ENDIF
+
+IF TALENT:ARG:汚臭鈍感
+	PRINTFORMLC [ 61] Del %"【Odor insensitive】",LOCAL:2,LEFT%( 5P)　　
+	T:61 = 5
+ELSEIF TALENT:ARG:汚臭鈍感 == 0 && TALENT:ARG:汚臭敏感 == 0
+	PRINTFORMLC [ 61] Add %"【Odor insensitive】",LOCAL:2,LEFT%( 8P)　　
+	T:61 = 8
+ENDIF
+IF TALENT:ARG:汚臭敏感
+	PRINTFORMLC [ 62] Del %"【Odor sensitive】",LOCAL:2,LEFT%( 5P)　　
+	T:62 = 5
+ELSEIF TALENT:ARG:汚臭鈍感 == 0 && TALENT:ARG:汚臭敏感 == 0
+	PRINTFORMLC [ 62] Add %"【Odor sensitive】",LOCAL:2,LEFT%( 8P)　　
+	T:62 = 8
+ENDIF
+
+IF TALENT:ARG:汚れ無視
+	PRINTFORMLC [ 64] Del %"【Filth ignore】",LOCAL:2,LEFT%(-6P)　　
+	T:64 = -6
+ELSE
+	PRINTFORMLC [ 64] Add %"【Filth ignore】",LOCAL:2,LEFT%( 6P)　　
+	T:64 = 6
+ENDIF
+
+
+IF TALENT:ARG:快感に素直
+	PRINTFORMLC [ 70] Del %"【Susceptible to pleasure】",LOCAL:2,LEFT%( 6P)　　
+	T:70 = 6
+ELSEIF TALENT:ARG:快感に素直 == 0 && TALENT:ARG:快感の否定 == 0
+	PRINTFORMLC [ 70] Add %"【Susceptible to pleasure】",LOCAL:2,LEFT%(12P)　　
+	T:70 = 12
+ENDIF
+IF TALENT:ARG:快感の否定
+	PRINTFORMLC [ 71] Del %"【Resistant to pleasure】",LOCAL:2,LEFT%(20P)　　
+	T:71 = 20
+ELSEIF TALENT:ARG:快感に素直 == 0 && TALENT:ARG:快感の否定 == 0
+	PRINTFORMLC [ 71] Add %"【Resistant to pleasure】",LOCAL:2,LEFT%( 4P)　　
+	T:71 = 4
+ENDIF
+
+IF TALENT:ARG:中毒しやすい
+	PRINTFORMLC [ 72] Del %"【Easily addicted】",LOCAL:2,LEFT%(-6P)　　
+	T:72 = -6
+ELSE
+	PRINTFORMLC [ 72] Add %"【Easily addicted】",LOCAL:2,LEFT%(10P)　　
+	T:72 = 10
+ENDIF
+
+IF TALENT:ARG:倒錯的
+	PRINTFORMLC [ 80] Del %"【Perverted】",LOCAL:2,LEFT%(-4P)　　
+	T:80 = -4
+ELSE
+	PRINTFORMLC [ 80] Add %"【Perverted】",LOCAL:2,LEFT%( 8P)　　
+	T:80 = 8
+ENDIF
+
+IF TALENT:ARG:両刀
+	PRINTFORMLC [ 81] Del %"【Bisexual】",LOCAL:2,LEFT%(-6P)　　
+	T:81 = -6
+ELSEIF TALENT:ARG:男嫌い == 0 && TALENT:ARG:女嫌い == 0 && TALENT:ARG:両刀 == 0
+	PRINTFORMLC [ 81] Add %"【Bisexual】",LOCAL:2,LEFT%( 7P)　　
+	T:81 = 7
+ENDIF
+
+IF TALENT:ARG:男嫌い
+	PRINTFORMLC [ 82] Del %"【Men hater】",LOCAL:2,LEFT%( 9P)　　
+	T:82 = 9
+ELSEIF TALENT:ARG:男嫌い == 0 && TALENT:ARG:両刀 == 0
+	PRINTFORMLC [ 82] Add %"【Men hater】",LOCAL:2,LEFT%(-3P)　　
+	T:82 = -3
+ENDIF
+
+IF TALENT:ARG:サド
+	PRINTFORMLC [ 83] Del %"【Sadist】",LOCAL:2,LEFT%( 6P)　　
+	T:83 = 6
+ELSE
+	PRINTFORMLC [ 83] Add %"【Sadist】",LOCAL:2,LEFT%( 4P)　　
+	T:83 = 6
+ENDIF
+
+IF TALENT:ARG:マゾ
+	PRINTFORMLC [ 84] Del %"【Masochist】",LOCAL:2,LEFT%(-2P)　　
+	T:84 = -2
+ELSE
+	PRINTFORMLC [ 84] Add %"【Masochist】",LOCAL:2,LEFT%( 6P)　　
+	T:84 = 6
+ENDIF
+
+
+IF TALENT:ARG:女嫌い
+	PRINTFORMLC [ 88] Del %"【Women hater】",LOCAL:2,LEFT%( 9P)　　
+	T:88 = 9
+ELSEIF TALENT:ARG:女嫌い == 0 && TALENT:ARG:両刀 == 0
+	PRINTFORMLC [ 88] Add %"【Women hater】",LOCAL:2,LEFT%(-3P)　　
+	T:88 = -3
+ENDIF
+
+IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:狐
+		PRINTFORMLC [ 90] Del %"【Kitsune】",LOCAL:2,LEFT%( 0P)　　
+		T:90 = 0
+	ELSE
+		PRINTFORMLC [ 90] Add %"【Kitsune】",LOCAL:2,LEFT%( 3P)　　
+		T:90 = 3
+	ENDIF
+ENDIF
+
+;IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:小柄体型
+		PRINTFORMLC [100] Del %"【Small figure】",LOCAL:2,LEFT%(20P)　　
+		T:100 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTFORMLC [100] Add %"【Small figure】",LOCAL:2,LEFT%(20P)　　
+		T:100 = 20
+	ENDIF
+;ENDIF
+
+IF TALENT:ARG:Ｃ鈍感
+	PRINTFORMLC [101] Del %"【ＣInsensitive】",LOCAL:2,LEFT%( 9P)　　
+	T:101 = 9
+ELSEIF TALENT:ARG:Ｃ鈍感 == 0 && TALENT:ARG:Ｃ敏感 == 0
+	PRINTFORMLC [101] Add %"【ＣInsensitive】",LOCAL:2,LEFT%(-4P)　　
+	T:101 = -4
+ENDIF
+IF TALENT:ARG:Ｃ敏感
+	PRINTFORMLC [102] Del %"【ＣSensitive】",LOCAL:2,LEFT%(-8P)　　
+	T:102 = -8
+ELSEIF TALENT:ARG:Ｃ鈍感 == 0 && TALENT:ARG:Ｃ敏感 == 0
+	PRINTFORMLC [102] Add %"【ＣSensitive】",LOCAL:2,LEFT%(12P)　　
+	T:102 = 12
+ENDIF
+
+
+IF TALENT:ARG:Ｖ鈍感
+	PRINTFORMLC [103] Del %"【ＶInsensitive】",LOCAL:2,LEFT%( 9P)　　
+	T:103 = 9
+ELSEIF TALENT:ARG:Ｖ鈍感 == 0 && TALENT:ARG:Ｖ敏感 == 0
+	PRINTFORMLC [103] Add %"【ＶInsensitive】",LOCAL:2,LEFT%(-4P)　　
+	T:103 = -4
+ENDIF
+IF TALENT:ARG:Ｖ敏感
+	PRINTFORMLC [104] Del %"【ＶSensitive】",LOCAL:2,LEFT%(-8P)　　
+	T:104 = -8
+ELSEIF TALENT:ARG:Ｖ鈍感 == 0 && TALENT:ARG:Ｖ敏感 == 0
+	PRINTFORMLC [104] Add %"【ＶSensitive】",LOCAL:2,LEFT%(12P)　　
+	T:104 = 12
+ENDIF
+
+IF TALENT:ARG:Ａ鈍感
+	PRINTFORMLC [105] Del %"【ＡInsensitive】",LOCAL:2,LEFT%( 9P)　　
+	T:105 = 9
+ELSEIF TALENT:ARG:Ａ鈍感 == 0 && TALENT:ARG:Ａ敏感 == 0
+	PRINTFORMLC [105] Add %"【ＡInsensitive】",LOCAL:2,LEFT%(-4P)　　
+	T:105 = -4
+ENDIF
+IF TALENT:ARG:Ａ敏感
+	PRINTFORMLC [106] Del %"【ＡSensitive】",LOCAL:2,LEFT%(-8P)　　
+	T:106 = -8
+ELSEIF TALENT:ARG:Ａ鈍感 == 0 && TALENT:ARG:Ａ敏感 == 0
+	PRINTFORMLC [106] Add %"【ＡSensitive】",LOCAL:2,LEFT%(12P)　　
+	T:106 = 12
+ENDIF
+
+IF TALENT:ARG:Ｂ鈍感
+	PRINTFORMLC [107] Del %"【ＢInsensitive】",LOCAL:2,LEFT%( 9P)　　
+	T:107 = 9
+ELSEIF TALENT:ARG:Ｂ鈍感 == 0 && TALENT:ARG:Ｂ敏感 == 0
+	PRINTFORMLC [107] Add %"【ＢInsensitive】",LOCAL:2,LEFT%(-4P)　　
+	T:107 = -4
+ENDIF
+IF TALENT:ARG:Ｂ敏感
+	PRINTFORMLC [108] Del %"【ＢSensitive】",LOCAL:2,LEFT%(-8P)　　
+	T:108 = -8
+ELSEIF TALENT:ARG:Ｂ鈍感 == 0 && TALENT:ARG:Ｂ敏感 == 0
+	PRINTFORMLC [108] Add %"【ＢSensitive】",LOCAL:2,LEFT%(12P)　　
+	T:108 = 12
+ENDIF
+
+IF TALENT:ARG:貧乳
+	PRINTFORMLC [109] Del %"【Small tits】",LOCAL:2,LEFT%( 1P)　　
+	T:109 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTFORMLC [109] Add %"【Small tits】",LOCAL:2,LEFT%( 1P)　　
+	T:109 = 1
+ENDIF
+IF TALENT:ARG:絶壁
+	PRINTFORMLC [110] Del %"【Flat chest】",LOCAL:2,LEFT%( 1P)　　
+	T:110 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTFORMLC [110] Add %"【Flat chest】",LOCAL:2,LEFT%( 1P)　　
+	T:110 = 1
+ENDIF
+IF TALENT:ARG:巨乳
+	PRINTFORMLC [111] Del %"【Big tits】",LOCAL:2,LEFT%( 1P)　　
+	T:111 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTFORMLC [111] Add %"【Big tits】",LOCAL:2,LEFT%( 3P)　　
+	T:111 = 3
+ENDIF
+IF TALENT:ARG:爆乳
+	PRINTFORMLC [112] Del %"【Huge tits】",LOCAL:2,LEFT%( 1P)　　
+	T:112 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTFORMLC [112] Add %"【Huge tits】",LOCAL:2,LEFT%( 2P)　　
+	T:112 = 2
+ENDIF
+
+	IF TALENT:ARG:大柄
+		PRINTFORMLC [113] Del %"【Big figure】",LOCAL:2,LEFT%(20P)　　
+		T:113 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTFORMLC [113] Add %"【Big figure】",LOCAL:2,LEFT%(20P)　　
+		T:113 = 20
+	ENDIF
+	IF TALENT:ARG:巨体
+		PRINTFORMLC [114] Del %"【Giant figure】",LOCAL:2,LEFT%(20P)　　
+		T:114 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTFORMLC [114] Add %"【Giant figure】",LOCAL:2,LEFT%(20P)　　
+		T:114 = 20
+	ENDIF
+IF TALENT:ARG:回復早い
+	PRINTFORMLC [130] Del %"【Fast recovery】",LOCAL:2,LEFT%(-6P)　　
+	T:130 = -6
+ELSEIF TALENT:ARG:回復遅い == 0 && TALENT:ARG:回復早い == 0
+	PRINTFORMLC [130] Add %"【Fast recovery】",LOCAL:2,LEFT%(16P)　　
+	T:130 = 16
+ENDIF
+IF TALENT:ARG:回復遅い
+	PRINTFORMLC [131] Del %"【Slow recovery】",LOCAL:2,LEFT%(16P)　　
+	T:131 = 16
+ELSEIF TALENT:ARG:回復遅い == 0 && TALENT:ARG:回復早い == 0
+	PRINTFORMLC [131] Add %"【Slow recovery】",LOCAL:2,LEFT%(-8P)　　
+	T:131 = -8
+ENDIF
+
+IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:ふたなり
+		PRINTFORMLC [139] Del %"【Futa】",LOCAL:2,LEFT%( 0P)　　
+		T:139 = 0 
+	ELSE
+		PRINTFORMLC [139] Add %"【Futa】",LOCAL:2,LEFT%( 5P)　　
+		T:139 = 5
+	ENDIF
+
+	IF TALENT:ARG:オトコ
+		PRINTFORMLC [140] Del %"【Male】",LOCAL:2,LEFT%( 0P)　　
+		T:140 = 0
+	ELSE
+		PRINTFORMLC [140] Add %"【Male】",LOCAL:2,LEFT%( 1P)　　
+		T:140 = 1
+	ENDIF
+ENDIF
+
+	IF TALENT:ARG:小人体型
+		PRINTFORMLC [142] Del %"【Tiny figure】",LOCAL:2,LEFT%(20P)　　
+		T:142 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTFORMLC [142] Add %"【Tiny figure】",LOCAL:2,LEFT%(20P)　　
+		T:142 = 20
+	ENDIF
+
+
+IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:動物耳
+		PRINTFORMLC [143] Del %"【Animal ears】",LOCAL:2,LEFT%( 0P)　　
+		T:143 = 0
+	ELSE
+		PRINTFORMLC [143] Add %"【Animal ears】",LOCAL:2,LEFT%( 12P)　　
+		T:143 = 12
+	ENDIF
+ENDIF
+

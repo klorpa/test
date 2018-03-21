@@ -1,0 +1,502 @@
+;-------------------------------------------------------------
+;ランダム依頼はABL/TALENT/種族/スキル/属性の5種類
+;なお依頼はSAVESTR:王国屋ランダム依頼Xの中に
+;0/    /1     /   2/     3/   4/     5
+;ABL_LV/TALENT/種族/スキル/属性/報酬補正 でしまう
+;-------------------------------------------------------------
+@SET_OUKOKUYA, ARG
+#DIM ABL依頼
+#DIM TALENT依頼
+#DIM 種族依頼
+#DIM スキル依頼
+#DIM 属性依頼
+#DIM 報酬補正
+#DIM 主人ランク
+#DIMS 依頼
+
+;-------------------------------------------------------------
+;乱数を固定
+;種は操作手段がかなり限られてくるＥＸＰと毎日変わるDAYを使ってみる
+;先の日付まで確認して利用するのはEXPさえ変動させなければ可能という裏ワザが残るけどまぁたぶんこのくらいなら問題ない
+;-------------------------------------------------------------
+RANDOMIZE BASE:MASTER:ＥＸＰ * DAY + ARG
+
+;-------------------------------------------------------------
+;フラグ初期化
+;-------------------------------------------------------------
+ABL依頼 = 0
+TALENT依頼 = 0
+種族依頼 = 0
+スキル依頼 = 0
+属性依頼 = 0
+報酬補正 = 0
+依頼 = 
+;-------------------------------------------------------------
+;依頼パターン設定
+;絶対にABLかTALENTの1つは絡ませる
+;ABLは補正が高いのと複数つくことで時間経過のロスが現象しやすいので1個限定にする
+;-------------------------------------------------------------
+SELECTCASE RAND:100
+	CASE IS < 20
+		ABL依頼 = 1
+	CASE IS < 40
+		ABL依頼 = 1
+		TALENT依頼 = 1
+	CASE IS < 60
+		TALENT依頼 = 1
+	CASE IS < 70
+		TALENT依頼 = 2
+	CASE IS < 75
+		TALENT依頼 = 2
+	CASE IS < 80
+		種族依頼 = 1
+		TALENT依頼 = RAND:2
+		ABL依頼 = RAND:2
+	CASE IS < 90
+		スキル依頼 = 1
+		TALENT依頼 = RAND:2
+		ABL依頼 = RAND:2
+	CASEELSE
+		属性依頼 = 1 + !RAND:4
+		TALENT依頼 = RAND:2
+		ABL依頼 = RAND:2
+ENDSELECT
+
+;----------------------------------------------------------------------------------------------------
+;ABL依頼のセット
+;従順技巧欲望は4・5のみ
+;その他は3・4・5
+;
+;BLっ気・BL中毒・撮影・料理・歌唱はとりあえず価格定義はしてあるけど選考から除外
+;また、価格定義の問題
+;----------------------------------------------------------------------------------------------------
+IF ABL依頼
+	LOCALS = %RAND_SPLIT("従順/技巧/Ｃ感覚/Ｖ感覚/Ａ感覚/Ｂ感覚/奉仕精神/露出癖/マゾっ気/サドっ気/レズっ気/レズ中毒/自慰中毒/精液中毒/セックス中毒/噴乳中毒/獣姦中毒/触手中毒/輪姦中毒/キス中毒", "/")%
+	IF GETNUM(ABL, LOCALS) == -1
+		PRINTFORMW 王国屋依頼において、存在しないABL「%LOCALS%」が指定されたので処理を中断します
+		RETURN 0
+	ENDIF
+	LOCAL = RAND(3 + GROUPMATCH(LOCALS, "従順", "技巧", "欲望"), 6)
+	報酬補正 += OUKOKUYA_PRICE_ABL(LOCALS, LOCAL)
+	依頼 += @"%LOCALS%_{LOCAL}"
+ENDIF
+依頼 += "/"
+
+;----------------------------------------------------------------------------------------------------
+;TALENT依頼のセット
+;従順技巧欲望は4・5のみ
+;その他は3・4・5
+;
+;BLっ気・BL中毒・撮影・料理・歌唱はとりあえず価格定義はしてあるけど選考から除外
+;また、価格定義の問題
+;----------------------------------------------------------------------------------------------------
+LOCALS = 
+WHILE TALENT依頼
+	LOCAL = RAND:200
+	;価格が定義されてないものを弾く
+	SIF !OUKOKUYA_PRICE_TALENT(TALENTNAME:LOCAL)
+		CONTINUE
+	;すでに選定されているかのチェック
+	SIF STRCOUNT(依頼, TALENTNAME:LOCAL)
+		CONTINUE
+	;両立不可能な素質のチェック
+	SELECTCASE TALENTNAME:LOCAL
+		CASE "プライド高い"
+			SIF STRCOUNT(依頼, "プライド低い")
+				CONTINUE
+		CASE "プライド低い"
+			SIF STRCOUNT(依頼, "プライド高い")
+				CONTINUE
+		CASE "好奇心"
+			SIF STRCOUNT(依頼, "保守的")
+				CONTINUE
+		CASE "保守的"
+			SIF STRCOUNT(依頼, "好奇心")
+				CONTINUE
+		CASE "楽観的"
+			SIF STRCOUNT(依頼, "悲観的")
+				CONTINUE
+		CASE "悲観的"
+			SIF STRCOUNT(依頼, "楽観的")
+				CONTINUE
+		CASE "貞操観念"
+			SIF STRCOUNT(依頼, "貞操無頓着")
+				CONTINUE
+		CASE "貞操無頓着"
+			SIF STRCOUNT(依頼, "貞操観念")
+				CONTINUE
+		CASE "解放"
+			SIF STRCOUNT(依頼, "抑圧")
+				CONTINUE
+		CASE "抑圧"
+			SIF STRCOUNT(依頼, "解放")
+				CONTINUE
+		CASE "痛みに強い"
+			SIF STRCOUNT(依頼, "痛みに弱い")
+				CONTINUE
+		CASE "痛みに弱い"
+			SIF STRCOUNT(依頼, "痛みに強い")
+				CONTINUE
+		CASE "濡れにくい"
+			SIF STRCOUNT(依頼, "濡れやすい")
+				CONTINUE
+		CASE "濡れやすい"
+			SIF STRCOUNT(依頼, "濡れにくい")
+				CONTINUE
+		CASE "習得早い"
+			SIF STRCOUNT(依頼, "習得遅い")
+				CONTINUE
+		CASE "習得遅い"
+			SIF STRCOUNT(依頼, "習得早い")
+				CONTINUE
+		CASE "汚臭敏感"
+			SIF STRCOUNT(依頼, "汚臭鈍感")
+				CONTINUE
+		CASE "汚臭鈍感"
+			SIF STRCOUNT(依頼, "汚臭敏感")
+				CONTINUE
+	ENDSELECT
+	報酬補正 += OUKOKUYA_PRICE_TALENT(TALENTNAME:LOCAL)
+	依頼 +=TALENTNAME:LOCAL
+	SIF TALENT依頼 -- > 1
+		依頼 += "_"
+	
+WEND
+依頼 += "/"
+;----------------------------------------------------------------------------------------------------
+;種族設定
+;種族番号 1 - 11まで(つまり基本的な種族のみ)
+;----------------------------------------------------------------------------------------------------
+IF 種族依頼
+	依頼 += STR:RAND(1, 12)
+	報酬補正 += 30
+ENDIF
+依頼 += "/"
+;---------------------------------------------------------------------------------------------------
+;スキル設定
+;
+;指定されるスキルの候補は主人のレベルに依存する
+;価格補正はカード用意の手間が若干のMAGと全書の呼び出し代くらいしか違いでないのと
+;低ランクのほうが高レベル悪魔に持たせにくいのと、ここで上昇かけると二次関数的に価格上昇かかるので一律で30％に
+;---------------------------------------------------------------------------------------------------
+IF スキル依頼
+	SELECTCASE BASE:MASTER:LV
+		CASE IS < 8
+			主人ランク = 2
+		CASE IS < 15
+			主人ランク = 3
+		CASE IS < 25
+			主人ランク = 4
+		CASE IS < 35
+			主人ランク = 5
+		CASE IS < 40
+			主人ランク = 6
+		CASE IS < 45
+			主人ランク = 8
+		CASE IS < 50
+			主人ランク = 9
+		CASE IS < 55
+			主人ランク = 11
+		CASE IS < 60
+			主人ランク = 12
+		CASE IS < 65
+			主人ランク = 13
+		CASE IS < 70
+			主人ランク = 14
+		CASEELSE
+			主人ランク = 15
+	ENDSELECT
+	WHILE 1
+		LOCAL = RAND(1, 2500)
+		;Gun・基本スキルは除く
+		SIF RANGE(LOCAL, 2101, 2399)
+			CONTINUE
+		;ランクを見る
+		TRYCCALLFORM SKILL_RANK_{LOCAL}
+			SIF RESULT > 主人ランク
+				CONTINUE
+		CATCH
+			CONTINUE
+		ENDCATCH
+		TRYCCALLFORM 敵専用_{LOCAL}
+			SIF RESULT
+				CONTINUE
+		CATCH
+		ENDCATCH
+		TRYCCALLFORM 継承不能_{LOCAL}
+			SIF RESULT
+				CONTINUE
+		CATCH
+		ENDCATCH
+		依頼 += @"{LOCAL}"
+		報酬補正 += 30
+		BREAK
+	WEND
+ENDIF
+依頼 += "/"
+IF 属性依頼
+	LOCALS = %RAND_SPLIT("LIGHT/NEUTRAL(LD軸)/Dark/LAW/NEUTRAL(LC軸)/CHAOS", "/")%
+	依頼 += LOCALS
+	IF 属性依頼 == 2
+		WHILE 1
+			LOCALS:1 = %RAND_SPLIT("LIGHT/NEUTRAL(LD軸)/Dark/LAW/NEUTRAL(LC軸)/CHAOS", "/")%
+			SIF LOCALS == LOCALS:1
+				CONTINUE
+			依頼 += "_" + LOCALS:1
+			BREAK
+		WEND
+	ENDIF
+	報酬補正 += 属性依頼 == 2 ? 50 # 20
+ENDIF
+
+SAVESTR:@"王国屋依頼{ARG}" = %依頼%/{報酬補正}
+RETURN 1
+;-----------------------------------------------------------------------------------------------------
+;TALENTの価格定義
+;価格の基準は難度上昇素質　＞　難度低下素質　かつ　難度低下素質の中で価格低下するもの　＞上昇するもの
+;つまり、難度面・価格面で扱いにくい素質ほど高価格になる
+;
+;ARGS	TALENT名称
+;-----------------------------------------------------------------------------------------------------
+@OUKOKUYA_PRICE_TALENT, ARGS
+#FUNCTION
+SELECTCASE ARGS
+	CASE "自慰狂い", "セックス狂", "尻穴狂い", "淫乳"
+		RETURNF 100
+	CASE "気丈", "反抗的", "自制心", "一線越えない", "薬毒耐性", "快感の否定", "サド", "マゾ", "女嫌い", "男嫌い", "回復遅い"
+		RETURNF 50
+	CASE "無関心", "プライド高い", "生意気", "感情乏しい", "貞操観念", "恥じらい", "恥薄い", "痛みに強い", "濡れにくい", "習得遅い"
+		RETURNF 40
+	CASE "素直", "大人しい", "ツンデレ", "保守的", "臆病", "プライド低い", "貞操無頓着", "痛みに弱い", "快感に素直"
+		RETURNF 30
+	CASE "好奇心", "目立ちたがり", "解放", "濡れやすい", "習得早い", "舌使い", "自慰しやすい", "倒錯的", "小悪魔", "献身的", "魅力", "魅惑", "回復早い"
+		RETURNF 20
+ENDSELECT
+;LVは0-5を返す
+;-------------------------------------------------
+;ABLの価格定義
+;他のカテゴリーは用意の手間があるものの時間経過しないものの
+;このカテゴリーは用意の手間こそほとんどないものの確実に時間ロスするので
+;高めに設定
+;なお、6レベル or higherは明らかに用意コストが高くなりすぎるのでとりあえず置いておく
+;
+;ARGS	ABL名称
+;ARG	ABLレベル
+;-------------------------------------------------
+@OUKOKUYA_PRICE_ABL, ARGS, ARG
+#FUNCTION
+SELECTCASE ARGS
+	CASE "従順", "技巧", "欲望"
+		SELECTCASE ARG
+			CASE 4
+				RETURNF 20
+			CASE 5
+				RETURNF 30
+		ENDSELECT
+	CASE "Ｃ感覚", "Ｂ感覚", "Ｖ感覚", "Ａ感覚"
+		SELECTCASE ARG
+			CASE 3
+				RETURNF 10
+			CASE 4
+				RETURNF 15
+			CASE 5
+				RETURNF 20
+		ENDSELECT
+	CASE "奉仕精神", "露出癖", "マゾっ気", "サドっ気", "レズっ気", "ＢＬっ気"
+		SELECTCASE ARG
+			CASE 3
+				RETURNF 15
+			CASE 4
+				RETURNF 30
+			CASE 5
+				RETURNF 50
+		ENDSELECT
+	CASE "自慰中毒", "精液中毒", "レズ中毒", "セックス中毒", "噴乳中毒", "キス中毒"
+		SELECTCASE ARG
+			CASE 3
+				RETURNF 25
+			CASE 4
+				RETURNF 50
+			CASE 5
+				RETURNF 75
+		ENDSELECT
+	CASE "獣姦中毒", "触手中毒", "輪姦中毒", "歌唱技能", "料理技能", "撮影技能"
+		SELECTCASE ARG
+			CASE 3
+				RETURNF 30
+			CASE 4
+				RETURNF 60
+			CASE 5
+				RETURNF 100
+		ENDSELECT
+ENDSELECT
+
+@SHOW_OUKOKUYA_REQ_RANDOM, ARG
+#DIMS 表示内容
+#LOCALSSIZE 6
+SPLIT SAVESTR:@"王国屋依頼{ARG}", "/", LOCALS
+表示内容 = 
+表示内容 += @"/General request{ARG}%\@GETBIT(依頼フラグ:40:0, ARG) ?(Reserved)#\@%/"
+;一般依頼	予約中
+表示内容 += @"Difficulty: ☆%"☆"* (TOINT(LOCALS:5) / 20)%/"
+;難度
+表示内容 += "Reward: Macca depending on the value of the request fullfilling demon./"
+;報酬 :条件を満たした悪魔の価値に応じた魔貨
+表示内容 += "/Conditions:/"
+;条件
+IF LOCALS != ""
+	SPLIT LOCALS, "_", RESULTS
+	表示内容 += @"Ability [%ABLNAME_S(RESULTS)%] at Lv%RESULTS:1% or higher/"
+	;能力[%RESULTS%]がLv%RESULTS:1%以上
+ENDIF
+IF LOCALS:1 != ""
+	SPLIT LOCALS:1, "_", RESULTS
+	FOR LOCAL, 0, RESULT
+		表示内容 += @"Talent [%TALENTNAME_S(RESULTS:LOCAL)%] required/"
+		;素質 [%RESULTS:LOCAL%] を所持
+	NEXT
+ENDIF
+SIF LOCALS:2 != ""
+	表示内容 += @"Kind is [%LOCALS:2%]/"
+	;種族が[%LOCALS:2%]である
+IF LOCALS:3 != ""
+	CALLFORM SKILL_NAME_%LOCALS:3%
+	表示内容 += @"Skill [%RESULTS%] required/"
+	;スキル [%RESULTS%]を所持
+ENDIF
+IF LOCALS:4 != ""
+	SPLIT LOCALS:4, "_", RESULTS
+	表示内容 += @"Attribute [%RESULTS%]/"
+	;属性が[%RESULTS%]である
+	SIF RESULT > 1
+		表示内容 += @"Attribute [%RESULTS:1%]/"
+		;属性が[%RESULTS:1%]である
+ENDIF
+表示内容 += "/" * (17 - STRCOUNT(表示内容, "/"))
+CALL SHOW_PICTURE, "NONFLOORD", "Paradigm X Pet Shop", 表示内容
+
+@CHARASELLABLE_OUKOKUYA_REQ
+#LOCALSSIZE 6
+;売却可能でないとだめ
+SIF !GET_CHARASELLABLE(COUNT)
+	RETURN 0
+;悪魔でないとだめ
+SIF !GET_DEVIL(COUNT)
+	RETURN 0
+;Rは依頼番号
+;1～3の時はランダム依頼
+IF RANGE(R, 1, 3)
+	SPLIT SAVESTR:@"王国屋依頼{R}", "/", LOCALS
+	;一つ目はABL
+	IF LOCALS != ""
+		SPLIT LOCALS, "_", RESULTS
+		SIF ABL:COUNT:RESULTS < TOINT(RESULTS:1)
+			RETURN 0
+	ENDIF
+	IF LOCALS:1 != ""
+		SPLIT LOCALS:1, "_", RESULTS
+		FOR LOCAL, 0, RESULT
+			SIF !TALENT:COUNT:(RESULTS:LOCAL)
+				RETURN 0
+		NEXT
+	ENDIF
+	IF LOCALS:2 != ""
+		SIF STR:(ABL:COUNT:種族) != LOCALS:2
+			RETURN 0
+	ENDIF
+	IF LOCALS:3 != ""
+		SIF !HAVE_SKILL(COUNT, TOINT(LOCALS:3))
+			RETURN 0
+	ENDIF
+	IF LOCALS:4 != ""
+		SPLIT LOCALS:4, "_", RESULTS
+		FOR LOCAL, 0, RESULT
+			SELECTCASE RESULTS:LOCAL
+				CASE "LIGHT"
+					SIF ABL:COUNT:属性LD != 1
+						RETURN 0
+				CASE "NEUTRAL(LD軸)"
+					PRINTFORMW %CALLNAME:COUNT%の属性LDは{ABL:COUNT:属性LD}
+					SIF ABL:COUNT:属性LD != 2
+						RETURN 0
+				CASE "DARK"
+					SIF ABL:COUNT:属性LD != 3
+						RETURN 0
+				CASE "LAW"
+					SIF ABL:COUNT:属性LC != 1
+						RETURN 0
+				CASE "NEUTRAL(LC軸)"
+					SIF ABL:COUNT:属性LC != 2
+						RETURN 0
+				CASE "CHAOS"
+					SIF ABL:COUNT:属性LC != 3
+						RETURN 0
+			ENDSELECT
+		NEXT
+	ENDIF
+ELSE
+	CALLFORM CHARASELLABLE_OUKOKUYA_REQ_{R}
+	SIF !RESULT
+		RETURN 0
+ENDIF
+RETURN 1
+
+
+@CHARATALENTCHECK_OUKOKUYA_REQ
+#LOCALSSIZE 6
+;悪魔でないとだめ
+SIF !GET_DEVIL(COUNT)
+	RETURN 0
+;Rは依頼番号
+;1～3の時はランダム依頼
+IF RANGE(R, 1, 3)
+	SPLIT SAVESTR:@"王国屋依頼{R}", "/", LOCALS
+	;一つ目はABL
+	IF LOCALS:1 != ""
+		SPLIT LOCALS:1, "_", RESULTS
+		FOR LOCAL, 0, RESULT
+			SIF !TALENT:COUNT:(RESULTS:LOCAL)
+				RETURN 0
+		NEXT
+	ENDIF
+	IF LOCALS:2 != ""
+		SIF STR:(ABL:COUNT:種族) != LOCALS:2
+			RETURN 0
+	ENDIF
+	IF LOCALS:3 != ""
+		SIF !HAVE_SKILL(COUNT, TOINT(LOCALS:3))
+			RETURN 0
+	ENDIF
+	IF LOCALS:4 != ""
+		SPLIT LOCALS:4, "_", RESULTS
+		FOR LOCAL, 0, RESULT
+			SELECTCASE RESULTS:LOCAL
+				CASE "LIGHT"
+					SIF ABL:COUNT:属性LD != 1
+						RETURN 0
+				CASE "NEUTRAL(LD軸)"
+					PRINTFORMW %CALLNAME:COUNT%の属性LDは{ABL:COUNT:属性LD}
+					SIF ABL:COUNT:属性LD != 2
+						RETURN 0
+				CASE "DARK"
+					SIF ABL:COUNT:属性LD != 3
+						RETURN 0
+				CASE "LAW"
+					SIF ABL:COUNT:属性LC != 1
+						RETURN 0
+				CASE "NEUTRAL(LC軸)"
+					SIF ABL:COUNT:属性LC != 2
+						RETURN 0
+				CASE "CHAOS"
+					SIF ABL:COUNT:属性LC != 3
+						RETURN 0
+			ENDSELECT
+		NEXT
+	ENDIF
+ELSE
+	CALLFORM CHARATALENTCHECK_OUKOKUYA_REQ_{R}
+	SIF !RESULT
+		RETURN 0
+ENDIF
+RETURN 1
+

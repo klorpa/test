@@ -1,0 +1,29 @@
+;===============================
+;戦闘行動に応じて素質ごとの忠誠度上昇量を算出
+;ARG      対象キャラクタ
+;ARG:1    入力行動
+;RESULT   忠誠度上昇量
+;===============================
+;[賢い]は弱点を突くか行動不能の敵に行動すれば忠誠度が上昇
+@COMBAT_HIGH_賢い(ARG,ARG:1)
+;攻撃でなければ終了
+CALLFORM SKILL_EFECT_{ARG:1}
+SIF RESULT != 1
+	RETURN 0
+;ターゲットが敵でないなら終了
+SIF CFLAG:ARG:ターゲット <= 0 || CFLAG:ARG:ターゲット >= 17
+	RETURN 0
+LOCAL = POS(CFLAG:ARG:ターゲット)
+
+;弱点を突いておらず、ターゲットが行動不能なわけでもなければ終了
+CALLFORM SKILL_TYPE_{ARG:1},ARG
+IF INRANGE(MAXBASE:LOCAL:(GET_TYPE(RESULT)),101,998) == 0
+	;ターゲットが行動不能に陥っているわけでもない
+	CALL COOPABLE_CHARA,LOCAL
+	SIF RESULT != 0
+		RETURN 0
+ENDIF
+
+;スキルコストに応じた忠誠度上昇
+CALLFORM SKILL_COST_{ARG:1},ARG
+RETURN RESULT/2

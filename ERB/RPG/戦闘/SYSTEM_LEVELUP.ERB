@@ -1,0 +1,993 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SYSTEM_LEVELUP.ERB
+;	Facility	:レベルアップ時に行う処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/27		P						喰奴のスキル習得に関するバグを修正
+;	003		2011/02/02		P						002の修正に不備があったのでさらに修正
+;	004		2011/02/03		nameless				002の修正に不備があったのでさらに修正
+;	005		2011/02/06		Rsp暇人					複数習得可能スキルに対応。ついでに能力値選択をINPUTINT対応に
+;	006		2011/02/13		P						能力アップ系アプリの挙動を修正し、発動率を調整・ソース系アクセサリの処理を追加
+;	007		2011/02/20		Ｎ鳥					変身中のキャラのスキル習得が反映されてなかったのを修正、レベルアップ時のボーナス計算・ステアップ効果を修正
+;	008		2011/05/26		P						スキル習得時にスキルの説明を表示するように
+;	009		2013/11/30		ひみつ					変異時に文字列関係で更新してもよさそうなものを更新するように。
+;													変更可能なものについて変更されている場合は更新しないように。
+;													人間側(変身前の側)でもスキルを覚えるようなデビルシフターや喰奴に対応。
+;													スキル属性表示の適用範囲拡大
+;	010		2013/12/02		ひみつ					変異時に文字列関係で更新してもよさそうなものを更新するように。
+;													変更可能なものについて変更されている場合は更新しないように。
+;													人間側(変身前の側)でもスキルを覚えるようなデビルシフターや喰奴に対応。
+;													スキル属性表示の適用範囲拡大。スキル属性表示にキャラ情報を渡すように
+;	011		2015/04/12		54-762					エンジェルの変異パッチ用に修正。
+;													種族天使の悪魔が【Lewd】【Submissive】系の陥落素養を持っていたら【Fallen】を
+;													その他の場合【Divine】の素質を後付で付与するように修正
+;	012		2015/12/11		JK好き					異能者用のスキル習得処理を追加
+;	013		2017/02/07		名無し					自動レベルＵＰを追加
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+@GET_NEXT_EXP, ARG, ARG:1, ARG:2
+#FUNCTION
+RETURNF 5 * ARG * (ARG+1) * (ARG+2) / 3 * (ARG:1 ? 5 # 4) / 4
+
+;===============================
+;レベルアップ判定＆処理
+;;===============================
+@CHECK_LEVEL_UP,ARG
+	IF FLAG:レベルアップ時インターフェース設定 == 0
+		CALL CHECK_LEVEL_UP_DEF, ARG
+	ELSEIF FLAG:レベルアップ時インターフェース設定 == 1
+		CALL CHECK_LEVEL_UP_NEW, ARG
+	ELSEIF FLAG:レベルアップ時インターフェース設定 == 2
+		CALL CHECK_LEVEL_UP_AUTO, ARG
+	ENDIF
+
+;===============================
+;レベルアップ判定＆処理　デフォルト式
+;===============================
+@CHECK_LEVEL_UP_DEF,ARG
+	;LOCAL:1 レベルアップ回数
+	;LOCAL 能力選択回数
+	;LOCAL:2-7 対応した能力の上昇値
+	REPEAT 8
+		LOCAL:COUNT = 0
+	REND
+	LOCAL:1 = 0
+	LOCAL:10 = 0
+	WHILE BASE:ARG:ＥＸＰ >= GET_NEXT_EXP(BASE:ARG:LV+LOCAL:1, ABL:ARG:種族 != 0 && !陥落(ARG))
+	;BASE:ARG:ＥＸＰ >= 5*(BASE:ARG:LV+LOCAL:1)*(BASE:ARG:LV+1+LOCAL:1)*(BASE:ARG:LV+2+LOCAL:1)/3 * (ABL:ARG:種族 != 0 && !陥落(ARG) ? 5 # 4 ) / 4
+		SIF (BASE:ARG:LV + LOCAL:1 ) % 2 == 1
+			LOCAL:10 += 1
+		LOCAL:1 += 1
+	WEND
+
+	;主人非対応にしようか悩む＞1.5倍化
+	LOCAL:10 += LOCAL:1
+
+	;非戦闘員はここまで
+	IF TALENT:ARG:非戦闘員 && LOCAL:1
+		PRINTFORML LEVEL UP!
+		BASE:ARG:LV += LOCAL:1
+		CALL SYNC_STATUS , ARG
+		RETURN 0
+	ENDIF
+
+	IF LOCAL:10
+		;現在の最大ＨＰ・ＭＰを記憶
+		LOCAL:8 = MAXBASE:ARG:ＨＰ
+		LOCAL:9 = MAXBASE:ARG:ＭＰ
+
+		LOCAL = 0
+		PRINTFORMW %NAME:ARG% Leveled up!
+	;	SIF ARG != MASTER
+	;		GOTO NO_MASTER
+		PRINTL
+		PRINTL
+		$INPUT_UP_STATUS
+		LOCAL = 0
+		REPEAT 6
+			LOCAL:(COUNT+2) = 0
+		REND
+		WHILE LOCAL:10 > LOCAL
+			DRAWLINE
+			PRINTFORML %種族名(ARG)%　　%CALLNAME:ARG%　　
+			PRINTFORML 　　LV{BASE:ARG:30+LOCAL:1,3}　　　%GET_ALI1(ABL:ARG:属性LD),7%/%GET_ALI2(ABL:ARG:属性LC),7%
+			CUSTOMDRAWLINE ･
+			PRINTL Which stat to raise?
+			LOCAL:11 = LOCAL:10 - LOCAL
+			PRINTFORML Left {LOCAL:11,2} Points
+			REPEAT 6
+				PRINTFORML [{COUNT+1}]%GET_BASESTATUS_E(COUNT+1),4%：{MAXBASE:ARG:(GET_BASESTATUS(COUNT+1)) + LOCAL:(COUNT+2),4}【+{LOCAL:(COUNT+2),3}】\@LOCAL:11 > 5 ?　[{COUNT+1+10}]+5#\@\@LOCAL:11 > 10 ?　[{COUNT+1+20}]+10#\@\@LOCAL:11 >= 2 ?　[{COUNT+1+30}]+{LOCAL:11,2}#\@
+			REND
+				DRAWLINE
+				PRINTL [0]Reset
+				$INPUT_LOOP
+				INPUT
+					IF RESULT < 7 && RESULT > 0
+						LOCAL:(1+RESULT) += 1
+						LOCAL += 1
+					ELSEIF RESULT < 17 && RESULT > 10 && LOCAL:11 >= 5
+						LOCAL:(1+RESULT-10) += 5
+						LOCAL += 5
+					ELSEIF RESULT < 27 && RESULT > 20 && LOCAL:11 >= 10
+						LOCAL:(1+RESULT-20) += 10
+						LOCAL += 10
+					ELSEIF RESULT < 37 && RESULT > 30
+						LOCAL:(1+RESULT-30) +=LOCAL:11
+						LOCAL += LOCAL:11
+					ELSE
+						GOTO INPUT_UP_STATUS
+					ENDIF
+		WEND
+			PRINTL
+			CUSTOMDRAWLINE ･
+		REPEAT 6
+			PRINTFORML %GET_BASESTATUS_E(COUNT+1),4%：{MAXBASE:ARG:(GET_BASESTATUS(COUNT+1)) + LOCAL:(COUNT+2),4}(+{LOCAL:(COUNT+2),3})
+		REND
+		PRINTL
+		PRINTL Are you sure?
+		CALL INPUT_YN, "Yes", "No"
+		SIF RESULT == 1
+			GOTO INPUT_UP_STATUS
+
+		;$NO_MASTER
+		;---- EDIT 006 MOD START -------------------------
+		;LOCAL:10→LOCAL:1
+		;REPEAT LOCAL:1
+		;---- EDIT 006 MOD END   -------------------------
+			;インストールソフト数
+		;	LOCAL:8 = SUMARRAY(EQUIP:MASTER:0 , GETNUM(EQUIP, "Hercules") , GETNUM(EQUIP, "Hercules")+7)
+		;	FOR LOCAL,1, 7
+		;		LOCALS = %GET_BASESTATUS(LOCAL)%
+		;		IF ABL:ARG:種族 > 0
+					;---- EDIT 006 MOD START -------------------------
+					;強化の発動率の減少速度を/5から/3に
+					;また、コストが安いマニアック以上に関しては減少速度をおそめる
+		;			SIF !EQUIP:MASTER:(GETNUM(EQUIP, "Hercules") + LOCAL - 1)
+		;				CONTINUE
+		;			SIF !NUM_SUMMONER()
+		;				CONTINUE
+		;			IF FLAG:戦闘難易度 > 3
+		;				SIF RAND:100 > (50 - MIN(40, CFLAG:ARG:能力強化回数 / 4)) / MAX(1,LOCAL:8)
+		;					CONTINUE
+		;			ELSE
+		;				SIF RAND:100 > (50 - MIN(40, CFLAG:ARG:能力強化回数 / 2)) / MAX(1,LOCAL:8)
+		;					CONTINUE
+		;			ENDIF
+					;最大と最小の差 * 10 * 15
+		;			LOCAL:11 = (MAX(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運) - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運))
+		;			LOCAL:11 = MAX(1,(LOCAL:11 * 10 + 14) / 15)
+		;			LOCAL:12 = (MAXBASE:ARG:LOCALS - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運)) * 10 / LOCAL:11 * 5
+		;			SIF RAND:100 < LOCAL:12
+		;				CONTINUE
+		;			PRINTFORML The %EQUIPNAME:(GETNUM(EQUIP, "Hercules") + LOCAL - 1)% program has improved %LOCALS% by +１!
+		;			CFLAG:ARG:能力強化回数 += 1
+		;			LOCALS += "強化回数"
+		;			CFLAG:ARG:LOCALS += 1
+					;---- EDIT 006 MOD END   -------------------------
+				;---- EDIT 006 ADD START -------------------------
+				;インストールソフトとは挙動がだいぶ違うので注意
+				;基礎発動率は25%~50%で強化回数によって減少していく
+				;さらに能力値の高低差により、100%~25%が乗算されるので、1/2~1/16の間で動くことになる
+		;		ELSE
+		;			SIF EQUIP:ARG:アクセサリ != GETNUM(ITEM, "Strength Source") + LOCAL - 1
+		;				CONTINUE
+		;			IF FLAG:戦闘難易度 > 3
+		;				SIF RAND:80 > 50 - MIN(40, CFLAG:ARG:能力強化回数 / 4)
+		;					CONTINUE
+		;			ELSE
+		;				SIF RAND:80 > 50 - MIN(40, CFLAG:ARG:能力強化回数 / 2)
+		;					CONTINUE
+		;			ENDIF
+					;最大と最小の差 * 10 * 15
+		;			LOCAL:11 = (MAX(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運) - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運))
+		;			LOCAL:11 = MAX(1,(LOCAL:11 * 10 + 14) / 15)
+		;			LOCAL:12 = (MAXBASE:ARG:LOCALS - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運)) * 10 / LOCAL:11 * 5
+		;			SIF RAND:200 < LOCAL:12
+		;				CONTINUE
+		;			PRINTFORML The %ITEMNAME:(EQUIP:ARG:アクセサリ)% has improved %LOCALS% by +１!
+		;			CFLAG:ARG:能力強化回数 += 1
+		;			LOCALS += "強化回数"
+		;			CFLAG:ARG:LOCALS += 1
+		;		ENDIF
+				;---- EDIT 006 ADD END   -------------------------
+		;	NEXT
+		;REND
+		
+		REPEAT 7
+			BASE:ARG:(GET_BASESTATUS(1*COUNT)) += LOCAL:(1+COUNT)
+		REND
+		
+		;インストールソフト・アクセサリ等の特殊ボーナス
+		CALL LVUP_BOOSTER(ARG,LOCAL:10)
+		
+		CALLFORM EVENT_LEVELUP,ARG,LOCAL:1
+		TRYCALLFORM EVENT_LEVELUP_{NO:ARG},LOCAL:1
+		CALL SYNC_STATUS,ARG
+		
+		;増加分だけＨＰとＭＰが回復
+		CALL VAR_HP,ARG,MAXBASE:ARG:ＨＰ - LOCAL:8,3
+		CALL VAR_MP,ARG,MAXBASE:ARG:ＭＰ - LOCAL:9,3
+		
+		;Humanなら全回復
+		IF ABL:ARG:種族 == 0 || ABL:ARG:種族 > 45
+			BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ
+			CFLAG:ARG:ステート = GET_STATE_NUM("GOOD")
+		ENDIF
+	ENDIF
+
+;===============================
+;レベルアップ判定＆処理　新I/F
+;===============================
+@CHECK_LEVEL_UP_NEW,ARG
+	#DIM レベル上昇値,1
+	#DIM ボーナスポイント,1
+	#DIM 事前最大ＨＰ,1
+	#DIM 事前最大ＭＰ,1
+	ARRAYREMOVE ボーナスポイント,0,0
+	レベル上昇値 = 0
+	ボーナスポイント = 0
+	事前最大ＨＰ = MAXBASE:ARG:ＨＰ
+	事前最大ＭＰ = MAXBASE:ARG:ＭＰ
+
+	WHILE BASE:ARG:ＥＸＰ >= GET_NEXT_EXP(BASE:ARG:LV+レベル上昇値, ABL:ARG:種族 != 0 && !陥落(ARG))
+		SIF (BASE:ARG:LV + レベル上昇値 ) % 2 == 1
+			ボーナスポイント += 1
+		レベル上昇値 += 1
+	WEND
+	ボーナスポイント += レベル上昇値
+
+	SIF !ボーナスポイント
+	RETURN 0
+	PRINTFORML %NAME:ARG% Leveled up!
+	BASE:ARG:LV += レベル上昇値
+
+	;非戦闘員はここまで
+	IF TALENT:ARG:非戦闘員 && レベル上昇値
+	CALL SYNC_STATUS , ARG
+	RETURN 0
+	ENDIF
+
+	;レベルアップに伴う能力値ボーナス
+	CALL STATUS_BONUS(ARG,ボーナスポイント)
+
+	;インストールソフト・アクセサリ等の特殊ボーナス
+	CALL LVUP_BOOSTER(ARG,ボーナスポイント)
+
+	CALLFORM EVENT_LEVELUP,ARG,LOCAL:1
+	TRYCALLFORM EVENT_LEVELUP_{NO:ARG},LOCAL:1
+	CALL SYNC_STATUS,ARG
+
+	;増加分だけＨＰとＭＰが回復
+	CALL VAR_HP,ARG,MAXBASE:ARG:ＨＰ - 事前最大ＨＰ,3
+	CALL VAR_MP,ARG,MAXBASE:ARG:ＭＰ - 事前最大ＭＰ,3
+
+	;Humanなら全回復
+	IF IS_HUMAN(ARG)
+		BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ
+		CFLAG:ARG:ステート = GET_STATE_NUM("GOOD")
+	ENDIF
+
+;===============================
+;レベルアップ判定＆処理　AUTO
+;===============================
+@CHECK_LEVEL_UP_AUTO,ARG
+		;LOCAL:1 レベルアップ回数
+	;LOCAL 能力選択回数
+	;LOCAL:2-7 対応した能力の上昇値
+	REPEAT 8
+		LOCAL:COUNT = 0
+	REND
+	LOCAL:1 = 0
+	LOCAL:10 = 0
+	WHILE BASE:ARG:ＥＸＰ >= GET_NEXT_EXP(BASE:ARG:LV+LOCAL:1, ABL:ARG:種族 != 0 && !陥落(ARG))
+	;BASE:ARG:ＥＸＰ >= 5*(BASE:ARG:LV+LOCAL:1)*(BASE:ARG:LV+1+LOCAL:1)*(BASE:ARG:LV+2+LOCAL:1)/3 * (ABL:ARG:種族 != 0 && !陥落(ARG) ? 5 # 4 ) / 4
+		SIF (BASE:ARG:LV + LOCAL:1 ) % 2 == 1
+			LOCAL:10 += 1
+		LOCAL:1 += 1
+	WEND
+
+	;主人非対応にしようか悩む＞1.5倍化
+	LOCAL:10 += LOCAL:1
+
+	;非戦闘員はここまで
+	IF TALENT:ARG:非戦闘員 && LOCAL:1
+		PRINTFORML LEVEL UP!
+		BASE:ARG:LV += LOCAL:1
+		CALL SYNC_STATUS , ARG
+		RETURN 0
+	ENDIF
+
+	IF LOCAL:10
+		;現在の最大ＨＰ・ＭＰを記憶
+		LOCAL:8 = MAXBASE:ARG:ＨＰ
+		LOCAL:9 = MAXBASE:ARG:ＭＰ
+
+		LOCAL = 0
+		PRINTFORMW %NAME:ARG% Leveled up!
+	;	SIF ARG != MASTER
+	;		GOTO NO_MASTER
+		PRINTL 
+		PRINTL
+		$INPUT_UP_STATUS
+		LOCAL = 0
+		REPEAT 6
+			LOCAL:(COUNT+2) = 0
+		REND
+		DRAWLINE
+			PRINTFORML %種族名(ARG)%　　%CALLNAME:ARG%　　
+			PRINTFORM 　　LV{BASE:ARG:30+LOCAL:1,3}　　　
+			CALL PRINT_ALIGNMENT
+			PRINTFORML 
+			CUSTOMDRAWLINE ･
+			PRINTFORML 能力上昇{LOCAL:10,3}ポイント
+		WHILE LOCAL:10 > LOCAL
+			LOCAL:11 = LOCAL:10 - LOCAL
+			$AUTO_LEVELUP_LOOP
+			;特定のキャラのレベルアップをある程度方向づけたい場合
+			;例、魔=知>耐＝速>運>力の場合
+			IF ARG == GETCHARA([[キャラ:永琳]])
+				SELECTCASE RAND:17
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1,6,11,12
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2,7,13,14
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3,8,15
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4,9,16
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5,10
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			;素質で分類してみた
+			ELSEIF TALENT:ARG:獰猛 || TALENT:ARG:残虐
+			;力、速が少し伸びやすく、知、魔が少し伸びにくい
+				SELECTCASE RAND:17
+					CASE 0,6,10
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3,7
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4,8,11
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5,9
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			ELSEIF TALENT:ARG:友愛 || TALENT:ARG:天使
+			;力が少し伸びにくく、耐がすこし伸びやすい
+				SELECTCASE RAND:17
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1,6
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2,7
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3,8,11
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4,9
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5,10
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			ELSEIF TALENT:ARG:冷静 || TALENT:ARG:賢い 
+			;知が伸びやすい
+				SELECTCASE RAND:17
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1,6,7
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			ELSEIF TALENT:ARG:狡猾
+			;知、速が少し伸びやすい
+				SELECTCASE RAND:17
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1,6
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4,7
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			ELSEIF TALENT:ARG:愚鈍 || TALENT:ARG:ゾンビ || TALENT:ARG:虚心
+			;知、速が伸びにくい
+				SELECTCASE RAND:17
+					CASE 0,6,10
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2,7,11
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3,8,12
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5,9,13
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			ELSEIF TALENT:ARG:高慢 || TALENT:ARG:堕天使
+			;知、魔がすこし伸びやすい
+				SELECTCASE RAND:17
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1,7
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2,8
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			;特に素質がない男の場合、力が上がりやすくする
+			ELSEIF TALENT:ARG:オトコ
+				SELECTCASE RAND:7
+					CASE 0,6
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			;特に素質がない女の場合、魔力が上がりやすくする
+			ELSEIF !TALENT:ARG:オトコ
+				SELECTCASE RAND:7
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2,6
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			;それ以外は完全にランダム
+			ELSE
+				SELECTCASE RAND:6
+					CASE 0
+						LOCAL:2 += 1
+						LOCAL += 1
+					CASE 1
+						LOCAL:3 += 1
+						LOCAL += 1
+					CASE 2
+						LOCAL:4 += 1
+						LOCAL += 1
+					CASE 3
+						LOCAL:5 += 1
+						LOCAL += 1
+					CASE 4
+						LOCAL:6 += 1
+						LOCAL += 1
+					CASE 5
+						LOCAL:7 += 1
+						LOCAL += 1
+				ENDSELECT
+			ENDIF
+		WEND
+			CUSTOMDRAWLINE ･
+		REPEAT 6
+			PRINTFORML %GET_BASESTATUS_E(COUNT+1),4%：{MAXBASE:ARG:(GET_BASESTATUS(COUNT+1)) + LOCAL:(COUNT+2),4}(+{LOCAL:(COUNT+2),3})
+		REND
+			PRINTW 
+		$NO_MASTER
+		;---- EDIT 006 MOD START -------------------------
+		;LOCAL:10→LOCAL:1
+		;REPEAT LOCAL:1
+		;---- EDIT 006 MOD END   -------------------------
+			;インストールソフト数
+		;	LOCAL:8 = SUMARRAY(EQUIP:MASTER:0 , GETNUM(EQUIP, "Hercules") , GETNUM(EQUIP, "Hercules")+7)
+		;	FOR LOCAL,1, 7
+		;		LOCALS = %GET_BASESTATUS(LOCAL)%
+		;		IF ABL:ARG:種族 > 0
+					;---- EDIT 006 MOD START -------------------------
+					;強化の発動率の減少速度を/5から/3に
+					;また、コストが安いマニアック以上に関しては減少速度をおそめる
+		;			SIF !EQUIP:MASTER:(GETNUM(EQUIP, "Hercules") + LOCAL - 1)
+		;				CONTINUE
+		;			SIF !NUM_SUMMONER()
+		;				CONTINUE
+		;			IF FLAG:戦闘難易度 > 3
+		;				SIF RAND:100 > (50 - MIN(40, CFLAG:ARG:能力強化回数 / 4)) / MAX(1,LOCAL:8)
+		;					CONTINUE
+		;			ELSE
+		;				SIF RAND:100 > (50 - MIN(40, CFLAG:ARG:能力強化回数 / 2)) / MAX(1,LOCAL:8)
+		;					CONTINUE
+		;			ENDIF
+					;最大と最小の差 * 10 * 15
+		;			LOCAL:11 = (MAX(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運) - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運))
+		;			LOCAL:11 = MAX(1,(LOCAL:11 * 10 + 14) / 15)
+		;			LOCAL:12 = (MAXBASE:ARG:LOCALS - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運)) * 10 / LOCAL:11 * 5
+		;			SIF RAND:100 < LOCAL:12
+		;				CONTINUE
+		;			PRINTFORML %EQUIPNAME:(GETNUM(EQUIP, "Hercules") + LOCAL - 1)%の効果で%LOCALS%がさらに+１
+		;			CFLAG:ARG:能力強化回数 += 1
+		;			LOCALS += "強化回数"
+		;			CFLAG:ARG:LOCALS += 1
+					;---- EDIT 006 MOD END   -------------------------
+				;---- EDIT 006 ADD START -------------------------
+				;インストールソフトとは挙動がだいぶ違うので注意
+				;基礎発動率は25%~50%で強化回数によって減少していく
+				;さらに能力値の高低差により、100%~25%が乗算されるので、1/2~1/16の間で動くことになる
+		;		ELSE
+					;ストレングスソース
+		;			SIF EQUIP:ARG:アクセサリ != GETNUM(ITEM, "Strength Source") + LOCAL - 1
+		;				CONTINUE
+		;			IF FLAG:戦闘難易度 > 3
+		;				SIF RAND:80 > 50 - MIN(40, CFLAG:ARG:能力強化回数 / 4)
+		;					CONTINUE
+		;			ELSE
+		;				SIF RAND:80 > 50 - MIN(40, CFLAG:ARG:能力強化回数 / 2)
+		;					CONTINUE
+		;			ENDIF
+					;最大と最小の差 * 10 * 15
+		;			LOCAL:11 = (MAX(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運) - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運))
+		;			LOCAL:11 = MAX(1,(LOCAL:11 * 10 + 14) / 15)
+		;			LOCAL:12 = (MAXBASE:ARG:LOCALS - MIN(MAXBASE:ARG:力, MAXBASE:ARG:知恵, MAXBASE:ARG:魔力, MAXBASE:ARG:耐力, MAXBASE:ARG:速さ, MAXBASE:ARG:運)) * 10 / LOCAL:11 * 5
+		;			SIF RAND:200 < LOCAL:12
+		;				CONTINUE
+		;			PRINTFORML %ITEMNAME:(EQUIP:ARG:アクセサリ)% has improved %LOCALS% by +１
+		;			CFLAG:ARG:能力強化回数 += 1
+		;			LOCALS += "強化回数"
+		;			CFLAG:ARG:LOCALS += 1
+		;		ENDIF
+				;---- EDIT 006 ADD END   -------------------------
+		;	NEXT
+		;REND
+		
+		REPEAT 7
+			BASE:ARG:(GET_BASESTATUS(1*COUNT)) += LOCAL:(1+COUNT)
+		REND
+		
+		;インストールソフト・アクセサリ等の特殊ボーナス
+		CALL LVUP_BOOSTER(ARG,LOCAL:10)
+		
+		CALLFORM EVENT_LEVELUP,ARG,LOCAL:1
+		TRYCALLFORM EVENT_LEVELUP_{NO:ARG},LOCAL:1
+		CALL SYNC_STATUS,ARG
+		
+		;増加分だけＨＰとＭＰが回復
+		CALL VAR_HP,ARG,MAXBASE:ARG:ＨＰ - LOCAL:8,3
+		CALL VAR_MP,ARG,MAXBASE:ARG:ＭＰ - LOCAL:9,3
+		
+		;人間なら全回復
+		IF ABL:ARG:種族 == 0 || ABL:ARG:種族 > 45
+			BASE:ARG:ＨＰ = MAXBASE:ARG:ＨＰ
+			CFLAG:ARG:ステート = GET_STATE_NUM("GOOD")
+		ENDIF
+	ENDIF
+
+;===============================
+;レベルアップ時のイベント
+;===============================
+@EVENT_LEVELUP,ARG,ARG:1
+;スキル習得判定
+;暫定的に習得スキルは20個までとします
+IF TALENT:ARG:人修羅
+	;人修羅は特殊
+	IF EQUIP:ARG:(GET_EQUIP(6))
+		FOR LOCAL,0,20
+			RESULT = 0
+			TRYCALLFORM P習得スキル_{EQUIP:ARG:(GET_EQUIP(6))},LOCAL
+			LOCAL:9 = RESULT
+			LOCAL:10 = RESULT:1
+			;装備品に習得スキル&LVが存在してて、かつ習得経験が無いことが条件
+			LOCAL:2 = (EQUIP:ARG:(GET_EQUIP(6)))%5 +1
+			LOCAL:3 = (EQUIP:ARG:(GET_EQUIP(6))-8000)/5
+			IF LOCAL:9 > 0 && LOCAL:10 > 0 && !(CDFLAG:ARG:(LOCAL:2):(LOCAL:3) & POWER(2,LOCAL))
+				IF LOCAL:10 <= BASE:ARG:LV
+					CALL LEARN_SKILL,ARG,LOCAL:9
+					CDFLAG:ARG:(LOCAL:2):(LOCAL:3) |= POWER(2,LOCAL)
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ELSE
+	FOR LOCAL,1,21
+		IF ABL:ARG:("習得スキル"+TOSTR(LOCAL)) > 0
+			IF ABL:ARG:("習得LV"+TOSTR(LOCAL)) <= BASE:ARG:LV
+				CALL LEARN_SKILL,ARG,ABL:ARG:("習得スキル"+TOSTR(LOCAL))
+				ABL:ARG:("習得スキル"+TOSTR(LOCAL)) = 0
+				ABL:ARG:("習得LV"+TOSTR(LOCAL)) = 0
+			ENDIF
+		ENDIF
+	NEXT
+ENDIF
+IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+	FOR LOCAL,1,21
+		IF ABL:ARG:("初期変身悪魔習得スキル"+TOSTR(LOCAL)) > 0
+			IF ABL:ARG:("初期変身悪魔習得LV"+TOSTR(LOCAL)) <= BASE:ARG:LV
+				IF TALENT:ARG:喰奴
+					IF ABL:ARG:("初期変身悪魔習得LV"+TOSTR(LOCAL)) >= 0
+						PRINTFORMW %CALLNAME:ARG% has expanded %HIS_HER(ARG)% range of tactics!
+						;は戦術の幅を広げた！
+						CALL LEARN_SKILL,ARG,ABL:ARG:("初期変身悪魔習得スキル"+TOSTR(LOCAL)),1
+						ABL:ARG:("初期変身悪魔習得LV"+TOSTR(LOCAL)) = -1
+					ENDIF
+				ELSE
+					CALL LEARN_SKILL,ARG,ABL:ARG:("初期変身悪魔習得スキル"+TOSTR(LOCAL)),1
+					ABL:ARG:("初期変身悪魔習得スキル"+TOSTR(LOCAL)) = 0
+					ABL:ARG:("初期変身悪魔習得LV"+TOSTR(LOCAL)) = 0
+				ENDIF
+			ENDIF
+		ENDIF
+	NEXT
+ENDIF
+
+;変異判定
+IF ABL:ARG:変異 > 0
+	IF ABL:ARG:変異レベル <= BASE:ARG:LV && CSVBASE(ABL:ARG:変異,GETNUM(BASE,"LV"),0) <= MAXBASE:MASTER:LV + 5 + FLAG:周回回数*2 
+	SIF FINDCHARA_NO_C(ABL:ARG:変異) == -1
+		CALL TRANSFORM,ARG,ABL:ARG:変異
+	ENDIF
+ENDIF
+
+
+;===============================
+;スキル習得
+;===============================
+@LEARN_SKILL,ARG,ARG:1,ARG:2
+#LOCALSIZE 4
+#LOCALSSIZE 2
+;ARG = レベルアップしたキャラ
+;ARG:1 = 習得するスキル
+;ARG:2 = 初期変身悪魔習得スキルの場合は真(1)
+;まず空のスキル枠を探す
+LOCAL:1 = 0
+LOCALS:1 = 
+IF (TALENT:ARG:異能者 || TALENT:ARG:達人) && ARG:2 == 0
+	FOR LOCAL,1,FLAG:異能者スキル数+1
+		IF ARG:2
+			LOCALS = 初期変身悪魔スキル{LOCAL}
+		ELSE
+			LOCALS = \@ TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? 人間時 # \@スキル{LOCAL}
+		ENDIF
+		;既に重複習得上限まで習得していたら関数を抜ける
+		IF ABL:ARG:LOCALS == ARG:1
+			RESULT = 1
+			TRYCALLFORM 重複習得数_{ARG:1}
+			LOCAL:2 = HAVE_SKILL_OVERLAP(ARG,ARG:1)
+			;#;PRINTFORML {LOCAL:2}/{RESULT}
+			SIF LOCAL:2 >= RESULT
+				RETURN 0
+		ENDIF
+		;敵専用スキルの場合も関数を抜ける
+		RESULT = 0
+		TRYCALLFORM 敵専用_{ARG:1}
+		SIF RESULT
+			RETURN 0
+		IF ABL:ARG:LOCALS < 1
+			LOCAL:1 = 1
+			LOCALS:1 = %LOCALS%
+			BREAK
+		ENDIF
+	NEXT
+ELSE
+	FOR LOCAL,1,FLAG:スキル数+1
+		IF ARG:2
+			LOCALS = 初期変身悪魔スキル{LOCAL}
+		ELSE
+			LOCALS = \@ TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? 人間時 # \@スキル{LOCAL}
+		ENDIF
+		;既に重複習得上限まで習得していたら関数を抜ける
+		IF ABL:ARG:LOCALS == ARG:1
+			RESULT = 1
+			TRYCALLFORM 重複習得数_{ARG:1}
+			LOCAL:2 = HAVE_SKILL_OVERLAP(ARG,ARG:1)
+			;#;PRINTFORML {LOCAL:2}/{RESULT}
+			SIF LOCAL:2 >= RESULT
+				RETURN 0
+		ENDIF
+		;敵専用スキルの場合も関数を抜ける
+		RESULT = 0
+		TRYCALLFORM 敵専用_{ARG:1}
+		SIF RESULT
+			RETURN 0
+		IF ABL:ARG:LOCALS < 1
+			LOCAL:1 = 1
+			LOCALS:1 = %LOCALS%
+			BREAK
+		ENDIF
+	NEXT
+ENDIF
+IF LOCAL:1 > 0
+	;空のスキル枠があれば習得
+	CALLFORM SKILL_NAME_{ARG:1},ARG
+	PRINTFORMW %CALLNAME:ARG% learned %RESULTS%.
+	ABL:ARG:(LOCALS:1) = ARG:1
+ELSE
+	;無ければスキル枠を選択して入れ替え
+	CALLFORM SKILL_NAME_{ARG:1},ARG
+	LOCALS:1 = %RESULTS%
+	IF TALENT:ARG:喰奴 && ARG:2
+		PRINTFORML %CALLNAME:ARG% can replace one of their skills with %LOCALS:1%.
+		PRINTW Please choose skill to replace.
+	ELSE
+		PRINTFORML %CALLNAME:ARG% wanted to learn %LOCALS:1% but the skill-list is full.
+		PRINTW Please choose skill to destroy.
+	ENDIF
+	$CHOICE
+	DRAWLINE
+	CALLFORM SKILL_SUCCESSION_TYPE_{ARG:1}
+	PRINTFORML 【%GET_SUCCESSION_E(RESULT)%】 %LOCALS:1%
+	SIF FLAG:スキル属性表示設定 == 1
+		CALL SKILL_EXPLAIN_PERFORMANCE, ARG:1, ARG
+	TRYCALLFORM SKILL_EXPLAIN_{ARG:1}
+	DRAWLINE
+IF (TALENT:ARG:異能者 || TALENT:ARG:達人) && ARG:2 == 0
+	FOR LOCAL,1,FLAG:異能者スキル数+1
+		IF ARG:2
+			LOCALS = 初期変身悪魔スキル{LOCAL}
+		ELSE
+			LOCALS = \@ TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? 人間時 # \@スキル{LOCAL}
+		ENDIF
+		IF ABL:ARG:LOCALS > 0
+			CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+			PRINTFORML [{LOCAL}] %RESULTS%
+		ENDIF
+	NEXT
+ELSE
+	FOR LOCAL,1,FLAG:スキル数+1
+		IF ARG:2
+			LOCALS = 初期変身悪魔スキル{LOCAL}
+		ELSE
+			LOCALS = \@ TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? 人間時 # \@スキル{LOCAL}
+		ENDIF
+		IF ABL:ARG:LOCALS > 0
+			CALLFORM SKILL_NAME_{ABL:ARG:LOCALS},ARG
+			PRINTFORML [{LOCAL}] %RESULTS%
+		ENDIF
+	NEXT
+ENDIF
+	DRAWLINE
+	PRINTFORML [0] Don't learn %LOCALS:1%
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 0
+		RETURN 0
+	ELSEIF RESULT >= 1 && RESULT <= FLAG:スキル数 || (RESULT <= FLAG:異能者スキル数 && (TALENT:ARG:異能者 || TALENT:ARG:達人))
+		IF ARG:2
+			LOCALS = 初期変身悪魔スキル{RESULT}
+		ELSE
+			LOCALS = \@ TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き ? 人間時 # \@スキル{RESULT}
+		ENDIF
+		DRAWLINE
+		CALLFORM SKILL_SUCCESSION_TYPE_{ABL:ARG:LOCALS}
+		PRINTFORM 【%GET_SUCCESSION_E(RESULT)%】 
+		CALLFORM SKILL_NAME_{ABL:ARG:LOCALS}, ARG
+		LOCAL:3 = ABL:ARG:LOCALS
+		PRINTFORML %RESULTS%
+		SIF FLAG:スキル属性表示設定 == 1
+			CALL SKILL_EXPLAIN_PERFORMANCE, ABL:ARG:LOCALS, ARG
+		TRYCALLFORM SKILL_EXPLAIN_{ABL:ARG:LOCALS}
+		DRAWLINE
+		IF TALENT:ARG:喰奴 && ARG:2
+			PRINTFORML Are you sure you want to forget %RESULTS% to learn %LOCALS:1%?
+		ELSE
+			PRINTFORML Are you sure you want to swap %RESULTS% with %LOCALS:1%?
+		ENDIF
+		CALL INPUT_YN, "Yes", "No"
+		SIF RESULT == 1
+			GOTO CHOICE
+		CALLFORM SKILL_NAME_{ARG:1},ARG
+		PRINTFORMW %CALLNAME:ARG% learned %RESULTS%.
+		ABL:ARG:LOCALS = ARG:1
+		
+		IF TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き
+			IF CFLAG:ARG:悪魔変身 && CFLAG:ARG:リンク悪魔 <= 0
+				FOR LOCAL, 1, FLAG:スキル数 + 1
+					ABL:ARG:@"スキル{LOCAL}" = ABL:ARG:@"初期変身悪魔スキル{LOCAL}"
+				NEXT
+			ELSEIF !CFLAG:ARG:悪魔変身
+				FOR LOCAL, 1, FLAG:スキル数 + 1
+					ABL:ARG:@"スキル{LOCAL}" = ABL:ARG:@"人間時スキル{LOCAL}"
+				NEXT
+			ENDIF
+		ENDIF
+		;対象キャラが悪魔で装備知識スキルが削除対象で装備知識スキル系をまったく所持していない場合は装備を解除する
+		CALL SKILL_EQUIPTHEORY_DEL_SKILL, ARG, LOCAL:3
+		
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ENDIF
+
+
+;===============================
+;変異
+;===============================
+@TRANSFORM,ARG,ARG:1
+;とりあえず適切な処理が思いつかないので未実装
+PRINTFORML %CALLNAME:ARG% seems to be mutating...
+PRINTFORML Allow this?
+CALL INPUT_YN,"Yes","No"
+IF RESULT == 1
+	PRINTFORMW %CALLNAME:ARG%'s signs of mutation disappeared.
+	ABL:ARG:変異レベル = 0
+	ABL:ARG:変異 = 0
+ELSE
+	PRINTFORML %CALLNAME:ARG% is reborn into %CSVNAME(ARG:1,0)%!
+	;名称変更(変更されていない場合のみ)
+	NAME:ARG '= \@ NAME:ARG == CSVNAME(NO:ARG) ? %CSVNAME(ARG:1)% # %NAME:ARG% \@
+	CALLNAME:ARG '= \@ CALLNAME:ARG == CSVCALLNAME(NO:ARG) ? %CSVCALLNAME(ARG:1)% # %CALLNAME:ARG% \@
+	
+	;能力値とレベル
+	FOR LOCAL,0,7
+		BASE:ARG:GET_BASESTATUS(LOCAL) = CSVBASE(ARG:1,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)
+	NEXT
+	BASE:ARG:CP = CSVBASE(ARG:1,GETNUM(BASE,"CP"),0)
+	;相性
+	FOR LOCAL,0,19
+		BASE:ARG:GET_TYPE(LOCAL) = CSVBASE(ARG:1,GETNUM(BASE,GET_TYPE(LOCAL)),0)
+	NEXT
+	;現在の経験値
+	SIF BASE:ARG:ＥＸＰ < GET_NEXT_EXP(BASE:ARG:LV-1, ABL:ARG:種族 != 0 && !陥落(ARG))
+		BASE:ARG:ＥＸＰ = GET_NEXT_EXP(BASE:ARG:LV-1, ABL:ARG:種族 != 0 && !陥落(ARG))
+	;会話タイプ
+	ABL:ARG:受胎アイテム = CSVABL(ARG:1,GETNUM(ABL,"受胎アイテム"),0)
+	ABL:ARG:会話タイプ = CSVABL(ARG:1,GETNUM(ABL,"会話タイプ"),0)
+	ABL:ARG:攻撃相性 = CSVABL(ARG:1,GETNUM(ABL,"攻撃相性"),0)
+	ABL:ARG:最大攻撃回数 = CSVABL(ARG:1,GETNUM(ABL,"最大攻撃回数"),0)
+	ABL:ARG:最低攻撃回数 = CSVABL(ARG:1,GETNUM(ABL,"最低攻撃回数"),0)
+	ABL:ARG:射程 = CSVABL(ARG:1,GETNUM(ABL,"射程"),0)
+	ABL:ARG:攻撃範囲 = CSVABL(ARG:1,GETNUM(ABL,"攻撃範囲"),0)
+	ABL:ARG:追加効果 = CSVABL(ARG:1,GETNUM(ABL,"追加効果"),0)
+	ABL:ARG:追加効果相性 = CSVABL(ARG:1,GETNUM(ABL,"追加効果相性"),0)
+	ABL:ARG:追加効果命中率 = CSVABL(ARG:1,GETNUM(ABL,"追加効果命中率"),0)
+	ABL:ARG:追加効果最大命中率 = CSVABL(ARG:1,GETNUM(ABL,"追加効果最大命中率"),0)
+	
+	;素質
+	;外見的な物だけ
+	TALENT:ARG:小人体型 = CSVTALENT(ARG:1,GETNUM(TALENT,"小人体型"),0)
+	TALENT:ARG:小柄体型 = CSVTALENT(ARG:1,GETNUM(TALENT,"小柄体型"),0)
+	TALENT:ARG:吸血鬼 = CSVTALENT(ARG:1,GETNUM(TALENT,"吸血鬼"),0)
+	TALENT:ARG:日光浴 = CSVTALENT(ARG:1,GETNUM(TALENT,"日光浴"),0)
+	TALENT:ARG:月光浴 = CSVTALENT(ARG:1,GETNUM(TALENT,"月光浴"),0)
+	TALENT:ARG:動物耳 = CSVTALENT(ARG:1,GETNUM(TALENT,"動物耳"),0)
+	TALENT:ARG:大柄 = CSVTALENT(ARG:1,GETNUM(TALENT,"大柄"),0)
+	TALENT:ARG:巨体 = CSVTALENT(ARG:1,GETNUM(TALENT,"巨体"),0)
+	TALENT:ARG:絶壁 = CSVTALENT(ARG:1,GETNUM(TALENT,"絶壁"),0)
+	TALENT:ARG:貧乳 = CSVTALENT(ARG:1,GETNUM(TALENT,"貧乳"),0)
+	TALENT:ARG:巨乳 = CSVTALENT(ARG:1,GETNUM(TALENT,"巨乳"),0)
+	TALENT:ARG:爆乳 = CSVTALENT(ARG:1,GETNUM(TALENT,"爆乳"),0)
+
+	FOR LOCAL,201,342
+		TALENT:ARG:LOCAL = CSVTALENT(ARG:1,LOCAL,0)
+	NEXT
+	;スキル習得
+	FOR LOCAL,1,FLAG:スキル数 + 1
+		LOCALS = スキル{LOCAL}
+		SIF CSVABL(ARG:1,GETNUM(ABL,LOCALS),0) > 0
+			CALL LEARN_SKILL,ARG,CSVABL(ARG:1,GETNUM(ABL,LOCALS),0)
+	NEXT
+	;習得予定スキル更新
+	FOR LOCAL,1,21
+		ABL:ARG:("習得スキル" + TOSTR(LOCAL)) = CSVABL(ARG:1,GETNUM(ABL,("習得スキル" + TOSTR(LOCAL))),0)
+		ABL:ARG:("習得LV" + TOSTR(LOCAL)) = CSVABL(ARG:1,GETNUM(ABL,("習得LV" + TOSTR(LOCAL))),0)
+	NEXT
+	
+	;タイトル・種族名更新
+	CSTR:ARG:タイトル '= CSVCSTR(ARG:1, GETNUM(CSTR, "タイトル"))
+	CSTR:ARG:種族名   '= CSVCSTR(ARG:1, GETNUM(CSTR, "種族名"))
+	
+	;解説更新(変更されていない場合のみ)
+	IF CSTR:ARG:解説1 == CSVCSTR(NO:ARG, GETNUM(CSTR, "解説1"))
+		FOR LOCAL, 1, 21
+			CSTR:ARG:@"解説{LOCAL}" '= CSVCSTR(ARG:1, GETNUM(CSTR, @"解説{LOCAL}"))
+		NEXT
+	ENDIF
+	
+	;相性グループを変更
+	CSTR:ARG:相性グループ = %CSVCSTR(ARG:1 , GETNUM(CSTR , "相性グループ") , 0)%
+	
+	;最後にナンバー変更
+	NO:ARG = ARG:1
+	ABL:ARG:種族 = CSVABL(ARG:1,GETNUM(ABL,"種族"),0)
+	ABL:ARG:変異レベル = CSVABL(ARG:1,GETNUM(ABL,"変異レベル"),0)
+	ABL:ARG:変異 = CSVABL(ARG:1,GETNUM(ABL,"変異"),0)
+	
+	;陥落で【Fallen】になった種族：天使の堕天使引継ぎ処理
+	IF ABL:ARG:種族 == 4
+		IF TALENT:ARG:4 || TALENT:ARG:5 || TALENT:ARG:7 || TALENT:ARG:8
+			TALENT:ARG:211 = 1
+		ELSE
+			TALENT:ARG:210 = 1
+		ENDIF
+	ENDIF
+
+	FOR LOCAL,0,12
+		CFLAG:ARG:("初期" + GET_CLOTHESNAME(LOCAL)) = CSVCFLAG(NO:ARG,GETNUM(CFLAG,GET_CLOTHESNAME(LOCAL)),0)
+	NEXT
+	;衣装初期化
+	CALL CLOTHES_INITIALIZE,ARG
+	
+	SIF FLAG:(20000+ARG:1) < 100
+		FLAG:(20000+ARG:1) = 100
+ENDIF

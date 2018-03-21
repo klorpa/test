@@ -1,0 +1,1169 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:CONCERT.ERB
+;	Facility	:コンサートでの労役に関する関数群です。
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/09/08		黒天					ＮＴＲイベント時の処女(再生処女)喪失処理を関数を呼ぶように修正
+;													なんとなくＮＴＲイベントの関数名(NTR_SEX)を「NTR_CONCERT_SEX」に変更
+;	003		2012/12/13		黒天					ストレスが0未満にならないように修正
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;CONSERT.ERB　コンサートを開いてチケットなどを売る労役コマンド
+;奴隷の歌唱力だけでなく、奴隷の能力が高いとフェロモンで売り上げが上がる
+;やはり、基本的には厳しい
+
+;コンサート条件
+@CASTING_CONCERT
+SIF CFLAG:COUNT:労役フラグ > 0
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF COUNT != MASTER && !(TALENT:COUNT:恋慕 || TALENT:COUNT:親愛)
+	RETURN 0
+SIF COUNT != MASTER && (ABL:COUNT:技巧+ ABL:COUNT:露出癖+ (ABL:COUNT:歌唱技能*2)) <= 10
+	RETURN 0
+SIF BASE:COUNT:体力 < 800
+	RETURN 0
+RETURN 1
+
+@CONCERT
+;使用する一時変数の初期化
+A = 0
+B = 0
+S = 0
+V = 0
+C = 0
+D = 0
+G = 0
+
+;コンサートで歌う奴隷を選択
+CALL INPUT_CHARA_LIST("Please select a character to sing at the concert", "CASTING_CONCERT")
+SIF RESULT == 1000
+	RETURN 0
+A = RESULT
+
+;奴隷の歌唱技能とSingEXPのレベルによって値段の基礎値が上昇
+;ABL:歌唱技能をみる
+IF ABL:A:14 == 0
+	S += 0
+ELSEIF ABL:A:14 == 1
+	S += 60
+ELSEIF ABL:A:14 == 2
+	S += 100
+ELSEIF ABL:A:14 == 3
+	S += 150
+ELSEIF ABL:A:14 == 4
+	S += 210
+ELSEIF ABL:A:14 == 5
+	S += 280
+ELSEIF ABL:A:14 == 6
+	S += 360
+ELSEIF ABL:A:14 == 7
+	S += 450
+ELSEIF ABL:A:14 == 8
+	S += 550
+ELSEIF ABL:A:14 == 9
+	S += 660
+ELSE
+	S += 780
+ENDIF
+SIF S
+	PRINTFORML %ABLNAME_E(14)%{ABL:A:14}LV +{S}
+
+;SingEXPによる補正
+IF EXP:A:64 < EXPLV:1
+	D += 1
+ELSEIF EXP:A:64 < EXPLV:2
+	D += 20
+ELSEIF EXP:A:64 < EXPLV:3
+	D += 80
+ELSEIF EXP:A:64 < EXPLV:4
+	D += 180
+ELSEIF EXP:A:64 < EXPLV:5
+	D += 300
+ELSE
+	D += 500
+ENDIF
+	PRINTFORML %EXPNAME_E(64)%{EXP:A:64} +{D}
+S += D
+
+;奴隷の能力、素質による倍率計算（歌唱技能は前項で見ているので省略）
+V = 100
+;ABL:従順をみる
+IF ABL:A:0 == 0
+	C = 0
+ELSEIF ABL:A:0 == 1
+	C = 10
+ELSEIF ABL:A:0 == 2
+	C = 20
+ELSEIF ABL:A:0 == 3
+	C = 30
+ELSEIF ABL:A:0 == 4
+	C = 40
+ELSEIF ABL:A:0 == 5
+	C = 50
+ELSEIF ABL:A:0 == 6
+	C = 60
+ELSEIF ABL:A:0 == 7
+	C = 70
+ELSEIF ABL:A:0 == 8
+	C = 80
+ELSEIF ABL:A:0 == 9
+	C = 90
+ELSE
+	C = 100
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(0)%{ABL:A:0}LV +{C}％
+V += C
+
+
+;ABL:欲望をみる
+IF ABL:A:1 == 0
+	C = 0
+ELSEIF ABL:A:1 == 1
+	C = 10
+ELSEIF ABL:A:1 == 2
+	C = 20
+ELSEIF ABL:A:1 == 3
+	C = 30
+ELSEIF ABL:A:1 == 4
+	C = 40
+ELSEIF ABL:A:1 == 5
+	C = 50
+ELSEIF ABL:A:1 == 6
+	C = 60
+ELSEIF ABL:A:1 == 7
+	C = 70
+ELSEIF ABL:A:1 == 8
+	C = 80
+ELSEIF ABL:A:1 == 9
+	C = 90
+ELSE
+	C = 100
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(1)%{ABL:A:1}LV +{C}％
+V += C
+
+
+;ABL:技巧をみる
+IF ABL:A:2 == 0
+	C = 0
+ELSEIF ABL:A:2 == 1
+	C = 5
+ELSEIF ABL:A:2 == 2
+	C = 10
+ELSEIF ABL:A:2 == 3
+	C = 15
+ELSEIF ABL:A:2 == 4
+	C = 20
+ELSEIF ABL:A:2 == 5
+	C = 25
+ELSEIF ABL:A:2 == 6
+	C = 30
+ELSEIF ABL:A:2 == 7
+	C = 35
+ELSEIF ABL:A:2 == 8
+	C = 40
+ELSEIF ABL:A:2 == 9
+	C = 45
+ELSE
+	C = 50
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(2)%{ABL:A:2}LV +{C}％
+V += C
+
+
+;ABL:Ｖ感覚をみる
+IF ABL:A:4 == 0
+	C = 0
+ELSEIF ABL:A:4 == 1
+	C = 5
+ELSEIF ABL:A:4 == 2
+	C = 10
+ELSEIF ABL:A:4 == 3
+	C = 15
+ELSEIF ABL:A:4 == 4
+	C = 20
+ELSEIF ABL:A:4 == 5
+	C = 25
+ELSEIF ABL:A:4 == 6
+	C = 30
+ELSEIF ABL:A:4 == 7
+	C = 35
+ELSEIF ABL:A:4 == 8
+	C = 40
+ELSEIF ABL:A:4 == 9
+	C = 45
+ELSE
+	C = 50
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(4)%{ABL:A:4}LV +{C}％
+V += C
+
+
+;ABL:奉仕精神をみる
+IF ABL:A:7 == 0
+	C = 0
+ELSEIF ABL:A:7 == 1
+	C = 5
+ELSEIF ABL:A:7 == 2
+	C = 10
+ELSEIF ABL:A:7 == 3
+	C = 15
+ELSEIF ABL:A:7 == 4
+	C = 20
+ELSEIF ABL:A:7 == 5
+	C = 25
+ELSEIF ABL:A:7 == 6
+	C = 30
+ELSEIF ABL:A:7 == 7
+	C = 35
+ELSEIF ABL:A:7 == 8
+	C = 40
+ELSEIF ABL:A:7 == 9
+	C = 45
+ELSE
+	C = 50
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(7)%{ABL:A:7}LV +{C}％
+V += C
+
+
+;ABL:露出癖をみる
+IF ABL:A:8 == 0
+	C = 0
+ELSEIF ABL:A:8 == 1
+	C = 5
+ELSEIF ABL:A:8 == 2
+	C = 10
+ELSEIF ABL:A:8 == 3
+	C = 15
+ELSEIF ABL:A:8 == 4
+	C = 20
+ELSEIF ABL:A:8 == 5
+	C = 25
+ELSEIF ABL:A:8 == 6
+	C = 30
+ELSEIF ABL:A:8 == 7
+	C = 35
+ELSEIF ABL:A:8 == 8
+	C = 40
+ELSEIF ABL:A:8 == 9
+	C = 45
+ELSE
+	C = 50
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(8)%{ABL:A:8}LV +{C}％
+V += C
+
+
+;ABL:マゾっ気をみる
+IF ABL:A:9 == 0
+	C = 0
+ELSEIF ABL:A:9 == 1
+	C = 5
+ELSEIF ABL:A:9 == 2
+	C = 10
+ELSEIF ABL:A:9 == 3
+	C = 15
+ELSEIF ABL:A:9 == 4
+	C = 20
+ELSEIF ABL:A:9 == 5
+	C = 25
+ELSEIF ABL:A:9 == 6
+	C = 30
+ELSEIF ABL:A:9 == 7
+	C = 35
+ELSEIF ABL:A:9 == 8
+	C = 40
+ELSEIF ABL:A:9 == 9
+	C = 45
+ELSE
+	C = 50
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(9)%{ABL:A:9}LV +{C}％
+V += C
+
+
+;ABL:サドっ気をみる
+IF ABL:A:10 == 0
+	C = 0
+ELSEIF ABL:A:10 == 1
+	C = 5
+ELSEIF ABL:A:10 == 2
+	C = 10
+ELSEIF ABL:A:10 == 3
+	C = 15
+ELSEIF ABL:A:10 == 4
+	C = 20
+ELSEIF ABL:A:10 == 5
+	C = 25
+ELSEIF ABL:A:10 == 6
+	C = 30
+ELSEIF ABL:A:10 == 7
+	C = 35
+ELSEIF ABL:A:10 == 8
+	C = 40
+ELSEIF ABL:A:10 == 9
+	C = 45
+ELSE
+	C = 50
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(10)%{ABL:A:10}LV +{C}％
+V += C
+
+
+;ABL:セックス中毒をみる
+IF ABL:A:18 == 0
+	C = 0
+ELSEIF ABL:A:18 == 1
+	C = 10
+ELSEIF ABL:A:18 == 2
+	C = 20
+ELSEIF ABL:A:18 == 3
+	C = 30
+ELSEIF ABL:A:18 == 4
+	C = 40
+ELSEIF ABL:A:18 == 5
+	C = 50
+ELSEIF ABL:A:18 == 6
+	C = 60
+ELSEIF ABL:A:18 == 7
+	C = 70
+ELSEIF ABL:A:18 == 8
+	C = 80
+ELSEIF ABL:A:18 == 9
+	C = 90
+ELSE
+	C = 100
+ENDIF
+SIF C > 0
+	PRINTFORML %ABLNAME_E(18)%{ABL:A:18}LV +{C}％
+V += C
+
+
+;陥落素質
+;恋慕
+IF TALENT:A:3
+	C = 100
+	V += 100
+	PRINTFORML %TALENTNAME_E(3)% ＋{C}％
+ENDIF
+;;淫乱
+;IF TALENT:A:4
+;	C = 30
+;	V -= 30
+;	PRINTFORML %TALENTNAME_E(4)% －{C}％
+;ENDIF
+;;服従
+;IF TALENT:A:5
+;	C = 50
+;	V -= 50
+;	PRINTFORML %TALENTNAME_E(5)% ＋{C}％
+;ENDIF
+;親愛
+IF TALENT:A:6
+	C = 200
+	V += 200
+	PRINTFORML %TALENTNAME_E(6)% ＋{C}％
+ENDIF
+;;娼婦
+;IF TALENT:A:7
+;	C = 60
+;	V -= 60
+;	PRINTFORML %TALENTNAME_E(7)% －{C}％
+;ENDIF
+;;隷属
+;IF TALENT:A:8
+;	C = 100
+;	V -= 100
+;	PRINTFORML %TALENTNAME_E(8)% ＋{C}％
+;ENDIF
+
+
+
+;その他素質
+;臆病
+IF TALENT:A:10
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(10)% ＋{C}％
+ENDIF
+;反抗的
+IF TALENT:A:11
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(11)% －{C}％
+ENDIF
+;気丈
+IF TALENT:A:12
+	C = 20
+	V += 20
+	PRINTFORML %TALENTNAME_E(12)% ＋{C}％
+ENDIF
+;素直
+IF TALENT:A:13
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(13)% ＋{C}％
+ENDIF
+;大人しい
+IF TALENT:A:14
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(14)% ＋{C}％
+ENDIF
+;プライド高い
+IF TALENT:A:15
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(15)% －{C}％
+ENDIF
+;生意気
+IF TALENT:A:16
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(16)% －{C}％
+ENDIF
+;プライド低い
+IF TALENT:A:17
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(17)% ＋{C}％
+ENDIF
+;ツンデレ
+IF TALENT:A:18
+	C = 20
+	V += 20
+	PRINTFORML %TALENTNAME_E(18)% ＋{C}％
+ENDIF
+;自制心
+IF TALENT:A:20
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(20)% ＋{C}％
+ENDIF
+;無関心
+IF TALENT:A:21
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(21)% －{C}％
+ENDIF
+;感情乏しい
+IF TALENT:A:22
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(22)% －{C}％
+ENDIF
+;一線越えない
+IF TALENT:A:27
+	C = 15
+	V += 15
+	PRINTFORML %TALENTNAME_E(27)% ＋{C}％
+ENDIF
+;目立ちたがり
+IF TALENT:A:28
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(28)% ＋{C}％
+ENDIF
+;貞操観念
+IF TALENT:A:30
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(30)% ＋{C}％
+ENDIF
+;貞操無頓着
+IF TALENT:A:31
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(31)% －{C}％
+ENDIF
+;習得早い
+IF TALENT:A:50
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(50)% ＋{C}％
+ENDIF
+;習得遅い
+IF TALENT:A:51
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(51)% －{C}％
+ENDIF
+;献身的
+IF TALENT:A:63
+	C = 15
+	V += 15
+	PRINTFORML %TALENTNAME_E(63)% ＋{C}％
+ENDIF
+;男嫌い
+IF TALENT:A:82
+	C = 20
+	V -= 20
+	PRINTFORML %TALENTNAME_E(82)% －{C}％
+ENDIF
+;妄信
+IF TALENT:A:86
+	C = 15
+	V += 15
+	PRINTFORML %TALENTNAME_E(86)% ＋{C}％
+ENDIF
+;小悪魔
+IF TALENT:A:87
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(87)% ＋{C}％
+ENDIF
+;女嫌い
+IF TALENT:A:88
+	C = 20
+	V -= 20
+	PRINTFORML %TALENTNAME_E(88)% －{C}％
+ENDIF
+;妖狐
+IF TALENT:A:91
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(91)% ＋{C}％
+ENDIF
+;魅力
+IF TALENT:A:92
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(92)% ＋{C}％
+ENDIF
+;謎の魅力
+IF TALENT:A:94
+	C = 50
+	V += 50
+	PRINTFORML %TALENTNAME_E(94)% ＋{C}％
+ENDIF
+;貧乳
+IF TALENT:A:109
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(109)% －{C}％
+ENDIF
+;絶壁
+IF TALENT:A:110
+	C = 20
+	V -= 20
+	PRINTFORML %TALENTNAME_E(110)% －{C}％
+ENDIF
+;巨乳
+IF TALENT:A:111
+	C = 20
+	V += 20
+	PRINTFORML %TALENTNAME_E(111)% ＋{C}％
+ENDIF
+;爆乳
+IF TALENT:A:112
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(112)% ＋{C}％
+ENDIF
+;吸血鬼
+IF TALENT:A:132
+	C = 10
+	V -= 10
+	PRINTFORML %TALENTNAME_E(132)% －{C}％
+ENDIF
+;動物耳
+IF TALENT:A:143
+	C = 10
+	V += 10
+	PRINTFORML %TALENTNAME_E(143)% ＋{C}％
+ENDIF
+;人気
+IF TALENT:A:145
+	C = 25
+	V += 25
+	PRINTFORML %TALENTNAME_E(145)% ＋{C}％
+ENDIF
+;妊娠
+IF TALENT:A:153
+	C = 30
+	V += 30
+	PRINTFORML %TALENTNAME_E(153)% ＋{C}％
+ENDIF
+;母性
+IF TALENT:A:155
+	C = 60
+	V += 60
+	PRINTFORML %TALENTNAME_E(155)% ＋{C}％
+ENDIF
+
+
+;補正値が0以下の場合は1にする
+SIF V <= 0
+	V = 1
+
+PRINTFORML Total Bonus {V}％
+;最終倍率 {V}％
+
+;補正値の適用
+S *= V
+S /= 100
+
+;崩壊,狂気は利潤をかなり低くする（従順によって、80％まで回復）
+IF TALENT:A:9 || TALENT:A:141
+PRINTL 
+	IF TALENT:A:9
+		S *= ABL:A:0
+		TIMES S , 0.08
+		Z = ABL:A:0
+		Z *= 8
+		PRINTFORML %TALENTNAME_E(9)% ×{Z}％
+	ELSEIF TALENT:A:141
+		S *= ABL:A:0
+		TIMES S , 0.08
+		Z = ABL:A:0
+		Z *= 8
+		PRINTFORML %TALENTNAME_E(141)% ×{Z}％
+	ENDIF
+PRINTL 
+ENDIF
+
+
+;難易度処理
+;EASY
+IF FLAG:4 == 1
+	PRINTFORML Difficulty:EASY ×120％
+	TIMES S , 1.20
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES S , 1.00
+;HARD
+ELSEIF FLAG:4 == 3
+	PRINTFORML Difficulty:HARD ×80％
+	TIMES S , 0.80
+ENDIF
+
+;コンサートを実行するか？
+IF S > 0
+	PRINTFORMW A profit of about ￥{S} can be expected.
+ELSE
+	PRINTFORMW Since no profit can be expected, no concert will be held.
+	;利潤が見込めないため、コンサートを中止します
+	RETURN 0
+ENDIF
+PRINTFORML Will %CALLNAME:A% perform at the concert?
+;---- EDIT INPUT_YN追加対応(2011/02/03) MOD START -------------------------
+CALL INPUT_YN, "Perform", "Quit"
+;PRINTL [0] -   実行する
+;PRINTL [100] - やめる
+;$INPUT_LOOP_3
+;INPUT
+;---- EDIT INPUT_YN追加対応(2011/02/03) MOD END ---------------------------
+IF RESULT == 0
+	PRINTFORML %CALLNAME:A% performs at the concert.
+	;評判判定
+	IF ABL:A:14 == 0
+		IF RAND:5 == 0
+			F = 1
+			Z = S
+			TIMES Z , 0.05
+			S += Z
+		ELSE
+			F = 0
+			Z = S
+			TIMES Z , 0.05
+			S -= Z
+		ENDIF
+	ELSEIF ABL:A:14 < 4
+		IF RAND:3 == 0
+			F = 1
+			Z = S
+			TIMES Z , 0.05
+			S += Z
+		ELSE
+			F = 0
+			Z = S
+			TIMES Z , 0.05
+			S -= Z
+		ENDIF
+	ELSE
+		IF RAND:5 == 0
+			F = 0
+			Z = S
+			TIMES Z , 0.05
+			S -= Z
+		ELSE
+			F = 1
+			Z = S
+			TIMES Z , 0.05
+			S += Z
+		ENDIF
+	ENDIF
+	;イベント口上呼び出し
+	U = 0
+	IF ASSI >= 0
+		SIF ASSI == A
+			U = 1
+	ENDIF
+	T = TARGET
+	TARGET = A
+	TFLAG:13 = 20
+	CALL KOJO_MESSAGE_EVENT
+	TARGET = T
+	SIF U
+		ASSI = A
+	;奴隷の経験、能力処理
+	IF ABL:A:14 == 0
+		R = 8
+		Q = 5
+	ELSEIF ABL:A:14 == 1
+		R = 50
+		Q = 5
+	ELSEIF ABL:A:14 == 2
+		R = 300
+		Q = 5
+	ELSEIF ABL:A:14 == 3
+		R = 900
+		Q = 5
+	ELSEIF ABL:A:14 == 4
+		R = 2400
+		Q = 10
+	ELSEIF ABL:A:14 == 5
+		R = 3000
+		Q = 20
+	ELSEIF ABL:A:14 == 6
+		R = 3500
+		Q = 30
+	ELSEIF ABL:A:14 == 7
+		R = 4000
+		Q = 40
+	ELSEIF ABL:A:14 == 8
+		R = 4500
+		Q = 50
+	ELSEIF ABL:A:14 == 9
+		R = 5000
+		Q = 60
+	ELSEIF ABL:A:14 >= 10
+		R = 6000
+		Q = 80
+	ENDIF
+	BASE:A:0 -= BASE:A:0 / 2
+	EXP:A:23 += 5
+	EXP:A:64 += Q
+	EXP:A:74 += 1
+	JUEL:A:8 += R
+	SIF CFLAG:A:10 > 0
+		CFLAG:A:10 -= 1
+	G = (1 + RAND:(1 + ABL:A:14)) * (F + 1)
+	PRINTFORML %EXPNAME_E(23)% ＋5
+	PRINTFORML %EXPNAME_E(64)% ＋{Q}
+	PRINTFORML %EXPNAME_E(74)% ＋1
+	PRINTFORML %PALAMNAME_E(8)% ＋{R}
+
+	IF F == 1
+		CFLAG:A:アイドル人気 += G
+		PRINTFORML Idol Popularity ＋{G}
+	ELSE
+		CFLAG:A:アイドル人気 -= G
+		PRINTFORML Idol Popularity －{G}
+	ENDIF
+	IF !TALENT:A:人気
+		IF CFLAG:A:アイドル人気 > 70
+			TALENT:A:人気 = 1
+			PRINTFORML %CALLNAME:A%'s popularity has surged.
+			;の人気が盛り上がりを見せている
+			PRINTFORML %CALLNAME:A% has become 【Popular】.
+		ENDIF
+	ELSEIF TALENT:A:人気
+		IF CFLAG:A:アイドル人気 < -5
+			TALENT:A:人気 = 0
+			PRINTFORML %CALLNAME:A%'s popularity has decreased.
+			;の人気が低迷している
+			PRINTFORML %CALLNAME:A% is no longer 【Popular】.
+		ENDIF
+	ENDIF
+	PRINTFORMW At the end of the concert, the income was determined to be ￥{S}.
+	;コンサートで歌を披露した結果、￥{S}の利潤が得られました
+	MONEY += S
+	CALL 帳簿閲覧_労役, A, S, 0, 6
+
+	IF F == 1
+		E = 0
+		SIF TALENT:A:人気
+			E = 10
+		PRINTL
+		PRINTW You got a present from the fans.
+		;ファンからプレゼントを貰った
+		PRINTL ・
+		PRINTL ・・
+		PRINTL ・・・
+		IF RAND:100 < (E + ABL:A:歌唱技能)/2
+			IF RAND:1000 < 5 + E/2
+				CALL GET_ITEMS, "StIncense", 1
+				CALL GET_ITEMS, "InIncense", 1
+				CALL GET_ITEMS, "MaIncense", 1
+				CALL GET_ITEMS, "EnIncense", 1
+				CALL GET_ITEMS, "AgIncense", 1
+				CALL GET_ITEMS, "LuIncense", 1
+				PRINTW ＞You received an Incense set.
+				;インセンスの詰め合わせ1セット、手に入れた
+			ELSE
+				IF RAND:7 == 0
+					CALL GET_ITEMS, "StIncense", 1
+					PRINTW ＞You received 1 Strength Incense.
+				ELSEIF RAND:6 == 0
+					CALL GET_ITEMS, "InIncense", 1
+					PRINTW ＞You received 1 Intelligence Incense.
+				ELSEIF RAND:5 == 0
+					CALL GET_ITEMS, "MaIncense", 1
+					PRINTW ＞You received 1 Magic Incense.
+				ELSEIF RAND:4 == 0
+					CALL GET_ITEMS, "EnIncense", 1
+					PRINTW ＞You received 1 Endurance Incense.
+				ELSEIF RAND:3 == 0
+					CALL GET_ITEMS, "AgIncense", 1
+					PRINTW ＞You received 1 Agility Incense.
+				ELSEIF RAND:2 == 0
+					CALL GET_ITEMS, "LuIncense", 1
+					PRINTW ＞You received 1 Luck Incense.
+				ELSE
+					CALL GET_ITEMS, "GreatChakra", 1
+					PRINTW ＞You received 1 Great Chakra.
+				ENDIF
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW There was an unlabeled package filled with small presents like jam...
+				;中には白いジャムのような物の詰められたラベルの無いビンが入っていた……
+			ELSE
+				PRINTFORMW 中には青臭い粘液に塗れた%CALLNAME:A%の写真が入っていた……
+			ENDIF
+		ENDIF
+	ENDIF
+;ＮＴＲ進行
+IF GETBIT(FLAG:ＮＴＲ機能 , 6) && A != MASTER
+	PRINTFORML 	 
+	D = 1
+	;専有奴隷の首輪
+	IF (CFLAG:A:その他 == 1116 || CFLAG:A:その他2 == 1116 || CFLAG:A:その他3 == 1116)
+		GOTO SKIP_NTR
+	ENDIF
+	SIF (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117)
+		PRINTFORMW %CALLNAME:A%は何とも云えない甘い匂いを纏っている……
+
+	;成功すると一定確立でスカウトフラグ
+	IF RAND:100 < 10 + E + ABL:A:歌唱技能 && F == 1 || TALENT:A:ＮＴＲ == 2 && F == 1 || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117) && F == 1 
+		PRINTFORML 
+		IF TALENT:A:ＮＴＲ == 2
+			PRINTFORMW %CALLNAME:A%はスカウトに声を掛けられると妖しげに微笑んだ……
+		ELSEIF CFLAG:A:(2086) < 0
+			PRINTFORMW %CALLNAME:A%はスカウトに携帯の画面を見せられると顔を青ざめた……
+		ELSE
+			PRINTFORMW %CALLNAME:A%にスカウトと名乗る男が声を掛けている……
+		ENDIF
+		IF RAND:100 < 10 + E || TALENT:A:ＮＴＲ == 2 && F == 1 || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117) 
+			IF TALENT:A:ＮＴＲ == 2
+				PRINTFORMW %CALLNAME:A%は上気した表情で事務所へと入っていった……
+			ELSEIF CFLAG:A:(2086) < 0
+				PRINTFORMW %CALLNAME:A%は俯いたまま事務所へとついていった……
+			ELSE
+				PRINTFORML %CALLNAME:A%はスカウトの話を聞くため事務所へとついていった……
+			ENDIF
+			PRINTFORML ・
+			PRINTFORML ・・
+			PRINTFORML ・・・
+			IF CFLAG:A:(2086) < 0 || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117)
+				CFLAG:A:(2086) -= CFLAG:A:(2100+FAVORITE_1_ID(A)) / 10
+				CFLAG:A:淫乱度+= 30
+				IF TALENT:A:オトコ == 0 
+					IF CFLAG:A:108 == 1
+						IF RAND:100 < CFLAG:A:現ＮＴＲ進行度 * 5
+							CFLAG:A:108 -= 1
+							PRINTFORML %CALLNAME:A%の子宮内避妊結界が解除されてしまったようだ……
+						ENDIF
+					ENDIF
+					IF RAND:100 < CFLAG:A:現ＮＴＲ進行度 * 5
+						IF CFLAG:A:109 == 0
+							CFLAG:A:109 += 1
+							PRINTFORML %CALLNAME:A%は排卵誘発剤を口移しで飲まされた……
+						ENDIF
+					ENDIF
+					IF TALENT:A:ＮＴＲ == 2
+						IF RAND:3 == 0
+							PRINTFORMW %CALLNAME:A%はカメラを持ったスカウトに跨り、腰を振っている……
+							PRINTFORMW スカウトの精が膣内に放たれるとカメラに向かって中出しされた事を悦びながら話している……
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW 膣内のペニスが硬さを取り戻したのを確認するとイヤラシイ顔でまた腰を振り始めた……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME:A%は乱交物のＡＶに出演させられた……
+							PRINTFORMW 男達が中出しするたびに絶頂を向かえ嬌声を上げている……
+							D = 5
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%はカメラの前で大股開きで中出しされながらだらしないアへ顔を晒している……
+						ELSE
+							PRINTFORMW %CALLNAME:A%は裏接待をさせられた……
+							PRINTFORMW でっぷりと太ったオヤジのネチッコイ腰使いにあられもない声を上げている……
+							D = 2
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW 太ったオヤジの濃厚な子種が子宮内を満たすと種付けされる悦びに体を震わせた……
+						ENDIF
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW %CALLNAME:A%は事務所でスカウトにレイプされた……
+							PRINTFORMW 泣き叫ぶ%CALLNAME:A%の膣内にスカウトの子種が吐き出された……
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は涙を流しながら、愛液と精液に塗れたスカウトのペニスを舐めている……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME:A%はレイプ物のＡＶに出演させられた……
+							PRINTFORMW 助けを求める%CALLNAME:A%の中に男達が次々と精をぶちまけている……
+							D = 5
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は%CALLNAME:MASTER%以外の男の精が溢れ出る膣口を眺めながら呆然としている……
+						ELSE
+							PRINTFORMW %CALLNAME:A%は裏接待をさせられた……
+							PRINTFORMW でっぷりと太ったオヤジに濃厚な子種を幾度と無く種付けされた……
+							D = 2
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は口内を舌で侵されながら太ったオヤジの子種を流し込まれている……
+						ENDIF
+					ENDIF
+					;行方不明フラグ
+					IF TALENT:A:ＮＴＲ == 3 && CFLAG:A:(2086) == CFLAG:A:(2100+FAVORITE_1_ID(A)) || TALENT:A:ＮＴＲ == 2 || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117)
+						SIF TALENT:A:妊娠 || TALENT:A:育児中
+							GOTO SKIP_YUKUEHUMEI
+						IF RAND:100 < 10 + CFLAG:A:現ＮＴＲ進行度 * 5
+							LOCAL:1 = S
+								IF LOCAL:1 < 3001
+									LOCAL:1 = 30000
+								ELSEIF LOCAL:1 < 5001
+									LOCAL:1 = 50000
+								ELSEIF LOCAL:1 > 5000
+									LOCAL:1 = 100000
+								ENDIF
+							SIF !CFLAG:A:ポジション == 0
+								CFLAG:A:ポジション = 0
+							SETCOLOR COLOR("red")
+							PRINTFORMW %CALLNAME:A%の行方がわからなくなった……
+							RESETCOLOR
+							PRINTFORMW ＜%CALLNAME:A%が見つかるまでコンサートを中止します＞	
+							TALENT:A:悪徳スカウト = LOCAL:1		
+							イベントフラグ:32:0 = 1
+							CFLAG:A:この場に居ないフラグ = 1
+							CFLAG:A:労役フラグ = 0
+							IF CFLAG:A:劇場出演順番 != 0
+								DE:(49+(CFLAG:A:劇場出演順番)):(CFLAG:A:労役店舗-1) = -1
+								DE:(59+(CFLAG:A:劇場出演順番)):(CFLAG:A:労役店舗-1) = -1
+								CFLAG:A:労役フラグ = 0
+								CFLAG:A:劇場出演順番 = 0
+								CFLAG:A:労役店舗 = 0
+							ENDIF
+							FOR LOCAL, 0, 4
+								SIF TARGET:LOCAL == A
+									TARGET:LOCAL = -1
+								SIF LOCAL == 3
+									CONTINUE
+								SIF ASSI:LOCAL == A
+									ASSI:LOCAL = -1
+							NEXT
+						ENDIF
+					ENDIF
+					$SKIP_YUKUEHUMEI
+				ENDIF
+		
+			ELSE
+				CFLAG:A:(2086) -= CFLAG:A:(2100+FAVORITE_1_ID(A)) / 10
+				IF TALENT:A:オトコ == 0 
+					PRINTFORMW %CALLNAME:A%は事務所でスカウトに押し倒された
+					PRINTFORMW 必死に抵抗したがスカウトの毒牙にかかってしまった……
+					PRINTFORML 
+					CALL NTR_CONCERT_SEX
+					IF TALENT:A:処女 == 1
+						PRINTFORMW %CALLNAME:A%は%CALLNAME:MASTER%に捧げるはずだった純潔を奪われ呆然としている
+						PRINTFORMW 膣口からは純潔であった証と共に白く濁った塊が流れ落ちた……
+					ELSE
+						PRINTFORMW 呆然とした%CALLNAME:A%の膣口から陵辱の証が流れ出している……
+					ENDIF
+				ENDIF
+
+			ENDIF
+
+		ELSE
+			IF CFLAG:A:(2086) < 0
+				PRINTFORMW %CALLNAME:A%は肩を震わせながら戻ってきた……
+			ELSE
+				PRINTFORMW %CALLNAME:A%はすぐに戻ってきた……	
+			ENDIF
+		ENDIF
+		PRINTFORML 
+	ENDIF
+	;失敗すると一定確立でチンピラフラグ
+	IF RAND:100 < 10 + E + ABL:A:歌唱技能 && F == 0 || TALENT:A:ＮＴＲ == 2 && F == 0 && RAND:100 < 50  || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117) && F == 0 
+		PRINTFORML 
+		IF TALENT:A:ＮＴＲ == 2
+			PRINTFORMW %CALLNAME:A%は車の前に立つ男に気付くと上気した表情で歩いていった……
+		ELSEIF CFLAG:A:(2085) < 0
+			PRINTFORMW %CALLNAME:A%は車の前でニヤニヤしながらこちらを見る男に気付くと身体を硬直させた……
+		ELSE
+			PRINTFORMW 落ち込んでいる%CALLNAME:A%にファンが握手を求めてきた……
+		ENDIF
+		IF RAND:100 < 10 + E || TALENT:A:ＮＴＲ == 2 && F == 0 && RAND:100 < 50 || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117) 
+			IF TALENT:A:ＮＴＲ == 2
+				PRINTFORMW %CALLNAME:A%は妖しげな微笑を浮かべながら車へ乗り込んだ……
+			ELSEIF CFLAG:A:(2085) < 0
+				PRINTFORMW %CALLNAME:A%は促されるがまま車に連れこまれた……
+			ELSE
+				PRINTFORML 突然、背後に止まっていた車に押し込められた……
+			ENDIF
+			PRINTFORML ・
+			PRINTFORML ・・
+			PRINTFORML ・・・
+			IF CFLAG:A:(2085) < 0 || (CFLAG:A:その他 == 1117 || CFLAG:A:その他2 == 1117 || CFLAG:A:その他3 == 1117)
+				CFLAG:A:(2085) -= 10
+				CFLAG:A:淫乱度+= 200 + (ABL:A:マゾっ気 + 5)*10
+				IF TALENT:A:オトコ == 0 
+					IF CFLAG:A:108 == 1
+						IF RAND:100 < CFLAG:A:現ＮＴＲ進行度 * 5
+							CFLAG:A:108 -= 1
+							PRINTFORML %CALLNAME:A%の子宮内避妊結界が解除されてしまったようだ……
+						ENDIF
+					ENDIF
+					IF RAND:100 < CFLAG:A:現ＮＴＲ進行度 * 5
+						IF CFLAG:A:109 == 0
+							CFLAG:A:109 += 1
+							PRINTFORML %CALLNAME:A%は排卵誘発剤を口移しで飲まされた……
+						ENDIF
+					ENDIF
+					IF TALENT:A:ＮＴＲ == 2
+						IF RAND:3 == 0
+							PRINTFORMW %CALLNAME:A%は部屋に入るなり跪き、チンピラのペニスを口に咥えた……
+							PRINTFORMW そのまま四つん這いになるとチンピラに向けて秘唇を指で広げた……
+							D = 4	
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は膣内射精が終わりペニスが引き抜かれると、次を求めるように腰を悩ましく振った……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW チンピラ達は%CALLNAME:A%に怪しげな薬を注射した……
+							PRINTFORMW %CALLNAME:A%はチンピラに跨り、だらしないアヘ顔を晒しながら必死に腰を振っている……
+							D = 4
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は陵辱が終わっても精液に塗れたまま蕩けた表情で自慰を繰り返している……
+						ELSE
+							PRINTFORMW %CALLNAME:A%はチンピラの兄貴分にあてがわれた……
+							PRINTFORMW 手首ほどもある巨大なペニスが%CALLNAME:A%の中にミチミチと捻じ込まれていく……
+							D = 2
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は巨根の快楽に堕ち、だらしない表情のまま為すがままに犯されている……
+						ENDIF
+					ELSE
+						IF RAND:3 == 0
+							PRINTFORMW 連れ込まれたホテルで反省会という名の輪姦が行われた……
+							PRINTFORMW チンピラ達は泣き叫ぶ%CALLNAME:A%を哂いながら犯している……
+							D = 4
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は中に出されるたび悲痛な声を上げている……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW チンピラ達は嫌がる%CALLNAME:A%に怪しげな薬を注射した……
+							PRINTFORMW %CALLNAME:A%は身体の火照りに耐えられずチンピラにおねだりしている……
+							PRINTFORMW チンピラが腰を打ち付けるたび嬌声が響き渡っている……
+							D = 4
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は自分の行為に自己嫌悪しながら%CALLNAME:MASTER%の名を呟いた……
+						ELSE
+							PRINTFORMW %CALLNAME:A%はチンピラの兄貴分にあてがわれた……
+							PRINTFORMW 真珠入りのゴツゴツしたペニスで膣壁をゴリゴリと犯されている……
+							D = 2
+							CALL NTR_CONCERT_SEX
+							PRINTFORMW %CALLNAME:A%は膣内を抉られる快感に必死で耐えている……
+						ENDIF
+					ENDIF
+				ENDIF
+		
+			ELSE
+				CFLAG:A:(2085) -= CFLAG:A:放置日数
+				CFLAG:A:淫ＮＴＲ進行度 ++
+				IF TALENT:A:オトコ == 0 
+					CFLAG:A:淫乱度+= 200 + CFLAG:A:現ＮＴＲ進行度*10
+					PRINTFORMW %CALLNAME:A%は後部座席で衣服を破かれ、秘部にペニスをあてがわれた
+					PRINTFORMW そして抵抗する間もなく膣奥まで一気に貫かれた……
+					PRINTFORML 
+					CALL NTR_CONCERT_SEX
+					IF TALENT:A:処女 == 1
+						PRINTFORMW チンピラは%CALLNAME:A%が処女であると知ると大喜びで腰を振った
+						PRINTFORMW そして子宮口にペニスを押し付け、ゲラゲラと笑いながら大量に射精した……
+						PRINTFORMW %CALLNAME:A%無惨に処女を散らされたショックと妊娠の恐怖で涙を流しながら呆然としている
+					ELSE
+						PRINTFORMW チンピラ達は次々と%CALLNAME:A%の中に精を吐き出している……
+					ENDIF
+				ENDIF
+
+			ENDIF
+
+		ELSE
+			IF CFLAG:A:(2085) < 0
+				PRINTFORMW %CALLNAME:A%は肩を震わせながら戻ってきた……
+			ELSE
+				PRINTFORMW %CALLNAME:A%はファンの応援に励まされたようだ……	
+			ENDIF
+		ENDIF
+		PRINTFORML 
+	ENDIF
+
+	PRINTFORML 
+ENDIF
+$SKIP_NTR
+
+	DRAWLINE
+	;休憩フラグを立てる
+	FLAG:0 += 1
+	BEGIN TURNEND
+;---- EDIT INPUT_YN追加対応(2011/02/03) MOD START -------------------------
+;ELSEIF RESULT == 100
+;	RETURN 0
+ELSE
+;	GOTO INPUT_LOOP_3
+	RETURN 0
+;---- EDIT INPUT_YN追加対応(2011/02/03) MOD END ---------------------------
+ENDIF
+
+@NTR_CONCERT_SEX
+LOCAL:1 = 2 + RAND:3
+PRINTFORML ＶEXP ＋{LOCAL:1 * D}
+EXP:A:Ｖ経験 += LOCAL:1 * D
+PRINTFORML ＡEXP ＋{(LOCAL:1 / 2) * D}
+EXP:A:Ａ経験 += (LOCAL:1 / 2) * D
+PRINTFORML KissEXP ＋{LOCAL:1 * D}
+EXP:A:キス経験 += LOCAL:1 * D
+PRINTFORML SexEXP ＋{(LOCAL:1 + LOCAL:1 / 2) * D}
+EXP:A:性交経験 += (LOCAL:1 + LOCAL:1 / 2) * D
+PRINTFORML ClimaxEXP ＋{((LOCAL:1 + LOCAL:1 / 2) / 3) * D}
+EXP:A:絶頂経験 += ((LOCAL:1 + LOCAL:1 / 2) / 3) * D
+PRINTFORML CreampieEXP ＋{LOCAL:1 * D}
+EXP:A:膣射経験 += LOCAL:1 * D
+PRINTFORML BlowjobEXP ＋{(LOCAL:1 / 2) * D}
+EXP:A:フェラ経験 += (LOCAL:1 / 2) * D
+PRINTFORMW SemenEXP ＋{(LOCAL:1 * 2) * D}
+EXP:A:精液経験 += (LOCAL:1 * 2) * D
+PRINTFORML 
+
+;処女/再生処女喪失
+CALL 処女喪失, A
+CALL 処女喪失イベント, A
+
+CFLAG:A:(2100+FAVORITE_1_ID(A)) += CFLAG:A:(2086)
+SIF CFLAG:A:陥落キャラ == 2086
+	CFLAG:A:現ＮＴＲ進行度++
+;妊娠用
+IF CFLAG:A:108 == 0
+	SIF TALENT:A:オトコ == 0
+		CFLAG:A:105 += LOCAL:1 * D + CFLAG:A:現ＮＴＲ進行度
+ENDIF

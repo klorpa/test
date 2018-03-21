@@ -1,0 +1,4004 @@
+;天上楽土
+;ボス・クニノサギリ
+;
+;ダンジョンナンバー74
+
+
+;フラグ
+;ダンジョンフラグ:74:1	天上楽土クリアフラグ, 0:未クリア, 1:クリア済み（菜々子救出）, 2:クリア済み（菜々子救出, 崩壊）, 3:クリア済み（菜々子奴隷）
+;ダンジョンフラグ:74:2	菜々子の知り合い何人いるかフラグ
+;ダンジョンフラグ:74:3	天上楽土の霧状況, 0:霧, 1:霧晴れた
+;ダンジョンフラグ:74:4	菜々子状況, 0:無事, 1:崩壊確定
+;ダンジョンフラグ:74:5	天上楽土進行状況, 0:突入イベント前, 1:突入イベント済み, 4:第４天, 5:第５天, 6:第６天, 7第７天:, 8:第７天中ボス, 9:第８天, 10:第９天, 11:第１０天入り口, 12:第１０天ボス
+;ダンジョンフラグ:74:6	天上楽土進行状況（霧晴れ）, 0:突入イベント前, 1:突入イベント済み, 9:第８天, 10:第９天, 11:第１０天入り口, 12:第１０天ボス
+
+;ダンジョンフラグ:74:7	マーガレット戦, 1:戦闘前, 2:戦闘後
+
+
+
+;菜々子加入フラグ
+;間に合わなかった加入, シャドウに触手輪姦済み
+;CFLAG:LOCAL:イベント加入 == 1
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_74
+
+;天上楽土開始済みか天上楽土クリア済み
+IF イベントフラグ:12:0 == 4 || ダンジョンフラグ:74:1 >= 1
+	RETURN 1
+ENDIF
+RETURN 0
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_74
+RESULTS = Heaven
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_74
+PRINT Heaven　
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL   １st Heaven
+	CASE 1
+		PRINTL   ２nd Heaven
+	CASE 2
+		PRINTL   ３rd Heaven
+	CASE 3
+		PRINTL   ４th Heaven
+	CASE 4
+		PRINTL   ５th Heaven
+	CASE 5
+		PRINTL   ６th Heaven
+	CASE 6
+		PRINTL   ７th Heaven
+	CASE 7
+		PRINTL   ８th Heaven
+	CASE 8
+		PRINTL   ９th Heaven
+	CASE 9
+		PRINTL   １０th Heaven
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_74, ARG
+FLAG:現M = 0
+FLAG:現X = 16
+FLAG:現Y = 17
+;CALL AUTOMAP
+RETURN 0
+
+;=======================================================================
+;攻略開始時のイベント
+;=======================================================================
+@EVENT_DUNGEON_START_74
+
+;天上楽土進行状況, 初回
+IF ダンジョンフラグ:74:5 == 0
+	CALL DUNGEON_74_FE
+	CALL DUNGEON_74_ADD_KUMA
+	
+;天上楽土の霧状況：霧晴れた, かつ天上楽土進行状況（霧晴れ）進行０
+ELSEIF ダンジョンフラグ:74:3 == 1 && ダンジョンフラグ:74:6 == 0
+	CALL DUNGEON_74_SE
+ENDIF
+
+
+;マーガレット戦
+IF イベントフラグ:16:0 == 1 && ダンジョンフラグ:74:7 == 0
+	PRINTW The heavenly paradise is unchanged from when you were last here.
+	PRINTW The one who invited you should be at the end...
+	
+	;マーガレット戦フラグ戦闘前へ
+	ダンジョンフラグ:74:7 = 1
+ENDIF
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_74
+
+;菜々子の知り合い何人いるかフラグをリセットしておく
+ダンジョンフラグ:74:2 = 0
+
+
+;霧イベント後で未クリアだと菜々子崩壊確定に
+;天上楽土の霧状況：霧晴れた, かつ天上楽土未クリア
+IF ダンジョンフラグ:74:3 == 1 && ダンジョンフラグ:74:1 == 0
+	PRINTW When you looked back, you saw the paradise through the thinning fog.
+	PRINTW And as the fog clears, the shadows get more numerous and agressive.
+	PRINTW Next time, Nanako is already...
+	
+	;菜々子状況:崩壊確定へ
+	ダンジョンフラグ:74:4 = 1
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_74, ARG, ARG:1
+SELECTCASE DA:ARG:(ARG:1)
+ENDSELECT
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+;0：壁　1：床もしくは通路　2：扉　3：宝箱　4：イベント　5：罠　6：上り階段 7：下り階段　8：出口　9：その他特殊処理等
+;これらの内, 3～9が代入されているマスに, 個別の番号を与える処理を実行します.
+;この処理を行った後, これらのマスには 「マップ番号*1000 + そのマスがそのマップで左上から数えて何個目のARGタイプのマスか*10 + ARG」が代入されます
+;例えば 2003 であった場合, 「2番のマップ＝３Ｆで, 左上から数えて0個目の3＝宝箱である」という事を意味しています
+;尚, 0～2はどのマップにも大量に設置されるので, ここでは基本的に個別の番号を与えません.
+@MAKE_FLOOR_74
+SELECTCASE FLAG:現M
+	CASE 0
+	;第１天
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+;								  0000000000111111111
+;								  0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                  "
+		CALL MAKE_FLOOR_LINE, 1, "  31              "
+		CALL MAKE_FLOOR_LINE, 2, "  11211    61     "
+		CALL MAKE_FLOOR_LINE, 3, "      1    11211  "
+		CALL MAKE_FLOOR_LINE, 4, "      11       1  "
+		CALL MAKE_FLOOR_LINE, 5, "       1       1  "
+		CALL MAKE_FLOOR_LINE, 6, "       2  111121  "
+		CALL MAKE_FLOOR_LINE, 7, "  111111111    1  "
+		CALL MAKE_FLOOR_LINE, 8, "  1            1  "
+		CALL MAKE_FLOOR_LINE, 9, "  2            1  "
+		CALL MAKE_FLOOR_LINE,10, " 11            1  "
+		CALL MAKE_FLOOR_LINE,11, " 41            11 "
+		CALL MAKE_FLOOR_LINE,12, "                1 "
+		CALL MAKE_FLOOR_LINE,13, "          11    1 "
+		CALL MAKE_FLOOR_LINE,14, "          1121121 "
+		CALL MAKE_FLOOR_LINE,15, "                1 "
+		CALL MAKE_FLOOR_LINE,16, "                1 "
+		CALL MAKE_FLOOR_LINE,17, "                8 "
+		CALL MAKE_FLOOR_LINE,18, "                  "
+		
+	CASE 1
+	;第２天
+		FLAG:最大X = 19
+		FLAG:最大Y = 14
+;								  0000000000111111111
+;								  0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                  "
+		CALL MAKE_FLOOR_LINE, 1, "    1111111111111 "
+		CALL MAKE_FLOOR_LINE, 2, "    1     2     2 "
+		CALL MAKE_FLOOR_LINE, 3, "    1   3 1    11 "
+		CALL MAKE_FLOOR_LINE, 4, "    12111 1    61 "
+		CALL MAKE_FLOOR_LINE, 5, "    1     1       "
+		CALL MAKE_FLOOR_LINE, 6, "    1     11      "
+		CALL MAKE_FLOOR_LINE, 7, "    1      1      "
+		CALL MAKE_FLOOR_LINE, 8, "    11     2      "
+		CALL MAKE_FLOOR_LINE, 9, "     1 31111111   "
+		CALL MAKE_FLOOR_LINE,10, "     2            "
+		CALL MAKE_FLOOR_LINE,11, " 7111111211       "
+		CALL MAKE_FLOOR_LINE,12, "         11       "
+		CALL MAKE_FLOOR_LINE,13, "                  "
+		
+	CASE 2
+	;第３天
+		FLAG:最大X = 19
+		FLAG:最大Y = 16
+;									  0000000000111111111
+;									  0123456789012345678
+			CALL MAKE_FLOOR_LINE, 0, "                  "
+			CALL MAKE_FLOOR_LINE, 1, "           14     "
+			CALL MAKE_FLOOR_LINE, 2, "           11     "
+			CALL MAKE_FLOOR_LINE, 3, "           2      "
+			CALL MAKE_FLOOR_LINE, 4, "           1      "
+			CALL MAKE_FLOOR_LINE, 5, "           11     "
+			CALL MAKE_FLOOR_LINE, 6, "            1     "
+			CALL MAKE_FLOOR_LINE, 7, "            2     "
+			CALL MAKE_FLOOR_LINE, 8, "   1111111111111  "
+			CALL MAKE_FLOOR_LINE, 9, " 111           11 "
+			CALL MAKE_FLOOR_LINE,10, " 1              1 "
+			CALL MAKE_FLOOR_LINE,11, " 1              1 "
+			CALL MAKE_FLOOR_LINE,12, " 12111211       2 "
+			CALL MAKE_FLOOR_LINE,13, " 1     11      11 "
+			CALL MAKE_FLOOR_LINE,14, " 117           61 "
+			CALL MAKE_FLOOR_LINE,15, "                  "
+			
+	CASE 3
+	;第４天
+		FLAG:最大X = 17
+		FLAG:最大Y = 19
+;								  00000000001111111
+;								  01234567890123456
+		CALL MAKE_FLOOR_LINE, 0, "                "
+		CALL MAKE_FLOOR_LINE, 1, "     13         "
+		CALL MAKE_FLOOR_LINE, 2, "     11         "
+		CALL MAKE_FLOOR_LINE, 3, "     2          "
+		CALL MAKE_FLOOR_LINE, 4, "     1          "
+		CALL MAKE_FLOOR_LINE, 5, "     1          "
+		CALL MAKE_FLOOR_LINE, 6, " 11111111111    "
+		CALL MAKE_FLOOR_LINE, 7, "     2  2  1    "
+		CALL MAKE_FLOOR_LINE, 8, " 7   1  1  1    "
+		CALL MAKE_FLOOR_LINE, 9, " 1   11 3  1    "
+		CALL MAKE_FLOOR_LINE,10, " 1    1    1211 "
+		CALL MAKE_FLOOR_LINE,11, " 11   2    1    "
+		CALL MAKE_FLOOR_LINE,12, "  1  11    1    "
+		CALL MAKE_FLOOR_LINE,13, "  1  61 1121    "
+		CALL MAKE_FLOOR_LINE,14, "  1        1    "
+		CALL MAKE_FLOOR_LINE,15, "  1  11    1    "
+		CALL MAKE_FLOOR_LINE,16, "  1211111111    "
+		CALL MAKE_FLOOR_LINE,17, "  1  11         "
+		CALL MAKE_FLOOR_LINE,18, "                "
+		
+		;第４天初回イベント前以外
+		CALL SET_TILE, 5 , 16 , ダンジョンフラグ:74:5 , 1 , 3004
+		
+	CASE 4
+	;第５天
+		FLAG:最大X = 14
+		FLAG:最大Y = 21
+;								  00000000001111
+;								  01234567890123
+		CALL MAKE_FLOOR_LINE, 0, "             "
+		CALL MAKE_FLOOR_LINE, 1, "   16        "
+		CALL MAKE_FLOOR_LINE, 2, "   11        "
+		CALL MAKE_FLOOR_LINE, 3, "   2         "
+		CALL MAKE_FLOOR_LINE, 4, "   1         "
+		CALL MAKE_FLOOR_LINE, 5, "   1         "
+		CALL MAKE_FLOOR_LINE, 6, "   12111211  "
+		CALL MAKE_FLOOR_LINE, 7, "   1     14  "
+		CALL MAKE_FLOOR_LINE, 8, "   1         "
+		CALL MAKE_FLOOR_LINE, 9, "   11        "
+		CALL MAKE_FLOOR_LINE,10, "    1        "
+		CALL MAKE_FLOOR_LINE,11, "    1        "
+		CALL MAKE_FLOOR_LINE,12, "    12111211 "
+		CALL MAKE_FLOOR_LINE,13, "    1     11 "
+		CALL MAKE_FLOOR_LINE,14, "    1        "
+		CALL MAKE_FLOOR_LINE,15, "    11       "
+		CALL MAKE_FLOOR_LINE,16, "     1       "
+		CALL MAKE_FLOOR_LINE,17, "     1       "
+		CALL MAKE_FLOOR_LINE,18, "     2       "
+		CALL MAKE_FLOOR_LINE,19, " 3111111417  "
+		CALL MAKE_FLOOR_LINE,20, "             "
+		
+		;第５天初回イベント前以外
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 1 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 5 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 6 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 7 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 8 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 9 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 10 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 11 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 12 , 4001
+		CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 13 , 4001
+		
+	CASE 5
+	;第６天
+		FLAG:最大X = 19
+		FLAG:最大Y = 20
+;								  0000000000111111111
+;								  0123456789012345678
+		CALL MAKE_FLOOR_LINE, 0, "                  "
+		CALL MAKE_FLOOR_LINE, 1, " 111111111        "
+		CALL MAKE_FLOOR_LINE, 2, " 1   2   1        "
+		CALL MAKE_FLOOR_LINE, 3, " 1   1   1        "
+		CALL MAKE_FLOOR_LINE, 4, " 11  1   1        "
+		CALL MAKE_FLOOR_LINE, 5, "  1  3   1        "
+		CALL MAKE_FLOOR_LINE, 6, "  7      1        "
+		CALL MAKE_FLOOR_LINE, 7, "         1211211  "
+		CALL MAKE_FLOOR_LINE, 8, "         1    16  "
+		CALL MAKE_FLOOR_LINE, 9, "         1        "
+		CALL MAKE_FLOOR_LINE,10, "         11       "
+		CALL MAKE_FLOOR_LINE,11, "          1       "
+		CALL MAKE_FLOOR_LINE,12, "          1       "
+		CALL MAKE_FLOOR_LINE,13, "          111111  "
+		CALL MAKE_FLOOR_LINE,14, "          1       "
+		CALL MAKE_FLOOR_LINE,15, "          11      "
+		CALL MAKE_FLOOR_LINE,16, "           1      "
+		CALL MAKE_FLOOR_LINE,17, "           111211 "
+		CALL MAKE_FLOOR_LINE,18, "               13 "
+		CALL MAKE_FLOOR_LINE,19, "                  "
+		
+		;第６天初回イベント前以外
+		CALL SET_TILE, 2 , 4 , ダンジョンフラグ:74:5 , 5 , 5004
+		
+	CASE 6
+	;第７天
+		FLAG:最大X = 18
+		FLAG:最大Y = 23
+;								  000000000011111111
+;								  012345678901234567
+		CALL MAKE_FLOOR_LINE, 0, "                 "
+		CALL MAKE_FLOOR_LINE, 1, "   16            "
+		CALL MAKE_FLOOR_LINE, 2, "   11            "
+		CALL MAKE_FLOOR_LINE, 3, "   2             "
+		CALL MAKE_FLOOR_LINE, 4, "   1    1111111  "
+		CALL MAKE_FLOOR_LINE, 5, "   1          1  "
+		CALL MAKE_FLOOR_LINE, 6, "   1          1  "
+		CALL MAKE_FLOOR_LINE, 7, "   121111111111  "
+		CALL MAKE_FLOOR_LINE, 8, "   1     2       "
+		CALL MAKE_FLOOR_LINE, 9, "   1     1       "
+		CALL MAKE_FLOOR_LINE,10, "   2     1       "
+		CALL MAKE_FLOOR_LINE,11, "  11     1    11 "
+		CALL MAKE_FLOOR_LINE,12, "  31    111   11 "
+		CALL MAKE_FLOOR_LINE,13, "        141   2  "
+		CALL MAKE_FLOOR_LINE,14, "         1    1  "
+		CALL MAKE_FLOOR_LINE,15, "         2    1  "
+		CALL MAKE_FLOOR_LINE,16, "   111111411121  "
+		CALL MAKE_FLOOR_LINE,17, "   1          1  "
+		CALL MAKE_FLOOR_LINE,18, "   1          1  "
+		CALL MAKE_FLOOR_LINE,19, "   4     111111  "
+		CALL MAKE_FLOOR_LINE,20, "   1             "
+		CALL MAKE_FLOOR_LINE,21, "   7             "
+		CALL MAKE_FLOOR_LINE,22, "                 "
+		
+		;第７天初回イベント前以外
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 1 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 4 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 5 , 6001
+		;CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 7 , 6001
+		;CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 8 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 9 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 10 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 11 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 12 , 6001
+		CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 13 , 6001
+		
+		;第７天中ボス前以外
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 1 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 4 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 5 , 6001
+		;CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 6 , 6001
+		;CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 8 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 9 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 10 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 11 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 12 , 6001
+		CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 13 , 6001
+		
+		;第７天中ボス前以外
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 1 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 4 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 5 , 6001
+		;CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 6 , 6001
+		;CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 7 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 9 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 10 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 11 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 12 , 6001
+		CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 13 , 6001
+		
+	CASE 7
+	;第８天
+		FLAG:最大X = 15
+		FLAG:最大Y = 20
+;								  000000000011111
+;								  012345678901234
+		CALL MAKE_FLOOR_LINE, 0, "              "
+		CALL MAKE_FLOOR_LINE, 1, "           11 "
+		CALL MAKE_FLOOR_LINE, 2, "           11 "
+		CALL MAKE_FLOOR_LINE, 3, "           2  "
+		CALL MAKE_FLOOR_LINE, 4, "           1  "
+		CALL MAKE_FLOOR_LINE, 5, " 111       1  "
+		CALL MAKE_FLOOR_LINE, 6, " 1 1   11121  "
+		CALL MAKE_FLOOR_LINE, 7, " 1 12111   1  "
+		CALL MAKE_FLOOR_LINE, 8, " 1 1       1  "
+		CALL MAKE_FLOOR_LINE, 9, " 3 1       1  "
+		CALL MAKE_FLOOR_LINE,10, "   1       2  "
+		CALL MAKE_FLOOR_LINE,11, "   11     11  "
+		CALL MAKE_FLOOR_LINE,12, "    1     61  "
+		CALL MAKE_FLOOR_LINE,13, "    1         "
+		CALL MAKE_FLOOR_LINE,14, "    1211211   "
+		CALL MAKE_FLOOR_LINE,15, "    1    13   "
+		CALL MAKE_FLOOR_LINE,16, "    11        "
+		CALL MAKE_FLOOR_LINE,17, "     1        "
+		CALL MAKE_FLOOR_LINE,18, "     117      "
+		CALL MAKE_FLOOR_LINE,19, "              "
+		
+		;第８天初回イベント前以外
+		CALL SET_TILE, 5 , 18 , ダンジョンフラグ:74:5 , 9 , 7004
+		
+		;第８天, 霧晴れ後, 初回イベント前以外
+		CALL SET_TILE, 5 , 18 , ダンジョンフラグ:74:6 , 1 , 7004
+		
+	CASE 8
+	;第９天
+		FLAG:最大X = 17
+		FLAG:最大Y = 20
+;								  000000000011111111
+;								  012345678901234567
+		CALL MAKE_FLOOR_LINE, 0, "                 "
+		CALL MAKE_FLOOR_LINE, 1, "             16  "
+		CALL MAKE_FLOOR_LINE, 2, "             11  "
+		CALL MAKE_FLOOR_LINE, 3, "             2   "
+		CALL MAKE_FLOOR_LINE, 4, "  1111111111 1   "
+		CALL MAKE_FLOOR_LINE, 5, " 11   2      1   "
+		CALL MAKE_FLOOR_LINE, 6, " 1    1      1   "
+		CALL MAKE_FLOOR_LINE, 7, " 7    11     1   "
+		CALL MAKE_FLOOR_LINE, 8, "       1     1   "
+		CALL MAKE_FLOOR_LINE, 9, "       1111121   "
+		CALL MAKE_FLOOR_LINE,10, "             1   "
+		CALL MAKE_FLOOR_LINE,11, "             1   "
+		CALL MAKE_FLOOR_LINE,12, "             1   "
+		CALL MAKE_FLOOR_LINE,13, "             11  "
+		CALL MAKE_FLOOR_LINE,14, "              1  "
+		CALL MAKE_FLOOR_LINE,15, "              1  "
+		CALL MAKE_FLOOR_LINE,16, "              2  "
+		CALL MAKE_FLOOR_LINE,17, "              11 "
+		CALL MAKE_FLOOR_LINE,18, "              11 "
+		CALL MAKE_FLOOR_LINE,19, "                 "
+		
+		;第９天初回イベント前以外
+		CALL SET_TILE, 2 , 5 , ダンジョンフラグ:74:5 , 10 , 8004
+		
+		;第９天, 霧晴れ後, 初回イベント前以外
+		CALL SET_TILE, 2 , 5 , ダンジョンフラグ:74:6 , 10 , 8004
+		
+	CASE 9
+	;第１０天
+		FLAG:最大X = 10
+		FLAG:最大Y = 13
+;								  0000000000
+;								  0123456789
+		CALL MAKE_FLOOR_LINE, 0, "         "
+		CALL MAKE_FLOOR_LINE, 1, "   111   "
+		CALL MAKE_FLOOR_LINE, 2, "  11111  "
+		CALL MAKE_FLOOR_LINE, 3, " 1114111 "
+		CALL MAKE_FLOOR_LINE, 4, "  11111  "
+		CALL MAKE_FLOOR_LINE, 5, "   111   "
+		CALL MAKE_FLOOR_LINE, 6, "    1    "
+		CALL MAKE_FLOOR_LINE, 7, "    1    "
+		CALL MAKE_FLOOR_LINE, 8, "    2    "
+		CALL MAKE_FLOOR_LINE, 9, "    4    "
+		CALL MAKE_FLOOR_LINE,10, "    1    "
+		CALL MAKE_FLOOR_LINE,11, "    7    "
+		CALL MAKE_FLOOR_LINE,12, "         "
+		
+		
+		IF ダンジョンフラグ:74:5 == 11 || ダンジョンフラグ:74:6 == 11
+			
+		ELSE
+		;第１０天初回イベント前以外
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 1 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 4 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 5 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 6 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 7 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 8 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 9 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 10 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 12 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 13 , 9001
+		
+		;第１０天, 霧晴れ後, 初回イベント前以外
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 1 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 4 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 5 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 6 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 7 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 8 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 9 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 10 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 12 , 9001
+		CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 13 , 9001
+		ENDIF
+		
+	CASEELSE
+
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_74, ARG, ARG:1, ARG:2
+#LOCALSIZE 10
+;LOCAL:0～9 それぞれ何個目のARGなのかを記憶しています
+;LOCAL:3 宝箱→使用フラグはダンジョンフラグ:70~74
+;指定された座標が(0,0)である場合, つまり新しいマップを読み込んだ時はLOCALを消去します
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		;宝箱は多くの場合, 開けたフラグが立っていると床を代入します
+		;そのマップでどの宝箱を開けたかは, そのマップの宝箱管理用変数の何番目のビットが立っているかで判断します
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4 TO 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:ARG * 10 + ARG
+		LOCAL:ARG++
+	
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;TILE_MARK_COMMON_{FLAG:現ダンジョン}_X
+;=======================================================================
+;ARG:1, ARG:2がX座標とY座標
+;ARGはそこに代入されている値
+;RESULTSに代入した文字がマップに表示されますが, 必ず全角1文字分になるようにしてください.そうでないと表示が崩れます.
+
+;イベントタイル特殊表示
+;末尾の_4はイベントであることを示す4
+@TILE_MARK_COMMON_74_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	;メッセンジャーを緑色で"ｍ"と表示
+	CASE 0 , 200 , 400
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASEELSE
+		;特に設定しない場合, "!"と表示されます
+		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_74
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_74
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_74
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_74
+	RETURN RESULT
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;第１天イベント
+		CASE 0
+			;紳士悪魔
+			CALL DUNGEON_74_SE_01
+		;第２天イベント
+		CASE 100
+			
+			
+		;第３天イベント
+		CASE 200
+			;天然サマナー
+			CALL DUNGEON_74_SE_03
+		;第４天イベント
+		CASE 300
+			
+			
+			
+		;第５天イベント
+		CASE 400
+			;悪魔の会話, ガイン系
+			CALL DUNGEON_74_SE_02
+		CASE 401
+			
+			
+		;第６天イベント
+		CASE 500
+			
+			
+		;第７天イベント
+		CASE 600
+			
+			
+		;第８天イベント
+		CASE 700
+			
+		;第９天イベント
+		CASE 800
+			
+		;第１０天イベント
+		CASE 900
+			;マーガレット戦
+			IF イベントフラグ:16:0 == 1 &&  ダンジョンフラグ:74:1 >= 1 && ダンジョンフラグ:74:7 == 1
+				
+				
+				
+				
+				
+				
+				
+				
+				ダンジョンフラグ:74:7 = 2
+				
+				
+			;第１０天ボス, 霧晴れる前
+			ELSEIF ダンジョンフラグ:74:5 == 12 && ダンジョンフラグ:74:3 == 0
+				
+				CALL DUNGEON_74_13
+			;第１０天ボス, 霧晴れ後
+			ELSEIF ダンジョンフラグ:74:5 == 11 && ダンジョンフラグ:74:6 == 11 && ダンジョンフラグ:74:3 == 1
+				
+				CALL DUNGEON_74_13A
+			ELSE
+				PRINTW Nobody is here...
+			ENDIF
+		CASE 901
+			
+	ENDSELECT
+ELSE
+	PRINTW There is nothing here.
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_74,ARG
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_74
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_74
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_74
+	RETURN RESULT
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		;第１天イベント
+		CASE 0
+			;紳士悪魔
+			CALL DUNGEON_74_SE_01
+		;第２天イベント
+		CASE 100
+			
+			
+		;第３天イベント
+		CASE 200
+			;天然サマナー
+			CALL DUNGEON_74_SE_03
+		;第４天イベント
+		CASE 300
+			;第４天, 初めて入ったとき
+			IF ダンジョンフラグ:74:5 == 1
+				
+				CALL DUNGEON_74_04
+				CALL SET_TILE, 5 , 16 , ダンジョンフラグ:74:5 , 4 , 3001
+			ENDIF
+		;第５天イベント
+		CASE 400
+			;悪魔の会話, ガイン系
+			CALL DUNGEON_74_SE_02
+		CASE 401
+			;第５天, 初めて入ったとき
+			IF ダンジョンフラグ:74:5 == 4
+				
+				CALL DUNGEON_74_05
+				CALL SET_TILE, 8 , 19 , ダンジョンフラグ:74:5 , 5 , 4001
+			ENDIF
+		;第６天イベント
+		CASE 500
+			;第６天, 初めて入ったとき
+			IF ダンジョンフラグ:74:5 == 5
+				
+				CALL DUNGEON_74_06
+				CALL SET_TILE, 2 , 4 , ダンジョンフラグ:74:5 , 6 , 5001
+			ENDIF
+		;第７天イベント
+		CASE 600
+			;第７天, 中ボス
+			IF ダンジョンフラグ:74:5 == 8
+				
+				CALL DUNGEON_74_09
+				
+				CALL SET_TILE, 9 , 13 , ダンジョンフラグ:74:5 , 9 , 6001
+			ENDIF
+		CASE 601
+			;第７天, 中ボス前
+			IF ダンジョンフラグ:74:5 == 7
+				
+				CALL DUNGEON_74_08
+				CALL SET_TILE, 9 , 16 , ダンジョンフラグ:74:5 , 8 , 6001
+			ENDIF
+		CASE 602
+			;第７天, 初めて入ったとき
+			IF ダンジョンフラグ:74:5 == 6
+				
+				CALL DUNGEON_74_07
+				CALL SET_TILE, 3 , 19 , ダンジョンフラグ:74:5 , 7 , 6001
+			ENDIF
+		;第８天イベント
+		CASE 700
+			;第８天到達時, 霧晴れる前
+			IF ダンジョンフラグ:74:5 == 9 && ダンジョンフラグ:74:3 == 0
+				
+				CALL DUNGEON_74_10
+				CALL SET_TILE, 5 , 18 , ダンジョンフラグ:74:5 , 10 , 7001
+			;第８天到達時, 天上楽土進行状況（霧晴れ）, 霧晴れ後, 
+			ELSEIF ダンジョンフラグ:74:6 == 1 && ダンジョンフラグ:74:3 == 1
+				
+				CALL DUNGEON_74_10A
+				CALL SET_TILE, 5 , 18 , ダンジョンフラグ:74:6 , 10 , 7001
+			ENDIF
+		;第９天イベント
+		CASE 800
+			;第９天到達時, 霧晴れる前
+			IF ダンジョンフラグ:74:5 == 10 && ダンジョンフラグ:74:3 == 0
+				
+				CALL DUNGEON_74_11
+				CALL SET_TILE, 2 , 5 , ダンジョンフラグ:74:5 , 11 , 8001
+			;第９天到達時, 天上楽土進行状況（霧晴れ）, 霧晴れ後, 
+			ELSEIF ダンジョンフラグ:74:6 == 10 && ダンジョンフラグ:74:3 == 1
+				
+				CALL DUNGEON_74_11A
+				CALL SET_TILE, 2 , 5 , ダンジョンフラグ:74:6 , 11 , 8001
+			ENDIF
+		;第１０天イベント
+		CASE 900
+			;マーガレット戦
+			IF イベントフラグ:16:0 == 1 &&  ダンジョンフラグ:74:1 >= 1 && ダンジョンフラグ:74:7 == 1
+				
+				
+				
+				
+				
+				
+				
+				
+				ダンジョンフラグ:74:7 = 2
+				
+				
+			;第１０天ボス, 霧晴れる前
+			ELSEIF ダンジョンフラグ:74:5 == 12 && ダンジョンフラグ:74:3 == 0
+				
+				CALL DUNGEON_74_13
+			;第１０天ボス, 霧晴れ後
+			ELSEIF ダンジョンフラグ:74:6 == 12 && ダンジョンフラグ:74:3 == 1
+				
+				CALL DUNGEON_74_13A
+			ELSE
+				PRINTW Nobody is here...
+			ENDIF
+		CASE 901
+			;第１０天到達時, 霧晴れる前
+			IF ダンジョンフラグ:74:5 == 11 && ダンジョンフラグ:74:3 == 0
+				
+				CALL DUNGEON_74_12
+				CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:5 , 12 , 9001
+			;第１０天到達時, 天上楽土進行状況（霧晴れ）, 霧晴れ後, 
+			ELSEIF ダンジョンフラグ:74:6 == 11 && ダンジョンフラグ:74:3 == 1
+				
+				CALL DUNGEON_74_12A
+				CALL SET_TILE, 4 , 9 , ダンジョンフラグ:74:6 , 12 , 9001
+			ENDIF
+			
+			
+	ENDSELECT
+ENDIF
+RETURN 0
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_74
+SELECTCASE FLAG:現M
+	CASE 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8
+		FLAG:エンカウント率 = FLAG:未遭遇歩数 * 5
+	CASE 9
+		FLAG:エンカウント率 = 0
+	CASEELSE
+		FLAG:エンカウント率 = FLAG:未遭遇歩数 * 5
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_74
+RETURN 45, 41, 50, 55
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_74
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;RETURN X でXが種類の数になります
+;あまりいろんなのが混ざっているとCOOPがとりにくくなったり
+;敵の攻撃属性が多くなる傾向にあるので, 
+;種類の数は1・2種類を主体に時々3種類くらいを基本にするのが望ましいと思われます
+;=======================================================================
+@CLASS_NUM_74
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 70
+				RETURN 1
+			CASEELSE
+				RETURN 2
+		ENDSELECT
+	CASE 4 , 5
+		SELECTCASE RAND:100
+			CASE IS < 60
+				RETURN 1
+			CASE IS < 80
+				RETURN 2
+			CASEELSE
+				RETURN 3
+		ENDSELECT
+	CASE 6 , 7
+		SELECTCASE RAND:100
+			CASE IS < 70
+				RETURN 2
+			CASEELSE
+				RETURN 3
+		ENDSELECT
+	CASE 8
+		SELECTCASE RAND:100
+			CASE IS < 50
+				RETURN 2
+			CASEELSE
+				RETURN 3
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお, ここで帰った数字は下限を種族数, 上限を10として自動的に調整されます
+;=======================================================================
+@ENEMY_NUM_74, ARG
+SELECTCASE FLAG:現M
+	CASE 0 , 1 
+		RETURN RAND(ARG, ARG*2+1)
+	CASE 2 , 3 , 4 , 5 , 6
+		RETURN RAND(ARG, ARG*2+2)
+	CASE 7 , 8
+		RETURN RAND(ARG, ARG*2+3)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_74, ARG
+SELECTCASE FLAG:現M
+	CASE 0 , 1
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:ヴィヴィアン]],41
+			CASE IS < 30
+				RETURN [[キャラ:ヴィヴィアン]],42
+			CASE IS < 50
+				RETURN [[キャラ:ヴァーチャー]],42
+			CASE IS < 60
+				RETURN [[キャラ:ヴァーチャー]],43
+			CASE IS < 70
+				RETURN [[キャラ:ドミニオン]],42
+			CASE IS < 80
+				RETURN [[キャラ:ドミニオン]],43
+			CASE IS < 95
+				RETURN [[キャラ:ドライデキシー]],42
+			CASE IS < 100
+				RETURN [[キャラ:ドライデキシー]],43
+		ENDSELECT
+	CASE 2 , 3
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:ヴァーチャー]],43
+			CASE IS < 30
+				RETURN [[キャラ:ヴァーチャー]],44
+			CASE IS < 50
+				RETURN [[キャラ:ドミニオン]],43
+			CASE IS < 60
+				RETURN [[キャラ:ドミニオン]],44
+			CASE IS < 70
+				RETURN [[キャラ:ミノタ四号]],41
+			CASE IS < 80
+				RETURN [[キャラ:ミノタ四号]],42
+			CASE IS < 95
+				RETURN [[キャラ:ドライデキシー]],42
+			CASE IS < 100
+				RETURN [[キャラ:ドライデキシー]],43
+			ENDSELECT
+	CASE 4 , 5
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:モーリアン]],47
+			CASE IS < 30
+				RETURN [[キャラ:アールマティ]],46
+			CASE IS < 50
+				RETURN [[キャラ:ミノタ四号]],42
+			CASE IS < 60
+				RETURN [[キャラ:ミノタ四号]],43
+			CASE IS < 70
+				RETURN [[キャラ:天啓のペーシェ]],45
+			CASE IS < 80
+				RETURN [[キャラ:天啓のペーシェ]],46
+			CASE IS < 90
+				RETURN [[キャラ:ドライデキシー]],43
+			CASE IS < 100
+				RETURN [[キャラ:ドライデキシー]],44
+		ENDSELECT
+	CASE 6 , 7
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:モーリアン]],47
+			CASE IS < 30
+				RETURN [[キャラ:モーリアン]],48
+			CASE IS < 50
+				RETURN [[キャラ:アールマティ]],46
+			CASE IS < 60
+				RETURN [[キャラ:アールマティ]],47
+			CASE IS < 75
+				RETURN [[キャラ:天啓のペーシェ]],46
+			CASE IS < 85
+				RETURN [[キャラ:天啓のペーシェ]],47
+			CASE IS < 99
+				RETURN [[キャラ:審判の剣]],48
+			CASE IS < 100
+				;霧晴れてる, 雨つぶての城はレアにしておく
+				IF ダンジョンフラグ:74:3 == 1
+					RETURN [[キャラ:雨つぶての城]],49
+				ELSE
+					RETURN [[キャラ:審判の剣]],49
+				ENDIF
+		ENDSELECT
+	CASE 8
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:モーリアン]],48
+			CASE IS < 25
+				RETURN [[キャラ:モーリアン]],49
+			CASE IS < 40
+				RETURN [[キャラ:アールマティ]],47
+			CASE IS < 55
+				RETURN [[キャラ:アールマティ]],48
+			CASE IS < 60
+				RETURN [[キャラ:天啓のペーシェ]],21
+			CASE IS < 70
+				RETURN [[キャラ:天啓のペーシェ]],22
+			CASE IS < 80
+				RETURN [[キャラ:血のヘカトンケイル]],21
+			CASE IS < 88
+				RETURN [[キャラ:血のヘカトンケイル]],22
+			CASE IS < 99
+				RETURN [[キャラ:審判の剣]],49
+			CASE IS < 100
+				;霧晴れてる, 雨つぶての城はレアにしておく
+				IF ダンジョンフラグ:74:3 == 1
+					RETURN [[キャラ:雨つぶての城]],50
+				ELSE
+					RETURN [[キャラ:審判の剣]],50
+				ENDIF
+		ENDSELECT
+ENDSELECT
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_74
+#LOCALSIZE 3
+LOCAL = FLAG:現M + 70
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します.
+	;例えば0の場合, 0版のマップの0番目の宝箱であることを表しています.
+	;第１天
+	CASE 0
+		CALL GET_TREASURE, [[アイテム:スキルカード【夢見針】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第２天
+	CASE 100
+		CALL GET_TREASURE, [[アイテム:MagicalMirror]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 101
+		CALL GET_TREASURE, [[アイテム:善行の石]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第３天
+	;CASE 200
+		
+	;第４天
+	CASE 300
+		CALL GET_TREASURE, [[アイテム:BalmOfLife]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 301
+		CALL GET_TREASURE, [[アイテム:秩序の石]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第５天
+	CASE 400
+		CALL GET_TREASURE_MONEY, 1 , 300 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第６天
+	CASE 500
+		CALL GET_TREASURE, [[アイテム:スキルカード【デスバウンド】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 501
+		CALL GET_TREASURE, [[アイテム:秩序の石]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第７天
+	CASE 600
+		CALL GET_TREASURE, [[アイテム:善行の石]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第８天
+	CASE 700
+		CALL GET_TREASURE, [[アイテム:スキルカード【ハマオン】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 701
+		CALL GET_TREASURE, [[アイテム:MaIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;第９天
+	;CASE 800
+		
+ENDSELECT
+RETURN 1
+;=======================================================================
+;階段置き場
+;=======================================================================
+;上り階段処理
+@UPSTAIRS_74
+;SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+;	;IDで分岐
+;	;１Ｆ上り階段
+;	CASE 0
+;			;@DUNGEON_UPSTAIRS_ID , 階段を進んだ先のマップ番号 , 移動先のタイルのID
+;			;２Ｆ＝マップ番号1番の0番目の下り階段 = 1 * 1000 + 0 * 10 + 7 = 1007へと飛ぶ
+;			CALL DUNGEON_UPSTAIRS_ID, 1 , 1007
+;	CASE 100
+;			CALL DUNGEON_UPSTAIRS_ID, 2 , 2007
+;	CASE 200
+;			CALL DUNGEON_UPSTAIRS_ID, 3 , 3007
+;	CASE 300
+;			CALL DUNGEON_UPSTAIRS_ID, 4 , 4007
+;	CASEELSE
+;ENDSELECT
+
+;入り組んだダンジョンで階段がたくさん入り乱れている状態であれば, 上記のように階段毎に指定してあげる必要があります.
+;しかしこのエコービルは1つのマップに上り階段が１つ, 下り階段が１つ, 上の階に進む＝マップ番号が一つ増えるという構造になっています
+;なので, 下記のように書けば一行で済みます
+CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , (FLAG:現M + 1) * 1000 + 7
+RETURN 1
+
+;下り階段処理
+@DOWNSTAIRS_74
+;上り階段同様に, エコービルは下り階段も1行で記述できます
+CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , (FLAG:現M - 1) * 1000 + 6
+RETURN 1
+;=======================================================================
+;特殊調整
+;=======================================================================
+@SET_ENEMY_STATUS_74, ARG
+IF ABL:ARG:種族 == 32
+	SELECTCASE RAND:100
+		CASE IS < 40
+			ABL:ARG:アイテム3 = GETNUM(ITEM, "Lead Medal")
+		CASE IS < 60
+			ABL:ARG:アイテム3 = GETNUM(ITEM, "Steel Medal")
+		CASE IS < 80
+			ABL:ARG:アイテム3 = GETNUM(ITEM, "Silver Medal")
+		CASE IS < 95
+			ABL:ARG:アイテム3 = GETNUM(ITEM, "Golden Medal")
+		CASEELSE
+			ABL:ARG:アイテム3 = GETNUM(ITEM, "Platinum Medal")
+	ENDSELECT
+	ABL:ARG:入手確率3 = ITEM:(ABL:ARG:アイテム3) >= 10 ? 0 # 10
+ENDIF
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_74
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:5
+	CASE 0
+		RETURN [[キャラ:ドミニオン]] , 3 + RAND:10 , CSVBASE([[キャラ:ドミニオン]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ミノタ四号]] , 3 + RAND:10 , CSVBASE([[キャラ:ミノタ四号]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:血のヘカトンケイル]] , 3 + RAND:10 , CSVBASE([[キャラ:血のヘカトンケイル]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 3
+		;霧晴れてる
+		IF ダンジョンフラグ:74:3 == 1
+			RETURN [[キャラ:雨つぶての城]] , 3 + RAND:10 , CSVBASE([[キャラ:雨つぶての城]] , GETNUM(BASE , "LV") , 0) + RAND:3
+		ELSE
+			RETURN [[キャラ:審判の剣]] , 3 + RAND:10 , CSVBASE([[キャラ:審判の剣]] , GETNUM(BASE , "LV") , 0) + RAND:3
+		ENDIF
+	CASE 4
+		RETURN [[キャラ:審判の剣]] , 3 + RAND:10 , CSVBASE([[キャラ:審判の剣]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+
+;==================================================================
+;イベント
+;==================================================================
+;------------------------------------------------------------------
+;ダンジョン突入時のイベント
+;初回
+;------------------------------------------------------------------
+@DUNGEON_74_FE
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTL 　
+PRINTW You where lead by Teddie to a gate in a beautiful, flower-decorated white wall.
+PRINTL 　
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Nanako is here....」
+	PRINTL 　
+ENDIF
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「This guy....」
+	PRINTL 　
+ENDIF
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「It's like Heaven...that's....」
+	PRINTL 　
+ENDIF
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「Were you lonely all this time....」
+	PRINTL 　
+ENDIF
+PRINTW Nanako lost her mother.
+PRINTW Was this place born of her yearning?
+PRINTL 　
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「...please help me.」
+		PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% heard these words as %HE_SHE(FINDCHARA(NO, [[キャラ:P4主人公]]))% walked towards the gate...
+	ELSE
+		PRINTW You heard a voice as you walked towards the gate, worried about Nanako...
+	ENDIF
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「...please help me.」
+		PRINTFORMW As %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% walked towards the gate, filled with worry about Nanako, %HE_SHE(FINDCHARA(NO, [[キャラ:P4主人公]]))% heard these words...
+	ELSE
+		PRINTW You heard a voice as you walked towards the gate, worried about Nanako...
+	ENDIF
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW A place like Heaven....
+	PRINTW You can't be careless here.
+	PRINTW You walked towards the gate, determinded that you won't let yourself be lulled into a false sense of security by this place...
+ENDIF
+
+;天上楽土進行状況, 突入イベント済み
+ダンジョンフラグ:74:5 = 1
+
+;------------------------------------------------------------------
+;クマ加入イベント
+;クマシャドウ戦とか無視して無理矢理加入
+;誰かが作ったら, そっち優先で
+;------------------------------------------------------------------
+@DUNGEON_74_ADD_KUMA
+CUSTOMDRAWLINE =
+PRINTL 　
+PRINTL 　
+PRINTW 　
+PRINTW 「Waaaaaaaaaaait, wait for Teddie!!」
+PRINTFORMW %CALLNAME:MASTER% heard a voice from behind while walking.
+PRINTW Following that, a unique form making a peculiar noise ran up...it was Teddie.
+PRINTL 　
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「Ah, Teddie!」
+	PRINTL 　
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Teddie?」
+	PRINTL 　
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Ah!　Isn't that Teddie?」
+	PRINTL 　
+ENDIF
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「That bear, why did you come here?」
+	PRINTL 　
+ENDIF
+PRINTL Teddie:
+PRINTW 「To help Nanako, it would be terrible to leave Teddie behind!」
+PRINTW 「Teddie will also go with you!」
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL 　
+	PRINTL Yosuke:
+	PRINTW 「But didn't we learn that you can't fight earlier?」
+	PRINTL 　
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL 　
+	PRINTL Yukiko:
+	PRINTW 「...isn't that dangerous?」
+	PRINTL 　
+;千枝がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL 　
+	PRINTL Chie:
+	PRINTW 「You want to go together...isn't that dangerous?」
+	PRINTL 　
+ELSE
+	PRINTW While Teddie ran to help Nanako, he doesn't feel like a capable fighter.
+	PRINTL 　
+ENDIF
+PRINTL Teddie:
+PRINTW 「...Puff puff puff.」
+PRINTW Despite lukewarm eyes, the bear undid his zipper with a laugh.
+PRINTL 　
+PRINTW According to Yosuke, the suit should be empty...
+PRINTL 　
+PRINTL Teddie:
+PRINTW 「Ta-da!」
+PRINTW His head came off with a shout, and there was a body in there.
+PRINTW It was a handsome blond blue-eyed boy of european descent in there...
+PRINTL 　
+PRINTW Completely naked...
+PRINTL 　
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Wah...it's not empty....」
+	PRINTL 　
+ENDIF
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「A-a lie....」
+	PRINTL 　
+ENDIF
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Kuh, Teddie...what?」
+	PRINTL 　
+ENDIF
+PRINTL Teddie:
+PRINTW 「Teddie really wanted to help senseis...help Nanako and do my best!」
+PRINTW 「Then, Teddie became substantial!」
+PRINTL 　
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「Did a“human”grow inside there?」
+	PRINTL 　
+ENDIF
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「You can't be serious.」
+	PRINTL 　
+ENDIF
+PRINTL Teddie:
+PRINTW 「Because Teddie can use a persona, we can go together!」
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+;千枝か雪子がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:千枝]]) == 2 || FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINT As Teddie stood there naked and proud 
+		IF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINT Chie
+		ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINT Yukiko
+		ENDIF
+		PRINTW  looked away with a blushing face...
+	ELSE
+		PRINT As Teddie stood there naked and proud 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  looked amazed...
+	ENDIF
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+;千枝か雪子がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:千枝]]) == 2 ||FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINT As Teddie stood there naked and proud 
+		IF FINDCHARA_B([[キャラ:千枝]]) == 2 && FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINT Chie and Yukiko 
+		ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINT Chie 
+		ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINT Yukiko 
+		ENDIF
+		PRINTW blushed and turned away...
+	ELSE
+		PRINT As Teddie stood there naked and proud 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  looked amazed...
+	ENDIF
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW Teddie stood there naked and proud...
+ENDIF
+PRINTL 　
+PRINTL Teddie:
+PRINTW 「Sensei!　My best regards for the future!」
+PRINTW Teddie joined the ranks.
+PRINTL 　
+PRINTW If you can go back to preparations, Teddie might prove useful...
+PRINTL 　
+
+CALL ADD_NEW_COMPANION, 4567, 1000
+;戦闘参加可能で加入するが, 調教で戦闘参加不可能になる
+SIF RESULT
+	CFLAG:(RESULT:1):戦闘参加不可能 = -1
+
+;------------------------------------------------------------------
+;霧が晴れているとき
+;------------------------------------------------------------------
+@DUNGEON_74_SE
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW How many time have you visited this paradise looking for Nanako?
+PRINTW While the fog was thick at first, it has thinned to the point that the surrounding landscape is clearly visible.
+PRINTL 　
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「The fog has become thin....」
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「Don't shadows become violent when the fog clears up?」
+		;クマがパーティメンバーにいる.4567
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「That is so!」
+			PRINTL 　
+		ENDIF
+		;千枝がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINTL 　
+			PRINTL Chie:
+			PRINTW 「If we don't hurry, Nanako!」
+		ELSE
+			PRINTL 　
+			PRINTL Yukiko:
+			PRINTW 「That is so...we must hurry!」
+		ENDIF
+	;千枝がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL Chie:
+		PRINTW 「Isn't this useless if the fog clears?」
+		PRINTL 　
+		PRINTL Yukiko:
+		PRINTW 「That is so...we must hurry!」
+	ELSE
+		PRINTW 「If this clears up, Nanako....　Let's hurry!」
+	ENDIF
+	PRINTL 　
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Thin...so thin....」
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「Don't shadows get violent when the fog clears up?」
+		;クマがパーティメンバーにいる.4567
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「That is so!」
+			PRINTL 　
+		ENDIF
+		;千枝がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINTL 　
+			PRINTL Chie:
+			PRINTW 「If we don't hurry, Nanako!」
+		ELSE
+			PRINTL 　
+			PRINTL Yosuke:
+			PRINTW 「Dangerous....　Let's hurry!」
+		ENDIF
+	;千枝がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL 　
+		PRINTL Chie:
+		PRINTW 「If we don't hurry, Nanako!」
+	ELSE
+		PRINTW 「Let's end this before the shadows get violent!」
+	ENDIF
+	PRINTL 　
+;千枝がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「The fog is so thin now....」
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「Don't shadows get violent when the fog clears up?」
+		PRINTL 　
+		;クマがパーティメンバーにいる.4567
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「That is so!　We don't have much time!」
+		ELSE
+			PRINTL Chie:
+			PRINTW 「That is so..., we must hurry!」
+		ENDIF
+	ELSE
+		PRINTW 「If we don't hurry, Nanako!」
+	ENDIF
+	PRINTL 　
+;完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「The fog...it's getting pretty thin....」
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL 　
+		PRINTL Teddie:
+		PRINTW 「We don't have much time....」
+		PRINTL 　
+	ENDIF
+	PRINTW 「Urgh, we don't have much time before the shadows begin to rampage!」
+	PRINTL 　
+;クマがパーティメンバーにいる.4567
+ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「Sensei!　We don't have much time....」
+	PRINTW 「If we don't hurry Nanako!」
+	PRINTL 　
+ENDIF
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW According to the bear, the shadows become violent when the fog clears up.
+		PRINTL 　
+		PRINTW 「......!」
+		PRINT Looking impatiently at the thinning fog, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ELSE
+		PRINT Looking impatiently at the thinning fog, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ENDIF
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「......!」
+		PRINT Looking impatiently at the thinning fog, 
+		CALL DUNGEON_74_PT_NAME
+		PRINT  hurried forth...
+	ELSE
+		PRINT Looking impatiently at the thinning fog, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ENDIF
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW According to Teddie, the shadows rampage when the fog clears.
+	PRINTW The fog appears a bit thin now....
+ENDIF
+
+;天上楽土進行状況（霧晴れ）, 突入イベント済み
+ダンジョンフラグ:74:6 = 1
+
+;------------------------------------------------------------------
+;第４天, 初めて入ったとき
+;------------------------------------------------------------------
+@DUNGEON_74_04
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW You hear the voice of a young child...
+PRINTL 　
+PRINTW 「Mommy....」
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「This voice....Nanako!?」
+	PRINTL 　
+	PRINTW 「Mommy....」
+ENDIF
+
+PRINTW 「Where....」
+PRINTL 　
+PRINTW 「Why have you disappeared....」
+PRINTW 「Why did you leave Nanako....」
+PRINTL 　
+PRINTW 「I hate this...Come back....」
+PRINTL 　
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「Is this the voice of...Nanako's heart, I wonder?」
+	PRINTL 　
+ELSE
+	PRINTL 　
+ENDIF
+PRINTW 「But, I'm not lonely....　Because Daddy is with me....」
+PRINTL 　
+PRINTW 「He always comes back late....」
+PRINTW 「Because he is so busy, he doesn't play with me....」
+PRINTL 　
+PRINTW 「He can't cook, and he can't do laundry....」
+PRINTL 　
+PRINTW 「He's gentle, but sometimes scary....」
+PRINTW 「I love daddy....」
+PRINTL 　
+;;P4主人公が仲間にいる
+IF FINDCHARA_B([[キャラ:P4主人公]]) >= 1
+	;;P4主人公が協力者ポジション, 調教すると戦闘参加不可に
+	IF CFLAG:GETCHARA([[キャラ:P4主人公]]):戦闘参加不可能 == -1
+		PRINTW 「I also have a big brother too....」
+		PRINTW 「Nanako is not alone....」
+		PRINTL 　
+	;P4主人公が戦闘参加可能＝調教陥落済み
+	ELSEIF CFLAG:GETCHARA([[キャラ:P4主人公]]):戦闘参加不可能 == 0
+		;P4主人公が調教されてるときは表向きは帰ったという感じ?
+		PRINTW 「Big brother...you came back....」
+		PRINTL 　
+	ENDIF
+ELSE
+	;P4主人公がいないときは表向きは帰ったという感じ?
+	PRINTW 「Big brother...you came back....」
+	PRINTL 　
+ENDIF
+PRINTW 「I'm not lonely....」
+PRINTL 　
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「She's trying to endure and convince herself she isn't lonely....」
+	PRINTL 　
+	;陽介がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL Yosuke:
+		PRINTW 「Stupid, it'll be ruined if we let ourselves get down.　Try to look calm.」
+		PRINTL 　
+	ENDIF
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「She seemed happy when we met at Junes...but she was lonely after all....」
+	PRINTL 　
+ENDIF
+;クマがパーティメンバーにいる.4567
+IF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「Nanako....」
+	PRINTL 　
+ENDIF
+PRINTL 　
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINT Feeling a little down from Nanako's feelings, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  pushed on...
+	ELSE
+		PRINT Feeling a little down from Nanako's feelings, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  pushed on...
+	ENDIF
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINT Feeling a little down from Nanako's feelings, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  pushed on...
+	ELSE
+		PRINT Feeling a little down from Nanako's feelings, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  pushed on...
+	ENDIF
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW Nanako doesn't seem in imminent danger.
+	PRINTW But, that isn't certain.　It would be better to hurry...
+ENDIF
+
+;天上楽土進行状況, 第４天
+ダンジョンフラグ:74:5 = 4
+
+;------------------------------------------------------------------
+;第５天, 初めて入ったとき
+;------------------------------------------------------------------
+@DUNGEON_74_05
+PRINTW A man's voice is heard from nowhere...
+PRINTL 　
+PRINTW 「Th...that's wrong....」
+PRINTW 「It's not like that....」
+PRINTL 　
+PRINTW 「I only wanted to live quietly.」
+PRINTW 「That's why....」
+PRINTL 　
+PRINTW The man's voice faded away....
+PRINTW This guy...was that Namatame's voice?
+
+;天上楽土進行状況, 第５天
+ダンジョンフラグ:74:5 = 5
+
+
+;------------------------------------------------------------------
+;第６天, 初めて入ったとき
+;------------------------------------------------------------------
+@DUNGEON_74_06
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW Namatame's voice can be heard...
+PRINTL 　
+PRINTW 「This is a good place....」
+PRINTW 「Quiet....」
+PRINTL 　
+PRINTW 「.......」
+PRINTL 　
+PRINTW 「I wanted to live here....」
+PRINTW 「Let's stay here together....」
+PRINTL 　
+PRINTL 　
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「Together...with Nanako...what does that mean?」
+	PRINTL 　
+ENDIF
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「Uwaaa.　Living here...what a weirdo....」
+	PRINTL 　
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Such, Uraaaaa...Teddie will not allow it!」
+		PRINTL 　
+		;陽介がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:陽介]]) == 2
+			PRINTL Yosuke:
+			PRINTW 「Teddie, your mouth isn't moving....」
+			PRINTL 　
+		ENDIF
+	ENDIF
+	;陽介がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL Yosuke:
+		PRINTW 「Looks....」
+		PRINTL 　
+	ENDIF
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Living here...hey, is this guy crazy!」
+	PRINTL 　
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Such, Uraaaaa...Teddie will not permit it!」
+		PRINTL 　
+		PRINTL Yosuke:
+		PRINTW 「Teddie, your mouth isn't moving....」
+		PRINTL 　
+	ENDIF
+ENDIF
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Everyone...Let's hurry!」
+	PRINTL 　
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「...ah.」
+		PRINT Showing impatience at Namatame's voice, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  tried to calm down while advancing...
+	ENDIF
+;P4主人公がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTW 「...Let's hurry!」
+	PRINT Showing impatience at Namatame's voice, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  tried to calm down while advancing...
+ELSE
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		PRINT Bristling at Nametame's voice, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  tried to calm down while advancing...
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		PRINT Bristling at Nametame's voice, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  tried to calm down while advancing...
+	;それ以外（知り合いが一人もきていない.）
+	ELSE
+		PRINTW Namatame sounds far away.
+		PRINTW You advanced towards it...
+	ENDIF
+ENDIF
+;天上楽土進行状況, 第６天
+ダンジョンフラグ:74:5 = 6
+
+;------------------------------------------------------------------
+;第７天, 初めて入ったとき
+;------------------------------------------------------------------
+@DUNGEON_74_07
+PRINTW You can hear Namatame's voice...
+PRINTL 　
+PRINTW 「I....」
+PRINTW 「I knew another world existed....」
+PRINTW 「I had to save them....」
+PRINTW 「So, I....」
+PRINTL 　
+PRINTW Namatame's voice is louder.
+PRINTW You are surely approaching where Nanako and Namatame are...
+;天上楽土進行状況, 第７天
+ダンジョンフラグ:74:5 = 7
+
+;------------------------------------------------------------------
+;第７天, 中ボス前
+;------------------------------------------------------------------
+@DUNGEON_74_08
+PRINTW You hear Namatame's voice on the other side of the door...
+PRINTL 　
+PRINTW 「Go back!」
+PRINTW 「No more, don't disturbb me!」
+PRINTL 　
+PRINTW Is Nanako there?
+;天上楽土進行状況, 第７天
+ダンジョンフラグ:74:5 = 8
+
+;------------------------------------------------------------------
+;第７天, 中ボス
+;------------------------------------------------------------------
+@DUNGEON_74_09
+PRINTW 「Why are you stopping me!」
+PRINTW 「This child....」
+PRINTW 「I'll save her!」
+PRINTL 　
+PRINTL Nanako wasn't visible when the door opened, 
+;マーガレットイベントから拝借
+PRINTW Looking like a balance, there was a huge shadow.
+PRINTW You must defeat it to advance...
+
+;戦闘, 全能のバランサー
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+
+CUSTOMDRAWLINE =
+
+CALL SET_ENEMY,9,[[キャラ:全能バランサ]],50,0,1
+CFLAG:(CHARANUM-1):行動回数 = 1
+CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+ABL:(CHARANUM-1):スキル1 = [[スキル:アギダイン]]
+ABL:(CHARANUM-1):スキル2 = [[スキル:ブフダイン]]
+ABL:(CHARANUM-1):スキル3 = [[スキル:ジオダイン]]
+ABL:(CHARANUM-1):スキル4 = [[スキル:ガルダイン]]
+
+ABL:(CHARANUM-1):スキル5 = [[スキル:マグダイン]]
+ABL:(CHARANUM-1):スキル6 = [[スキル:アクアダイン]]
+ABL:(CHARANUM-1):スキル7 = [[スキル:コンセントレイト]]
+ABL:(CHARANUM-1):スキル8 = 0
+
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL BATTLE_START
+
+CUSTOMDRAWLINE =
+
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+
+PRINTL 　
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTW 「.......」
+	PRINTFORMW After you defeated the shadow, you walked while %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% stayed in silence...
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Darn...she's not here!」
+	PRINTW You advanced while Yosuke was irritated that Nanako wasn't there...
+;千枝がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「I thought she was here!」
+	PRINTW You advanced while Chie was irritated the Nanako wasn't there...
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Nanako isn't here....」
+	PRINTW You advanced while Yukiko was dismayed that Nanako wasn't there...
+;完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「Tch..., she wasn't here....」
+	PRINTW You advanced while Kanji was irritated that Nanako wasn't there...
+;クマがパーティメンバーにいる.4567
+ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「She wasn't here....」
+	PRINTW You advanced while Teddie was dismayed that Nanako wasn't there...
+ELSE
+	PRINTW You defeated the shadow, but Nanako wasn't there.
+	PRINTW Keep going...
+ENDIF
+
+;天上楽土進行状況, 第７天中ボス
+ダンジョンフラグ:74:5 = 9
+
+;------------------------------------------------------------------
+;第８天
+;------------------------------------------------------------------
+;第８天到達時, 霧晴れる前
+@DUNGEON_74_10
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW You hear Namatame's voice...
+PRINTL 　
+PRINTW 「I won't hand over this girl....」
+PRINTW 「I'll never let her go....」
+PRINTW 「This time...never....」
+PRINTL 　
+PRINTL 　
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Oi oi, something about that seems dangerous....」
+	PRINTL 　
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「This....」
+		PRINTL 　
+	ENDIF
+;完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「This Namatame guy is becoming strange....」
+	PRINTL 　
+ENDIF
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「A double suicide...he really wouldn't do that would he?」
+	PRINTL 　
+	;雪子がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTL Yukiko:
+		PRINTW 「...such!」
+		PRINTL 　
+	ENDIF
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Nanako...are you alright?」
+	PRINTL 　
+ENDIF
+;クマがパーティメンバーにいる.4567
+IF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「Sensei!　Hurry!」
+	PRINTL 　
+ENDIF
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTW 「...!」
+	;ッ
+	PRINT Worrying about Nanako with a grim face, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  hurried forth...
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+ELSEIF ダンジョンフラグ:74:2 == 1
+	PRINT Worrying about Nanako, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  hurried forth...
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	PRINT Worrying about Nanako, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  hurried forth...
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW Namatame seems to be losing his Mind.
+	PRINTW You better hurry...
+ENDIF
+;天上楽土進行状況, 第８天
+ダンジョンフラグ:74:5 = 10
+;------------------------------------------------------------------
+;第８天到達時, 霧晴れ後
+@DUNGEON_74_10A
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW You hear Namatame's voice...
+PRINTL 　
+PRINTW 「I won't hand over this girl....」
+PRINTW 「I'll never hand her over....」
+PRINTW 「This time...never....」
+PRINTL 　
+PRINTW 「......Hurgh!?」
+PRINTL 　
+PRINTW 「W-was that my imagination....　Like...anything....」
+PRINTW 「It's alright...You don't need to be frightened....」
+PRINTW 「Be...Because I'll save you....」
+PRINTL 　
+PRINTL 　
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「What...What's going on?」
+	;陽介がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL 　
+		PRINTL Yosuke:
+		PRINTW 「No, something's different....」
+		;クマがパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL 　
+			PRINTW 「Yeah....　This is...a shadow!」
+			;千枝がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL 　
+				PRINTL Chie:
+				PRINTW 「Isn't...that dangerous?」
+				;雪子がパーティメンバーにいる.
+				IF FINDCHARA_B([[キャラ:雪子]]) == 2
+					PRINTL Yukiko:
+					PRINTW 「Yes, let's hurry!」
+				ELSE
+					PRINTW 「Let's hurry!」
+				ENDIF
+			ELSE
+				PRINTL 　
+				PRINTW 「Seems dangerous....」
+				;雪子がパーティメンバーにいる.
+				IF FINDCHARA_B([[キャラ:雪子]]) == 2
+					PRINTL Yukiko:
+					PRINTW 「Yes, let's hurry!」
+				ELSE
+					PRINTW 「Let's hurry!」
+				ENDIF
+			ENDIF
+		;千枝がパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINTL 　
+			PRINTL Chie:
+			PRINTW 「Whatever it is, it seems dangerous....」
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「Yes, let's hurry!」
+			ELSE
+				PRINTW 「Let's hurry!」
+			ENDIF
+		ELSE
+			PRINTL 　
+			PRINTW 「Whatever it is, it seems dangerous....」
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「Yes, let's hurry!」
+			ELSE
+				PRINTW 「Let's hurry!」
+			ENDIF
+		ENDIF
+	;雪子がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTL Yukiko:
+		PRINTW 「I think this is something different.」
+		;クマがパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL 　
+			PRINTW 「Yeah....　This is...a shadow!」
+			;千枝がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL 　
+				PRINTL Chie:
+				PRINTW 「Isn't...that dangerous?」
+				PRINTL 　
+				PRINTW 「Yes, let's hurry!」
+			ELSE
+				PRINTL 　
+				PRINTW 「It's dangerous....」
+				PRINTL 　
+				PRINTW 「Yes, let's hurry!」
+			ENDIF
+		;千枝がパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINTL 　
+			PRINTL Chie:
+			PRINTW 「Yes...It seems dangerous...!」
+			PRINTL 　
+			PRINTW 「Urgh!　Let's hurry!」
+		ELSE
+			PRINTL 　
+			PRINTW 「Whatever it is, it seems dangerous....」
+			PRINTL 　
+			PRINTW 「Yes, let's hurry!」
+		ENDIF
+	;千枝がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL 　
+		PRINTL Chie:
+		PRINTW 「This is different.」
+		;クマがパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL 　
+			PRINTW 「Yeah....　This is...a shadow!」
+			PRINTL 　
+			PRINTW 「Is it...dangerous?」
+			PRINTL 　
+			PRINTW 「It is...Let's hurry!」
+		ELSE
+			PRINTL 　
+			PRINTW 「...Whatever it is, it seems dangerous....」
+			PRINTL 　
+			PRINTW 「Yes, let's hurry!」
+		ENDIF
+	;クマがパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL 　
+		PRINTL Teddie:
+		PRINTW 「Nooo....　This is...a shadow!」
+		PRINTL 　
+		PRINTW 「A shadow...Let's hurry!」
+	ELSE
+		PRINTW 「If we don't hurry, I don't know what will happen....」
+	ENDIF
+	PRINTL 　
+;千枝がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「Anything...we're over here, that's not us....」
+	;クマがパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL 　
+		PRINTW 「Yeah....　This is...a shadow!」
+		PRINTL 　
+		PRINTW 「...Shadow!」
+		;陽介がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:陽介]]) == 2
+			PRINTL 　
+			PRINTL Yosuke:
+			PRINTW 「They're beginning to rampage!?」
+			PRINTL 　
+			PRINTW 「!　Then, we have to hurry to Nanako!」
+		;雪子がパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINTL Yukiko:
+			PRINTW 「Such!　They're beginning to rampage!?」
+			PRINTL 　
+			PRINTW 「!　Then, we have to hurry to Nanako!」
+		ELSE
+			PRINTW 「Then, we have to hurry to Nanako!」
+		ENDIF
+	;陽介がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL 　
+		PRINTL Yosuke:
+		PRINTW 「Ah...what was....」
+		PRINTL 　
+		PRINTW 「...Shadow?」
+		;雪子がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINTL Yukiko:
+			PRINTW 「Such...are they beginning to rampage....」
+			PRINTL 　
+			PRINTW 「Wha!　Isn't that dangerous?　Let's hurry!」
+		ELSE
+			PRINTL 　
+			PRINTW 「I see....」
+			PRINTL 　
+			PRINTW 「!　Then, we have to hurry to Nanako!」
+		ENDIF
+	;雪子がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTL Yukiko:
+		PRINTW 「...probably...I think it's a shadow....」
+		PRINTL 　
+		PRINTL Chie:
+		PRINTW 「That...Nanako!」
+		PRINTL 　
+		PRINTL Yukiko:
+		PRINTW 「Chie, let's hurry!」
+	ELSE
+		PRINTW 「A shadow...how?」
+		PRINTW 「Then, we have to hurry!」
+	ENDIF
+	PRINTL 　
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Something...other than us?」
+	;クマがパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL 　
+		PRINTL Teddie:
+		PRINTW 「...it's a shadow....」
+		PRINTL 　
+		PRINTL Yosuke:
+		PRINTW 「Wha!　Isn't that dangerous?　Let's hurry!」
+	;雪子がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTL Yukiko:
+		PRINTW 「...probably...I think it's a shadow....」
+		PRINTL 　
+		PRINTL Yosuke:
+		PRINTW 「Wha!　Isn't that dangerous?　Let's hurry!」
+	ELSE
+		PRINTW 「That can only be something unpleasant!　Let's hurry!」
+	ENDIF
+	PRINTL 　
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Anything...there?」
+	;クマがパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Surely, it's a shadow!」
+		PRINTL 　
+		PRINTL Yukiko:
+		PRINTW 「Such!　They're beginning to rampage!?」
+	ELSE
+		PRINTW 「Is it a shadow?　I have an unpleasant feeling....」
+	ENDIF
+	PRINTL 　
+ENDIF
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「.......」
+		PRINTL 　
+		PRINT Silently hearing Namatame's words, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  continued to walk...
+	ELSE
+		PRINT Hearing Namatame's forboding words, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ENDIF
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「.......」
+		PRINTL 　
+		PRINT Silently hearing Namatame's words, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  continued to walk...
+	ELSE
+		PRINT Hearing Namatame's forboding words, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ENDIF
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW The shadows rampage when the fog thins...
+	PRINTW You better hurry...
+ENDIF
+
+;天上楽土進行状況（霧晴れ）, 第８天
+ダンジョンフラグ:74:6 = 10
+;------------------------------------------------------------------
+;第９天
+;------------------------------------------------------------------
+;第９天到達時, 霧晴れる前
+@DUNGEON_74_11
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW Nanako's voice can be heard...
+PRINTL 　
+PRINTW 「I'm scared....」
+PRINTW 「Where are you...Mommy....」
+PRINTW 「Help me...Daddy....」
+PRINTL 　
+PRINTL 　
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「That sounded close!」
+	PRINTL 　
+	;陽介がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL Yosuke:
+		PRINTW 「Ah....」
+		PRINTL 　
+	ENDIF
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Teddie's nose detects something!」
+		PRINTL 　
+	ENDIF
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「A little further...I'm all fired up!」
+		PRINTL 　
+	ENDIF
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Nanako's voice...it's so close!」
+	PRINTL 　
+	;陽介がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL Yosuke:
+		PRINTW 「Ah....」
+		PRINTL 　
+	ENDIF
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Teddie's nose detects something!」
+		PRINTL 　
+	ENDIF
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「A little further...I'm all fired up!」
+		PRINTL 　
+	ENDIF
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「...Are they on the next floor?」
+	PRINTL 　
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「My nose tells me they are!」
+		PRINTL 　
+	ENDIF
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「So close....」
+		PRINTL 　
+	ENDIF
+;完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「So close....」
+	PRINTL 　
+	;クマがパーティメンバーにいる.4567
+	IF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「My nose says it's the next floor!」
+		PRINTL 　
+	ENDIF
+;クマがパーティメンバーにいる.4567
+ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「Mmmm!　My nose says Nanako is on the next floor!」
+	PRINTL 　
+ENDIF
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTW 「...let's go.」
+	PRINTW You rushed in Nanako's voice's direction.
+	PRINT With a determined expression, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  went forth...
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+ELSEIF ダンジョンフラグ:74:2 == 1
+	PRINTW You rushed in Nanako's voice's direction.
+	PRINT With a serious expression, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  went forth...
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	PRINTW You rushed in Nanako's voice's direction.
+	PRINT With a serious expression, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  went forth...
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW You rushed in Nanako's voice's direction.
+	PRINTW Nanako seems so close...
+ENDIF
+;天上楽土進行状況, 第９天
+ダンジョンフラグ:74:5 = 11
+;------------------------------------------------------------------
+;第９天到達時, 霧晴れ後
+@DUNGEON_74_11A
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW You hear Namatame's voice...
+PRINTL 　
+PRINTW 「Hurgh!　Wh-what is that...those....」
+PRINTW 「D-don't come closer!　Don't...get any closer!」
+PRINTL 　
+PRINTL 　
+PRINTW 「Stop...it!」
+PRINTW 「This child...I'll...I'll save her!」
+PRINTW 「Uaaaaaaaaaaa!!」
+PRINTL 　
+PRINTL 　
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「This....」
+	PRINTL 　
+ENDIF
+;クマがパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「There's something strange up there!」
+	PRINTL 　
+ENDIF
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「Wh-what is happening!?」
+	;千枝がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL 　
+		PRINTL Chie:
+		PRINTW 「That looks dangerous!　We must hurry!」
+	ELSE
+		PRINTW 「What's happened seems dangerous...Let's hurry!」
+	ENDIF
+	PRINTL 　
+;完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「What on earth is happening!?」
+	;千枝がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL 　
+		PRINTL Chie:
+		PRINTW 「I don't know!　But, that sounds dangerous!　We must hurry!」
+	ELSE
+		PRINTW 「Tch...this smells bad...We have to hurry!」
+	ENDIF
+	PRINTL 　
+ENDIF
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	PRINTW Namatame suddenly shouted out.
+	PRINTW The shadows must have begun to rampage.
+	PRINTL 　
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「......!?」
+		PRINT Worrying that something bad happened, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ELSE
+		PRINT Worrying that something bad happened, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ENDIF
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「......!?」
+		PRINT Worried at Namatame's cry, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ELSE
+		PRINT Worried at Namatame's cry, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  hurried forth...
+	ENDIF
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW Namatame suddenly cried out.
+	PRINTW The shadows may have begun to rampage.
+	PRINTW You should advance and brace yourself...
+ENDIF
+
+;天上楽土進行状況（霧晴れ）, 第９天
+ダンジョンフラグ:74:6 = 11
+;------------------------------------------------------------------
+;第１０天
+;------------------------------------------------------------------
+;第１０天到達時, 霧晴れる前
+@DUNGEON_74_12
+PRINTW This seems to be the top floor.
+PRINTW Nanako and Namatame must be on the other side of this door...
+
+;天上楽土進行状況, １０天入り口
+ダンジョンフラグ:74:5 = 12
+
+;------------------------------------------------------------------
+;第１０天到達時, 霧晴れ後
+@DUNGEON_74_12A
+PRINTW This seems to be the top floor.
+PRINTW Nanako and Namatame must be on the other side of this door...
+PRINTL 　
+PRINTW From the other side, you can hear shouts and the sounds of battle.
+PRINTW What is happening there...
+
+;天上楽土進行状況（霧晴れ）, 第１０天入り口
+ダンジョンフラグ:74:6 = 12
+
+;------------------------------------------------------------------
+;第１０天ボス, 霧晴れる前
+@DUNGEON_74_13
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW You opened the door and crossed the suspension bridge.
+PRINTW In the plaza ahead, you saw a young child and a man in a delivery uniform...Nanako is here.
+PRINTL 　
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「Nanako!」
+	ELSE
+		;クマがパーティメンバーにいる.4567
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「Nanako!」
+		ELSE
+			PRINTW 「Nanako!」
+		ENDIF
+	ENDIF
+	PRINTL 　
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「Nanako!」
+	ELSE
+		PRINTW 「Nanako!」
+	ENDIF
+	PRINTL 　
+;菜々子の知り合い何人いるか０
+ELSE
+	PRINTL 　
+ENDIF
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTW 「B...big brother!!」
+ELSE
+	PRINTW 「Ah....」
+ENDIF
+PRINTL 　
+PRINTW 「Y-you musn't go!」
+PRINTW Nanako notice the party and tried to rush to you.
+PRINTW But, the man held her back.
+PRINTL 　
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTW 「Namatama?」
+	PRINTL 　
+	PRINTW 「I...do you know them?」
+	PRINTFORMW Nanako tried to answer while Namatama was being intimidated by %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%.
+ELSE
+	PRINTW 「I...do you know them?」
+	PRINTW Nanako tried to answer while being scared by Namatame.
+ENDIF
+PRINTL 　
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「You...senpai....」
+	PRINTL 　
+ENDIF
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Release Nanako!!」
+	PRINTL 　
+;クマがパーティメンバーにいる.4567
+ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「Let Nanako go!」
+	PRINTL 　
+ENDIF
+;雪子, 完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2 && FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTW 「Ah...haha, I...saved you, it's you....」
+	PRINTW 「This child...I'll save her too....」
+;雪子か完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2 || FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTW 「A...haha, I...I saved you, it's you....」
+	PRINTW 「This child...I'll save her too....」
+ELSE
+	PRINTW 「Ah...haha, I'll...I'll save her....」
+	PRINTW 「This child...I must save her....」
+	PRINTW Namatame is staring at Nanako with strange eyes.
+ENDIF
+PRINTL 　
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「Ah...?　this guy, is he stoned?」
+	PRINTW 「What am I doing trying to understand this guy's rambling!　Let Nanako go!!」
+	PRINTL 　
+ENDIF
+PRINTW 「D-don't come any closer....」
+PRINTW To help Nanako, the situation makes it hard to approach.
+PRINTL 　
+PRINTW 「I'll save her...I...put her in the television....」
+PRINTW 「On a rainy day...the signal....　When I don't save them....」
+PRINTL 　
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINTL Yosuke:
+	PRINTW 「He's been talking about saving from a little while ago...is killing your “salvation”!?」
+	PRINTL 　
+	PRINTW 「Murder...?」
+	PRINTW 「N-no, I'm helping....」
+	PRINTL 　
+	PRINTL Yosuke:
+	PRINTW 「What do you think you're doing!?」
+	PRINTW 「What you're doing, is murder!」
+	PRINTL 　
+	PRINTW 「ha, ha....」
+	PRINTW 「If you really believe that, you should think about what you're doing....」
+	PRINTL 　
+	PRINTW Namatame started to become strange as Yosuke talked.
+ELSE
+	PRINTW Namatame mutters continuously like he's losing his Mind.
+ENDIF
+;悪魔をつれたサマナーの場合, 殺しに来たとしか見えないよな...
+PRINTL 　
+PRINTW 「To such a place, still chasing....」
+PRINTW 「I know why you're here, you...you're the murderer....」
+PRINTW 「Ha, haha...it's a shame....」
+PRINTW 「You came for this child, but, I'll save her....」
+PRINTL 　
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINTL Kanji:
+	PRINTW 「The hell...What the hell is he talking about!!」
+	PRINTL 　
+	PRINTW 「Shut up, asshole!!」
+	PRINTW As Kanji roared at those words, Namatame began to change.
+ELSE
+	PRINTW As the muttering Namatame held Nanako back, he began to change.
+ENDIF
+PRINTW What appeared like with Kanji, Chie, and Yukiko was the suppressed feelings...a shadow?
+PRINTL 　
+PRINTW 「This is a wonderful world....」
+PRINTW 「Pleasant fog, a hidden place....　I am a savior....」
+PRINTW 「“That place”is filthy....　There are many villians....」
+PRINTW 「So I'll save them....」
+PRINTW 「I am a savior...I am...a hero...of justice....」
+PRINTL 　
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「That...shadow...?」
+ENDIF
+PRINTL 　
+PRINTW The shadow looked at Nanako with intentions that were quite opposite of saving.
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	PRINT Seeing this opportunity, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  secured Nanako.
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	PRINT Seeing this opportunity, 
+	CALL DUNGEON_74_PT_NAME
+	PRINTW  secured Nanako.
+;それ以外（知り合いが一人もきていない.）
+ELSE
+	PRINTW Seeing this opportunity, you succeeded in securing Nanako.
+ENDIF
+PRINTL 　
+;クマがパーティメンバーにいる.4567
+IF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINTL Teddie:
+	PRINTW 「Nanako!!」
+	PRINTL 　
+ENDIF
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINTL Yukiko:
+	PRINTW 「Nanako...Nanako!!」
+	PRINTL 　
+ENDIF
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINTL Chie:
+	PRINTW 「This guy...I absolutely will not forgive!!」
+	PRINTL 　
+ENDIF
+PRINTW 「Give back...the child....」
+PRINTW 「This child...I....　I hungeeeeeeeer!!!」
+PRINTW Shadows merged into Namatame's body as he was enraged by the loss of Nanako...
+PRINTL 　
+PRINTW 「I...I'll save her...!」
+PRINTW 「I won't let anyone get in my way!」
+PRINTW Namatame changed shape into a grotesque angel...Kunino-sagiri attacked!
+PRINTL 　
+CUSTOMDRAWLINE =
+
+;戦闘, クニノサギリ
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+
+CALL SET_ENEMY,9,[[キャラ:クニノサギリ]],55,0,1
+CFLAG:(CHARANUM-1):行動回数 = 1
+CFLAG:(CHARANUM-1):ＨＰ補正 += 1500
+CFLAG:(CHARANUM-1):ＭＰ補正 += 2000
+
+CSTR:(CHARANUM-1):思考パターン = 3243
+
+BASE:(CHARANUM-1):力 += 10
+BASE:(CHARANUM-1):知恵 += 10
+BASE:(CHARANUM-1):魔力 += 10
+BASE:(CHARANUM-1):耐力 += 10
+BASE:(CHARANUM-1):運 += 10
+
+;ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+;ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+;ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ジオダイン]]
+;ABL:(CHARANUM-1):スキル4 = [[スキル:マハ・ガルダイン]]
+
+;ABL:(CHARANUM-1):スキル5 = 0
+;ABL:(CHARANUM-1):スキル6 = 0
+;ABL:(CHARANUM-1):スキル7 = 0
+;ABL:(CHARANUM-1):スキル8 = 0
+
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL BATTLE_START
+
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+PRINTW 「D-damn it...Why....」
+PRINTW Kunino-sagiri collapsed into fog leaving only Namatame...
+PRINTW Now that Namatame was neutralized, will Nanako be alright?
+PRINTL 　
+;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+IF ダンジョンフラグ:74:2 == 1
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「Nanako!」
+		PRINTL 　
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  cried out and ran to Nanako's side in worry.
+	;クマがパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Nanako!」
+		PRINTL 　
+		PRINTW Teddie cried out and ran to Nanako's side in worry.
+	ELSE
+		PRINTW 「Nanako!」
+		PRINTL 　
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  cried out and ran to Nanako's side in worry.
+	ENDIF
+	PRINTL 　
+;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+ELSEIF ダンジョンフラグ:74:2 >= 2
+	;P4主人公がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+		PRINTW 「Nanako!」
+		;クマがパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「Nanako!」
+		ENDIF
+		PRINTL 　
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  cried out and ran to Nanako's side in worry.
+	ELSE
+		PRINTW 「Nanako!」
+		;クマがパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTW 「Nanako!」
+		ENDIF
+		PRINTL 　
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  cried out and ran to Nanako's side in worry.
+	ENDIF
+	PRINTL 　
+	;菜々子の知り合い何人いるか０
+ELSE
+	PRINTL 　
+ENDIF
+PRINTW 「Haa...Haa....」
+PRINTW Nanako is lying some distance from Namatame and breathing painfully...
+PRINTW Probably because of this strange place, a young child like Nanako would be in danger.
+PRINTL 　
+PRINTW If you leave things like they are, ordinary doctors won't be able to help Nanako.
+PRINTW But that is not the problem. The problem is that bringing her to an ordinary doctor will reveal important secrets.
+PRINTL 　
+PRINTW What would you do after having a trusted doctor look after her...
+CALL INPUT_SELECT,1,"Send her home",2,"Enslave her"
+SELECTCASE RESULT
+	CASE 1
+		PRINTW After having a trusted doctor treat Nanako, you sent her back home.
+		PRINTL 　
+		PRINTL 　
+		PRINTW A while later, a package came from a man named Dojima.
+		PRINTW Inside, there were ￥100000 and a paper mache bracelet as thanks.
+		PRINTW ...is this bracelet from Nanako?
+		PRINTL 　
+		PRINTW Received ￥100000 and a paper mache bracelet.
+		
+		MONEY += 100000
+		
+		;Paper Clay Bracelet入手
+		ITEM:5035 += 1
+		
+		;ライトロウになる
+		CALL INCREASE_LD,10
+		CALL INCREASE_LC,10
+		
+		FLAG:脱出 = 1
+		
+		;天上楽土クリアフラグ:クリア済み（菜々子救出）へ
+		ダンジョンフラグ:74:1 = 1
+	CASE 2
+		PRINTW After having a doctor treat Nanako, you confined her as a slave.
+		PRINTW With her figure and age, she has plenty of uses...
+		
+		CALL ADD_NEW_COMPANION,4583,0
+		IF RESULT == 1
+			LOCAL = RESULT:1
+			
+			;ダークカオスになる
+			CALL INCREASE_LD,-15
+			CALL INCREASE_LC,-15
+		ENDIF
+		
+		FLAG:脱出 = 1
+		
+		;天上楽土クリアフラグ:クリア済み（菜々子奴隷）へ
+		ダンジョンフラグ:74:1 = 3
+ENDSELECT
+;天上楽土進行状況, 第１０天ボス済み
+ダンジョンフラグ:74:5 = 13
+
+;------------------------------------------------------------------
+;第１０天ボス, 霧晴れ後
+@DUNGEON_74_13A
+
+;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+CALL DUNGEON_74_PT_NF
+
+;間に合わない
+;菜々子状況, 崩壊確定
+IF ダンジョンフラグ:74:4 == 1
+	PRINTFORMW As %CALLNAME:MASTER% crossed the suspension bridge and surveyed the scene, the battle between some monstrous angel thing and a swarm of shadows had just ended.
+	PRINTL 　
+	PRINTW Shadows were gathering around the monstrous angel.
+	PRINTW As it died with a small cry, there was a man in a delivery uniform lying on the ground.
+	PRINTFORMW Was that Namatame...Leaving no time to consider this, the shadows rushed %CALLNAME:MASTER%.
+	PRINTL 　
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% cried out as some shadows went for Nanako who was lying a bit away.
+		;クマがパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「Nanako!」
+			PRINTW Teddie cried out as some shadows went for Nanako who was lying a bit away.
+		ELSE
+			PRINTW 「Nanako!」
+			PRINT Seeing shadows going for Nanako who was a little bit away, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  cried out.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINTFORMW 少し離れたところに倒れている菜々子にもシャドウ達が向かうのを見た%CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%達の叫び声が響き渡った.
+		ELSE
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINT Seeing shadows going for Nanako who was a little bit away, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  cried out.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるか０
+	ELSE
+		PRINTW As you prepared to fight the incoming shadows, you saw some going for Nanako.
+		PRINTL 　
+	ENDIF
+	;陽介がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL Yosuke:
+		PRINTW 「Damn it...there's too many of them....」
+		PRINTL 　
+	ENDIF
+	;完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「Tch...move it ORA!」
+		PRINTL 　
+	ENDIF
+	;雪子がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTL Yukiko:
+		PRINTW 「Such...still...come out!」
+		PRINTL 　
+	ENDIF
+	;千枝がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL Chie:
+		PRINTW 「No good...Stay away from her!」
+		PRINTL 　
+	ENDIF
+	PRINTW Though you defeat numerous shadows, many more still bar you from Nanako.
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTFORMW While you're doing that, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% also fights in vain, as the shadows reach Nanako.
+		ELSE
+			PRINT While you're doing that, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  also fights in vain, as the shadows reach Nanako.
+		ENDIF
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTFORMW While you're doing that, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% also fights in vain, as the shadows reach Nanako.
+		ELSE
+			PRINT While you're doing that, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  also fights in vain, as the shadows reach Nanako.
+		ENDIF
+	;それ以外（知り合いが一人もきていない.）
+	ELSE
+		PRINTFORMW While that happens, %CALLNAME:MASTER% also fights in vain, as the shadows reach Nanako.
+	ENDIF
+	PRINTW And, tiny penis-like tentacles began to go all over her body...
+	PRINTL 　
+	
+	;エロシーン
+	PRINTW 「u...mm....」
+	PRINTW The tentacles twined around her body and tore off her clothes, revealing her bare skin.
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTL 　
+			PRINTW 「...!!」
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% let out a heartbroken cry at the sight of Nanako's clothes being shredded.
+		ELSE
+			PRINTL 　
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「We have to help her quickly!」
+				PRINTL 　
+			;陽介がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「This is seriously bad!　We have to hurry!」
+				PRINTL 　
+			;千枝がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「We have to help her quickly...Nanako!」
+				PRINTL 　
+			;完二がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Get off her!　Move...Orarararaaaa!」
+				PRINTL 　
+			;クマがパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「What are you doing to Nanako!」
+				PRINTL 　
+			ENDIF
+			PRINT Watching her pink dress become scraps of cloth, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  let out a sorrowful voice.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTL 　
+			PRINTW 「...!!」
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% let out a heartbroken cry at seeing Nanako's pink dress shredded.
+		ELSE
+			PRINTL 　
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「What are you doing to Nanako!」
+				PRINTL 　
+			ENDIF
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「We have to help her quickly!」
+				PRINTL 　
+				;千枝がパーティメンバーにいる.
+				IF FINDCHARA_B([[キャラ:千枝]]) == 2
+					PRINTL Chie:
+					PRINTW 「I understand!　Let's go!」
+					PRINTL 　
+				ENDIF
+			;陽介がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「This is seriously bad!　We have to help her quickly!」
+				PRINTL 　
+				;完二がパーティメンバーにいる.
+				IF FINDCHARA_B([[キャラ:完二]]) == 2
+					PRINTL Kanji:
+					PRINTW 「I know...shit!」
+					PRINTL 　
+				ENDIF
+			;千枝がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「If we don't help her soon...Nanako!」
+				PRINTL 　
+				;完二がパーティメンバーにいる.
+				IF FINDCHARA_B([[キャラ:完二]]) == 2
+					PRINTL Kanji:
+					PRINTW 「I know...shit!」
+					PRINTL 　
+				ENDIF
+			;完二がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Get out!　Move it...Orarararaaaaa!」
+				PRINTL 　
+			ENDIF
+			PRINT Watching her pink dress become scraps of cloth, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  let out a sorrowful voice.
+		ENDIF
+		PRINTL 　
+	ELSE
+		PRINTL 　
+	ENDIF
+	PRINTW Even as the tentacles wrap around her and tear her clothes, Nanako barely moves as if she was unconscious.
+	PRINTW If she remained unconscious, this scene might pass without causing any trauma to her Mind.
+	PRINTW However...
+	PRINTL 　
+	PRINTL 「...eh...?　Wh...at...?」
+	PRINTW 「ah...N-noooooooooo!」
+	PRINTW Nanako's echoing scream signalled the end of that good fortune and the beginning of a gruesome sight.
+	PRINTL 　
+	PRINTL 「W-what is this!　No!　Somebody...help me!」
+	PRINTW 「Daddy!　Big brother!　hee...auuuu!」
+	PRINTL As innumerable tentacles play with her childish body, Nanako struggled and cried out in fear and hatred.
+	PRINTW However, she couldn't escape the shadows crawling all over her hands and feet.
+	PRINTL 　
+	PRINTL 「Noo...There, I hate it....」
+	PRINTW 「This...is a...dreeam...?　ah...Hic!」
+	PRINTW The tentacles wrapped around her, licking with their tongues.
+	;PRINTW The tentacles wrapped around her lick licking tongues.
+	PRINTL This rape by inhuman beings would be far more than what ordinary people could do.
+	PRINTL As her innocent heart was exposed to this, she escaped from reality to protect herself.
+	PRINTW However, the shadows rampaging in the clear air began to grow new tentacles and showed Nanako no mercy.
+	PRINTL 　
+	PRINTW 「ah...ya....　what...are you doing...?」
+	PRINTW A tentacle thicker than the others, with a tip shaped like a glans began to run along Nanako's body.
+	;PRINTW One tentacle thick than the others and having a tip like a glans began to run along Nanako's body.
+	PRINTW Lacking sexual knowledge, Nanako could only tremble in fear at what approached.
+	PRINTW The wet tip pressed into the suffering Nanako's immature hole, slowly opening the crack.
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		PRINTL 　
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「...Wha!!」
+			PRINTFORMW While fighting the crowd of shadows, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% let out a cry at the terrible situation.
+		ELSE
+			;完二がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Wha...!　Bastards!」
+			;陽介がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「That..., oh my god!」
+			;雪子がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「S-such a thing!」
+			;千枝がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「Noooooo!!」
+			;クマがパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「S-stop it!」
+			ENDIF
+			PRINT While fighting the crowd of shadows, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  let out a cry at the terrible situation.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		PRINTL 　
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「...Wha!!」
+			PRINTL 　
+			;完二がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「B-bastards!」
+				PRINTL 　
+			ENDIF
+			;陽介がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「Shit!　Go away, move!」
+				PRINTL 　
+			ENDIF
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「S-such!」
+				PRINTL 　
+			ENDIF
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTW 「S-stop it!」
+			ENDIF
+			;千枝がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「Nooooo!!」
+				PRINTL 　
+			ENDIF
+			PRINTFORMW While fighting the crowd of shadows, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%'s friends let out a cry at the terrible scene.
+		ELSE
+			;完二がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Wha...!　Bastards!」
+				PRINTL 　
+			ENDIF
+			;陽介がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「Shit!　Get out, move!」
+				PRINTL 　
+			ENDIF
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「S-such!」
+				PRINTL 　
+			ENDIF
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「S-stop it!」
+			ENDIF
+			;千枝がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「Nooooo!!」
+				PRINTL 　
+			ENDIF
+			PRINT While fighting the group of shadows,
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  let out a cry at the terrible situation.
+		ENDIF
+		PRINTL 　
+	ELSE
+		PRINTL 　
+	ENDIF
+	PRINTL 「eh...?　a-argh!　Hee...Hurk!」
+	PRINTW 「T-that was!　Stop...aaaaaaah!!」
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		PRINTW The shadows seemed to laugh as the tentacle pressed into the crack and penetrated Nanako.
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  seemed to be laughed at, as the tentacle pressed into the crack and penetrated Nanako.
+	ELSE
+		PRINTW And, pressing into the crack that has never had even a finger, the tentacle penetrated Nanako.
+	ENDIF
+	PRINTL 　
+	PRINTL 「Uguu!　ah...help...gah, hah...!」
+	PRINTL 「already, stop...this....　Haa...haa....」
+	PRINTL The tentacle pierced, only stopping when it reached the deepest part.
+	PRINTW Nanako let out a weak voice as she suffered from the pain.
+	PRINTL As virgin blood smeared on the tentacle it expanded to the limit,
+	PRINTW pain and tears covered Nanako's face, creating a scene one might want to look away from.
+	PRINTL 　
+	PRINTL 「uu...aaah...heeee, guh!」
+	PRINTW As the shadows weren't satisfied with just that, they began to sate their desires as Nanako's screams echoed.
+	PRINTL 　
+	PRINTL 「ah, gah!　Na-nanako's...dying....　ah, uaaaaaaaaa!」
+	PRINTW Nanako cries out in pain as she is thrust into with body-shaking force.
+	PRINTL The shadows don't stop no matter how much Nanako cries out.
+	PRINTW Rather, other tentacles grew from the shadows, and began to search for another hole.
+	PRINTL 　
+	PRINTL 「...uu...ah...?　eh...?」
+	PRINTL 「aaaaah...Hee, heegeee!　Urgh!　Nbu...mmmmmm!」
+	PRINTW While one tentacle found Nanako's anus and began to slowly penetrate it, another entered he mouth as she cried out in pain.
+	PRINTL 　
+	PRINTL 「Mmph!　ah...guh...gah!」
+	PRINTL 「uu...yah...ueee...pu!　ah...oeee!」
+	PRINTW As 3 tentacles penetrate her while her hands and legs are bound, Nanako groaned in pain while crying.
+	PRINTL 　
+	PRINTL 「Ngu!　Puaaa!　cough...ah...ua....」
+	PRINTL 「ya...pu!　Mm, guh!　nmu...npu!」
+	PRINTL As tentacles pull out of her, more tentacles go in to replace them.
+	PRINTW The movement accelerated gradually, echoed by Nanako's cries.
+	PRINTL 　
+	PRINTL 「Mmm...jyupu...uu...ah...mm...ua....」
+	PRINTL 「jyupu...jyupu...a...jyu...ah....　Jyupu!　Jyupu!　Jyupupu!」
+	PRINTW The tentacle moved more and more rapidly and the suddenly convulsed.
+	PRINTL 　
+	PRINTL 「Ueee!　Jyupupu...ah...npu!　Mmmmmmmm!!」
+	PRINTL 「Mmm, mmmm!　Ueeee!　ah...ah....　uaa...ueee....」
+	PRINTW As filthy liquid flowed into her three holes began to overflow.
+	PRINTW Just as they spat out the last drop, the shadows pulled out of Nanako and left, satisfied.
+	PRINTL 　
+	PRINTL 「ah...uuu....　hah...hah....」
+	PRINTW As Nanako breathed weakly, thick white liquid flowed from her pussy and ass.
+	PRINTL Has she lost consciousness? She groans weakly, but is otherwise motionless.
+	PRINTW Another shadow began to approach and slowly extended tentacles...
+	PRINTL 　
+	PRINTL 　
+	;千枝がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:千枝]]) == 2
+		PRINTL Chie:
+		PRINTW 「Oh!　Noooo!」
+		PRINTL 　
+	;完二がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTL Kanji:
+		PRINTW 「Ora!　Leave her now!!」
+		PRINTL 　
+	;陽介がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+		PRINTL Yosuke:
+		PRINTW 「Hiyah!　This...no!」
+		PRINTL 　
+	;クマがパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+		PRINTL Teddie:
+		PRINTW 「Nooooooo!」
+		PRINTL 　
+	ENDIF
+	;雪子がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTL Yukiko:
+		PRINTW 「Nanako!」
+		PRINTL 　
+	ENDIF
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!!」
+			PRINTFORMW Kicking away the shadows that attacked Nanako, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% rushed forth.
+			PRINTFORMW However, Nanako didn't react as %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% approached.
+		ELSE
+			PRINT Kicking away the shadows that attacked Nanako, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  rushed forth.
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Na-nanako....」
+				PRINTL 　
+			ENDIF
+			;陽介がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「Shit!　senpai...this....」
+				PRINTL 　
+			;完二がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Why, this...She's just a child!」
+				PRINTL 　
+			;雪子がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「...t-terrible....」
+				PRINTL 　
+			;千枝がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「As soon as possible...we have to get her to a doctor!」
+				PRINTL 　
+			ENDIF
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  approached, but Nanako didn't react.
+		ENDIF
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!!」
+			PRINTFORMW Kicking away the shadows that attacked Nanako, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% rushed forth.
+			PRINTL 　
+			;陽介がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「Shit!　Senpai...this....」
+				PRINTL 　
+			;完二がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Why, such...she's just a child!」
+				PRINTL 　
+			ENDIF
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Na-nanako....」
+				PRINTL 　
+			ENDIF
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「...A-at this rate!」
+				PRINTL 　
+			ENDIF
+			;千枝がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「Quickly...to the hospital!」
+				PRINTL 　
+			ENDIF
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% approached, but Nanako didn't react.
+		ELSE
+			PRINTW 「...Nana...ko....」
+			PRINT Kicking away the shadows that attacked Nanako, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  rushed forth.
+			;陽介がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:陽介]]) == 2
+				PRINTL Yosuke:
+				PRINTW 「Shit!　senpai...this....」
+				PRINTL 　
+			;完二がパーティメンバーにいる.
+			ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+				PRINTL Kanji:
+				PRINTW 「Why, this...She's just a child!」
+				PRINTL 　
+			ENDIF
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Na-nanako....」
+				PRINTL 　
+			ENDIF
+			;雪子がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:雪子]]) == 2
+				PRINTL Yukiko:
+				PRINTW 「...A-at this rate!」
+				PRINTL 　
+			ENDIF
+			;千枝がパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:千枝]]) == 2
+				PRINTL Chie:
+				PRINTW 「Quickly...to the hospital!」
+				PRINTL 　
+			ENDIF
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  approached, but Nanako didn't react.
+		ENDIF
+	ELSE
+		PRINTW Slicing through tentacles, you kicked away the shadows that tried to surround Nanako.
+		PRINTL 　
+		PRINTL 「ah...uu....　uaa....」
+		PRINTW After defeating the shadows you look at the prone Nanako.
+	ENDIF
+	
+	PRINTW While she's certainly alive, her eyes are unfocused and her limbs are splayed. White fluid pours out of her mouth as she groans
+	PRINTW After bearing abuse from shadows that an adult would have trouble enduring, her childish mind and body must have broken...
+	;PRINTW Taking violence from the shadows that an adult would have trouble enduring, her childish Mind and body must have broken...
+	PRINTL 　
+	PRINTL 　
+	PRINTW You disregard the fainted Namatame, you won't be rewarded if Nanako doesn't receive medical treatment...
+	PRINTL 　
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			PRINTL 　
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% sat near Nanako crying and calling.
+		;クマがパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「Nanako!」
+			PRINTL 　
+			PRINTW Teddie sat near Nanako crying and calling.
+		ELSE
+			PRINTW 「Nanako!」
+			PRINTL 　
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  sat near Nanako crying and calling.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINTL 　
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% sat near Nanako crying and calling.
+		ELSE
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINTL 　
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  sat near Nanako crying and calling.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるか０
+	ELSE
+		PRINTL 　
+	ENDIF
+	PRINTW After having a doctor treat her, what will you do?
+	CALL INPUT_SELECT,1,"Send her home",2,"Enslave her"
+	SELECTCASE RESULT
+		CASE 1
+			PRINTW After having a trusted doctor treat Nanako, you sent her back home.
+			PRINTL 　
+			PRINTL 　
+			PRINTW After a while, some money came from a man named Dojima.
+			PRINTW The amount left after medical expenses wasn't bad...
+			PRINTL 　
+			PRINTW ￥50000 received.
+			
+			MONEY += 50000
+			
+			FLAG:脱出 = 1
+			
+				;天上楽土クリアフラグ:クリア済み（菜々子救出, 崩壊）へ
+				ダンジョンフラグ:74:1 = 2
+		CASE 2
+			PRINTW After having a trusted doctor treat Nanako, you brought her back as a slave.
+			PRINTW Even with her mind broken, this figure...may be useful for something.
+			
+			CALL ADD_NEW_COMPANION,4583,0
+			IF RESULT == 1
+				LOCAL = RESULT:1
+				
+				;間に合わなかった加入
+				CFLAG:LOCAL:イベント加入 = 1
+				
+				TALENT:LOCAL:崩壊 = 1
+				TALENT:LOCAL:処女 = 0
+				
+				EXP:LOCAL:Ｖ経験 += 1
+				EXP:LOCAL:Ａ経験 += 1
+				EXP:LOCAL:フェラ経験 += 1
+				EXP:LOCAL:輪姦経験 += 3
+				
+				EXP:LOCAL:精液経験 += 3
+				EXP:LOCAL:膣射経験 += 1
+				EXP:LOCAL:性交経験 += 2
+				
+				MARK:LOCAL:苦痛刻印 = 3
+				
+				EXP:LOCAL:異常経験 += 6
+				
+				
+				
+				;CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", LOCAL
+				;CALL ADDS_ABNORMAL_EXP, "Tentacle first experience", LOCAL
+				;CALL ADDS_ABNORMAL_EXP, "Pain seal LV3", LOCAL
+				;CALL ADDS_ABNORMAL_EXP, "Expansion first experience", LOCAL
+				
+				
+				;雨つぶての城の子供を妊娠する可能性ある
+				IF FLAG:Pregnant機能 && RAND:4
+					CALL SET_ENEMY,14,3242,11,1,1
+					CFLAG:LOCAL:出産予定日 = DAY + 6
+					CFLAG:LOCAL:妊娠時の父親の判定 = 4
+					CFLAG:LOCAL:妊娠確定後の父親の判定 = NO:POS(14)
+					CFLAG:LOCAL:父親の固有番号親 = -1
+					CSTR:LOCAL:父親名称 = %CALLNAME:POS(14)%
+					CALL DELENEMY
+				;審判の剣の子供を妊娠する可能性ある
+				;奈々子ちゃんに俺の股間の審判の剣をぶち込みたいです.ってCSVにあったから…
+				ELSEIF FLAG:Pregnant機能 && RAND:3
+					CALL SET_ENEMY,14,3278,11,1,1
+					CFLAG:LOCAL:出産予定日 = DAY + 6
+					CFLAG:LOCAL:妊娠時の父親の判定 = 4
+					CFLAG:LOCAL:妊娠確定後の父親の判定 = NO:POS(14)
+					CFLAG:LOCAL:父親の固有番号親 = -1
+					CSTR:LOCAL:父親名称 = %CALLNAME:POS(14)%
+					CALL DELENEMY
+				ENDIF
+				
+				;少しだけダークカオスになる
+				CALL INCREASE_LD,-10
+				CALL INCREASE_LC,-10
+			ENDIF
+			
+			FLAG:脱出 = 1
+			
+			;天上楽土クリアフラグ:クリア済み（菜々子奴隷）へ
+			ダンジョンフラグ:74:1 = 3
+	ENDSELECT
+ELSE
+;間に合った
+	PRINTW As you crossed the suspension bridge and surveyed the area, you saw innumerable shadows fighting a monster that looked like an angel.
+	PRINTW The Dark red angel shot magic at the group of shadows.
+	PRINTL 　
+	
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			PRINTL 　
+			PRINTFORMW Seeing an opening in the battle, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% rushed up to Nanako.
+		;クマがパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「Nanako!」
+			PRINTL 　
+			PRINTW Seeing an opening in the battle, Teddie rushed up to Nanako.
+		ELSE
+			PRINTW 「Na-nanako!」
+			PRINTL 　
+			PRINT Seeing an opening in the battle, 
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  rushed up to Nanako.
+		ENDIF
+		PRINTL 　
+		;千枝がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINTL Chie:
+			PRINTW 「Good, she's alive!」
+			PRINTW 菜々子の無事を確認し安堵する千枝.
+		ENDIF
+		;陽介がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:陽介]]) == 2
+			PRINTL Yosuke:
+			PRINTW 「She looks...safe and sound!」
+			PRINTW 菜々子の無事を確認し安堵する陽介.
+		ENDIF
+		;完二がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:完二]]) == 2
+			PRINTL Kanji:
+			PRINTW 「It seems she isn't injured!」
+			PRINTW 菜々子の無事を確認し安堵する完二.
+		ENDIF
+		;雪子がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINTL Yukiko:
+			PRINTW 「We should get her home quickly!」
+			PRINTW 菜々子の無事を確認し安堵する雪子.
+		ENDIF
+		PRINT そこへ
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINTL 　
+			PRINTFORMW Seeing an opening in the battle, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% rushed up to Nanako.
+		;クマがパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTL 「Nanako!」
+			PRINTW 「Na-nanako!」
+			PRINTL 　
+			PRINTW Seeing an opening in the battle, Teddie rushed up to Nanako.
+		ELSE
+			PRINTW 「Na-nanako!」
+			PRINTL 　
+			PRINT Seeing an opening in the battle,
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  rushed up to Nanako.
+		ENDIF
+		PRINTL 　
+		;千枝がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:千枝]]) == 2
+			PRINTL Chie:
+			PRINTW 「Alright, she's alive!」
+		ENDIF
+		;陽介がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:陽介]]) == 2
+			PRINTL Yosuke:
+			PRINTW 「Safe and sound...that's the way!」
+		ENDIF
+		;完二がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:完二]]) == 2
+			PRINTL Kanji:
+			PRINTW 「She doesn't seem to be injured!」
+		ENDIF
+		;雪子がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:雪子]]) == 2
+			PRINTL Yukiko:
+			PRINTW 「That's good....」
+		ENDIF
+		PRINT Checking Nanako's safety, 
+		CALL DUNGEON_74_PT_NAME
+		PRINTW  was relieved.
+		PRINT There 
+	;それ以外（知り合いが一人もきていない.）
+	ELSE
+		PRINT Seeing an opening in the battle, you rushed to the fallen Nanako.
+		PRINTL 　
+		PRINTW 「uuuu....」
+		PRINTW She is unconscious but not in danger of dying.
+		PRINT Before you had time to confirm Nanako's safety,
+	ENDIF
+	PRINTW the angel that defeated the shadows approached.
+	PRINTL 　
+	PRINTW 「I'll save her...I-I'll save her...!」
+	PRINTL 　
+	PRINTW Is that Namatame?
+	PRINTW You don't know what happened to him but can't avoid a fight...
+	PRINTL 　
+	PRINTW Kunino-sagiri attacked!
+	PRINTL 　
+	CUSTOMDRAWLINE =
+	
+	;戦闘
+	;クニノサギリ, シャドウと戦闘後なので少し弱体化
+	;戦闘, クニノサギリ
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	
+	CALL SET_ENEMY,9,[[キャラ:クニノサギリ]],55,0,1
+	CFLAG:(CHARANUM-1):行動回数 = 1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 700
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1500
+	
+	CSTR:(CHARANUM-1):思考パターン = 3243
+	
+	BASE:(CHARANUM-1):力 += 5
+	BASE:(CHARANUM-1):知恵 += 5
+	BASE:(CHARANUM-1):魔力 += 5
+	BASE:(CHARANUM-1):耐力 += 5
+	BASE:(CHARANUM-1):運 += 5
+	
+;	ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ラギダイン]]
+;	ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフダイン]]
+;	ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ジオダイン]]
+;	ABL:(CHARANUM-1):スキル4 = [[スキル:マハ・ガルダイン]]
+;	
+;	ABL:(CHARANUM-1):スキル5 = 0
+;	ABL:(CHARANUM-1):スキル6 = 0
+;	ABL:(CHARANUM-1):スキル7 = 0
+;	ABL:(CHARANUM-1):スキル8 = 0
+	
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	
+	CALL BATTLE_START
+	
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0	
+	
+	;パーティに健在な菜々子の知り合いが何人いるかを測定しておく.
+	CALL DUNGEON_74_PT_NF
+	
+	PRINTW 「D-damn it...why....」
+	PRINTW Kunino-sagiri collapsed into fog leaving only Namatame...
+	PRINTW Ignoring the fainted Namatame, will Nanako be alright?
+	PRINTL 　
+	;菜々子の知り合い何人いるかフラグ１（知り合いが一人きてる.）
+	IF ダンジョンフラグ:74:2 == 1
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			PRINTL 　
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%が心配そうな表情で菜々子のそばに座り込み声をかけている.
+		;クマがパーティメンバーにいる.
+		ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+			PRINTL Teddie:
+			PRINTW 「Nanako!」
+			PRINTL 　
+			PRINTW Teddie sat near Nanako with a worried expression and called out.
+		ELSE
+			PRINTW 「Nanako!」
+			PRINTL 　
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  sat near Nanako with a worried expression and called out.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるかフラグ２以上（知り合いが二人以上きてる.）
+	ELSEIF ダンジョンフラグ:74:2 >= 2
+		;P4主人公がパーティメンバーにいる.
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINTL 　
+			PRINTFORMW %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% sat down near Nanako and called out with an anxious expression.
+		ELSE
+			PRINTW 「Nanako!」
+			;クマがパーティメンバーにいる.
+			IF FINDCHARA_B([[キャラ:クマ]]) == 2
+				PRINTL Teddie:
+				PRINTW 「Nanako!」
+			ENDIF
+			PRINTL 　
+			CALL DUNGEON_74_PT_NAME
+			PRINTW  sat down near Nanako and called out with an anxious expression.
+		ENDIF
+		PRINTL 　
+	;菜々子の知り合い何人いるか０
+	ELSE
+		PRINTL 　
+	ENDIF
+	PRINTW 「Haaa...Haaa....」
+	PRINTW Nanako is lying some distance from Namatame and breathing painfully...
+	PRINTW Probably because of this strange place, a young child like Nanako would be in danger.
+	PRINTL 　
+	PRINTW If you leave things like they are, ordinary doctors won't be able to help Nanako.
+	PRINTW But that is not the problem, the problem is that bringing her to an ordinary doctor will reveal important secrets.
+	PRINTL 　
+	PRINTW What would you do after having a trusted doctor look after her...
+	CALL INPUT_SELECT,1,"Send her home",2,"Enslave her"
+	SELECTCASE RESULT
+		CASE 1
+			PRINTW After having a doctor treat Nanako, you had an agent bring her home.
+			PRINTL 　
+			PRINTL 　
+			PRINTW A few minutes later, a package came from a man named Dojima.
+			PRINTW Inside, were a paper mache bracelet and ￥100000 as thanks.
+			PRINTW ...Is this bracelet from Nanako?
+			PRINTL 　
+			PRINTW Received ￥100000 and a paper mache bracelet.
+			
+			MONEY += 100000
+			
+			;Paper Clay Bracelet入手
+			ITEM:5035 += 1
+			
+			;ライトロウになる
+			CALL INCREASE_LD,10
+			CALL INCREASE_LC,10
+			
+			FLAG:脱出 = 1
+			
+			;天上楽土クリアフラグ:クリア済み（菜々子救出）へ
+			ダンジョンフラグ:74:1 = 1
+		CASE 2
+			PRINTW After having a doctor treat Nanako you confined her as a slave.
+			PRINTW With her figure and age, she has plenty of uses...
+			
+			CALL ADD_NEW_COMPANION,4583,0
+			IF RESULT == 1
+				LOCAL = RESULT:1
+				
+				;ダークカオスになる
+				CALL INCREASE_LD,-15
+				CALL INCREASE_LC,-15
+			ENDIF
+			
+			FLAG:脱出 = 1
+			
+			;天上楽土クリアフラグ:クリア済み（菜々子奴隷）へ
+			ダンジョンフラグ:74:1 = 3
+	ENDSELECT
+ENDIF
+
+;天上楽土進行状況（霧晴れ）, 第１０天ボス済み
+ダンジョンフラグ:74:6 = 13
+;天上楽土の霧状況, 霧に戻しておく
+ダンジョンフラグ:74:3 = 0
+;------------------------------------------------------------------
+;パーティにいるキャラの名前を呼び出す関数
+;------------------------------------------------------------------
+@DUNGEON_74_PT_NAME
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	PRINTFORM %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%
+;陽介がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:陽介]]) == 2
+	PRINT Yosuke
+	;陽介
+;千枝がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:千枝]]) == 2
+	PRINT Chie
+	;千枝
+;雪子がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+	PRINT Yukiko
+	;雪子
+;完二がパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+	PRINT Kanji
+	;完二
+;クマがパーティメンバーにいる.
+ELSEIF FINDCHARA_B([[キャラ:クマ]]) == 2
+	PRINT Teddie
+	;クマ
+ENDIF
+;------------------------------------------------------------------
+;パーティに健在な菜々子の知り合いが何人いるか
+;------------------------------------------------------------------
+@DUNGEON_74_PT_NF
+;初期化
+ダンジョンフラグ:74:2 = 0
+;P4主人公がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:P4主人公]]) == 2
+	;菜々子の知り合い何人いるかフラグ+1
+	ダンジョンフラグ:74:2 += 1
+ENDIF
+;陽介がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:陽介]]) == 2
+	;菜々子の知り合い何人いるかフラグ+1
+	ダンジョンフラグ:74:2 += 1
+ENDIF
+;千枝がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:千枝]]) == 2
+	;菜々子の知り合い何人いるかフラグ+1
+	ダンジョンフラグ:74:2 += 1
+ENDIF
+;雪子がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:雪子]]) == 2
+	;菜々子の知り合い何人いるかフラグ+1
+	ダンジョンフラグ:74:2 += 1
+ENDIF
+;完二がパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:完二]]) == 2
+	;菜々子の知り合い何人いるかフラグ+1
+	ダンジョンフラグ:74:2 += 1
+ENDIF
+;クマがパーティメンバーにいる.
+IF FINDCHARA_B([[キャラ:クマ]]) == 2
+	;菜々子の知り合い何人いるかフラグ+1
+	ダンジョンフラグ:74:2 += 1
+ENDIF
+
+;------------------------------------------------------------------
+;サブイベント群
+;------------------------------------------------------------------
+;紳士悪魔, 天使系を想定
+@DUNGEON_74_SE_01
+PRINTW The angel is standing still...
+PRINTL 
+;天上楽土の霧状況, 霧晴れた
+IF ダンジョンフラグ:74:3 == 1
+	PRINTW 「It is splendid here.」
+	PRINTW 「However, I am worried about the shadows being agitated....」
+	PRINTW 「Though the human heart made both....」
+	PRINTL 　
+	PRINTW As the angel was a bit irritated, you left...
+ELSE
+	PRINTW 「It is splendid here.」
+	PRINTW 「That this place would be made by a child's heart....」
+	PRINTW 「Fufu..., this is a result of our guidance.」
+	PRINTL 　
+	;雪子か完二がパーティメンバーにいる.
+	IF FINDCHARA_B([[キャラ:雪子]]) == 2 && FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTW 「....」
+		PRINTW In contrast to the angel's ease, Yukiko and Kanji feel awkward.
+	;雪子がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:雪子]]) == 2
+		PRINTW 「....」
+		PRINTW In contrast to the angel's ease, Yukiko blushed and looked down.
+	;完二がパーティメンバーにいる.
+	ELSEIF FINDCHARA_B([[キャラ:完二]]) == 2
+		PRINTW 「....」
+		PRINTW In contrast to the angel's ease, Kanji was embarrassed.
+	ELSE
+		PRINTW As the angel talked at ease, it resumed watching the scenery...
+	ENDIF
+ENDIF
+;------------------------------------------------------------------
+;悪魔の会話, ガイン系
+@DUNGEON_74_SE_02
+PRINTW There is an out of place demon...
+PRINTL 
+;天上楽土の霧状況, 霧晴れた
+IF ダンジョンフラグ:74:3 == 1
+	PRINTW 「It has become somewhat noisy.」
+	PRINTW 「Because I can't relax here, I want to go to Istanbul soon....」
+	PRINTW While the demon was lost in thought, you left...
+ELSE
+	PRINTW 「I feel at ease here.」
+	PRINTW 「I was going to go to Istanbul, but I'll rest here for a while.」
+	PRINTW As the demon was having fun, you left...
+ENDIF
+;------------------------------------------------------------------
+;天然サマナー
+@DUNGEON_74_SE_03
+PRINTL There is a natural summoner here...
+PRINTL 
+;天上楽土の霧状況, 霧晴れた
+IF ダンジョンフラグ:74:3 == 1
+	PRINTL 「Somehow, it became noisy～.」
+	PRINTL 「Some time ago, a shadow seriously attacked～.」
+	PRINTW 
+	PRINTW 「Although not dangerous, if our children....」
+	PRINTL 「It's...a little annoying～.」
+	PRINTW 
+	PRINTW Exchanging greetings with the summoner, you left...
+ELSE
+	PRINTW 「Should I use this megido card on a Lilim....」
+	PRINTW 「Or...how troubling～.」
+	PRINTL 「ah, hello～.」
+	PRINTW 
+	PRINTW 「When a demon mutates, I tend to get attached～.」
+	PRINTL 「Is it the same for you?」
+	PRINTW 
+	PRINTW 「If that is so...」
+	PRINTL 「Whare is this～.」
+	PRINTL 「While thinking about someting, I found myself in a strange place～.」
+	PRINTW 
+	PRINTW Exchanging greetings with the summoner, you left...
+ENDIF
+
+;------------------------------------------------------------------
+;クニノサギリAI
+@SET_ACTION_3243, ARG
+;天上楽土の霧状況, 霧晴れた
+IF ダンジョンフラグ:74:3 == 1
+	LOCAL = RAND:100
+	IF LOCAL < 30
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+	ELSEIF LOCAL < 50
+		CFLAG:ARG:入力行動 = [[スキル:誘惑の霧]]
+		CALL RANDOM_TARGET,ARG,[[スキル:誘惑の霧]]
+	ELSE
+		SELECTCASE RAND:4
+			CASE 0
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ラギダイン]]
+			CASE 1
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ブフダイン]]
+			CASE 2
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ジオダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ジオダイン]]
+			CASE 3
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ガルダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ガルダイン]]
+		ENDSELECT
+	ENDIF
+ELSE
+	;HP30%未満
+	IF 現HP割合(ARG) < 20 && RAND:3 == 0
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+	;HP60%未満, 1/5
+	ELSEIF 現HP割合(ARG) < 40 && RAND:5 == 0
+		CFLAG:ARG:入力行動 = [[スキル:誘惑の霧]]
+		CALL RANDOM_TARGET,ARG,[[スキル:誘惑の霧]]
+	ELSE
+		SELECTCASE RAND:4
+			CASE 0
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ラギダイン]]
+			CASE 1
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ブフダイン]]
+			CASE 2
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ジオダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ジオダイン]]
+			CASE 3
+				CFLAG:ARG:入力行動 = [[スキル:マハ・ガルダイン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マハ・ガルダイン]]
+		ENDSELECT
+	ENDIF
+ENDIF

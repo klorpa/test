@@ -1,0 +1,160 @@
+;-------------------------------------------------
+;罵倒
+;コミュニケーション系コマンド、レベル2
+;-------------------------------------------------
+@ACT_COM28
+PRINTL Abuse
+TSTR:0 = 罵倒
+;CALL KOJO_MESSAGE_COM
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 20
+DOWNBASE:TARGET:気力 += 60
+
+SOURCE:TARGET:中毒充足 = 700
+SOURCE:TARGET:屈従 = 100
+SOURCE:TARGET:逸脱 = 400
+SOURCE:TARGET:反感 = 500
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;苦痛を伴わないマゾっ気及びマゾの処理は先にしておく
+;マゾっ気を見る
+IF ABL:9 == 0
+	TIMES SOURCE:TARGET:屈従 , 0.80
+	SOURCE:TARGET:液体 += 0
+	SOURCE:TARGET:欲情 += 0
+ELSEIF ABL:9 == 1
+	TIMES SOURCE:TARGET:屈従 , 1.00
+	SOURCE:TARGET:液体 += 20
+	SOURCE:TARGET:欲情 += 30
+ELSEIF ABL:9 == 2
+	TIMES SOURCE:TARGET:屈従 , 1.20
+	SOURCE:TARGET:液体 += 40
+	SOURCE:TARGET:欲情 += 70
+ELSEIF ABL:9 == 3
+	TIMES SOURCE:TARGET:屈従 , 1.40
+	SOURCE:TARGET:液体 += 70
+	SOURCE:TARGET:欲情 += 120
+ELSEIF ABL:9 == 4
+	TIMES SOURCE:TARGET:屈従 , 1.50
+	SOURCE:TARGET:液体 += 110
+	SOURCE:TARGET:欲情 += 180
+ELSEIF ABL:9 == 5
+	TIMES SOURCE:TARGET:屈従 , 1.70
+	SOURCE:TARGET:液体 += 150
+	SOURCE:TARGET:欲情 += 250
+ELSEIF ABL:9 == 6
+	TIMES SOURCE:TARGET:屈従 , 1.90
+	SOURCE:TARGET:液体 += 200
+	SOURCE:TARGET:欲情 += 300
+ELSEIF ABL:9 == 7
+	TIMES SOURCE:TARGET:屈従 , 2.10
+	SOURCE:TARGET:液体 += 250
+	SOURCE:TARGET:欲情 += 350
+ELSEIF ABL:9 == 8
+	TIMES SOURCE:TARGET:屈従 , 2.30
+	SOURCE:TARGET:液体 += 300
+	SOURCE:TARGET:欲情 += 400
+ELSEIF ABL:9 == 9
+	TIMES SOURCE:TARGET:屈従 , 2.50
+	SOURCE:TARGET:液体 += 350
+	SOURCE:TARGET:欲情 += 450
+ELSEIF ABL:9 >= 10
+	TIMES SOURCE:TARGET:屈従 , 3.00
+	SOURCE:TARGET:液体 += 500
+	SOURCE:TARGET:欲情 += 500
+ENDIF
+
+;マゾを見る
+IF TALENT:84 == 1
+	TIMES SOURCE:TARGET:屈従 , 2.50
+	TIMES SOURCE:TARGET:液体 , 1.20
+	TIMES SOURCE:TARGET:欲情 , 1.20
+ENDIF
+
+;TALENT:反抗的をみる
+IF TALENT:11 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.75
+	TIMES SOURCE:TARGET:屈従 , 0.75
+	TIMES SOURCE:TARGET:不潔 , 1.50
+ENDIF
+
+;TALENT:気丈をみる
+IF TALENT:12 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.75
+	TIMES SOURCE:TARGET:屈従 , 0.75
+	TIMES SOURCE:TARGET:反感 , 2.50
+ENDIF
+
+;TALENT:プライド高いをみる
+IF TALENT:15 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 1.50
+	TIMES SOURCE:TARGET:屈従 , 1.50
+	TIMES SOURCE:TARGET:反感 , 2.00
+ENDIF
+
+;TALENT:生意気をみる
+IF TALENT:16 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 0.80
+	TIMES SOURCE:TARGET:屈従 , 0.80
+	TIMES SOURCE:TARGET:反感 , 1.80
+ENDIF
+
+;TALENT:プライド低いをみる
+IF TALENT:17 == 1
+	TIMES SOURCE:TARGET:中毒充足 , 1.50
+	TIMES SOURCE:TARGET:屈従 , 0.75
+	TIMES SOURCE:TARGET:反感 , 0.75
+ENDIF
+
+;縄で緊縛中のとき効果上昇
+SIF TEQUIP:19
+	TIMES SOURCE:TARGET:屈従 , 1.50
+;ボールギャグ装着中のとき効果上昇
+SIF TEQUIP:20
+	TIMES SOURCE:TARGET:屈従 , 1.75
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;LoveEXP(減少）
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0 && EXP:23 > 0
+;	PRINTS EXPNAME:23
+;	PRINTL -1
+	CALL ADDS_EXP("愛情経験", -1, TARGET)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_28
+RETURN COMTYPE("コミュ系")
+

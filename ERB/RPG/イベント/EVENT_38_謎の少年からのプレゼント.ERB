@@ -1,0 +1,146 @@
+;--------------------------------------------------------
+;人修羅プレゼント
+;--------------------------------------------------------
+;人修羅の暫定的な取得イベント
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_38
+IF イベントフラグ:38:0 == 0
+;	SIF !(FLAG:DEBUG)
+;		RETURN 0
+	IF FLAG:DEBUG
+		;デバッグ
+		RESULTS = Present from a blond boy
+		RETURN 1
+	ELSEIF FLAG:組織貢献度 >= 10000 && DAY == 1 && TIME < 1
+		;何もいらない選択後、マッカとお金を初手で即納金につぎ込んだ場合のみ特に可能な隠しルート
+		;二週目？知らんね
+		RESULTS = Present from a blond boy
+		RETURN 1
+	ELSEIF FLAG:組織貢献度 >= 100000 && (DAY <= 10 || DAY > 50 || FLAG:5 == 9)
+		;一定の名声があり、１０日以内か５０日より後またはクリア済みである
+		RESULTS = Present from a blond boy
+		RETURN 1
+	ENDIF
+	RETURN 0
+ELSEIF イベントフラグ:38:0 == 1 && DAY <= 50
+	;条件１、５０日以内かつアマラ深界(とカグツチ塔?)クリア
+	SIF DAY > 50 ;|| ダンジョンフラグ:68:1 == 1 || ダンジョンフラグ:34:8 > 0
+		RETURN 0
+
+	;条件２、マサカドゥス以外のマガタマ制覇
+	FOR LOCAL,0,24,1
+		SIF ITEM:(8200+LOCAL) < 1
+			RETURN 0
+	NEXT
+
+	;条件３、人修羅がPTにいて陥落済み
+	REPEAT CHARANUM
+		IF NO:COUNT == 4298 || NO:COUNT == 4299
+			IF TALENT:COUNT:3 == 1 || TALENT:COUNT:4 == 1 || TALENT:COUNT:5 == 1 || TALENT:COUNT:6 == 1 || TALENT:COUNT:7 == 1 || TALENT:COUNT:8 == 1
+				BREAK
+			ELSE
+				RETURN 0
+			ENDIF
+		ENDIF
+	REND
+	IF COUNT == CHARANUM
+		RETURN 0
+	ENDIF
+
+	RETURN 0
+
+	;突破した場合、真３出現？
+	;RESULTS = 大いなる闇
+	RETURN 1
+ENDIF
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_38
+#LOCALSIZE 1
+#LOCALSSIZE 1
+
+IF イベントフラグ:38:0 == 0
+	;閣下のキャラがイメージと違っても気にしないでください
+
+	PRINTFORML 
+	PRINTFORMW A blond boy suddenly visited %CALLNAME:MASTER%'s base.
+	PRINTFORML 
+	IF TALENT:MASTER:オトコ
+		PRINTFORMW 「Hello. You are %CALLNAME:MASTER%, right?」
+	ELSE
+		PRINTFORMW 「Hello. You are %CALLNAME:MASTER% right?」
+		;ドーモ、ルイ＝サイファーデス。天使滅ぶべし。
+	ENDIF
+	PRINTFORMW 「Pleased to meet you, I am the eldest son of the prominent Italian Louis family.」
+	PRINTFORMW 「I heard about you and I want you to capture demons from a demon world.」
+	PRINTFORMW 「It is called “Amala Depths” a demon world where the asura struggle against each other.」
+	PRINTFORMW 「Here, a very rare demon will be given to you in advance.」
+	PRINTFORMW 「This child is a special demon that draws abilities from special plug-ins called “magatama”.」
+	PRINTFORMW 「I already gave this child one magatama but there are other kinds.」
+	PRINTFORML 「But, please do not give magatama to others.
+	PRINTFORMW 　If magatama are given to those without the aptitude for them, they'll run out of control.」
+	PRINTFORML 「There are various kinds of magatama, but the others
+	PRINTFORMW 　tend to be held by strong and reckless demons.」
+	PRINTFORMW 「That is all I had to say.」
+	PRINTFORMW 「But as a trainer, are you going to just sell it?」
+	PRINTFORML 
+	PRINTFORMW .....
+	PRINTFORMW ....
+	PRINTFORMW ...
+	PRINTFORML 
+	PRINTFORMW The blond boy left a demon and the address to the “Amala Depths” terminal , then left.
+	PRINTFORML By the way, the demon is...
+	PRINTFORML [0] A boy
+	PRINTFORML [1] A girl
+	CALL INPUTINT(0,1)
+	LOCAL = RESULT
+	IF LOCAL == 0
+		CALL ADD_NEW_COMPANION, [[キャラ:ヒトシュラ]], 500, 1
+		ITEM:8200 = 1
+	ELSEIF LOCAL == 1
+		CALL ADD_NEW_COMPANION, [[キャラ:ひとしゅら]], 500, 1
+		ITEM:8202 = 1
+	ENDIF
+
+	PRINTFORMW ＞Fiend　Demi-fiend obtained
+	PRINTL The [Demi-fiend] is basically a demon that can be equipped with exclusive plugins called magatama.
+	PRINTW They can get skills and stat boosts from the magatama.
+
+	PRINTFORML 
+	IF FLAG:DEBUG
+		PRINTFORMW ＊You got all the magatama for debugging
+		FOR LOCAL,0,24,1
+			ITEM:(8200+LOCAL) = 1
+		NEXT
+	ENDIF
+	CFLAG:(RESULT:1):所属ＣＯＭＰ = -1
+	イベントフラグ:38:0 = 1
+	闘技場フラグ:90:0 = 1
+	RETURN 0
+ELSEIF DAY <= 50
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORMW ＞You feel a frightening demon
+	PRINTFORML 
+	PRINTFORMW ＞Stay here?
+	PRINTFORML 
+	CALL INPUT_YN,"Yes","No"
+	LOCAL = RESULT
+	IF LOCAL == 0
+	ELSEIF LOCAL == 1
+		RETURN 0
+	ENDIF
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORMW .....
+	PRINTFORMW ....
+	PRINTFORMW ...
+	PRINTFORML 
+	PRINTFORMW %CALLNAME:MASTER% suddenly was in a different location
+	RETURN 1
+ELSEIF DAY > 50
+ENDIF

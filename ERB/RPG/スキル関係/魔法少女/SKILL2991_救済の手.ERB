@@ -1,0 +1,194 @@
+;通常攻撃
+;スキルのテンプレートになっています
+
+;スキル名
+@SKILL_NAME_2991,ARG
+RESULTS = Hand of Salvation
+
+
+;　命中
+@SKILL_HITRATE_2991, ARG
+RETURN 200
+
+;　威力
+@SKILL_POWER_2991, ARG
+RETURN 400
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2991,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2991,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2991, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2991,ARG
+RETURN 30
+
+;　相性
+@SKILL_TYPE_2991,ARG
+RETURN GET_TYPE_NUM("万能")
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2991
+RETURN 1
+;EXTRA
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2991
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2991
+RETURN 1
+
+;　射程
+@SKILL_RANGE_2991,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2991,ARG
+RETURN 1
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2991
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_2991,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2991
+RETURN 23
+;継承不可
+
+;速度補正
+@SKILL_SPEED_2991, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2991,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2991
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_2991
+RETURN 15
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_2991,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_2991,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_2991,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_2991,ARG
+RETURN 0
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_2991,ARG,ARG:1
+#LOCALSIZE 2
+;コストを支払う
+;CALL VAR_MP,ARG,-20
+LOCAL = POS(ARG:1)
+
+;相手が魔法少女か魔女の場合、強制DYING
+IF GET_STATE(ARG:1) == "DYING"
+;すでに倒しているなら飛ばす
+ELSEIF GROUPMATCH(NO:(POS(ARG:1)), 4391, 4392, 4393, 4394, 4395, 4396, 4397, 4398, 4399)
+	PRINTFORML 魔法少女に攻撃！
+	CALL MESSAGE_B(1, "救済の手")
+	PRINTFORM 　　TARGET:[{ARG:1,2}] %CALLNAME:(POS(ARG:1)),20,LEFT%　>>>>>>　
+	IF CFLAG:(POS(ARG:1)):防御フラグ
+		PRINTW GUARD
+	;魔法少女なんてＭＯＤでしか戦わないし、ボスも即死でいいよね！
+	;ELSEIF CFLAG:(POS(ARG:1)):ボスフラグ
+	;	PRINTW BLOCK
+	ELSE
+		PRINTL DYING
+		PRINTL 魔法少女は救済された！
+		CALL DEAD_CHARA, POS(ARG:1)
+	ENDIF
+ELSEIF GROUPMATCH(NO:(POS(ARG:1)), 3392, 3393, 3394, 3395, 3396, 3397, 3398, 3399)
+	PRINTFORML 魔女に攻撃！
+	CALL MESSAGE_B(1, "救済の手")
+	PRINTFORM 　　TARGET:[{ARG:1,2}] %CALLNAME:(POS(ARG:1)),20,LEFT%　>>>>>>　
+	IF CFLAG:(POS(ARG:1)):防御フラグ
+		PRINTW GUARD
+	;魔法少女なんてＭＯＤでしか戦わないし、ボスも即死でいいよね！
+	;ELSEIF CFLAG:(POS(ARG:1)):ボスフラグ
+	;	PRINTW BLOCK
+	ELSE
+		PRINTL DYING
+		PRINTL 魔女は救済された！
+		CALL DEAD_CHARA, POS(ARG:1)
+	ENDIF
+ELSE
+;魔女でも魔法少女でもなければ、攻撃後に強化を一段階剥がす
+	CALL ATTACK_SINGLE,ARG,LOCAL,2991
+	;その位置にまだ敵が居るかどうか確認
+	IF POS(ARG:1) >= 0
+		FOR LOCAL:1,0,6
+			;強化だけを剥がす。０以下のときに０以上にはしないためのＳＩＦ
+			SIF CFLAG:POS(ARG:1):(GET_BATTLESTATUS(LOCAL:1) + "強化") > 0
+				CFLAG:POS(ARG:1):(GET_BATTLESTATUS(LOCAL:1) + "強化") = MAX(0, CFLAG:POS(ARG:1):(GET_BATTLESTATUS(LOCAL:1) + "強化") - 4)
+		NEXT
+	PRINTFORMW \@ CFLAG:ARG:PTフラグ == 2 ? foe # friend \@'s reinforced abilities were reduced one step！
+	ENDIF
+ENDIF
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;====================================================
+;戦闘中以外での実行
+;====================================================
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2991
+PRINTL Very heavy almighty damage to using the magic power of the Hand of Salvation.
+PRINTL Tearing down one level or strengthen ability, it provides salvation to witches and magical girls。Abnormally high hit rate.
+PRINTL Finisher of 魔法少女　Law of Cycles and 魔女　Kriemhild.
+
+;継承に必要な部位
+@継承部位_2991,ARG
+SIF !TALENT:ARG:腕
+	RETURN 0
+SIF !TALENT:ARG:触手
+	RETURN 0
+RETURN 1
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2991,ARG
+RETURN 1
+;とくにない
+

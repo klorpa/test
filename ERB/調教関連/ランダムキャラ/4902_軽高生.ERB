@@ -1,0 +1,238 @@
+;ARGは生成キャラの登録番号
+@RANDOMCHARA_4902, ARGS, ARG, ARG:1
+#LOCALSSIZE 1
+SELECTCASE ARGS
+	CASE "一人称"
+		RESULTS = \@IS_MALE(ARG) ? 俺#あたし\@
+	CASE "二人称"
+		RESULTS = %CALLNAME:MASTER%
+	CASE "体力"
+		RETURN RAND(1000, 1800)
+	CASE "気力"
+		RETURN RAND(1000, 1500)
+	CASE "属性"
+		RETURN RAND(84, 164), RAND(85, 164)
+	CASE "種族"
+		RETURN 0
+	CASE "戦闘素質"
+		IF RAND:20
+			RESULTS = 非戦闘員
+			RETURN 1
+		ELSE
+			RESULTS = 異能者
+			RESULTS:1 = 道具知識
+			RETURN 1, 1
+		ENDIF
+	CASE "リンク悪魔"
+		RETURN 0
+	CASE "初期ステータス比率"
+		RETURN 7, 7, 7, 7, 7, 10
+	CASE "スキル"
+		SIF TALENT:ARG:異能者 == 0
+			RETURN 0
+		SELECTCASE RAND:5
+			CASE 0
+				RESULT = [[スキル:アギ]]
+				RESULT:1 = [[スキル:アギラオ]]
+				RESULT:2 = [[スキル:アギダイン]]
+			CASE 1
+				RESULT = [[スキル:ブフ]]
+				RESULT:1 = [[スキル:ブフーラ]]
+				RESULT:2 = [[スキル:ブフダイン]]
+			CASE 2
+				RESULT = [[スキル:ジオ]]
+				RESULT:1 = [[スキル:ジオンガ]]
+				RESULT:2 = [[スキル:ジオダイン]]
+			CASE 3
+				RESULT = [[スキル:ザン]]
+				RESULT:1 = [[スキル:ザンマ]]
+				RESULT:2 = [[スキル:ザンダイン]]
+			CASE 3
+				RESULT = [[スキル:突撃]]
+				RESULT:1 = [[スキル:ショートジャブ]]
+				RESULT:2 = [[スキル:一分の活泉]]
+		ENDSELECT
+		SELECTCASE RAND:4
+			CASE 0
+				RESULT:3 = [[スキル:ディア]]
+				RESULT:4 = [[スキル:ディアラマ]]
+				RESULT:5 = [[スキル:パトラ]]
+			CASE 1
+				RESULT:3 = [[スキル:ラク・カジャ]]
+				RESULT:4 = [[スキル:タル・カジャ]]
+				RESULT:5 = [[スキル:ディアラマ]]
+			CASE 2
+				RESULT:3 = [[スキル:マカ・カジャ]]
+				RESULT:4 = [[スキル:スク・カジャ]]
+				RESULT:5 = [[スキル:テンタラフー]]
+			CASE 3
+				RESULT:3 = [[スキル:セクシーダンス]]
+				RESULT:4 = [[スキル:ハピルマ]]
+				RESULT:5 = [[スキル:ハッピーステップ]]
+		ENDSELECT
+		RETURN RESULT
+	CASE "相性"
+		SELECTCASE GET_TYPE(ARG:1)
+			CASE "破魔"
+				RETURN 0
+			CASEELSE
+				RETURN 100
+		ENDSELECT
+	CASE "素質"
+		RETURN GETNUM(TALENT, "生意気"), GETNUM(TALENT, "反抗的"), GETNUM(TALENT, "好奇心"), GETNUM(TALENT, "楽観的"), GETNUM(TALENT, "目立ちたがり"), GETNUM(TALENT, "痛みに弱い"), GETNUM(TALENT, "快感に素直")
+	CASE "除外素質"
+		RETURN GETNUM(TALENT, "抵抗"), GETNUM(TALENT, "抑圧"), GETNUM(TALENT, "倒錯的"), GETNUM(TALENT, "倒錯的"), GETNUM(TALENT, "針さばき")
+	;処女は特別 0はランダム(20%), 1なら処女, 2なら非処女
+	CASE "処女"
+		RETURN RAND:2 + 1
+	;戻り値は0:ランダム 1:小人体型 2:小柄体型 4:大柄 5:巨体
+	CASE "体型"
+		RETURN 0
+	;戻り値は0:ランダム 1:絶壁　2:貧乳　3:並　4:巨乳　5:爆乳
+	CASE "胸"
+		RETURN 0
+	;通常の人間と肉体部位が違う場合はここで直接代入してください
+	CASE "肉体部位"
+		RETURN 0
+	CASE "ABL"
+		SELECTCASE ABLNAME:(ARG:1)
+			CASE "従順", "欲望", "技巧"
+				RETURN !RAND:5+!RAND:10
+			CASE "Ｃ感覚", "Ｖ感覚", "Ｂ感覚"
+				RETURN !RAND:4
+			CASE "マゾっ気", "露出癖", "奉仕精神"
+				RETURN !RAND:10
+			CASE "サドっ気"
+				RETURN !RAND:10 * !ABL:ARG:マゾっ気
+			CASE "Ａ感覚", "自慰中毒", "精液中毒", "レズっ気", "ＢＬっ気", "セックス中毒"
+				RETURN !RAND:20
+		ENDSELECT
+	;EXPはABLが1以上ある場合、ある程度調整される(ただし、ABL0の時は調整が動かないので適当に初期値をきめてください)
+	CASE "EXP"
+		;全く手付かずの場合
+		SIF !GROUPMATCH(1, !TALENT:ARG:処女, ABL:ARG:Ｃ感覚, ABL:ARG:Ｖ感覚, ABL:ARG:Ａ感覚, ABL:ARG:Ｂ感覚, ABL:ARG:技巧)
+			RETURN 0
+		SELECTCASE EXPNAME:(ARG:1)
+			CASE "Ｖ経験"
+				RETURN RAND(0, 20) * !RAND:3
+			CASE "Ａ経験"
+				RETURN RAND(0, 20) * !RAND:10
+			CASE "絶頂経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "射精経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "性交経験"
+				RETURN 0
+			CASE "膣射経験"
+				RETURN EXP:ARG:射精経験/2*EXP:ARG:性交経験 > 0
+			CASE "自慰経験"
+				RETURN RAND(0, 20)
+			CASE "調教自慰経験"
+				RETURN 0
+			CASE "精液経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "奉仕快楽経験"
+				RETURN 0
+			CASE "フェラ経験"
+				RETURN RAND(0, 10) * !RAND:4
+			CASE "愛情経験"
+				RETURN 0
+			CASE "苦痛快楽経験"
+				RETURN RAND(0, 20) * !RAND:8
+			CASE "放尿経験"
+				RETURN 0
+			CASE "嗜虐快楽経験"
+				RETURN RAND(0, 10) * !RAND:8
+			CASE "野外露出経験"
+				RETURN 0
+			CASE "レズ経験"
+				RETURN RAND(0, 20) * !RAND:8
+			CASE "ＢＬ経験"
+				RETURN RAND(0, 20) * !RAND:8
+			CASE "異常経験"
+				RETURN 0
+			CASE "緊縛経験"
+				RETURN RAND(0, 10) * EXP:ARG:苦痛快楽経験 > 0
+		ENDSELECT
+	CASE "帽子"
+		IF RAND:5
+			RETURN 0
+		ELSE
+			RETURN [[衣装:帽子]]
+		ENDIF
+	CASE "服"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:ワイシャツ]]
+		ELSE
+			RETURN [[衣装:ブラウス]]
+		ENDIF
+	CASE "下衣"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:ズボン]]
+		ELSE
+			RETURN [[衣装:スカート]]
+		ENDIF
+	CASE "全身服"
+		RETURN 0
+	CASE "手"
+		RETURN 0
+	CASE "下着（上）"
+		IF IS_MALE(ARG)
+			RETURN 0
+		ELSE
+			IF RAND:5
+				RETURN [[衣装:ブラジャー]]
+			ELSE
+				RETURN 0
+			ENDIF
+		ENDIF
+	CASE "下着（下）"
+		IF IS_MALE(ARG)
+			IF RAND:5
+				RETURN [[衣装:トランクス]]
+			ELSE
+				RETURN [[衣装:ブーメランパンツ]]
+			ENDIF
+		ELSE
+			LOCALS = 下着（上）
+			IF CFLAG:ARG:LOCALS == 0
+				RETURN 0
+			ELSE
+				RETURN [[衣装:パンティ]]
+			ENDIF
+		ENDIF
+	CASE "全身下着"
+		RETURN 0
+	CASE "靴下"
+		RETURN [[衣装:ハイソックス]]
+	CASE "靴"
+		RETURN [[衣装:革靴]]
+	CASE "上着"
+		RETURN [[衣装:ブレザー]]
+	CASE "その他"
+		RETURN RAND:10 ? 0 # [[衣装:眼鏡]]
+	CASE "会話タイプ"
+	;悪魔汎用使用しています0:ランダム 1:女_子供　2:女_少女　3:女_若者　4:女_大人　5:女_淑女　6:女_古風　7:男_若者　8:男_大人　9:獣_ケダモノ
+		RETURN 0
+	CASE "名前"
+		RESULTS = Junior-high student
+		;軽高生
+	CASE "愛称"
+		RESULTS = Junior-high student
+	CASE "解説"
+		RESULTS = 軽子坂高校の生徒
+		IF TALENT:ARG:異能者
+			RESULTS:1 = 異能の力を秘めている
+		ELSE
+			RESULTS:1 = 一般生徒であり、戦闘力はない
+		ENDIF
+		RESULTS:3 = 軽子坂高校は『真・女神転生if』に登場する架空の高校であり
+		RESULTS:4 = 魔神皇と名乗るハザマの手により、脱出不可能な魔界にされてしまった
+		RESULTS:5 = ハザマは生徒達を殺すことなく、苦しめようとしたため、かなりの生徒の無事が確認出来る一方、
+		RESULTS:6 = ゾンビくんやゾンビちゃんといった、生徒達の慣れの果ての姿も確認できる
+		RESULTS:8 = 青いブレザーとしましまの靴下が特徴的な姿で、『女神異聞録ペルソナ』や『ペルソナ２』などでも
+		RESULTS:9 = 彼らの姿を見ることができる
+	;最後に呼び出すので何らかの調整が必要な場合はここで
+	CASE "最終調整"
+		RETURN 0
+ENDSELECT

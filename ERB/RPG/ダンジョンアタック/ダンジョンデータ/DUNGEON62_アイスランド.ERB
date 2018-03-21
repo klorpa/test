@@ -1,0 +1,1005 @@
+
+;=======================================================================
+;
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_62
+SIF 依頼フラグ:12:0 == 1
+	RETURN 1
+RETURN 0
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_62
+RESULTS = Ice Land
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_62, ARG
+FLAG:現M = 0
+FLAG:現X = 7
+FLAG:現Y =15
+;CALL AUTOMAP
+RETURN 0
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_62
+IF ダンジョンフラグ:62:5 == 0
+	CALL MESSAGE_WINDOW_D, "", "＞The Makai of Ice Ice Land"
+	IF ダンジョンフラグ:61:1 == 1
+		CALL MESSAGE_WINDOW_D, "","＞It seems Tyrant Hel has the Horn of the Messiah"
+	ELSEIF ダンジョンフラグ:61:1 == 2
+		CALL MESSAGE_WINDOW_D, "","＞It seems Tyrant Hel has the Pupil of the Messiah"
+	ENDIF
+		CALL MESSAGE_WINDOW_D, "","＞You decided to meet Hel"
+ダンジョンフラグ:62:5 = 1
+ENDIF
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_62
+	PRINT Ice Land 
+	;アイスランド　
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Frost Town
+	CASE 1
+		PRINTL Eljudnir・Outside
+	CASE 2
+		PRINTL Eljudnir・１Ｆ
+	CASE 3
+		PRINTL Eljudnir・２Ｆ
+	CASE 4
+		PRINTL Eljudnir・３Ｆ
+	CASE 5
+		PRINTL Eljudnir・Throne Room
+	CASE 6
+		PRINTL Eljudnir・Prison
+	CASE 7
+		PRINTL Bypath
+	CASE 8
+		PRINTL Hidden Plains
+	CASE 9
+		PRINTL Hidden Passage
+	CASEELSE
+ENDSELECT
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_62, ARG, ARG:1
+SELECTCASE DA:ARG:(ARG:1)
+	CASE 12
+		;上にしか進めない＝上からは無理
+		;上である時＝現在のYがARG:1より小さいとき
+	IF ダンジョンフラグ:62:1 == 1
+		IF ARG:1 < FLAG:現Y
+			CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, ARG, ARG:1)
+			RETURN 0
+		ENDIF
+	ENDIF
+
+	CASE 22
+	IF ダンジョンフラグ:62:6 == 0
+		IF ARG:1 > FLAG:現Y
+			CALL MESSAGE_WINDOW_D, "", "＞The prison door is locked"
+			CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, ARG, ARG:1)
+			RETURN 0
+		ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞Unlocked the door"
+		ダンジョンフラグ:62:6 =1
+		ENDIF
+	ENDIF
+
+	CASE 32
+	IF ダンジョンフラグ:62:4 == 0
+		IF ARG:1 < FLAG:現Y
+			CALL MESSAGE_WINDOW_D, "", "＞The door is locked"
+			CALL SET_FLOOR_ANALYZE(2, FLAG:現ダンジョン, FLAG:現M, ARG, ARG:1)
+			RETURN 0
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞Unlocked the door"
+			ダンジョンフラグ:62:4 = 1
+			ダンジョンフラグ:62:1 = 3
+			FLAG:脱出スキル禁止 = 0
+		ENDIF
+	ENDIF
+	CASEELSE
+ENDSELECT
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_COMMON_62_1, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 30
+	IF ダンジョンフラグ:62:1 >= 2
+			RESULTS = ↑
+	ELSE
+			RESULTS = ■
+	ENDIF
+	CASE 10 , 20 , 41 , 50 , 60
+		RESULTS = ↑
+	CASE 11 , 21 , 31 , 40 , 51 , 61
+		RESULTS = ↓
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_62_2, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1
+	IF ダンジョンフラグ:62:1 >= 2
+			RESULTS = □
+	ELSE
+			RESULTS = ■
+	ENDIF
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+@TILE_MARK_COMMON_62_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE  60
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASE  10 , 70
+		IF ダンジョンフラグ:62:1 < 4
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASE  20
+	IF ダンジョンフラグ:62:1 <= 2 && ダンジョンフラグ:62:2 == 0
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASE  30
+	IF ダンジョンフラグ:62:1 <= 2 && ダンジョンフラグ:62:3 == 0
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASE  40
+	IF ダンジョンフラグ:62:1 == 3 && ダンジョンフラグ:62:2 == 0
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASE  50
+	IF ダンジョンフラグ:62:1 == 3 && ダンジョンフラグ:62:3 == 0
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASE  444
+	IF ダンジョンフラグ:62:1 == 1
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+		ELSE
+		RESULTS = □
+		ENDIF
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+
+@TILE_MARK_COMMON_62_9, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 222
+	IF ダンジョンフラグ:62:1 == 0
+			RESULTS = ！
+	ELSE
+			RESULTS = □
+	ENDIF
+;	CASEELSE
+;		RETURN 1
+ENDSELECT
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_62, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "a"
+		RETURN 101
+	CASE "A"
+		RETURN 111
+	CASE "b"
+		RETURN 201
+	CASE "B"
+		RETURN 211
+	CASE "c"
+		RETURN 301
+	CASE "C"
+		RETURN 311
+	CASE "d"
+		RETURN 401
+	CASE "D"
+		RETURN 411
+	CASE "e"
+		RETURN 501
+	CASE "E"
+		RETURN 511
+	CASE "f"
+		RETURN 601
+	CASE "F"
+		RETURN 611
+	CASE "x"
+		RETURN 12
+	CASE "y"
+		RETURN 22
+	CASE "z"
+		RETURN 32
+	CASE "W"
+		RETURN 2229
+	CASE "!"
+		RETURN 104
+	CASE "#"
+		RETURN 204
+	CASE "$"
+		RETURN 304
+	CASE "%"
+		RETURN 404
+	CASE "&"
+		RETURN 504
+	CASE "'"
+		RETURN 604
+	CASE "("
+		RETURN 704
+	CASE "Y"
+		RETURN 4444
+	CASE "Z"
+		RETURN 5554
+ENDSELECT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_62
+SELECTCASE FLAG:現M
+	CASE 0
+		;フロストタウン
+		FLAG:最大X = 14
+		FLAG:最大Y = 17
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "       a      "
+   		CALL MAKE_FLOOR_LINE, 1, "       1      "
+   		CALL MAKE_FLOOR_LINE, 2, "       1      "
+   		CALL MAKE_FLOOR_LINE, 3, "       W      "
+   		CALL MAKE_FLOOR_LINE, 4, "   1!1111111  "
+   		CALL MAKE_FLOOR_LINE, 5, "   1   1   1  "
+   		CALL MAKE_FLOOR_LINE, 6, "   1 7 1 1 1  "
+   		CALL MAKE_FLOOR_LINE, 7, "   1 z 1 2 1  "
+   		CALL MAKE_FLOOR_LINE, 8, "  11%111&1111 "
+   		CALL MAKE_FLOOR_LINE, 9, "  1   111   1 "
+   		CALL MAKE_FLOOR_LINE,10, "  1 1 111 T ( "
+   		CALL MAKE_FLOOR_LINE,11, "  1 2 111 2 1 "
+   		CALL MAKE_FLOOR_LINE,12, "  1111'111111 "
+   		CALL MAKE_FLOOR_LINE,13, "       1      "
+   		CALL MAKE_FLOOR_LINE,14, "       1      "
+   		CALL MAKE_FLOOR_LINE,15, "       1      "
+   		CALL MAKE_FLOOR_LINE,16, "       8      "
+
+	CASE 1
+		FLAG:最大X = 15
+		FLAG:最大Y = 18 
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "               "
+   		CALL MAKE_FLOOR_LINE, 1, "  1         1  "
+   		CALL MAKE_FLOOR_LINE, 2, "  1    b    1  "
+   		CALL MAKE_FLOOR_LINE, 3, "  111  2  111  "
+   		CALL MAKE_FLOOR_LINE, 4, "    1111111    "
+   		CALL MAKE_FLOOR_LINE, 5, "      111      "
+   		CALL MAKE_FLOOR_LINE, 6, "   11 111 11   "
+   		CALL MAKE_FLOOR_LINE, 7, "   1111111111  "
+   		CALL MAKE_FLOOR_LINE, 8, "   1  11111111 "
+   		CALL MAKE_FLOOR_LINE, 9, "  11111111111  "
+   		CALL MAKE_FLOOR_LINE,10, " 111111111  11 "
+   		CALL MAKE_FLOOR_LINE,11, "  111  1111111 "
+   		CALL MAKE_FLOOR_LINE,12, "     11111111  "
+   		CALL MAKE_FLOOR_LINE,13, "    11111  1   "
+   		CALL MAKE_FLOOR_LINE,14, "     111111    "
+   		CALL MAKE_FLOOR_LINE,15, "    111111     "
+   		CALL MAKE_FLOOR_LINE,16, "      111      "
+   		CALL MAKE_FLOOR_LINE,17, "       A       "
+
+
+	CASE 2
+		FLAG:最大X = 32
+		FLAG:最大Y = 30
+							;	  0123456789012345678901234567890
+   		CALL MAKE_FLOOR_LINE, 0, "                               "
+   		CALL MAKE_FLOOR_LINE, 1, "              6                "
+   		CALL MAKE_FLOOR_LINE, 2, "              2                "
+   		CALL MAKE_FLOOR_LINE, 3, "             111               "
+   		CALL MAKE_FLOOR_LINE, 4, "    3         1           3    "
+   		CALL MAKE_FLOOR_LINE, 5, "    2  3     111          2    "
+   		CALL MAKE_FLOOR_LINE, 6, "   111 2    11111        111   "
+   		CALL MAKE_FLOOR_LINE, 7, "  111111111111111111111111111  "
+   		CALL MAKE_FLOOR_LINE, 8, "   111     1111111       111   "
+   		CALL MAKE_FLOOR_LINE, 9, "            11111         1    "
+   		CALL MAKE_FLOOR_LINE,10, "             111          1    "
+   		CALL MAKE_FLOOR_LINE,11, "             111          1    "
+   		CALL MAKE_FLOOR_LINE,12, "              1          111   "
+   		CALL MAKE_FLOOR_LINE,13, "    3        111          1    "
+   		CALL MAKE_FLOOR_LINE,14, "    2                    111   "
+   		CALL MAKE_FLOOR_LINE,15, "  11111     11111   111111111  "
+   		CALL MAKE_FLOOR_LINE,16, " 111111111111111111111     111 "
+  		CALL MAKE_FLOOR_LINE,17, "   1     111     111           "
+   		CALL MAKE_FLOOR_LINE,18, "   1          1          7     "
+   		CALL MAKE_FLOOR_LINE,19, "   1          1          2     "
+   		CALL MAKE_FLOOR_LINE,20, "   1          1         111    "
+   		CALL MAKE_FLOOR_LINE,21, " 11111       111       11111   "
+   		CALL MAKE_FLOOR_LINE,22, "  11111     11111     11111    "
+   		CALL MAKE_FLOOR_LINE,23, "     11111111111111111111      "
+   		CALL MAKE_FLOOR_LINE,24, "             111               "
+   		CALL MAKE_FLOOR_LINE,25, "             111               "
+   		CALL MAKE_FLOOR_LINE,26, "              1                "
+   		CALL MAKE_FLOOR_LINE,27, "              1                "
+   		CALL MAKE_FLOOR_LINE,28, "             111               "
+   		CALL MAKE_FLOOR_LINE,29, "              B                "
+
+	CASE 3
+		FLAG:最大X = 12 
+		FLAG:最大Y = 12 
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "            "
+   		CALL MAKE_FLOOR_LINE, 1, "     6      "
+   		CALL MAKE_FLOOR_LINE, 2, "    111     "
+   		CALL MAKE_FLOOR_LINE, 3, "  1111111   "
+   		CALL MAKE_FLOOR_LINE, 4, " 11  1  11  "
+   		CALL MAKE_FLOOR_LINE, 5, "    111     "
+   		CALL MAKE_FLOOR_LINE, 6, "    111 T   "
+   		CALL MAKE_FLOOR_LINE, 7, " 111111111  "
+   		CALL MAKE_FLOOR_LINE, 8, "   11111    "
+   		CALL MAKE_FLOOR_LINE, 9, "    111     "
+   		CALL MAKE_FLOOR_LINE,10, "     7      "
+   		CALL MAKE_FLOOR_LINE,11, "            "
+
+
+	CASE 4
+		FLAG:最大X = 9 
+		FLAG:最大Y = 12 
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "    f    "
+   		CALL MAKE_FLOOR_LINE, 1, "    2    "
+   		CALL MAKE_FLOOR_LINE, 2, "    1    "
+   		CALL MAKE_FLOOR_LINE, 3, "  1 1 1  "
+   		CALL MAKE_FLOOR_LINE, 4, " 11 1 11 "
+   		CALL MAKE_FLOOR_LINE, 5, " 1111111 "
+   		CALL MAKE_FLOOR_LINE, 6, " 1 1 1 1 "
+   		CALL MAKE_FLOOR_LINE, 7, "   111   "
+   		CALL MAKE_FLOOR_LINE, 8, "    1    "
+   		CALL MAKE_FLOOR_LINE, 9, "   111   "
+   		CALL MAKE_FLOOR_LINE,10, "    7    "
+   		CALL MAKE_FLOOR_LINE,11, "         "
+
+	CASE 5
+		FLAG:最大X = 11 
+		FLAG:最大Y = 13 
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "           "
+   		CALL MAKE_FLOOR_LINE, 1, "           "
+   		CALL MAKE_FLOOR_LINE, 2, " 1 1 Z 1 1 "
+   		CALL MAKE_FLOOR_LINE, 3, " 111111111 "
+   		CALL MAKE_FLOOR_LINE, 4, "  1111111  "
+   		CALL MAKE_FLOOR_LINE, 5, "  1111111  "
+   		CALL MAKE_FLOOR_LINE, 6, " 111111111 "
+   		CALL MAKE_FLOOR_LINE, 7, " 1 11111 1 "
+   		CALL MAKE_FLOOR_LINE, 8, "    111    "
+   		CALL MAKE_FLOOR_LINE, 9, "     1     "
+   		CALL MAKE_FLOOR_LINE,10, "    111    "
+   		CALL MAKE_FLOOR_LINE,11, "    111    "
+   		CALL MAKE_FLOOR_LINE,12, "     F     "
+
+	CASE 6
+		FLAG:最大X = 10 
+		FLAG:最大Y = 12 
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "     c    "
+   		CALL MAKE_FLOOR_LINE, 1, "     x    "
+   		CALL MAKE_FLOOR_LINE, 2, "   111Y1  "
+   		CALL MAKE_FLOOR_LINE, 3, "  1$111#1 "
+   		CALL MAKE_FLOOR_LINE, 4, "  1111111 "
+   		CALL MAKE_FLOOR_LINE, 5, "     y    "
+   		CALL MAKE_FLOOR_LINE, 6, "   11111  "
+   		CALL MAKE_FLOOR_LINE, 7, "   11111  "
+   		CALL MAKE_FLOOR_LINE, 8, "  1111111 "
+   		CALL MAKE_FLOOR_LINE, 9, "     2    "
+   		CALL MAKE_FLOOR_LINE,10, "     6    "
+   		CALL MAKE_FLOOR_LINE,11, "          "
+
+	CASE 7
+		FLAG:最大X = 17
+		FLAG:最大Y = 18 
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "                 "
+   		CALL MAKE_FLOOR_LINE, 1, "         111     "
+   		CALL MAKE_FLOOR_LINE, 2, "      1111111    "
+   		CALL MAKE_FLOOR_LINE, 3, "    11111  111   "
+   		CALL MAKE_FLOOR_LINE, 4, "   111      111  "
+   		CALL MAKE_FLOOR_LINE, 5, "  111        111 "
+   		CALL MAKE_FLOOR_LINE, 6, "  11          11 "
+   		CALL MAKE_FLOOR_LINE, 7, "   1         111 "
+   		CALL MAKE_FLOOR_LINE, 8, "   11         11 "
+   		CALL MAKE_FLOOR_LINE, 9, "  111         1  "
+   		CALL MAKE_FLOOR_LINE,10, "  11          C  "
+   		CALL MAKE_FLOOR_LINE,11, " 111             "
+   		CALL MAKE_FLOOR_LINE,12, " 111             "
+   		CALL MAKE_FLOOR_LINE,13, "  11             "
+   		CALL MAKE_FLOOR_LINE,14, "   1             "
+   		CALL MAKE_FLOOR_LINE,15, "   1             "
+   		CALL MAKE_FLOOR_LINE,16, "   d             "
+   		CALL MAKE_FLOOR_LINE,17, "                 "
+
+	CASE 8
+		FLAG:最大X = 16 
+		FLAG:最大Y = 12
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "                "
+   		CALL MAKE_FLOOR_LINE, 1, "   D            "
+   		CALL MAKE_FLOOR_LINE, 2, "  111           "
+   		CALL MAKE_FLOOR_LINE, 3, "  111           "
+   		CALL MAKE_FLOOR_LINE, 4, "  111           "
+   		CALL MAKE_FLOOR_LINE, 5, "   11 T      e  "
+   		CALL MAKE_FLOOR_LINE, 6, "   11 2     111 "
+   		CALL MAKE_FLOOR_LINE, 7, "  11111     111 "
+   		CALL MAKE_FLOOR_LINE, 8, " 111111    111  "
+   		CALL MAKE_FLOOR_LINE, 9, "    1111  111   "
+   		CALL MAKE_FLOOR_LINE,10, "     11111111   "
+   		CALL MAKE_FLOOR_LINE,11, "                "
+
+
+	CASE 9
+		FLAG:最大X = 13
+		FLAG:最大Y = 16
+							;	  01234567890123456789
+   		CALL MAKE_FLOOR_LINE, 0, "             "
+   		CALL MAKE_FLOOR_LINE, 1, "          6  "
+   		CALL MAKE_FLOOR_LINE, 2, "         111 "
+   		CALL MAKE_FLOOR_LINE, 3, "         111 "
+   		CALL MAKE_FLOOR_LINE, 4, "         111 "
+   		CALL MAKE_FLOOR_LINE, 5, "          1  "
+   		CALL MAKE_FLOOR_LINE, 6, "          1  "
+   		CALL MAKE_FLOOR_LINE, 7, "          1  "
+   		CALL MAKE_FLOOR_LINE, 8, "      3  111 "
+   		CALL MAKE_FLOOR_LINE, 9, "     1111111 "
+   		CALL MAKE_FLOOR_LINE,10, "   11111111  "
+   		CALL MAKE_FLOOR_LINE,11, "  111111     "
+   		CALL MAKE_FLOOR_LINE,12, " 11111       "
+   		CALL MAKE_FLOOR_LINE,13, "  111        "
+   		CALL MAKE_FLOOR_LINE,14, "   E         "
+   		CALL MAKE_FLOOR_LINE,15, "             "
+
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_62, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:70~99
+;LOCAL:4 イベント
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+		LOCAL:4++
+	CASE 5
+		;DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:5 * 10 + 5
+		;LOCAL:5++
+	CASE 6
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:6 * 10 + 6
+		LOCAL:6++
+	CASE 7
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:7 * 10 + 7
+		LOCAL:7++
+	CASE 8
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:8 * 10 + 8
+		LOCAL:8++
+	CASE 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+		LOCAL:9++
+
+ENDSELECT
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_62
+CALL EVENT_DUNGEON_62
+RETURN RESULT
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_62,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+CALL EVENT_DUNGEON_62, ARG , 0
+RETURN RESULT
+
+@EVENT_DUNGEON_62, ARG, ARG:1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+;==========
+;ワープの処理
+;==========
+	CASE 1
+	CALL FLOOR_62
+	RETURN RESULT
+;==========
+;出口の処理
+;==========
+	CASE 8
+		CALL DUNGEON_EXIT
+	RETURN 1
+;==========
+;扉の処理
+;==========
+	CASE 2
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_62
+		RETURN 1
+
+;=======
+;階段
+;=======
+	CASE 6
+		CALL UPSTAIRS_62
+		RETURN 1
+
+	CASE 7
+		CALL DOWNSTAIRS_62
+		RETURN 1
+;==========
+;イベント
+;==========
+	CASE 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 10
+		IF ダンジョンフラグ:62:1 < 4
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "Though it is not said outloud ho, the town is in an uproar since a strong guy named Hel came ho"
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "The guys working under him plundered the town ho"
+		ENDIF
+	CASE 20
+		IF ダンジョンフラグ:62:1 == 1
+			CALL MESSAGE_WINDOW_D, "Yeti", "Hel is a terrible guy who rampages and plunders wherever he pleases"
+		ELSEIF ダンジョンフラグ:62:1 == 2 && ダンジョンフラグ:62:2 == 0
+			CALL MESSAGE_WINDOW_D, "Dust", "I am Dust the deputy leader of the Thief Corps"
+			CALL MESSAGE_WINDOW_D, "Dust", "Take me with you if you are going to defeat Hel！"
+		CALL INPUT_YN_D
+			IF RESULT == 0;y
+				CALL MESSAGE_WINDOW_D, "Dust", "My best regards！"
+				CALL MESSAGE_WINDOW_D, "", "＞Dust became a companion！"
+					CALL ADD_NEW_COMPANION,[[キャラ:イエティ]],200
+					IF RESULT == 1
+					LOCAL = RESULT:1
+					NAME:LOCAL = Dust
+					CALLNAME:LOCAL = Dust
+					BASE:LOCAL:LV = 16
+					BASE:LOCAL:力 = 13
+					BASE:LOCAL:知恵 = 3 
+					BASE:LOCAL:魔力 = 4
+					BASE:LOCAL:耐力 = 10
+					BASE:LOCAL:速さ = 7
+					BASE:LOCAL:運 = 5
+					ENDIF
+				ダンジョンフラグ:62:2 = 1
+			ELSEIF RESULT == 1;n
+					CALL MESSAGE_WINDOW_D, "Dust", "Call me anytime！"
+			ENDIF
+		ENDIF
+	CASE 30
+		IF ダンジョンフラグ:62:1 == 1
+			CALL MESSAGE_WINDOW_D, "Nekomata", "I was forcibly brought here by subordinates of Hel……/If I just stay here like this……"
+		ELSEIF ダンジョンフラグ:62:1 == 2 && ダンジョンフラグ:62:3 == 0
+			CALL MESSAGE_WINDOW_D, "Nekomata", "Please take me with you when you leave"
+		CALL INPUT_YN_D
+			IF RESULT == 0;y
+				CALL MESSAGE_WINDOW_D, "Nekomata", "Yes、thank you"
+				CALL MESSAGE_WINDOW_D, "", "＞Nekomata became a companion！"
+					CALL ADD_NEW_COMPANION,[[キャラ:ネコマタ]],200
+					ダンジョンフラグ:62:3 = 1
+			ELSEIF RESULT == 1;n
+					CALL MESSAGE_WINDOW_D, "Nekomata", "Please call me anytime……"
+			ENDIF
+		ENDIF
+	CASE 40
+	IF ダンジョンフラグ:62:1 == 3 && ダンジョンフラグ:62:2 == 0
+			CALL MESSAGE_WINDOW_D, "Dust", "I am Dust、the deputy leader of the Thieves Corps"
+			CALL MESSAGE_WINDOW_D, "Dust", "Take me with you if you are going to defeat Hel！"
+		CALL INPUT_YN_D
+			IF RESULT == 0;y
+				CALL MESSAGE_WINDOW_D, "Dust", "My best regards！"
+				CALL MESSAGE_WINDOW_D, "", "＞Dust became a companion！"
+					CALL ADD_NEW_COMPANION,[[キャラ:イエティ]],200
+					IF RESULT == 1
+					LOCAL = RESULT:1
+					NAME:LOCAL = Dust
+					CALLNAME:LOCAL = Dust
+					BASE:LOCAL:LV = 16
+					BASE:LOCAL:力 = 13
+					BASE:LOCAL:知恵 = 3 
+					BASE:LOCAL:魔力 = 4
+					BASE:LOCAL:耐力 = 10
+					BASE:LOCAL:速さ = 7
+					BASE:LOCAL:運 = 5
+					ABL:LOCAL:スキル4 = [[スキル:ブフーラ]]
+					ABL:LOCAL:スキル5 = [[スキル:アイスブレス]]
+					ABL:LOCAL:スキル6 = [[スキル:ディアラハン]]
+					ENDIF
+				ダンジョンフラグ:62:2 = 1
+			ELSEIF RESULT == 1;n
+					CALL MESSAGE_WINDOW_D, "Dust", "Call me anytime！"
+			ENDIF
+		ENDIF
+	CASE 50
+		IF ダンジョンフラグ:62:1 == 3 && ダンジョンフラグ:62:3 == 0
+			CALL MESSAGE_WINDOW_D, "Nekomata", "Let me help fight against Hel！"
+		CALL INPUT_YN_D
+			IF RESULT == 0;y
+				CALL MESSAGE_WINDOW_D, "Nekomata", "Yes、thank you"
+				CALL MESSAGE_WINDOW_D, "", "＞Nekomata became a companion！"
+					CALL ADD_NEW_COMPANION,[[キャラ:ネコマタ]],200
+					ダンジョンフラグ:62:3 = 1
+			ELSEIF RESULT == 1;n
+					CALL MESSAGE_WINDOW_D, "Nekomata", "Call me anytime……"
+			ENDIF
+		ENDIF
+	CASE 60
+	IF ダンジョンフラグ:62:1 < 4
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "It is unusual for a human to come to the Expanse ho"
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "This is called Frost Town ho/Hel has a castle to the north of town ho"
+	ELSE
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "Hel has disappeared and things have become peaceful ho"
+	ENDIF
+	CASE 70
+	IF ダンジョンフラグ:62:1 < 4
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "The bandits fighting against Hel were caught ho"
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "No one rebels against Hel any longer ho……"
+	ENDIF
+	CASE 444
+		IF ダンジョンフラグ:62:1 == 1
+				CALL MESSAGE_WINDOW_D, "", "＞There is a red Jack Frost"
+				CALL MESSAGE_WINDOW_D, "Red Jack Frost", "You have been caught by a subordinate of Hell Frost"
+				CALL MESSAGE_WINDOW_D, "Diana", "I am Diana。I lead the rebels against Hel"
+				CALL MESSAGE_WINDOW_D, "Diana", "I need power to defeat Hel。/If you aid me、I will tell you how to get out of this prison"
+				CALL MESSAGE_WINDOW_D, "", "＞Will you aid Diana？"
+			CALL INPUT_YN_D
+			IF RESULT == 0;y
+				CALL MESSAGE_WINDOW_D, "", "＞You chose to aid her"
+				CALL MESSAGE_WINDOW_D, "Diana", "We will work together in this/Check the north wall for a secret passage/Return to town using that"
+				CALL MESSAGE_WINDOW_D, "Diana", "Maybe talk to the other demons in rison before leaving？"
+				ダンジョンフラグ:62:1 = 2
+			ELSEIF RESULT == 1;n
+				CALL MESSAGE_WINDOW_D, "Diana", "If you are not an ally、I have no reason to tell you"
+			ENDIF
+		ENDIF
+	CASE 555
+		IF ダンジョンフラグ:62:1 == 3
+		CALL MESSAGE_WINDOW_D, "", "＞There is a huge groups of Jack Frosts"
+		CALL MESSAGE_WINDOW_D, "Hel", "You are the human that escaped with the thieves！"
+		CALL MESSAGE_WINDOW_D, "Hel", "So stupid、to think you could just walk up here！"
+		CALL MESSAGE_WINDOW_D, "Hel", "Dealing with escaped prisoners is beneath my dignity！/Do not think you will die peacefully！"
+		CALL MESSAGE_WINDOW_D, "", "＞1 Tyrant Hel appeared！/＞2 Fairy Jack Frosts appeared！" , , , , , , , , , "CENTER"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,8,[[キャラ:ジャックフロスト]],15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 200
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,9,[[キャラ:キングフロスト]],20,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 500
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 500
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		NAME:(CHARANUM-1) = ヘル
+		CALLNAME:(CHARANUM-1) = ヘル
+		ABL:(CHARANUM-1):スキル1 = [[スキル:マカジャマ]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:プリンパ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:ブフーラ]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:マハ・ブフ]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:ディア]]
+		BASE:(CHARANUM-1):地変 = 200
+		ABL:(CHARANUM-1):アイテム1 = [[アイテム:Frost Cannon]]
+		ABL:(CHARANUM-1):入手確率1 = 100
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,10,[[キャラ:ジャックフロスト]],15,0,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 200
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 200
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL BATTLE_START
+
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALL MESSAGE_WINDOW_D, "", "＞Tyrant Hel collapsed！"
+		CALL SHOW_PICTURE, "D"
+		IF ダンジョンフラグ:61:1 == 1
+			CALL MESSAGE_WINDOW_D, "","＞Obtained the golden Horn of the Messiah/＞You can now go to Marble Land！"
+		ELSEIF ダンジョンフラグ:61:1 == 2
+			CALL MESSAGE_WINDOW_D, "","＞Obtained the Pupil of the Messiah/＞You can now go to Marble Land！"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "Diana", "We could defeat Hel thanks to you！"
+		CALL MESSAGE_WINDOW_D, "Diana", "As thanks、may I join you？"
+		CALL INPUT_YN_D
+		IF RESULT == 0;y
+			CALL MESSAGE_WINDOW_D, "Diana", "Thank you！　I hope to work with you in the future！"
+			CALL MESSAGE_WINDOW_D, "", "＞Diana joined you！"
+			CALL ADD_NEW_COMPANION,[[キャラ:イチゴフロスト]],200
+			IF RESULT == 1
+			LOCAL = RESULT:1
+			NAME:LOCAL = ダイアナ
+			CALLNAME:LOCAL = ダイアナ
+			ENDIF
+		ELSEIF RESULT == 1;n
+			CALL MESSAGE_WINDOW_D, "Diana", "Is that so……"
+		ENDIF
+		ダンジョンフラグ:62:1 = 4
+		CALL MESSAGE_WINDOW_D, "", "＞You left Ice Land……"
+		CALL MESSAGE_WINDOW_D, "","＞Fenrir gave you ￥40000、and you got 75 fame"
+		MONEY += 40000
+		FLAG:名声 += 75
+		FLAG:脱出 = 1
+			RETURN 1
+	ENDIF
+		ENDSELECT
+		RETURN 1
+
+	CASE 9
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 222
+		IF ダンジョンフラグ:62:1 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞A snowman blocks the way"
+		CALL MESSAGE_WINDOW_D, "Jack Frost", "Hee ho！/Here is the dangerous person Hell spoke of ho！/I will send them to prison ho！"
+		CALL MESSAGE_WINDOW_D, "", "＞Many Fairy Jack Frost appeared！" , , , , , , , , , "CENTER"
+		CALL MESSAGE_WINDOW_D, "", "＞You were overwhelmed by their numbers……"
+		CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+		ダンジョンフラグ:62:1 = 1
+		CALL DUNGEON_WORP, 6, 5, 3
+		FLAG:脱出スキル禁止 = 1
+		ENDIF
+	ENDSELECT
+	RETURN 1
+ENDSELECT
+RETURN 0
+;-----------------------------------------------------------------------
+;タイルイベント
+;-----------------------------------------------------------------------
+@FLOOR_62, ARG
+#LOCALSIZE 4
+#LOCALSSIZE 2
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;ワープゾーン
+	CASE 10 , 11 , 20 , 21 , 30 , 31 , 40 , 41 , 50 , 51 , 60 , 61
+		;ワープゾーン関係
+		;100の位がID
+		;10の位が0なら上層に、1なら下層に行く
+		LOCAL = DA:(FLAG:現X):(FLAG:現Y) / 10 % 10 ? DA:(FLAG:現X):(FLAG:現Y) -10 # DA:(FLAG:現X):(FLAG:現Y) + 10
+		LOCAL:1 = DA:(FLAG:現X):(FLAG:現Y) / 10 % 10 ? FLAG:現M - 1 # FLAG:現M + 1
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, LOCAL:1, LOCAL, 1
+ENDSELECT
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_62
+	SELECTCASE FLAG:現M
+		CASE 2
+			SIF FLAG:現X == 14 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,3,5,10
+		CASE 3
+			SIF FLAG:現X == 5 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,4,4,10
+		CASE 6
+			SIF FLAG:現X == 5 && FLAG:現Y == 10
+				CALL DUNGEON_UPSTAIRS,2,25,18
+		CASE 9
+			SIF FLAG:現X == 10 && FLAG:現Y == 1
+				CALL DUNGEON_UPSTAIRS,0,5,6
+		CASEELSE
+	ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_62
+	SELECTCASE FLAG:現M
+		CASE 3
+			SIF FLAG:現X == 5 && FLAG:現Y == 10
+				CALL DUNGEON_DOWNSTAIRS,2,14,1
+		CASE 2
+			SIF FLAG:現X == 25 && FLAG:現Y == 18
+				CALL DUNGEON_DOWNSTAIRS,6,5,10
+		CASE 4
+			SIF FLAG:現X == 4 && FLAG:現Y == 10
+				CALL DUNGEON_DOWNSTAIRS,3,5,1
+		CASE 0
+			SIF FLAG:現X == 5 && FLAG:現Y == 6
+				CALL DUNGEON_DOWNSTAIRS,9,10,2
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_62
+RETURN 12,  7, 17, 20
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_62
+SELECTCASE FLAG:現M
+	CASE 1 TO 5
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5 + 5
+	CASE 7 TO 9
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASEELSE
+		FLAG:エンカウント率 = 0
+ENDSELECT
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_62
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_62
+RETURN CLASS_NUM_COMMON("初級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_62, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_62, ARG
+SELECTCASE FLAG:現M
+
+CASE 3 TO 5
+SELECTCASE RAND:100
+	CASE IS < 25
+		RETURN [[キャラ:ジャックフロスト]], 15
+	CASE IS < 40
+		RETURN [[キャラ:ノーム]],15
+	CASE IS < 50
+		RETURN [[キャラ:ケットシー]],15
+	CASE IS < 60
+		RETURN [[キャラ:アズミ]], 15
+	CASE IS < 70
+		RETURN [[キャラ:エンプーサ]], 15
+	CASE IS < 80
+		RETURN [[キャラ:トウビョウ]], 15
+	CASE IS < 90
+		RETURN [[キャラ:ヤマチチ]], 16
+	CASE IS < 95
+		RETURN [[キャラ:アガートラーム]], 17
+	CASE IS < 100
+		RETURN [[キャラ:ニケー]], 17
+ENDSELECT
+
+
+
+CASE 7 TO 9
+SELECTCASE RAND:100
+	CASE IS < 30
+		RETURN [[キャラ:プチフロスト]], 9
+	CASE IS < 40
+		RETURN [[キャラ:リリム]], 9
+	CASE IS < 50
+		RETURN [[キャラ:シルキー]], 9
+	CASE IS < 60
+		RETURN [[キャラ:インプ]], 9
+	CASE IS < 70
+		RETURN [[キャラ:ユキンコ]], 7
+	CASE IS < 80
+		RETURN [[キャラ:アルプ]], 7
+	CASE IS < 90
+		RETURN [[キャラ:ビルヴィス]], 8
+	CASE IS < 100
+		RETURN [[キャラ:ナハトコボルト]], 7
+ENDSELECT
+
+CASEELSE
+SELECTCASE RAND:100
+	CASE IS < 25
+		RETURN [[キャラ:ジャックフロスト]], 12
+	CASE IS < 40
+		RETURN [[キャラ:ウィディーネ]], 12
+	CASE IS < 50
+		RETURN [[キャラ:ヒッポウ]],10
+	CASE IS < 60
+		RETURN [[キャラ:イヌガミ]], 13
+	CASE IS < 70
+		RETURN [[キャラ:ガギソン]], 12
+	CASE IS < 80
+		RETURN [[キャラ:カーシー]], 11
+	CASE IS < 90
+		RETURN [[キャラ:ケットシー]], 12
+	CASE IS < 100
+		RETURN [[キャラ:オバリヨン]], 11
+ENDSELECT
+
+ENDSELECT
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_62
+#LOCALSIZE 9
+LOCAL = FLAG:現M + 70
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+	CASE 200
+		CALL GET_TREASURE, [[アイテム:AgIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 201
+		CALL GET_TREASURE_MONEY, 1 , 150 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 202
+		CALL GET_TREASURE, [[アイテム:RevivalBead]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 203
+		CALL GET_TREASURE, [[アイテム:OxBezoar]] , 2 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 900
+		CALL GET_TREASURE, [[アイテム:極寒の勾玉]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+ENDSELECT
+RETURN 1
+
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_62
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:インプ]] , 3 + RAND:10 , CSVBASE([[キャラ:インプ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ビルヴィス]] , 3 + RAND:10 , CSVBASE([[キャラ:ビルヴィス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:トウビョウ]] , 3 + RAND:10 , CSVBASE([[キャラ:トウビョウ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+

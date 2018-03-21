@@ -1,0 +1,843 @@
+;----------------------------------------------------------
+; Additional functions for a page5 of the character-page
+; This page displays the relations og the character to other characters
+; This includes CSV-defined relations(CSV-defined family, compatibiliy, partner, etc.)
+; and aquired relations(childs born, which can be brothers, sisters etc. to existing characters
+; and contracts between the master and a character)
+;
+; Also includes an alternate way to pick the pages(instead of just next page etc.)
+;----------------------------------------------------------
+
+;----------------------------------------------------------
+; A helper function to avoid modifiying SHOW_STATUS or DEVIL_COMPENDIUM too much
+;----------------------------------------------------------
+@SHOW_INFO_PAGE_HELPER,ARG,ARGS
+SELECTCASE ARGS
+	CASE "1004"
+		SIF ARG == 1
+			RETURN -1
+		RETURN 1
+	CASE "1005"
+		SIF ARG == 2
+			RETURN -1
+		RETURN 2
+	CASE "1006"
+		SIF ARG == 3
+			RETURN -1
+		RETURN 3
+	CASE "1007"
+		SIF ARG == 4
+			RETURN -1
+		RETURN 4
+	CASE "1008"
+		SIF ARG == 5
+			RETURN -1
+		RETURN 5
+ENDSELECT
+
+;----------------------------------------------------------
+; Displays a button-like print(but without actually using PRINTBUTTON)
+; ARGS:0 is the label
+; ARG:1 is to define what kind of button it should be(0 is disabled, 1 is active, 2 is already picked and disabled)
+; ARG:2 is to be used as a conditional during calling. If it's 1, the button is active(ARG:1 is set to 2)
+; ARG:3 is to define the amount of spaces that should be bufferd to ARGS:0 (like %"somestring",12%)
+; ARG:4 can be "LEFT" or "RIGHT" and defines the alignment if ARG:3 is set
+;----------------------------------------------------------
+@PRINTBUTTON_CONCOL(ARGS:0,ARG:1 = 1,ARG:2 = 0,ARG:3 = 0,ARGS:4 = "")
+#DIM colorsaver, 1
+SIF ARG:2
+	ARG:1 = 2
+IF ARG:3 != 0 && ARGS:4 != ""
+	IF ARGS:4 == "LEFT"
+		ARGS:0 = %ARGS:0,ARG:3,LEFT%
+	ELSEIF ARGS:4 == "RIGHT"
+		ARGS:0 = %ARGS:0,ARG:3,RIGHT%
+	ELSE
+		ARGS:0 = %ARGS:0,ARG:3%
+	ENDIF
+ELSEIF ARG:3 != 0
+	ARGS:0 = %ARGS:0,ARG:3%
+ENDIF
+SELECTCASE ARG:1
+	CASE 0
+		colorsaver = GETCOLOR()
+		SETCOLOR 0x606060
+		PRINTPLAINFORM %ARGS:0%
+		SETCOLOR colorsaver
+	CASE 1
+		PRINTFORM %ARGS:0%
+	CASE 2
+		colorsaver = GETCOLOR()
+		SETCOLOR 0x66FFFF
+		PRINTPLAINFORM %ARGS:0%
+		SETCOLOR colorsaver
+ENDSELECT
+
+;----------------------------------------------------------
+; Return the CSTR with all the non-CSV-defined relatives of the respective kind
+;
+; ARG is a reference to the characters whose relatives we want to print
+; ARGS is a string representing the kind of relatives we want(sons,daughters,brothers or sisters)
+;----------------------------------------------------------
+@GET_ALL_RELATIVE_KIND(ARG,ARGS)
+#FUNCTIONS
+#DIMS values, 1
+;#DIMS splitted, 20
+VARSET values
+SELECTCASE ARGS
+CASE "sons","息子"
+IF CFLAG:ARG:第何子まで産んだか > 0
+	values = %CSTR:ARG:sons%
+ENDIF
+
+CASE "daughters","娘"
+IF CFLAG:ARG:第何子まで産んだか > 0
+	values = %CSTR:ARG:daughters%
+ENDIF
+
+CASE "sisters","姉妹"
+IF TALENT:ARG:子供 > 0
+	values = %CSTR:ARG:sisters%
+ENDIF
+
+CASE "brothers","兄弟"
+IF TALENT:ARG:子供 > 0
+	values = %CSTR:ARG:brothers%
+ENDIF
+
+ENDSELECT
+RETURNF values
+;----------------------------------------------------------
+; Adds a new child to the existing relatives
+;
+; ARG is a reference to the newly added child
+; MOTHER is a reference to the mother
+; FATHER is a reference to the father
+;----------------------------------------------------------
+@ADD_NEW_RELATIVE(ARG,MOTHER,FATHER = -1)
+#DIM MOTHER, 1
+#DIM FATHER, 1
+#DIMS values, 1
+#DIMS splitted, 20
+#DIM splittedisfull, 1
+#DIM numbers, 4
+VARSET splittedisfull
+;mother is always required(the child runs away if she isn't there on creation)
+IF CSTR:MOTHER:sons != ""
+	numbers:3 = STRCOUNT(CSTR:MOTHER:sons , "_")+1
+	IF numbers:3 >= 20
+		numbers:3 = 20
+		splittedisfull = 1
+	ENDIF
+	VARSET splitted
+	values = %CSTR:MOTHER:sons%
+	SPLIT values, "_", splitted
+	FOR numbers,0,CHARANUM
+		;if not child or not male, it's not a son
+		SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 0
+			CONTINUE
+		;also has to be this mothers son 
+		SIF (CFLAG:numbers:娘の産みの親の固有番号娘 != CFLAG:MOTHER:キャラ固有の番号)
+			CONTINUE
+		;and the character we just added doesn't count
+		SIF numbers == ARG
+			CONTINUE
+		FOR numbers:2 , 0 , numbers:3
+			IF CALLNAME:numbers == splitted:(numbers:2)
+				IF TALENT:ARG:オトコ == 1
+					IF CSTR:numbers:brothers != ""
+						CSTR:numbers:brothers = %CSTR:numbers:brothers%_%CALLNAME:ARG%
+					ELSE
+						CSTR:numbers:brothers = %CALLNAME:ARG%
+					ENDIF
+					IF CSTR:ARG:brothers != ""
+						CSTR:ARG:brothers = %CSTR:ARG:brothers%_%CALLNAME:numbers%
+					ELSE
+						CSTR:ARG:brothers = %CALLNAME:numbers%
+					ENDIF
+				ELSE
+					IF CSTR:numbers:sisters != ""
+						CSTR:numbers:sisters = %CSTR:numbers:sisters%_%CALLNAME:ARG%
+					ELSE
+						CSTR:numbers:sisters = %CALLNAME:ARG%
+					ENDIF
+					IF CSTR:ARG:brothers != ""
+						CSTR:ARG:brothers = %CSTR:ARG:brothers%_%CALLNAME:numbers%
+					ELSE
+						CSTR:ARG:brothers = %CALLNAME:numbers%
+					ENDIF
+				ENDIF
+				BREAK
+			ENDIF
+		NEXT
+	NEXT
+	SIF TALENT:ARG:オトコ == 1 && splittedisfull != 1
+		CSTR:MOTHER:sons = %CSTR:MOTHER:sons%_%CALLNAME:ARG%
+ELSE
+	SIF TALENT:ARG:オトコ == 1
+		CSTR:MOTHER:sons = %CALLNAME:ARG%
+ENDIF
+
+IF CSTR:MOTHER:daughters != ""
+	numbers:3 = STRCOUNT(CSTR:MOTHER:daughters , "_")+1
+	IF numbers:3 >= 20
+		numbers:3 = 20
+		splittedisfull = 1
+	ENDIF
+	VARSET splitted
+	values = %CSTR:MOTHER:daughters%
+	SPLIT values, "_", splitted
+	FOR numbers,0,CHARANUM
+		;if not child or male, it's not a daughter
+		SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 1
+			CONTINUE
+		;also has to be this mothers daughter
+		SIF (CFLAG:numbers:娘の産みの親の固有番号娘 != CFLAG:MOTHER:キャラ固有の番号)
+			CONTINUE
+		;and the character we just added doesn't count
+		SIF numbers == ARG
+			CONTINUE
+		FOR numbers:2 , 0 , numbers:3
+			IF CALLNAME:numbers == splitted:(numbers:2)
+				IF TALENT:ARG:オトコ == 1
+					IF CSTR:numbers:brothers != ""
+						CSTR:numbers:brothers = %CSTR:numbers:brothers%_%CALLNAME:ARG%
+					ELSE
+						CSTR:numbers:brothers = %CALLNAME:ARG%
+					ENDIF
+					IF CSTR:ARG:sisters != ""
+						CSTR:ARG:sisters = %CSTR:ARG:sisters%_%CALLNAME:numbers%
+					ELSE
+						CSTR:ARG:sisters = %CALLNAME:numbers%
+					ENDIF
+				ELSE
+					IF CSTR:numbers:sisters != ""
+						CSTR:numbers:sisters = %CSTR:numbers:sisters%_%CALLNAME:ARG%
+					ELSE
+						CSTR:numbers:sisters = %CALLNAME:ARG%
+					ENDIF
+					IF CSTR:ARG:sisters != ""
+						CSTR:ARG:sisters = %CSTR:ARG:sisters%_%CALLNAME:numbers%
+					ELSE
+						CSTR:ARG:sisters = %CALLNAME:numbers%
+					ENDIF
+				ENDIF
+				BREAK
+			ENDIF
+		NEXT
+	NEXT
+	SIF TALENT:ARG:オトコ == 0 && splittedisfull != 1
+		CSTR:MOTHER:daughters = %CSTR:MOTHER:daughters%_%CALLNAME:ARG%
+ELSE
+	SIF TALENT:ARG:オトコ == 0
+		CSTR:MOTHER:daughters = %CALLNAME:ARG%
+ENDIF
+
+IF FATHER != -1
+	;we have a father
+	IF CSTR:FATHER:sons != ""
+		numbers:3 = STRCOUNT(CSTR:FATHER:sons , "_")+1
+		IF numbers:3 >= 20
+			numbers:3 = 20
+			splittedisfull = 1
+		ENDIF
+		VARSET splitted
+		values = %CSTR:FATHER:sons%
+		SPLIT values, "_", splitted
+		FOR numbers,0,CHARANUM
+			;if not child or not male, it's not a son
+			SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 0
+				CONTINUE
+			;also has to be this fathers daughter
+			SIF (CFLAG:numbers:娘の父親の固有番号娘 != CFLAG:FATHER:キャラ固有の番号)
+				CONTINUE
+			;the character we just added doesn't count
+			SIF numbers == ARG
+				CONTINUE
+			;and if the mother is the same as this ones mother, skip because we already handled stuff
+			SIF (CFLAG:numbers:娘の産みの親の固有番号娘 == CFLAG:MOTHER:キャラ固有の番号)
+				CONTINUE
+			FOR numbers:2 , 0 , numbers:3
+				IF CALLNAME:numbers == splitted:(numbers:2)
+					IF TALENT:ARG:オトコ == 1
+						IF CSTR:numbers:brothers != ""
+							CSTR:numbers:brothers = %CSTR:numbers:brothers%_%CALLNAME:ARG%
+						ELSE
+							CSTR:numbers:brothers = %CALLNAME:ARG%
+						ENDIF
+						IF CSTR:ARG:brothers != ""
+							CSTR:ARG:brothers = %CSTR:ARG:brothers%_%CALLNAME:numbers%
+						ELSE
+							CSTR:ARG:brothers = %CALLNAME:numbers%
+						ENDIF
+					ELSE
+						IF CSTR:numbers:sisters != ""
+							CSTR:numbers:sisters = %CSTR:numbers:sisters%_%CALLNAME:ARG%
+						ELSE
+							CSTR:numbers:sisters = %CALLNAME:ARG%
+						ENDIF
+						IF CSTR:ARG:brothers != ""
+							CSTR:ARG:brothers = %CSTR:ARG:brothers%_%CALLNAME:numbers%
+						ELSE
+							CSTR:ARG:brothers = %CALLNAME:numbers%
+						ENDIF
+					ENDIF
+					BREAK
+				ENDIF
+			NEXT
+		NEXT
+		SIF TALENT:ARG:オトコ == 1 && splittedisfull != 1
+			CSTR:FATHER:sons = %CSTR:FATHER:sons%_%CALLNAME:ARG%
+	ELSE
+		SIF TALENT:ARG:オトコ == 1
+			CSTR:FATHER:sons = %CALLNAME:ARG%
+	ENDIF
+	IF CSTR:FATHER:daughters != ""
+		numbers:3 = STRCOUNT(CSTR:FATHER:daughters , "_")+1
+		IF numbers:3 >= 20
+			numbers:3 = 20
+			splittedisfull = 1
+		ENDIF
+		VARSET splitted
+		values = %CSTR:FATHER:daughters%
+		SPLIT values, "_", splitted
+		FOR numbers,0,CHARANUM
+			;if not child or male, it's not a daughter
+			SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 1
+				CONTINUE
+			;also has to be this fathers daughter
+			SIF (CFLAG:numbers:娘の父親の固有番号娘 != CFLAG:FATHER:キャラ固有の番号)
+				CONTINUE
+			;the character we just added doesn't count
+			SIF numbers == ARG
+				CONTINUE
+			;and if the mother is the same as this ones mother, skip because we already handled stuff
+			SIF (CFLAG:numbers:娘の産みの親の固有番号娘 == CFLAG:MOTHER:キャラ固有の番号)
+				CONTINUE
+			FOR numbers:2 , 0 , numbers:3
+				IF CALLNAME:numbers == splitted:(numbers:2)
+					IF TALENT:ARG:オトコ == 1
+						IF CSTR:numbers:brothers != ""
+							CSTR:numbers:brothers = %CSTR:numbers:brothers%_%CALLNAME:ARG%
+						ELSE
+							CSTR:numbers:brothers = %CALLNAME:ARG%
+						ENDIF
+						IF CSTR:ARG:sisters != ""
+							CSTR:ARG:sisters = %CSTR:ARG:sisters%_%CALLNAME:numbers%
+						ELSE
+							CSTR:ARG:sisters = %CALLNAME:numbers%
+						ENDIF
+					ELSE
+						IF CSTR:numbers:sisters != ""
+							CSTR:numbers:sisters = %CSTR:numbers:sisters%_%CALLNAME:ARG%
+						ELSE
+							CSTR:numbers:sisters = %CALLNAME:ARG%
+						ENDIF
+						IF CSTR:ARG:sisters != ""
+							CSTR:ARG:sisters = %CSTR:ARG:sisters%_%CALLNAME:numbers%
+						ELSE
+							CSTR:ARG:sisters = %CALLNAME:numbers%
+						ENDIF
+					ENDIF
+					BREAK
+				ENDIF
+			NEXT
+		NEXT
+		SIF TALENT:ARG:オトコ == 0 && splittedisfull != 1
+			CSTR:FATHER:daughters = %CSTR:FATHER:daughters%_%CALLNAME:ARG%
+	ELSE
+		SIF TALENT:ARG:オトコ == 0
+			CSTR:FATHER:daughters = %CALLNAME:ARG%
+	ENDIF
+ENDIF
+;----------------------------------------------------------
+; Updates the references to a character, before a characters gets a name-change or gender-change
+;
+; ARG is a reference to the character that gets changed
+; ARGS:0 and ARGS:1 are the original and new name respectively
+; ARG:2 specifies if the gender was changed(1: gender change, 0: no change)
+; (if the gender is changed, the ARGS:0 is used, since it's name or gender change, not both)
+;
+; DIM(S)
+; stringstorage just stores the CSTR for working with it and other strings
+; splitted is an array that gets filled with the splitted names(limited to a maximum of 20 characters)
+; changehappened is to make sure we don't replace more than one name(even if there are multiple chars with the same one)
+;----------------------------------------------------------
+@UPDATE_RELATIVE_REFERENCES(ARG,ARGS:0,ARGS:1,ARG:1 = 0)
+#DIMS stringstorage, 3
+#DIM numbers, 4
+#DIMS splitted, 20
+#DIM changehappened, 1
+VARSET changehappened
+;we check if the character ever had a child first
+IF CFLAG:ARG:第何子まで産んだか > 0
+	;ever had a son?
+	IF CSTR:ARG:sons != ""
+		FOR numbers,0,CHARANUM
+			;it's not a son if it's not a child or not male
+			SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 0
+				CONTINUE
+			IF (CFLAG:numbers:娘の父親の固有番号娘 == CFLAG:ARG:キャラ固有の番号) && STRFIND(CSTR:numbers:父,ARGS:0) > -1
+				STRLENS (ARGS:0)
+				numbers:1 = RESULT
+				SUBSTRING CSTR:numbers:父,numbers:1,-1
+				stringstorage:0 = %RESULTS%
+				CSTR:numbers:父 = %ARGS:1%%stringstorage:0%
+			ELSEIF CFLAG:numbers:娘の産みの親の固有番号娘 == CFLAG:ARG:キャラ固有の番号 && STRFIND(CSTR:numbers:母,ARGS:0) > -1
+				STRLENS (ARGS:0)
+				numbers:1 = RESULT
+				SUBSTRING CSTR:numbers:母,numbers:1,-1
+				stringstorage:0 = %RESULTS%
+				CSTR:numbers:母 = %ARGS:1%%stringstorage:0%
+			ENDIF
+		NEXT
+	ENDIF
+	;ever had a daughter?
+	IF CSTR:ARG:daughters != ""
+		FOR numbers,0,CHARANUM
+			;it's not a daughter if it's not a child or male
+			SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 1
+				CONTINUE
+			IF (CFLAG:numbers:娘の父親の固有番号娘 == CFLAG:ARG:キャラ固有の番号) && STRFIND(CSTR:numbers:父,ARGS:0) > -1
+				STRLENS (ARGS:0)
+				numbers:1 = RESULT
+				SUBSTRING CSTR:numbers:父,numbers:1,-1
+				stringstorage:0 = %RESULTS%
+				CSTR:numbers:父 = %ARGS:1%%stringstorage:0%
+			ELSEIF CFLAG:numbers:娘の産みの親の固有番号娘 == CFLAG:ARG:キャラ固有の番号 && STRFIND(CSTR:numbers:母,ARGS:0) > -1
+				STRLENS (ARGS:0)
+				numbers:1 = RESULT
+				SUBSTRING CSTR:numbers:母,numbers:1,-1
+				stringstorage:0 = %RESULTS%
+				CSTR:numbers:母 = %ARGS:1%%stringstorage:0%
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+;then we check if the character is someones child
+IF TALENT:ARG:子供 > 0
+	;got any brothers?
+	IF CSTR:ARG:brothers != ""
+		FOR numbers,0,CHARANUM
+			;it's not a brother if it's not a child or not male
+			SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 0
+				CONTINUE
+			SIF numbers == ARG
+				CONTINUE
+			;if the mother or father is the same, it's a brother. we don't care about half-stuff here
+			IF CFLAG:numbers:娘の父親の固有番号娘 == CFLAG:ARG:娘の父親の固有番号娘 || CFLAG:numbers:娘の産みの親の固有番号娘 == CFLAG:ARG:娘の産みの親の固有番号娘
+				IF TALENT:ARG:オトコ == 1
+					stringstorage = %CSTR:numbers:brothers%
+				ELSE
+					stringstorage = %CSTR:numbers:sisters%
+				ENDIF
+				;the characters are related but not in the CSTR, so we abort here
+				SIF STRFIND(stringstorage,ARGS:0) == -1
+					CONTINUE
+				numbers:3 = STRCOUNT(stringstorage , "_")+1
+				IF numbers:3 >= 20
+					numbers:3 = 20
+				ENDIF
+				VARSET splitted
+				VARSET stringstorage:2
+				SPLIT stringstorage, "_", splitted
+				FOR numbers:2 , 0 , numbers:3
+					IF splitted:(numbers:2) == ARGS:0 && changehappened == 0
+						IF ARG:1 == 1
+							;we have a gender change. don't change stringstorage:2(so this name effectively vanishes)
+							IF TALENT:ARG:オトコ == 1
+								IF CSTR:numbers:sisters!= ""
+									CSTR:numbers:sisters = %CSTR:numbers:sisters%_%ARGS:0%
+								ELSE
+									CSTR:numbers:sisters = %ARGS:0%
+								ENDIF
+							ELSE
+								IF CSTR:numbers:brothers!= ""
+									CSTR:numbers:brothers = %CSTR:numbers:brothers%_%ARGS:0%
+								ELSE
+									CSTR:numbers:brothers = %ARGS:0%
+								ENDIF
+							ENDIF
+						ELSE
+							IF stringstorage:2 != ""
+								stringstorage:2 = %stringstorage:2%_%ARGS:1%
+							ELSE
+								stringstorage:2 = %ARGS:1%
+							ENDIF
+						ENDIF
+						changehappened = 1
+					ELSE
+						IF stringstorage:2 != ""
+							stringstorage:2 = %stringstorage:2%_%splitted:(numbers:2)%
+						ELSE
+							stringstorage:2 = %splitted:(numbers:2)%
+						ENDIF
+					ENDIF
+				NEXT
+				changehappened = 0
+				IF TALENT:ARG:オトコ == 1
+					CSTR:numbers:brothers = %stringstorage:2%
+				ELSE
+					CSTR:numbers:sisters = %stringstorage:2%
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+	;any sisters?
+	IF CSTR:ARG:sisters != ""
+		FOR numbers,0,CHARANUM
+			;it's not a sister if it's not a child or male
+			SIF TALENT:numbers:子供 == 0 || TALENT:numbers:オトコ == 1
+				CONTINUE
+			SIF numbers == ARG
+				CONTINUE
+			;if the mother or father is the same, it's a sister. we don't care about half-stuff here
+			IF CFLAG:numbers:娘の父親の固有番号娘 == CFLAG:ARG:娘の父親の固有番号娘 || CFLAG:numbers:娘の産みの親の固有番号娘 == CFLAG:ARG:娘の産みの親の固有番号娘
+				IF TALENT:ARG:オトコ == 1
+					stringstorage = %CSTR:numbers:brothers%
+				ELSE
+					stringstorage = %CSTR:numbers:sisters%
+				ENDIF
+				;the characters are related but not in the CSTR, so we abort here
+				SIF STRFIND(stringstorage,ARGS:0) == -1
+					CONTINUE
+				numbers:3 = STRCOUNT(stringstorage , "_")+1
+				IF numbers:3 >= 20
+					numbers:3 = 20
+				ENDIF
+				VARSET splitted
+				VARSET stringstorage:2
+				SPLIT stringstorage, "_", splitted
+				FOR numbers:2 , 0 , numbers:3
+					IF splitted:(numbers:2) == ARGS:0 && changehappened == 0
+						IF ARG:1 == 1
+							;we have a gender change. don't change stringstorage:2(so this name effectively vanishes)
+							IF TALENT:ARG:オトコ == 1
+								IF CSTR:numbers:sisters!= ""
+									CSTR:numbers:sisters = %CSTR:numbers:sisters%_%ARGS:0%
+								ELSE
+									CSTR:numbers:sisters = %ARGS:0%
+								ENDIF
+							ELSE
+								IF CSTR:numbers:brothers!= ""
+									CSTR:numbers:brothers = %CSTR:numbers:brothers%_%ARGS:0%
+								ELSE
+									CSTR:numbers:brothers = %ARGS:0%
+								ENDIF
+							ENDIF
+						ELSE
+							IF stringstorage:2 != ""
+								stringstorage:2 = %stringstorage:2%_%ARGS:1%
+							ELSE
+								stringstorage:2 = %ARGS:1%
+							ENDIF
+						ENDIF
+						changehappened = 1
+					ELSE
+						IF stringstorage:2 != ""
+							stringstorage:2 = %stringstorage:2%_%splitted:(numbers:2)%
+						ELSE
+							stringstorage:2 = %splitted:(numbers:2)%
+						ENDIF
+					ENDIF
+				NEXT
+				changehappened = 0
+				IF TALENT:ARG:オトコ == 1
+					CSTR:numbers:brothers = %stringstorage:2%
+				ELSE
+					CSTR:numbers:sisters = %stringstorage:2%
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+	
+	;are the parents still arround?
+	IF CFLAG:ARG:娘の父親の固有番号娘 > -1
+		FOR numbers,0,CHARANUM
+			SIF CFLAG:numbers:第何子まで産んだか <= 0
+				CONTINUE
+			IF CFLAG:ARG:娘の父親の固有番号娘 == CFLAG:numbers:キャラ固有の番号
+				IF TALENT:ARG:オトコ == 1
+					stringstorage = %CSTR:numbers:sons%
+				ELSE
+					stringstorage = %CSTR:numbers:daughters%
+				ENDIF
+				;the characters are related but not in the CSTR, so we abort here
+				SIF STRFIND(stringstorage,ARGS:0) == -1
+					CONTINUE
+				numbers:3 = STRCOUNT(stringstorage , "_")+1
+				IF numbers:3 >= 20
+					numbers:3 = 20
+				ENDIF
+				VARSET splitted
+				VARSET stringstorage:2
+				SPLIT stringstorage, "_", splitted
+				FOR numbers:2 , 0 , numbers:3
+					IF splitted:(numbers:2) == ARGS:0 && changehappened == 0
+						IF ARG:1 == 1
+							;we have a gender change. don't change stringstorage:2(so this name effectively vanishes)
+							IF TALENT:ARG:オトコ == 1
+								IF CSTR:numbers:daughters != ""
+									CSTR:numbers:daughters = %CSTR:numbers:daughters%_%ARGS:0%
+								ELSE
+									CSTR:numbers:daughters = %ARGS:0%
+								ENDIF
+							ELSE
+								IF CSTR:numbers:sons != ""
+									CSTR:numbers:sons = %CSTR:numbers:sons%_%ARGS:0%
+								ELSE
+									CSTR:numbers:sons = %ARGS:0%
+								ENDIF
+							ENDIF		
+						ELSE
+							IF stringstorage:2 != ""
+								stringstorage:2 = %stringstorage:2%_%ARGS:1%
+							ELSE
+								stringstorage:2 = %ARGS:1%
+							ENDIF
+						ENDIF
+						changehappened = 1
+					ELSE
+						IF stringstorage:2 != ""
+							stringstorage:2 = %stringstorage:2%_%splitted:(numbers:2)%
+						ELSE
+							stringstorage:2 = %splitted:(numbers:2)%
+						ENDIF
+					ENDIF
+				NEXT
+				changehappened = 0
+				IF TALENT:ARG:オトコ == 1
+					CSTR:numbers:sons  = %stringstorage:2%
+				ELSE
+					CSTR:numbers:daughters = %stringstorage:2%
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+	
+	IF CFLAG:ARG:娘の産みの親の固有番号娘 > -1
+		FOR numbers,0,CHARANUM
+			SIF CFLAG:numbers:第何子まで産んだか <= 0
+				CONTINUE
+			IF CFLAG:ARG:娘の産みの親の固有番号娘 == CFLAG:numbers:キャラ固有の番号
+				IF TALENT:ARG:オトコ == 1
+					stringstorage = %CSTR:numbers:sons%
+				ELSE
+					stringstorage = %CSTR:numbers:daughters%
+				ENDIF
+				;the characters are related but not in the CSTR, so we abort here
+				SIF STRFIND(stringstorage,ARGS:0) == -1
+					CONTINUE
+				numbers:3 = STRCOUNT(stringstorage , "_")+1
+				IF numbers:3 >= 20
+					numbers:3 = 20
+				ENDIF
+				VARSET splitted
+				VARSET stringstorage:2
+				SPLIT stringstorage, "_", splitted
+				FOR numbers:2 , 0 , numbers:3
+					IF splitted:(numbers:2) == ARGS:0 && changehappened == 0
+						IF ARG:1 == 1
+							;we have a gender change. don't change stringstorage:2(so this name effectively vanishes)
+							IF TALENT:ARG:オトコ == 1
+								IF CSTR:numbers:daughters != ""
+									CSTR:numbers:daughters = %CSTR:numbers:daughters%_%ARGS:0%
+								ELSE
+									CSTR:numbers:daughters = %ARGS:0%
+								ENDIF
+							ELSE
+								IF CSTR:numbers:sons != ""
+									CSTR:numbers:sons = %CSTR:numbers:sons%_%ARGS:0%
+								ELSE
+									CSTR:numbers:sons = %ARGS:0%
+								ENDIF
+							ENDIF		
+						ELSE
+							IF stringstorage:2 != ""
+								stringstorage:2 = %stringstorage:2%_%ARGS:1%
+							ELSE
+								stringstorage:2 = %ARGS:1%
+							ENDIF
+						ENDIF
+						changehappened = 1
+					ELSE
+						IF stringstorage:2 != ""
+							stringstorage:2 = %stringstorage:2%_%splitted:(numbers:2)%
+						ELSE
+							stringstorage:2 = %splitted:(numbers:2)%
+						ENDIF
+					ENDIF
+				NEXT
+				changehappened = 0
+				IF TALENT:ARG:オトコ == 1
+					CSTR:numbers:sons  = %stringstorage:2%
+				ELSE
+					CSTR:numbers:daughters = %stringstorage:2%
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+
+
+;----------------------------------------------------------
+; Additional info page, contains information of the relations
+; between characters(mostly familiy but may get more than that)
+;
+; splitted is an array that can hold up to 30 entries for character-relations found
+; U is a variable set in show_status, that contains a reference to the current character
+;----------------------------------------------------------
+@SHOW_INFO_PAGE_5
+#DIMS stringstorage, 4
+#DIM numbers, 5
+#DIMS splitted, 30
+CALL PRINT_BASE_STATUS, U
+DRAWLINE
+
+PRINTL □ Family
+IF TALENT:U:子供
+PRINTFORML  Fathers Father:%CSTR:U:24%　Fathers Mother:%CSTR:U:25%　　　　Mothers Father:%CSTR:U:26%　Mothers Mother:%CSTR:U:27%
+PRINTFORML  　　　　Father:%CSTR:U:22%　　　　　　　Mother:%CSTR:U:23%
+ELSE
+PRINTFORML 　　　　Father:\@ CSTR:(U):近親判定_父 != "" ? %CSTR:(U):近親判定_父% # Unknown \@　　　　　　　Mother:\@ CSTR:(U):近親判定_母 != "" ? %CSTR:(U):近親判定_母% # Unknown \@
+ENDIF
+
+PRINTL
+VARSET numbers
+FOR numbers:1 , 0 , 4
+	;父_母_
+	VARSET stringstorage
+	stringstorage:0 = %AUTO_SPLIT("兄弟_姉妹_娘_息子" , "_" , numbers:1)%
+	stringstorage:1 = %CSTR:(U):@"近親判定_%stringstorage:0%"%
+	
+	stringstorage:3 = %GET_ALL_RELATIVE_KIND(U,stringstorage:0)%
+	IF stringstorage:3 != ""
+		SIF numbers:1 == 2 || numbers:1 == 3
+			numbers:0 += STRCOUNT(stringstorage:3 , "_")+1
+		IF stringstorage:1 != ""
+			stringstorage:1 = %stringstorage:1%_%stringstorage:3%
+		ELSE
+			stringstorage:1 = %stringstorage:3%
+		ENDIF
+	ENDIF
+	
+	IF stringstorage:1 != ""
+		numbers:3 = STRCOUNT(stringstorage:1 , "_")+1
+		IF numbers:3 != 1
+			PRINTFORM  %AUTO_SPLIT("Brothers_Sisters_Daughters_Sons" , "_" , numbers:1),9,LEFT%:
+			VARSET splitted
+			SPLIT stringstorage:1, "_", splitted
+			numbers:4 = 0
+			FOR numbers:2 , 0 , numbers:3
+				IF STRLENS(splitted:(numbers:2)) > 20
+					SUBSTRING splitted:(numbers:2), 0, 20
+					splitted:(numbers:2) = %RESULTS%...
+				ENDIF
+				numbers:4 += STRLENS(splitted:(numbers:2))
+				IF numbers:4 >= 80
+					PRINTL
+					PRINTFORM %" " * 11%
+					numbers:4 = STRLENS(splitted:(numbers:2))
+				ENDIF
+				PRINTFORM  %splitted:(numbers:2)% 
+			NEXT
+			PRINTL
+		ELSE
+			PRINTFORM  %AUTO_SPLIT("Brother_Sister_Daughter_Son" , "_" , numbers:1),9,LEFT%:
+			PRINTFORML  \@ STRLENS(stringstorage:1) <= 20 ? %stringstorage:1% # %SUBSTRING(stringstorage:1, 0, 20)%...\@ 
+		ENDIF
+	ELSE
+		PRINTFORM  %AUTO_SPLIT("Brothers_Sisters_Daughters_Sons" , "_" , numbers:1),9,LEFT%:
+		PRINTL  None
+	ENDIF
+	PRINTL
+NEXT
+IF CFLAG:U:第何子まで産んだか > numbers:0
+	;some flavor text for children not in the group. Or not in the CSTR anyway
+	numbers:1 = CFLAG:U:第何子まで産んだか - numbers:0
+	IF numbers:0 == 20 && ((CFLAG:U:仕送り時してくれる人数親 + numbers:0) != CFLAG:U:第何子まで産んだか)
+		;there are more children than fit in the CSTR and not all of them have not been kept
+		PRINTFORML  With this many children, %CALLNAME:U% seems to have lost track of some of them.
+		PRINTFORML  However, %HE_SHE(U)% is sure they are around here somewhere. Probably.
+	ENDIF
+	;unfortunately, 仕送り時してくれる人数親 is only set for the mother. So we ignore this check if the character has male equipment
+	;or we would, but gender can change, so we just use it if we have it
+	;IF CFLAG:U:仕送り時してくれる人数親 > 0 || (TALENT:U:オトコ == 1 || TALENT:U:ふたなり == 1)
+		SIF CFLAG:U:仕送り時してくれる人数親 > 0
+			numbers:1 = CFLAG:U:仕送り時してくれる人数親
+		;there are children not kept for training
+		IF numbers:0 > 0
+			;but some have been kept
+			PRINTFORM  \@ numbers:1 > 1 ? {numbers:1} # One\@ of
+		ENDIF
+		PRINTFORML  %CALLNAME:U%'s child\@ numbers:1 == 1 ? %" is"% # ren are\@ walking \@ numbers:1 == 1 ? it's # their \@ own way in this world and %HE_SHE(U)% hears from \@ numbers:1 == 1 ? it # them \@ occasinately.
+	;ENDIF
+ENDIF
+DRAWLINE
+IF CSTR:(U):配偶者 != ""
+	PRINTL □ Partner
+	PRINTFORML  %CSTR:(U):配偶者%
+	DRAWLINE
+ENDIF
+IF CSTR:(U):相性グループ != "" || CSTR:(U):相性_最高 != "" || CSTR:(U):相性_抜群 != "" || CSTR:(U):相性_良好 != "" || CSTR:(U):相性_不良 != "" || CSTR:(U):相性_最悪 != "" 
+	PRINTL □ Compatibility
+	IF CSTR:(U):相性グループ != ""
+		PRINTFORML  Compatibility group: %CSTR:(U):相性グループ%
+		PRINTL
+	ENDIF
+	FOR numbers:1 , 0 , 5
+		stringstorage:0 = %AUTO_SPLIT("最高_抜群_良好_不良_最悪" , "_" , numbers:1)%
+		stringstorage:1 = %CSTR:(U):@"相性_%stringstorage:0%"%
+		
+		IF stringstorage:1 != ""
+			PRINTFORML  %AUTO_SPLIT("Best_Great_Good_Bad_Worst" , "_" , numbers:1)% compatibility with:
+			numbers:3 = STRCOUNT(stringstorage:1 , "_")+1
+			IF numbers:3 != 1
+				VARSET splitted
+				SPLIT stringstorage:1, "_", splitted
+				FOR numbers:2 , 0 , numbers:3
+					PRINTFORM  %splitted:(numbers:2)% 
+				NEXT
+				PRINTL
+			ELSE
+				PRINTFORML  %stringstorage:1%
+			ENDIF
+		ENDIF
+	NEXT
+	DRAWLINE
+ENDIF
+IF U == MASTER
+	VARSET stringstorage
+	VARSET numbers
+	FOR numbers,1, CHARANUM
+		SIF TALENT:numbers:妻 != 1 && TALENT:numbers:夫 != 1 && TALENT:(U):淫魔 != 1 && TALENT:(U):玩具 != 1
+			CONTINUE
+		IF numbers:1 == 0
+			PRINTL □ Contracts
+			numbers:1 = 1
+		ENDIF
+		stringstorage = %CALLNAME:numbers%
+		stringstorage = \@ STRLENS(stringstorage) <= 20 ? %stringstorage% # %SUBSTRING(stringstorage, 0, 20)%...\@ 
+		numbers:4 += STRLENS(stringstorage)
+		IF numbers:4 >= 80
+			PRINTL
+			numbers:4 = STRLENS(stringstorage)
+		ENDIF
+		PRINTFORM  %stringstorage% 
+	NEXT
+	PRINTL
+	IF numbers:1 == 1
+		DRAWLINE
+	ENDIF
+ELSEIF TALENT:(U):妻 == 1 || TALENT:(U):夫 == 1 || TALENT:(U):淫魔 == 1 || TALENT:(U):玩具 == 1
+	PRINTL □ Contract
+	SIF TALENT:(U):妻 == 1
+		PRINTFORML  %HE_SHE(U,1)% is %CALLNAME:MASTER%'s loving wife.
+	SIF TALENT:(U):夫 == 1
+		PRINTFORML  %HE_SHE(U,1)% is proud to be %CALLNAME:MASTER%'s husband.
+	SIF TALENT:(U):淫魔 == 1
+		PRINTFORML  %HE_SHE(U,1)% is %CALLNAME:MASTER%'s lewd playmate.
+	SIF TALENT:(U):玩具 == 1
+		PRINTFORML  %HE_SHE(U,1)% has submitted %HIM_HER(U)%self to be %CALLNAME:MASTER%'s special property.
+	DRAWLINE
+ENDIF

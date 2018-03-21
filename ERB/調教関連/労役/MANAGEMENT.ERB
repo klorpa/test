@@ -1,0 +1,1440 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/02/25		黒天					店舗規模、雇用人数の拡張数を指定可能に
+;													パラダイムX・飛行船の宣伝広告メッセージがラジオと同じだったのを修正
+;	003		2012/09/22		ネトリス				報告の設定変更を追加、個別利用方法設定で現在の設定状況を一覧で確認できるように
+;	004		2012/12/06		ネトリス				『利用方法個別設定』の設定画面で直接前後のキャラに切り替えられるように
+;													有無表示の色をわかり易いように調整
+;													『便器設定可能数拡張』、『店舗規模拡張』、『広告を出す』の画面に現在の所持金を表示するように
+;	005		2013/01/12		TR						@MANAGAMENT_MAINでグローバル変数"VAR_店舗番号"を読み込むように
+;	006		2013/11/24		ひみつ					リスト表示数設定
+;	007		2014/09/19		ネトリス				労役：教会の処理を追加
+;	008		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=============================================
+;店舗経営システム
+;=============================================
+;========================================================
+;店舗経営
+;========================================================
+@MANAGEMENT
+CUSTOMDRAWLINE =
+FOR LOCAL,0,10
+	PRINTFORM [{LOCAL}] - 
+	IF 店舗("種類",LOCAL) > 0
+		PRINTFORML  %SAVESTR:(20+LOCAL)%
+	ELSE
+		SETCOLOR 0x909090
+		PRINTFORML Build Store
+		RESETCOLOR
+	ENDIF
+NEXT
+DRAWLINE
+PRINTL [10] Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 10
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT > 9
+	GOTO INPUT_LOOP
+ENDIF
+LOCAL = RESULT
+IF 店舗("種類",LOCAL) > 0
+	CALL MANAGEMENT_MAIN,LOCAL
+ELSE
+	CALL MANAGEMENT_MAKE,LOCAL
+ENDIF
+
+RESTART
+
+;========================================================
+;店舗設営
+;========================================================
+@MANAGEMENT_MAKE,ARG
+CUSTOMDRAWLINE ･
+PRINTFORML What kind of store do you want to build?　（Current Funds：￥{MONEY}）
+DRAWLINE
+PRINTL [10] - Public Toilet (￥50000)
+PRINTL [11] - Strip Club (￥25000)
+PRINTL [12] - Exhibition Theatre (￥25000)
+;教会追加
+PRINTL [13] - Messiah Church (￥50000)
+PRINTL [14] - Gaia Church (￥50000)
+PRINTL [15] - Church (￥75000)
+;
+DRAWLINE
+PRINTL [0]  - Quit
+$INPUT_LOOP
+INPUT
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 0
+		RETURN 0
+	CASE 10
+		LOCAL:1 = 50000
+	CASE 11
+		LOCAL:1 = 25000
+	CASE 12
+		LOCAL:1 = 25000
+;教会追加
+	CASE 13
+		LOCAL:1 = 50000
+	CASE 14
+		LOCAL:1 = 50000
+	CASE 15
+		LOCAL:1 = 75000
+;
+	CASEELSE
+		GOTO INPUT_LOOP
+ENDSELECT
+SIF MONEY < LOCAL:1
+	GOTO INPUT_LOOP
+PRINTFORML ￥{LOCAL:1} is required to construct this facility. Are you sure you want to build it?
+CALL INPUT_YN,"YES","NO"
+IF RESULT == 1
+	RESTART
+ENDIF
+
+CALL 店舗演算("種類",ARG,LOCAL,"=")
+;建設作業
+SELECTCASE LOCAL
+	CASE 10
+		CALL 店舗演算("規模",ARG,10,"=")
+		CALL 店舗演算("接客雇用",ARG,2,"=")
+		CALL 店舗演算("フェラ価格",ARG,1,"=")
+		CALL 店舗演算("本番価格",ARG,2,"=")
+		CALL 店舗演算("アナル価格",ARG,2,"=")
+		CALL 店舗演算("中出し価格",ARG,4,"=")
+		CALL 店舗演算("処女価格",ARG,10,"=")
+		CALL 店舗演算("性的サービス",ARG,120,"=")
+		LOCALS = 公衆便所
+	CASE 11
+		CALL 店舗演算("規模",ARG,1,"=")
+		LOCALS = ストリップ劇場
+	CASE 12
+		CALL 店舗演算("規模",ARG,1,"=")
+		CALL 店舗演算("接客雇用",ARG,1,"=")
+		LOCALS = 見世物小屋
+	CASE 13
+		CALL 店舗演算("規模",ARG,1,"=")
+		CALL 店舗演算("接客雇用",ARG,2,"=")
+		LOCALS = メシア教会
+	CASE 14
+		CALL 店舗演算("規模",ARG,1,"=")
+		CALL 店舗演算("接客雇用",ARG,2,"=")
+		LOCALS = ガイア教会
+	CASE 15
+		CALL 店舗演算("規模",ARG,1,"=")
+		CALL 店舗演算("接客雇用",ARG,2,"=")
+		LOCALS = 教会
+ENDSELECT
+MONEY -= LOCAL:1
+
+PRINTL
+$CHANGE_NAME
+PRINTFORML Will the store be called 「%LOCALS%」?
+CALL INPUT_YN,"I like it","Change"
+IF RESULT == 1
+	PRINTL Please input a name for the store.
+	INPUTS
+	LOCALS = %RESULTS%
+	GOTO CHANGE_NAME
+ENDIF
+SAVESTR:(20+ARG) = %LOCALS%
+PRINTFORML Congratulations. The new facility %SAVESTR:(20+ARG)% was opened.
+
+;========================================================
+;店舗経営メイン画面
+;========================================================
+@MANAGEMENT_MAIN,ARG
+CUSTOMDRAWLINE =
+;EDIT004 ADD START -------------------------------
+VAR_店舗番号 = ARG
+;EDIT004 ADD END   -------------------------------
+;ステータス表示
+CALL SHOW_STATUS_MANAGEMENT,ARG
+
+PRINTFORML Total Money Carried：￥{MONEY}
+
+CALL PRINT_COMMAND_MANAGEMENT,ARG
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT > 100
+	GOTO INPUT_LOOP
+ELSEIF C:RESULT == -1
+	GOTO INPUT_LOOP
+ENDIF
+IF 店舗("種類",ARG) <= 10
+	SELECTCASE RESULT
+		CASE 0
+			;配置
+			CALL ARRANGE_MANAGEMENT,ARG
+		CASE 1
+			;人数拡張
+			CALL EXTEND_MEMBER_MANAGEMENT,ARG
+		CASE 2
+			;規模拡張
+			CALL EXTEND_MANAGEMENT,ARG
+		CASE 3
+			;価格設定
+			CALL ARRANGE_PRICE_MANAGEMENT,ARG
+		CASE 4
+			;商品設定
+			CALL ARRANGE_COMMODITY_MANAGEMENT,ARG
+		CASE 5
+			;広告
+			CALL ADVERTISEMENT_MANAGEMENT,ARG
+		CASE 6
+			;報告方法の選択
+			SELECTCASE FLAG:公衆便所報告設定
+				CASE 0
+					FLAG:公衆便所報告設定 = 1
+				CASE 1
+					FLAG:公衆便所報告設定 = 2
+				CASE 2
+					FLAG:公衆便所報告設定 = 0
+			ENDSELECT
+		CASE 10
+			;料金個別設定（便所、娼館）
+			CALL ARRANGE_CHARA_PRICE_MANAGEMENT,ARG
+		CASE 11
+			;利用方法個別設定（便所、娼館）
+			CALL ARRANGE_CHARA_COMMODITY_MANAGEMENT,ARG
+		CASE 99
+			CALL 店舗売却,ARG
+			IF RESULT == 1
+				CLEARBIT FLAG:公衆便所報告設定, ARG
+				RETURN 0
+			ENDIF
+	ENDSELECT
+ELSEIF 店舗("種類",ARG) == 11
+	SELECTCASE RESULT
+		CASE 0
+			;出演者変更
+			CALL ARRANGE_MANAGEMENT_STRIP_THEATER,ARG
+		CASE 1
+			;規模拡張
+			CALL EXTEND_MANAGEMENT_STRIP_THEATER,ARG
+		CASE 2
+			;広告
+			CALL ADVERTISEMENT_MANAGEMENT,ARG
+		CASE 3
+			INVERTBIT FLAG:ストリップ劇場報告設定, ARG
+		CASE 99
+			CALL 店舗売却,ARG
+			IF RESULT == 1
+				CLEARBIT FLAG:ストリップ劇場報告設定, ARG
+				RETURN 0
+			ENDIF
+	ENDSELECT
+ELSEIF 店舗("種類",ARG) == 12
+	SELECTCASE RESULT
+		CASE 0
+			;出演者変更
+			CALL ARRANGE_MANAGEMENT, VAR_店舗番号
+		CASE 1
+			;レンタル悪魔
+			CALL SHOW_TENT_RENTALDEVIL
+		CASE 2
+			;規模拡張
+			CALL EXTEND_MANAGEMENT_SHOW_TENT
+		CASE 3
+			;広告
+			CALL ADVERTISEMENT_MANAGEMENT, VAR_店舗番号
+		CASE 4
+			INVERTBIT VAR_店舗リザルト, VAR_店舗番号
+		;#;CASE 5
+		;#;	INVERTBIT VAR_店舗リザルト, VAR_店舗番号+10
+		CASE 99
+			CALL 店舗売却,ARG
+			IF RESULT == 1
+				CLEARBIT VAR_店舗リザルト, VAR_店舗番号
+				FOR LOCAL,0,5
+					レンタル悪魔:ARG:LOCAL = 0
+				NEXT
+				RETURN 0
+			ENDIF
+	ENDSELECT
+;教会、まとめようと思ったけど個別に何かするときの為に分けておく
+ELSEIF 店舗("種類",ARG) == 13
+	SELECTCASE RESULT
+		CASE 0
+			;配置
+			CALL ARRANGE_MANAGEMENT,ARG
+		CASE 1
+			;人数拡張
+			CALL EXTEND_MEMBER_MANAGEMENT,ARG
+		CASE 2
+			CALL EXTEND_MANAGEMENT_教会, ARG
+		CASE 3
+			CALL 教会_敬拝値_交換, ARG
+		CASE 11
+			;利用方法個別設定
+			CALL ARRANGE_CHARA_COMMODITY_MANAGEMENT_教会,ARG
+		CASE 99
+			CALL 店舗売却,ARG
+			IF RESULT == 1
+				RETURN 0
+			ENDIF
+	ENDSELECT
+ELSEIF 店舗("種類",ARG) == 14
+	SELECTCASE RESULT
+		CASE 0
+			;配置
+			CALL ARRANGE_MANAGEMENT,ARG
+		CASE 1
+			;人数拡張
+			CALL EXTEND_MEMBER_MANAGEMENT,ARG
+		CASE 2
+			CALL EXTEND_MANAGEMENT_教会, ARG
+		CASE 3
+			CALL 教会_敬拝値_交換, ARG
+		CASE 11
+			;利用方法個別設定
+			CALL ARRANGE_CHARA_COMMODITY_MANAGEMENT_教会,ARG
+		CASE 99
+			CALL 店舗売却,ARG
+			IF RESULT == 1
+				RETURN 0
+			ENDIF
+	ENDSELECT
+ELSEIF 店舗("種類",ARG) == 15
+	SELECTCASE RESULT
+		CASE 0
+			;配置
+			CALL ARRANGE_MANAGEMENT,ARG
+		CASE 1
+			;人数拡張
+			CALL EXTEND_MEMBER_MANAGEMENT,ARG
+		CASE 2
+			CALL EXTEND_MANAGEMENT_教会, ARG
+		CASE 3
+			CALL 教会_敬拝値_交換, ARG
+		CASE 11
+			;利用方法個別設定
+			CALL ARRANGE_CHARA_COMMODITY_MANAGEMENT_教会,ARG
+		CASE 99
+			CALL 店舗売却,ARG
+			IF RESULT == 1
+				RETURN 0
+			ENDIF
+	ENDSELECT
+ENDIF
+
+RESTART
+
+;========================================================
+;配置
+;========================================================
+@ARRANGE_MANAGEMENT,ARG,ARG:1
+P = 0
+CUSTOMDRAWLINE = 
+$INPUT_LOOP_2
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	SIF WORKABLE(ARG,COUNT) == 0
+		CONTINUE
+	;SIF CFLAG:COUNT:労役フラグ != 0 && CFLAG:COUNT:労役フラグ != 10+ARG
+	SIF CFLAG:COUNT:労役フラグ != 0 && CFLAG:COUNT:労役フラグ != 10+ARG
+		CONTINUE
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+	SIF CFLAG:COUNT:フィルタリングフラグ
+		CONTINUE
+
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:2 = A
+
+$PRINT_LIST
+DRAWLINE
+SELECTCASE 店舗("種類",ARG)
+	CASE 13, 14, 15
+		PRINTFORM Assign to serve here
+		;この教会で奉仕させたい
+	CASEELSE
+		PRINTFORM Assign to work here
+		;この店舗で労役させたい
+ENDSELECT
+PRINTFORML /Cancel assignment　Current:{接客人数(ARG)}/{店舗("接客雇用",ARG)}＜page.{P + 1}＞
+;/外したいキャラを選んでください　現在{接客人数(ARG)}/{店舗("接客雇用",ARG)}人＜page.{P + 1}＞
+DRAWLINE
+CALL MANAGEMENT_CHARALIST,ARG,0
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1007]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:2 - 1) / リスト表示数()) ? %" " * 16% # [1009]Next page\@
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1007
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:2 - 1) / リスト表示数()
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+;労役切り替え
+IF CFLAG:RESULT:労役フラグ == 10+ARG
+	CFLAG:RESULT:労役フラグ = 0
+ELSEIF 接客人数(ARG) < 店舗("接客雇用",ARG)
+	SELECTCASE 店舗("種類",ARG)
+	CASE 10
+		CFLAG:RESULT:労役フラグ = 10+ARG
+		CFLAG:RESULT:フェラ価格= 店舗("フェラ価格",ARG)
+		CFLAG:RESULT:本番価格= 店舗("本番価格",ARG)
+		CFLAG:RESULT:中出し価格= 店舗("中出し価格",ARG)
+		CFLAG:RESULT:アナル価格= 店舗("アナル価格",ARG)
+		CFLAG:RESULT:処女価格= 店舗("処女価格",ARG)
+		CFLAG:RESULT:従事内容 = 1
+		CFLAG:RESULT:個別性的サービス = 店舗("性的サービス",ARG)
+	CASE 12
+		CFLAG:RESULT:労役フラグ = 10+ARG
+		CFLAG:RESULT:従事内容 = 1
+	CASE 13, 14, 15
+		CFLAG:RESULT:労役フラグ = 10+ARG
+		CFLAG:RESULT:従事内容 = 1
+		CFLAG:RESULT:個別性的サービス = 1
+	ENDSELECT
+ELSE
+	GOTO INPUT_LOOP_1
+ENDIF
+GOTO INPUT_LOOP_2
+
+;========================================================
+;雇用可能人数拡張
+;========================================================
+@EXTEND_MEMBER_MANAGEMENT,ARG
+IF 店舗("種類",ARG) == 10
+	PRINTFORML Currently, the number of toilet stalls at this facility is {店舗("接客雇用",ARG)}.　　Current funds:￥{MONEY}
+	;現在、このトイレに設置できる便器の数は{店舗("接客雇用",ARG)}人です。　　Current funds:￥{MONEY}
+ELSEIF 店舗("種類",ARG) == 13 || 店舗("種類",ARG) == 14 || 店舗("種類",ARG) == 15
+	PRINTFORML Currently, you can assign up to {店舗("接客雇用",ARG)} people to serve at this facility.　　Current funds:￥{MONEY}
+	;現在、この教会に駐在できる人数は{店舗("接客雇用",ARG)}人です。
+ELSE
+	PRINTFORML Currently, you can assign up to {店舗("接客雇用",ARG)} people as staff for this facility.　　Current funds:￥{MONEY}
+	;現在、この店舗に配置できる接客係は{店舗("接客雇用",ARG)}人です。
+ENDIF
+
+;---- EDIT 002 MOD START ---------
+;雇用人数の拡張を一気に行えるようにしてみる。
+;現在の雇用人数を取得
+LOCAL:1 = 店舗("接客雇用",ARG)
+
+PRINTL
+;IF 店舗("種類",ARG) == 10
+;	PRINT Amount of toilets
+;ELSE
+;	PRINT Amount of people
+;ENDIF
+PRINTL Please select by how much you want to increase the capacity.
+PRINTL You can directly input a specific number.
+PRINTL Enter 0 to stop the expansion and return to the previous menu.
+PRINTL
+PRINTFORML [1]  - Increase capacity by  1  (￥{規模拡張金額(LOCAL:1,1,0)})
+PRINTFORML [5]  - Increase capacity by  5  (￥{規模拡張金額(LOCAL:1,5,0)})
+PRINTFORML [10] - Increase capacity by 10  (￥{規模拡張金額(LOCAL:1,10,0)})
+PRINTL [0]  - Cancel capacity increase
+
+INPUT
+
+LOCAL:2 = RESULT
+
+PRINTL
+
+IF LOCAL:2 == 0
+	PRINTL Cancel increase.
+	RETURN 0
+ELSE
+	LOCAL = 規模拡張金額(LOCAL:1,LOCAL:2,0)
+	PRINTFORM {LOCAL:2}人増やすためには￥{LOCAL}必要です
+	IF MONEY < LOCAL
+		PRINTL Insufficent capital.
+		RETURN 0
+	ENDIF
+	PRINTL .
+ENDIF
+
+PRINTL Are you sure you want to increase?
+CALL INPUT_YN,"YES","NO"
+SIF RESULT == 1
+	RETURN 0
+CALL 店舗演算("接客雇用",ARG,LOCAL:2,"+")
+;---- EDIT 002 MOD END -----------
+MONEY -= LOCAL
+
+;========================================================
+;規模拡張
+;========================================================
+@EXTEND_MANAGEMENT,ARG
+PRINTFORML Currently, this facility can be used by {店舗("規模",ARG)} people per day.　　Current funds:￥{MONEY}
+;現在、この店舗は一日に{店舗("規模",ARG)}人が利用できます。　　所持金:￥{MONEY}
+
+;---- EDIT 002 MOD START ---------
+;規模の拡張を一気に行えるようにしてみる。
+;現在の規模を取得
+LOCAL:1 = 店舗("規模",ARG)
+
+PRINTL
+PRINTL Please select how much to increase capacity to serve clients.
+PRINTL You can directly input a specific number.
+PRINTL Enter 0 to stop the expansion and return to the previous menu.
+PRINTL
+PRINTFORML [1]  - Increase client capacity by  1 (￥{規模拡張金額(LOCAL:1,1,1)})
+PRINTFORML [5]  - Increase client capacity by  5 (￥{規模拡張金額(LOCAL:1,5,1)})
+PRINTFORML [10] - Increase client capacity by 10 (￥{規模拡張金額(LOCAL:1,10,1)})
+PRINTL [0]  - Do not increase
+
+INPUT
+
+LOCAL:2 = RESULT
+
+PRINTL
+
+IF LOCAL:2 == 0
+	PRINTL Cancel increase。
+	RETURN 0
+ELSE
+	LOCAL = 規模拡張金額(LOCAL:1,LOCAL:2,1)
+	PRINTFORM {LOCAL:2}人増やすためには￥{LOCAL}必要です
+	IF MONEY < LOCAL
+		PRINTL Insufficent capital.
+		RETURN 0
+	ENDIF
+	PRINTL 。
+ENDIF
+
+PRINTL Are you sure you want to increase?
+CALL INPUT_YN,"YES","NO"
+SIF RESULT == 1
+	RETURN 0
+CALL 店舗演算("規模",ARG,LOCAL:2,"+")
+;---- EDIT 002 MOD END -----------
+MONEY -= LOCAL
+
+;========================================================
+;価格設定
+;========================================================
+@ARRANGE_PRICE_MANAGEMENT,ARG
+SELECTCASE [[店舗:種類]]:ARG
+	CASE 10
+		PRINTFORML Currently, the prices for services offered are as follows. Select a service to change its price.
+		;現在、商品の基本価格は以下の通りです。変更したい商品を選んでください
+		PRINTFORML [1] Oral：{店舗("フェラ価格",ARG)}Macca
+		LOCALS:1 = Oral
+		PRINTFORML [2] Vaginal      ：{店舗("本番価格",ARG)}Macca
+		LOCALS:2 = Vaginal
+		PRINTFORML [3] Anal    ：{店舗("アナル価格",ARG)}Macca
+		LOCALS:3 = Anal
+		PRINTFORML [4] Creampie    ：{店舗("中出し価格",ARG)}Macca
+		LOCALS:4 = Creampie
+		PRINTFORML [5] Virgin      ：{店舗("処女価格",ARG)}Macca
+		LOCALS:5 = Virgin
+		DRAWLINE
+		PRINTL [0] Return [9]Apply to all current employees
+		;価格を全員に反映
+		CALL INPUTINT,0,1,2,3,4,5,9
+		IF RESULT == 0
+			RETURN 0
+		ELSEIF RESULT == 9
+			FOR LOCAL , 0 ,CHARANUM
+				IF CFLAG:LOCAL:労役フラグ % 10 == ARG
+					CFLAG:LOCAL:フェラ価格= 店舗("フェラ価格",ARG)
+					CFLAG:LOCAL:本番価格= 店舗("本番価格",ARG)
+					CFLAG:LOCAL:中出し価格= 店舗("中出し価格",ARG)
+					CFLAG:LOCAL:アナル価格= 店舗("アナル価格",ARG)
+					CFLAG:LOCAL:処女価格= 店舗("処女価格",ARG)
+				ENDIF
+			NEXT
+			RESTART
+		ENDIF
+		LOCAL = RESULT
+		PRINTFORML Please select the price for %LOCALS:LOCAL% service
+		;%LOCALS:LOCAL%の値段を決めてください
+		CALL INPUT_MANY,0,999999999
+		IF LOCAL == 1
+			CALL 店舗演算("フェラ価格",ARG,RESULT,"=")
+		ELSEIF LOCAL == 2
+			CALL 店舗演算("本番価格",ARG,RESULT,"=")
+		ELSEIF LOCAL == 3
+			CALL 店舗演算("アナル価格",ARG,RESULT,"=")
+		ELSEIF LOCAL == 4
+			CALL 店舗演算("中出し価格",ARG,RESULT,"=")
+		ELSE
+			CALL 店舗演算("処女価格",ARG,RESULT,"=")
+		ENDIF
+		RESTART
+	CASEELSE
+		RETURN 0
+ENDSELECT
+
+;========================================================
+;利用方法設定
+;========================================================
+@ARRANGE_COMMODITY_MANAGEMENT,ARG
+SELECTCASE 店舗("種類",ARG)
+	CASE 10
+		PRINTFORML These are the services and their currently availability. Select a service to toggle its status.
+		;現在、商品の基本利用方法は以下の通りです。変更したい商品を選んでください
+		PRINTFORML [1] Oral：\@ 店舗("性的サービス",ARG) & 8 ? Available # Not offered \@
+		;[1] フェラチオ：\@ 店舗("性的サービス",ARG) & 8 ? 有り # 無し \@
+		LOCALS:1 = Oral
+		PRINTFORML [2] Vaginal      ：\@ 店舗("性的サービス",ARG) & 16 ? Available # Not offered \@
+		;[2] 本番      ：\@ 店舗("性的サービス",ARG) & 16 ? 有り # 無し \@
+		LOCALS:2 = Vaginal
+		PRINTFORML [3] Anal    ：\@ 店舗("性的サービス",ARG) & 32 ? Available # Not offered \@
+		LOCALS:3 = Anal
+		PRINTFORML [4] Creampie    ：\@ 店舗("性的サービス",ARG) & 64 ? Available # Not offered \@
+		LOCALS:4 = Creamie
+		PRINTFORML [5] Homo    ：\@ 店舗("性的サービス",ARG) & 128 ? Available # Not offered \@
+		LOCALS:5 = Homo
+		;同性客
+		PRINTFORML [6] Bestality      ：\@ 店舗("性的サービス",ARG) & 256 ? Available # Not offered \@
+		LOCALS:6 = Bestality
+		DRAWLINE
+		PRINTL [0] Return [9]Apply to all current employees
+		;利用方法を全員に反映
+		CALL INPUTINT,0,1,2,3,4,5,6,9
+		IF RESULT == 0
+			RETURN 0
+		ELSEIF RESULT == 9
+			FOR LOCAL , 0 ,CHARANUM
+				IF CFLAG:LOCAL:労役フラグ % 10 == ARG
+					CFLAG:LOCAL:個別性的サービス = 店舗("性的サービス",ARG)
+				ENDIF
+			NEXT
+			RESTART
+		ENDIF
+		LOCAL = RESULT
+		IF LOCAL == 1
+			IF 店舗("性的サービス",ARG) & 8
+				CALL 店舗演算("性的サービス",ARG,8,"-")
+			ELSE
+				CALL 店舗演算("性的サービス",ARG,8,"+")
+			ENDIF
+		ELSEIF LOCAL == 2
+			IF 店舗("性的サービス",ARG) & 16
+				CALL 店舗演算("性的サービス",ARG,16,"-")
+			ELSE
+				CALL 店舗演算("性的サービス",ARG,16,"+")
+			ENDIF
+		ELSEIF LOCAL == 3
+			IF 店舗("性的サービス",ARG) & 32
+				CALL 店舗演算("性的サービス",ARG,32,"-")
+			ELSE
+				CALL 店舗演算("性的サービス",ARG,32,"+")
+			ENDIF
+		ELSEIF LOCAL == 4
+			IF 店舗("性的サービス",ARG) & 64
+				CALL 店舗演算("性的サービス",ARG,64,"-")
+			ELSE
+				CALL 店舗演算("性的サービス",ARG,64,"+")
+			ENDIF
+		ELSEIF LOCAL == 5
+			IF 店舗("性的サービス",ARG) & 128
+				CALL 店舗演算("性的サービス",ARG,128,"-")
+			ELSE
+				CALL 店舗演算("性的サービス",ARG,128,"+")
+			ENDIF
+		ELSE
+			IF 店舗("性的サービス",ARG) & 256
+				CALL 店舗演算("性的サービス",ARG,256,"-")
+			ELSE
+				CALL 店舗演算("性的サービス",ARG,256,"+")
+			ENDIF
+		ENDIF
+		RESTART
+	CASEELSE
+		RETURN 0
+
+ENDSELECT
+;※変更点ここから※
+;========================================================
+;広告
+;========================================================
+@ADVERTISEMENT_MANAGEMENT,ARG
+PRINTFORM What kind of advertisement would you like to commission?\n(Currenty publicity effect:{店舗("宣伝効果",ARG)}　
+;どの広告を出しますか？(現在の宣伝効果:{店舗("宣伝効果",ARG)}　
+SIF [[店舗:宣伝フラグ]]:ARG == 0
+	PRINTFORML  Current advertisment choice: None)
+	;現在の宣伝媒体:無し)
+SIF [[店舗:宣伝フラグ]]:ARG == 1
+	PRINTFORML Current advertisment choice:Distribution of flyers)
+	;ビラ配り
+SIF [[店舗:宣伝フラグ]]:ARG == 2
+	PRINTFORML Current advertisment choice:Radio advertisements)
+	;ラジオ広告
+SIF [[店舗:宣伝フラグ]]:ARG == 3
+	PRINTFORML Current advertisment choice:Paradigm Ｘ)
+	;パラダイムＸ
+SIF [[店舗:宣伝フラグ]]:ARG == 4
+	PRINTFORML Current advertisment choice:Promotion by airships)
+	;飛行船で宣伝
+SIF [[店舗:宣伝フラグ]]:ARG >= 1000000
+	PRINTFORML Current advertisment choice:Big campaign　Cost：{[[店舗:宣伝フラグ]]:ARG})
+	;大々的に宣伝　費用：{[[店舗:宣伝フラグ]]:ARG})
+PRINTL 
+PRINTL Advertising expenses will be paid automatically every night, starting with the stores on top of the list.
+;広告費はリストの上の店舗から順に、毎晩自動的に支払われます。
+PRINTL If you can not afford the advertisement expenses of a store, there will be no payment on that day.
+;その店舗の広告費を出せない場合、その日の支払いはありません。
+PRINTL To stop advertising, please select "Do not advertise".
+;広告を出すのをやめる場合は、　「広告を出さない」　を選択して下さい。
+PRINTL 
+PRINTL 　　　　　　　　　　 Expense　　　　　　Effect
+; 　　　　　　　　　　 費用　　　　　　効果
+PRINTL [1] Distribute leaflets　　　　 5000　　　　　　 50
+PRINTL [2] Radio advertising　　　20000　　　　　　100
+PRINTL [3] Paradigm Ｘ　 100000　　　　　　300
+PRINTL [4] Promote by airships　 500000　　　　　　800
+PRINTL [5] Big campaign　1000000～　　　　 1000～（0.1% of cost）
+DRAWLINE
+PRINTL [0] Don't advertise
+$LOOP
+CALL INPUTINT,0,1,2,3,4,5
+SELECTCASE RESULT
+	CASE 0
+		CALL 店舗演算("宣伝フラグ",ARG,RESULT,"=")
+		PRINTFORMW Cancel advertisement.
+	CASE 1
+		CALL 店舗演算("宣伝フラグ",ARG,RESULT,"=")
+		PRINTFORMW Ask the store to distribute leaflets.
+	CASE 2
+		CALL 店舗演算("宣伝フラグ",ARG,RESULT,"=")
+		PRINTFORMW An ad was played on the radio.
+	CASE 3
+		CALL 店舗演算("宣伝フラグ",ARG,RESULT,"=")
+		PRINTFORMW You advertise on Paradigm Ｘ.
+		;パラダイムＸに広告を出します
+	CASE 4
+		CALL 店舗演算("宣伝フラグ",ARG,RESULT,"=")
+		PRINTFORMW You advertise with airships.
+	CASE 5
+		PRINTFORM How much will you spend on this campaign?（Minimum of 1000000, abort with 0）
+		;費用はいくらにしますか？（最低1000000、やめるなら0）
+		$INPUT_LOOP
+		CALL INPUT_MANY,0,1000000000
+		IF RESULT == 0
+			PRINTFORMW Canceled
+		ELSEIF RESULT >= 1000000
+			CALL 店舗演算("宣伝フラグ",ARG,RESULT,"=")
+			PRINTFORMW Cost：{[[店舗:宣伝フラグ]]:ARG}. A big advertisement campaign will be started.
+			;費用：{[[店舗:宣伝フラグ]]:ARG}をかけて大々的に宣伝を行います
+		ELSE
+			GOTO INPUT_LOOP
+		ENDIF
+ENDSELECT
+;※変更点ここまで※
+
+;========================================================
+;個別料金設定
+;========================================================
+@ARRANGE_CHARA_PRICE_MANAGEMENT,ARG
+Z = ARG
+CALL INPUT_CHARA_LIST("Please select a toilet to modify its useage fees", "CASTING_ARRANGE_CHARA_PRICE_MANAGEMENT")
+;利用料金を変更したい便器を選んでください
+IF RESULT == 1000
+	RETURN 0
+ENDIF
+
+LOCAL:1 = RESULT
+
+
+$CHANGE_PRICE
+		PRINTFORML Currently, the useage fees for this toilet are as follows. Select a service to change its fee.
+		;現在、この便器の利用価格は以下の通りです。変更したい利用方法を選んでください
+		PRINTFORML [1] Oral:{CFLAG:(LOCAL:1):フェラ価格}Macca
+		LOCALS:1 = フェラチオ
+		PRINTFORML [2] Vaginal      ：{CFLAG:(LOCAL:1):本番価格}Macca
+		LOCALS:2 = 本番
+		PRINTFORML [3] Anal    ：{CFLAG:(LOCAL:1):アナル価格}Macca
+		LOCALS:3 = アナル
+		PRINTFORML [4] Creampie    ：{CFLAG:(LOCAL:1):中出し価格}Macca
+		LOCALS:4 = 中出し
+		PRINTFORML [5] Virgin    ：{CFLAG:(LOCAL:1):処女価格}Macca
+		LOCALS:5 = 処女
+		DRAWLINE
+		PRINTL [0] Return
+		CALL INPUTINT,0,1,2,3,4,5
+		IF RESULT == 0
+			RESTART
+		ENDIF
+		LOCAL = RESULT
+		PRINTFORML Please select the price for %LOCALS:LOCAL%
+		CALL INPUT_MANY,0,999999999
+		IF LOCAL == 1
+			CFLAG:(LOCAL:1):フェラ価格 = RESULT
+		ELSEIF LOCAL == 2
+			CFLAG:(LOCAL:1):本番価格 = RESULT
+		ELSEIF LOCAL == 3
+			CFLAG:(LOCAL:1):アナル価格 = RESULT
+		ELSEIF LOCAL == 4
+			CFLAG:(LOCAL:1):中出し価格 = RESULT
+		ELSE
+			CFLAG:(LOCAL:1):処女価格 = RESULT
+		ENDIF
+		GOTO CHANGE_PRICE
+		
+		
+@CASTING_ARRANGE_CHARA_PRICE_MANAGEMENT
+SIF CFLAG:COUNT:労役フラグ != 10+Z
+	RETURN 0
+RETURN 1
+
+;========================================================
+;個別利用方法設定
+;========================================================
+@ARRANGE_CHARA_COMMODITY_MANAGEMENT,ARG
+
+P = 0
+$INPUT_LOOP_2
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:労役フラグ != 10+ARG
+		CONTINUE
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:2 = A
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML Please select a toilet to change the services offered　＜page.{P + 1}＞
+;利用方法を変更したい便器を選んでください
+DRAWLINE
+PRINTFORML 　　　　　　　　　　　　　　　　 フェラ　本番　アナル 中出し 同性客 獣姦
+REPEAT リスト表示数()
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF LOCAL < 0 || CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	CALL ARRANGE_SETCOLOR, LOCAL
+
+	CALL ARRANGE_TARGETSIGN, LOCAL
+
+	CALL ARRANGE_CHARALIST, LOCAL
+	CALL ARRANGE_FALLTALENT, LOCAL
+	CALL ARRANGE_SEX, LOCAL
+	
+	CALL 是非色分け(LOCAL, 8)
+	PRINTFORM 　-　\@ CFLAG:LOCAL:個別性的サービス & 8 ? Ｏ # Ｘ \@
+	
+	CALL 是非色分け(LOCAL, 16)
+	PRINTFORM 　-　\@ CFLAG:LOCAL:個別性的サービス & 16 ? Ｏ # Ｘ \@
+	
+	CALL 是非色分け(LOCAL, 32)
+	PRINTFORM 　-　\@ CFLAG:LOCAL:個別性的サービス & 32 ? Ｏ # Ｘ \@
+	
+	CALL 是非色分け(LOCAL, 64)
+	PRINTFORM 　-　\@ CFLAG:LOCAL:個別性的サービス & 64 ? Ｏ # Ｘ \@
+		
+	CALL 是非色分け(LOCAL, 128)
+	PRINTFORM 　-　\@ CFLAG:LOCAL:個別性的サービス & 128 ? Ｏ # Ｘ \@
+
+	CALL 是非色分け(LOCAL, 256)
+	PRINTFORM 　-　\@ CFLAG:LOCAL:個別性的サービス & 256 ? Ｏ # Ｘ \@
+
+	RESETCOLOR
+	IF TALENT:LOCAL:処女 == 1
+		SETCOLOR COLOR("pink")
+		PRINTFORM 　　%ハート()%
+		PRINTFORM Virgin
+		PRINTFORML %ハート()%
+	ENDIF
+		PRINTL 
+REND
+RESETCOLOR
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1007]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:2 - 1) / リスト表示数()) ? %" " * 16% # [1009]Next page\@
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1007
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:2 - 1) / リスト表示数()
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+LOCAL:1 = RESULT
+
+
+$CHANGE_COMMODITY
+		;リストの何人目かをLOCALに保存
+		LOCAL:4 = FINDELEMENT(Q, LOCAL:1)
+		PRINTFORML Currently, the services offered by %CALLNAME:(LOCAL:1)% are as follows. Select a service to toggle its availability.
+		;現在、%CALLNAME:(LOCAL:1)%の基本価格は以下の通りです。変更したい利用方法を選んでください
+
+		CALL 是非色分け(LOCAL:1, 8)
+		PRINTFORML [1] Oral：\@ CFLAG:(LOCAL:1):個別性的サービス & 8 ? Available # Not offered \@
+		LOCALS:1 = フェラチオ
+		CALL 是非色分け(LOCAL:1, 16)
+		IF TALENT:(LOCAL:1):処女
+			PRINTFORM [2] Vaginal      ：\@ CFLAG:(LOCAL:1):個別性的サービス & 16 ? Available # Not offered \@
+			SETCOLOR COLOR("pink")
+			PRINTFORM 　　%ハート()%
+			PRINTFORM Virgin
+			PRINTFORML %ハート()%
+			RESETCOLOR
+		ELSE
+			PRINTFORML [2] Vaginal      ：\@ CFLAG:(LOCAL:1):個別性的サービス & 16 ? Available # Not offered \@
+		ENDIF
+		LOCALS:2 = 本番
+		CALL 是非色分け(LOCAL:1, 32)
+		PRINTFORML [3] Anal    ：\@ CFLAG:(LOCAL:1):個別性的サービス & 32 ? Available # Not offered \@
+		LOCALS:3 = アナル
+		CALL 是非色分け(LOCAL:1, 64)
+		PRINTFORML [4] Creampie    ：\@ CFLAG:(LOCAL:1):個別性的サービス & 64 ? Available # Not offered \@
+		LOCALS:4 = 中出し
+		CALL 是非色分け(LOCAL:1, 128)
+		PRINTFORML [5] Homo    ：\@ CFLAG:(LOCAL:1):個別性的サービス & 128 ? Available # Not offered \@
+		LOCALS:5 = 同性客
+		CALL 是非色分け(LOCAL:1, 256)
+		PRINTFORML [6] Beastiality      ：\@ CFLAG:(LOCAL:1):個別性的サービス & 256 ? Available # Not offered \@
+		LOCALS:6 = 獣姦
+		RESETCOLOR
+		
+		DRAWLINE
+		PRINTFORMLC \@(LOCAL:4 > 0) ? [1001]Previous character  # %" " * 16%\@
+		PRINTLC [0] Return
+		PRINTFORMLC \@(LOCAL:4 < A - 1) ? [1003]Next character # %" " * 16%\@
+		CALL INPUTINT,0,1,2,3,4,5,6,1001,1003
+		IF RESULT == 0
+			GOTO INPUT_LOOP_2
+		ELSEIF RESULT == 1001 && LOCAL:4 > 0
+			LOCAL:4 -= 1
+			LOCAL:1 = Q:(LOCAL:4)
+			GOTO CHANGE_COMMODITY
+		ELSEIF RESULT == 1003 && LOCAL:4 < A - 1
+			LOCAL:4 += 1
+			LOCAL:1 = Q:(LOCAL:4)
+			GOTO CHANGE_COMMODITY
+		ELSEIF RESULT == 1
+			IF CFLAG:(LOCAL:1):個別性的サービス & 8
+				CFLAG:(LOCAL:1):個別性的サービス -= 8
+			ELSE
+				CFLAG:(LOCAL:1):個別性的サービス |= 8
+			ENDIF
+		ELSEIF RESULT == 2
+			IF CFLAG:(LOCAL:1):個別性的サービス & 16
+				CFLAG:(LOCAL:1):個別性的サービス -= 16
+			ELSE
+				CFLAG:(LOCAL:1):個別性的サービス |= 16
+			ENDIF
+		ELSEIF RESULT == 3
+			IF CFLAG:(LOCAL:1):個別性的サービス & 32
+				CFLAG:(LOCAL:1):個別性的サービス -= 32
+			ELSE
+				CFLAG:(LOCAL:1):個別性的サービス |= 32
+			ENDIF
+		ELSEIF RESULT == 4
+			IF CFLAG:(LOCAL:1):個別性的サービス & 64
+				CFLAG:(LOCAL:1):個別性的サービス -= 64
+			ELSE
+				CFLAG:(LOCAL:1):個別性的サービス |= 64
+			ENDIF
+		ELSEIF RESULT == 5
+			IF CFLAG:(LOCAL:1):個別性的サービス & 128
+				CFLAG:(LOCAL:1):個別性的サービス -= 128
+			ELSE
+				CFLAG:(LOCAL:1):個別性的サービス |= 128
+			ENDIF
+		ELSE
+			IF CFLAG:(LOCAL:1):個別性的サービス & 256
+				CFLAG:(LOCAL:1):個別性的サービス -= 256
+			ELSE
+				CFLAG:(LOCAL:1):個別性的サービス |= 256
+			ENDIF
+		ENDIF
+		GOTO CHANGE_COMMODITY
+
+;========================================================
+;店舗売却
+;========================================================
+@店舗売却,ARG
+PRINTFORML This facility can be sold for ￥{(店舗("人気",ARG)+10)*50}.
+;この店舗は￥{(店舗("人気",ARG)+10)*50}で売却できます。
+PRINTFORML Do you want to sell it?
+CALL INPUT_YN,"YES","NO"
+IF RESULT == 0
+	MONEY += (店舗("人気",ARG)+10)*50
+	CALL 店舗演算("種類",ARG,0,"=")
+	FOR LOCAL,0,CHARANUM
+		SIF CFLAG:LOCAL:労役フラグ == 10+ARG
+			CFLAG:LOCAL:労役フラグ = 0
+	NEXT
+	FOR LOCAL,0,100
+		DE:LOCAL:ARG = 0
+	NEXT
+	
+	RETURN 1
+ENDIF
+
+;=============================================
+;一日の処理
+;=============================================
+@店舗日報,ARG
+CUSTOMDRAWLINE =
+;店の種類で分岐
+;とりあえず喫茶店とレストラン。現在混合。
+PRINTFORMW %SAVESTR:(20+ARG)% Income/Expense report
+;収支報告
+;キャラクタ初期化
+CALL INITIALIZE_MANAGEMENT,ARG
+;※変更点ここから※
+	IF [[店舗:宣伝フラグ]]:ARG == 1
+		IF MONEY >= 5000
+			MONEY -= 5000
+			CALL 店舗演算("宣伝効果",ARG,50,"+")
+			PRINTFORML Flies where handed out.（Current advertisement effect：{店舗("宣伝効果",ARG)}）
+			;ビラ配りを行いました（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ELSE
+			PRINTFORML 資金が足りないためビラ配りは行いません（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ENDIF
+	ELSEIF [[店舗:宣伝フラグ]]:ARG == 2
+		IF MONEY >= 20000
+			MONEY -= 20000
+			CALL 店舗演算("宣伝効果",ARG,100,"+")
+			PRINTFORML ラジオで宣伝を行いました（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ELSE
+			PRINTFORML 資金が足りないためラジオで宣伝はしません（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ENDIF
+	ELSEIF [[店舗:宣伝フラグ]]:ARG == 3
+		IF MONEY >= 100000
+			MONEY -= 100000
+			CALL 店舗演算("宣伝効果",ARG,300,"+")
+			PRINTFORML パラダイムＸで宣伝を行いました（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ELSE
+			PRINTFORML 資金が足りないためパラダイムＸで宣伝は行いません（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ENDIF
+	ELSEIF [[店舗:宣伝フラグ]]:ARG == 4
+		IF MONEY >= 500000
+			MONEY -= 500000
+			CALL 店舗演算("宣伝効果",ARG,800,"+")
+			PRINTFORML 飛行船で宣伝を行いました（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ELSE
+			PRINTFORML 資金が足りないため飛行船で宣伝は行いません（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ENDIF
+	ELSEIF [[店舗:宣伝フラグ]]:ARG >= 1000000
+		IF MONEY >= [[店舗:宣伝フラグ]]:ARG
+			MONEY -= [[店舗:宣伝フラグ]]:ARG
+			CALL 店舗演算("宣伝効果",ARG,[[店舗:宣伝フラグ]]:ARG / 1000,"+")
+			PRINTFORML 大々的に宣伝を行いました（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ELSE
+			PRINTFORML 資金が足りないため宣伝は行いません（現在の宣伝効果：{店舗("宣伝効果",ARG)}）
+		ENDIF
+	ENDIF
+	PRINTFORML 　
+	PRINTFORML 　
+;※変更点ここまで※
+
+;LOCAL = 計算・ループ用
+IF 店舗("種類",ARG) == 1 || 店舗("種類",ARG) == 2
+;	;客入りを計算
+;	;LOLCA:1 = 客入り最大
+;	;LOCAL:2 = 客入り
+;	;店舗の人気10につき一人、料理人気5につき一人訪れるかどうかの判定を行う
+;	LOCAL:1 = MAX(1,[[店舗:人気]]:ARG/10+[[店舗:料理人気]]:ARG/5)
+;	LOCAL:2 = 0
+;	FOR LOCAL,0,LOCAL:1
+;		SIF RAND:2 == 0
+;			LOCAL:2 += 1
+;	NEXT
+;	;SIF LOCAL:2 == 0
+;		
+;	SIF LOCAL:2 > [[店舗:規模]]:ARG
+;		LOCAL:2 = [[店舗:規模]]:ARG
+;	;女の子のサービスが特定の三種類無料だと、乱交フラグが立つ。
+;	SIF ([[店舗:性的サービス]]:ARG & 8 && [[店舗:フェラ価格]]:ARG == 0) && ([[店舗:性的サービス]]:ARG & 16 && [[店舗:本番価格]]:ARG == 0) && ([[店舗:性的サービス]]:ARG & 32 && [[店舗:アナル価格]]:ARG == 0)
+;		[[店舗:乱交フラグ]] = 2
+;	;入った客の人数だけ接客処理を繰り返す
+;	FOR LOCAL,0,LOCAL:2
+;		;欲情が技巧*2LV超えたキャラはおねだりフラグが立つ。
+;		REPEAT CHARANUM
+;			SIF PALAMLV_F(COUNT,"欲情") >= ABL:COUNT:技巧 * 2
+;				CFLAG:COUNT:おねだりフラグ = 1
+;		REND
+;		
+;		
+;		;LOCAL:4 = 接客キャラのおねだり人数
+;		;接客キャラ全員がおねだりしてしまうと、乱交フラグが立つ。
+;		REPEAT CHARANUM
+;			SIF CFLAG:COUNT:おねだりフラグ && CFLAG:COUNT:従事内容 == 1
+;				LOCAL:4 += 1
+;		REND
+;		SIF LOCAL:4 >= 接客人数(ARG)
+;			[[店舗:乱交フラグ:ARG]] = 1
+;		;乱交フラグが立ってる場合、全員のサービス回数だけ増えて終わり。
+;		IF [[店舗:乱交フラグ]]:ARG
+;			REPEAT CHARANUM
+;				SIF CFLAG:COUNT:労役フラグ != 10+ARG
+;					CONTINUE
+;				CFLAG:COUNT:おさわりおねだり回数 += 1
+;				CFLAG:COUNT:愛撫おねだり回数 += 1
+;				CFLAG:COUNT:手コキおねだり回数 += 1
+;				CFLAG:COUNT:フェラおねだり回数 += 1
+;				CFLAG:COUNT:本番おねだり回数 += 1
+;				CFLAG:COUNT:アナルおねだり回数 += 1
+;				CFLAG:COUNT:中出しおねだり回数 += 1
+;			REND
+;			CONTINUE
+;		ENDIF
+;		;おねだりフラグの立ったキャラがいると、そのキャラが無料サービスしてしまって終了。
+;		REPEAT CHARANUM
+;			IF CFLAG:COUNT:おねだりフラグ == 1
+;				CALL ONEDARI,COUNT
+;				GOTO TURNEND
+;			ENDIF
+;		REND
+;		
+;		;接客するキャラを決める
+;		VARSET C,-1
+;		;LOCAL:3 = 接客できる人数
+;		REPEAT CHARANUM
+;			
+;		REND
+;		
+;		$TURNEND
+;		;全員の欲情が服装や状況に合わせて増減
+;		
+;		;接客や調理をしておらず、欲情が一定以上のキャラは自慰して欲情を鎮める。ただし、自慰した回数だけ欲情が上がりやすくなる。
+;		
+;		;接客や調理、サービスにかかるターンが減少する。
+;	NEXT
+;	;収益や結果を表示
+;公衆便所
+ELSEIF [[店舗:種類]]:ARG == 10
+	CALL MANAGEMENT_PUBLIC_TOILET,ARG
+ELSEIF [[店舗:種類]]:ARG == 11
+	CALL MANAGEMENT_STRIP_THEATER,ARG
+ELSEIF [[店舗:種類]]:ARG == 12
+	CALL MANAGEMENT_SHOW_TENT,ARG
+ELSEIF [[店舗:種類]]:ARG == 13 || [[店舗:種類]]:ARG == 14 || [[店舗:種類]]:ARG == 15
+	CALL MANAGEMENT_教会,ARG
+ENDIF
+
+;※変更点ここから※
+	;宣伝効果が１日毎に70％に
+	CALL 店舗演算("宣伝効果",ARG,70,"*")
+	CALL 店舗演算("宣伝効果",ARG,100,"/")
+;※変更点ここまで※
+
+;=============================================
+;CFLAG等の初期化
+;=============================================
+@INITIALIZE_MANAGEMENT,ARG
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:労役フラグ != 10+ARG
+		CONTINUE
+	;ソース初期化
+	FOR LOCAL,0,100
+		SOURCE:COUNT:LOCAL = 0
+		PALAM:COUNT:LOCAL = 0
+		CUP:COUNT:LOCAL = 0
+		CDOWN:COUNT:LOCAL = 0
+		GOTJUEL:COUNT:LOCAL = 0
+		DOWNBASE:COUNT:LOCAL = 0
+	NEXT
+	GOTJUEL:COUNT:100 = 0
+	;絶頂回数初期化
+	FOR LOCAL,0,4
+		NOWEX:COUNT:LOCAL = 0
+		EX:COUNT:LOCAL = 0
+	NEXT
+	
+	FOR LOCAL,1407,1450
+		SIF GETNUM(CFLAG,"個別性的サービス") == LOCAL
+			CONTINUE
+		SIF GETNUM(CFLAG,"フェラ価格") == LOCAL
+			CONTINUE
+		SIF GETNUM(CFLAG,"アナル価格") == LOCAL
+			CONTINUE
+		SIF GETNUM(CFLAG,"中出し価格") == LOCAL
+			CONTINUE
+		SIF GETNUM(CFLAG,"本番価格") == LOCAL
+			CONTINUE
+		SIF GETNUM(CFLAG,"処女価格") == LOCAL
+			CONTINUE
+		CFLAG:COUNT:LOCAL = 0
+	NEXT
+	
+	;暫定父親を初期化(-1=妊娠確定時に決定)
+	CFLAG:COUNT:労役中の中出氏による暫定父親 = -1
+	
+REND
+
+
+;=============================================
+;おねだり処理
+;=============================================
+@ONEDARI,ARG
+
+;=============================================
+;PALAM上昇処理
+;=============================================
+@CUP_MANAGEMENT,ARG
+FOR LOCAL,0,19
+	PALAM:ARG:LOCAL += CUP:ARG:LOCAL - CDOWN:ARG:LOCAL
+	CUP:ARG:LOCAL = 0
+	CDOWN:ARG:LOCAL = 0
+NEXT
+;ソース初期化
+FOR LOCAL,0,100
+	SOURCE:ARG:LOCAL = 0
+NEXT
+
+
+
+;=============================================
+;必要なFUNCTION関数
+;=============================================
+
+@接客人数(ARG)
+#FUNCTION
+LOCAL:1 = 0
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:労役フラグ == 10+ARG && CFLAG:LOCAL:従事内容 == 1
+		LOCAL:1 += 1
+NEXT
+RETURNF LOCAL:1
+
+@キッチン人数(ARG)
+#FUNCTION
+LOCAL:1 = 0
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:労役フラグ == 10+ARG && CFLAG:LOCAL:従事内容 == 2
+		LOCAL:1 += 1
+NEXT
+RETURNF LOCAL:1
+
+@看板娘(ARG)
+#FUNCTION
+LOCAL:1 = -1
+FOR LOCAL,0,CHARANUM
+	IF CFLAG:LOCAL:労役フラグ == 10+ARG && CFLAG:LOCAL:従事内容 == 1
+		IF LOCAL:1 == -1
+			LOCAL:1 = LOCAL
+		ELSE
+			SIF CFLAG:LOCAL:接客人気 + CFLAG:LOCAL:売春人気 > CFLAG:(LOCAL:1):接客人気 + CFLAG:(LOCAL:1):売春人気
+				LOCAL:1 = LOCAL
+		ENDIF
+	ENDIF
+NEXT
+RETURNF LOCAL:1
+
+
+
+@誘惑度(ARG)
+#FUNCTION
+LOCAL:1 = 0
+;店舗の種類で分けようかとも考えたが、とりあえず保留
+;制服の種類によって＋が変化
+SELECTCASE CFLAG:ARG:Uniform
+	CASE 1
+		;和服
+		LOCAL:1 += 20
+		
+	CASE 2
+		;割烹着
+		LOCAL:1 += 10
+	CASE 3
+		;エプロンドレス
+		LOCAL:1 += 25
+	CASE 4
+		;アンミラ
+		LOCAL:1 += 35
+	CASE 5
+		;ランジェリー
+		LOCAL:1 += 60
+	CASE 6
+		;裸エプロン
+		LOCAL:1 += 100
+ENDSELECT
+SELECTCASE CFLAG:ARG:制服スカート
+	CASE 0
+		LOCAL:1 += 0
+	CASE 1
+		LOCAL:1 += 5
+	CASE 2
+		LOCAL:1 += 15
+	CASE 3
+		LOCAL:1 += 30
+		SIF CFLAG:ARG:制服下着 == 2
+			LOCAL:1 += 20
+	CASE 4
+		LOCAL:1 += 50
+		SIF CFLAG:ARG:制服下着 == 2
+			LOCAL:1 += 30
+		SIF CFLAG:ARG:制服下着 == 3
+			LOCAL:1 += 40
+	CASE 5
+		LOCAL:1 += 70
+		SIF CFLAG:ARG:制服下着 == 2
+			LOCAL:1 += 30
+		SIF CFLAG:ARG:制服下着 == 3
+			LOCAL:1 += 40
+	CASE 6
+		LOCAL:1 += 60
+		SIF CFLAG:ARG:制服下着 == 2
+			LOCAL:1 += 30
+		SIF CFLAG:ARG:制服下着 == 3
+			LOCAL:1 += 40
+ENDSELECT
+SELECTCASE CFLAG:ARG:制服おっぱい
+	CASE 0
+		LOCAL:1 += 0
+	CASE 1
+		LOCAL:1 += 5
+	CASE 2
+		LOCAL:1 += 20
+	CASE 3
+		LOCAL:1 += 50
+		SIF CFLAG:ARG:制服下着 == 2
+			LOCAL:1 += 20
+	CASE 4
+		LOCAL:1 += 70
+		SIF CFLAG:ARG:制服下着 == 2
+			LOCAL:1 += 30
+		SIF CFLAG:ARG:制服下着 == 3
+			LOCAL:1 += 40
+ENDSELECT
+;大人のおもちゃ
+IF CFLAG:ARG:制服淫具 & 1
+	LOCAL:1 += 5
+	SIF CFLAG:ARG:制服スカート>= 4 && (CFLAG:ARG:制服下着 == 2 || CFLAG:ARG:制服下着 == 3)
+		LOCAL:1 += 100
+ENDIF
+IF CFLAG:ARG:制服淫具 & 2
+	LOCAL:1 += 5
+	SIF CFLAG:ARG:制服おっぱい == 3 || (CFLAG:ARG:制服おっぱい == 4 && CFLAG:ARG:制服下着 > 1)
+		LOCAL:1 += 80
+ENDIF
+IF CFLAG:ARG:制服淫具 & 4
+	LOCAL:1 += 5
+	SIF CFLAG:ARG:制服スカート>= 4 && (CFLAG:ARG:制服下着 == 2 || CFLAG:ARG:制服下着 == 3)
+		LOCAL:1 += 80
+ENDIF
+IF CFLAG:ARG:制服淫具 & 8
+	LOCAL:1 += 5
+	SIF CFLAG:ARG:制服スカート>= 4 && (CFLAG:ARG:制服下着 == 2 || CFLAG:ARG:制服下着 == 3)
+		LOCAL:1 += 100
+ENDIF
+IF CFLAG:ARG:制服淫具 & 16
+	LOCAL:1 += 30
+	SIF CFLAG:ARG:制服スカート>= 4 && (CFLAG:ARG:制服下着 == 2 || CFLAG:ARG:制服下着 == 3)
+		LOCAL:1 += 80
+ENDIF
+;欲望で追加
+LOCAL:1 += ABL:ARG:欲望 * 5
+
+;淫乱・娼婦で追加
+LOCAL:1 += TALENT:ARG:淫乱 * 20 + TALENT:ARG:娼婦 * 40
+
+;PALAM・欲情で追加
+LOCAL:1 += PALAMLV_F(ARG,"欲情")*5
+
+RETURNF LOCAL:1
+
+;=============================================================
+;規模を拡張するために必要な金額を計算する。
+;<引数>
+; ARG    = 現在の規模
+; ARG:1  = 拡張規模
+; ARG:2  = 拡張する内容(0:雇用人数／1:利用可能客数)
+;<戻り値>
+; LOCAL  = ARG:1の人数拡張するために必要なトータル金額
+;=============================================================
+@規模拡張金額(ARG,ARG:1,ARG:2)
+#FUNCTION
+
+;拡張に必要な金額
+LOCAL = 0
+
+FOR COUNT, ARG, ARG+ARG:1
+	IF ARG:2 == 0
+		;雇用人数拡張
+		SELECTCASE COUNT
+			CASE IS < 4
+				LOCAL += 10000
+			CASE IS < 6
+				LOCAL += 25000
+			CASE IS < 8
+				LOCAL += 50000
+			CASE IS < 10
+				LOCAL += 80000
+			CASEELSE
+				LOCAL += 150000
+		ENDSELECT
+	ELSEIF ARG:2 == 1
+		;利用可能客数拡張
+		SELECTCASE COUNT
+			CASE IS < 5
+				LOCAL += 1000
+			CASE IS < 10
+				LOCAL += 3000
+			CASE IS < 15
+				LOCAL += 7500
+			CASE IS < 20
+				LOCAL += 10000
+			CASE IS < 30
+				LOCAL += 15000
+			CASEELSE
+				LOCAL += 25000
+		ENDSELECT
+	ENDIF
+NEXT
+
+RETURNF LOCAL
+
+
+;=============================================================
+;個別利用方法設定用是非色分け
+;ARG = キャラ
+;ARG:1 = 判別用の数値
+;=============================================================
+@是非色分け(ARG,ARG:1)
+IF CFLAG:ARG:個別性的サービス & ARG:1
+	RESETCOLOR
+ELSE
+	SETCOLOR COLOR("灰色")
+ENDIF

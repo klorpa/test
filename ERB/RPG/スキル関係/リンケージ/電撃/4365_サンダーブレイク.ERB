@@ -1,0 +1,203 @@
+
+
+;スキル名
+@SKILL_NAME_4365,ARG
+RESULTS = Thunder Rift
+;サンダーブレイク
+;　命中
+@SKILL_HITRATE_4365, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_4365, ARG
+SIF ARG == -1 || CFLAG:ARG:単独リンケージ
+	RETURN 480
+;発動者と参加者の魔法威力の比率により、威力に補正がかかる
+RETURN 480 * (MAXBASE:ARG:魔法威力 * 2 + MAXBASE:(CFLAG:ARG:リンケージ参加者1):魔法威力 + MAXBASE:(CFLAG:ARG:リンケージ参加者2):魔法威力) / (MAXBASE:ARG:魔法威力 * 4)
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_4365,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_4365,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_4365, ARG, ARG:1
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_4365, ARG
+RETURN 20
+
+;　相性
+@SKILL_TYPE_4365,ARG
+RETURN GET_TYPE_NUM("電撃")
+;　1EXTRAか2MAGICか
+
+@SKILL_DECIDE_TYPE_4365
+RETURN 1
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_4365
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_4365
+RETURN 1
+
+;　射程
+@SKILL_RANGE_4365,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_4365,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_4365
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_4365,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_4365
+RETURN 23
+;Elect
+
+;速度補正
+@SKILL_SPEED_4365, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_4365,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_4365
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_4365
+RETURN 0
+
+@SKILL_RANKUP_4365
+RETURN 0
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_4365,ARG
+RETURN GET_STATE_NUM("SHOCK")
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_4365,ARG
+RETURN GET_TYPE_NUM("電撃")
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_4365,ARG
+SIF ARG == -1 || CFLAG:ARG:単独リンケージ
+	RETURN 20
+;発動者と参加者の魔法効果の比率により、威力に補正がかかる
+RETURN 20 * (MAXBASE:ARG:魔法効果 * 2 + MAXBASE:(CFLAG:ARG:リンケージ参加者1):魔法効果 + MAXBASE:(CFLAG:ARG:リンケージ参加者2):魔法効果) / (MAXBASE:ARG:魔法効果 * 4)
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_4365,ARG
+RETURN 95
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_4365,ARG,ARG:1
+CALL ATTACK_FIELD, ARG, ARG:1, 4365
+
+
+
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_4365
+PRINTL 雨のように降り注ぐ雷で、deals severe Electric damage to all foes.
+
+;継承に必要な部位
+@継承部位_4365,ARG
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_4365,ARG
+CALL CHECK_COST,ARG,4365
+SIF RESULT == 0
+	RETURN 0
+RETURN 1
+;とくにない
+
+
+;=====================================================
+;リンケージ設定
+;=====================================================
+@LINKAGE_4365
+RETURN 1
+
+@参加人数_4365
+RETURN 2
+
+@参加条件表示_4365,ARG
+SELECTCASE ARG
+	CASE 1
+		PRINTFORM Electric skill
+	CASE 2
+		PRINTFORM Ice skill
+	CASE 3
+		PRINTFORM Maziodyne
+ENDSELECT
+
+@発動者条件_4365 , ARG
+;マハ・ジオダインを使えること
+SIF HAVE_SKILL(ARG, [[スキル:マハ・ジオダイン]]) == 0
+	RETURN 0
+CALL CHECK_ACTIONABLE , ARG , [[スキル:マハ・ジオダイン]]
+SIF RESULT
+	RETURN 1
+RETURN 0
+
+
+@参加者条件_4365, ARG , ARG:1
+SIF CPOS(ARG) < 1 || CPOS(ARG) > 6
+	RETURN 0
+CALL CHECK_COST_LINCAGE, ARG, 4365, ARG:1
+SIF RESULT == 0
+	RETURN 0
+SELECTCASE ARG:1
+	CASE 1
+		;電撃相性の攻撃魔法スキルを使用可能なこと
+		CALL HAVE_SKILL_SEARCH(ARG, "電撃", , "攻撃", "魔法", 4365)
+		RETURN RESULT
+	CASE 2
+		;氷結相性の攻撃魔法スキルを使用可能なこと
+		CALL HAVE_SKILL_SEARCH(ARG, "氷結", , "攻撃", "魔法", 4365)
+		RETURN RESULT
+ENDSELECT
+
+@リンケージコストタイプ_4365, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 3
+	CASE 2
+		RETURN 3
+ENDSELECT
+@リンケージコスト_4365, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 16
+	CASE 2
+		RETURN 16
+ENDSELECT

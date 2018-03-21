@@ -1,0 +1,826 @@
+;=======================================================================
+;シャンシャンシティ
+;突入には史人君必須、これ以降の偽典ダンジョンも同条件とする
+;使用フラグ
+;37:0 アバドン撃破フラグ
+;37:1 レラジエ撃破フラグ
+;37:2 突入フラグ
+;37:3 アメノウズメフラグ
+;37:10～ 宝箱フラグ
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+
+@PREREQUISITE_DUNGEON_37
+SIF (イベントフラグ:70:0 < 2 || イベントフラグ:70:0 == 99) || !(FINDCHARA_B(4761,0) == 2)
+	RETURN 0
+RETURN 1
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_37
+RESULTS = シャンシャンシティ
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_37
+PRINT シャンシャンシティ
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL   １Ｆ
+	CASE 1
+		PRINTL   ２Ｆ
+	CASE 2
+		PRINTL   ３Ｆ
+	CASE 3
+		PRINTL   ４Ｆ
+	CASE 4
+		PRINTL   ５Ｆ
+	CASE 5
+		PRINTL   ６Ｆ
+	CASE 6
+		PRINTL   ７Ｆ
+	CASE 7
+		PRINTL   ８Ｆ
+	CASE 8
+		PRINTL   ９Ｆ
+	CASE 9
+		PRINTL   １０Ｆ
+	CASE 10
+		PRINTL   ６０Ｆ
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+
+
+
+@TILE_MARK_37_9_1_12
+RESULTS = Ｅ
+
+@TILE_MARK_37_10_1_12
+RESULTS = Ｅ
+
+@TILE_MARK_37_10_3_4
+RESULTS = □
+
+@TILE_MARK_37_10_3_5
+RESULTS = 宝
+
+
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_37,ARG
+FLAG:現M = 0
+FLAG:現X = 7
+FLAG:現Y = 1
+;CALL AUTOMAP
+
+;=======================================================================
+;攻略開始時のイベント
+;=======================================================================
+@EVENT_DUNGEON_START_37
+IF ダンジョンフラグ:37:2 == 0
+	CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "は葛城と共に/＞悪魔の牢獄と化したシャンシャンシティにやってきた"
+	CALL MESSAGE_WINDOW_D, "", "＞葛城によればこの場所も飛鳥泪に教えられた、ということらしい"
+	CALL MESSAGE_WINDOW_D, "", "＞何でも強大な力を持つ悪魔が納めている、という噂があり/＞それでなくともデビルバスターが捕えられた、という噂もある"
+	CALL MESSAGE_WINDOW_D, "", "＞嘗ての同朋に会うためにも、葛城はここを調査することにしたらしい…"
+	ダンジョンフラグ:37:2 = 1
+ENDIF
+
+;=======================================================================
+;脱出時のイベント
+;=======================================================================
+@EVENT_DUNGEON_END_37
+IF ダンジョンフラグ:37:1 == 0 && ダンジョンフラグ:37:0 != 0
+	CALL MESSAGE_WINDOW_D, "", "＞ファントムの学者に由宇香の腕を保存してもらうべく、/＞" + CALLNAME:MASTER + "は葛城と共にファントムの本部へ向かっていた…"
+	CALL MESSAGE_WINDOW_D, "", "＞…！ ファントムの本部前に狩人の姿をした悪魔がいる！"
+	CALL MESSAGE_WINDOW_D, "レラジエ", "はじめまして、私は降天使レラジエと申します/そこにいる葛城殿の恋人、橘嬢を殺して右腕を喰らった悪魔です"
+	CALL MESSAGE_WINDOW_D, "レラジエ", "さて、私はあなた方に決闘を申し込む/私が勝てばあなた方の持つ橘嬢の左腕は頂く/あなた方が勝てば私の持つ右腕はあなた方のものになる"
+	CALL MESSAGE_WINDOW_D, "レラジエ", "どうです、悪くはないでしょう？"
+	CALL MESSAGE_WINDOW_D, "", "＞組織としても、こんな悪魔に本部を把握されているのは危険だ/＞この場で処理しよう…"
+	CALL MESSAGE_WINDOW_D, "レラジエ", "ほう、どうやら受けていただけるようだ/では、正々堂々と勝負！"
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	CALL SET_ENEMY,9,1760,50,0,5;レラジエ
+	MAXBASE:(CHARANUM-1):破魔 = 0
+	MAXBASE:(CHARANUM-1):呪殺 = 0
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	BASE:(CHARANUM-1):力 += 10
+	BASE:(CHARANUM-1):知恵 += 10
+	BASE:(CHARANUM-1):魔力 += 10
+	BASE:(CHARANUM-1):耐力 += 10
+	BASE:(CHARANUM-1):速さ += 10
+	BASE:(CHARANUM-1):運 += 10
+	CALL BATTLE_START
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	CALL MESSAGE_WINDOW_D, "", "＞死んだレラジエの肉体から、人間のものと思しき右腕が現れた…/＞やはり脈打っている、研究にはもってこいだろう"
+	CALL MESSAGE_WINDOW_D, "", "＞由宇香の両腕を組織に引き渡し、100000円の謝礼を手に入れた…"
+	MONEY += 100000
+ダンジョンフラグ:37:1 = 1
+イベントフラグ:70:0 = 3
+ENDIF
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_37,ARG,ARG:1
+
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_37
+SELECTCASE FLAG:現M
+	CASE 0
+	;１階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"       8      "
+		CALL MAKE_FLOOR_LINE, 1,"   1111111111 "
+		CALL MAKE_FLOOR_LINE, 2,"    2       1 "
+		CALL MAKE_FLOOR_LINE, 3,"    1     421 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  11111   421 "
+		CALL MAKE_FLOOR_LINE, 6,"  2 111     1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1 111   421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1         1 "
+		CALL MAKE_FLOOR_LINE, 9,"  111111111 1 "
+		CALL MAKE_FLOOR_LINE,10,"            1 "
+		CALL MAKE_FLOOR_LINE,11,"  6         1 "
+		CALL MAKE_FLOOR_LINE,12,"  11111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+							    ;012345678
+		;宝箱の設置
+		CALL SET_TILE,10,9,ダンジョンフラグ:37:10,0,3
+
+
+	CASE 1
+	;２階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1,"   1111111111 "
+		CALL MAKE_FLOOR_LINE, 2,"    2       1 "
+		CALL MAKE_FLOOR_LINE, 3,"    1       1 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     2 "
+		CALL MAKE_FLOOR_LINE, 5,"  11111   421 "
+		CALL MAKE_FLOOR_LINE, 6,"  2 111     1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1 111     1 "
+		CALL MAKE_FLOOR_LINE, 8,"  1         1 "
+		CALL MAKE_FLOOR_LINE, 9,"  111111116 1 "
+		CALL MAKE_FLOOR_LINE,10,"            1 "
+		CALL MAKE_FLOOR_LINE,11,"  7         1 "
+		CALL MAKE_FLOOR_LINE,12,"  11111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+
+	CASE 2
+	;３階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 611111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   11    1  1 "
+		CALL MAKE_FLOOR_LINE, 3,"   11    1121 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  11111  1121 "
+		CALL MAKE_FLOOR_LINE, 6,"  11111  1  1 "
+		CALL MAKE_FLOOR_LINE, 7,"  11111  1  1 "
+		CALL MAKE_FLOOR_LINE, 8,"  1      1  1 "
+		CALL MAKE_FLOOR_LINE, 9,"  111111117 1 "
+		CALL MAKE_FLOOR_LINE,10,"         1  1 "
+		CALL MAKE_FLOOR_LINE,11,"         1  1 "
+		CALL MAKE_FLOOR_LINE,12,"  11111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+		
+		;宝箱の設置
+		CALL SET_TILE,2,12,ダンジョンフラグ:37:11,0,3
+
+	CASE 3
+	;４階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 711111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   11    1  1 "
+		CALL MAKE_FLOOR_LINE, 3,"   11    1121 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  11111  1121 "
+		CALL MAKE_FLOOR_LINE, 6,"  11111  1  1 "
+		CALL MAKE_FLOOR_LINE, 7,"  11111  1  1 "
+		CALL MAKE_FLOOR_LINE, 8,"  1      1  1 "
+		CALL MAKE_FLOOR_LINE, 9,"  11111111121 "
+		CALL MAKE_FLOOR_LINE,10,"         1  1 "
+		CALL MAKE_FLOOR_LINE,11,"         1  1 "
+		CALL MAKE_FLOOR_LINE,12," 611111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+
+
+	CASE 4
+	;５階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 611111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   2     1  1 "
+		CALL MAKE_FLOOR_LINE, 3,"   1     1121 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  11111111121 "
+		CALL MAKE_FLOOR_LINE, 6,"  11111111  1 "
+		CALL MAKE_FLOOR_LINE, 7,"  11111111  1 "
+		CALL MAKE_FLOOR_LINE, 8,"  1      1  1 "
+		CALL MAKE_FLOOR_LINE, 9,"  11111112111 "
+		CALL MAKE_FLOOR_LINE,10,"         1  1 "
+		CALL MAKE_FLOOR_LINE,11,"         1  1 "
+		CALL MAKE_FLOOR_LINE,12," 711111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+	
+
+
+	CASE 5
+	;６階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 711111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   2        1 "
+		CALL MAKE_FLOOR_LINE, 3,"   1      421 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 6,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 9,"  11111111111 "
+		CALL MAKE_FLOOR_LINE,10,"         1  1 "
+		CALL MAKE_FLOOR_LINE,11,"         1  1 "
+		CALL MAKE_FLOOR_LINE,12," 611111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+		
+
+	CASE 6
+	;７階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 111111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   2        1 "
+		CALL MAKE_FLOOR_LINE, 3,"   1      421 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 6,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 9,"  1111111 611 "
+		CALL MAKE_FLOOR_LINE,10,"        1   1 "
+		CALL MAKE_FLOOR_LINE,11,"        1   2 "
+		CALL MAKE_FLOOR_LINE,12," 711111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+
+		;宝箱の設置
+		CALL SET_TILE,1,1,ダンジョンフラグ:37:12,0,3
+
+
+	CASE 7
+	;８階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 611111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   2        1 "
+		CALL MAKE_FLOOR_LINE, 3,"   1      421 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 6,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 9,"  1111111 711 "
+		CALL MAKE_FLOOR_LINE,10,"        1   1 "
+		CALL MAKE_FLOOR_LINE,11,"        1   2 "
+		CALL MAKE_FLOOR_LINE,12," 111111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+
+		;宝箱の設置
+		CALL SET_TILE,1,12,ダンジョンフラグ:37:13,0,3
+
+	CASE 8
+	;９階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 711111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   2        1 "
+		CALL MAKE_FLOOR_LINE, 3,"   1      421 "
+		CALL MAKE_FLOOR_LINE, 4,"  11111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 6,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 9,"  1111111 611 "
+		CALL MAKE_FLOOR_LINE,10,"        1   1 "
+		CALL MAKE_FLOOR_LINE,11,"        1   2 "
+		CALL MAKE_FLOOR_LINE,12," 111111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+
+		;宝箱の設置
+		CALL SET_TILE,1,12,ダンジョンフラグ:37:14,0,3
+
+
+	CASE 9
+	;１０階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 111111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"            1 "
+		CALL MAKE_FLOOR_LINE, 3,"   T      421 "
+		CALL MAKE_FLOOR_LINE, 4,"   1        1 "
+		CALL MAKE_FLOOR_LINE, 5,"   1      421 "
+		CALL MAKE_FLOOR_LINE, 6,"  1411111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 9,"  1111111 711 "
+		CALL MAKE_FLOOR_LINE,10,"            1 "
+		CALL MAKE_FLOOR_LINE,11,"            2 "
+		CALL MAKE_FLOOR_LINE,12," 911111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+
+		;宝箱の設置
+		CALL SET_TILE,1,1,ダンジョンフラグ:37:15,0,3
+
+
+	CASE 10
+	;６０階
+		FLAG:最大X = 14
+		FLAG:最大Y = 14
+					;01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"              "
+		CALL MAKE_FLOOR_LINE, 1," 111111111121 "
+		CALL MAKE_FLOOR_LINE, 2,"   2        1 "
+		CALL MAKE_FLOOR_LINE, 3,"   1      421 "
+		CALL MAKE_FLOOR_LINE, 4,"  19111     1 "
+		CALL MAKE_FLOOR_LINE, 5,"  1911111 421 "
+		CALL MAKE_FLOOR_LINE, 6,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1111111 421 "
+		CALL MAKE_FLOOR_LINE, 8,"  1111111   1 "
+		CALL MAKE_FLOOR_LINE, 9,"  1111111 111 "
+		CALL MAKE_FLOOR_LINE,10,"            1 "
+		CALL MAKE_FLOOR_LINE,11,"         1  2 "
+		CALL MAKE_FLOOR_LINE,12," 911111111111 "
+		CALL MAKE_FLOOR_LINE,13,"              "
+	CASEELSE
+
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_37
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+;% 10は10で割ったあまり、つまり下一桁がでてきます
+;そして、下一桁はタイルの種類を表す
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+;宝箱のフラグ管理用変数の番号
+LOCAL = FLAG:現M + 10
+	SELECTCASE FLAG:現M
+	CASE 0
+		CALL GET_TREASURE, 2009 , 1 , FLAG:現ダンジョン, LOCAL , 10
+		ダンジョンフラグ:37:10 = 1
+	CASE 1
+	CASE 2
+		CALL GET_TREASURE, 1003 , 2 , FLAG:現ダンジョン, LOCAL , 11
+		ダンジョンフラグ:37:11 = 1
+	CASE 3
+	CASE 4
+	CASE 5
+	CASE 6
+		CALL GET_TREASURE, 2152 , 1 , FLAG:現ダンジョン, LOCAL , 12 ;氷狼剣の代わり
+		ダンジョンフラグ:37:12 = 1		
+	CASE 7
+		CALL GET_TREASURE, 1010 , 1 , FLAG:現ダンジョン, LOCAL , 13
+		ダンジョンフラグ:37:13 = 1
+	CASE 8
+		CALL GET_TREASURE, 1009 , 2 , FLAG:現ダンジョン, LOCAL , 14
+		ダンジョンフラグ:37:14 = 1
+	CASE 9
+		CALL GET_TREASURE, 1003 , 2 , FLAG:現ダンジョン, LOCAL , 15
+		ダンジョンフラグ:37:15 = 1
+	CASE 10
+		
+	CASEELSE
+ENDSELECT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+SELECTCASE FLAG:現M
+	CASE 0
+		CALL DUNGEON_UPSTAIRS,1,2,12
+	CASE 1
+		CALL DUNGEON_UPSTAIRS,2,9,9
+	CASE 2
+		CALL DUNGEON_UPSTAIRS,3,2,1
+	CASE 3
+		CALL DUNGEON_UPSTAIRS,4,2,12
+	CASE 4
+		CALL DUNGEON_UPSTAIRS,5,2,1
+	CASE 5
+		CALL DUNGEON_UPSTAIRS,6,2,12
+	CASE 6
+		CALL DUNGEON_UPSTAIRS,7,11,9
+	CASE 7
+		CALL DUNGEON_UPSTAIRS,8,2,1
+	CASE 8
+		CALL DUNGEON_UPSTAIRS,9,11,9
+	CASE 9
+		CALL DUNGEON_UPSTAIRS,9,4,3
+	CASE 10
+
+	CASEELSE
+ENDSELECT
+
+RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+SELECTCASE FLAG:現M
+	CASE 0
+
+	CASE 1
+		CALL DUNGEON_DOWNSTAIRS,0,2,12
+	CASE 2
+		CALL DUNGEON_DOWNSTAIRS,1,9,9
+	CASE 3
+		CALL DUNGEON_DOWNSTAIRS,2,2,1
+	CASE 4
+		CALL DUNGEON_DOWNSTAIRS,3,2,12
+	CASE 5
+		CALL DUNGEON_DOWNSTAIRS,4,2,1
+	CASE 6
+		CALL DUNGEON_DOWNSTAIRS,5,2,12
+	CASE 7
+		CALL DUNGEON_DOWNSTAIRS,6,11,9
+	CASE 8
+		CALL DUNGEON_DOWNSTAIRS,7,2,1
+	CASE 9
+		CALL DUNGEON_DOWNSTAIRS,8,11,9
+	CASE 10
+		CALL DUNGEON_DOWNSTAIRS,10,6,5
+	CASEELSE
+ENDSELECT
+RETURN 1
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_37,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+;宝箱のフラグ管理用変数の番号
+LOCAL = FLAG:現M + 10
+	SELECTCASE FLAG:現M
+	CASE 0
+		CALL GET_TREASURE, 2009 , 1 , FLAG:現ダンジョン, LOCAL , 10
+		ダンジョンフラグ:37:10 = 1
+	CASE 1
+	CASE 2
+		CALL GET_TREASURE, 1003 , 2 , FLAG:現ダンジョン, LOCAL , 11
+		ダンジョンフラグ:37:11 = 1
+	CASE 3
+	CASE 4
+	CASE 5
+	CASE 6
+		CALL GET_TREASURE, 2152 , 1 , FLAG:現ダンジョン, LOCAL , 12 ;氷狼剣の代わり
+		ダンジョンフラグ:37:12 = 1		
+	CASE 7
+		CALL GET_TREASURE, 1010 , 1 , FLAG:現ダンジョン, LOCAL , 13
+		ダンジョンフラグ:37:13 = 1
+	CASE 8
+		CALL GET_TREASURE, 1009 , 2 , FLAG:現ダンジョン, LOCAL , 14
+		ダンジョンフラグ:37:14 = 1
+	CASE 9
+		CALL GET_TREASURE, 1003 , 2 , FLAG:現ダンジョン, LOCAL , 15
+		ダンジョンフラグ:37:15 = 1
+	CASE 10
+		
+	CASEELSE
+ENDSELECT
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+SELECTCASE FLAG:現M
+	CASE 0
+		CALL DUNGEON_UPSTAIRS,1,2,12
+	CASE 1
+		CALL DUNGEON_UPSTAIRS,2,9,9
+	CASE 2
+		CALL DUNGEON_UPSTAIRS,3,2,1
+	CASE 3
+		CALL DUNGEON_UPSTAIRS,4,2,12
+	CASE 4
+		CALL DUNGEON_UPSTAIRS,5,2,1
+	CASE 5
+		CALL DUNGEON_UPSTAIRS,6,2,12
+	CASE 6
+		CALL DUNGEON_UPSTAIRS,7,11,9
+	CASE 7
+		CALL DUNGEON_UPSTAIRS,8,2,1
+	CASE 8
+		CALL DUNGEON_UPSTAIRS,9,11,9
+	CASE 9
+		CALL DUNGEON_UPSTAIRS,9,4,3
+	CASE 10
+
+	CASEELSE
+ENDSELECT
+
+RETURN 1
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+SELECTCASE FLAG:現M
+	CASE 0
+
+	CASE 1
+		CALL DUNGEON_DOWNSTAIRS,0,2,12
+	CASE 2
+		CALL DUNGEON_DOWNSTAIRS,1,9,9
+	CASE 3
+		CALL DUNGEON_DOWNSTAIRS,2,2,1
+	CASE 4
+		CALL DUNGEON_DOWNSTAIRS,3,2,12
+	CASE 5
+		CALL DUNGEON_DOWNSTAIRS,4,2,1
+	CASE 6
+		CALL DUNGEON_DOWNSTAIRS,5,2,12
+	CASE 7
+		CALL DUNGEON_DOWNSTAIRS,6,11,9
+	CASE 8
+		CALL DUNGEON_DOWNSTAIRS,7,2,1
+	CASE 9
+		CALL DUNGEON_DOWNSTAIRS,8,11,9
+	CASE 10
+		CALL DUNGEON_DOWNSTAIRS,10,6,5
+	CASEELSE
+ENDSELECT
+RETURN 1
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+SELECTCASE FLAG:現M
+	CASE 1
+		IF ダンジョンフラグ:37:3 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞悪魔が捕えられている…"
+			CALL MESSAGE_WINDOW_D, "アメノウズメ", "貴方達は人間ね……？/人間が何故こんな所を、うろついているの？"
+			CALL MESSAGE_WINDOW_D, "アメノウズメ", "さあ、用がないなら立ち去りなさいな。/アバドンに見つかって、血の儀式の生贄にされても知らないわよ。"
+			CALL MESSAGE_WINDOW_D, "アメノウズメ", "知らないの？/血の儀式なんて名前がついてるけど、実態は残虐な拷問よ。"
+			CALL MESSAGE_WINDOW_D, "アメノウズメ", "アバドンは、何の関係もない人間や、自分に逆らった悪魔を拷問しては、/歓喜に浸っているのよ。"
+			CALL MESSAGE_WINDOW_D, "アメノウズメ", "貴方達ここに捕らわれている人じゃないみたいね。/ねえ、お願い私をここから助けて！"
+			CALL INPUT_SELECT_D("[1] 助ける/[2] 助けない")
+				IF RESULT == 1	
+					CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "達は鍵を壊した…"
+					CALL MESSAGE_WINDOW_D, "アメノウズメ", "ありがとう！/お礼に仲魔になってあげるわ！"
+					CALL MESSAGE_WINDOW_D, "", "＞女神　アメノウズメが仲魔になった" , , , , , , , , , "CENTER"
+					CALL ADD_NEW_COMPANION,[[キャラ:アメノウズメ]],2000
+					IF RESULT == 1
+					LOCAL = RESULT:1
+					BASE:LOCAL:LV = 35
+					BASE:LOCAL:力 = 2
+					BASE:LOCAL:知恵 = 19
+					BASE:LOCAL:魔力 = 18
+					BASE:LOCAL:耐力 = 12
+					BASE:LOCAL:速さ = 11
+					BASE:LOCAL:運 = 8
+					ENDIF
+					ダンジョンフラグ:37:3 = 2
+				ELSE
+					CALL MESSAGE_WINDOW_D, "アメノウズメ", "そんな…"
+					ダンジョンフラグ:37:3 = 1
+				ENDIF
+		ELSEIF ダンジョンフラグ:37:3 == 1
+			CALL MESSAGE_WINDOW_D, "", "＞アメノウズメが捕えられている…"
+			CALL MESSAGE_WINDOW_D, "アメノウズメ", "ねえ、お願いだから助けて！"
+			CALL INPUT_SELECT_D("[1] 助ける/[2] 助けない")
+				IF RESULT == 1	
+					CALL MESSAGE_WINDOW_D, "", "＞" + CALLNAME:MASTER + "達は鍵を壊した…"
+					CALL MESSAGE_WINDOW_D, "アメノウズメ", "ありがとう！/お礼に仲魔になってあげるわ！"
+					CALL MESSAGE_WINDOW_D, "", "＞女神　アメノウズメが仲魔になった" , , , , , , , , , "CENTER"
+					CALL ADD_NEW_COMPANION,[[キャラ:アメノウズメ]],2000
+					IF RESULT == 1
+					LOCAL = RESULT:1
+					BASE:LOCAL:LV = 35
+					BASE:LOCAL:力 = 2
+					BASE:LOCAL:知恵 = 19
+					BASE:LOCAL:魔力 = 18
+					BASE:LOCAL:耐力 = 12
+					BASE:LOCAL:速さ = 11
+					BASE:LOCAL:運 = 8
+					ENDIF
+					ダンジョンフラグ:37:3 = 2
+				ELSE
+					CALL MESSAGE_WINDOW_D, "アメノウズメ", "そんな…"
+					ダンジョンフラグ:37:3 = 1
+				ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞誰もいない…"
+		ENDIF
+	CASE 9
+		IF FLAG:現X == 3 && ダンジョンフラグ:37:0 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞血みどろの部屋で、今まさに女性を拷問している悪魔がいる…"
+			CALL MESSAGE_WINDOW_D, "", "＞そこにつるされている少女を見て、葛城が驚愕の声を上げる/＞どうやら知人だったらしい…"
+			CALL MESSAGE_WINDOW_D, "アバドン", "なんだ貴様らは！/ん…そこの男どこかで見た顔だな…"
+			CALL MESSAGE_WINDOW_D, "アバドン", "そうか、アドニスを打ち負かしたあの男か！"
+			CALL MESSAGE_WINDOW_D, "", "＞アドニスはどうやら葛城をつけ狙っていたのだろう/＞そして再戦し、負けたようだ"
+			CALL MESSAGE_WINDOW_D, "アバドン", "アドニスを倒しわしを楽しませたことは評価するが/儂の楽しみを邪魔する、というのは万死に値するぞ…！/たっぷりと時間をかけて殺してやろう…！　殺してくれと哀願するほどに！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9,274,50,0,5;アバドン
+			MAXBASE:(CHARANUM-1):破魔 = 0
+			MAXBASE:(CHARANUM-1):呪殺 = 0
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			BASE:(CHARANUM-1):力 += 10
+			BASE:(CHARANUM-1):知恵 += 10
+			BASE:(CHARANUM-1):魔力 += 10
+			BASE:(CHARANUM-1):耐力 += 10
+			BASE:(CHARANUM-1):速さ += 10
+			BASE:(CHARANUM-1):運 += 10
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CALL MESSAGE_WINDOW_D, "アバドン", "貴様如きにやられるとは…流石……の息のかかった…ぐふっ！"
+			CALL MESSAGE_WINDOW_D, "", "＞アバドンは気がかりな言葉を残し息絶えた…"
+			CALL MESSAGE_WINDOW_D, "", "＞と、なんと、その中から光り輝く人間の左腕が出てきたではないか！/＞おまけに独自に脈打っている…"
+			CALL MESSAGE_WINDOW_D, "", "＞どうやらこれが葛城の彼女の身体らしい…本当に人間か…？/＞とりあえず、保管場所としてファントムの息のかかった学者を紹介することにした"
+			CALL MESSAGE_WINDOW_D, "", "＞一方で、吊るされていた少女の意識も取り戻されたようだ/＞呻き声を上げている…"
+			CALL MESSAGE_WINDOW_D, "", "＞少女を助けてやると、葛城にいきなりしがみ付き泣き出してしまった…/＞" + CALLNAME:MASTER + "はとりあえず暫く待ってやることにした"
+			CALL MESSAGE_WINDOW_D, "", "＞やがて正気を取り戻した少女は、此方に自己紹介をしてきた"
+			CALL MESSAGE_WINDOW_D, "英美", "桐島英美です、どうかよろしくね！/葛城君とは同僚だったの！ペンタグランマにも一緒にいたのよ！"
+			CALL ADD_NEW_COMPANION,4762,1500
+			SIF RESULT
+			CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			CALL MESSAGE_WINDOW_D, "", "＞さて、もはやここに用はない、さっさと逃げ出そうか…"
+			ダンジョンフラグ:37:0 = 1
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞拷問されたと思しき人間の死体が並んでいる…"
+			IF FLAG:現Y == 7
+				CALL MESSAGE_WINDOW_D, "", "＞「園田」と書かれた制服を着たデビルバスターの死体を見て/＞葛城が大粒の涙を流している/＞かつての同朋の一人なのだろう…"
+			ENDIF
+		ENDIF
+	CASEELSE
+		IF ダンジョンフラグ:37:0 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞多くの人間が捕えられているが、今助けても悪魔に食われるだけだろう"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞誰もいない/＞どうやらアバドンが死んだとみて他の悪魔が連れ去ったようだ…"
+		ENDIF
+ENDSELECT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+SELECTCASE FLAG:現M
+	CASE 0
+	CASE 1
+		
+	CASE 2
+		
+	CASE 3
+		
+	CASE 4
+
+	CASE 5
+
+	CASE 6
+		
+	CASE 7
+
+	CASE 8
+		
+	CASE 9
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞６０階に向かいますか？"
+		CALL INPUT_SELECT_D("[1] 向かう/[2] 向かわない")
+			IF RESULT == 1	
+				CALL DUNGEON_WORP,10,2,12
+			ELSE
+				CALL DUNGEON_WORP,9,2,12
+			ENDIF
+	CASEELSE
+		IF FLAG:現X == 1
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞１０階に向かいますか？"
+			CALL INPUT_SELECT_D("[1] 向かう/[2] 向かわない")
+				IF RESULT == 1	
+					CALL DUNGEON_WORP,9,2,12
+				ELSE
+					CALL DUNGEON_WORP,10,2,12
+				ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞It's a pitfall!"
+			CALL DUNGEON_WORP,9,3,4
+		ENDIF
+ENDSELECT
+ENDIF
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_37
+FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_37
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_37
+RETURN CLASS_NUM_COMMON("上級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_37, ARG
+RETURN ENEMY_NUM_COMMON("上級", ARG)
+
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_37, ARG
+	IF RAND:4 == 0
+		RETURN 355, 35;プリンシパリティ
+	ELSEIF RAND:3 == 0
+		RETURN 1713, 37;レオナルド
+	ELSEIF RAND:2 == 0
+		RETURN 1014, 33;クリス・ザ・カー
+	ELSE
+		RETURN 475, 40;ワイルドハント
+	ENDIF
+

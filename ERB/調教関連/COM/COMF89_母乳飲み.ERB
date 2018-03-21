@@ -1,0 +1,85 @@
+;-------------------------------------------------
+;母乳飲み
+;奉仕系コマンド、レベル4
+;-------------------------------------------------
+@ACT_COM89
+PRINTL Drink Milk
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+TSTR:0 = 母乳飲み
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 50
+DOWNBASE:TARGET:気力 += 180
+
+SOURCE:TARGET:情愛 = 1000
+SOURCE:TARGET:達成 = 1000
+SOURCE:TARGET:恭順 = 2000
+SOURCE:TARGET:屈従 = 1800
+SOURCE:TARGET:逸脱 = 100
+SOURCE:TARGET:反感 = 100
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＢ⇔調教者の口の汚れが移動
+CALL MOVE_STAIN("胸", TARGET, "口", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 5
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+;	PRINTS EXPNAME:23
+;	PRINTL +1
+	CALL ADDS_EXP("愛情経験", 1, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 4
+
+;依存度補正値(主人かつ恋慕で1、親愛で2）
+IF TALENT:3 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ELSEIF TALENT:6 && ASSIPLAY == 0
+	TFLAG:30 += 4
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_89
+RETURN COMTYPE("奉仕系")

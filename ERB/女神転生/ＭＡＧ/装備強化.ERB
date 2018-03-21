@@ -1,0 +1,2406 @@
+
+@装備強化, ARG, ARG:1 = -1
+#DIM FIRST_LINE
+#DIM SECOND_LINE
+#DIM THIRD_LINE
+#DIM LCOUNT, 2
+#DIM 対象
+#DIM 装備部位
+#DIM 装備番号
+#DIMS 装備名
+#DIM 指定
+#DIMS 能力
+#DIMS 追加効果
+#DIMS 相性
+#DIM 強化値
+#DIM 現在値
+#DIM 強化段階
+#DIM 強化不可
+#DIM 概念強化不可
+
+対象 = ARG
+指定 = -1
+
+$START_B
+FIRST_LINE = LINECOUNT
+DRAWLINE
+PRINTFORML %CALLNAME:対象%
+			CALL 装備強化_CSTR, "強化数", 対象
+PRINTFORML □：Equipment reinforcement   Times available:{MAX(50 - RESULT,0)}
+;装備強化状態　　　強化可能数
+IF RESULT >= 50
+	強化不可 = 1
+	SIF RESULT >= 90
+		概念強化不可 = 1
+ELSE
+	強化不可 = 0
+ENDIF
+
+CALL 装備強化_CSTR, "表示", 対象
+DRAWLINE
+
+$START_C
+SECOND_LINE = LINECOUNT
+IF 指定 == -1
+	SIF 概念強化不可 == 1
+		SETCOLOR COLOR("gray")
+	PRINTL [0] Increase enhancement capacity
+	;概念強化
+	SIF 強化不可 == 1
+		SETCOLOR COLOR("gray")
+	IF CSTR:対象:装備強化 != ""
+		PRINTL [1] Stat enhancement
+		;能力強化
+		PRINTL [2] Resistance enhancement
+		;耐性強化
+		PRINTL [3] Attack type enhancement
+		;攻撃相性強化
+		PRINTL [4] Impart additional effect
+		;追加効果付与
+	RESETCOLOR
+		PRINTL [8] Disenhancement
+		;強化解除
+	ENDIF
+	PRINTL [9] Quit
+	;やめる
+	;INPUT
+	CALL 装備強化_INPUT,"強化選択",0,1,2,3,4,8,9
+	指定 = RESULT
+	SIF 概念強化不可 == 1 && 指定 < 8 
+		指定 = 10
+	SIF 強化不可 == 1 && 指定 < 8 && 指定 != 0 
+		指定 = 10
+ENDIF
+
+$START_D
+THIRD_LINE = LINECOUNT
+DRAWLINE
+
+SELECTCASE 指定
+CASE 0 TO 2
+	CLEARLINE LINECOUNT - SECOND_LINE
+	PRINTL Please select a piece of equipment
+	;装備を選択してください
+	CALL SHOW_EQUIP_LIST_装備強化,対象
+	IF RESULT == 49
+		CLEARLINE LINECOUNT - FIRST_LINE
+		指定 = -1
+		GOTO START_B
+	ENDIF
+	装備部位 = RESULT
+	装備番号 = EQUIP:対象:GET_EQUIP(RESULT)
+	装備名 = %ITEMNAME:装備番号%
+
+CASE 3 TO 4
+	装備部位 = GET_EQUIPNUM("剣")
+	;剣
+	装備番号 = EQUIP:対象:GET_EQUIP(装備部位)
+	装備名 = %ITEMNAME:装備番号%
+CASE 8
+
+CASE 9
+	CALL SYNC_STATUS,対象
+	;表示させるキャラをリセット（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+	VARSET Q, -1
+	A = 0
+	FOR LOCAL, 0, CHARANUM
+		SIF !(CFLAG:LOCAL:労役フラグ == 3 || CFLAG:LOCAL:この場に居ないフラグ || CFLAG:LOCAL:フィルタリングフラグ)
+			Q:(A++) = LOCAL
+	NEXT
+	RETURN -1
+CASE 10
+	PRINTL Equipment reinforcement capacity has been reached.
+	;強化可能数を超えています
+	PRINTW You need to remove some enhancements before adding more
+	;不要な強化を解除してください
+		CLEARLINE LINECOUNT - FIRST_LINE
+		指定 = -1
+		GOTO START_B
+ENDSELECT
+
+	CALL 装備強化_展開, 対象, 装備番号, "強化段階", "LV"
+	IF RESULT == 1 && 指定 > 0 && 指定 != 8
+		PRINTW You need to raise enhancement capacity of equipment before you can enhance it
+		;Please select an equipment to enhance.
+		;装備の概念を強化してください
+		SIF 指定 == 3 || 指定 == 4
+			指定 = -1
+		CLEARLINE LINECOUNT - THIRD_LINE
+		GOTO START_D
+	ENDIF
+	IF RESULT >= BASE:対象:LV && 指定 == 0
+		PRINTFORMW %CALLNAME:対象%s level is too low to enhance it
+		;強化するには%CALLNAME:対象%のレベルが足りません
+		CLEARLINE LINECOUNT - THIRD_LINE
+		GOTO START_D
+	ENDIF
+
+SELECTCASE 指定
+CASE 0
+	CLEARLINE LINECOUNT - SECOND_LINE
+	$S_LIST
+	DRAWLINE
+	PRINTL □Capacity enhancement
+	;概念強化
+	DRAWLINE
+	CALL 装備強化_展開, 対象, 装備番号, "強化段階", "LV"
+	強化段階 = RESULT
+	PRINTFORML <%ITEMNAME_E(装備番号)%>　Lv:{強化段階}
+			CALL MAKE_SALERPGITEMLIST,装備部位
+			LOCAL:2 = RESULT
+	$PRINT_LIST
+	IF 強化段階 < 99 
+		DRAWLINE
+		LOCAL:4 = MAX(1, 2 * (強化段階 - 1) * 強化段階 * (強化段階 + 1)*2 ) + 1000
+		IF BASE:対象:ＭＡＧ >= LOCAL:4 && MONEY >= LOCAL:4/10
+			LOCALS = [ + 1] Required ＭＡＧ：{LOCAL:4, 8} / {BASE:対象:ＭＡＧ}　　Required ￥：{LOCAL:4/10, 8} / {MONEY}
+			PRINTBUTTON LOCALS, 11
+		ELSE
+			SETCOLOR COLOR("gray")
+			PRINTPLAINFORM [ × ] Required ＭＡＧ：{LOCAL:4, 8} / {BASE:対象:ＭＡＧ}　　Required ￥：{LOCAL:4/10, 8} / {MONEY}
+			RESETCOLOR
+		ENDIF
+		PRINTL
+		LOCAL:5 = 0
+		FOR COUNT,0,MIN(10,100 - 強化段階)
+			LOCAL:5 += MAX(1, 2 * (強化段階 - 1 + COUNT) * (強化段階 + COUNT) * (強化段階 + 1 + COUNT)*2 ) + 1000
+		NEXT
+		IF BASE:対象:ＭＡＧ >= LOCAL:5 && MONEY >= LOCAL:5/10
+			LOCALS = [ +10] Required ＭＡＧ：{LOCAL:5, 8} / {BASE:対象:ＭＡＧ}　　Required ￥：{LOCAL:5/10, 8} / {MONEY}
+			PRINTBUTTON LOCALS, 12
+		ELSE
+			SETCOLOR COLOR("gray")
+			PRINTPLAINFORM [ × ] Required ＭＡＧ：{LOCAL:5, 8} / {BASE:対象:ＭＡＧ}　　Required ￥：{LOCAL:5/10, 8} / {MONEY}
+			RESETCOLOR
+		ENDIF
+		PRINTL
+	ENDIF
+	DRAWLINE
+	PRINTFORMLC \@(P <= 0) ? %" " * 13% # [7]Previcous page\@
+	PRINTLC [0]Return
+	PRINTFORMLC \@(P >= LOCAL:2 / 20) ? %" " * 13% # [9]Next page\@
+	INPUT
+	LOCAL:3 = RESULT
+	IF RESULT == 0
+		CLEARLINE LINECOUNT - FIRST_LINE
+		指定 = -1
+		GOTO START_B
+	ELSEIF RESULT == 7 && P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSEIF RESULT == 9 && P < LOCAL:2/20
+		P += 1
+		GOTO PRINT_LIST
+	ELSEIF RESULT == 11
+		CALL 装備強化_展開, 対象, 装備番号, "強化段階", "NEXT"
+		強化値 = RESULT + 1
+		;CALL 装備強化_展開, 対象, 0, "強化段階", "保存強化値"
+		;強化値 = 5 * (強化段階) * (強化段階+1) * (強化段階+2) / 3 + 1
+		BASE:対象:ＭＡＧ -= LOCAL:4
+		MONEY -= LOCAL:4/10
+	ELSEIF RESULT == 12
+		CALL 装備強化_展開, 対象, 装備番号, "強化段階", "EXP"
+		強化値 = 5 * (強化段階+9) * (強化段階+1+9) * (強化段階+2+9) / 3 + 1 - RESULT
+		BASE:対象:ＭＡＧ -= LOCAL:5
+		MONEY -= LOCAL:5/10
+	ELSE
+		GOTO PRINT_LIST
+	ENDIF
+	CALL 装備強化_CSTR, "書き込み", 対象, 装備番号, "強化段階", "EXP", 強化値
+	CALL 装備強化_展開, 対象, 装備番号, "強化段階", "LV"
+	IF 強化段階 < 2
+		CALL 装備強化_展開, 対象, 装備番号, "強化段階", "NEXT"
+		強化値 = RESULT + 1
+		CALL 装備強化_CSTR, "書き込み", 対象, 装備番号, "強化段階", "EXP", 強化値
+		CALL 装備強化_展開, 対象, 装備番号, "強化段階", "LV"
+	ENDIF
+	SIF 強化段階 < RESULT
+		PRINTFORMW Enhancement 　Lv:{強化段階} → Lv:{RESULT}
+		;強化段階
+	IF RESULT >= BASE:対象:LV
+		CLEARLINE LINECOUNT - FIRST_LINE
+		GOTO START_B
+	ENDIF
+	GOTO S_LIST
+
+CASE 1
+	CLEARLINE LINECOUNT - SECOND_LINE
+	;PRINTL □能力強化
+	$START_1
+	DRAWLINE
+	PRINTFORML □Stat enhancement　(Current ＭＡＧ：{BASE:ARG:ＭＡＧ})
+	;能力強化
+	CALL 装備強化_能力強化,対象,装備番号
+CASE 2
+	CLEARLINE LINECOUNT - SECOND_LINE
+	;PRINTL □耐性強化
+	CALL 装備強化_耐性強化,対象,装備番号
+CASE 3
+	CLEARLINE LINECOUNT - SECOND_LINE
+	IF 装備部位 == GET_EQUIPNUM("剣")
+		;PRINTL □攻撃相性強化
+		CALL 装備強化_攻撃相性,対象,装備番号
+		IF RESULT == -1
+			CLEARLINE LINECOUNT - FIRST_LINE
+			指定 = -1
+			GOTO START_B
+		ENDIF
+	ENDIF
+CASE 4
+	CLEARLINE LINECOUNT - SECOND_LINE
+	IF 装備部位 == GET_EQUIPNUM("剣")
+		;PRINTL □追加効果付与
+		CALL 装備強化_追加効果,対象,装備番号
+		IF RESULT == -1
+			CLEARLINE LINECOUNT - FIRST_LINE
+			指定 = -1
+			GOTO START_B
+		ENDIF
+	ENDIF
+CASE 8
+	CLEARLINE LINECOUNT - SECOND_LINE
+	;PRINTL □強化解除
+	CALL 装備強化_強化解除,対象,装備番号
+	IF RESULT == -1
+		CLEARLINE LINECOUNT - FIRST_LINE
+		指定 = -1
+		GOTO START_B
+	ENDIF
+ENDSELECT
+	CALL SYNC_STATUS,対象
+		CLEARLINE LINECOUNT - FIRST_LINE
+		GOTO START_B
+
+@装備強化_INPUT,ARGS, ARG, ARG:1, ARG:2, ARG:3, ARG:4, ARG:5, ARG:6, ARG:7, ARG:8, ARG:9, ARG:10
+INPUT
+SELECTCASE RESULT
+CASE 0 TO ARG - 1, ARG:1, ARG:2, ARG:3, ARG:4, ARG:5, ARG:6, ARG:7, ARG:8, ARG:9, ARG:10
+	RETURN RESULT
+ENDSELECT
+RESTART
+
+@装備強化_能力強化,ARG,ARG:1
+#DIM FIRST_LINE
+#DIM 対象
+#DIM 装備番号
+#DIM 装備部位
+#DIM 強化段階
+#DIM 基礎合計値
+#DIM 基礎能力, 8
+#DIM 振り分け制限, 8
+#DIM 振り分け制限合計
+#DIM 選択能力,1
+#DIM 選択強化,1
+#DIM ポイント, 1
+#DIM 振り分け済み
+#DIM 振り分け後, 8
+#DIMS DYNAMIC 選択肢
+
+VARSET ポイント
+VARSET 振り分け後
+VARSET 基礎合計値
+VARSET 基礎能力
+VARSET 振り分け制限
+VARSET 振り分け済み
+;	基礎能力:0 = BASE:対象:攻撃
+;	基礎能力:1 = BASE:対象:命中
+;	基礎能力:2 = BASE:対象:防御
+;	基礎能力:3 = BASE:対象:回避
+;	基礎能力:4 = BASE:対象:魔法威力
+;	基礎能力:5 = BASE:対象:魔法効果
+;	基礎能力:6 = BASE:対象:銃攻撃
+;	基礎能力:7 = BASE:対象:銃命中
+VARSET 振り分け制限合計
+
+対象 = ARG
+装備番号 = ARG:1
+基礎合計値 = 0
+	FOR COUNT,0,FLAG:戦闘能力数
+		CALLFORM 戦闘能力修正_{装備番号},COUNT,対象
+		基礎能力:COUNT = RESULT
+		基礎合計値 += RESULT
+	NEXT
+	FOR COUNT,0,FLAG:戦闘能力数 +2
+		CALL 装備強化_展開, 対象, 装備番号, "戦闘能力修正", GET_BATTLESTATUS(COUNT),0
+		振り分け後:COUNT = RESULT
+		振り分け済み += RESULT
+	NEXT
+
+CALL 装備強化_展開, 対象, 装備番号, "強化段階", "LV"
+強化段階 = RESULT
+
+	ポイント = 強化段階*5/2
+	CALLFORM 装備箇所_{装備番号}
+	装備部位 = RESULT
+	IF RESULT == GET_EQUIPNUM("剣")
+		ポイント = 強化段階* 7
+		CALLFORM 攻撃範囲_{装備番号}
+		LOCALS = %GET_SPHERE(RESULT)%
+		IF LOCALS == "1Line"
+		;一列
+			TIMES ポイント , 0.85
+		ELSEIF LOCALS == "2Lines"
+		;全体
+			TIMES ポイント , 0.75
+		ENDIF
+	ELSEIF RESULT == GET_EQUIPNUM("銃")
+		CALLFORM 銃攻撃_{装備番号}
+		基礎能力:6 = RESULT
+		基礎合計値 += RESULT
+		CALLFORM 銃命中_{装備番号}
+		基礎能力:7 = RESULT
+		基礎合計値 += RESULT
+		CALLFORM 攻撃範囲_{装備番号}
+		LOCALS = %GET_SPHERE(RESULT)%
+		RESULT = 0
+		TRYCALLFORM GUN_RANDOMTARGET_{装備番号}
+		IF RESULT == 1
+			ポイント = 強化段階*6
+			TRYCALLFORM 最低攻撃回数_{装備番号}
+			LOCAL = RESULT
+			TRYCALLFORM 最大攻撃回数_{装備番号}
+			LOCAL:1 = (LOCAL + RESULT) / 2
+			SIF LOCAL:1 > 1
+				ポイント = ポイント /LOCAL:1 *120 /100
+		ELSEIF LOCALS == "Unit"
+		;単体
+			ポイント = 強化段階*6
+			TRYCALLFORM 最低攻撃回数_{装備番号}
+			LOCAL = RESULT
+			TRYCALLFORM 最大攻撃回数_{装備番号}
+			LOCAL:1 = (LOCAL + RESULT) / 2
+			SIF LOCAL:1 > 1
+				ポイント = ポイント /LOCAL:1 *120 /100
+		ELSEIF LOCALS == "1Line"
+		;一列
+			ポイント = 強化段階*5
+			TRYCALLFORM 最低攻撃回数_{装備番号}
+			LOCAL = RESULT
+			TRYCALLFORM 最大攻撃回数_{装備番号}
+			LOCAL:1 = (LOCAL + RESULT) / 2
+			SIF LOCAL:1 > 1
+				ポイント = ポイント /LOCAL:1 *120 /100
+		ELSEIF LOCALS == "2Lines"
+		;全体
+			ポイント = 強化段階*4
+			TRYCALLFORM 最低攻撃回数_{装備番号}
+			LOCAL = RESULT
+			TRYCALLFORM 最大攻撃回数_{装備番号}
+			LOCAL:1 = (LOCAL + RESULT) / 2
+			SIF LOCAL:1 > 1
+				ポイント = ポイント /LOCAL:1 *120 /100
+		ENDIF
+		CALLFORM 特殊弾倉_{装備番号}
+		SIF RESULT > 2
+			ポイント -= RESULT * 10
+	ELSEIF RESULT == GET_EQUIPNUM("頭")
+		ポイント = 強化段階*14/10
+	ELSEIF RESULT == GET_EQUIPNUM("胴")
+		ポイント = 強化段階*2
+	ELSEIF RESULT == GET_EQUIPNUM("腕")
+		ポイント = 強化段階*16/10
+	ELSEIF RESULT == GET_EQUIPNUM("足")
+		ポイント = 強化段階*15/10
+	ENDIF
+	SIF 基礎合計値 < 1
+		基礎合計値 = 1
+	FOR COUNT,0,FLAG:戦闘能力数 +2
+		振り分け制限:COUNT = 基礎能力:COUNT *100 /基礎合計値
+	;	IF 振り分け制限:COUNT < 10
+	;		振り分け制限:COUNT += 20
+	;	ELSEIF 振り分け制限:COUNT < 20
+	;		振り分け制限:COUNT += 10
+	;	ELSEIF 振り分け制限:COUNT > 50
+	;		振り分け制限:COUNT = 50 - (振り分け制限:COUNT / 10)
+	;	ELSEIF 振り分け制限:COUNT > 80
+	;		振り分け制限:COUNT -= 20
+	;	ELSEIF 振り分け制限:COUNT > 60
+	;		振り分け制限:COUNT -= 10
+	;	ENDIF
+	;	RESULT = 0
+	;	CALLFORM 装備箇所_{装備番号}
+	;	SIF RESULT == GET_EQUIPNUM("剣") || RESULT == GET_EQUIPNUM("銃")
+	;		振り分け制限:COUNT = 50
+		振り分け制限:COUNT = ポイント * 振り分け制限:COUNT/100
+
+		CALL 装備強化_振り分け限界 ,強化段階,装備部位,GET_BATTLESTATUS(COUNT)
+		SIF 振り分け制限:COUNT + 基礎能力:COUNT > RESULT
+			振り分け制限:COUNT = RESULT - 基礎能力:COUNT + MIN(20,(振り分け制限:COUNT/10))
+		振り分け制限合計 += 振り分け制限:COUNT
+	NEXT
+
+ポイント = ポイント - 基礎合計値
+SIF ポイント <= 0
+	ポイント = 強化段階
+
+IF (ポイント - 振り分け制限合計) > 0 && 装備部位 != GET_EQUIPNUM("剣") && 装備部位 != GET_EQUIPNUM("銃")
+	FOR COUNT,0,FLAG:戦闘能力数 +2
+		IF 基礎能力:COUNT == 0 && (COUNT >= 2 && COUNT <= 5)
+			振り分け制限:COUNT += (ポイント - 振り分け制限合計) / 4
+		ENDIF
+	NEXT
+ENDIF
+
+ポイント = ポイント - 振り分け済み
+
+FIRST_LINE = LINECOUNT
+REDRAW 0
+$S_LOOP
+DRAWLINE
+PRINTFORML Remaining points:{ポイント}
+;残りポイント:
+DRAWLINE
+PRINTFORML <%ITEMNAME_E(装備番号)%>　Lv:{強化段階}
+DRAWLINE
+
+選択肢 = 
+FOR COUNT,0,FLAG:戦闘能力数 +2
+	IF 基礎能力:COUNT || 振り分け制限:COUNT
+		PRINTFORM %GET_BATTLESTATUS_E(COUNT),8,LEFT%:{基礎能力:COUNT, 3} + {振り分け後:COUNT, 3} = {基礎能力:COUNT + 振り分け後:COUNT, 3} 　 
+		CALL BUTTON_強化振り分け("[ +1]", 200+(COUNT*10), 振り分け後:COUNT, ポイント,   1, 振り分け制限:COUNT)
+		SIF RESULT != -1
+			選択肢 += TOSTR( 200+(COUNT*10) ) + "/"
+		CALL BUTTON_強化振り分け("[ -1]", 201+(COUNT*10), 振り分け後:COUNT, ポイント,  -1, 振り分け制限:COUNT)
+		SIF RESULT != -1
+			選択肢 += TOSTR( 201+(COUNT*10) ) + "/"
+		CALL BUTTON_強化振り分け("[+10]", 202+(COUNT*10), 振り分け後:COUNT, ポイント,  10, 振り分け制限:COUNT)
+		SIF RESULT != -1
+			選択肢 += TOSTR( 202+(COUNT*10) ) + "/"
+		CALL BUTTON_強化振り分け("[-10]", 203+(COUNT*10), 振り分け後:COUNT, ポイント, -10, 振り分け制限:COUNT)
+		SIF RESULT != -1
+			選択肢 += TOSTR( 203+(COUNT*10) ) + "/"
+		SIF 振り分け後:COUNT >= 振り分け制限:COUNT
+			PRINTFORM [Limit]
+			;限界
+		PRINTL
+	ENDIF
+NEXT
+
+DRAWLINE
+PRINTFORML [0] Confirm
+;決定
+	選択肢 += "0/"
+PRINTFORML [999] Return
+	選択肢 += "999/"
+$INPUT_LOOP_1
+;INPUT
+
+	CALL 装備強化_INPUT_LIST,選択肢
+
+IF RESULT == 999
+	REDRAW 1
+	RETURN 0
+ELSEIF RESULT == 0
+	REDRAW 1
+	PRINTFORML Finalize stat enhancement?
+	;能力強化を終えますか？
+		CALL INPUT_YN,"Yes","No"
+	IF RESULT == 0
+		FOR COUNT,0,FLAG:戦闘能力数 +2
+			CALL 装備強化_CSTR, "書き込み", 対象, 装備番号, "能力強化", GET_BATTLESTATUS(COUNT), 振り分け後:COUNT
+		NEXT
+		RETURN 0
+	ELSEIF RESULT == 1
+		CLEARLINE LINECOUNT - FIRST_LINE
+		GOTO S_LOOP
+	ENDIF
+ELSEIF RESULT != -1
+	選択能力 = (RESULT - 200) / 10
+	選択強化 = (RESULT - 200) % 10
+	SELECTCASE 選択強化
+		CASE 0
+			選択強化 = 1
+		CASE 1
+			選択強化 = -1
+		CASE 2
+			選択強化 = 10
+		CASE 3
+			選択強化 = -10
+		CASEELSE
+			CLEARLINE LINECOUNT - FIRST_LINE
+			GOTO S_LOOP
+	ENDSELECT
+	IF !INRANGE(選択能力, 0, 8)
+		CLEARLINE LINECOUNT - FIRST_LINE
+		GOTO S_LOOP
+	ENDIF
+	振り分け後:選択能力 += 選択強化
+	ポイント -= 選択強化
+ENDIF
+CLEARLINE LINECOUNT - FIRST_LINE
+GOTO S_LOOP
+
+@装備強化_振り分け限界 ,ARG,ARG:1,ARGS
+;ARG 強化段階レベル　ARG:1 部位　ARGS 能力
+#DIM 強化段階
+#DIM 装備部位
+#DIM ポイント
+#DIMS 指定能力
+#DIM 限界値
+強化段階 = ARG
+装備部位 = ARG:1
+指定能力 = %ARGS%
+限界値 = 強化段階
+IF 装備部位 == GET_EQUIPNUM("剣")
+
+	IF 指定能力 == "攻撃"
+		TIMES 限界値 , 3.5
+		SIF 限界値 > 260
+			限界値 = 260 + (限界値-260)/6
+		RETURN 限界値
+	ELSEIF 指定能力 == "命中"
+		TIMES 限界値 , 3.5
+		SIF 限界値 > 250
+			限界値 = 250 + (限界値-250)/6
+		RETURN 限界値
+	ELSEIF 指定能力 == "魔法威力"
+		TIMES 限界値 , 3.5
+		SIF 限界値 > 250
+			限界値 = 250 + (限界値-250)/6
+		RETURN 限界値
+	ELSEIF 指定能力 == "魔法効果"
+		TIMES 限界値 , 3.0
+		SIF 限界値 > 200
+			限界値 = 200 + (限界値-200)/6
+		RETURN 限界値
+	ENDIF
+		TIMES 限界値 , 1.0
+		RETURN 限界値
+
+ELSEIF 装備部位 == GET_EQUIPNUM("銃")
+
+	IF 指定能力 == "銃攻撃"
+	;銃
+		TIMES 限界値 , 4.0
+		SIF 限界値 > 260
+			限界値 = 260 + (限界値-260)/6
+		RETURN 限界値
+	ELSEIF 指定能力 == "銃命中"
+	;銃
+		TIMES 限界値 , 3.5
+		SIF 限界値 > 220
+			限界値 = 220 + (限界値-220)/6
+		RETURN 限界値
+	ENDIF
+		TIMES 限界値 , 0.5
+		RETURN 限界値
+
+ELSEIF 装備部位 == GET_EQUIPNUM("頭")
+
+	IF 指定能力 == "防御"
+		TIMES 限界値 , 0.8
+		SIF 限界値 > 40
+			限界値 = 40 + (限界値-40)/4
+		RETURN 限界値
+	ELSEIF 指定能力 == "回避"
+		TIMES 限界値 , 0.5
+		SIF 限界値 > 20
+			限界値 = 20 + (限界値-20)/4
+		RETURN 限界値
+	ELSEIF 指定能力 == "魔法効果"
+		TIMES 限界値 , 0.85
+		SIF 限界値 > 55
+			限界値 = 55 + (限界値-55)/4
+		RETURN 限界値
+	ENDIF
+		TIMES 限界値 , 0.5
+		RETURN 限界値
+
+ELSEIF 装備部位 == GET_EQUIPNUM("胴")
+
+	IF 指定能力 == "防御"
+		TIMES 限界値 , 1.7
+		SIF 限界値 > 100
+			限界値 = 100 + (限界値-100)/6
+		RETURN 限界値
+	ELSEIF 指定能力 == "回避"
+		TIMES 限界値 , 0.9
+		SIF 限界値 > 40
+			限界値 = 40 + (限界値-40)/6
+		RETURN 限界値
+	ELSEIF 指定能力 == "魔法効果"
+		TIMES 限界値 , 0.6
+		SIF 限界値 > 40
+			限界値 = 40 + (限界値-40)/6
+		RETURN 限界値
+	ENDIF
+		TIMES 限界値 , 0.5
+		RETURN 限界値
+
+ELSEIF 装備部位 == GET_EQUIPNUM("腕")
+
+	IF 指定能力 == "防御"
+		TIMES 限界値 , 0.9
+		SIF 限界値 > 55
+			限界値 = 55 + (限界値-55)/4
+		RETURN 限界値
+	ELSEIF 指定能力 == "回避"
+		TIMES 限界値 , 0.35
+		SIF 限界値 > 20
+			限界値 = 20 + (限界値-20)/4
+		RETURN 限界値
+	ELSEIF 指定能力 == "魔法効果"
+		TIMES 限界値 , 0.3
+		SIF 限界値 > 20
+			限界値 = 20 + (限界値-20)/4
+		RETURN 限界値
+	ENDIF
+		TIMES 限界値 , 0.3
+		RETURN 限界値
+
+ELSEIF 装備部位 == GET_EQUIPNUM("足")
+
+	IF 指定能力 == "防御"
+		TIMES 限界値 , 0.8
+		SIF 限界値 > 45
+			限界値 = 45 + (限界値-50)/4
+		RETURN 限界値
+	ELSEIF 指定能力 == "回避"
+		TIMES 限界値 , 1.0
+		SIF 限界値 > 50
+			限界値 = 50 + (限界値-50)/4
+		RETURN 限界値
+	ELSEIF 指定能力 == "魔法効果"
+		TIMES 限界値 , 0.7
+		SIF 限界値 > 40
+			限界値 = 40 + (限界値-40)/4
+		RETURN 限界値
+	ENDIF
+		TIMES 限界値 , 0.5
+		RETURN 限界値
+ELSE
+ENDIF
+
+@装備強化_耐性強化,ARG,ARG:1
+#DIM FIRST_LINE
+#DIM SECOND_LINE
+#DIM 対象
+#DIM 装備番号
+#DIM 強化段階
+#DIM 耐性合計
+#DIM 弱点合計
+#DIM 現在値
+#DIM 基礎値
+#DIM 強化値
+#DIMS 相性
+#DIM 振り分け制限
+#DIM 選択強化
+#DIM ポイント
+#DIM 振り分け済み
+#DIM 振り分け後
+#DIMS DYNAMIC 選択肢
+
+VARSET ポイント
+VARSET 振り分け後
+VARSET 振り分け制限
+VARSET 振り分け済み
+VARSET 耐性合計
+VARSET 弱点合計
+対象 = ARG
+装備番号 = ARG:1
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		CALLFORM 防御相性_{装備番号},LOCAL,対象
+		 	SELECTCASE RESULT
+		 		CASE 999
+		 			耐性合計 += 15 
+		 		CASE IS < 0
+		 			耐性合計 += 15 
+		 		CASE 0
+		 			耐性合計 += 10 
+		 		CASE IS > 199
+		 			弱点合計 += 45
+		 		CASE IS > 149
+		 			弱点合計 += 25
+		 		CASE IS > 100
+		 			弱点合計 += 15
+		 		CASE IS <= 50
+		 			耐性合計 += 5 
+		 		CASE IS < 100
+		 			耐性合計 += 3 
+		 	ENDSELECT
+		 NEXT
+FIRST_LINE = LINECOUNT
+REDRAW 0
+	$START_3
+	IF (弱点合計 + 耐性合計) == 0
+		PRINTW There is no resistance that can be enhanced
+		;強化できる耐性がありません
+			RETURN 
+	ENDIF
+	ポイント = (弱点合計 - 耐性合計) *5/5
+	CALL 装備強化_展開, 対象, 装備番号, "強化段階", "LV"
+	強化段階 = RESULT
+	ポイント += 強化段階/5*5 /2
+	DRAWLINE
+	;現在相性を表示
+	PRINTL □Current resistances
+	;全体相性
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		PRINTFORM %GET_TYPE_E(LOCAL)% 
+		現在値 = MAXBASE:対象:GET_TYPE(LOCAL)
+		CALL SET_AISYOU_COLOR(現在値)
+		PRINTFORM \@ 現在値 < 0 ? Dr # 　 \@
+		;吸
+		PRINTFORM \@ 現在値 != 999 ? {ABS(現在値), 3}％ # %" "% Refl\@　
+		;反射
+		PRINTFORM \@ LOCAL % 6 == 5 ? \n # \@
+		RESETCOLOR
+	NEXT
+	PRINTL 
+	DRAWLINE
+	PRINTFORML □Reduce weakness　<%ITEMNAME_E(装備番号)%>　(Lv：{強化段階})
+	;耐性強化
+	DRAWLINE
+	PRINTL Which weakness do you want to reduce?
+	;どの相性を変更しますか？
+	LOCAL:1 = 0
+	選択肢 = 
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		CALLFORM 防御相性_{装備番号},LOCAL,対象
+		基礎値 = RESULT
+		SIF 基礎値 == 100 ;|| 基礎値 <= 0 || 基礎値 == 999
+			CONTINUE
+		CALL 装備強化_展開, 対象, 装備番号, "防御相性", GET_TYPE(LOCAL), RESULT
+		ポイント -= 基礎値 - RESULT
+		現在値 = RESULT
+		IF 基礎値 <= 0 || 基礎値 == 999
+			PRINTFORM [XX]%GET_TYPE_E(LOCAL)%
+		ELSE
+			PRINTFORM [{LOCAL, 2}]%GET_TYPE_E(LOCAL)%
+			選択肢 += TOSTR(LOCAL) + "/"
+		ENDIF
+		LOCALS = 　
+		SIF (RESULT - 基礎値) != 0
+			LOCALS = ◇
+		PRINTFORM %LOCALS%
+		RESETCOLOR
+		CALL SET_AISYOU_COLOR(RESULT)
+		PRINTFORM \@ 現在値 < 0 ? Dr # 　 \@
+		;吸
+		PRINTFORM \@ 現在値 != 999 ? {ABS(現在値), 3}％ # %" "%Refl \@　
+		;反射
+	PRINTL 
+		RESETCOLOR
+	NEXT
+	PRINTL 
+	PRINTL [100]Return
+	選択肢 += "100/"
+	$INPUT_LOOP_3
+	;INPUT
+	CALL 装備強化_INPUT_LIST,選択肢
+	IF RESULT == 100
+		RETURN 
+	ELSEIF RESULT < 0 || RESULT >= FLAG:相性数-1
+		GOTO INPUT_LOOP_3
+	ENDIF
+		相性 = %GET_TYPE(RESULT)%
+		CALLFORM 防御相性_{装備番号},RESULT,対象
+		基礎値 = RESULT
+		CALL 装備強化_展開, 対象, 装備番号, "防御相性", 相性
+		振り分け後 = RESULT
+		;SIF 振り分け後 < 997
+		;	振り分け後 = -振り分け後
+		ポイント = ポイント/5*5
+	DRAWLINE
+SECOND_LINE = LINECOUNT
+REDRAW 0
+$START_2
+	PRINTFORML How do you want to modify %GET_TYPE_S(相性)% resistance?  Correction points:{ポイント}
+	;の防御相性をどうしますか？　補正値:
+	PRINTL
+	PRINTFORM %相性%:{基礎値, 3} - {振り分け後, 3} = 
+	CALL SET_AISYOU_COLOR, 基礎値 - 振り分け後
+	PRINTFORM {基礎値 - 振り分け後, 3}
+	RESETCOLOR
+	PRINTFORM  　 
+
+	IF 基礎値 > 100 && 基礎値 < 999
+		振り分け制限 = 基礎値 - 100
+		SIF 振り分け制限 < 5
+			振り分け制限 = 5
+	ELSEIF 基礎値 < 100 && 基礎値 > 0
+		振り分け制限 = 基礎値
+	ELSE
+		振り分け制限 = 0
+	ENDIF
+	選択肢 = 
+	IF 基礎値 > 0 && 基礎値 < 999
+		CALL BUTTON_強化振り分け("[ +5]", 105, 振り分け後, ポイント,   5, 振り分け制限)
+		SIF RESULT != -1
+			選択肢 += TOSTR(105) + "/"
+		CALL BUTTON_強化振り分け("[ -5]", 106, 振り分け後, ポイント,  -5, 振り分け制限)
+		SIF RESULT != -1
+			選択肢 += TOSTR(106) + "/"
+		CALL BUTTON_強化振り分け("[+25]", 101, 振り分け後, ポイント,   25, 振り分け制限)
+		SIF RESULT != -1
+			選択肢 += TOSTR(101) + "/"
+		CALL BUTTON_強化振り分け("[-25]", 102, 振り分け後, ポイント,  -25, 振り分け制限)
+		SIF RESULT != -1
+			選択肢 += TOSTR(102) + "/"
+		CALL BUTTON_強化振り分け("[+50]", 103, 振り分け後, ポイント,  50, 振り分け制限)
+		SIF RESULT != -1
+			選択肢 += TOSTR(103) + "/"
+		CALL BUTTON_強化振り分け("[-50]", 104, 振り分け後, ポイント, -50, 振り分け制限)
+		SIF RESULT != -1
+			選択肢 += TOSTR(104) + "/"
+	ENDIF
+	PRINTL
+
+DRAWLINE
+PRINTFORML [0] Confirm
+	選択肢 += "0/"
+PRINTFORML [999] Return
+	選択肢 += "999/"
+$INPUT_LOOP_1
+;INPUT
+
+	CALL 装備強化_INPUT_LIST,選択肢
+
+IF RESULT == 999
+	CLEARLINE LINECOUNT - FIRST_LINE
+	GOTO START_3
+ELSEIF RESULT == 0
+	REDRAW 1
+	CALL 装備強化_CSTR, "書き込み", 対象, 装備番号, "耐性強化", 相性, 振り分け後
+	CALL SYNC_STATUS,対象
+	CLEARLINE LINECOUNT - FIRST_LINE
+	GOTO START_3
+ELSEIF INRANGE(RESULT,101,106)
+	選択強化 = RESULT - 100
+	SELECTCASE 選択強化
+		CASE 0
+			選択強化 = 0
+			強化値 = 0
+		CASE 1
+			選択強化 = 25
+			強化値 = 25
+		CASE 2
+			選択強化 = -25
+			強化値 = -25
+		CASE 3
+			選択強化 = 50
+			強化値 = 50
+		CASE 4
+			選択強化 = -50
+			強化値 = -50
+		CASE 5
+			選択強化 = 5
+			強化値 = 5
+		CASE 6
+			選択強化 = -5
+			強化値 = -5
+		CASEELSE
+			GOTO INPUT_LOOP_3
+	ENDSELECT
+	振り分け後 += 強化値
+	ポイント -= 選択強化
+ENDIF
+CLEARLINE LINECOUNT - SECOND_LINE
+GOTO START_2
+
+
+@装備強化_攻撃相性,ARG,ARG:1
+#DIM FIRST_LINE
+#DIM SECOND_LINE
+#DIM 対象
+#DIM 装備番号
+#DIM 強化段階
+#DIM 現在値
+#DIM 基礎値
+#DIM 強化値
+#DIM 素材悪魔
+#DIMS 付与相性
+#DIM 付与確率
+対象 = ARG
+装備番号 = ARG:1
+
+FIRST_LINE = LINECOUNT
+$START_1
+
+	PRINTL □Attack type enhancement　　(Depending on the chance, attack type changes during attack)
+	;攻撃相性強化	攻撃時に確率で攻撃相性を変化させる
+	RESULT = 0
+	TRYCALLFORM 攻撃相性_{装備番号} 
+	PRINTFORM 　Base attack type: [%GET_TYPE_E(RESULT),4%]　
+	;攻撃相性
+	基礎値 = RESULT
+	CALL 装備強化_展開, 対象, 装備番号, "攻撃相性", "付与相性"
+	IF RESULT > -1
+		PRINTFORM ／　Secondary attack type: [%GET_TYPE_E(RESULT),4%]　
+		;属性付与
+		CALL 装備強化_展開, 対象, 装備番号, "攻撃相性", "付与確率"
+		PRINTFORM Application chance: {RESULT,2}
+		;]　
+		;付与確率
+		PRINT %
+	ELSE
+	ENDIF
+	PRINTL 
+	DRAWLINE
+
+SECOND_LINE = LINECOUNT
+$START_2
+
+		;キャラリストを表示・選択
+		CALL SHOW_CHARA_LIST_装備強化,"攻撃相性",対象
+		SIF RESULT == -1
+			RETURN -1
+		素材悪魔 = RESULT
+		CALL 適正相性_強化用,RESULT
+		IF 基礎値 == RESULT
+			PRINTW The type is the same as the base type.
+			;もともとの相性と同じです
+			CLEARLINE LINECOUNT - SECOND_LINE
+			GOTO START_2
+		ENDIF
+		付与相性 = %GET_TYPE(RESULT)%
+
+	LOCAL:1 = 0
+	FOR LOCAL,1,12
+		LOCALS = スキル{LOCAL}
+		SIF ABL:素材悪魔:LOCALS == 0
+			BREAK
+		CALLFORM SKILL_SUCCESSION_TYPE_{ABL:素材悪魔:LOCALS}
+		SIF GET_SUCCESSION(RESULT) != 付与相性
+			CONTINUE
+		LOCAL:1 += 1
+	NEXT
+		付与確率 = MIN (10 + (15 * LOCAL:1), 95)
+
+PRINTFORML Selected demon(will be consumed): %CALLNAME:素材悪魔%
+;魔晶変化
+PRINTFORML Do you want to add the secondary type [%GET_TYPE_S(付与相性)%] with {付与確率,2}％ chance to apply
+PRINTFORML to your %ITEMNAME_E(装備番号)%?
+;%ITEMNAME:装備番号%に[%付与相性%]属性({付与確率,2}％)を付与しますか？
+CALL INPUT_YN,"Yes","No",2
+	IF RESULT == 1
+		PRINTL 
+		CLEARLINE LINECOUNT - SECOND_LINE
+		GOTO START_2
+	ENDIF
+		CALL 装備強化_CSTR, "書き込み", 対象, 装備番号, "攻撃相性", 付与相性, 付与確率
+		CALL SYNC_STATUS,対象
+
+PRINTFORMW %ITEMNAME_E(装備番号)% has been infused with %CALLNAME:素材悪魔% and gained it's secondary attack type!
+;%ITEMNAME:装備番号%に%CALLNAME:素材悪魔%が融合した！ 
+
+CALL FUSION_LETTER,素材悪魔,1
+;合体素材の悪魔を消去
+CALL キャラ削除, 素材悪魔
+		RETURN -1
+
+
+@装備強化_追加効果,ARG,ARG:1
+#DIM FIRST_LINE
+#DIM SECOND_LINE
+#DIM 対象
+#DIM 装備番号
+#DIM 強化段階
+#DIM 現在値
+#DIM 基礎値
+#DIM 強化値
+#DIM 素材悪魔
+#DIM 付与ステート
+#DIM 基本命中
+#DIM 追加効果ステータス
+#DIMS 追加効果相性
+#DIM 追加効果基本付与確率
+#DIM 追加効果付与確率上限
+対象 = ARG
+装備番号 = ARG:1
+
+FIRST_LINE = LINECOUNT
+$START_1
+
+	PRINTL □Impart additional effect
+	;追加効果付与
+			RESULT = 0
+			TRYCALLFORM 追加効果_{装備番号}
+			追加効果ステータス = RESULT
+			IF GET_STATE(追加効果ステータス) == "GOOD" 
+				CALL 装備強化_展開, 対象, 装備番号, "追加効果", "ステート"
+				IF GET_STATE(RESULT) != "GOOD"
+					PRINTFORM 　Additional effect [%GET_STATE(RESULT)%]　
+					;追加効果
+					CALL 装備強化_展開, 対象, 装備番号, "追加効果", "効果相性"
+					PRINTFORM Type [%GET_TYPE_E(RESULT),4%]　
+					;相性
+					CALL 装備強化_展開, 対象, 装備番号, "追加効果", "基本命中"
+					PRINTFORM Basic hit chance:{RESULT,4}％　
+					;基本命中 [{RESULT,4}]　
+					CALL 装備強化_展開, 対象, 装備番号, "追加効果", "最大命中"
+					PRINTFORM Maximum hit chance:{RESULT,4}％ 
+					;最大命中 [{RESULT,4}]　
+				ELSE
+					PRINTFORM 　Additional effect [None]　
+					;なし
+				ENDIF
+			ELSE
+				PRINTFORM 　Additional effect [%GET_STATE(追加効果ステータス)%]　
+				RESULT = 0
+				TRYCALLFORM 追加効果相性_{装備番号} 
+				PRINTFORM Type [%GET_TYPE_E(RESULT),4%]　
+				RESULT = 0
+				TRYCALLFORM 追加効果命中率_{装備番号} 
+				PRINTFORM Basic hit chance:{RESULT,4}％　
+				RESULT = 0
+				TRYCALLFORM 追加効果最大命中率_{装備番号} 
+				PRINTFORM Maximum hit chance:{RESULT,4}％　
+				PRINTL 
+				DRAWLINE
+				IF GET_STATE(追加効果ステータス) != "GOOD" 
+					PRINTW The effect is the same as the original one.
+					;もともと追加効果を持っています
+					RETURN -1
+				ENDIF
+			ENDIF
+	PRINTL 
+	DRAWLINE
+
+SECOND_LINE = LINECOUNT
+$START_2
+
+		;キャラリストを表示・選択
+		CALL SHOW_CHARA_LIST_装備強化,"追加効果",対象
+		SIF RESULT == -1
+			RETURN -1
+		素材悪魔 = RESULT
+		CALL 所持スキル追加効果_強化用,RESULT
+		付与ステート = RESULT
+
+	LOCAL:1 = 0
+	FOR LOCAL,1,12
+		LOCALS = スキル{LOCAL}
+		SIF ABL:素材悪魔:LOCALS == 0
+			BREAK
+		TRYCALLFORM SKILL_ADDTIONAL_STATE_{ABL:素材悪魔:LOCALS}
+		SIF RESULT != 付与ステート
+				CONTINUE
+		LOCAL:1 += 1
+	NEXT
+
+		基本命中 = MIN (10 + (5 * LOCAL:1), 35)
+
+;追加効果ステータス
+;追加効果_{装備番号},ARG
+;RETURN GET_STATE_NUM("DYING")
+
+;追加効果相性
+;追加効果相性_{装備番号},ARG
+;RETURN GET_TYPE_NUM("万能")
+
+;追加効果基本付与確率
+;追加効果命中率_{装備番号},ARG
+;RETURN 20
+;	GET_STATE_NUM("FREEZE")	20%
+;	GET_STATE_NUM("SHOCK")	20%
+;	POISON 	２０％
+;	SLEEP 	２５％
+;	PANIC 	２５％
+;	HAPPY 	３５％
+;	BIND 	２５％
+;	CHARM 	２０％
+
+;追加効果付与確率上限
+;追加効果最大命中率_{装備番号},ARG
+;RETURN 95
+
+PRINTFORML Selected demon(will be consumed): %CALLNAME:素材悪魔%
+PRINTFORML Do you want to add the additional effect [%GET_STATE(付与ステート)%] with {基本命中,2}％ chance to apply
+PRINTFORML to your %ITEMNAME:装備番号%?
+;%ITEMNAME:装備番号%に[%GET_STATE(付与ステート)%]({基本命中,2}％)を付与しますか？ 
+CALL INPUT_YN,"Yes","No",2
+	IF RESULT == 1
+		PRINTL 
+		CLEARLINE LINECOUNT - SECOND_LINE
+		GOTO START_2
+	ENDIF
+		CALL 装備強化_CSTR, "書き込み", 対象, 装備番号, "追加効果", GET_STATE(付与ステート), 基本命中
+		CALL SYNC_STATUS,対象
+
+PRINTFORMW %ITEMNAME:装備番号% has been infused with %CALLNAME:素材悪魔% and gained it's additional effect!
+;%ITEMNAME:装備番号%に%CALLNAME:素材悪魔%が融合した！ 
+
+CALL FUSION_LETTER,素材悪魔,1
+
+;合体素材の悪魔を消去
+CALL キャラ削除, 素材悪魔
+		RETURN -1
+
+
+@BUTTON_強化振り分け(文字列, 番号, 現在値, ポイント, 変化量, 制限)
+#DIMS 文字列
+#DIM 番号
+#DIM 現在値
+#DIM ポイント
+#DIM 変化量
+#DIM 制限
+IF !(変化量 > ポイント || 変化量 + 現在値 > 制限 || 変化量 + 現在値 < 0)
+	PRINTBUTTON 文字列, 番号
+ELSE
+	SETCOLOR COLOR("gray")
+	PRINTPLAINFORM %文字列%
+	RESETCOLOR
+	RETURN -1
+ENDIF
+
+@装備強化_強化解除,ARG,ARG:1 = -1
+#DIM FIRST_LINE
+#DIM 対象
+#DIM 装備番号
+#DIM 強化段階
+#DIM 強化値
+#DIM 指定
+対象 = ARG
+装備番号 = ARG:1
+指定 = 装備番号
+LOCALS = 
+$START_B
+FIRST_LINE = LINECOUNT
+PRINTL Please select an equipment to remove all it's enhancements
+;強化を解除する装備を選択してください
+DRAWLINE
+PRINTFORML %CALLNAME:対象%
+PRINTL □Currently enhanced equipment
+;装備強化状態
+PRINTL ▼Equipped
+;装備中
+RESULTS = 
+CALL 装備強化_CSTR, "表示", 対象,0,"選択"
+LOCALS = %RESULTS%
+PRINTL ▼Not equipped
+;不装備
+RESULTS = 
+CALL 装備強化_CSTR, "表示：不装備", 対象,0,"選択"
+LOCALS += RESULTS
+PRINTL
+PRINTL [9999] Return
+LOCALS += "9999/"
+;INPUT
+CALL 装備強化_INPUT_LIST,LOCALS
+SIF RESULT == 9999
+	RETURN -1
+LOCAL = RESULT
+SIF RESULT == -1
+	RETURN -1
+
+装備番号 = LOCAL
+	PRINTFORML All enhancements will be removed from %ITEMNAME_E(装備番号)%.
+	;%ITEMNAME:装備番号%の強化状態を全て解除します
+	CALL INPUT_YN,"Yes","No"
+	IF RESULT == 1
+		CLEARLINE LINECOUNT - FIRST_LINE
+		GOTO START_B
+	ENDIF
+	PRINTFORML [%ITEMNAME_E(装備番号)%] has been disenhanced.
+	;[%ITEMNAME:装備番号%]の強化を解除
+	CALL 装備強化_CSTR, "解除", 対象, 装備番号
+RETURN
+		CLEARLINE LINECOUNT - FIRST_LINE
+		GOTO START_B
+
+@SHOW_CHARA_LIST_装備強化,ARGS,ARG,ARG:1
+#LOCALSIZE 5
+#DIMS 指定
+#DIM 装備番号
+#DIM 強化段階
+#DIM 強化,3
+指定 = %ARGS%
+装備番号 = ARG
+強化段階 = ARG:1
+
+LOCAL:3 = CURRENTREDRAW(), RESULT
+SIF LOCAL:3 != 2
+	REDRAW 2
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+A = 0
+IF 指定 == "攻撃相性"
+	FOR LOCAL, 0, CHARANUM
+		SIF ABL:LOCAL:種族 == 0 || ABL:LOCAL:種族 > 44
+			CONTINUE
+		SIF 強化段階 > BASE:LOCAL:LV
+			CONTINUE
+		SIF 契約(LOCAL) > 0
+			CONTINUE
+		SIF !(CFLAG:LOCAL:労役フラグ == 3 || CFLAG:LOCAL:この場に居ないフラグ || CFLAG:LOCAL:合体不可 || CFLAG:LOCAL:フィルタリングフラグ)
+			Q:(A++) = LOCAL
+	NEXT
+ELSEIF 指定 == "追加効果"
+	FOR LOCAL, 0, CHARANUM
+		SIF ABL:LOCAL:種族 == 0 || ABL:LOCAL:種族 > 44
+			CONTINUE
+		SIF 強化段階 > BASE:LOCAL:LV
+			CONTINUE
+		SIF 契約(LOCAL) > 0
+			CONTINUE
+		CALL 所持スキル追加効果_強化用,LOCAL
+		SIF GET_STATE(RESULT) == "GOOD" || GET_STATE(RESULT) == "BOMB" || GET_STATE(RESULT) == "STONE" || GET_STATE(RESULT) == "DYING"
+			CONTINUE
+		SIF !(CFLAG:LOCAL:労役フラグ == 3 || CFLAG:LOCAL:この場に居ないフラグ || CFLAG:LOCAL:合体不可 || CFLAG:LOCAL:フィルタリングフラグ)
+			Q:(A++) = LOCAL
+	NEXT
+ELSE
+	FOR LOCAL, 0, CHARANUM
+		SIF ABL:LOCAL:種族 != 0 || CFLAG:LOCAL:戦闘参加不可能
+			CONTINUE
+		SIF 契約(LOCAL) > 0
+			CONTINUE
+		SIF !(CFLAG:LOCAL:労役フラグ == 3 || CFLAG:LOCAL:この場に居ないフラグ || CFLAG:LOCAL:フィルタリングフラグ)
+			Q:(A++) = LOCAL
+	NEXT
+ENDIF
+
+LOCAL:1 = LINECOUNT, A
+DO
+	CLEARLINE LINECOUNT - LOCAL:1
+	DRAWLINE
+	PRINTFORML Please select a character　＜page.{P + 1}/{(LOCAL:2 - 1) / リスト表示数() + 1}＞
+	;キャラを選んでください
+	DRAWLINE
+;	CALL SHOW_CHARA_LIST
+
+LOCAL:3 = 0
+REPEAT リスト表示数()
+	文字色変更 = 0
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF LOCAL < 0 || CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	
+	CALL ARRANGE_SETCOLOR, LOCAL
+	CALL ARRANGE_TARGETSIGN, LOCAL
+	CALL ARRANGE_CHARALIST, LOCAL
+
+	IF 指定 == "攻撃相性"
+		CALL 適正相性_強化用,LOCAL
+		PRINTFORM 　[%GET_TYPE_E(RESULT)%] 
+		強化:1 = RESULT
+		強化:2 = 0
+		FOR 強化:0,1,12
+			LOCALS = スキル{強化:0}
+			SIF ABL:LOCAL:LOCALS == 0
+				BREAK
+			CALLFORM SKILL_SUCCESSION_TYPE_{ABL:LOCAL:LOCALS}
+			SIF GET_SUCCESSION(RESULT) != GET_TYPE(強化:1)
+				CONTINUE
+			強化:2 += 1
+		NEXT
+		PRINTFORM ({MIN (10 + (15 * 強化:2), 95)})　　
+	ELSEIF 指定 == "追加効果"
+		CALL 所持スキル追加効果_強化用,LOCAL
+		PRINTFORM 　[%GET_STATE(RESULT),6%] 
+		強化:1 = RESULT
+		強化:2 = 0
+		FOR 強化:0,1,12
+			LOCALS = スキル{強化:0}
+			SIF ABL:LOCAL:LOCALS == 0
+				BREAK
+			TRYCALLFORM SKILL_ADDTIONAL_STATE_{ABL:LOCAL:LOCALS}
+			SIF RESULT != 強化:1
+					CONTINUE
+			強化:2 += 1
+		NEXT
+		PRINTFORM ({MIN (10 + (5 * 強化:2), 35)})　　
+	ENDIF
+
+	PRINTFORM LV:{BASE:LOCAL:LV,3} 
+	CALL ARRANGE_FALLTALENT, LOCAL
+	CALL ARRANGE_SEX, LOCAL
+	PRINTFORM 　Loyalty:{BASE:LOCAL:忠誠度,6}
+	;忠誠度
+	PRINTFORM 　MAG:{BASE:LOCAL:ＭＡＧ,6}/{MAXBASE:LOCAL:ＭＡＧ,6}
+	RESETCOLOR
+
+	PRINTL 
+	RESETCOLOR
+REND
+RESETCOLOR
+
+	PRINTFORM \@ P && P == (LOCAL:2 - 1) / リスト表示数() ? %"\n" * MAX(0, リスト表示数() + 3 + LOCAL:1 - LINECOUNT)% # \@
+	DRAWLINE
+	PRINTFORMLC \@ P > 0 ? [1007]Previous page # %" " * 16% \@
+	PRINTLC [1000]Return
+	PRINTFORMLC \@ P < (LOCAL:2 - 1) / リスト表示数() ? [1009]Next page # %" " * 16% \@
+	DO
+		INPUT
+		LOCAL = RESULT == 1000 || (RESULT == 1007 && P > 0) || (RESULT == 1009 && P < (LOCAL:2 - 1) / リスト表示数())
+		LOCAL |= MATCH(Q, RESULT, 0, LOCAL:2)
+		SIF !LOCAL
+			CLEARLINE 1
+	LOOP !LOCAL
+	LOCAL = RESULT
+	SELECTCASE LOCAL
+		CASE 0 TO CHARANUM - 1
+			RETURN LOCAL
+		CASE 1007
+			P--
+		CASE 1009
+			P++
+	ENDSELECT
+LOOP LOCAL != 1000
+SIF LOCAL:3 != 2
+	REDRAW LOCAL:3
+SIF LOCAL == 1000
+	RETURN -1
+RETURN LOCAL
+
+@SHOW_EQUIP_LIST_装備強化,ARG
+PRINTL 　　 <EQUIP>
+LOCALS:1 = 
+	FOR LOCAL , 0 , 7
+		IF ITEMNAME:(EQUIP:ARG:GET_EQUIP(LOCAL)) == ""
+			PRINTFORML [XX] %"[" + GET_EQUIP_E(LOCAL) + "]",14,LEFT% ＥＭＰＴＹ
+		ELSEIF 魔晶装備(EQUIP:ARG:GET_EQUIP(LOCAL))
+			PRINTFORML [XX] %"[" + GET_EQUIP_E(LOCAL) + "]",14,LEFT% %EQ_GETNAME_魔晶装備_CHARA(ARG, LOCAL)%
+		ELSEIF GET_EQUIP(LOCAL) == "アクセサリ"
+			PRINTFORML [XX] %"[" + GET_EQUIP_E(LOCAL) + "]",14,LEFT% %ITEMNAME_E(EQUIP:ARG:GET_EQUIP(LOCAL)),14,LEFT%
+		ELSE
+			CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL), "強化段階", "LV"
+			LOCALS = 
+			SIF RESULT > 1
+				LOCALS = Lv:%TOSTR(RESULT)%
+			PRINTFORML [{50 + LOCAL}] %"[" + GET_EQUIP_E(LOCAL) + "]",14,LEFT% %ITEMNAME_E(EQUIP:ARG:GET_EQUIP(LOCAL)),16,LEFT%　%LOCALS%
+			LOCALS:1 += TOSTR(50 + LOCAL) + "/"
+		ENDIF
+	NEXT
+	PRINTL [99] Return
+	;やめる
+	LOCALS:1 += "99/"
+;INPUT
+CALL 装備強化_INPUT_LIST,LOCALS:1
+SIF RESULT == -1
+	RETURN 49
+LOCAL = RESULT - 50
+RETURN LOCAL
+
+
+;-------------------------------------------------
+;   ARGS 選択肢のリスト文字列
+;-------------------------------------------------
+@装備強化_INPUT_LIST,ARGS
+;#DIM LCOUNT, 2
+;#DIM DYNAMIC 展開, 10
+	STRFIND ARGS, "/"
+	SIF RESULT == -1
+		RETURN -1
+;	VARSET LOCALS
+;	;記録の分解
+;	SPLIT ARGS, "/", LOCALS
+;	;記録は100まで
+;	FOR LCOUNT, 0, 100
+;		SIF LOCALS:LCOUNT == ""
+;			BREAK
+;		展開:LCOUNT = TOINT(LOCALS:LCOUNT)
+;	NEXT
+;PRINTFORML %ARGS%
+INPUT
+LOCAL = RESULT
+LOCALS '= "/" + TOSTR(RESULT) + "/"
+LOCALS:1 '= "/" + ARGS
+
+;PRINTFORML %LOCALS%　%LOCALS:1%
+
+STRFIND LOCALS:1, LOCALS
+SIF RESULT != -1
+	RETURN LOCAL
+RESTART
+
+;-------------------------------------------------
+;   適正相性
+;-------------------------------------------------
+;  ARG:0 対象者　ARGS:0 指定
+;-------------------------------------------------
+@適正相性_強化用,ARG,ARGS = ""
+#DIM 対象
+#DIMS 指定
+#DIM 所持相性,18
+#DIM 適正相性,18
+#DIM 最高ランク,18
+対象		= ARG
+指定		= %ARGS%
+	VARSET 所持相性
+	VARSET 適正相性
+	VARSET 最高ランク
+	VARSET LOCAL
+	RESULT = 0
+
+;	DRAWLINE
+	;所持スキル
+	FOR LOCAL,1,12
+		LOCALS = スキル{LOCAL}
+		SIF ABL:対象:LOCALS == 0
+			BREAK
+;		CALLFORM SKILL_NAME_{ABL:対象:LOCALS}
+;		PRINTFORMLC %RESULTS%
+		TRYCCALLFORM SKILL_ACTIONABLE_BATTLE_{ABL:対象:LOCALS}
+			CONTINUE
+		CATCH
+		ENDCATCH
+		CALLFORM SKILL_SUCCESSION_TYPE_{ABL:対象:LOCALS}
+		SIF RESULT == 4 || RESULT == 5 || RESULT == 6 || RESULT == 22
+			CONTINUE
+		CALLFORM SKILL_TYPE_{ABL:対象:LOCALS}
+		LOCAL:1 = RESULT
+		所持相性:(LOCAL:1) += 1
+		CALLFORM SKILL_RANK_{ABL:対象:LOCALS}
+		SIF 最高ランク:(LOCAL:1) < RESULT
+			最高ランク:(LOCAL:1) = RESULT
+	NEXT
+;	PRINTL
+	IF 指定 != "所持限定"
+		;習得スキル
+		FOR LOCAL,1,21
+			LOCALS = 習得スキル{LOCAL}
+	;		LOCALS:1 = 習得LV{LOCAL}
+	;		SIF BASE:LOCAL:LV >= 習得LV{LOCAL}
+	;			CONTINUE
+			SIF ABL:対象:LOCALS == 0
+				BREAK
+	;		CALLFORM SKILL_NAME_{ABL:対象:LOCALS}
+	;		PRINTFORMLC %RESULTS%
+			TRYCCALLFORM SKILL_ACTIONABLE_BATTLE_{ABL:対象:LOCALS}
+				CONTINUE
+			CATCH
+			ENDCATCH
+			CALLFORM SKILL_SUCCESSION_TYPE_{ABL:対象:LOCALS}
+			SIF RESULT == 4 || RESULT == 5 || RESULT == 6 || RESULT == 22
+				CONTINUE
+			CALLFORM SKILL_TYPE_{ABL:対象:LOCALS}
+			LOCAL:1 = RESULT
+			所持相性:RESULT += 1
+			CALLFORM SKILL_RANK_{ABL:対象:LOCALS}
+			SIF 最高ランク:(LOCAL:1) < RESULT
+				最高ランク:(LOCAL:1) = RESULT
+	;		SIF LOCAL % 4 == 0
+	;			PRINTL
+		NEXT
+	ENDIF
+	IF CFLAG:対象:初期リンク悪魔
+		;初期スキル
+		FOR LOCAL,1,12
+			LOCALS = 初期変身悪魔スキル{LOCAL}
+			SIF ABL:対象:LOCALS == 0
+				BREAK
+;			CALLFORM SKILL_NAME_{ABL:対象:LOCALS}
+;			PRINTFORMLC %RESULTS%
+			TRYCCALLFORM SKILL_ACTIONABLE_BATTLE_{ABL:対象:LOCALS}
+				CONTINUE
+			CATCH
+			ENDCATCH
+			CALLFORM SKILL_SUCCESSION_TYPE_{ABL:対象:LOCALS}
+;			SIF RESULT == 4 || RESULT == 5 || RESULT == 6 || RESULT == 22
+;				CONTINUE
+			CALLFORM SKILL_TYPE_{ABL:対象:LOCALS}
+			所持相性:RESULT += 1
+			LOCAL:1 = RESULT
+			CALLFORM SKILL_RANK_{ABL:対象:LOCALS}
+			SIF 最高ランク:(LOCAL:1) < RESULT
+				最高ランク:(LOCAL:1) = RESULT
+		NEXT
+		PRINTL
+		IF 指定 != "所持スキル"
+			;習得スキル
+			FOR LOCAL,1,21
+				LOCALS = 初期変身悪魔習得スキル{LOCAL}
+	;			LOCALS:1 = 習得LV{LOCAL}
+	;			SIF BASE:LOCAL:LV >= 初期変身悪魔習得LV{LOCAL}
+	;				CONTINUE
+				SIF ABL:対象:LOCALS == 0
+					BREAK
+	;			CALLFORM SKILL_NAME_{ABL:対象:LOCALS}
+	;			PRINTFORMLC %RESULTS%
+				TRYCCALLFORM SKILL_ACTIONABLE_BATTLE_{ABL:対象:LOCALS}
+					CONTINUE
+				CATCH
+				ENDCATCH
+				CALLFORM SKILL_SUCCESSION_TYPE_{ABL:対象:LOCALS}
+				SIF RESULT == 4 || RESULT == 5 || RESULT == 6 || RESULT == 22
+					CONTINUE
+				CALLFORM SKILL_TYPE_{ABL:対象:LOCALS}
+				所持相性:RESULT += 1
+				LOCAL:1 = RESULT
+				CALLFORM SKILL_RANK_{ABL:対象:LOCALS}
+				SIF 最高ランク:(LOCAL:1) < RESULT
+					最高ランク:(LOCAL:1) = RESULT
+				SIF LOCAL % 4 == 0
+					PRINTL
+			NEXT
+		ENDIF
+	ENDIF
+;	PRINTW 
+;	DRAWLINE
+
+;	PRINTL □所持相性
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		IF 所持相性:LOCAL > 0
+;			PRINTFORM %GET_TYPE(LOCAL)% 
+;			PRINTFORM = {所持相性:LOCAL} 
+			IF TALENT:対象:GET_TYPE(LOCAL) 
+;				PRINTFORM 適正　
+				適正相性:LOCAL = 1
+			ELSE
+;				PRINTFORM 　　　
+			ENDIF
+;			PRINTFORM \@ LOCAL % 6 == 5 ? \n # \@
+		ENDIF
+	NEXT
+;	PRINTW 
+;	DRAWLINE
+
+IF SUMARRAY(適正相性, 0, 18) == 1
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		IF 適正相性:LOCAL > 0
+			VARSET 適正相性
+			適正相性 = LOCAL
+			BREAK
+		ENDIF
+	NEXT
+ELSEIF SUMARRAY(適正相性, 0, 18)
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		IF 適正相性:LOCAL > 0
+			IF LOCAL:3 == 最高ランク:LOCAL
+				SIF LOCAL:2 > 所持相性:LOCAL
+					CONTINUE
+			ENDIF
+			IF 最高ランク:LOCAL >= LOCAL:3
+				LOCAL:1 = LOCAL
+				LOCAL:2 = 所持相性:LOCAL
+				LOCAL:3 = 最高ランク:LOCAL 
+			ENDIF
+		ENDIF
+	NEXT
+	VARSET 適正相性
+	適正相性 = LOCAL:1
+ELSE
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		IF 所持相性:LOCAL > 0
+			IF LOCAL:2 == 所持相性:LOCAL
+				SIF LOCAL:3 > 最高ランク:LOCAL
+					CONTINUE
+			ENDIF
+			IF 所持相性:LOCAL >= LOCAL:2
+				LOCAL:1 = LOCAL
+				LOCAL:2 = 所持相性:LOCAL
+				LOCAL:3 = 最高ランク:LOCAL 
+			ENDIF
+		ENDIF
+	NEXT
+	VARSET 適正相性
+	適正相性 = LOCAL:1
+ENDIF
+RETURN 適正相性
+
+;-------------------------------------------------
+;   所持ステータス追加効果
+;-------------------------------------------------
+;  ARG:0 対象者　ARGS:0 指定
+;-------------------------------------------------
+@所持スキル追加効果_強化用,ARG
+#DIM 対象
+#DIMS 指定
+#DIM 所持ステート,18
+#DIM 適正ステート
+#DIM 最高ランク,18
+対象		= ARG
+;指定		= %ARGS%
+	VARSET 所持ステート
+	VARSET 適正ステート
+	VARSET 最高ランク
+	VARSET LOCAL
+	RESULT = 0
+
+	;所持スキル
+	FOR LOCAL,1,12
+		LOCALS = スキル{LOCAL}
+		SIF ABL:対象:LOCALS == 0
+			BREAK
+		LOCAL:1 = 0
+		TRYCALLFORM SKILL_ADDTIONAL_STATE_{ABL:対象:LOCALS}
+		LOCAL:1 = RESULT
+			SIF GET_STATE(RESULT) == "GOOD" || GET_STATE(RESULT) == "BOMB" || GET_STATE(RESULT) == "STONE" || GET_STATE(RESULT) == "DYING"
+					CONTINUE
+		所持ステート:(LOCAL:1) += 1
+		CALLFORM SKILL_RANK_{ABL:対象:LOCALS}
+		SIF 最高ランク:(LOCAL:1) < RESULT
+			最高ランク:(LOCAL:1) = RESULT
+	NEXT
+	IF CFLAG:対象:初期リンク悪魔
+		;所持スキル
+		FOR LOCAL,1,12
+			LOCALS = 初期変身悪魔スキル{LOCAL}
+			SIF ABL:対象:LOCALS == 0
+				BREAK
+			LOCAL:1 = 0
+			TRYCALLFORM SKILL_ADDTIONAL_STATE_{ABL:対象:LOCALS}
+			LOCAL:1 = RESULT
+			SIF GET_STATE(RESULT) == "GOOD" || GET_STATE(RESULT) == "BOMB" || GET_STATE(RESULT) == "STONE" || GET_STATE(RESULT) == "DYING"
+					CONTINUE
+			所持ステート:RESULT += 1
+			CALLFORM SKILL_RANK_{ABL:対象:LOCALS}
+			SIF 最高ランク:(LOCAL:1) < RESULT
+				最高ランク:(LOCAL:1) = RESULT
+		NEXT
+		PRINTL
+	ENDIF
+
+IF SUMARRAY(所持ステート, 1, 18) == 1
+	FOR LOCAL, 1, FLAG:ステート数
+		IF 所持ステート:LOCAL > 0
+			VARSET 適正ステート
+			適正ステート = LOCAL
+			BREAK
+		ENDIF
+	NEXT
+ELSEIF SUMARRAY(所持ステート, 1, 18) > 0
+	FOR LOCAL, 1, FLAG:ステート数
+		IF 所持ステート:LOCAL > 0
+			IF LOCAL:3 == 最高ランク:LOCAL
+				SIF LOCAL:2 > 所持ステート:LOCAL
+					CONTINUE
+			ENDIF
+			IF 最高ランク:LOCAL >= LOCAL:3
+				LOCAL:1 = LOCAL
+				LOCAL:2 = 所持ステート:LOCAL
+				LOCAL:3 = 最高ランク:LOCAL 
+			ENDIF
+		ENDIF
+	NEXT
+	VARSET 適正ステート
+	適正ステート = LOCAL:1
+ELSE
+	VARSET 適正ステート
+	適正ステート = 0
+ENDIF
+RETURN 適正ステート
+
+;====================================================
+;装備強化
+;====================================================
+@装備強化_CSTR, ARGS, ARG, ARG:1, ARGS:1, ARGS:2, ARG:2 = -1
+;ARG キャラ番号　ARG:1 装備番号　ARGS:1 分類　ARGS:2 指定　ARG:2 強化値
+#DIM LCOUNT, 2
+#DIM DYNAMIC MEMO, 10
+#DIMS DYNAMIC MEMOS, 10
+
+#DIMS 強化展開, 10
+#DIMS 装備番号
+#DIMS 分類
+#DIMS 指定
+#DIM 強化値
+#DIMS DYNAMIC 選択肢
+
+SIF ARG < 0
+	RETURN 
+SIF !SOFT_ON("魔装術")
+	RETURN 
+
+SELECTCASE ARGS
+CASE "強化数"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 
+	VARSET LOCALS
+	;記録の分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	MEMO:9 = 0
+	;記録は100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		MEMO:9 += 1
+	NEXT
+	RETURN MEMO:9
+
+CASE "解除"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	;指定記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+			MEMOS:1 = %ARGS:1%
+	;		MEMOS:2 = %ARGS:2%
+	;		MEMOS:3 = %TOSTR(ARG:2)%
+	ENDIF
+	MEMOS:9 = 
+
+	;100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+	;	分類 = %強化展開:1%
+	;	指定 = %強化展開:2%
+	;	強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS == 装備番号
+			CONTINUE
+		ELSE
+			MEMOS:9 = %MEMOS:9%%LOCALS:LCOUNT%/
+		ENDIF
+	NEXT
+
+	CSTR:ARG:装備強化 = %MEMOS:9%
+	;PRINTFORML 装備強化 = %CSTR:ARG:装備強化%
+
+CASE "全解除：能力のみ"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	;指定記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+			MEMOS:1 = %ARGS:1%
+	;		MEMOS:2 = %ARGS:2%
+	;		MEMOS:3 = %TOSTR(ARG:2)%
+	ENDIF
+	MEMOS:9 = 
+
+	;100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+	;	指定 = %強化展開:2%
+	;	強化値 = TOINT(強化展開:3)
+
+		;指定
+		IF (分類 == "能力強化" || 分類 == "耐性強化")
+			CONTINUE
+		ELSE
+			MEMOS:9 = %MEMOS:9%%LOCALS:LCOUNT%/
+		ENDIF
+	NEXT
+
+	CSTR:ARG:装備強化 = %MEMOS:9%
+	;PRINTFORML 装備強化 = %CSTR:ARG:装備強化%
+
+CASE "書き込み"
+	SIF ARG:2 == -1
+		RETURN 
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	;指定記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+			MEMOS:1 = %ARGS:1%
+			MEMOS:2 = %ARGS:2%
+			MEMOS:3 = %TOSTR(ARG:2)%
+	ENDIF
+	MEMOS:9 = 
+
+	;100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		SIF MEMOS:1 == "攻撃相性" || MEMOS:1 == "追加効果"
+			指定 = %MEMOS:2%
+		強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS != "" && MEMOS == 装備番号 && MEMOS:1 == 分類 && MEMOS:2 == 指定 
+			;装備番号:分類:指定:強化値 となっている
+			MEMO = ARG:2
+			SIF 分類 == "強化段階" && ARG:2 != 0
+				MEMO = 強化値 + ARG:2
+			IF MEMO == 0 
+				;MEMOS初期化
+				MEMOS = 
+				CONTINUE
+			ENDIF
+			LOCALS:LCOUNT = %MEMOS%:%MEMOS:1%:%MEMOS:2%:%TOSTR(MEMO)%
+			;MEMOSは初期化
+			MEMOS = 
+			;記録する文字列を再構築
+			MEMOS:9 = %LOCALS:LCOUNT%/%MEMOS:9%
+		ELSE
+			MEMOS:9 = %MEMOS:9%%LOCALS:LCOUNT%/
+		ENDIF
+	NEXT
+
+	;初ならMEMOSは入っている
+	SIF MEMOS != "" && !(ARG:2 == 0)
+		MEMOS:9 = %MEMOS%:%MEMOS:1%:%MEMOS:2%:%TOSTR(ARG:2)%/%MEMOS:9%
+
+	CSTR:ARG:装備強化 = %MEMOS:9%
+	;PRINTFORML 装備強化 = %CSTR:ARG:装備強化%
+
+CASE "表示"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 
+	FOR LOCAL:1 , 0 , 7
+		SIF EQUIP:ARG:GET_EQUIP(LOCAL:1) < 2000
+			CONTINUE
+		CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "強化段階", "LV"
+		強化値 = RESULT
+		IF 強化値 > 1
+			LOCALS = ◇%ITEMNAME_E(EQUIP:ARG:GET_EQUIP(LOCAL:1)),16,LEFT%
+			IF ARGS:1 == "選択"
+			;	PRINTBUTTON LOCALS, EQUIP:ARG:GET_EQUIP(LOCAL:1)
+				PRINTFORM [{EQUIP:ARG:GET_EQUIP(LOCAL:1)}]
+				PRINTFORM 　%LOCALS%
+				PRINTFORML 　Lv:{強化値}
+				選択肢 += TOSTR(EQUIP:ARG:GET_EQUIP(LOCAL:1)) + "/"
+			ELSE
+				PRINTFORML ◇%ITEMNAME_E(EQUIP:ARG:GET_EQUIP(LOCAL:1)),16,LEFT%　Lv:{強化値}
+			ENDIF
+		ENDIF
+		MEMO = 0
+		MEMO:1 = 0
+		MEMO:2 = 0
+		MEMO:3 = 0
+
+		CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "攻撃相性", "付与相性"
+		IF RESULT > -1
+			SIF ARGS:1 == "選択"
+				PRINT 　　　　
+			PRINT 　<Secondary attack>　　　
+			;攻撃相性
+			PRINTFORM 　Type　%GET_TYPE_E(RESULT),4%　　
+			;属性付与
+			CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "攻撃相性", "付与確率"
+			PRINTFORM Chance　{RESULT,2}％　
+			;付与確率
+			PRINTL
+		ENDIF
+		CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "追加効果", "ステート"
+		IF GET_STATE(RESULT) != "GOOD"
+			SIF ARGS:1 == "選択"
+				PRINT 　　　　
+			PRINT 　<Added effect>　　　
+			;追加効果
+			PRINTFORM 　%GET_STATE(RESULT),16,LEFT%　
+			CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "追加効果", "基本命中"
+			PRINTFORM Chance　{RESULT,2}％　
+			;付与確率
+			PRINTL
+		ENDIF
+
+		FOR LOCAL,0,FLAG:戦闘能力数 +2
+			CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "戦闘能力修正", GET_BATTLESTATUS(LOCAL)
+			IF RESULT != 0
+				IF MEMO:1 == 0
+					SIF ARGS:1 == "選択"
+						PRINT 　　　　
+					PRINT 　<Stat enhancement>　　　
+					;能力強化
+					MEMO:1 = 1
+				ENDIF
+				PRINTFORM 　%GET_BATTLESTATUS_E(LOCAL),4,LEFT%　
+				SIF RESULT < 0
+					SETCOLOR 0xEE1010
+				PRINTFORM {RESULT,4}　
+				RESETCOLOR
+			ENDIF
+		NEXT
+		SIF MEMO:1 != 0
+			PRINTL
+		FOR LOCAL,0,FLAG:相性数
+			SIF (TALENT:ARG:ペルソナ使い || ABL:ARG:種族 == 36)
+				SETCOLOR COLOR("gray")
+			CALL 装備強化_展開, ARG, EQUIP:ARG:GET_EQUIP(LOCAL:1), "防御相性", GET_TYPE(LOCAL)
+			IF RESULT != 0
+				IF MEMO:2 == 0
+					SIF ARGS:1 == "選択"
+						PRINT 　　　　
+					PRINT 　<Resistance enhancement>　　　
+					;耐性強化
+					MEMO:2 = 1
+				ENDIF
+				PRINTFORM 　%GET_TYPE_E(LOCAL),4,LEFT%
+				SETCOLOR COLOR("LIGHT-GRAY")
+				IF RESULT == 999
+					PRINT 　Refl　
+					;反射
+				ELSE
+					PRINTFORM  %\@(RESULT < 0) ? Dr # 　\@%{ABS(RESULT),3}　
+					;吸
+				ENDIF
+				RESETCOLOR
+			ENDIF
+		NEXT
+		SIF MEMO:2 != 0
+			PRINTL
+	NEXT
+	SIF ARGS:1 == "選択"
+		RESULTS = %選択肢%
+
+CASE "表示：不装備"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	MEMOS:9 = 
+	;100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		強化値 = TOINT(強化展開:3)
+
+		TRYCALLFORM 装備箇所_%装備番号%
+		SIF EQUIP:ARG:GET_EQUIP(RESULT) == TOINT(装備番号)
+			CONTINUE
+		IF 装備番号 != "" && 分類 == "強化段階" && 指定 == "EXP" && 強化値 > 100
+			CALL 装備強化_展開, ARG, TOINT(装備番号), "強化段階", "LV"
+			強化値 = RESULT
+			MEMOS:0 = ◇%ITEMNAME_E(TOINT(装備番号)),16,LEFT%
+			IF ARGS:1 == "選択"
+			;	PRINTBUTTON MEMOS:0, TOINT(装備番号)
+				PRINTFORM [{TOINT(装備番号)}]
+				PRINTFORM 　%MEMOS:0%
+				PRINTFORML 　Lv:{強化値}
+				選択肢 += 装備番号 + "/"
+			ELSE
+				PRINTFORML ◇%ITEMNAME_E(TOINT(装備番号)),16,LEFT%　Lv:{強化値}
+			ENDIF
+			MEMO:1 = 0
+			MEMO:2 = 0
+
+			CALL 装備強化_展開, ARG, TOINT(装備番号), "攻撃相性", "付与相性"
+			IF RESULT > -1
+				SIF ARGS:1 == "選択"
+					PRINT 　　　　
+				PRINT 　<Secondary attack>　　　
+				;攻撃相性
+				PRINTFORM 　Type　%GET_TYPE_E(RESULT),4%　　
+				;属性付与
+				CALL 装備強化_展開, ARG, TOINT(装備番号), "攻撃相性", "付与確率"
+				PRINTFORM Chance　{RESULT,2}％　
+				;付与確率
+				PRINTL
+			ENDIF
+			CALL 装備強化_展開, ARG, TOINT(装備番号), "追加効果", "ステート"
+			IF GET_STATE(RESULT) != "GOOD"
+				SIF ARGS:1 == "選択"
+					PRINT 　　　　
+				PRINT 　<Added effect>　　　
+				;追加効果
+				PRINTFORM 　%GET_STATE(RESULT),16,LEFT%　
+				CALL 装備強化_展開, ARG, TOINT(装備番号), "追加効果", "基本命中"
+				PRINTFORM Chance　{RESULT,2}％　
+				;付与確率
+				PRINTL
+			ENDIF
+
+			FOR LOCAL,0,FLAG:戦闘能力数 +2
+				CALL 装備強化_展開, ARG, TOINT(装備番号), "戦闘能力修正", GET_BATTLESTATUS(LOCAL)
+				IF RESULT != 0
+					IF MEMO:1 == 0
+						SIF ARGS:1 == "選択"
+							PRINT 　　　　
+						PRINT 　<Stat enhancement>　　　
+						;能力強化
+						MEMO:1 = 1
+					ENDIF
+					PRINTFORM 　%GET_BATTLESTATUS_E(LOCAL),4,LEFT%　
+					SIF RESULT < 0
+						SETCOLOR 0xEE1010
+					PRINTFORM {RESULT,4}　
+					RESETCOLOR
+				ENDIF
+			NEXT
+			SIF MEMO:1 != 0
+				PRINTL
+			FOR LOCAL,0,FLAG:相性数
+				CALL 装備強化_展開, ARG, TOINT(装備番号), "防御相性", GET_TYPE(LOCAL)
+				IF RESULT != 0
+					IF MEMO:2 == 0
+						SIF ARGS:1 == "選択"
+							PRINT 　　　　
+						PRINT 　<Resistance enhancement>　　　
+						;耐性強化
+						MEMO:2 = 1
+					ENDIF
+					PRINTFORM 　%GET_TYPE_E(LOCAL),4,LEFT%
+					SETCOLOR COLOR("LIGHT-GRAY")
+					IF RESULT == 999
+						PRINT 　Refl　
+						;反射
+					ELSE
+						PRINTFORM  %\@(RESULT < 0) ? Dr # 　\@%{ABS(RESULT),3}　
+						;吸
+					ENDIF
+					RESETCOLOR
+				ENDIF
+			NEXT
+			SIF MEMO:2 != 0
+				PRINTL
+		ENDIF
+	NEXT
+	SIF ARGS:1 == "選択"
+		RESULTS = %選択肢%
+
+CASE "解説表示"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 
+	CALL 装備強化_展開, ARG, ARG:1, "強化段階", "LV"
+	SIF RESULT <= 1
+		RETURN 
+	強化値 = RESULT
+	PRINTFORML 　◇ %ITEMNAME_E(ARG:1),16,LEFT%　Lv:{強化値}
+
+	IF ARG:1 >= 2000 && ARG:1 < 2500
+		CALL 装備強化_展開, ARG, ARG:1, "攻撃相性", "付与相性"
+		IF RESULT > -1
+			PRINT 　　<Secondary attack>　
+			;攻撃相性
+			PRINTFORM 　Type　%GET_TYPE_E(RESULT),4%　　
+			CALL 装備強化_展開, ARG, ARG:1, "攻撃相性", "付与確率"
+			PRINTFORM Chance　{RESULT,2}％　
+			PRINTL
+		ENDIF
+		CALL 装備強化_展開, ARG, ARG:1, "追加効果", "ステート"
+		IF GET_STATE(RESULT) != "GOOD"
+			PRINT 　　<Added effect>　
+			PRINTFORM 　%GET_STATE(RESULT),16,LEFT%　
+			CALL 装備強化_展開, ARG, ARG:1, "追加効果", "基本命中"
+			PRINTFORM Chance　{RESULT,2}％　
+			PRINTL
+		ENDIF
+	ENDIF
+
+	MEMO:1 = 0
+	MEMO:2 = 0
+	FOR LOCAL,0,FLAG:戦闘能力数 +2
+		CALL 装備強化_展開, ARG, ARG:1, "戦闘能力修正", GET_BATTLESTATUS(LOCAL)
+		IF RESULT != 0
+			IF MEMO:1 == 0
+				PRINT 　　<Stat enhancement>　
+				MEMO:1 = 1
+			ENDIF
+			PRINTFORM 　%GET_BATTLESTATUS_E(LOCAL),4,LEFT%　
+			SIF RESULT < 0
+				SETCOLOR 0xEE1010
+			PRINTFORM {RESULT,4}　
+			RESETCOLOR
+		ENDIF
+	NEXT
+	SIF MEMO:1 != 0
+		PRINTL
+	FOR LOCAL,0,FLAG:相性数
+		CALL 装備強化_展開, ARG, ARG:1, "防御相性", GET_TYPE(LOCAL)
+		IF RESULT != 0
+			IF MEMO:2 == 0
+				PRINT 　　<Resistance enhancement>　
+				MEMO:2 = 1
+			ENDIF
+			PRINTFORM 　%GET_TYPE_E(LOCAL),4,LEFT%
+			CALL SET_AISYOU_COLOR, RESULT
+			IF RESULT == 999
+				PRINT 　Refl　
+			ELSE
+				PRINTFORM  %\@(RESULT < 0) ? Dr # 　\@%{ABS(RESULT),3}　
+			ENDIF
+			RESETCOLOR
+		ENDIF
+	NEXT
+	SIF MEMO:2 != 0
+		PRINTL
+
+ENDSELECT
+
+@装備強化_展開, ARG, ARG:1, ARGS:1, ARGS:2, ARG:2 = -1
+;ARG キャラ番号　ARG:1 装備番号　ARGS:1 分類　ARGS:2 指定　ARG:2 装備基本値(これにプラス)
+#DIM LCOUNT, 2
+#DIM DYNAMIC MEMO, 10
+#DIMS DYNAMIC MEMOS, 10
+
+#DIMS 強化展開, 10
+#DIM キャラ番号
+#DIMS 装備番号
+#DIMS 分類
+#DIMS 指定
+#DIM 強化値
+#DIM 能力強化値,10
+;0 攻撃　1 命中　2 防御　3 回避　4 魔法威力　5 魔法効果
+
+SIF ARG < 0
+	RETURN 
+
+IF !SOFT_ON("魔装術")
+	SELECTCASE ARGS:1
+	CASE "戦闘能力修正"
+		SIF ARG:1 == 0
+			RETURN 0
+		SIF ARG:2 != -1
+			RETURN ARG:2
+		SIF ARG:2 == -1
+			RETURN 0
+	CASE "防御相性"
+		SIF ARG:1 == 0
+			RETURN 100
+		SIF ARG:2 != -1
+			RETURN ARG:2
+		SIF ARG:2 == -1
+			RETURN 100
+	CASE "攻撃相性"
+		RETURN 0
+	CASE "追加効果"
+		RETURN 0
+	ENDSELECT
+ENDIF
+
+SELECTCASE ARGS:1
+CASE "戦闘能力修正"
+
+	SIF ARG:1 == 0
+		RETURN 0
+	SIF CSTR:ARG:装備強化 == "" && ARG:2 != -1
+		RETURN ARG:2
+	SIF CSTR:ARG:装備強化 == "" && ARG:2 == -1
+		RETURN 0
+
+	VARSET LOCALS
+	;記録の分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+
+	;指定の記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+		;	MEMOS:1 = %ARGS:1%
+			MEMOS:1 = 能力強化
+			MEMOS:2 = %ARGS:2%
+			MEMOS:3 = %TOSTR(ARG:2)%
+	ENDIF
+
+	;100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS != "" && MEMOS == 装備番号 && MEMOS:1 == 分類 && MEMOS:2 == 指定 
+			;装備番号:分類:指定:強化値 となっているので抜き出しす
+			SIF ARG:2 != -1
+				RETURN 強化値 + ARG:2
+			RETURN 強化値
+		ENDIF
+	NEXT
+	SIF ARG:2 != -1
+		RETURN ARG:2
+	RETURN 0
+
+CASE "防御相性"
+	SIF ARG:1 == 0
+		RETURN 100
+	SIF CSTR:ARG:装備強化 == "" && ARG:2 != -1
+		RETURN ARG:2
+	SIF CSTR:ARG:装備強化 == "" && ARG:2 == -1
+		RETURN 100
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	;指定の記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+		;	MEMOS:1 = %ARGS:1%
+			MEMOS:1 = 耐性強化
+			MEMOS:2 = %ARGS:2%
+			MEMOS:3 = %TOSTR(ARG:2)%
+	ENDIF
+	;記録は100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS != "" && MEMOS == 装備番号 && MEMOS:1 == 分類 && MEMOS:2 == 指定 
+			SIF 強化値 == 999
+				RETURN 強化値
+			SIF ARG:2 > 0 
+				RETURN ARG:2 - 強化値
+			RETURN 強化値
+		ENDIF
+	NEXT
+			SIF ARG:2 != -1
+				RETURN ARG:2
+			RETURN 0
+
+CASE "攻撃相性"
+;ARG キャラ番号　ARG:1 装備番号　ARGS:1 分類　ARGS:2 指定　ARG:2 装備基本値
+	SIF ARG:1 == 0
+		RETURN 0
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	;指定の記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+			MEMOS:1 = %ARGS:1%
+			MEMOS:2 = %ARGS:2%
+		;	指定 = %ARGS:2%
+	ENDIF
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS != "" && MEMOS == 装備番号 && MEMOS:1 == 分類 ;&& MEMOS:2 == 指定 
+			IF MEMOS:2 == "付与相性"
+				RETURN GET_TYPE_NUM(指定)
+			ElSEIF MEMOS:2 == "付与確率"
+				RETURN 強化値
+			ElSEIF MEMOS:2 == "属性付与"
+				IF 強化値 >= RAND:100
+					RETURN 1
+				ENDIF
+				RETURN 0
+			ENDIF
+		ENDIF
+	NEXT
+			IF MEMOS:2 == "付与相性"
+				RETURN -1
+			ElSEIF MEMOS:2 == "付与確率"
+				RETURN 0
+			ENDIF
+			SIF ARGS:2 != ""
+					RETURN 0
+			RETURN -1
+
+CASE "追加効果"
+	;	FREEZE	20%
+	;	SHOCK	20%
+	;	POISON 	20%
+	;	SLEEP 	25%
+	;	PANIC 	25%
+	;	HAPPY 	35%
+	;	BIND 	25%
+	;	CHARM 	20%
+	SIF ARG:1 == 0
+		RETURN 0
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+	;指定の記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+			MEMOS:1 = %ARGS:1%
+		;	MEMOS:1 = 追加効果
+			MEMOS:2 = %ARGS:2%
+		;	指定 = %ARGS:2%
+	ENDIF
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS != "" && MEMOS == 装備番号 && MEMOS:1 == 分類 ;&& MEMOS:2 == 指定 
+			IF MEMOS:2 == "ステート"
+				RETURN GET_STATE_NUM(指定)
+			ElSEIF MEMOS:2 == "効果相性"
+				IF 指定 == "FREEZE"
+					RETURN GET_TYPE_NUM("氷結")
+				ELSEIF 指定 == "SHOCK"
+					RETURN GET_TYPE_NUM("電撃")
+				ELSEIF 指定 == "POISON" || 指定 == "BIND" || 指定 == "CLOSE" || 指定 == "PLYZE"
+					RETURN GET_TYPE_NUM("神経")
+				ELSEIF 指定 == "SLEEP" || 指定 == "PANIC" || 指定 == "HAPPY" || 指定 == "CHARM"
+					RETURN GET_TYPE_NUM("精神")
+				ENDIF
+			ElSEIF MEMOS:2 == "基本命中"
+				RETURN 強化値
+			ElSEIF MEMOS:2 == "最大命中"
+					RETURN 95
+			ENDIF
+		ENDIF
+	NEXT
+			SIF ARGS:2 != ""
+					RETURN 0
+			RETURN 0
+
+CASE "強化段階"
+	SIF CSTR:ARG:装備強化 == ""
+		RETURN 1
+	VARSET LOCALS
+	;分解
+	SPLIT CSTR:ARG:装備強化, "/", LOCALS
+
+	;指定記録
+	IF MEMOS == ""
+			MEMOS = %TOSTR(ARG:1)%
+		;	MEMOS:1 = %ARGS:1%
+			MEMOS:1 = 強化段階
+			MEMOS:2 = %ARGS:2%
+			MEMOS:3 = %TOSTR(ARG:2)%
+	ENDIF
+	;100まで
+	FOR LCOUNT, 0, 100
+		SIF LOCALS:LCOUNT == ""
+			BREAK
+		VARSET 強化展開
+		SPLIT LOCALS:LCOUNT, ":", 強化展開
+		装備番号 = %強化展開:0%
+		分類 = %強化展開:1%
+		指定 = %強化展開:2%
+		強化値 = TOINT(強化展開:3)
+
+		;指定と同じものを
+		IF MEMOS != "" && MEMOS == 装備番号 && MEMOS:1 == 分類 ;&& MEMOS:2 == 指定 
+			SIF 指定 == "EXP" && MEMOS:2 == 指定
+				RETURN 強化値
+			SIF 指定 == "保存強化値" && MEMOS:2 == 指定
+				RETURN 強化値
+			IF MEMOS:2 == "LV" || MEMOS:2 == "NEXT"
+				MEMO = 0
+				MEMO:1 = 0
+				WHILE 強化値 > MEMO:1
+					MEMO += 1
+					MEMO:1 = 5 * MEMO * (MEMO+1) * (MEMO+2) / 3
+				;	PRINTFORML Lv：{MEMO}　　NEXT:{MEMO:1}/EXP:{強化値}
+				WEND
+				SIF MEMOS:2 == "LV"
+					RETURN MIN(BASE:ARG:LV , MEMO , 99)
+				SIF MEMOS:2 == "NEXT"
+					RETURN MEMO:1 - 強化値
+			ENDIF
+		ENDIF
+	NEXT
+		RETURN 1
+ENDSELECT
+

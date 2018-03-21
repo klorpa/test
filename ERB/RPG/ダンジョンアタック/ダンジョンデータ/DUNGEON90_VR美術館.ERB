@@ -1,0 +1,1835 @@
+;作業環境:ver0.295　適用パッチ:修正パッチ9　最終更新:2011/08/14
+;=======================================================================
+;ＶＲ美術館
+;ボス・スナッピー
+;ダンジョンナンバー90　ＭＡＰ0~6
+;登場悪魔レベル15~19　ボスレベル24
+;=======================================================================
+;ダンジョンフラグ:(FLAG:現ダンジョン):0 調教イベント深度
+;ダンジョンフラグ:(FLAG:現ダンジョン):1 イベント進行状況 1 駒集め前で再挑戦時  2 駒集め開始 3 スナッピー撃破後 4 スナッピー取引後
+;ダンジョンフラグ:(FLAG:現ダンジョン):2 イベント進行状況 ナイトの駒
+;ダンジョンフラグ:(FLAG:現ダンジョン):3 イベント進行状況 ルークの駒
+;ダンジョンフラグ:(FLAG:現ダンジョン):4 イベント進行状況 ビショップの駒
+;ダンジョンフラグ:(FLAG:現ダンジョン):5 通行人会話用
+;ダンジョンフラグ:(FLAG:現ダンジョン):6 すなっぴーが命乞いした？
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_90
+IF ダンジョンフラグ:90:1 == 3
+	RETURN 0
+;ED達成後消滅の用意だけ
+;ELSEIF FLAG:5 == 9
+;	RETURN 0
+ELSEIF BASE:MASTER:LV >= 15
+	RETURN 1
+ENDIF
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_90
+RESULTS = ＶＲ Art Museum
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_90
+PRINT ＶＲ Art Museum
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL １Ｆ
+	CASE 1
+		PRINTL ２Ｆ
+	CASE 2
+		PRINTL 幽滝
+	CASE 3
+		PRINTL ストレンジエリア
+	CASE 4
+		PRINTL 窓辺のチェス
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_90_1_12_8
+RESULTS = Ｔ
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_90,ARG
+FLAG:現M = 0
+FLAG:現X = 8
+FLAG:現Y = 10
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_90
+IF ダンジョンフラグ:90:1 == 0
+	PRINTFORML 天海市で行方不明になった少女の捜索依頼が入った
+	PRINTFORML ただの家出人捜索等はサマナーを使うまでの仕事ではないだろうが…
+	PRINTFORML 今回、入り込んできた依頼は外部からの仲介者を介している
+	PRINTFORML 近頃売り出している仮想空間都市パラダイムX
+	PRINTFORML その開発には組織も深く関わっていると聞いている
+	PRINTFORML そして少女は失踪直前までパラダイムXにログインしていたらしい
+	PRINTFORML 組織の機密に関わる可能性があるのであれば、外部の人間には極力任せたくはない
+	PRINTFORML 失踪時にモニターに映っていた場所では、依頼の少女に似た姿の目撃例も寄せられている
+	PRINTFORML パラダイムX内に悪魔が潜んでいれば、悪魔退治の専門家である%NAME:MASTER%と仲魔達が戦うしかない
+	PRINTFORML しかしながら、この事が組織への背任行為にならなければ良いのだが…
+	PRINTFORML %NAME:MASTER%は一抹の不安を抱きながらも、仲介する人物が手配したハッカーの手を借りて
+	PRINTFORMW プログラム内部で実体化するべく電脳空間の海へと身を躍らせた……
+	ダンジョンフラグ:90:1 = 1
+	ダンジョンフラグ:90:5 = 1
+ELSEIF ダンジョンフラグ:90:1 <= 2
+	PRINTFORML 少女の救出は、まだ完了していない
+	PRINTFORMW 早急に解決しなければ、%NAME:MASTER%の評判にも響くかもしれない……
+ELSE
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_90,ARG,ARG:1
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_90
+SELECTCASE FLAG:現M
+	CASE 0
+	;１階
+		FLAG:最大X = 17
+		FLAG:最大Y = 12
+;X座標をこんな形でふっとくと、見やすいかもしれません
+;							     01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1,"      1   1      "
+		CALL MAKE_FLOOR_LINE, 2,"      1   1      "
+		CALL MAKE_FLOOR_LINE, 3,"      1   1      "
+		CALL MAKE_FLOOR_LINE, 4,"      1 6 1      "
+		CALL MAKE_FLOOR_LINE, 5,"      1 1 1      "
+		CALL MAKE_FLOOR_LINE, 6,"     1111111     "
+		CALL MAKE_FLOOR_LINE, 7," 111111111111111 "
+		CALL MAKE_FLOOR_LINE, 8,"     1111111     "
+		CALL MAKE_FLOOR_LINE, 9,"      11111      "
+		CALL MAKE_FLOOR_LINE,10,"       111       "
+		CALL MAKE_FLOOR_LINE,11,"        8        "
+
+		;IDセット
+		DA:8:4 += 10
+
+		CALL SET_TILE, 8, 5,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE, 1, 7,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,15, 7,ダンジョンフラグ:(FLAG:現ダンジョン):1,2, 4
+		CALL SET_TILE, 6, 1,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,10, 1,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,10, 8,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+		CALL SET_TILE, 7, 6,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+
+	CASE 1
+	;２階
+		FLAG:最大X = 17
+		FLAG:最大Y = 15
+;								 01234567890123456
+		CALL MAKE_FLOOR_LINE, 0,"                 "
+		CALL MAKE_FLOOR_LINE, 1,"       111       "
+		CALL MAKE_FLOOR_LINE, 2,"       111       "
+		CALL MAKE_FLOOR_LINE, 3,"        2        "
+		CALL MAKE_FLOOR_LINE, 4,"        1        "
+		CALL MAKE_FLOOR_LINE, 5,"     11 1 11     "
+		CALL MAKE_FLOOR_LINE, 6," 111111 1 111111 "
+		CALL MAKE_FLOOR_LINE, 7,"     1111111     "
+		CALL MAKE_FLOOR_LINE, 8,"    111111119    "
+		CALL MAKE_FLOOR_LINE, 9,"     1111111     "
+		CALL MAKE_FLOOR_LINE,10," 111111111111111 "
+		CALL MAKE_FLOOR_LINE,11,"     1111111     "
+		CALL MAKE_FLOOR_LINE,12,"      11111      "
+		CALL MAKE_FLOOR_LINE,13,"        7        "
+		CALL MAKE_FLOOR_LINE,14,"                 "
+
+		;IDセット
+		DA:8:13 += 10
+
+		;イベントの設置
+		CALL SET_TILE, 1,10,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,4
+		CALL SET_TILE, 1, 6,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,15, 6,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,15,10,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,4
+		CALL SET_TILE, 8, 1,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE, 8, 1,ダンジョンフラグ:(FLAG:現ダンジョン):1,4,14
+		CALL SET_TILE, 8, 3,ダンジョンフラグ:(FLAG:現ダンジョン):1,1,14
+		CALL SET_TILE, 8, 3,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE, 7,12,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+		CALL SET_TILE,10, 7,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+
+
+	CASE 2
+	;幽滝
+		FLAG:最大X = 18
+		FLAG:最大Y = 18
+;								 012345678901234567
+		CALL MAKE_FLOOR_LINE, 0,"                  "
+		CALL MAKE_FLOOR_LINE, 1," 111111 111       "
+		CALL MAKE_FLOOR_LINE, 2,"    1   111  1111 "
+		CALL MAKE_FLOOR_LINE, 3," 111111 111 111 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1  1 1  1  111 1 "
+		CALL MAKE_FLOOR_LINE, 5," 1   111 1  11  1 "
+		CALL MAKE_FLOOR_LINE, 6," 11  111 1      1 "
+		CALL MAKE_FLOOR_LINE, 7,"  1      1      1 "
+		CALL MAKE_FLOOR_LINE, 8,"  1     111111111 "
+		CALL MAKE_FLOOR_LINE, 9,"  111111111       "
+		CALL MAKE_FLOOR_LINE,10," 11     1 1 1 111 "
+		CALL MAKE_FLOOR_LINE,11," 1  111 1 1 1 111 "
+		CALL MAKE_FLOOR_LINE,12," 1  111 1 1111 1  "
+		CALL MAKE_FLOOR_LINE,13," 11  1  1  1 111  "
+		CALL MAKE_FLOOR_LINE,14,"  1  1 111 1 1    "
+		CALL MAKE_FLOOR_LINE,15,"  1111 111 1 11   "
+		CALL MAKE_FLOOR_LINE,16,"    11 141 1  11  "
+		CALL MAKE_FLOOR_LINE,17,"                  "
+
+		CALL SET_TILE,9,1,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,2,9,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,8,9,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,5,11,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,6,6,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,12,4,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,15,10,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,10,9,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+
+
+	CASE 3
+	;ストレンジエリア
+		FLAG:最大X = 18
+		FLAG:最大Y = 18
+;								 012345678901234567
+		CALL MAKE_FLOOR_LINE, 0,"                  "
+		CALL MAKE_FLOOR_LINE, 1," 111111111111 4 1 "
+		CALL MAKE_FLOOR_LINE, 2," 11111 141111 1 1 "
+		CALL MAKE_FLOOR_LINE, 3," 1111111111 1 1 1 "
+		CALL MAKE_FLOOR_LINE, 4," 111111111111 1 4 "
+		CALL MAKE_FLOOR_LINE, 5," 1111 141  111    "
+		CALL MAKE_FLOOR_LINE, 6," 11111 4 41 11111 "
+		CALL MAKE_FLOOR_LINE, 7," 111114  11 11111 "
+		CALL MAKE_FLOOR_LINE, 8," 1111111     1111 "
+		CALL MAKE_FLOOR_LINE, 9," 1111111111111111 "
+		CALL MAKE_FLOOR_LINE,10," 11111 1111111 11 "
+		CALL MAKE_FLOOR_LINE,11," 1111111111111111 "
+		CALL MAKE_FLOOR_LINE,12," 111 1111411 11   "
+		CALL MAKE_FLOOR_LINE,13," 1  4  111111   4 "
+		CALL MAKE_FLOOR_LINE,14," 1 414 111111 411 "
+		CALL MAKE_FLOOR_LINE,15," 11   1111111   1 "
+		CALL MAKE_FLOOR_LINE,16," 11111111111111 1 "
+		CALL MAKE_FLOOR_LINE,17,"                  "
+
+		CALL SET_TILE,16,1,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,16,16,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,14,4,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,2,9,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,13,5,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,4,9,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+
+
+	CASE 4
+	;窓辺のチェス
+		FLAG:最大X = 18
+		FLAG:最大Y = 18
+;								 012345678901234567
+		CALL MAKE_FLOOR_LINE, 0,"                  "
+		CALL MAKE_FLOOR_LINE, 1," 11 11111 1       "
+		CALL MAKE_FLOOR_LINE, 2,"  1111 1111       "
+		CALL MAKE_FLOOR_LINE, 3,"        1         "
+		CALL MAKE_FLOOR_LINE, 4,"    111111111     "
+		CALL MAKE_FLOOR_LINE, 5,"         1        "
+		CALL MAKE_FLOOR_LINE, 6,"     11111111     "
+		CALL MAKE_FLOOR_LINE, 7,"     11111111     "
+		CALL MAKE_FLOOR_LINE, 8,"     11111111     "
+		CALL MAKE_FLOOR_LINE, 9,"     11111111     "
+		CALL MAKE_FLOOR_LINE,10,"     11111111     "
+		CALL MAKE_FLOOR_LINE,11,"     11111111     "
+		CALL MAKE_FLOOR_LINE,12,"        1         "
+		CALL MAKE_FLOOR_LINE,13,"     111111111    "
+		CALL MAKE_FLOOR_LINE,14,"        1 1 1 1   "
+		CALL MAKE_FLOOR_LINE,15,"        111 1 11  "
+		CALL MAKE_FLOOR_LINE,16,"         11111114 "
+		CALL MAKE_FLOOR_LINE,17,"                  "
+
+		CALL SET_TILE,1,1,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,9,6,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,8,11,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,8,8,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,10,8,ダンジョンフラグ:(FLAG:現ダンジョン):1,2,14
+		CALL SET_TILE,10,9,ダンジョンフラグ:(FLAG:現ダンジョン):5,1,14
+
+
+	CASEELSE
+
+
+ENDSELECT
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_90
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+;% 10は10で割ったあまり、つまり下一桁がでてきます
+;そして、下一桁はタイルの種類を表す
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_90
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_90
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_90
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+
+
+ELSEIF ダンジョンフラグ:90:2 == 1 && ダンジョンフラグ:90:3 == 1 && ダンジョンフラグ:90:4 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒は３つ全て揃っている……
+	RETURN 0
+ELSEIF ダンジョンフラグ:90:2 == 1 && ダンジョンフラグ:90:3 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒はナイトとルークを持っている……
+	RETURN 0
+ELSEIF ダンジョンフラグ:90:2 == 1 && ダンジョンフラグ:90:4 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒はナイトとビショップを持っている……
+	RETURN 0
+ELSEIF ダンジョンフラグ:90:3 == 1 && ダンジョンフラグ:90:4 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒はルークとビショップを持っている……
+	RETURN 0
+ELSEIF ダンジョンフラグ:90:2 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒はナイトだけを持っている……
+	RETURN 0
+ELSEIF ダンジョンフラグ:90:3 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒はルークだけを持っている……
+	RETURN 0
+ELSEIF ダンジョンフラグ:90:4 == 1
+	PRINTFORMW %NAME:MASTER%はポケットの中の駒を確認した
+	PRINTFORMW 必要な駒はビショップだけを持っている……
+	RETURN 0
+
+ELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_90,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 3
+	CALL TREASURE_90
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	CALL UPSTAIRS_90
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL DOWNSTAIRS_90
+	RETURN RESULT
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+
+;========
+;ワープの処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 15 && FLAG:現Y == 7
+				FLAG:現M = 2
+				FLAG:現X = 8
+				FLAG:現Y = 16
+			ENDIF
+		CASE 1
+			IF FLAG:現X == 15 && FLAG:現Y == 10
+				FLAG:現M = 4
+				FLAG:現X = 16
+				FLAG:現Y = 16
+			ELSEIF FLAG:現X == 1 && FLAG:現Y == 10
+				FLAG:現M = 3
+				FLAG:現X = 7
+				FLAG:現Y = 6
+			ENDIF
+		CASE 2
+			IF FLAG:現X == 8 && FLAG:現Y == 16
+				FLAG:現M = 0
+				FLAG:現X = 15
+				FLAG:現Y = 7
+			ENDIF
+		CASE 3
+			IF FLAG:現X == 7 && FLAG:現Y == 6
+				FLAG:現M = 1
+				FLAG:現X = 1
+				FLAG:現Y = 10
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 5
+				FLAG:現X = 9
+				FLAG:現Y = 6
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 6
+				FLAG:現X = 7
+				FLAG:現Y = 5
+			ELSEIF FLAG:現X == 6 && FLAG:現Y == 7
+				FLAG:現X = 4
+				FLAG:現Y = 13
+			ELSEIF FLAG:現X == 4 && FLAG:現Y == 13
+				FLAG:現X = 6
+				FLAG:現Y = 7
+			ELSEIF FLAG:現X == 5 && FLAG:現Y == 14
+				FLAG:現X = 16
+				FLAG:現Y = 13
+			ELSEIF FLAG:現X == 16 && FLAG:現Y == 13
+				FLAG:現X = 5
+				FLAG:現Y = 14
+			ELSEIF FLAG:現X == 3 && FLAG:現Y == 14
+				FLAG:現X = 14
+				FLAG:現Y = 1
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 1
+				FLAG:現X = 3
+				FLAG:現Y = 14
+			ELSEIF FLAG:現X == 14 && FLAG:現Y == 14
+				FLAG:現X = 16
+				FLAG:現Y = 4
+			ELSEIF FLAG:現X == 16 && FLAG:現Y == 4
+				FLAG:現X = 14
+				FLAG:現Y = 14
+			ELSEIF FLAG:現X == 8 && FLAG:現Y == 2
+				FLAG:現X = 9
+				FLAG:現Y = 12
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 12
+				FLAG:現X = 8
+				FLAG:現Y = 2
+
+
+			ENDIF
+		CASE 4
+			IF FLAG:現X == 16 && FLAG:現Y == 16
+				FLAG:現M = 1
+				FLAG:現X = 15
+				FLAG:現Y = 10
+			ENDIF
+	ENDSELECT
+
+	CALL MAKE_FLOOR, FLAG:現ダンジョン
+	CALL AUTOMAP
+	RETURN 1
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+
+	IF FLAG:現M == 2 && FLAG:現X == 9 && FLAG:現Y == 1
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 0
+			PRINTFORML チェス盤の上に、ナイトの駒が一つ置かれている
+			PRINTFORMW %NAME:MASTER%はナイトの駒をポケットに仕舞った……
+			ダンジョンフラグ:(FLAG:現ダンジョン):2 = 1
+		ELSE
+			PRINTFORML チェス盤の上には何も無い
+			PRINTFORMW ここに置いてあったナイトの駒は、既に手に入れている…………
+		ENDIF
+	ELSEIF FLAG:現M == 3 && FLAG:現X == 16 && FLAG:現Y == 1
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):3 == 0
+			PRINTFORML チェス盤の上に、ルークの駒が一つ置かれている
+			PRINTFORMW %NAME:MASTER%はルークの駒をポケットに仕舞った……
+			ダンジョンフラグ:(FLAG:現ダンジョン):3 = 1
+		ELSE
+			PRINTFORML チェス盤の上には何も無い
+			PRINTFORMW ここに置いてあったルークの駒は、既に手に入れている…………
+		ENDIF
+	ELSEIF FLAG:現M == 4 && FLAG:現X == 1 && FLAG:現Y == 1
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):4 == 0
+			PRINTFORML チェス盤の上に、ビショップの駒が一つ置かれている
+			PRINTFORMW %NAME:MASTER%はビショップの駒をポケットに仕舞った……
+			ダンジョンフラグ:(FLAG:現ダンジョン):4 = 1
+		ELSE
+			PRINTFORML チェス盤の上には何も無い
+			PRINTFORMW ここに置いてあったビショップの駒は、既に手に入れている…………
+		ENDIF
+
+
+	ELSEIF FLAG:現M == 1 && FLAG:現X == 8 && FLAG:現Y == 3
+
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 1 && ダンジョンフラグ:(FLAG:現ダンジョン):3 == 1 && ダンジョンフラグ:(FLAG:現ダンジョン):4 == 1
+			PRINTFORML %NAME:MASTER%が手に入れた駒をチェス盤の上に置くと、カチリと扉から音がした
+			PRINTFORMW 施錠の外れたドアを開け、室内へと進んだ……
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 <= 2
+			PRINTL 館内案内板によると、この部屋はイルカのスナッピーの立体絵画が展示されているらしいが、扉は固く閉ざされている
+			PRINTL 扉の横の台には、何故か駒の欠けたチェス盤が設置されている
+			PRINTW 盤上の駒を数えると、駒は３つ欠けている……
+			FLAG:現M = 1
+			FLAG:現X = 8
+			FLAG:現Y = 4
+			ダンジョンフラグ:(FLAG:現ダンジョン):1 = 2
+		ELSE
+		ENDIF
+
+
+	ELSEIF FLAG:現M == 0 && FLAG:現X == 10 && FLAG:現Y == 8
+			PRINTW スーツ姿の男がいる
+			PRINTL 「変な着ぐるみみたいな連中が、襲い掛かって来るんだよ…！」
+			PRINTW 「システム不備だ！　これは誰に抗議すればいいのかね…！？」
+
+	ELSEIF FLAG:現M == 0 && FLAG:現X == 7 && FLAG:現Y == 6
+			PRINTW 蓮に構えた若い男がいる
+			PRINTL 「イルカは平和の象徴のような生き物だって…？　物を知らねー奴だな」
+			PRINTW 「いいか？　連中にとってはな、集団リンチも、集団レイプも、日常茶飯事なのさ…！」
+
+	ELSEIF FLAG:現M == 1 && FLAG:現X == 7 && FLAG:現Y == 12
+			PRINTW 賢そうな中学生くらいの男の子がいる
+			PRINTW 「イルカって賢いから、自分の身を守るためなら嘘をついたりもすると思うんだ」
+
+	ELSEIF FLAG:現M == 1 && FLAG:現X == 10 && FLAG:現Y == 7
+			PRINTW 浪人生風の若い男がいる。
+			PRINTL 「ここに来るとさ、女の子の楽しげな声や…その…Ｈな声が聞こえるんだよ…」
+			PRINTW 「…やっぱり、溜まってるんだろうなぁ……」
+
+	ELSEIF FLAG:現M == 2 && FLAG:現X == 10 && FLAG:現Y == 9
+			PRINTW 露出の派手な若い女がいる
+			PRINTW 「寒ーい！　これじゃ、涼しいのを超えてるわよぉ…」
+
+	ELSEIF FLAG:現M == 3 && FLAG:現X == 4 && FLAG:現Y == 9
+			PRINTW 中年の女性がいる
+			PRINTL 「何よここ、ちっとも出れないじゃない…！」
+			PRINTW 「それにさっきから、変な連中がアタシに触ろうとしてんのよ。セクハラよ！」
+
+	ELSEIF FLAG:現M == 4 && FLAG:現X == 10 && FLAG:現Y == 9
+			PRINTW 途方にくれた様子の若い男がいる
+			PRINTL 「チクショウッ、ここにくれば中学生の無修正ビデオが手に入るって聞いたのに…」
+			PRINTL 「また騙された訳だが…。アンタもご同類…？　一体この場所は何なんだよ…」
+			PRINTW そっとしておこう……
+
+
+	ELSEIF FLAG:現M == 1 && FLAG:現X == 8 && FLAG:現Y == 1
+
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+			PRINTL 深い蒼色の海中の立体絵画の中には、縄で縛められたトモコが一人横たわっていた。
+			IF RAND:10 == 0
+				PRINTL トモコの腹は一目で判る程に歪に膨らんでいて、スナッピーか客の子を孕んでいるようだ。
+			ENDIF
+			PRINTFORM %NAME:MASTER%は
+			IF RAND:8 == 0
+				PRINT 遠慮無く
+			ELSEIF RAND:7 == 0
+				PRINT 容赦無く
+			ELSEIF RAND:6 == 0
+				PRINT 夢中で
+			ELSEIF RAND:5 == 0
+				PRINT 無造作に
+			ELSEIF RAND:4 == 0
+				PRINT 鼻息も荒く
+			ELSEIF RAND:3 == 0
+				PRINT 夢中で
+			ELSEIF RAND:2 == 0
+				PRINT 無造作に
+			ELSE
+				PRINT 鼻息も荒く
+			ENDIF
+			IF RAND:3 == 0
+				PRINT 破れた
+			ELSEIF RAND:2 == 0
+				PRINT 穴の開いた
+			ENDIF
+			IF RAND:4 == 0
+				PRINTL セーターを捲り上げて、ジーンズを足首まで下ろし、
+			ELSEIF RAND:3 == 0
+				PRINTL セーラー服とスカートを捲り上げて、
+			ELSEIF RAND:2 == 0
+				PRINTL ブレザーをはだけさせて、スカートを捲り上げ、
+			ELSE
+				PRINTL 半分脱がせたスクール水着の股布をずらし、
+			ENDIF
+			IF RAND:2 == 0
+				PRINT 陰りを剃り落とされた
+			ELSE
+				PRINT 薄い草むらに覆われた
+			ENDIF
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 24
+				IF RAND:6 == 0
+					PRINT ピアスが光る
+				ELSEIF RAND:5 == 0
+					PRINT 奴隷
+				ELSEIF RAND:4 == 0
+					PRINT 型崩れした
+				ELSEIF RAND:3 == 0
+					PRINT 使い込まれた
+				ELSEIF RAND:2 == 0
+					PRINT 黒ずんだ
+				ELSE
+					PRINT ビラのはみ出した
+				ENDIF
+			ELSE
+				IF RAND:5 == 0
+					PRINT 中学生の
+				ELSEIF RAND:4 == 0
+					PRINT 子供っぽい
+				ELSEIF RAND:3 == 0
+					PRINT 小便臭い
+				ELSEIF RAND:2 == 0
+					PRINT 可愛い
+				ELSE
+					PRINT 綺麗な
+				ENDIF
+			ENDIF
+			PRINTL 性器を露にした。
+			PRINT そして
+			IF RAND:6 == 0
+				PRINT 意識の無い
+			ELSEIF RAND:5 == 0
+				PRINT 震えている
+			ELSEIF RAND:4 == 0
+				PRINT 怯える
+			ELSEIF RAND:3 == 0
+				PRINT 発情している
+			ELSEIF RAND:2 == 0
+				PRINT 泣き叫ぶ
+			ELSE
+				PRINT 虚ろな目の
+			ENDIF
+			PRINT トモコの中に
+			IF RAND:3 == 0
+				PRINT 乱暴に
+			ELSEIF RAND:2 == 0
+				PRINT 深々と
+			ELSE
+				PRINT 易々と
+			ENDIF
+			;おちんちん有り
+			IF TALENT:MASTER:139 || TALENT:MASTER:140 || TALENT:MASTER:157
+				IF RAND:4 == 0
+					PRINTL 侵入する。
+				ELSEIF RAND:3 == 0
+					PRINTL 挿入する。
+				ELSEIF RAND:2 == 0
+					PRINTL 突っこむ。
+				ELSE
+					PRINTL ねじ込む。
+				ENDIF
+			ELSE
+				;サド
+				IF TALENT:MASTER:83
+					IF RAND:2 == 0
+						PRINTL 拳をねじ込む。
+					ELSE
+						PRINTL 極太のバイブを押し込む。
+					ENDIF
+				ELSE
+					IF RAND:2 == 0
+						PRINTL 指を挿れる。
+					ELSE
+						PRINTL バイブで貫く。
+					ENDIF
+				ENDIF
+			ENDIF
+			IF RAND:4 == 0
+				PRINTL 僅かな抵抗を貫き破ると、トモコは苦痛の呻きを漏らし、一筋の血がゆっくりと股を伝っていった。
+				PRINTL 気を利かせたスナッピーが、トモコの処女膜を再生させていたようだ。
+				PRINT 破瓜血に濡れる。
+			ELSEIF RAND:3 == 0
+				PRINT 先客のザーメンで滑る
+			ELSEIF RAND:2 == 0
+				PRINT まだ濡れていない
+			ELSE
+				PRINT 愛液溢れる
+			ENDIF
+			PRINT トモコの
+			IF RAND:2 == 0
+				IF RAND:4 == 0
+					PRINT 肉
+				ELSEIF RAND:3 == 0
+					PRINT 奴隷
+				ELSEIF RAND:2 == 0
+					PRINT 便所
+				ELSE
+					PRINT 牝
+				ENDIF
+				PRINT 穴を
+			ELSE
+				PRINT 膣を
+			ENDIF
+			PRINTFORM %NAME:MASTER%は
+			IF RAND:4 == 0
+				PRINT 自分勝手に
+			ELSEIF RAND:3 == 0
+				PRINT 夢中で
+			ELSEIF RAND:2 == 0
+				PRINT 堪能しながら
+			ELSE
+				PRINT 淡々と
+			ENDIF
+			IF RAND:4 == 0
+				PRINT 貪り
+			ELSEIF RAND:3 == 0
+				PRINT 味わい
+			ELSEIF RAND:2 == 0
+				PRINT 使用し
+			ELSE
+				PRINT かき回し
+			ENDIF
+			;おちんちん有り
+			IF TALENT:MASTER:139 || TALENT:MASTER:140 || TALENT:MASTER:157
+				IF RAND:4 == 0
+					PRINTL 射精した。
+				ELSEIF RAND:3 == 0
+					PRINTL 精を吐き出した。
+				ELSEIF RAND:2 == 0
+					PRINTL 獣欲の処理をした。
+				ELSE
+					PRINTL 種付けをした。
+				ENDIF
+				PRINTL 思いの他、便器を相手に時間を食ってしまったようだ……。
+				PRINTFORMW 精子をダラダラと垂れ流すトモコから離れて、%NAME:MASTER%は美術館を後にした。
+			ELSE
+				IF RAND:4 == 0
+					PRINTL 自慰に耽った。
+				ELSEIF RAND:3 == 0
+					PRINTL トモコの顔に秘処を押し付けた。
+				ELSEIF RAND:2 == 0
+					PRINTL トモコに尻穴を舐めさせた。
+				ELSE
+					PRINTL トモコの柔肌に針を突き立てた。
+				ENDIF
+				PRINTL 思いの他、便器を相手に時間を食ってしまったようだ……。
+				PRINTFORMW 体液をダラダラと垂れ流すトモコから離れて、%NAME:MASTER%は美術館を後にした。
+			ENDIF
+			CALL INCREASE_LD,-5
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 27
+			PRINTL 扉を開けた先は、胸が悪くなるような濃い性の臭気に満ちていた。
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、何匹もの悪魔、ガキが一斉にこちらに振り返る。
+			PRINTFORML %NAME:MASTER%の足が何かを蹴飛ばしてしまったようで、カランと軽い物音がした。
+			PRINTL 床を滑っていったそれは、トモコが掛けていた物と同じような眼鏡だった。
+			PRINTL 眼鏡の止まった先に持ち主であろう、トモコが居た。
+			PRINTL 寝そべっていたガキの腰の上で、ガクガクと突かれるに任せて揺れている。
+			PRINTL その腹部は、まるでガキの仲間の様に異様に膨らんでいた。
+			PRINTW 快楽の狂宴を邪魔されたガキ達は、怒りの叫びを上げながら立体絵画から飛び出してきた！
+
+			PRINTL 外道 ガキが６体出た！
+			CUSTOMDRAWLINE =
+			WAIT
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+
+			CALL SET_ENEMY,13,1093,13,0,0
+			CALL SET_ENEMY,14,1093,13,0,0
+			CALL SET_ENEMY,15,1093,13,0,0
+			CALL SET_ENEMY,8,1093,13,0,0
+			CALL SET_ENEMY,9,1093,13,0,0
+			CALL SET_ENEMY,10,1093,13,0,0
+		
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+
+			PRINTL ガキの死体の山を足で押しやりながら、横たわったままの薄汚れた少女に近づいた
+			PRINTL 汚れた眼鏡だけを残した全裸の少女は、悪魔達に性の捌け口として使われ
+			PRINTL 全身至る所に、乾き切らない汚臭を放つ精をこびり付かせていた
+			PRINTL 僅かに上下する胸に安堵したが、その膨らみには鬱血した無数の歯形の痕も残っていた
+			PRINTL 悪魔達の玩具として使い込まれ、酷使され続けてきた様子の前後の穴は捲れ上がっており
+			PRINTL 呼吸のリズムに合わせて、体内に注がれた汚液をトロッと溢れさせていた
+			PRINTL 立体絵画の奥の方から鼻歌を歌いながらスナッピーが戻ってきたようだ
+			PRINTL 「誰キュ？今日の便器は、そろそろ使用中止…キュキュ！？…人間、という事は…」
+			PRINTL 「スナッピーのオモチャに用があるキュ…！」
+			PRINTW 「商売の邪魔はさせないっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 24
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと全裸の少女が戯れている。
+			PRINTL 少女に背中から覆い被さっていたスナッピーが身体を離すと、
+			PRINTL 普通のイルカでは持ち得ない凶悪な陰茎が、少女の肛門から勢い良く引き抜かれた。
+			PRINTL 少女の身体が弓のようにしなって硬直した後、ガクリと糸の切れた人形のように弛緩した。
+			PRINTL 「トモコちゃんは、すっかりスナッピーの肉奴…あわわ…、お、奥さんになったキュ」
+			PRINTL イルカの精とトモコ自身の腸液に濡れた突起の目立つスナッピーの凶悪な陰茎が、
+			PRINTL 荒い息を付くトモコの頬を突付くと、トモコは小さな舌を伸ばして積極的に絡ませた。
+			PRINTL 涎が一滴、光る糸を引きながら、異様に膨らんだトモコの腹部に滴り落ちた。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL スナッピーは小声の独り言のつもりだったのだろうが、立体スピーカーの位置関係からか、
+			PRINTL その呟きはくっきりと聞こえてきた。
+			PRINTL 「そろそろヤリ飽きたキュ、他の悪魔に貸し出して、ＭＡＧを稼がせるんだキュ…」
+			PRINTW 「商売の邪魔はさせないっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 22
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと全裸の少女が戯れている。
+			PRINTL トモコに背中から覆い被さっていたスナッピーが身体を離すと、
+			PRINTL 普通のイルカでは持ち得ない凶悪な陰茎が、トモコの膣から勢い良く引き抜かれた。
+			PRINTL トモコの身体が弓のようにしなって硬直した後、ガクリと糸の切れた人形のように弛緩した。
+			PRINTL 「トモコちゃんは、すっかりスナッピーの肉奴…あわわ…、お、奥さんになったキュ」
+			PRINTL イルカの精とトモコ自身の愛液に濡れた突起の目立つスナッピーの凶悪な陰茎が、
+			PRINTL 荒い息を付くトモコの頬を突付くと、トモコは小さな舌を伸ばして積極的に絡ませた。
+			PRINTL 涎が一滴、光る糸を引きながら、異様に膨らんだトモコの腹部に滴り落ちた。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL スナッピーは小声の独り言のつもりだったのだろうが、立体スピーカーの位置関係からか、
+			PRINTL その呟きはくっきりと聞こえてきた。
+			PRINTL 「そろそろヤリ飽きたキュ、他の悪魔に貸し出して、ＭＡＧを稼がせるんだキュ…」
+			PRINTW 「商売の邪魔はさせないっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 21
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと全裸の少女が戯れている。
+			PRINTL トモコの股間に腰を沈めていたスナッピーが身体を軽く反らせると、
+			PRINTL 普通のイルカでは持ち得ない凶悪な陰茎が、トモコの秘部から勢い良く引き抜かれ、
+			PRINTL 苦痛から解放されたトモコの身体は、ガクリと糸の切れた人形のように弛緩した。
+			PRINTL 生涯一度の試練から解放され、ゆっくりと閉じてゆくトモコの陰部は薄く血で汚れている。
+			PRINTL イルカが誇らしげに晒け出している、そこを先程まで貫いていた瘤付きの陰茎は、
+			PRINTL 互いの体液に濡れていて、僅かに朱が混じっているのも認められた。
+			PRINTL 「トモコちゃんは自分からスナッピーと愛し合いたいって言ったキュ」
+			PRINTL イルカとトモコ自身の体液に濡れた突起の目立つスナッピーの淫猥な陰茎が、
+			PRINTL 荒い息を付くトモコの頬を突付くと、トモコは小さな舌を伸ばして積極的に絡ませた。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL 「お邪魔虫は帰って欲しいっキュ、これからいよいよ、このガキに種付け…あっ、いやいや…！」
+			PRINTL 「種族を超えた愛で、トモコちゃんと愛し合うキュ！」
+			PRINTW 「邪魔をするなら消えてもらうっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 20
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと全裸の少女が戯れている。
+			PRINTL トモコの股間に顔を埋めていたスナッピーが顔を上下に軽く揺するように振ると、
+			PRINTL 普通のイルカでは持ち得ない長すぎる舌が、トモコの濡れそぼった秘部全体をベロリと舐め上げた。
+			PRINTL トモコの身体が弓のようにしなって硬直した後、ガクリと糸の切れた人形のように弛緩した。
+			PRINTL 「トモコちゃんは自分からスナッピーと結ばれたいって言ったキュ」
+			PRINTL イルカの涎とトモコ自身の体液に濡れた突起の目立つスナッピーの淫猥な舌が、
+			PRINTL 荒い息を付くトモコの頬を一舐めすると、トモコは小さな舌を伸ばして積極的に絡ませた。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL 「お邪魔虫は帰って欲しいっキュ、これからいよいよ、このガキの処女マン…あっ、いやいや…！」
+			PRINTL 「トモコちゃんに優～しく、楽しい楽しい大人の遊びを教えてあげるんだキュ！」
+			PRINTW 「邪魔をするなら消えてもらうっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 14
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと全裸の少女が戯れている。
+			PRINTL トモコの股間に顔を埋めていたスナッピーが顔を上下に軽く揺するように振ると、
+			PRINTL 普通のイルカでは持ち得ない長すぎる舌が、トモコの濡れそぼった秘部全体をベロリと舐め上げた。
+			PRINTL トモコの身体が弓のようにしなって硬直した後、ガクリと糸の切れた人形のように弛緩した。
+			PRINTL 「トモコちゃんとスナッピーは真剣なオツキアイをしてるっキュ」
+			PRINTL イルカの涎とトモコ自身の体液に濡れた突起の目立つスナッピーの淫猥な舌が、
+			PRINTL 荒い息を付くトモコの頬を一舐めすると、トモコは小さな舌を伸ばして積極的に絡ませた。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL 「お邪魔虫は帰って欲しいっキュ、これからいよいよ、このガキの処女マン…あっ、いやいや…！」
+			PRINTL 「トモコちゃんに優～しく、楽しい楽しい大人の遊びを教えてあげるんだキュ！」
+			PRINTW 「邪魔をするなら消えてもらうっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 12
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと全裸の少女が戯れている。
+			PRINTL 自身の左の手で右の胸を揉みしだき、秘部に挟み込むようにした右手が蠢く度に、
+			PRINTL トモコの裸身は前傾し、くの字へと近づいてゆく。
+			PRINTL やがてトモコの身体はブルブルと震え硬直した後、ガクリと糸の切れた人形のように弛緩した。
+			PRINTL 「トモコちゃんは自分からスナッピーと仲良くなりたいって言ったキュ」
+			PRINTL イルカが大きな口をトモコの頬に押し付けると、トモコは小さな唇で啄ばむ様な口付けを返した。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL 「お邪魔虫は帰って欲しいっキュ、これからいよいよ、このガキを剥い…あっ、いやいや…！」
+			PRINTL 「トモコちゃんと、楽しく遊ぶ準備をしなければいけないキュ！」
+			PRINTW 「邪魔をするなら消えてもらうっキュ！」
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 8
+			PRINTL 深い蒼色の海中の描かれた、人も入れるような特大の立体絵画の中で、イルカと半裸の少女が戯れている。
+			PRINTL セーターとジーンズの中に潜らせたトモコの手が止まり、呻くような声が漏れた。
+			PRINTL 絶頂に達したトモコは荒い息のまま、すっかり脱力しているようだ。
+			PRINTL 「トモコちゃんは自分からスナッピーと仲良くなりたいって言ったキュ」
+			PRINTL イルカが大きな口をトモコの頬に押し付けると、トモコは躊躇いながらもそっと口付けを返した。
+			PRINTL 眼鏡越しのトモコの瞳は光が無く、この淫夢に完全に捕らわれている様子が窺える。
+			PRINTL 「お邪魔虫は帰って欲しいっキュ、これからいよいよ、このガキを剥い…あっ、いやいや…！」
+			PRINTL 「トモコちゃんと、楽しく遊ぶ準備をしなければいけないキュ！」
+			PRINTW 「邪魔をするなら消えてもらうっキュ！」
+
+		ELSE
+			PRINTL 館内案内板によると、この部屋はイルカのスナッピーの立体絵画が展示されている筈だが、
+			PRINTW 今はその姿も無く、深い蒼色の海中が描かれた特大立体絵画が飾られているだけだ……。
+			RETURN 1
+		ENDIF
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 <= 2
+			PRINTL 魔獣 スナッピーが１体出た！
+			CUSTOMDRAWLINE =
+			WAIT
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			FLAG:不意打ちフラグ = 1
+			CALL SET_ENEMY,9,900,24,0,1
+			CFLAG:(CHARANUM-1):行動回数 = 1
+			CSTR:(CHARANUM-1):思考パターン = スナッピー
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+		ENDIF
+
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+			FLAG:脱出 = 1
+		ELSE
+			PRINTW ターミナルを開放し、封鎖されたＶＲホラーハウスに行けるようになった！
+			ダンジョンフラグ:(FLAG:現ダンジョン):1 = 3
+		ENDIF
+
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):0 == 27
+			PRINTL スナッピーは倒れ、残った仕事はトモコの洗脳が解けたかの確認後、依頼者の下に届けるだけだ。
+			PRINTL トモコの寝顔は表情も無く、死んだように眠っている。
+			PRINTL まだまだ幼さの残る顔立ちだが、割と整っているように思える。
+			PRINTL 本人のあずかり知らぬ事とはいえ、この小さな唇は無数の悪魔の醜い陰茎を咥えさせられている。
+			PRINTL 大人になりきれてない少女の身体も、度重なる荒淫で肌に生気が無く、
+			PRINTL 呼吸に上下する孕んで大きくなった胸には、幾つもの歯形が痛々しい。
+			PRINTL 無残にも黒ずんだ先端には、乳白色の雫が滲んでいる。
+			PRINTL 膨らんだ下腹部は重量感があり、いつ産み落としても不思議ではない。
+			PRINTL 身体の彼方此方に残る青痣は腹部にさえ認められ、
+			PRINTL 下腹部の茂みは引き抜かれて疎らにされて、残っているのは生え揃っていた跡だけだ。
+			PRINTL ここに連れて来られるまでは、少女は確かに無垢な処女だった。
+			PRINTL だが今は悪魔の醜く太い性器で、精神を破壊されるほどに弄ばれ、孕んでも解放されずに嬲られていた。
+			PRINTL ガキ達に注ぎ込まれていた大量の精が、未だに前後の穴からゴポっと溢れ出している。
+			PRINTL これでは手を尽くしても、元の生活には戻れまい。
+			PRINTL 物好きにも、この少女を自分の物にしようものならば、報酬は当然貰えない。
+			PRINTL まあ、報酬も減額されて雀の涙、程度であろうが…。
+			PRINTL ＞依頼を遂行しますか？
+			PRINTL [0]Yes [1]No
+			$INPUT_LOOP_5
+			INPUT
+			IF RESULT == 0
+				PRINTW ＞少女の保護に成功したことにより、口座に￥5000が支払われた
+				PRINTFORMW ＞%CALLNAME:MASTER%は40の名声を得た
+				MONEY += 5000
+				FLAG:名声 += 40
+			ELSEIF RESULT == 1
+				CALL INCREASE_LC,-3
+				CALL INCREASE_LD,-3
+				PRINTW 壊れた性奴隷 トモコを手に入れた
+				CALL ADD_NEW_COMPANION,4540,1000
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					CFLAG:LOCAL:イベント加入 = 1
+					TALENT:LOCAL:崩壊 = 1
+					TALENT:LOCAL:淫乱 = 1
+					TALENT:LOCAL:処女 = 0
+					TALENT:LOCAL:幼児／幼児退行 = 1
+					ABL:LOCAL:会話タイプ = 301
+					;ガキ輪姦で種付け
+					ABL:LOCAL:Ｃ感覚 += 2
+					ABL:LOCAL:Ｖ感覚 += 2
+					ABL:LOCAL:Ａ感覚 += 2
+					ABL:LOCAL:Ｂ感覚 += 2
+					ABL:LOCAL:技巧 += 2
+					EXP:LOCAL:自慰経験 += 40
+					EXP:LOCAL:Ｖ経験 += 100
+					EXP:LOCAL:キス経験 += 50
+					EXP:LOCAL:Ａ経験 += 50
+					EXP:LOCAL:絶頂経験 += 100
+					EXP:LOCAL:性交経験 += 150
+					EXP:LOCAL:膣射経験 += 100
+					EXP:LOCAL:精液経験 += 200
+					EXP:LOCAL:奉仕快楽経験 += 100
+					EXP:LOCAL:フェラ経験 += 100
+					EXP:LOCAL:苦痛快楽経験 += 50
+					EXP:LOCAL:Ｖ拡張経験 += 75
+					EXP:LOCAL:Ａ拡張経験 += 50
+					EXP:LOCAL:被写経験 += 150
+					EXP:LOCAL:異常経験 += 3
+					IF PREGNANCY_ABLE(LOCAL)
+						CALL PREGNANCY_CHECK, LOCAL, 4
+						CALL SET_FATHERINFO, LOCAL, 1093, -1, "ガキ"
+						TALENT:LOCAL:妊娠 = 1
+						;妊娠によるの乳サイズ増大
+						;メッセージを出さないために直接編集
+						TALENT:LOCAL:巨乳 = 1
+						TALENT:LOCAL:母乳体質 = 1
+					ENDIF
+				ENDIF
+					PRINTL
+			ELSE
+				GOTO INPUT_LOOP_5
+			ENDIF
+			FLAG:脱出 = 1
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):0 > 22
+			PRINTL スナッピーは倒れ、残った仕事はトモコの洗脳が解けたかの確認後、依頼者の下に届けるだけだ。
+			PRINTL トモコは疲労の為か、泥のように深く眠っている。
+			PRINTL まだまだ幼さの残る顔立ちだが、割と整っているように思える。
+			PRINTL 本人のあずかり知らぬ事とはいえ、この小さな唇は幾度も悪魔の醜い陰茎を頬張らされている。
+			PRINTL 大人になりきれてない少女の身体も開発によって、色気を滲ませている。
+			PRINTL 呼吸に上下する胸は孕んだことで大きくなったのだろう、無残にも黒ずんだ先端には、乳白色の雫が滲んでいる。
+			PRINTL 膨らんだ下腹部は重量感があり、いつ産み落としても不思議ではない。
+			PRINTL この腹で貫かれて善がっていたのだから、余程洗脳が強かったのだろうか。
+			PRINTL 濡れて張り付いた茂みは黒く生え揃い、以前の独白の時とは違うようだ。
+			PRINTL ここに連れて来られるまでは、少女は確かに無垢な処女だった。
+			PRINTL だが今は悪魔の醜く太い性器を咥えて絶頂し、精を絞り上げるまでになってしまい、孕んでも解放されずに弄ばれていた。
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 23
+				PRINTL スナッピーに注ぎ込まれていた大量の精が、未だに前後の穴からゴポっと溢れ出している。
+			ELSE
+				PRINTL スナッピーに注ぎ込まれていた大量の精が、未だに膣からゴポっと溢れ出している。
+			ENDIF
+			PRINTL これでは手を尽くしても、元の生活には戻れまい。
+			PRINTL 物好きにも、この少女を自分の物にしようものならば、報酬は当然貰えない。
+			PRINTL まあ、報酬も減額されて雀の涙、程度であろうが…。
+			PRINTL ＞依頼を遂行しますか？
+			PRINTL [0]Yes [1]No
+			$INPUT_LOOP_4
+			INPUT
+			IF RESULT == 0
+				PRINTW ＞少女の保護に成功したことにより、口座に￥5000が支払われた
+				PRINTFORMW ＞%CALLNAME:MASTER%は40の名声を得た
+				CALL INCREASE_LC,2
+				CALL INCREASE_LD,2
+				MONEY += 5000
+				FLAG:名声 += 40
+			ELSEIF RESULT == 1
+				CALL INCREASE_LC,-3
+				CALL INCREASE_LD,-2
+				PRINTW 性奴隷 トモコを手に入れた
+				CALL ADD_NEW_COMPANION,4540,1000
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					CFLAG:LOCAL:イベント加入 = 1
+					TALENT:LOCAL:淫乱 = 1
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:会話タイプ = 301
+					;スナッピーが種付け
+					ABL:LOCAL:Ｃ感覚 += 2
+					ABL:LOCAL:Ｖ感覚 += 1
+					ABL:LOCAL:Ｂ感覚 += 1
+					ABL:LOCAL:技巧 += 1
+					EXP:LOCAL:Ｖ経験 += 20
+					EXP:LOCAL:キス経験 += 10
+					EXP:LOCAL:自慰経験 += 30
+					EXP:LOCAL:絶頂経験 += 30
+					EXP:LOCAL:性交経験 += 30
+					EXP:LOCAL:膣射経験 += 20
+					EXP:LOCAL:精液経験 += 40
+					EXP:LOCAL:奉仕快楽経験 += 20
+					EXP:LOCAL:フェラ経験 += 20
+					EXP:LOCAL:苦痛快楽経験 += 10
+					EXP:LOCAL:被写経験 += 50
+					EXP:LOCAL:異常経験 += 3
+					EXP:LOCAL:Ｖ拡張経験 += 15
+					IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 23
+						ABL:LOCAL:Ａ感覚 += 1
+						EXP:LOCAL:Ａ経験 += 10
+						EXP:LOCAL:Ａ拡張経験 += 10
+					ENDIF
+					IF PREGNANCY_ABLE(LOCAL)
+						CALL PREGNANCY_CHECK, LOCAL, 4
+						CALL SET_FATHERINFO, LOCAL, 900, -1, "スナッピー"
+						TALENT:LOCAL:妊娠 = 1
+						;妊娠によるの乳サイズ増大
+						;メッセージを出さないために直接編集
+						TALENT:LOCAL:巨乳 = 1
+						TALENT:LOCAL:母乳体質 = 1
+					ENDIF
+				ENDIF
+					PRINTL
+			ELSE
+				GOTO INPUT_LOOP_4
+			ENDIF
+			FLAG:脱出 = 1
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):0 > 21
+			PRINTL スナッピーは倒れ、残った仕事はトモコの洗脳が解けたかの確認後、依頼者の下に届けるだけだ。
+			PRINTL トモコは無防備に安らいだ寝息を立ている。
+			PRINTL まだまだ幼さの残る顔立ちだが、割と整っているように思える。
+			PRINTL 本人のあずかり知らぬ事とはいえ、この小さな唇は幾度も悪魔の醜い陰茎を頬張らされている。
+			PRINTL 大人になりきれてない少女の身体も開発によって、色気を滲ませている。
+			PRINTL 呼吸に上下する膨らみは、充分に男を楽しませることが出来るだろう。
+			PRINTL 濡れて張り付いた若草は薄く、隠し切れない秘裂が露に晒されている。
+			PRINTL 自慰と愛撫によって絶頂を重ね、濡れ解された慎ましやかな肉唇は、
+			PRINTL 悪魔の醜い性器に貫かれ、喪失の血涙を滲ませていた。
+			PRINTL 無惨ではあるが、いささか扇情的な光景にも思える。
+			PRINTL だが、もしこの少女を自分の物にしようものならば、報酬は当然貰えない。
+			PRINTL 何処にでも居そうなこの少女一人に、そこまでの価値があるだろうか？
+			PRINTL ＞依頼を遂行しますか？
+			PRINTL [0]Yes [1]No
+			$INPUT_LOOP_3
+			INPUT
+			IF RESULT == 0
+				PRINTW ＞少女の保護に成功したことにより、口座に￥15000が支払われた
+				PRINTFORMW ＞%CALLNAME:MASTER%は75の名声を得た
+				CALL INCREASE_LC,3
+				CALL INCREASE_LD,3
+				MONEY += 15000
+				FLAG:名声 += 75
+			ELSEIF RESULT == 1
+				CALL INCREASE_LC,-4
+				CALL INCREASE_LD,-3
+				PRINTW トモコを奴隷として連れ帰った
+				CALL ADD_NEW_COMPANION,4540,500
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					CFLAG:LOCAL:イベント加入 = 1
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:会話タイプ = 301
+					;スナッピーが破瓜
+					ABL:LOCAL:Ｃ感覚 += 1
+					EXP:LOCAL:自慰経験 += 20
+					EXP:LOCAL:Ｖ経験 += 1
+					EXP:LOCAL:キス経験 += 1
+					EXP:LOCAL:絶頂経験 += 10
+					EXP:LOCAL:性交経験 += 1
+					EXP:LOCAL:精液経験 += 10
+					EXP:LOCAL:奉仕快楽経験 += 5
+					EXP:LOCAL:フェラ経験 += 5
+					EXP:LOCAL:被写経験 += 20
+					EXP:LOCAL:異常経験 += 2
+					EXP:LOCAL:Ｖ拡張経験 += 1
+				ENDIF
+					PRINTL
+			ELSE
+				GOTO INPUT_LOOP_3
+			ENDIF
+			FLAG:脱出 = 1
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):0 > 20
+			PRINTL スナッピーは倒れ、残った仕事はトモコの洗脳が解けたかの確認後、依頼者の下に届けるだけだ。
+			PRINTL トモコは無防備に安らいだ寝息を立ている
+			PRINTL まだまだ幼さの残る顔立ちだが、割と整っているように思える
+			PRINTL 呼吸に上下する膨らみは、充分に男を楽しませることが出来るだろう
+			PRINTL 濡れて張り付いた若草は薄く、隠し切れない秘裂が露に晒されている
+			PRINTL 自慰と愛撫によって絶頂を重ね、濡れ解された慎ましやかな肉唇は桃色の内壁を晒し、乳白色の雫を滲ませていた
+			PRINTL まだ青い果実ながら、劣情を催すには充分な光景に思える
+			PRINTL だが、もしこの少女を自分の物にしようものならば、報酬は当然貰えない
+			PRINTL 何処にでも居そうなこの少女一人に、そこまでの価値があるだろうか？
+			PRINTL ＞依頼を遂行しますか？
+			PRINTL [0]Yes [1]No
+			$INPUT_LOOP_2
+			INPUT
+			IF RESULT == 0
+				PRINTW ＞少女の保護に成功したことにより、口座に￥25000が支払われた
+				PRINTFORMW ＞%CALLNAME:MASTER%は115の名声を得た
+				CALL INCREASE_LC,3
+				CALL INCREASE_LD,3
+				MONEY += 25000
+				FLAG:名声 += 115
+			ELSEIF RESULT == 1
+				CALL INCREASE_LC,-5
+				CALL INCREASE_LD,-3
+				PRINTW トモコを奴隷として連れ帰った
+				CALL ADD_NEW_COMPANION,4540,200
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					CFLAG:LOCAL:イベント加入 = 1
+					ABL:LOCAL:会話タイプ = 301
+					;破瓜寸前
+					ABL:LOCAL:Ｃ感覚 += 1
+					EXP:LOCAL:自慰経験 += 20
+					EXP:LOCAL:絶頂経験 += 10
+					EXP:LOCAL:精液経験 += 5
+					EXP:LOCAL:奉仕快楽経験 += 5
+					EXP:LOCAL:フェラ経験 += 5
+					EXP:LOCAL:被写経験 += 15
+					EXP:LOCAL:異常経験 += 1
+				ENDIF
+					PRINTL
+			ELSE
+				GOTO INPUT_LOOP_2
+			ENDIF
+			FLAG:脱出 = 1
+
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):0 > 8
+			PRINTL スナッピーは倒れ、残った仕事はトモコの洗脳が解けたかの確認後、依頼者の下に届けるだけだ。
+			PRINTL 先程まで痴態を演じさせられていたトモコは、今は無防備に安らいだ寝息を立てていた。
+			PRINTL その容貌は割と整っているようにも思えるが、寝顔からはまだ幼いところも感じられる。
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 18
+				PRINTL だが、本人のあずかり知らぬ事とはいえ、この小さな唇は幾度も悪魔の醜いペニスを頬張って、
+				PRINTL 大人になりきれてない少女の身体も、好色な悪魔によって充分に開発されてしまっている。
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 16
+				PRINTL だが、本人のあずかり知らぬ事とはいえ、秘しておきたい場所を自らの手で曝け出し、
+				PRINTL 未だ未経験だったエクスタシーへと強引に追いやられている。
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 14
+				PRINTL だが、本人のあずかり知らぬ事とはいえ、その身体の隅々までも悪魔の舌が這い回り、
+				PRINTL まだ未熟な蕾だった性感を無理矢理に高められている。
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 12
+				PRINTL だが、本人のあずかり知らぬ事とはいえ、秘しておきたい裸身を他者の前で曝け出し、
+				PRINTL 多感な思春期の秘め事を自らの行為で暴露してしまっている。
+			ELSE
+				PRINTL だが、本人のあずかり知らぬ事とはいえ、友人や家族にさえ伏せておきたい思春期の秘め事を、
+				PRINTL 自らの口から暴露してしまっている。
+			ENDIF
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 12
+				PRINTL 横たわったままの汗の光る裸身は、スラリとしていて余分な肉は無いようだ。
+				PRINTL 女性として本格的に身体が成長するのは、これからかもしれない。
+				PRINTL 呼吸に上下している手頃な大きさの胸の膨らみも、そうなれば更なる成長を遂げて、
+				PRINTL 充分に目を楽しませることできるだろう。
+				PRINTL 汗と愛液に濡れて張り付いた若草は薄く、隠し切れない秘裂が露に晒され、
+				PRINTL 自慰に濡れた慎ましやかな肉唇は、僅かに桃色の内部を覗かせていた。
+			ELSE
+				PRINTL 扇情的に捲れ上がった黄色いセーターの端からは、白い腹部に可愛いらしい臍を覗かせていた。
+				PRINTL 呼吸に上下する膨らみは、セーターの上からでも手頃な大きさと分る。
+				PRINTL 更に順調に成育すれば、充分に目を楽しませることできるだろう。
+				PRINTL ずり下げられたジーンズからは、飾り気の無い白い下着が覗いていて、
+				PRINTL 汗と愛液に濡れて張り付いた布地の向こうには、隠された肌と繊毛が薄く透けて見えている。
+			ENDIF
+			PRINTL まだ青い果実ながら、劣情を催すには充分な光景に思えるが……。
+			PRINTL だが、もしこの少女を自分の物にしようものならば、報酬は当然貰えない
+			PRINTL 何処にでも居そうなこの少女一人に、そこまでの価値があるだろうか？
+			PRINTL ＞依頼を遂行しますか？
+			PRINTL [0]Yes [1]No
+			$INPUT_LOOP_1
+			INPUT
+			IF RESULT == 0
+				PRINTW ＞少女の保護に成功したことにより、口座に￥25000が支払われた
+				PRINTFORMW ＞%CALLNAME:MASTER%は115の名声を得た
+				CALL INCREASE_LC,3
+				CALL INCREASE_LD,3
+				MONEY += 25000
+				FLAG:名声 += 115
+			ELSEIF RESULT == 1
+				CALL INCREASE_LC,-5
+				CALL INCREASE_LD,-3
+				PRINTW トモコを奴隷として連れ帰った
+				CALL ADD_NEW_COMPANION,4540,200
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					CFLAG:LOCAL:イベント加入 = 1
+					ABL:LOCAL:会話タイプ = 301
+					IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 18
+					;トモコの映像・初フェラ
+						EXP:LOCAL:自慰経験 += 20
+						EXP:LOCAL:絶頂経験 += 3
+						EXP:LOCAL:フェラ経験 += 1
+						EXP:LOCAL:被写経験 += 10
+						EXP:LOCAL:異常経験 += 1
+					ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 16
+					;トモコの映像・初絶頂と初くぱぁ
+						EXP:LOCAL:自慰経験 += 15
+						EXP:LOCAL:絶頂経験 += 1
+						EXP:LOCAL:被写経験 += 5
+						EXP:LOCAL:異常経験 += 1
+					ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 14
+					;トモコの映像・初クンニ
+						EXP:LOCAL:自慰経験 += 10
+						EXP:LOCAL:被写経験 += 3
+						EXP:LOCAL:異常経験 += 1
+					ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 12
+					;トモコの映像・オナニー実演
+						EXP:LOCAL:自慰経験 += 5
+						EXP:LOCAL:異常経験 += 1
+						EXP:LOCAL:被写経験 += 1
+					ELSE
+					;トモコの会話・オナニー告白
+						EXP:LOCAL:自慰経験 += 3
+						EXP:LOCAL:絶頂経験 += 1
+					ENDIF
+				ENDIF
+					PRINTL
+			ELSE
+				GOTO INPUT_LOOP_1
+			ENDIF
+			FLAG:脱出 = 1
+		ENDIF
+
+	ELSE
+		;任務最大失敗・ガキ輪姦
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 26
+			PRINTL 室内の立体絵画は水中で激しく番（つが）う少女と悪魔達の狂宴を映している……。
+			PRINTL 「おぶっ！はぁっ…すごっ、ひぃっ…はぁっ、んぐぐぅっ…！」
+			PRINTL 「はっ…いっ、いひのっ…チンポっ…イッパイっ…あぐぁっ…！」
+			PRINTL 「だっ…大丈夫だよっ…、だって、みんなにっ、愛されてるからぁっ、毎日、楽しっ…！」
+			PRINTL 「みんなっ、一緒に、遊ぼうよっ！トモコで、遊ぼうっ！ご褒美、射精（だ）してえぇっ！」
+			;ネミッサがいる
+			IF FINDCHARA_B(4510) == 2 || FINDCHARA_B(4511) == 2 || FINDCHARA_B(4512) == 2
+				PRINTFORML 『こんなのって……ヒトミ、ゴメンね…」
+				PRINTFORML ネミッサはトモコの痴態から目を逸らし、自分の相棒に向けてそっと呟いていた。
+			;マヨーネがいる
+			ELSEIF FINDCHARA_B(4516) == 2
+				PRINTFORML 『浅ましい姿ですこと…』
+				PRINTFORML マヨーネは唇を歪ませて侮蔑の笑みを浮かべている。
+			ENDIF
+			PRINTL 既にトモコは下級悪魔達の性の捌け口に成り下がってしまっている。
+			PRINTW ここまで堕ちてしまった少女を依頼者の元へ連れ帰る意味はあるのだろうか……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 = 27
+			RETURN 1
+
+		;任務大失敗・両穴
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 23
+			PRINTL 室内の立体絵画は水中で激しく番（つが）う少女とイルカを映している……。
+			PRINTL 「あはぁっ！はぁっ…すっ、凄いよぉ…まっ、また繋がってるぅ…！」
+			PRINTL 「あぐっ…いいよっ！…おチンチ…、あっ、うんっ！チンポでっ…ごりって…ふぐぅっ！」
+			PRINTL 「うんっ、愛してるっ…愛してるよ！…だからっ…」
+			PRINTL 「射精（だ）してっ！奥にっ、熱い、精液っ、…はひぃっ、ザーメンっ！注いでぇっ！」
+			PRINTL イルカの凶器のような陰茎から汚れた精が、トモコの子宮へと叩き付けるように迸った。
+			PRINTL トモコの未成熟な膣では当然納まりきらず、逆流した汚液が白い内股をドロドロと汚してゆく。
+			PRINTL 「あぐっ…いいよっ！…おチンチ…、あっ、うんっ！チンポでっ…ごりって…ふぐぅっ！」
+			PRINTL 「うんっ、後ろっ…いいよっ…あ、アナルもっ…可愛がってね…う、うっ！」
+			PRINTL 差し出したトモコの小さく綺麗な尻穴は、間髪入れずに野太い陰茎に犯されていた。
+			PRINTL 今や少女の確保だけでも果たさねば任務失敗となってしまう。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;任務大失敗・初中出し
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 22
+			PRINTL 室内の立体絵画は水中で激しく番（つが）う少女とイルカを映している……。
+			PRINTL 「ぅ……ぎ！……っ……がっ！…ぁ…ぁ……」
+			PRINTL 昂ったイルカの注挿速度は最大限まで上がり、痛みに混濁した意識のトモコはただ壁に押し付けられて、
+			PRINTL 激しすぎる欲望を乱暴に叩き付けられながら、グラグラと揺れながら崩れ落ちそうになっていた。
+			PRINTL 許容限界を超えているトモコの膣からは、凶悪なペニスが出入りする度に裂けた傷から滲んだ血が飛散している。
+			PRINTL 呻くだけとなってしまったトモコを下から掬い上げるように強く壁に押し付けて、イルカが動きを止めた。
+			PRINTL 「…っっっ！！…あっ！！…あっ！……ぁ…ぁぁ……」
+			PRINTL 熱い体液の奔流に子宮を直撃され、トモコは細く保っていた意識の糸を完全に手放してしまったようだ。
+			PRINTL イルカはトモコが気を失った後も解放しようとはせずに、トモコをペニスで串刺しにしたままで余韻に浸っている。
+			PRINTL 膣に入りきらない大量の精と幾本もの血の筋が、トモコの内股を伝って足元へと垂れ落ちていた。
+			PRINTL 今や少女の確保だけでも果たさねば任務失敗となってしまう。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;任務失敗・処女喪失
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 21
+			PRINTL 室内の立体絵画は水中で睦み合う少女とイルカを映している……。
+			PRINTL 「んっ…んんっ…はぁっ…キス、して…うんっ、バージン卒業記念に…ね？…んんっ…！」
+			PRINTL 「…えっ、うん…いいよ…しても…。で、でも、優しくしてよ、ねっ…？」
+			PRINTL 壁に手を突いたトモコの背後からイルカが圧し掛かって行く。
+			PRINTL 「んっ…くっ…！…ぐぐっ…ぎっ…っ…はーっ…はーっ…いぎぃっ！」
+			PRINTL 自身で拡げた濡れた膣口、その奥の純潔の証、処女地にめり込むイルカの太く歪な陰茎、
+			PRINTL 脂汗を滲ませながら苦痛を堪えるトモコの表情が、部屋に設置されていた幾つもの立体絵画に映し出された。
+			PRINTL そして大小全ての絵画群は、順次に同じ映像へと変わってゆく。
+			PRINTL そこに大写しにされたのは、イルカの太過ぎる陰茎を限界まで受け入れたトモコの膣口のアップだった。
+			PRINTL それは輪のように丸く広がって、薄血を滲ませている。
+			PRINTL 「ぐっ！…はぐっ！…うっ！…んぐぅーっ！…っ…はっ…はっ…はぐぅっ！」
+			PRINTL トモコの苦悶には構わずにイルカは律動を始め、悲痛な呻きをＢＧＭ代わりに、ご機嫌な様子でピッチを上げていく。
+			PRINTL やがて絵画は徐々に暗さを増し続け、深海のように淀んで何も見えなくなっていた。
+			PRINTL 今や少女の確保だけでも果たさねば任務失敗となってしまう。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの映像・くぱぁおねだり
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 20
+			PRINTL 室内の立体絵画は水中で睦み合う少女とイルカを映している……。
+			PRINTL 「…あっ、あぁっ！…うんっ、うんっ…！」
+			PRINTL 「…約束の日？…そ、だっけ…あっ…うんっ…んぅ！あぁっ！ん～っ！」
+			PRINTL 口元をイルカの精液で汚したまま、トモコは再びイルカの執拗な愛撫を受けていた。
+			PRINTL イルカの巧みな舌使いの前に、快楽と同時に偽りの記憶を刷り込まれている。
+			PRINTL 「はうんっ！はぁっ…舌っ、待ってぇっ！…まっ、またイっちゃうぅ…！」
+			PRINTL 思考が鈍る度に、徐々にトモコの記憶はイルカの嘘に染められていった。
+			PRINTL 「…はっ…はぁっ…えっ…大好き…？…う、うん…、大好きなカレシだもの…大好き…」
+			PRINTL 「えっ、…今日は…卒業式…だよね…？　あうぅっ！…ん～っ！…はっ…はぁっ…はい…」
+			PRINTL 「えっと、トモコのバージン…貰って……」
+			PRINTL 偽りの愛に支配されているトモコは再び、今度は立ったままの姿勢で自主的に秘部を拡げて見せた。
+			PRINTL 羞恥に首まで朱に染めたトモコは、それでも今度は瞳を閉じる事も無く、幸せそうに微笑んでいた。
+			PRINTL 少女の貞操を守るには、最早残された猶予は無い。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの映像・初フェラ
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 18
+			PRINTL 室内の立体絵画は水中で睦み合う少女とイルカを映している……
+			PRINTL 「う…わ…凄…大き過ぎて……コレ、舐めるのなんて、無理だよ…」
+			PRINTL 「…うっ…うん…私も…舐めて貰ったんだし…お返し…しないと駄目だよね……」
+			PRINTL 硬く反り返ったイルカの異形のペニスへと、虚ろな瞳のトモコは小さく舌を伸ばした。
+			PRINTL 「凄く硬いっ…！　…男の人って興奮すると、こんなになっちゃうんだ…トモコに興奮してくれたんだ…？」
+			PRINTL イルカの雄々しくそそり立っている濃い紫色のペニスには、所々に硬そうな突起物が認められる。
+			PRINTL そのあまりの異形さにも、相手が人間でないことでさえ、今のトモコには気になっていないようだ。
+			PRINTL 「…どうすればいいのかな…？…ん…あむ……ねえ、こ、こんな感じかな？…うん…んっ…ん～…」
+			PRINTL 遠慮がちにトモコの舌が這う度、イルカのペニスに濡れた唾液の筋が付けられていく。
+			PRINTL 「んむ…はぁ……えっ？…あっ！？…うぶっ！…むっ！…ふぐっ！……んっ、んん～…！」
+			PRINTL トモコの拙い奉仕に痺れを切らしたのか、イルカはトモコの唇に強引にペニスの先端を押し当てて、
+			PRINTL 驚くトモコを尻目に腰を何度も突き出して、口内に収まる分だけでもと、強引に咥えさせてしまった。
+			PRINTL 「ふぐぐ～っ…んぐ～っ！…んっ！…んぶっ…！」
+			PRINTL トモコは口の端から涎を溢しながら、顎も外れよと腰を突き出すイルカの欲求に、何とか応えようとしている。
+			PRINTL 少女の貞操を守るには、最早残された猶予は少ない
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの映像・初絶頂と初くぱぁ
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 16
+			PRINTL 室内の立体絵画は水中で睦み合う少女とイルカを映している……。
+			PRINTL 「えぇっ！嘘っ…だ、駄目だよ…それだけはっ！…あ、あぁっ！…待っ、んんっ…！」
+			PRINTL 「はぁっ…はぅ…！…わっ…私達って…あれっ…？…出会った、ばっかり…あっ、あぁんっ！」
+			PRINTL イルカは舌を駆使して快楽を与え続け、トモコが正常な思考に戻る余地を与えようとない。
+			PRINTL 「はうんっ！はぁっ…舌っ、待ってぇっ！…来るぅっ！来ちゃうよおぉ～～！！」
+			PRINTL 「……ぁ……っ…はぁーっ…はぁーっ…はぁっ…ん…い…イっちゃったの…？　私…」
+			PRINTL 息も絶え絶えの様子のトモコに、イルカは何事か囁くかのように顔を近づけている。
+			PRINTL 「んっ…え、ええっ！？…む、無理だよっ！…そんな、恥ずかし過ぎてっ…！」
+			PRINTL 「…う、嘘じゃないよっ…好きなのはホントなんだよ…あ…う…うぅ…」
+			PRINTL 「…どうしよう…はぁ…はぁ…んっ…はい、こ、これでいい…？…はぁっ…はぁっ…恥ずかしいよ…」
+			PRINTL 仰向けに寝転んだトモコは大きく足を広げ、伸ばした両手で秘められた部分を全開に曝け出した。
+			PRINTL トモコの背けた顔は耳まで赤く染まり、目を固く瞑って恥辱の時が過ぎるのを待っている。
+			PRINTL 「…そ、そう、そうだよねっ…！　…んぅっ…ずっと、好きだったんだし…いいんだよねっ…」
+			PRINTL 薄い柔毛のような毛の覆う草むら、その下のツンと勃った小さなクリトリス、濡れて剥き出しの秘裂の内壁、
+			PRINTL ヒクつく尿道口、そして未踏の膣内の純潔の証も白日の下に晒け出されている。
+			PRINTL 耐えるトモコを嘲るように、それらが次々と部屋中の絵画に大きく映し出されていった。
+			PRINTL 少女の貞操を守るには、最早残された猶予は少ない。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの映像・初クンニ
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 14
+			PRINTL 室内の立体絵画は水中で睦み合う少女とイルカを映している……
+			PRINTL 「う、うん…こっちは見ないでね…？…う、うん…あれ…？」
+			PRINTL 「うんん…大好きだから、ここまで見せられたの…見て欲しい…」
+			PRINTL 「毛、薄いの、かな…やっぱり…旅行の時に、友達にも言われて、恥ずかしかった…」
+			PRINTL 「嘘っ…そうなの？…うっ、そんな方法で、濃くなるんだ…うん、大人っぽくなりたい…」
+			PRINTL 「い、意地悪っ…舐めて、くださいっ…ひぁっ！？…うくっ！…あぁっ！…いきなりっ！」
+			PRINTL イルカの異様に長い舌が、トモコの股間を執拗に舐め回している。
+			PRINTL 映像の送り主の害意は、既に明白となっている。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの映像・オナニー実演
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 12
+			PRINTL 室内の立体絵画は水中に遊ぶ少女とイルカを映している……
+			PRINTL 「いつもじゃないよぉ…家族、留守とかにっ…はぁっ…ちょっとだけ…っ」
+			PRINTL 「うっ…うん…そっ、そうだよね、たまにだし、はっ…あっ…知らなかった…」
+			PRINTL 「そっか…胸、大きくなるんだ…うん、聞いた事有るし…揉むんだよね…んっ！」
+			PRINTL 「だっ、駄目だよっ…指は…だって、指なんて、入れたら…はぁ…ん…」
+			PRINTL 「私、まだ…う、うん…好きな人に…はぁっ、ふっ…！」
+			PRINTL 立体絵画の中では、イルカ相手にトモコの独白と自慰が続いている。
+			;ネミッサがいる
+			IF FINDCHARA_B(4510) == 2 || FINDCHARA_B(4511) == 2 || FINDCHARA_B(4512) == 2
+				PRINTFORML 『やっぱり、あのトモコちゃんなのね！？　アタシ達の知ってる子なのよ。早く助けてあげなくちゃ…！』
+				PRINTFORML ネミッサは知り合いの少女の淫らな姿に焦りを覚えているようだ。
+			ENDIF
+			PRINTL 映像の送り主の害意は、既に明白となっている。
+			PRINTW 救出を急がなければ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの会話・オナニー告白
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 8
+			PRINTL 館内のあちこちに設置されている立体スピーカーから声が聞こえる……。
+			PRINTL 「うっ…うん…こうやって…」
+			PRINTL 「いつもは…服の上から、…それは、たまに…たまにだけ…えぇっ！？」
+			PRINTL 「うっ、そうだねっ…誰も見てないんだし…確かに何だかフワフワするし…ん…はぁ…」
+			PRINTL 「んんっ！…し、下着、汚れないように…んっ…トイレ、とか、…たまにお風呂場…」
+			PRINTL 自分を慰めているのだろうか、夢見心地なトモコの声が艶を帯びてきている。
+			PRINTL 余り救出に時間を掛けていては、少女の身に悪いことが起きる可能性が高い。
+			PRINTW どうやら急いだ方が良さそうだ……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの会話・秘密の遊びについて
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 6
+			PRINTL 館内のあちこちに設置されている立体スピーカーから声が聞こえる……。
+			PRINTL 「あ、あるよっ…色々…雑誌とか…小説とか…あと、美術の本、とか…」
+			PRINTL 「…うん…たまに…勉強がさ…疲れた時、とか…」
+			PRINTL 「うん、内緒、守ってね、約束っ…ふふっ」
+			PRINTL 「や、やだよっ…、意地悪しないで…誰かに知られたら、恥ずかしくて死んじゃうよぉ…」
+			PRINTL トモコの声は今にも消え入りそうだが、一体何の独白なのだろうか？
+			PRINTFORMW 打ち解けた会話のようだが、%NAME:MASTER%の胸騒ぎは強くなっている……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの会話・趣味について
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 4
+			PRINTL 館内のあちこちに設置されている立体スピーカーから声が聞こえる……。
+			PRINTL 「うん、絵を描くの、大好きっ、…勉強より、ずっと楽しいしね」
+			PRINTL 「わぁ…うんうん、描かせてっ！たぶん、すっごく、いい絵になりそうっ…！」
+			PRINTL 「うん、約束ねっ！…あははっ」
+			PRINTFORMW 楽しげな会話のようだが、%NAME:MASTER%の胸騒ぎは強くなっている……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの会話・初期
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 1
+			PRINTL 館内のあちこちに設置されている立体スピーカーから声が聞こえる……。
+			PRINTL 「あははっ、う～ん、また、勉強で疲れてる時に来たい…！」
+			PRINTL 「あ、でも、ごめんねっ…また来るからっ、うん、友達、友達っ！」
+			PRINTL 「あ…今日は帰るね、また、遊ぼうねっ…！」
+			PRINTL トモコは誰と話しているのだろうか、相手の声が全く聞こえない。
+			PRINTFORMW 何故か%NAME:MASTER%の不吉な予感は強くなっている……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+
+		;トモコの自己紹介
+		ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 < 1
+			PRINTL 館内のあちこちに設置されている立体スピーカーから声が聞こえる……
+			PRINTL 「わぁ…こんにちわ…！…凄い、本物みたい…！」
+			PRINTL 「あ、そうなんだ、ごめんねっ…ふふ、うん、私達仲良くなれそうだね」
+			PRINTL 「うん、嬉しい…こちらこそ、よろしくね、私、トモコっていうの…」
+			PRINTL 依頼された探している少女の名だ。
+			PRINTL どうやら過去の記録のようだが、これを流すのは何者の、如何なる意図なのだろうか？
+			PRINTFORMW 何故か%NAME:MASTER%は不吉な予感がした……。
+			ダンジョンフラグ:(FLAG:現ダンジョン):0 += 1
+			RETURN 1
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+
+
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_90
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数
+	CASE 1
+		FLAG:エンカウント率 = 10 + FLAG:未遭遇歩数*3
+	CASE 2
+		FLAG:エンカウント率 = 20 + FLAG:未遭遇歩数*2
+	CASE 3
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*2
+	CASE 4
+		FLAG:エンカウント率 = 10 + FLAG:未遭遇歩数*2
+	CASEELSE
+		FLAG:エンカウント率 = 0
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_90
+RETURN 18, 15, 19, 24
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_90
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_90
+RETURN CLASS_NUM_COMMON("中級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_90, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_90, ARG
+SELECTCASE FLAG:現M
+	CASE 0
+	;１Ｆでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25%でカシマレイコ
+				RETURN 1004, 17
+			CASE IS < 50
+				;25%でシルフ
+				RETURN 1201, 15
+			CASE IS < 75
+				;25%でニケー
+				RETURN 302, 17
+			CASE IS < 100
+				;25%でゾンビアーミー
+				RETURN 1096, 15
+		ENDSELECT
+	CASE 1
+	;２Ｆでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25%でシルフ
+				RETURN 1201, 15
+			CASE IS < 50
+				;25%でニケー
+				RETURN 302, 17
+			CASE IS < 75
+				;25%でゾンビアーミー
+				RETURN 1096, 15
+			CASE IS < 100
+				;25%でカシマレイコ
+				RETURN 1004, 17
+		ENDSELECT
+	CASE 2
+	;幽滝での遭遇
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25%でシルフ
+				RETURN 1201, 15
+			CASE IS < 50
+				;25%でキヨヒメ
+				RETURN 703, 17
+			CASE IS < 75
+				;25%でジャックフロスト
+				RETURN 512, 15
+			CASE IS < 100
+				;25%でリャナンシー
+				RETURN 403, 18
+		ENDSELECT
+	CASE 3
+	;ストレンジエリアでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25%でルサールカ
+				RETURN 503, 18
+			CASE IS < 50
+				;25%でシルフ
+				RETURN 1201, 15
+			CASE IS < 75
+				;25%でニケー
+				RETURN 302, 17
+			CASE IS < 100
+				;25%でノーム
+				RETURN 1203, 15
+		ENDSELECT
+	CASE 4
+	;窓辺のチェスでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25%でシルフ
+				RETURN 1201, 15
+			CASE IS < 50
+				;25%でニケー
+				RETURN 302, 17
+			CASE IS < 75
+				;25%でガギソン
+				RETURN 1702, 12
+			CASE IS < 100
+				;25%でオキュペテー
+				RETURN 903, 19
+		ENDSELECT
+ENDSELECT
+
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_90
+SELECTCASE FLAG:現M
+	CASE 0
+ENDSELECT
+RETURN 1
+
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_90
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+	;IDを示す
+	CASE 1
+			;階層1で、17が入ってるタイル…つまり、IDが1の7（下り階段）に飛ぶ
+			CALL DUNGEON_UPSTAIRS_ID,1,17
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_90
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 1
+			;階層0で、16が入ってるタイル、つまり、IDが1の6（昇り階段）に飛ぶ
+			CALL DUNGEON_DOWNSTAIRS_ID,0,16
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+
+
+
+;=================================
+;思考パターン
+;=================================
+@EVENT_BATTLE_ACTEND_DUNGEON90
+SIF POS(9) == -1
+	RETURN 0
+SIF NO:POS(9) != [[キャラ:スナッピー]]
+	RETURN 0
+IF BASE:POS(9):ＨＰ < MAXBASE:POS(9):ＨＰ/8 && ダンジョンフラグ:(FLAG:現ダンジョン):6 == 0
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃ま、待つッキュ！ サマナーとだけ、特別なオイシイ取引するッキュ！ ┃
+	PRINTFORML ┃ボクとサマナーは友達になれるッキュ！　　　　　　　　　　　　　　┃
+	PRINTFORML ┃友達になら、ボクの大事な肉便器をタダで使わせてあげるッキュ　　　┃
+	PRINTFORML ┃喧嘩なんてダメッキュ、二人は仲良しになるッキュ？　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTW この嘘吐きイルカの申し出に乗ってみようか…？
+	CALL INPUT_YN
+	IF RESULT == 0
+		PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃契約成立ッキュ！ 二人はこれで兄弟同然ッキュ！　　　　　　　　 ┃
+		PRINTFORML ┃サマナーの為に準備しておくから、一度帰ってからまた来るッキュ　┃
+		PRINTFORML ┃ホラーハウス行きのターミナル？　　　　　　　　　　　　　　　　┃
+		PRINTFORML ┃分ったッキュ、それも開けておくッキュ　　　　　　　　　　　　　┃
+		PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+		CALL INCREASE_LC,-5
+		CALL INCREASE_LD,-5
+		ダンジョンフラグ:(FLAG:現ダンジョン):1 = 4
+		PRINTW ターミナルを開放し、封鎖されたＶＲホラーハウスに行けるようになった！
+		FLAG:勝利フラグ = 1
+	ELSE
+		CALL MESSAGE_B(1, "キュッ！？ か、考え直すッキュ～～～ッ！")
+	ENDIF
+	ダンジョンフラグ:(FLAG:現ダンジョン):6 = 1
+ELSEIF CFLAG:POS(9):ダメージ吸収量 > MAXBASE:POS(9):ＨＰ
+	CFLAG:POS(9):入力行動 = [[スキル:玉砕破]]
+	CFLAG:POS(9):ターゲット = 19
+	
+	SETCOLOR 0xff0033
+	PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+	PRINTFORM ┃[ 9] %CALLNAME:POS(9),21,LEFT%┃　┃
+	CALLFORM SKILL_NAME_{CFLAG:(POS(9)):入力行動},POS(9)
+	PRINTFORML %RESULTS,40,LEFT%┃
+	PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+	CALL MESSAGE_B(1, "も、もう食べられないッキューーーー！！！")
+	RESETCOLOR
+	CALLFORM ACTION_{[[スキル:玉砕破]]},POS(9),19
+	
+	CALL FIGHT_IT_OUT
+ENDIF
+
+@ENEMY_BATTLE_MESSAGE_K900, ARG
+IF CFLAG:ARG:入力行動 == [[スキル:ドルフィンキック]]
+	IF CFLAG:ARG:ダメージ吸収量 < MAXBASE:ARG:ＨＰ/2 && BASE:ARG:ＨＰ > MAXBASE:ARG:ＨＰ/2
+		CALL MESSAGE_B(1, "ボクの邪魔はさせないッキュ！")
+	ELSE
+		CALL MESSAGE_B(1, "に、人間なんかがボクには勝てないッキュ！")
+	ENDIF
+ELSEIF CFLAG:ARG:入力行動 == [[スキル:マハ・ブフーラ]]
+	IF CFLAG:ARG:ダメージ吸収量 < MAXBASE:ARG:ＨＰ/4
+		CALL MESSAGE_B(1, "魔法は何でも吸収するッキュ")
+	ELSEIF CFLAG:ARG:ダメージ吸収量 < MAXBASE:ARG:ＨＰ/3
+		CALL MESSAGE_B(1, "ま、魔法は何でも吸収しちゃうッキュ")
+	ELSE
+		CALL MESSAGE_B(1, "いい加減ムダな事はやめるッキュ！")
+	ENDIF
+ELSEIF CFLAG:ARG:入力行動 == [[スキル:メガトンプレス]]
+	IF CFLAG:ARG:ダメージ吸収量 < MAXBASE:ARG:ＨＰ/4
+		CALL MESSAGE_B(1, "ボクに魔法攻撃は通じないッキュ")
+	ELSEIF CFLAG:ARG:ダメージ吸収量 < MAXBASE:ARG:ＨＰ/3
+		CALL MESSAGE_B(1, "魔法は通じないって言ってるッキュ！")
+	ELSE
+		CALL MESSAGE_B(1, "ひ、人の話を聞けッキュ～～～！")
+	ENDIF
+ELSEIF CFLAG:ARG:入力行動 == [[スキル:ブフーラ]] || CFLAG:ARG:入力行動 == [[スキル:サマーソルト]]
+	IF BASE:ARG:ＨＰ < MAXBASE:ARG:ＨＰ/4
+		CALL MESSAGE_B(1, "お、お前ら脳味噌筋肉にも程があるッキュ！")
+	ELSEIF BASE:ARG:ＨＰ < MAXBASE:ARG:ＨＰ/2
+		CALL MESSAGE_B(1, "あ、あれ？ 何かおかしいッキュ")
+	ELSE
+		CALL MESSAGE_B(1, "物理攻撃は苦手ッキュ、怖いッキュ～")
+	ENDIF
+ENDIF
+
+;スナッピーの思考パターン
+@SET_ACTION_スナッピー,ARG
+IF FLAG:経過ターン数 == 0
+	CALL CHECK_ACTIONABLE,ARG,[[スキル:ドルフィンキック]]
+	IF RESULT == 1
+		CFLAG:ARG:入力行動 = [[スキル:ドルフィンキック]]
+		CALL RANDOM_TARGET,ARG,[[スキル:ドルフィンキック]]
+		RETURN 0
+	ELSE
+		GOTO DECIDE_ACTION
+	ENDIF
+ENDIF
+SIF FLAG:経過ターン数 > 0
+	CFLAG:ARG:行動回数 = 2
+
+IF CFLAG:ARG:１moreフラグ == 2
+	IF CFLAG:ARG:行動した回数 == 1
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:ドルフィンキック]]
+		IF RESULT == 1
+			CFLAG:ARG:入力行動 = [[スキル:ドルフィンキック]]
+			CALL RANDOM_TARGET,ARG,[[スキル:ドルフィンキック]]
+		ELSE
+			GOTO DECIDE_ACTION
+		ENDIF
+	ELSE
+			GOTO DECIDE_ACTION
+	ENDIF
+ELSEIF FLAG:経過ターン数 % 4 == 0 && CFLAG:ARG:行動した回数 == 0
+	IF CFLAG:ARG:行動した回数 == 1
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:ドルフィンキック]]
+		IF RESULT == 1
+			CFLAG:ARG:入力行動 = [[スキル:ドルフィンキック]]
+			CALL RANDOM_TARGET,ARG,[[スキル:ドルフィンキック]]
+		ELSE
+			GOTO DECIDE_ACTION
+		ENDIF
+	ELSE
+			GOTO DECIDE_ACTION
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_90
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:2
+	CASE 0
+		RETURN [[キャラ:ガキ]] , 3 + RAND:10 , CSVBASE([[キャラ:ガキ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:ゾンビアーミー]] , 3 + RAND:10 , CSVBASE([[キャラ:ゾンビアーミー]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+
+
+
+
+

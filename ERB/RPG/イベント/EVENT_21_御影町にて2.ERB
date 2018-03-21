@@ -1,0 +1,92 @@
+;フラグ
+;イベントフラグ:21:0 ; 0:イベント未解決 1:エリー放置 2:奴隷化　3:和解
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_21
+;地下鉄クリア後,SEBECビル侵入前,「御影町にて」イベント未解決
+IF ダンジョンフラグ:9:1 == 1 && ダンジョンフラグ:10:0 == 0 && イベントフラグ:21:0 == 0 && イベントフラグ:20:0 == 0
+	RESULTS = In Mikage-Cho ２
+	RETURN 1
+ENDIF
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_21
+	PRINTL You went to explore Mikage-Cho, now that you can enter.
+	PRINTL There are no people on the streets, not even dead people, looking like they could run and hide surprisingly well.
+	PRINTL There are demons, but none are particularly powerful.
+	PRINTFORML There seem to be many places where pockets of space have been sent to a different world, but when they are avoided, %CALLNAME:MASTER% faces no particular danger.
+	PRINTL ......
+	PRINTL ....
+	PRINTW ...
+	PRINTL For a while, you were a bit confused, as nothing special seemed to be happening.
+	PRINTL If one decides to plunge into an area that was plunged into a different world, you may reach your limit, a risky thing with little meaning.
+	PRINTL After walking along the subway for a bit, you suddenly met a girl at the exit.
+	PRINTL She was wearing the uniform of St. Hermelin High School of Mikage-Cho.
+	PRINTL 「!　Wait...you there, the subway doesn't move.」
+;悪魔を連れている
+	A = 0
+	REPEAT CHARANUM
+		IF CFLAG:COUNT:ポジション >= 1 && CFLAG:COUNT:ポジション <= 6
+;パーティーに入っている
+			SIF ABL:COUNT:種族 != 0
+				A ++
+		ENDIF
+	REND
+	IF A >= 1
+		PRINTL 「Unbelievable! To actually bring along demons, I can't believe it!」
+		PRINTL The girl's words strangely held no disgust, rather...is that a look of envy?
+		PRINTL 「...ahem, excuse me」
+	ELSE
+		PRINTL 「Going around such a place safely, do you have a means to fight demons?」
+	ENDIF
+	PRINTL The girl introduced herself as Eriko Kirishima.　She is a persona-user and a student of St. Hermelin High School.
+	PRINTL 「I presume, you know a way out of here?　If that is so, could we cooperate?」
+	PRINTL She seems to wish to exchange information.
+	PRINTL Well, how will you respond?
+	CALL INPUT_YN("Accept", "Decline")
+	IF RESULT == 0
+		PRINTL ...Better to accept, but how do you intend to explain your information?
+		PRINTL Opening a hole in the boundary can only be done for a short time, so only a few people can enter and exit.
+		PRINTL Taking her out alone, wouldn't help in solving the incident.
+		CALL INPUT_YN("Talk at length about the circumstances", "Feed her nonsense")
+		IF RESULT == 0
+			PRINTFORML While she listened to %CALLNAME:MASTER%, she paid close attention.
+			PRINTL 「...You don't seem to be lying. In other words, If we want to go out together, we should try to destroy the barrier instead of looking for an exit.」
+			PRINTL 「Thanks! That was very helpful.　As for what I found out, it seems trivial compared to that...」
+			PRINTL The girl seemed to have gone searching Mikage-Cho for an exit.
+			PRINTFORML %CALLNAME:MASTER% got some information on Mikage-Cho.
+			PRINTL 「Then, I'll look around in various places some more. Well, I hope we'll be able to meet again somewhere...」
+			PRINTW The girl bowed and left.　Maybe you'll see her again soon.
+			イベントフラグ:21:0 = 3
+		ELSE
+			CALL INCREASE_LC, -4
+			PRINTL 「...」
+			PRINTL While the girl listened, she stared at you with open suspicion.
+			PRINTL Since she doen't seem to believe you, what do you do...?
+			CALL INPUT_YN("It doesn't matter if she doubts you", "Catch and enslave her")
+			IF RESULT == 0
+				PRINTL Even if she suspects you, what could you say?
+				PRINTL After all, it is doubtful that this girl could have any useful information.
+				PRINTFORMW %CALLNAME:MASTER% ignored the girl's suspicions and left.
+				イベントフラグ:20:0 = 1
+			ELSE
+				CALL INCREASE_LD, -16
+				PRINTL Even if she doubts your trifling story, the girl is quite good-looking.
+				PRINTL In addition, she is a rare persona-user.
+				PRINTL There would not be that big a loss if you capture her. And she is useful as a woman.
+				PRINTFORML %CALLNAME:MASTER% went up to the girl. Pretending to passby, %CALLNAME:MASTER% smacked her hard.
+				PRINTL The girl collapsed like a puppet whose strings had been cut.
+				PRINTW Eriko Kirishima became a slave.
+				CALL ADD_NEW_COMPANION,4514,100
+				イベントフラグ:21:0 = 2
+			ENDIF
+		ENDIF
+	ELSE
+		PRINTL 「?　Don't you want to escape?　Then you...」
+		PRINTFORML %CALLNAME:MASTER% ignored the girl and left the subway.
+		イベントフラグ:21:0 = 1
+	ENDIF
+

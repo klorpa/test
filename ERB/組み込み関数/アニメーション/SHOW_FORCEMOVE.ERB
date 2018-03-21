@@ -1,0 +1,72 @@
+;強制移動アニメーション表示関数
+;引数は文字列で
+;UDLRで上下左右とします
+;<X>で直前の方向移動をX回繰り返します
+;例
+;UULR<8>Dなら上に2回、左に一回右に8回、下に一回移動
+@SHOW_FORCEMOVE, ARGS, ARGS:1, ARGS:2, 発言者, 内容 = "EMPTY", 区切り文字 = "/", オプション = "ログを残す/ボタンを利用する/再利用しない/NOWAIT/NOANIME", 位置 = "CENTER", 字幅 = 72, 行数 = 4
+#LOCALSSIZE 50
+#DIM 表示回数
+#DIMS 移動方向
+#DIM 移動回数
+#DIM LINE
+#DIMS 発言者
+#DIMS 内容
+#DIMS 区切り文字
+#DIMS オプション
+#DIMS 位置
+#DIM 字幅
+#DIM 行数
+LINE = LINECOUNT
+表示回数 = 0
+REDRAW 0
+WHILE ARGS != ""
+	;初回は今の位置を示すために移動なしで表示させる
+	;ついでにRanRanDungeonのためのRUN中断BITを立てておく
+	IF !表示回数
+		移動回数 = 1
+		移動方向 = NONE
+		SETBIT FLAG:233,0
+	ELSEIF SUBSTRING(ARGS, 0, 1) == "<"
+		SPLIT ARGS, "<", LOCALS
+		移動回数 = TOINT(AUTO_SPLIT(LOCALS:1, ">", 0)) - 1
+	ELSEIF GROUPMATCH(SUBSTRING(ARGS, 0, 1), "U", "D", "L", "R")
+		移動回数 = 1
+		移動方向 = %SUBSTRING(ARGS, 0, 1)%
+	ELSE
+		移動方向 = 
+		移動回数 = 0
+	ENDIF
+	FOR LOCAL, 0, 移動回数
+		CLEARLINE LINECOUNT - LINE
+		SELECTCASE 移動方向
+			CASE "U"
+				FLAG:現Y--
+			CASE "D"
+				FLAG:現Y++
+			CASE "L"
+				FLAG:現X--
+			CASE "R"
+				FLAG:現X++
+		ENDSELECT
+		SELECTCASE ARGS:1
+			CASE "D", "ダンジョン", "DUNGEON"
+				CALL AUTOMAP
+				CALL SHOW_PICTURE, "D"
+				IF 内容 != "EMPTY"
+					CALL MESSAGE_WINDOW, 発言者, 内容, 区切り文字, オプション, 位置, 字幅, 行数
+					CALL MESSAGE_WINDOW_LOG(, , , , , -1)
+				ELSE
+					CALL SHOW_DUNGEON_COMMAND
+				ENDIF
+				REDRAW 2
+				TWAIT 200, 1
+				表示回数++
+		ENDSELECT
+	NEXT
+	SIF 表示回数 > 1
+		ARGS = %SUBSTRING(ARGS, 1)%
+WEND
+SIF 内容 != "EMPTY"
+	CALL MESSAGE_WINDOW_LOG(発言者, 内容, 区切り文字, 行数, 字幅)
+REDRAW 1

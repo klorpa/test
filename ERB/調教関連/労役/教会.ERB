@@ -1,0 +1,565 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:教会.ERB
+;	Facility	:教会に関する関数群です。
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2014/09/17		----					ネトリス
+;	002		2014/12/28		----					秩混値の変動が正しく行われていなかったのを修正、など
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;教会
+;それぞれの教会の対応したアライメント調整をする
+;メシア教会ならＬ、ガイア教会はＣ、教会はＮに寄っていく
+;収入はなく維持費がかかる（維持費は高めでもいいかも）
+;[[店舗:宣伝フラグ]]:ARG を 敬拝値 として使う
+;敬拝値は教会で奉仕活動をすることで得られ、個々の教会で独自に管理する
+;敬拝値を消費する事でそれぞれの教会に対応した仲魔と交換する事が出来る
+;
+;==========================================================
+;ARRANGE_CHARA_COMMODITY_MANAGEMENT_教会
+; 奉仕活動個別設定
+; 初期設定は祈り
+;<引数>
+;	ARG = 店舗番号
+;<戻り値>
+;	なし
+;========================================================
+@ARRANGE_CHARA_COMMODITY_MANAGEMENT_教会,ARG
+
+P = 0
+$INPUT_LOOP_2
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:労役フラグ != 10 + ARG
+		CONTINUE
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:2 = A
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML Please select useage method　＜page.{P + 1}＞
+;利用方法を選んでください
+DRAWLINE
+PRINTFORML 　　　　　　　　　　　　　　　　　 祈り　口奉仕 性奉仕
+REPEAT リスト表示数()
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF LOCAL < 0 || CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	CALL ARRANGE_SETCOLOR, LOCAL
+
+	CALL ARRANGE_TARGETSIGN, LOCAL
+
+	CALL ARRANGE_CHARALIST, LOCAL
+	CALL ARRANGE_FALLTALENT, LOCAL
+	CALL ARRANGE_SEX, LOCAL
+	
+	FOR LOCAL:2, 1, 4
+		PRINTFORM 　-　
+		SIF CFLAG:LOCAL:個別性的サービス != LOCAL:2
+			SETCOLOR COLOR("灰色")
+		PRINTFORM \@ CFLAG:LOCAL:個別性的サービス == LOCAL:2 ? Ｏ # Ｘ \@
+		RESETCOLOR
+	NEXT
+	
+	PRINTL 
+REND
+RESETCOLOR
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1007]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:2 - 1) / リスト表示数()) ? %" " * 16% # [1009]Next page\@
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 1007
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:2 - 1) / リスト表示数()
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+LOCAL:1 = RESULT
+
+CFLAG:(LOCAL:1):個別性的サービス += 1
+SIF CFLAG:(LOCAL:1):個別性的サービス > 3
+	CFLAG:(LOCAL:1):個別性的サービス = 1
+
+GOTO INPUT_LOOP_2
+
+
+;==========================================================
+;@EXTEND_MANAGEMENT_教会
+; 教会の規模拡張処理
+;<引数>
+;	ARG = 店舗番号
+;<戻り値>
+;	なし
+;==========================================================
+@EXTEND_MANAGEMENT_教会, ARG
+PRINTFORML Currently, the facility ＬＶ is は{店舗("規模", ARG)}.
+;現在、この教会のＬＶは{店舗("規模", ARG)}です。
+
+LOCAL = 5000 * 店舗("規模", ARG)
+IF 店舗("規模", ARG) >= 5
+	PRINTFORMW The highest facility level has been reached.
+	;この教会はこれ以上改築できません。
+	RETURN 0
+ELSEIF MONEY < LOCAL
+	PRINTFORMW ￥{LOCAL} are required and dont have enough.
+	;改築するには￥{LOCAL}必要です。資金が足りません。
+	RETURN 0
+ELSE
+	PRINTFORML For ￥{LOCAL} this facility can be expanded. Do you wish to proceed?
+	;￥{LOCAL}で改築出来ます。改築しますか？
+ENDIF
+
+CALL INPUT_YN, "YES", "NO"
+SIF RESULT == 1
+	RETURN 0
+CALL 店舗演算("規模", ARG,1, "+")
+MONEY -= LOCAL
+
+;==========================================================
+;MANAGEMENT_教会
+; 教会での活動処理
+;
+;<引数>
+;	ARG = 店舗番号
+;<使用変数>
+;	属性変動値   = 各活動で変動した数値の保管
+;	配置人数     = 教会に配置しているキャラの人数
+;	最大参拝人数 = 現在の教会規模での最大参拝人数、最大値は教会に改装規模による
+;	参拝人数     = 相手にする人数
+;	教会規模     = 参拝人数と属性変動値の底上げに影響する
+;	敬拝値       = [[店舗:人気]]:ARG に収める数値をまとめて保管する
+;<戻り値>
+;	なし
+;========================================================
+@MANAGEMENT_教会, ARG
+#DIM 属性変動値
+#DIM 配置人数
+#DIM 最大参拝人数
+#DIM 参拝人数
+#DIM 教会規模
+#DIM 敬拝値
+#DIM 口奉仕回数
+#DIM Ｖ奉仕回数
+#DIM Ａ奉仕回数
+
+
+;教会の改装レベルを保存
+教会規模 = 店舗("規模", ARG)
+;最大参拝人数の設定
+SELECTCASE 教会規模
+	CASE 1
+		最大参拝人数 = 5
+	CASE 2
+		最大参拝人数 = 10
+	CASE 3
+		最大参拝人数 = 20
+	CASE 4
+		最大参拝人数 = 40
+	CASE 5
+		最大参拝人数 = 80
+ENDSELECT
+
+;配置されているキャラがいるかチェック
+LOCAL:1 = 0
+FOR LOCAL, 0, CHARANUM
+	;配置されていないキャラを弾く
+	SIF CFLAG:LOCAL:労役フラグ != 10+ARG
+		CONTINUE
+	配置人数 += 1
+NEXT
+;誰も配置されていない場合は戻る
+SIF 配置人数 == 0
+	RETURN
+
+;活動処理
+;LOCAL = キャラ番号
+;LOCAL:1 = 多目的に使用
+FOR LOCAL, 0, CHARANUM
+	;配置されていないキャラを弾く
+	SIF CFLAG:LOCAL:労役フラグ != 10+ARG
+		CONTINUE
+	;初期化
+	口奉仕回数 = 0
+	Ｖ奉仕回数 = 0
+	Ａ奉仕回数 = 0
+
+	;奉仕別処理
+	SELECTCASE CFLAG:LOCAL:個別性的サービス
+		;祈り
+		CASE 1
+			PRINTFORMW %CALLNAME:LOCAL%は祈りを捧げている
+			;祈りでの変化は0～1(MAX0～4)
+			属性変動値 = RAND:(2+教会規模/2)
+			敬拝値 += 1
+			;イベント口上
+			T = TARGET
+			TARGET = LOCAL
+			TFLAG:13 = 65
+			CALL KOJO_MESSAGE_EVENT
+			TARGET = T
+		;口奉仕
+		CASE 2
+			;奉仕する人数を決める
+			参拝人数 = RAND:最大参拝人数
+			;参拝人数が0の場合はお祈りをする
+			IF 参拝人数 == 0
+				PRINTFORMW 参拝者がなかったため、%CALLNAME:LOCAL%は一日祈りを捧げていた
+				;祈りでの変化は0～1(MAX0～4)
+				属性変動値 = RAND:(2+教会規模/2)
+				敬拝値 += 1
+				;イベント口上
+				T = TARGET
+				TARGET = LOCAL
+				TFLAG:13 = 65
+				CALL KOJO_MESSAGE_EVENT
+				TARGET = T
+				GOTO SKIP_1
+			ENDIF
+			
+			;教会の種類によって分ける
+			SELECTCASE 店舗("種類",ARG)
+				;メシア教会
+				CASE 13
+					SELECTCASE RAND:(2+教会規模)
+						CASE 1
+							PRINTFORML %CALLNAME:LOCAL%は{参拝人数}人のメシア教信者のペニスに丁寧な奉仕をした
+						CASEELSE
+							PRINTFORML %CALLNAME:LOCAL%は訪れた{参拝人数}人の信者に口での奉仕を行なった
+					ENDSELECT
+				;ガイア教会
+				CASE 14
+					SELECTCASE RAND:2
+						CASE 1
+							PRINTFORML %CALLNAME:LOCAL%は{参拝人数}人のガイア教信者のペニスに丁寧な奉仕をした
+						CASEELSE
+							PRINTFORML %CALLNAME:LOCAL%は訪れた{参拝人数}人の信者に口での奉仕を行なった
+					ENDSELECT
+				;教会
+				CASE 15
+					SELECTCASE RAND:2
+						CASE 1
+							PRINTFORML %CALLNAME:LOCAL%はミサへと訪れた{参拝人数}人の信者のペニスに丁寧な奉仕をした
+						CASEELSE
+							PRINTFORML %CALLNAME:LOCAL%は訪れた{参拝人数}人の参拝者に口での奉仕を行なった
+					ENDSELECT
+			ENDSELECT
+			;イベント口上
+			T = TARGET
+			TARGET = LOCAL
+			TFLAG:13 = 66
+			CALL KOJO_MESSAGE_EVENT
+			TARGET = T
+			;取得経験計算
+			TCVAR:LOCAL:獲得フェラ経験 = 参拝人数
+			;TCVAR:LOCAL:獲得奉仕快楽経験 = 参拝人数
+			;舌使いがある場合はSemenEXPにボーナス
+			LOCAL:1 = 参拝人数
+			SIF TALENT:LOCAL:舌使い
+				LOCAL:1 += 1 + LOCAL:1 / 2
+			TCVAR:LOCAL:獲得精液経験 = LOCAL:1
+			;崇拝値は1+獲得精液経験
+			敬拝値 += 1 + TCVAR:LOCAL:獲得精液経験
+			;獲得経験表示
+			CALL SHOW_ADD_EXP, LOCAL
+			
+			;口奉仕での変化は0～2(MAX0～7)
+			属性変動値 = RAND:(3+教会規模)
+
+		;性奉仕
+		CASE 3
+			;奉仕する人数を決める
+			参拝人数 = RAND:最大参拝人数
+			;参拝人数が0の場合はお祈りをする
+			IF 参拝人数 == 0
+				PRINTFORMW 参拝者がなかったため、%CALLNAME:LOCAL%は一日祈りを捧げていた
+				;祈りでの変化は0～1(MAX0～4)
+				属性変動値 = RAND:(2+教会規模/2)
+				敬拝値 += 1
+				;イベント口上
+				T = TARGET
+				TARGET = LOCAL
+				TFLAG:13 = 65
+				CALL KOJO_MESSAGE_EVENT
+				TARGET = T
+				GOTO SKIP_1
+			ENDIF
+			
+			;教会の種類によって分ける
+			SELECTCASE 店舗("種類",ARG)
+				;メシア教会
+				CASE 13
+					SELECTCASE RAND:2
+						CASE 1
+							PRINTFORML %CALLNAME:LOCAL%は{参拝人数}人のメシア教信者に自らの体で奉仕を行なった
+						CASEELSE
+							PRINTFORML %CALLNAME:LOCAL%は訪れた{参拝人数}人の信者に体を使った奉仕を行なった
+					ENDSELECT
+				;ガイア教会
+				CASE 14
+					SELECTCASE RAND:2
+						CASE 1
+							PRINTFORML %CALLNAME:LOCAL%は{参拝人数}人のガイア教信者に自らの体で奉仕を行なった
+						CASEELSE
+							PRINTFORML %CALLNAME:LOCAL%は訪れた{参拝人数}人の信者に体を使った奉仕を行なった
+					ENDSELECT
+				;教会
+				CASE 15
+					SELECTCASE RAND:2
+						CASE 1
+							PRINTFORML %CALLNAME:LOCAL%はミサへと訪れた{参拝人数}人の信者に自らの体で奉仕を行なった
+						CASEELSE
+							PRINTFORML %CALLNAME:LOCAL%は訪れた{参拝人数}人の参拝者に体を使った奉仕を行なった
+					ENDSELECT
+			ENDSELECT
+			
+			;イベント口上
+			T = TARGET
+			TARGET = LOCAL
+			TFLAG:13 = 67
+			CALL KOJO_MESSAGE_EVENT
+			TARGET = T
+			;取得経験計算
+			;とりあえず一人に付き一発にしておく
+			FOR LOCAL:1, 0, 参拝人数
+				SELECTCASE RAND:3
+					CASE 1
+						口奉仕回数 ++
+					CASE 2
+						Ｖ奉仕回数 ++
+					CASEELSE
+						Ａ奉仕回数 ++
+				ENDSELECT
+				
+				;KissEXP処理：適当にランダムで
+				SIF RAND:2 == 0
+					TCVAR:LOCAL:獲得キス経験 += 1
+				
+			NEXT
+			TCVAR:LOCAL:獲得フェラ経験 += 口奉仕回数
+			TCVAR:LOCAL:獲得Ｖ経験 += Ｖ奉仕回数
+			TCVAR:LOCAL:獲得Ａ経験 += Ａ奉仕回数
+			TCVAR:LOCAL:獲得奉仕快楽経験 += Ｖ奉仕回数 + Ａ奉仕回数
+			TCVAR:LOCAL:獲得精液経験 += 口奉仕回数 + Ｖ奉仕回数 + Ａ奉仕回数
+			TCVAR:LOCAL:獲得性交経験 += Ｖ奉仕回数 + Ａ奉仕回数
+			TCVAR:LOCAL:獲得膣射経験 += Ｖ奉仕回数
+			敬拝値 += 1 + 口奉仕回数 + 2*(Ｖ奉仕回数 + Ａ奉仕回数)
+			IF TALENT:LOCAL:舌使い
+				TCVAR:LOCAL:獲得精液経験 += 口奉仕回数 / 2
+				敬拝値 += 口奉仕回数 / 2
+			ENDIF
+			;獲得経験表示
+			CALL SHOW_ADD_EXP, LOCAL
+			;体力の消費
+			PRINTFORML Stamina - {参拝人数*10}
+			BASE:LOCAL:体力 -= 参拝人数*10
+
+			;妊娠用
+			SIF CFLAG:LOCAL:"Contraceptive barrier" == 0
+				CFLAG:LOCAL:信者の中出氏による妊娠判定 = TCVAR:LOCAL:獲得膣射経験*2
+
+			;性奉仕での変化は1～4(MAX1～9)
+			属性変動値 = 1 + RAND:(4+教会規模)
+
+	ENDSELECT
+	$SKIP_1
+	;数値が1以上なら属性値変動
+	IF LOCAL:1
+		;教会によって変動が変わる
+		SELECTCASE 店舗("種類", ARG)
+			CASE 13
+				LOCAL:2 = 255
+			CASE 14
+				LOCAL:2 = 0
+			CASE 15
+				LOCAL:2 = 127
+		ENDSELECT
+		;キャラの属性値変動
+		CALL CHANGE_CHARA_LC, LOCAL, LOCAL:2, LOCAL:1
+		CALL SYNC_STATUS, LOCAL
+	ENDIF
+
+	PRINTW
+	DRAWLINE
+
+NEXT
+PRINTFORML 維持費として￥{500 * 教会規模 + 配置人数 * 300}支払いました
+MONEY -= 500 * 教会規模 + 配置人数 * 300
+[[店舗:人気]]:ARG += 敬拝値
+;==========================================================
+;@教会_敬拝値_交換
+; 敬拝値を交換するための処理
+;<引数>
+;	ARG = 店舗番号
+;<戻り値>
+;	なし
+;==========================================================
+@教会_敬拝値_交換, ARG
+;所持敬拝値と値段を比べるため
+LOCAL:1 = 100
+LOCAL:2 = 500
+LOCAL:3 = 1000
+LOCAL:4 = 2000
+LOCAL:5 = 5000
+
+$LOOP_1
+PRINTFORML Please select a solicitor　　　Current popularity：{[[店舗:人気]]:ARG}
+;勧誘する者を選んでください　　　敬拝値：{[[店舗:人気]]:ARG}
+
+SELECTCASE 店舗("種類",ARG)
+	;メシア教会
+	CASE 13
+		PRINTFORML [1] 狂信者　　　　　　100
+		SIF 店舗("規模",ARG) > 1
+			PRINTFORML [2] ブッチャー　　　　500
+		SIF 店舗("規模",ARG) > 2
+			PRINTFORML [3] テンプルナイト　　1000
+
+	;ガイア教会
+	CASE 14
+		PRINTFORML [1] 特攻隊　　　　　　100
+		SIF 店舗("規模",ARG) > 1
+			PRINTFORML [2] ハカイソウ　　　　500
+		SIF 店舗("規模",ARG) > 2
+			PRINTFORML [3] アサシン　　　　　1000
+		SIF 店舗("規模",ARG) > 3
+			PRINTFORML [4] オニジョロウ　　　2000
+		SIF 店舗("規模",ARG) > 4
+			PRINTFORML [5] カメンヒジリ　　　5000
+	;教会
+	CASE 15
+		PRINTFORML [1] やくざ　　　　　　　100
+		SIF 店舗("規模",ARG) > 1
+			PRINTFORML [2] パンクス　　　　　　500
+		SIF 店舗("規模",ARG) > 2
+			PRINTFORML [3] メタル　　　　　　　1000
+		SIF 店舗("規模",ARG) > 3
+			PRINTFORML [4] ハイウェイスター　　2000
+
+ENDSELECT
+
+PRINTFORML [100] Back
+
+SELECTCASE 店舗("種類",ARG)
+	;メシア教会
+	CASE 13
+		CALL INPUTINT( 1, 2, 3, 100)
+
+	;ガイア教会
+	CASE 14
+		CALL INPUTINT( 1, 2, 3, 4, 5, 100)
+
+	;教会
+	CASE 15
+		CALL INPUTINT( 1, 2, 3, 4, 100)
+
+ENDSELECT
+
+;戻るを選択した場合
+IF RESULT == 100
+	RETURN
+;敬拝値が足りない場合はループ
+ELSEIF LOCAL:RESULT > [[店舗:人気]]:ARG
+	PRINTFORMW 敬拝値が足りません
+	GOTO LOOP_1
+ENDIF
+
+
+SELECTCASE 店舗("種類",ARG)
+	;メシア教会
+	CASE 13
+		SELECTCASE RESULT
+			CASE 1
+				PRINTFORMW 狂信者が加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:狂信者]]
+
+			CASE 2
+				PRINTFORMW ブッチャーが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:ブッチャー]]
+
+			CASE 3
+				PRINTFORMW テンプルナイトが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:テンプルナイト]]
+
+		ENDSELECT
+
+	;ガイア教会
+	CASE 14
+		SELECTCASE RESULT
+			CASE 1
+				PRINTFORMW 特攻隊が加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:特攻隊]]
+
+			CASE 2
+				PRINTFORMW ハカイソウが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:アサシン]]
+
+			CASE 3
+				PRINTFORMW アサシンが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:アサシン]]
+
+			CASE 4
+				PRINTFORMW オニジョロウが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:オニジョロウ]]
+
+			CASE 5
+				PRINTFORMW カメンヒジリが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:カメンヒジリ]]
+
+		ENDSELECT
+
+	;教会
+	CASE 15
+		SELECTCASE RESULT
+			CASE 1
+				PRINTFORMW やくざが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:やくざ]]
+
+			CASE 2
+				PRINTFORMW パンクスが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:パンクス]]
+
+			CASE 3
+				PRINTFORMW メタルが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:メタル]]
+
+			CASE 4
+				PRINTFORMW ハイウェイスターが加わりました
+				CALL ADD_NEW_COMPANION, [[キャラ:ハイウェイスター]]
+
+		ENDSELECT
+
+ENDSELECT
+
+;敬拝値支払い
+[[店舗:人気]]:ARG -= LOCAL:RESULT
+
+
+
+
+

@@ -1,0 +1,1399 @@
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@kyoukai_ENTER,ARG,ARG:1
+;DA:ARG:(ARG:1)
+;ARG、ARG:1はそれぞれ対象のマスのX、Y座標を表しています。
+;このダンジョンではエレベーターの扉が一度右側から開けておかないと左側からは開けられない、という処理に使用しています。
+SELECTCASE FLAG:現M
+	CASE 23
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;協会タイル
+;=======================================================================
+;イベントタイル特殊表示4
+@kyoukai_TILE, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1600,1601,1602,2500,2501
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASE 1603
+		SETCOLOR 0x00ff00
+		RESULTS = 杏
+	CASE 1604
+		SETCOLOR 0x00ff00
+		RESULTS = 竜
+	CASE 1605
+		SETCOLOR 0x00ff00
+		RESULTS = サ
+	CASE 1606
+		SETCOLOR 0x00ff00
+		RESULTS = ロ
+	CASE 1607
+		SETCOLOR 0x00ff00
+		RESULTS = ゲ
+	CASE 1700
+		SETCOLOR 0x00ff00
+		RESULTS = ゲ
+	CASE 1800
+		SETCOLOR 0x00ff00
+		RESULTS = ｍ
+	CASE 2001
+		IF ダンジョンフラグ:13:12 % 5 > 0
+			SETCOLOR 0x00ff00
+			RESULTS = Ｈ
+		ELSE
+			RESULTS = □
+		ENDIF
+	CASE 2000
+		SETCOLOR 0x00ff00
+		RESULTS = 竜
+	CASE 2200
+			RESULTS = □
+	CASE 2300
+		IF ダンジョンフラグ:13:11 < 4
+			SETCOLOR 0x00ff00
+			RESULTS = サ
+		ELSE
+			RESULTS = □
+		ENDIF
+	CASE 2301
+		IF ダンジョンフラグ:13:12 % 11 > 0
+			SETCOLOR 0x00ff00
+			RESULTS = Ｈ
+		ELSE
+			RESULTS = □
+		ENDIF
+	CASE 2303
+		IF ダンジョンフラグ:13:11 < 5
+			RESULTS = □
+		ELSE
+			SETCOLOR 0x00ff00
+			RESULTS = ゲ
+		ENDIF
+	CASE 2302
+		IF ダンジョンフラグ:13:11 < 5
+			RESULTS = □
+		ELSE
+			SETCOLOR 0x00ff00
+			RESULTS = 竜
+		ENDIF
+	CASE 2304
+		IF ダンジョンフラグ:13:11 < 5
+			RESULTS = □
+		ELSE
+			SETCOLOR 0x00ff00
+			RESULTS = ロ
+		ENDIF
+	CASE 2305
+		IF ダンジョンフラグ:13:11 < 5
+			RESULTS = □
+		ELSE
+			SETCOLOR 0x00ff00
+			RESULTS = 杏
+		ENDIF
+	CASE 2306
+		IF ダンジョンフラグ:13:11 < 5
+			RESULTS = □
+		ELSE
+			SETCOLOR 0x00ff00
+			RESULTS = サ
+		ENDIF
+	CASEELSE
+		RESULTS = ！
+ENDSELECT
+
+;イベントタイル特殊表示9
+@kyoukai_TILE2, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 1700,1701
+		RESULTS = □
+	CASE 1900
+		IF ダンジョンフラグ:13:11 < 3
+			RESULTS = ！
+		ELSE
+			RESULTS = □
+		ENDIF
+	CASE 2200
+		RESULTS = ↑
+	CASE 2300
+		RESULTS = 扉
+	CASE 1301
+		RESULTS = ↓
+	CASEELSE
+		RESULTS = □
+ENDSELECT
+
+;=======================================================================
+;協会侵入イベント（9）
+;=======================================================================
+@kyoukai_event2
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 1801
+		IF ダンジョンフラグ:13:11 < 1
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "Freeze！ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ｂ", "手を頭の後ろに組んでひざまずけ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "へっ/アスラったって大したことねえな "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ｂ", "所詮　廃棄された計画の残骸だ/訓練された人間に敵うもんかよ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "まったくだ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "こんな奴ら頭の中に入れるなんざ/冗談じゃねえ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "おら　あくしろよ/大事なプログラムが詰まってんだろ/そのオツムにゃよ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "フッ飛ばされたくなかったら/早く人間様の足元にひざまずきな "
+			CALL INPUT_SELECT_D, "[1]嫌だと言ったら？/[0]喋っている間に撃ち殺す "
+			IF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "そうかい/頭の中の数字ブチ撒けな　機械野郎 "
+				FLAG:不意打ちフラグ = 1
+			ELSE
+				FLAG:先制攻撃フラグ = 1
+			ENDIF
+			
+			CALL MESSAGE_WINDOW_D, "", "＞カルマ兵が二体現れた！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			
+			CALL SET_ENEMY,8,[[キャラ:ジプス局員]],37
+			NAME:(CHARANUM-1) = カルマ兵
+			CALLNAME:(CHARANUM-1) = カルマ兵
+			ABL:(CHARANUM-1):スキル1 = 111
+			ABL:(CHARANUM-1):スキル2 = 111
+			ABL:(CHARANUM-1):スキル3 = 111
+			ABL:(CHARANUM-1):スキル4 = 111
+			ABL:(CHARANUM-1):スキル5 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,10,[[キャラ:ジプス局員]],37
+			NAME:(CHARANUM-1) = カルマ兵
+			CALLNAME:(CHARANUM-1) = カルマ兵
+			ABL:(CHARANUM-1):スキル1 = 111
+			ABL:(CHARANUM-1):スキル2 = 111
+			ABL:(CHARANUM-1):スキル3 = 111
+			ABL:(CHARANUM-1):スキル4 = 111
+			ABL:(CHARANUM-1):スキル5 = 0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+				CALL BATTLE_START
+			
+			FLAG:先制攻撃フラグ = 0
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			FLAG:エンカウント率 = 0
+			FLAG:未遭遇歩数 = 0
+			ダンジョンフラグ:13:11 = 1
+		ENDIF
+	CASE 1800
+		IF ダンジョンフラグ:13:11 < 2
+			CALL MESSAGE_WINDOW_D, "", "いきなり横から撃たれた！ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "BINGO！ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ｂ", "デルタ3よりアルファー1/隊長が指定した通りの場所でHITしました "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ｂ", "了解　クソどもを捕獲します "
+			
+			CALL MESSAGE_WINDOW_D, "", "＞カルマ兵が二体現れた！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			
+			CALL SET_ENEMY,8,[[キャラ:オセ]],38
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,10,[[キャラ:シュテンドウジ]],38
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+				CALL BATTLE_START
+				
+			FLAG:先制攻撃フラグ = 0
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			FLAG:エンカウント率 = 0
+			FLAG:未遭遇歩数 = 0
+			
+			CALL MESSAGE_WINDOW_D, "", "カルマ兵は一人生き残っている "
+			CALL MESSAGE_WINDOW_D, "Gale", "さて/俺たちは情報にも飢えている "
+			CALL MESSAGE_WINDOW_D, "Gale", "俺たちの腹を満たすか　頭を満たすか/好きな方を選べ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "あ　頭だ頭！ "
+			CALL MESSAGE_WINDOW_D, "Serph", "なら　セラの場所を教えてもらおう "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "テ　テクノシャーマンは… "
+			CALL MESSAGE_WINDOW_D, "カルマ兵Ａ", "あがっ！？ "
+			CALL MESSAGE_WINDOW_D, "", "カルマ兵は頭を撃たれた！ "
+			CALL MESSAGE_WINDOW_D, "Ann", "きゃあ！ "
+			CALL MESSAGE_WINDOW_D, "", "背後にカルマ兵が二人いた "
+			
+			CALL MESSAGE_WINDOW_D, "", "＞カルマ兵が二体現れた！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			
+			CALL SET_ENEMY,8,[[キャラ:ディース]],38
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,10,[[キャラ:イバラキドウジ]],38
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+				CALL BATTLE_START
+				
+			FLAG:先制攻撃フラグ = 0
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			FLAG:エンカウント率 = 0
+			FLAG:未遭遇歩数 = 0
+			ダンジョンフラグ:13:11 = 2
+		ENDIF
+		
+	CASE 2000
+		IF ダンジョンフラグ:13:11 < 3
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			
+			CALL MESSAGE_WINDOW_D, "Serph", "誰だ！ "
+			CALL MESSAGE_WINDOW_D, "", "Serphは敵の気配に気付く "
+			CALL MESSAGE_WINDOW_D, "", "ヘリポートの扉にカルマ兵がいた "
+			CALL MESSAGE_WINDOW_D, "カルマ兵　女", "へぇ～　案外いい男じゃないか "
+			CALL MESSAGE_WINDOW_D, "カルマ兵　小野坂", "そっちの彼女も　美味そうじゃない "
+			CALL MESSAGE_WINDOW_D, "カルマ兵　男", "見くびるな/手引きあったとはいえ/ここまで来た連中だ "
+			CALL MESSAGE_WINDOW_D, "", "カルマ兵が三人/強面の男と茶髪の短髪の女/そして　顔面色白スキンヘッドの小野坂ボイスの男/この3人が自分たちの周りを囲っている "
+			CALL MESSAGE_WINDOW_D, "Ann", "なに　あんた達？ "
+			CALL MESSAGE_WINDOW_D, "カルマ兵　女", "アッハッハッハ… "
+			CALL MESSAGE_WINDOW_D, "カルマ兵　小野坂", "かわいいね～/敵だよ敵 "
+			CALL MESSAGE_WINDOW_D, "Roland", "トリブヴァーナ… "
+			CALL MESSAGE_WINDOW_D, "Ryuji", "なんだそれ？ "
+			CALL MESSAGE_WINDOW_D, "Roland", "協会も厄介者扱いしているキラーエリート/とりわけ凶暴な三人だ "
+			CALL MESSAGE_WINDOW_D, "Roland", "まさかこいつらも… "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・気（小野坂）", "正解 "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・気", "缶詰には飽き飽きしてんでね/ガブリと行くぜ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・気", "オレサマ　オ前　マルカジリ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・地（男）", "貴様らは捕えろとの命令だ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・地", "”あいつ”に手を貸してもよかったが/俺たちにも面子がある "
+			CALL MESSAGE_WINDOW_D, "Serph", "あいつ？ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・天（女）", "アスラがどんだけ上等か知らないけど/あたしらを差し置くなんて/我慢ならないんだよ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・天", "抜けれるもんなら抜いてごらん！ "
+			
+			
+			CALL SET_ENEMY,8,[[キャラ:カーシー]],40,0,1
+				;衝撃、疾風
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+				CFLAG:(CHARANUM-1):速度補正 = 4000
+				CSTR:(CHARANUM-1):思考パターン = トリブ・小野坂
+				MAXBASE:(CHARANUM-1):神経 = 100
+				BASE:(CHARANUM-1):神経 = 100
+				MAXBASE:(CHARANUM-1):戦技 = 100
+				BASE:(CHARANUM-1):戦技 = 100
+				ABL:(CHARANUM-1):スキル1 = [[スキル:タル・カジャ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ラク・カジャ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:マカ・カジャ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:スク・カジャ]]
+				ABL:(CHARANUM-1):スキル5 = 0
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,9,[[キャラ:ウベルリ]],40,0,1
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+				MAXBASE:(CHARANUM-1):剣撃 = 10
+				BASE:(CHARANUM-1):剣撃 = 10
+				MAXBASE:(CHARANUM-1):打撃 = 10
+				BASE:(CHARANUM-1):打撃 = 10
+				MAXBASE:(CHARANUM-1):飛具 = 10
+				BASE:(CHARANUM-1):飛具 = 10
+				MAXBASE:(CHARANUM-1):戦技 = 10
+				BASE:(CHARANUM-1):戦技 = 10
+				ABL:(CHARANUM-1):スキル1 = [[スキル:回転斬り]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:暗波双飛爪]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:八相発破]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:マインドスライス]]
+				ABL:(CHARANUM-1):スキル5 = 0
+				CSTR:(CHARANUM-1):思考パターン = トリブ・地
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,10,[[キャラ:ガンガー]],40,0,1
+				ABL:(CHARANUM-1):スキル1 = [[スキル:エクストラワン]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:ファイアストーム]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:アイオンの雨]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:雷の洗礼]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:フィアトレント]]
+				ABL:(CHARANUM-1):スキル6 = [[スキル:旋風陣]]
+				ABL:(CHARANUM-1):スキル7 = [[スキル:ダムドラオン]]
+				ABL:(CHARANUM-1):スキル8 = [[スキル:フレイダイン]]
+				CSTR:(CHARANUM-1):思考パターン = トリブ・天
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			
+				CALL BATTLE_START
+			FLAG:先制攻撃フラグ = 0
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			FLAG:エンカウント率 = 0
+			FLAG:未遭遇歩数 = 0
+			
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・天", "やるじゃないのさ… "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・地", "ひとまず退け！ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・気", "覚えてやがれよクソ虫共！ "
+			CALL MESSAGE_WINDOW_D, "トリブヴァーナ・気", "必ずぶっ殺してやら…あああぁぁぁぁぁぁ！ "
+			CALL MESSAGE_WINDOW_D, "", "3人とも逃げるようにビルから落ちていった "
+			CALL MESSAGE_WINDOW_D, "Ryuji", "なんなんだ？　あいつら "
+			CALL MESSAGE_WINDOW_D, "Serph", "また　変なのが出てきたな… "
+			ダンジョンフラグ:13:11 = 3
+		ENDIF
+		
+	CASE 2200
+		CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)-2
+	CASE 2300
+		IF ダンジョンフラグ:13:11 < 4
+			CALL MESSAGE_WINDOW_D, "", "ここが上層の医務室のようだ "
+			CALL MESSAGE_WINDOW_D, "", "ガラスの向こうには人が入れそうな装置がある/セラはあの中にいるだろう "
+			CALL INPUT_SELECT_D, "[1]部屋に入る/[0]入らない "
+			IF RESULT == 1
+				ダンジョンフラグ:13:11 = 4
+				CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)+1
+				CALL MESSAGE_WINDOW_D, "", "中に入り　装置の中をのぞいたが/セラはいなかった "
+				CALL MESSAGE_WINDOW_D, "男の声", "セラなら　もういねえ "
+				CALL MESSAGE_WINDOW_D, "", "男の声の方に振り向く "
+				CALL MESSAGE_WINDOW_D, "", "その瞬間　人間が飛んできた/それをとっさによける "
+				CALL MESSAGE_WINDOW_D, "", "この人間はよく見ると海底ケーブルで会った内通者だ/全く動かないところを見ると/死んでいるようだ "
+				CALL MESSAGE_WINDOW_D, "", "これを　飛ばしてきたのは/扉にいる　髪の赤い男だろう "
+				CALL MESSAGE_WINDOW_D, "Serph", "ヒート！　お前… "
+				CALL MESSAGE_WINDOW_D, "", "どうやらこの髪の赤い男がヒートらしい "
+				CALL MESSAGE_WINDOW_D, "", "ヒートは何も言わずに炎を飛ばす "
+				CALL MESSAGE_WINDOW_D, "Serph", "危ない！ "
+				CALL MESSAGE_WINDOW_D, "Ann", "きゃあ！ "
+				CALL MESSAGE_WINDOW_D, "", "炎はAnnに当たりそうだったが/SerphがうまくAnnを守った "
+				CALL MESSAGE_WINDOW_D, "Gale", "血迷ったか！ "
+				CALL MESSAGE_WINDOW_D, "", "Galeはヒートに飛び掛かった "
+				CALL MESSAGE_WINDOW_D, "ヒート", "俺はまともだ！ "
+				CALL MESSAGE_WINDOW_D, "", "ヒートはGaleを突き飛ばした "
+				CALL MESSAGE_WINDOW_D, "Serph", "ヒート　いったい… "
+				CALL MESSAGE_WINDOW_D, "老婆", "その子は/私たちに協力してくれるそうですよ "
+				CALL MESSAGE_WINDOW_D, "", "医務室内のモニターにグラサンをかけた/老婆の顔が出た "
+				CALL MESSAGE_WINDOW_D, "", "そのあとに　右下に全裸の黒髪の少女の/画面がでる "
+				CALL MESSAGE_WINDOW_D, "Ryuji", "この娘…　セラじゃねーか！ "
+				CALL MESSAGE_WINDOW_D, "老婆", "私はマルゴ・キュヴィエ/マダムと呼んでちょうだい "
+				CALL MESSAGE_WINDOW_D, "マダム", "もう知っているのでしょう/貴方達はセラが作ったAIだって "
+				CALL MESSAGE_WINDOW_D, "マダム", "でも　あの娘にとって/貴方達だけは特別だった "
+				CALL MESSAGE_WINDOW_D, "マダム", "あまり　ありがたくない理由でね/だからその子は帰ってきてくれたのよ "
+				CALL MESSAGE_WINDOW_D, "マダム", "今のままでは/ずっと操り人形のままですよ "
+				CALL MESSAGE_WINDOW_D, "マダム", "操る者が代わっただけ "
+				CALL MESSAGE_WINDOW_D, "Gale", "どういう　意味だ "
+				CALL MESSAGE_WINDOW_D, "マダム", "貴方たちを影で操っているのは/ジェナ・エンジェル "
+				CALL MESSAGE_WINDOW_D, "マダム", "セラの生みの親よ "
+				CALL MESSAGE_WINDOW_D, "Ryuji", "セ　セラの母ちゃん？ "
+				CALL MESSAGE_WINDOW_D, "マダム", "正確には父親でもあるのだけど "
+				CALL MESSAGE_WINDOW_D, "マダム", "彼にセラを奪わせようとしたのも/我々と共倒れさせるためよ "
+				CALL MESSAGE_WINDOW_D, "マダム", "全く　何を企んでいるのやら… "
+				CALL MESSAGE_WINDOW_D, "Serph", "なにが目的だ？ "
+				CALL MESSAGE_WINDOW_D, "マダム", "人類は　過去の愚かな行いによって/滅びの周期を迎えています "
+				CALL MESSAGE_WINDOW_D, "マダム", "際限のない欲望が　神の有害な情報から/我々を守ってくれていた環境を破壊した "
+				CALL MESSAGE_WINDOW_D, "マダム", "私たちの警告は　理解されなかったわ "
+				CALL MESSAGE_WINDOW_D, "Roland", "キュヴィエ症候群のことか "
+				CALL MESSAGE_WINDOW_D, "Roland", "だから神をあんな姿に変え/人を粛正すると "
+				CALL MESSAGE_WINDOW_D, "マダム", "あれは不幸な事故だった "
+				CALL MESSAGE_WINDOW_D, "マダム", "私は　人の種を未来に残したいだけ "
+				CALL MESSAGE_WINDOW_D, "マダム", "このままでは　人の存在そのものが/無意味に終わってしまう "
+				CALL MESSAGE_WINDOW_D, "マダム", "そうしないためには　どうしても/秩序と環境に適合した身体が必要なの "
+				CALL MESSAGE_WINDOW_D, "マダム", "このドームにも　限界がありますからね "
+				CALL MESSAGE_WINDOW_D, "Gale", "たとえ　半身が悪魔になってもか/そうすれば　陽の下でも生きていける "
+				CALL MESSAGE_WINDOW_D, "Ann", "ウソでしょ？/悪魔になったら　人間しか食べられなくなるじゃない！ "
+				CALL MESSAGE_WINDOW_D, "Ann", "バカげてるわ！ "
+				CALL MESSAGE_WINDOW_D, "マダム", "だから管理するのです "
+				CALL MESSAGE_WINDOW_D, "マダム", "ジャンクヤードの実験で/私たちは　悪魔化ウイルスを手に入れた "
+				CALL MESSAGE_WINDOW_D, "マダム", "セラがいれば/意識の完全な悪魔化も防げます "
+				CALL MESSAGE_WINDOW_D, "マダム", "あとは　安定した食料供給だけ "
+				CALL MESSAGE_WINDOW_D, "Ryuji", "だからFredの仲間たちを… "
+				CALL MESSAGE_WINDOW_D, "マダム", "生物には　生きる価値あるものと/そうでないものが存在するの"
+				CALL MESSAGE_WINDOW_D, "マダム", "同じ過ちを繰り返さないためにも "
+				CALL MESSAGE_WINDOW_D, "Serph", "それをお前が決めるわけか "
+				CALL MESSAGE_WINDOW_D, "マダム", "秩序が決めるのです "
+				CALL MESSAGE_WINDOW_D, "マダム", "私たちが管理するチューナーの社会/ニルヴァーナこそ　人類存続の唯一の道よ "
+				CALL MESSAGE_WINDOW_D, "マダム", "貴方達も帰っていらっしゃい "
+				CALL MESSAGE_WINDOW_D, "マダム", "無用な殺し合いや/飢えに苦しむことのない/平穏な暮らしを約束しましょう "
+				CALL MESSAGE_WINDOW_D, "Gale", "ひとつはっきりした "
+				CALL MESSAGE_WINDOW_D, "", "Galeは立ち上がりながら言った "
+				CALL MESSAGE_WINDOW_D, "Gale", "ここはニルヴァーナなんかじゃない "
+				CALL MESSAGE_WINDOW_D, "Gale", "誰もが哀しまずに生きていける世界 "
+				CALL MESSAGE_WINDOW_D, "Gale", "誰もが楽しく暮らせる世界 "
+				CALL MESSAGE_WINDOW_D, "Gale", "そして　仲間が争わずに済む世界 "
+				CALL MESSAGE_WINDOW_D, "Gale", "それこそがニルヴァーナだ "
+				CALL MESSAGE_WINDOW_D, "Gale", "俺は　誇りにかけてお前たちと戦う/自分の意志でだ！ "
+				CALL MESSAGE_WINDOW_D, "", "その発言にマダムはため息をする "
+				CALL MESSAGE_WINDOW_D, "マダム", "仕方ありませんね… "
+				CALL MESSAGE_WINDOW_D, "マダム", "ヒート　秩序を乱すバグを処理して頂戴 "
+				CALL MESSAGE_WINDOW_D, "マダム", "あなたがいれば/セラも私たちに従うでしょう "
+				CALL MESSAGE_WINDOW_D, "", "ヒートの後ろからカルマ兵がぞろぞろと現れた "
+				CALL MESSAGE_WINDOW_D, "ヒート", "そういうことだ/もう　あの時のようにはいかねえ… "
+				CALL MESSAGE_WINDOW_D, "ヒート", "本気で来い　Serph！ "
+				CALL MESSAGE_WINDOW_D, "Serph", "…わかった　相手になってやる！ "
+				IF FINDCHARA_B([[キャラ:サーフ]]) < 2
+					IF GETCHARA([[キャラ:サーフ]]) > 0
+						LOCAL = GETCHARA([[キャラ:サーフ]])
+						FOR LOCAL:1, 1, 7
+							IF POS(7 - LOCAL:1) == -1 || ABL:POS(7 - LOCAL:1):種族 > 0
+								CALL INSERT_POSITION, 7 - LOCAL:1, LOCAL
+								BREAK
+							ENDIF
+						NEXT
+					ENDIF
+				ENDIF
+				
+				
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				
+				CALL SET_ENEMY,9,[[キャラ:ヒート]],50,0,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+				ABL:(CHARANUM-1):スキル1 = [[スキル:インフェルノ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ラギダイン]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:火砕烈風破]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:ズンバラリン]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:コンセントレイト]]
+				ABL:(CHARANUM-1):スキル6 = [[スキル:アカシャアーツ]]
+				ABL:(CHARANUM-1):スキル7 = [[スキル:貫通の一撃]]
+				ABL:(CHARANUM-1):スキル8 = [[スキル:血祭り]]
+				CFLAG:(CHARANUM-1):行動回数 = 1
+				CFLAG:(CHARANUM-1):初期リンク悪魔 = 3805
+				CFLAG:(CHARANUM-1):リンク悪魔 = -1
+				CFLAG:(CHARANUM-1):悪魔変身 = 1
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+				CALL SYNC_STATUS, (CHARANUM-1)
+				CALL HEALTH_CHARA, (CHARANUM-1)
+				
+				CALL SET_ENEMY,8,[[キャラ:ムスッペル]],47,0,1
+				CSTR:(CHARANUM-1):思考パターン = デカジャ要員
+				ABL:(CHARANUM-1):スキル3 = [[スキル:火砕烈風破]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:ギガンフィスト]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:スク・カジャ]]
+				ABL:(CHARANUM-1):スキル6 = [[スキル:サマ・ンダ]]
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+				CALL SYNC_STATUS, (CHARANUM-1)
+				CALL HEALTH_CHARA, (CHARANUM-1)
+				
+				CALL SET_ENEMY,10,[[キャラ:サトゥルヌス]],47,0,1
+				CSTR:(CHARANUM-1):思考パターン = デクンダ要員
+				ABL:(CHARANUM-1):スキル1 = [[スキル:なぎ払い]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:雷の壁]]
+				ABL:(CHARANUM-1):スキル6 = [[スキル:ラク・ンダ]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:スク・ンダ]]
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+				CALL SYNC_STATUS, (CHARANUM-1)
+				CALL HEALTH_CHARA, (CHARANUM-1)
+				
+				CALL SET_ENEMY,14,[[キャラ:サティ]],47,0,1
+				CSTR:(CHARANUM-1):思考パターン = カルマ協会・サティ
+				CFLAG:(CHARANUM-1):速度補正 = 4000
+				ABL:(CHARANUM-1):スキル1 = [[スキル:ラク・カジャ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:サマ・カジャ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:メ・ディアラマ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:勇奮の舞]]
+				ABL:(CHARANUM-1):スキル5 = [[スキル:炎の乱舞]]
+				BASE:(CHARANUM-1):61 -= 100
+				BASE:(CHARANUM-1):62 -= 100
+				BASE:(CHARANUM-1):63 -= 100
+				BASE:(CHARANUM-1):64 -= 100
+				BASE:(CHARANUM-1):65 -= 100
+				BASE:(CHARANUM-1):66 -= 100
+				BASE:(CHARANUM-1):67 -= 100
+				BASE:(CHARANUM-1):68 -= 100
+				BASE:(CHARANUM-1):69 -= 100
+				BASE:(CHARANUM-1):70 -= 100
+				BASE:(CHARANUM-1):71 -= 100
+				BASE:(CHARANUM-1):72 -= 100
+				BASE:(CHARANUM-1):73 -= 100
+				BASE:(CHARANUM-1):74 -= 100
+				BASE:(CHARANUM-1):75 -= 100
+				BASE:(CHARANUM-1):76 -= 100
+				BASE:(CHARANUM-1):77 -= 100
+				CALL SYNC_STATUS, (CHARANUM-1)
+				CALL HEALTH_CHARA, (CHARANUM-1)
+				
+					CALL BATTLE_START
+			FLAG:先制攻撃フラグ = 0
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			FLAG:エンカウント率 = 0
+			FLAG:未遭遇歩数 = 0
+				ダンジョンフラグ:13:11 = 5
+				CALL MESSAGE_WINDOW_D, "ヒート", "なぜだ…　なぜ勝てねえ！/俺は強くなったはずだ！ "
+				CALL MESSAGE_WINDOW_D, "ヒート", "Serph！/てめぇは必ず俺が喰らう！ "
+				CALL MESSAGE_WINDOW_D, "", "ヒートは逃走した… "
+			ELSE
+				CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)-1
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "Serph", "もう　戻らないほうがいい/仲間にならないと分かった　俺たちを容赦なく攻撃してくるだろう "
+			CALL MESSAGE_WINDOW_D, "Serph", "数に押されて負けるぞ "
+			CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)+1
+		ENDIF
+	CASE 2500
+		IF ダンジョンフラグ:13:11 < 6
+			CALL MESSAGE_WINDOW_D, "", "扉の向こうから銃声が聞こえる "
+			CALL INPUT_SELECT_D, "[1]扉を開ける/[0]開けない "
+			IF RESULT == 1
+				CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X)+2,(FLAG:現Y)
+				CALL MESSAGE_WINDOW_D, "", "青いラインのカルマ兵と赤いラインのカルマ兵が/交戦している "
+				CALL MESSAGE_WINDOW_D, "", "青いラインのカルマ兵が/銃撃を受けない位置で　無線を使っている "
+				CALL MESSAGE_WINDOW_D, "青いラインのカルマ兵A", "…現在反乱勢力と交戦中！/至急増援をお願いします "
+				CALL MESSAGE_WINDOW_D, "青いラインのカルマ兵B", "まったく…/トリブヴァーナをよこしゃいいものを/こんな時の特殊部隊だろうが "
+				CALL MESSAGE_WINDOW_D, "青いラインのカルマ兵A", "ボヤいても始まらん "
+				CALL MESSAGE_WINDOW_D, "青いラインのカルマ兵A", "連中は　あの赤毛のアスラと/残りのアスラの捕獲作戦にまわされてるんだ "
+				CALL MESSAGE_WINDOW_D, "青いラインのカルマ兵A", "…ん？　なんだ "
+				CALL MESSAGE_WINDOW_D, "青いラインのカルマ兵B", "貴様ら…/例のアスラどもか？ "
+				
+				
+			CALL MESSAGE_WINDOW_D, "", "＞カルマ兵が二体現れた！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			
+			CALL SET_ENEMY,8,[[キャラ:スチュパリデス]],45
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,10,[[キャラ:セイギュウカイ]],45
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+				CALL BATTLE_START
+				
+			FLAG:先制攻撃フラグ = 0
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			FLAG:エンカウント率 = 0
+			FLAG:未遭遇歩数 = 0
+			
+				CALL MESSAGE_WINDOW_D, "", "赤いラインのカルマ兵が話しかけてきた "
+				CALL MESSAGE_WINDOW_D, "赤いラインのカルマ兵", "アスラか？ "
+				CALL MESSAGE_WINDOW_D, "赤いラインのカルマ兵", "技術部長がお待ちだ/急いでくれ "
+				
+			
+				ダンジョンフラグ:13:11 = 6
+			ELSE
+				CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X)-1,(FLAG:現Y)
+			ENDIF
+		ENDIF
+	CASE 2501
+		CALL MESSAGE_WINDOW_D, "", "扉の向こうにはジェナ・エンジェルがいた "
+		CALL MESSAGE_WINDOW_D, "Serph", "お前は… "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "私はまだ/神に見放されていないようだな "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "待っていた甲斐があったよ "
+		CALL MESSAGE_WINDOW_D, "", "ジェナはこちらを振り向いた "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "カルマシティ内のラボにセラはいる "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "私の兵がそこを襲う時にセラを救出するといい "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "ここからは屋上のジャイロで脱出しろ "
+		CALL MESSAGE_WINDOW_D, "", "ジェナはキーをこちらに渡す "
+		CALL MESSAGE_WINDOW_D, "Gale", "なぜ　俺たちを助ける "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "連中に任せていては/過ちを繰り返すだけだ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "手を貸せとは言わない　マダムを殺せ/それで貸し借り無しだ "
+		CALL MESSAGE_WINDOW_D, "Ann", "あ　あなたは一体何をしたいの？ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "皆に等しくチャンスを与えたいだけだ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "カルマ協会は　”解脱”の機会を/独占しようとしている "
+		CALL MESSAGE_WINDOW_D, "Serph", "解脱？ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "人は業を抑圧し/道を誤った奇形だ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "進化は自然淘汰の中でしか成しえない/強い者は生き　弱い者は死に絶える "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "必要なのは/仮初の秩序ではなく混沌だよ "
+		CALL MESSAGE_WINDOW_D, "Serph", "解脱を得た人間はどうなる "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "生きる意味を知る "
+		CALL MESSAGE_WINDOW_D, "Gale", "そのために/すべての人間を悪魔化させるというのか "
+		CALL MESSAGE_WINDOW_D, "Gale", "喰らい合わせるために "
+		CALL MESSAGE_WINDOW_D, "Ann", "えっ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "ククククク… "
+		CALL MESSAGE_WINDOW_D, "Ryuji", "何がおかしいんだ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "さすが随一の論理回路を持つアスラだ/副作用さえなければ "
+		CALL MESSAGE_WINDOW_D, "Serph", "副作用だと？ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "お前たちが得た人間性の事だ "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "悪魔に侵され人になる… "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "おかしいじゃないか/こんな気の利いたジョークは無い "
+		
+		CALL MESSAGE_WINDOW_D, "Gale", "それで　お前の企みにも/セラが必要ということか "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "頭が働きすぎるのも困りものだな/詮索はそのくらいにしておけ "
+		CALL MESSAGE_WINDOW_D, "", "その時　ジェナの無線機から通信が入った "
+		CALL MESSAGE_WINDOW_D, "無線の声", "部長　防衛線が突破されました/退避して下さい　お早く "
+		CALL MESSAGE_WINDOW_D, "ジェナ", "行け　ぐずぐずするな "
+		CALL MESSAGE_WINDOW_D, "", "あなたたちはジャイロで脱出した "
+		
+				SIF GETCHARA([[キャラ:真]]) > 0
+					CFLAG:GETCHARA([[キャラ:真]]):この場に居ないフラグ = 0
+				SIF GETCHARA([[キャラ:祐介]]) > 0
+					CFLAG:GETCHARA([[キャラ:祐介]]):この場に居ないフラグ = 0
+				SIF GETCHARA([[キャラ:シエロ]]) > 0
+					CFLAG:GETCHARA([[キャラ:シエロ]]):この場に居ないフラグ = 0
+				SIF GETCHARA([[キャラ:アルジラ]]) > 0
+					CFLAG:GETCHARA([[キャラ:アルジラ]]):この場に居ないフラグ = 0
+				ダンジョンフラグ:13:1 = 5
+				CALL DUNGEON_WORP,0,14,18
+					
+		CALL MESSAGE_WINDOW_D, "", "地下街に戻るとHaruを救出に行ったメンバーは戻っていた "
+		CALL MESSAGE_WINDOW_D, "", "中には見慣れない茶髪の娘がいる/どうやら　この子がHaruのようだ "
+		CALL MESSAGE_WINDOW_D, "Makoto", "よかった…　無事だったんですね… "
+		CALL MESSAGE_WINDOW_D, "Yusuke", "Haruを救出したついでに奴らのリーダーも倒してきたぞ "
+		CALL MESSAGE_WINDOW_D, "Cielo", "なあ　セラはどこだよ "
+		CALL MESSAGE_WINDOW_D, "", "Serphはカルマ協会で得た情報を話した "
+		CALL MESSAGE_WINDOW_D, "Cielo", "マジかよ…/セラはもう別の場所に "
+		CALL MESSAGE_WINDOW_D, "Argilla", "そうなの？　私たちのこの感情…/悪魔になったから出たものなの？ "
+		CALL MESSAGE_WINDOW_D, "Roland", "ああ　どうやらそうらしいな "
+		CALL MESSAGE_WINDOW_D, "Roland", "だが　そのままラボに突入するのは/やめた方がいい "
+		CALL MESSAGE_WINDOW_D, "Roland", "ジェナの兵隊が動き出してから/突入しよう "
+		CALL MESSAGE_WINDOW_D, "Roland", "そのためには戦力が少しでもほしい/マコト君　君たちにも手伝ってほしいけどいいかな？ "
+		CALL MESSAGE_WINDOW_D, "Makoto", "ええ　元よりそのつもりです "
+		CALL MESSAGE_WINDOW_D, "Ryuji", "当たり前だぜ　あいつらぶっ飛ばさねえと/気がすまねえからな "
+		CALL MESSAGE_WINDOW_D, "Roland", "ああ　ありがとう "
+		
+		
+		CALL MESSAGE_WINDOW_D, "", @"＞協力したことにより￥500000が支払われ、名声180を得た"
+		MONEY += 500000
+		FLAG:名声 += 180
+		
+		
+				CALL MESSAGE_WINDOW_D, "", "Haruを救出したため/奥村　Haruが仲間になった "
+				
+				CALL ADD_NEW_COMPANION,4661,100
+				IF RESULT
+					BASE:(RESULT:1):LV = 45
+					BASE:(RESULT:1):力 = 18
+					BASE:(RESULT:1):知恵 = 17
+					BASE:(RESULT:1):魔力 = 17
+					BASE:(RESULT:1):耐力 = 10
+					BASE:(RESULT:1):速さ = 10
+					BASE:(RESULT:1):運 = 13
+					;BASE:(RESULT:1):ＥＸＰ = 5*19*20*21/3
+					EQUIP:(RESULT:1):頭 = 3046
+					EQUIP:(RESULT:1):胴 = 3503
+					EQUIP:(RESULT:1):腕 = 4029
+					EQUIP:(RESULT:1):足 = 4503
+					LOCAL = CFLAG:(RESULT:1):初期ペルソナナンバー
+					DITEMTYPE:LOCAL:ペルソナ("LV") = 19
+					DITEMTYPE:LOCAL:ペルソナ("力") = 10
+					DITEMTYPE:LOCAL:ペルソナ("知恵") = 9
+					DITEMTYPE:LOCAL:ペルソナ("魔力") = 10
+					DITEMTYPE:LOCAL:ペルソナ("耐力") = 5
+					DITEMTYPE:LOCAL:ペルソナ("速さ") = 5
+					DITEMTYPE:LOCAL:ペルソナ("運") = 7
+					DITEMTYPE:LOCAL:ペルソナ("スキル4") = 1804;マハ・グライ
+					DITEMTYPE:LOCAL:ペルソナ("スキル5") = 606;サイコバリアー
+					DITEMTYPE:LOCAL:ペルソナ("スキル6") = 113;散弾撃ち
+					DITEMTYPE:LOCAL:ペルソナ("スキル7") = 1802;グライバ
+					DITEMTYPE:LOCAL:ペルソナ("スキル8") = 613;ペンタウォール
+					CFLAG:(RESULT:1):戦闘参加不可能 = -1
+					CALL SYNC_STATUS,(RESULT:1)
+					CALL HEALTH_CHARA,(RESULT:1)
+					;CALL CHECK_LEVEL_UP, (RESULT:1)
+				ENDIF
+				
+				CALL MESSAGE_WINDOW_D, "", "ジャランダーラのリーダーを倒したことにより/ジャランダーラのアジトに行けるようになった "
+	CASE 1301
+		CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X),(FLAG:現Y)
+ENDSELECT
+;=======================================================================
+;協会調べイベント(4)
+;=======================================================================
+@kyoukai_event_sw
+
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 1600
+		CALL MESSAGE_WINDOW_D, "カルマ協会　研究員", "本部の上のほうで　何かあったみたいだ/あれは絶対銃声だって "
+		CALL MESSAGE_WINDOW_D, "カルマ協会　研究員", "普通じゃ捕虜が脱走できるわけないし/まさか反乱や内乱の類じゃないだろうな… "
+	CASE 1601
+		CALL MESSAGE_WINDOW_D, "カルマ協会　研究員", "マダムは　愛情深い御人だよ/人類を存続させようと必死なのさ "
+		CALL MESSAGE_WINDOW_D, "カルマ協会　研究員", "元々国連の学者で　環境破壊に/ずっと警報を鳴らしてきた方なんだ "
+	CASE 1602
+		CALL MESSAGE_WINDOW_D, "カルマ協会　研究員", "技術部長のジェナ・エンジェルさんに憧れている職員が/男女ともに多くてね"
+		CALL MESSAGE_WINDOW_D, "カルマ協会　研究員", "あれがカリスマっていうんだろうが/両性具有って噂は本当なのかな？ "
+	CASE 1603
+		CALL MESSAGE_WINDOW_D, "Ann", "早くセラちゃんを助けてあげよう/ずっとSerphさん達に会えなくて寂しいはずだから"
+	CASE 1604
+		CALL MESSAGE_WINDOW_D, "Ryuji", "うへー　遠くから見ても変な形に見えるけど/近くで見たらもっと変な形のビルだぜ"
+		CALL MESSAGE_WINDOW_D, "Ryuji", "中身どうなってるんだろうな…/パレスみたいにごちゃごちゃしるわけねーよな"
+	CASE 1605
+		CALL MESSAGE_WINDOW_D, "Serph", "ヒートはどこで何をしているんだろうか"
+		CALL MESSAGE_WINDOW_D, "Serph", "それよりも妙に静かだな…/本部を警備している兵が一人もいない "
+	CASE 1606
+		CALL MESSAGE_WINDOW_D, "Roland", "ここが　シティの行政中枢/カルマ協会の本部ビルだ"
+		CALL MESSAGE_WINDOW_D, "Roland", "ここまで　提供された情報に偽りがない/気持ち悪いくらいだが… "
+	CASE 1607
+		CALL MESSAGE_WINDOW_D, "Gale", "おかしい…警戒が手薄すぎる"
+	CASE 1700
+		CALL MESSAGE_WINDOW_D, "Gale", "なんの歓迎もなしか…/収容所の件からして/協会のボスは俺たちに用があるようだ"
+		CALL MESSAGE_WINDOW_D, "Gale", "どのみち前に進むしかないが/十分警戒していけ"
+		CALL INPUT_SELECT_D, "[1]仲間を入れ替える/[0]何でもない "
+		SIF RESULT == 1
+			CALL RECONSTRUCTION
+	CASE 1800
+		IF ダンジョンフラグ:13:12 % 2 > 0
+			CALL MESSAGE_WINDOW_D, "カルマ協会職員　女", "あわわわわわ"
+			CALL MESSAGE_WINDOW_D, "カルマ協会職員　女", "わ　私はただの清掃員でして/あ　あなた達と争うつもりは　ななないわよ"
+			CALL MESSAGE_WINDOW_D, "Serph", "なら　知っていいる情報を話してもらおう"
+			CALL MESSAGE_WINDOW_D, "Ann", "ちょっと待って"
+			CALL MESSAGE_WINDOW_D, "Serph", "どうした？　Ann"
+			CALL MESSAGE_WINDOW_D, "Ann", "この人　見覚えのある人だと思って…"
+			CALL MESSAGE_WINDOW_D, "Ann", "あなた　もしかして川上って/名前だったりする？"
+			CALL MESSAGE_WINDOW_D, "カルマ協会職員　女", "え？　確かに私は川上って名前だけど…"
+			CALL MESSAGE_WINDOW_D, "川上（カルマ協会職員　女）", "あなたまさか…/Ann Takamakiさん？"
+			CALL MESSAGE_WINDOW_D, "Ann", "ま　マジ！？"
+			CALL MESSAGE_WINDOW_D, "Ryuji", "うそっ！？/川上先生なのか？"
+			CALL MESSAGE_WINDOW_D, "Roland", "君たちの仲間か？/君たちと比べると年配に見えるが"
+			CALL MESSAGE_WINDOW_D, "Ann", "仲間っていうか/私のクラスの担任の先生ですよ！"
+			CALL MESSAGE_WINDOW_D, "Ryuji", "先生もペルソナ能力を/持ってんのか？"
+			CALL MESSAGE_WINDOW_D, "川上", "ぺる？/よくわかんないけど私は悪魔にも変身できない/ただの一般ピープルよ"
+			CALL MESSAGE_WINDOW_D, "川上", "ていうかあなた達/何しに　ここに来てるのよ"
+			CALL MESSAGE_WINDOW_D, "Ryuji", "ああ…　話すと長くなるけどよ/今はここに捕まっている仲間を/連れ戻しに来たんだよ"
+			CALL MESSAGE_WINDOW_D, "川上", "仲間？"
+			CALL MESSAGE_WINDOW_D, "Ann", "早く助けたいから　先生/少しでもいいから　この協会の情報を教えてくれない？"
+			CALL MESSAGE_WINDOW_D, "川上", "…ていうか　この状況/私に断る選択肢ないよね…"
+			CALL MESSAGE_WINDOW_D, "Serph", "話が早くて助かる/俺たちの質問に正直に答えてもらおう"
+			ダンジョンフラグ:13:12 *= 2
+		ELSEIF ダンジョンフラグ:13:12 % 3 > 0
+			CALL MESSAGE_WINDOW_D, "川上", "どうして私の生徒は　こんなに問題児が多いのよ…"
+			CALL MESSAGE_WINDOW_D, "川上", "わっ！　な…何？/まだ何か用があるの？"
+			CALL MESSAGE_WINDOW_D, "", "この女性はカルマシティで堂々と働いている/見た目は中の上くらいだが体つきは意外といい/奴隷としてちょうどよく使えそうだ"
+			CALL MESSAGE_WINDOW_D, "", "人が良さそうなので/地下街に送っても問題なさそうだ"
+			CALL MESSAGE_WINDOW_D, "", "川上をどうしますか？"
+			CALL INPUT_SELECT_D, "[0]地下街で働かせる/[1]質問する "
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "川上", "…分かったわ/そこに行けばいいのね"
+				CALL MESSAGE_WINDOW_D, "", "川上を地下街で働かせることにした"
+				CALL MESSAGE_WINDOW_D, "", "地下街で川上に会えば奴隷にすることも可能だろう"
+				ダンジョンフラグ:13:12 *= 3
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "川上", "ま　まだ何か聞くことがあるの？"
+		ENDIF
+		$INPUT_LOOP
+		CALL INPUT_SELECT_D, "[0]セラはどこだ/[1]なぜ逃げる必要がある/[2]あのうっとうしい柄の悪い兵士たちは何者だ/[3]もうわかった "
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "川上", "セラ？"
+			CALL MESSAGE_WINDOW_D, "Serph", "12歳くらいの黒髪の子だ/このビルにいるだろう"
+			CALL MESSAGE_WINDOW_D, "川上", "あの子の事ね…/この建物の上層部の医務室にいるらしいわ"
+			GOTO INPUT_LOOP
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "川上", "カルマ協会の偉い人が突然退避命令を出したの"
+			CALL MESSAGE_WINDOW_D, "川上", "捕虜の決起したっていう話だったけど/なぜか　たくさんの兵隊が上に向かっていったわ"
+			CALL MESSAGE_WINDOW_D, "川上", "そのせいで　下の兵隊はとても少ないわ…/何が起こっているか知りたいのは/こっちの方よ"
+			GOTO INPUT_LOOP
+		ELSEIF RESULT == 2
+			CALL MESSAGE_WINDOW_D, "川上", "あ　あの人たちの事ね…"
+			CALL MESSAGE_WINDOW_D, "川上", "兵隊の中で　独断行動の多い/異端視されてる人たちなの"
+			CALL MESSAGE_WINDOW_D, "川上", "いざって時の特殊部隊になってるらしいわ"
+			GOTO INPUT_LOOP
+		ENDIF
+	CASE 2000
+		CALL MESSAGE_WINDOW_D, "Ryuji", "このビル　外見は変だけど/中身はふつうなんだな"
+		CALL MESSAGE_WINDOW_D, "Ryuji", "まあ　それじゃ迷っちまうか/俺らのとこで言う　役所みたいだしな"
+		CALL INPUT_SELECT_D, "[1]仲間を入れ替える/[0]何でもない "
+		SIF RESULT == 1
+			CALL RECONSTRUCTION
+	CASE 2001
+			IF ダンジョンフラグ:13:12 % 5 > 0
+				PRINTL ヒールスポットがある。 
+				CALL INPUT_YN,"使う（一度使うと消えます）","使わない"
+				IF RESULT == 0
+					PRINTFORMW %CALLNAME:MASTER%達は回復した
+					FOR LOCAL, 0, CHARANUM
+						CALL HEALTH_CHARA, LOCAL
+					NEXT
+					ダンジョンフラグ:13:12 *= 5
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ENDIF
+			ENDIF
+	CASE 2200
+		CALL DUNGEON_WORP,(FLAG:現M),(FLAG:現X)-1,(FLAG:現Y)+2
+	CASE 2300
+		CALL MESSAGE_WINDOW_D, "Serph", "奴らは”隊長”のいうことを聞いて/俺たちの行動を　的確に予測していた"
+		CALL MESSAGE_WINDOW_D, "Serph", "中には”あいつ”と呼んでいるのもいた/そいつに対して　何か妙な胸騒ぎがする…"
+		CALL INPUT_SELECT_D, "[1]仲間を入れ替える/[0]何でもない "
+		SIF RESULT == 1
+			CALL RECONSTRUCTION
+	CASE 2301
+			IF ダンジョンフラグ:13:12 % 11 > 0
+				PRINTL ヒールスポットがある。 
+				CALL INPUT_YN,"使う（一度使うと消えます）","使わない"
+				IF RESULT == 0
+					PRINTFORMW %CALLNAME:MASTER%達は回復した
+					FOR LOCAL, 0, CHARANUM
+						CALL HEALTH_CHARA, LOCAL
+					NEXT
+					ダンジョンフラグ:13:12 *= 11
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+				ENDIF
+			ENDIF
+	CASE 2303
+		CALL MESSAGE_WINDOW_D, "Gale", "逃げたか… "
+		CALL MESSAGE_WINDOW_D, "Gale", "俺たちも退くぞ/易々とは　出してくれんだろうがな "
+	CASE 2302
+		CALL MESSAGE_WINDOW_D, "Ryuji", "生きる価値がないから/人間をエサにすんのかよ "
+		CALL MESSAGE_WINDOW_D, "Ryuji", "クソすぎんだろ… "
+	CASE 2304
+		CALL MESSAGE_WINDOW_D, "Roland", "彼を突き動かしているのは/怒りと…　哀しみだ "
+		CALL MESSAGE_WINDOW_D, "Roland", "是が非でも暴かないわけにはいかないな/君たちが作られた　本当の背景を "
+	CASE 2305
+		CALL MESSAGE_WINDOW_D, "Ann", "あの人　Serphさんの仲間なんだよね "
+		CALL MESSAGE_WINDOW_D, "Ann", "仲間同士で争うなんて/こんなの　おかしいよ… "
+	CASE 2306
+		CALL MESSAGE_WINDOW_D, "Serph", "ヒートは　本気で俺を襲ってきた "
+		CALL MESSAGE_WINDOW_D, "Serph", "一体どうしたんだ　ヒート "
+	CASE 2500
+		CALL MESSAGE_WINDOW_D, "赤いラインのカルマ兵　男", "技術部長が待っている/早く奥に行け！ "
+	CASE 2501
+		CALL MESSAGE_WINDOW_D, "赤いラインのカルマ兵　女", "撃つな！/我々は敵じゃない "
+ENDSELECT
+
+
+;=======================================================================
+;協会侵入イベント(4)
+;=======================================================================
+@kyoukai_event
+
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 603
+			CALL MESSAGE_WINDOW_D, "Serph", "待ってくれ/扉の向こうに気配を感じる "
+			CALL MESSAGE_WINDOW_D, "Gale", "カルマ協会か… "
+			CALL MESSAGE_WINDOW_D, "Argilla", "一体どうして "
+			CALL MESSAGE_WINDOW_D, "Ann Takamaki", "ここ　知らないはずだって… "
+ENDSELECT
+;=======================================================================
+;協会宝箱
+;=======================================================================
+@kyoukai_takara
+#LOCALSIZE 3
+;宝箱のフラグ管理用変数の番号
+LOCAL = FLAG:現M + 70
+;そのマップの何番目の宝箱か
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 1800
+		CALL GET_TREASURE, [[アイテム:極寒の勾玉]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 1801
+		CALL GET_TREASURE, [[アイテム:地変の勾玉]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 1802
+		CALL GET_TREASURE, [[アイテム:激雷の勾玉]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+	CASE 2200
+			IF ダンジョンフラグ:13:12 % 7 > 0
+				PRINTL 箱が置いてある。 
+				CALL INPUT_YN,"開ける","開けない"
+				IF RESULT == 0
+					PRINTW 敵が現れた！
+					FLAG:不意打ちフラグ = 1
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					
+					CALL SET_ENEMY,8,[[キャラ:パラスアテナ]],45,0,0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				
+					CALL SET_ENEMY,9,[[キャラ:ドッペルゲンガー]],45,0,0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				
+					CALL SET_ENEMY,10,[[キャラ:サンダーバード]],45,0,0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+				
+					CALL SET_ENEMY,13,[[キャラ:スラオシャ]],45,0,0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					
+					CALL SET_ENEMY,14,[[キャラ:シャドウ]],45,0,0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+						
+					CALL SET_ENEMY,15,[[キャラ:天仙娘娘]],45,0,0
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					
+					CALL BATTLE_START
+				
+					FLAG:逃走不可フラグ = 0
+					FLAG:不意打ちフラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					FLAG:エンカウント率 = 0
+					FLAG:未遭遇歩数 = 0
+					
+					CALL CHECK_ITEMMAX, [[アイテム:スキルカード【鎧通し】]]
+					IF RESULT == 0
+						PRINTFORMW You got 1 Skillcard【Pierce Armor】
+						;スキルカード【鎧通し】を1個手に入れた
+						CALL GET_ITEM, [[アイテム:スキルカード【鎧通し】]], 1
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+						IF LOCAL:1 >= 0
+							SETBIT ダンジョンフラグ:(FLAG:現ダンジョン):(LOCAL), LOCAL:1
+						ELSE
+							ダンジョンフラグ:(FLAG:現ダンジョン):(LOCAL) = 1
+						ENDIF
+						RETURN 1
+					ELSE
+						PRINTFORMW You got 1 Skillcard【Pierce Armor】 but couldn't hold it.
+						RETURN 0
+					ENDIF
+					ダンジョンフラグ:13:12 *= 7
+				ELSEIF RESULT == 1
+					RETURN 0
+				ENDIF
+			ELSE
+				CALL GET_TREASURE, [[アイテム:スキルカード【鎧通し】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+			ENDIF
+ENDSELECT
+RETURN 1
+;=======================================================================
+;協会敵
+;=======================================================================
+@kyoukai_enemy, ARG
+		IF ARG == 0
+			IF RAND:18 == 0
+				RETURN [[キャラ:ズェラロンズ]]
+			ELSEIF RAND:17 == 0
+				RETURN [[キャラ:おしち]]
+			ELSEIF RAND:16 == 0
+				RETURN [[キャラ:パイモン]]
+			ELSEIF RAND:15 == 0
+				RETURN [[キャラ:ディース]]
+			ELSEIF RAND:14 == 0
+				RETURN [[キャラ:イバラキドウジ]]
+			ELSEIF RAND:13 == 0
+				RETURN [[キャラ:カリアッハベーラ]]
+			ELSEIF RAND:12 == 0
+				RETURN [[キャラ:ハトホル]]
+			ELSEIF RAND:11 == 0
+				RETURN [[キャラ:ネヴァン]]
+			ELSEIF RAND:10== 0
+				RETURN [[キャラ:ナーガ・カンニャ]]
+			ELSEIF RAND:9 == 0
+				RETURN [[キャラ:スチュパリデス]]
+			ELSEIF RAND:8 == 0
+				RETURN [[キャラ:ドゥン]]
+			ELSEIF RAND:7 == 0
+				RETURN [[キャラ:オセ]]
+			ELSEIF RAND:6 == 0
+				RETURN [[キャラ:オロバス]]
+			ELSEIF RAND:5 == 0
+				RETURN [[キャラ:セイギュウカイ]]
+			ELSEIF RAND:4 == 0
+				RETURN [[キャラ:シュテンドウジ]]
+			ELSEIF RAND:3 == 0
+				RETURN [[キャラ:オロバス]]
+			ELSEIF RAND:2 == 0
+				RETURN [[キャラ:アラハバキ]]
+			ELSE
+				RETURN [[キャラ:ジャンバヴァン]]
+			ENDIF
+		ELSEIF ARG == 1
+			
+			IF FLAG:現M < 20
+				RETURN 35 + RAND:3
+			ELSEIF FLAG:現M < 23
+				RETURN 39 + RAND:3
+			ELSE
+				RETURN 42 + RAND:3
+			ENDIF
+		ENDIF
+@SET_ACTION_トリブ・小野坂,ARG
+IF RAND:2 && (CFLAG:ARG:攻撃強化 < -4 || CFLAG:ARG:防御強化 < -4 || CFLAG:ARG:魔法威力強化 < -4 || CFLAG:ARG:命中強化 < -4 || CFLAG:ARG:回避強化 < -4)
+	CFLAG:ARG:入力行動 = 505
+	CALL RANDOM_TARGET,ARG,505
+	RETURN 1
+ELSEIF RAND:2
+	IF POS(9) > 0 && RAND:3 == 0
+		IF CFLAG:POS(9):氷結無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:炎の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:炎の壁]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):衝撃無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:重力の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:重力の壁]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):重力無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:衝撃の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:衝撃の壁]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):核熱無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:水晶の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:水晶の壁]]
+			RETURN 1
+		ENDIF
+	ENDIF
+	IF POS(10) > 0 && RAND:2 == 0
+		IF CFLAG:POS(9):火炎無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:水の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:水の壁]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):電撃無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:大地の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:大地の壁]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):核熱無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:水晶の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:水晶の壁]]
+			RETURN 1
+		ENDIF
+	ENDIF
+	
+	IF CFLAG:ARG:衝撃無効化回数 < 1
+		CFLAG:ARG:入力行動 = [[スキル:重力の壁]]
+		CALL RANDOM_TARGET,ARG,[[スキル:重力の壁]]
+		RETURN 1
+	ELSEIF CFLAG:ARG:疾風無効化回数 < 1
+		CFLAG:ARG:入力行動 = [[スキル:氷の壁]]
+		CALL RANDOM_TARGET,ARG,[[スキル:氷の壁]]
+		RETURN 1
+	ENDIF
+	
+		$DECIDE_ACTION
+		CALL SEARCH_ACT,ARG
+		IF RESULT == 0
+			CFLAG:ARG:入力行動 = -1
+			CFLAG:ARG:防御フラグ = 1
+			RETURN 0
+		ENDIF
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+		LOCAL = RAND:RESULT
+		;スキル番号決定
+		LOCAL:1 = S:(10+LOCAL)
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+		$TARGET_LOOP
+		
+		CALL RANDOM_TARGET,ARG,LOCAL:1
+		CALLFORM SKILL_TARGET_{LOCAL:1}
+		;ここでスキル番号を行動内容に代入
+		SIF CFLAG:ARG:ターゲット == -1
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = LOCAL:1
+		
+	RETURN 1
+;それ以外は通常
+ELSE
+		$DECIDE_ACTION2
+		CALL SEARCH_ACT,ARG
+		IF RESULT == 0
+			CFLAG:ARG:入力行動 = -1
+			CFLAG:ARG:防御フラグ = 1
+			RETURN 0
+		ENDIF
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+		LOCAL = RAND:RESULT
+		;スキル番号決定
+		LOCAL:1 = S:(10+LOCAL)
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+		
+		CALL RANDOM_TARGET,ARG,LOCAL:1
+		CALLFORM SKILL_TARGET_{LOCAL:1}
+		;ここでスキル番号を行動内容に代入
+		SIF CFLAG:ARG:ターゲット == -1
+			GOTO DECIDE_ACTION2
+		CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+
+
+@SET_ACTION_トリブ・地,ARG
+CFLAG:ARG:入力行動 = 0
+	;弱点をつく
+	FOR LOCAL, 1, 7
+		IF POS(LOCAL) > 0
+			SIF CFLAG:POS(LOCAL):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			IF RAND:3
+				IF MAXBASE:POS(LOCAL):打撃 > 100 && MAXBASE:POS(LOCAL):打撃 != 999
+					CFLAG:ARG:入力行動 = [[スキル:ギガンフィスト]]
+					CFLAG:ARG:ターゲット = LOCAL
+					RETURN 1
+				ELSEIF MAXBASE:POS(LOCAL):戦技 > 100 && MAXBASE:POS(LOCAL):戦技 != 999
+					CFLAG:ARG:入力行動 = [[スキル:牙折り]]
+					CFLAG:ARG:ターゲット = LOCAL
+					RETURN 1
+				ELSEIF MAXBASE:POS(LOCAL):剣撃 > 100 && MAXBASE:POS(LOCAL):剣撃 != 999
+					CFLAG:ARG:入力行動 = [[スキル:両腕落とし]]
+					CFLAG:ARG:ターゲット = LOCAL
+					RETURN 1
+				ELSEIF MAXBASE:POS(LOCAL):飛具 > 100 && MAXBASE:POS(LOCAL):飛具 != 999
+					CFLAG:ARG:入力行動 = [[スキル:タスラムショット]]
+					CFLAG:ARG:ターゲット = LOCAL
+					RETURN 1
+				ENDIF
+			ELSE
+				IF MAXBASE:POS(LOCAL):打撃 > 100 && MAXBASE:POS(LOCAL):打撃 != 999
+					CFLAG:ARG:入力行動 = [[スキル:アカシャアーツ]]
+				ELSEIF MAXBASE:POS(LOCAL):戦技 > 100 && MAXBASE:POS(LOCAL):戦技 != 999
+					CFLAG:ARG:入力行動 = [[スキル:心の叫び]]
+				ELSEIF MAXBASE:POS(LOCAL):剣撃 > 100 && MAXBASE:POS(LOCAL):剣撃 != 999
+					CFLAG:ARG:入力行動 = [[スキル:ヒートウェイブ]]
+				ELSEIF MAXBASE:POS(LOCAL):飛具 > 100 && MAXBASE:POS(LOCAL):飛具 != 999
+					CFLAG:ARG:入力行動 = [[スキル:滅殺袖箭]]
+				ENDIF
+				IF CFLAG:ARG:入力行動 > 0
+					IF LOCAL < 4
+						CFLAG:ARG:ターゲット = 17
+						RETURN 1
+					ELSE
+						CFLAG:ARG:ターゲット = 18
+						RETURN 1
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	NEXT
+	
+		$DECIDE_ACTION
+		CALL SEARCH_ACT,ARG
+		IF RESULT == 0
+			CFLAG:ARG:入力行動 = -1
+			CFLAG:ARG:防御フラグ = 1
+			RETURN 0
+		ENDIF
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+		LOCAL = RAND:RESULT
+		;スキル番号決定
+		LOCAL:1 = S:(10+LOCAL)
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+		$TARGET_LOOP
+		
+		CALL RANDOM_TARGET,ARG,LOCAL:1
+		CALLFORM SKILL_TARGET_{LOCAL:1}
+		;ここでスキル番号を行動内容に代入
+		SIF CFLAG:ARG:ターゲット == -1
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = LOCAL:1
+
+@SET_ACTION_トリブ・天,ARG
+	LOCAL:3 = 0
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF CFLAG:POS(LOCAL):ステート == GET_STATE_NUM("DYING")
+			CONTINUE
+		SIF CFLAG:POS(LOCAL):攻撃強化 > 0
+			LOCAL:3 += CFLAG:POS(LOCAL):攻撃強化
+		SIF CFLAG:POS(LOCAL):防御強化 > 0
+			LOCAL:3 += CFLAG:POS(LOCAL):防御強化
+		SIF CFLAG:POS(LOCAL):魔法威力強化 > 0
+			LOCAL:3 += CFLAG:POS(LOCAL):魔法威力強化
+		SIF CFLAG:POS(LOCAL):魔法効果強化 > 0
+			LOCAL:3 += CFLAG:POS(LOCAL):魔法効果強化
+		SIF CFLAG:POS(LOCAL):回避強化 + CFLAG:POS(LOCAL):命中強化 > 0
+			LOCAL:3 += (CFLAG:POS(LOCAL):回避強化 + CFLAG:POS(LOCAL):命中強化) / 2
+	NEXT
+	IF 50 < LOCAL:3 && RAND:2
+		CFLAG:ARG:入力行動 = 509
+		CALL RANDOM_TARGET,ARG,509
+		RETURN 1
+	ENDIF
+	CFLAG:ARG:入力行動 = 0
+	;弱点をつく
+	FOR LOCAL, 1, 7
+		IF POS(LOCAL) > 0
+			SIF CFLAG:POS(LOCAL):ステート == GET_STATE_NUM("DYING")
+				CONTINUE
+			IF RAND:3
+				FOR LOCAL:1, 4, 16
+					LOCALS = %GET_TYPE(LOCAL:1)%
+					IF MAXBASE:POS(LOCAL):LOCALS > 100 && MAXBASE:POS(LOCAL):LOCALS != 999
+						SIF LOCAL:1 > 7 && LOCAL:1 < 12
+							CONTINUE
+						CFLAG:ARG:入力行動 = (LOCAL:1 + 3) * 100 + 3
+						CFLAG:ARG:ターゲット = LOCAL
+						RETURN 1
+					ENDIF
+				NEXT
+				IF MAXBASE:POS(LOCAL):核熱 > 100 && MAXBASE:POS(LOCAL):核熱 != 999
+					CFLAG:ARG:入力行動 = [[スキル:ギガリオン]]
+					CFLAG:ARG:ターゲット = LOCAL
+					RETURN 1
+				ENDIF
+			ELSE
+				FOR LOCAL:1, 4, 16
+					LOCALS = %GET_TYPE(LOCAL:1)%
+					IF MAXBASE:POS(LOCAL):LOCALS > 100 && MAXBASE:POS(LOCAL):LOCALS != 999
+						SIF LOCAL:1 > 7 && LOCAL:1 < 12
+							CONTINUE
+						CFLAG:ARG:入力行動 = (LOCAL:1 + 3) * 100 + 6
+						IF CFLAG:ARG:入力行動 > 0
+							IF LOCAL < 4
+								CFLAG:ARG:ターゲット = 17
+								RETURN 1
+							ELSE
+								CFLAG:ARG:ターゲット = 18
+								RETURN 1
+							ENDIF
+						ENDIF
+					ENDIF
+				NEXT
+				IF MAXBASE:POS(LOCAL):核熱 > 100 && MAXBASE:POS(LOCAL):核熱 != 999
+					CFLAG:ARG:入力行動 = [[スキル:マハギガリオン]]
+					IF CFLAG:ARG:入力行動 > 0
+						IF LOCAL < 4
+							CFLAG:ARG:ターゲット = 17
+							RETURN 1
+						ELSE
+							CFLAG:ARG:ターゲット = 18
+							RETURN 1
+						ENDIF
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	NEXT
+		$DECIDE_ACTION
+		CALL SEARCH_ACT,ARG
+		IF RESULT == 0
+			CFLAG:ARG:入力行動 = -1
+			CFLAG:ARG:防御フラグ = 1
+			RETURN 0
+		ENDIF
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+		LOCAL = RAND:RESULT
+		;スキル番号決定
+		LOCAL:1 = S:(10+LOCAL)
+;		PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+		$TARGET_LOOP
+		
+		CALL RANDOM_TARGET,ARG,LOCAL:1
+		CALLFORM SKILL_TARGET_{LOCAL:1}
+		;ここでスキル番号を行動内容に代入
+		SIF CFLAG:ARG:ターゲット == -1
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = LOCAL:1
+		
+
+@SET_ACTION_カルマ協会・サティ,ARG
+IF FLAG:経過ターン数 % 3 == 0
+	CFLAG:ARG:入力行動 = [[スキル:火炎ガードブレイク]]
+	CALL RANDOM_TARGET,ARG,[[スキル:火炎ガードブレイク]]
+	RETURN 1
+ELSEIF RAND:2
+	IF POS(9) > 0
+		IF CFLAG:POS(9):飛具無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:極彩の疾風]]
+			CALL RANDOM_TARGET,ARG,[[スキル:極彩の疾風]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):氷結無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:炎の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:炎の壁]]
+			RETURN 1
+		ELSEIF CFLAG:POS(9):水撃無効化回数 < 1
+			CFLAG:ARG:入力行動 = [[スキル:雷の壁]]
+			CALL RANDOM_TARGET,ARG,[[スキル:雷の壁]]
+			RETURN 1
+		ENDIF
+	ENDIF
+;それ以外は通常
+ENDIF
+
+CSTR:ARG:思考パターン = 1
+		CALL ランダム行動 , ARG
+CSTR:ARG:思考パターン = カルマ協会・サティ

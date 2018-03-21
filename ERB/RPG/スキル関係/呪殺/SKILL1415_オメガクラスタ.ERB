@@ -1,0 +1,221 @@
+;スキル名
+@SKILL_NAME_1415,ARG
+RESULTS = Omega Cluster
+
+;　命中
+@SKILL_HITRATE_1415, ARG
+RETURN 500
+
+;　威力
+@SKILL_POWER_1415, ARG
+RETURN 0
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_1415,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_1415,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_1415, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_1415,ARG
+RETURN 60
+
+;　相性
+@SKILL_TYPE_1415,ARG
+RETURN 17
+;Almig
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_1415
+RETURN 1
+;魔法
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_1415
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_1415
+RETURN 4
+
+;　射程
+@SKILL_RANGE_1415,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_1415,ARG
+RETURN 4
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_1415
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_1415,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ　Dark
+@SKILL_SUCCESSION_TYPE_1415
+RETURN 14
+;不可
+
+;速度補正
+@SKILL_SPEED_1415, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_1415,ARG
+
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_1415
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_1415
+RETURN 15
+;変化不能
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_1415,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_1415,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_1415,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_1415,ARG
+RETURN 0
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_1415,ARG,ARG:1
+SIF CFLAG:ARG:PTフラグ == 2
+	TFLAG:味方オメガクラスタ = MAX(1, TFLAG:味方オメガクラスタ)
+SIF CFLAG:ARG:PTフラグ == 0
+	TFLAG:敵オメガクラスタ = MAX(1, TFLAG:敵オメガクラスタ)
+
+;オメガクラスタフラグに前回数値をしまう
+@SPECIAL_ACTION_1415
+#LOCALSIZE 18
+#DIM TEXP,2
+VARSET LOCAL
+VARSET TEXP
+IF TFLAG:味方オメガクラスタ
+	$START_P
+	;経験値登録
+	FOR LOCAL, 7, 17
+		SIF POS(LOCAL) < 0 || GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING"
+			CONTINUE
+		;経験値が前回キャラのEXPより多い
+		IF MAXBASE:POS(LOCAL):ＥＸＰ + POS(LOCAL) > TFLAG:味方オメガクラスタ
+			;はじめはとりあえず登録
+			SIF TEXP == 0
+				TEXP = MAXBASE:POS(LOCAL):ＥＸＰ + POS(LOCAL)
+			;二人目以降は少ない方を登録(同EXP)
+			SIF MAXBASE:POS(LOCAL):ＥＸＰ + POS(LOCAL) < TEXP
+				TEXP = MAXBASE:POS(LOCAL):ＥＸＰ + POS(LOCAL)
+		ENDIF
+	NEXT
+	IF TEXP == 0
+		TFLAG:味方オメガクラスタ = 1
+		GOTO START_P
+	ENDIF
+	TFLAG:味方オメガクラスタ = TEXP
+	FOR LOCAL, 7, 17
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING"
+			CONTINUE
+		;経験値が一致してるキャラに叩きこむ
+		IF TEXP == MAXBASE:POS(LOCAL):ＥＸＰ+ POS(LOCAL)
+			CALL MESSAGE_B(1, "オメガクラスタ")
+			PRINTFORM 　　TARGET:[{LOCAL,2}] %CALLNAME:POS(LOCAL),20,LEFT%　>>>>>>　
+			IF CFLAG:POS(LOCAL):防御フラグ
+				PRINTW GUARD
+			ELSEIF CFLAG:(POS(LOCAL)):ボスフラグ
+				PRINTW BLOCK
+			ELSE
+				PRINTFORMW DYING
+				CALL DEAD_CHARA, POS(LOCAL)
+			ENDIF
+			BREAK
+		ENDIF
+	NEXT
+ENDIF
+TEXP = 0
+IF TFLAG:敵オメガクラスタ
+	$START_E
+	;経験値登録
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0 || GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING"
+			CONTINUE
+		;経験値が前回キャラのEXPより多い
+		IF MAXBASE:POS(LOCAL):ＥＸＰ > TFLAG:敵オメガクラスタ
+			;はじめはとりあえず登録
+			SIF TEXP == 0
+				TEXP = MAXBASE:POS(LOCAL):ＥＸＰ
+			;二人目以降は少ない方を登録(同EXP)
+			SIF MAXBASE:POS(LOCAL):ＥＸＰ + POS(LOCAL) < TEXP
+				TEXP = MAXBASE:POS(LOCAL):ＥＸＰ
+		ENDIF
+	NEXT
+	IF TEXP == 0
+		TFLAG:敵オメガクラスタ = 1
+		GOTO START_E
+	ENDIF
+	TFLAG:敵オメガクラスタ = TEXP
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING"
+			CONTINUE
+		;経験値が一致してるキャラに叩きこむ
+		IF TEXP == MAXBASE:POS(LOCAL):ＥＸＰ
+			CALL MESSAGE_B(1, "オメガクラスタ")
+			PRINTFORM 　　TARGET:[{LOCAL,2}] %CALLNAME:POS(LOCAL),20,LEFT%　>>>>>>　
+			IF CFLAG:POS(LOCAL):防御フラグ
+				PRINTW GUARD
+			ELSE
+				PRINTFORMW DYING
+				CALL DEAD_CHARA, POS(LOCAL)
+			ENDIF
+			BREAK
+		ENDIF
+	NEXT
+ENDIF
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_1415
+PRINTL Deal instant Dark kill to all enemies、1 per turn、starting with lowest level.
+
+;継承に必要な部位
+@継承部位_1415,ARG
+RETURN 1
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_1415,ARG
+RETURN 1
+;とくにない
+

@@ -1,0 +1,56 @@
+@PLAYABLE_OUKOKUYA_REQ_23
+RESULTS = Curiosity
+;好奇
+SIF GETBIT(依頼フラグ:40:0, 23)
+	RETURN 0
+;ある程度調教師名声が必要
+SIF FLAG:調教師名声 < 800
+	RETURN 0
+RETURN 1
+@EXPLAIN_OUKOKUYA_REQ_23
+RESULTS = 
+RESULTS += "/Curiosity(client: Mrs. Ryoko)/"
+RESULTS += "Difficulty: ☆☆☆☆☆☆☆/"
+RESULTS += "Reward: Macca depending on the value of the request fullfilling demon./"
+RESULTS += "     Software [Paracelsus]/"
+RESULTS += "/Conditions:/"
+RESULTS += "[Tentacles] required/"
+;触手
+RESULTS += "Male　or　(Lesbianism Lv3 or higher and LesbianAddict Lv1 or higher)/"
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+;RESULTS += 
+
+@CHARASELLABLE_OUKOKUYA_REQ_23
+SIF !(IS_MALE(COUNT) || (ABL:COUNT:レズっ気 >= 3 && ABL:COUNT:レズ中毒 >= 1))
+	RETURN 0
+SIF !TALENT:COUNT:触手
+	RETURN 0
+RETURN 1
+
+;--------------------------------------------------------
+;報酬処理
+;ただし、売却人数・属性変動などは共通で処理済み
+;調教師名声の処理はされてないので適宜処理してください
+;
+;ARGはキャラクター
+;--------------------------------------------------------
+@TAKE_REWARD_OUKOKUYA_REQ_23, ARG
+#LOCALSIZE 1
+CALL CHARA_SELL, ARG, 1
+LOCAL = RESULT
+LOCAL = LOCAL * 125 / 100
+CALL MESSAGE_WINDOW, "", @"＞For fullfilling the request, /＞you got {LOCAL}Macca\@!ITEM:Paracelsus ? %" and the Paracelsus software"%#\@.", , , , , 4
+SIF !ITEM:Paracelsus
+	CALL GET_ITEMS, "Paracelsus", 1
+MONEY:1 += LOCAL
+FLAG:調教師名声 += LOCAL / 100
+
+;帳簿閲覧用処理
+CALL 帳簿閲覧, ARG, LOCAL

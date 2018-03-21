@@ -1,0 +1,255 @@
+;ARGは生成キャラの登録番号
+@RANDOMCHARA_4901, ARGS, ARG, ARG:1
+#LOCALSSIZE 1
+SELECTCASE ARGS
+	CASE "一人称"
+		RESULTS = i
+	CASE "二人称"
+		RESULTS = %CALLNAME:MASTER%
+	CASE "体力"
+		RETURN RAND(1000, 2400)
+	CASE "Willpower"
+		RETURN RAND(1000, 1800)
+	CASE "属性"
+		RETURN RAND(0, 127), RAND(128, 255)
+	CASE "種族"
+		RETURN 0
+	CASE "戦闘素質"
+		IF RAND:4 > 1
+			RESULTS = サマナー
+			RESULTS:1 = 道具知識
+			RESULTS:2 =サクセサー
+			RETURN 3, 3, 1
+		ELSEIF RAND:4 == 0
+			RESULTS = 異能者
+			RESULTS:1 = サマナー
+			RETURN 1, 1
+		ELSE
+			RESULTS = 非戦闘員
+			RETURN 1
+		ENDIF
+	CASE "リンク悪魔"
+		RETURN 0
+	CASE "初期ステータス比率"
+		RETURN 10, 10, 8, 7, 7, 5
+	CASE "スキル"
+		SIF TALENT:ARG:異能者 == 0
+			RETURN 0
+		SELECTCASE RAND:5
+			CASE 0
+				RESULT = [[スキル:アギ]]
+				RESULT:1 = [[スキル:アギラオ]]
+				RESULT:2 = [[スキル:アギダイン]]
+			CASE 1
+				RESULT = [[スキル:ブフ]]
+				RESULT:1 = [[スキル:ブフーラ]]
+				RESULT:2 = [[スキル:ブフダイン]]
+			CASE 2
+				RESULT = [[スキル:ジオ]]
+				RESULT:1 = [[スキル:ジオンガ]]
+				RESULT:2 = [[スキル:ジオダイン]]
+			CASE 3
+				RESULT = [[スキル:ザン]]
+				RESULT:1 = [[スキル:ザンマ]]
+				RESULT:2 = [[スキル:ザンダイン]]
+			CASE 4
+				RESULT = [[スキル:ヤマオロシ]]
+				RESULT:1 = [[スキル:ヒートウェイブ]]
+				RESULT:2 = [[スキル:デスバウンド]]
+		ENDSELECT
+		SELECTCASE RAND:4
+			CASE 0
+				RESULT:3 = [[スキル:シバブー]]
+				RESULT:4 = [[スキル:ポイズマ]]
+				RESULT:5 = [[スキル:マカジャマ]]
+				RESULT:6 = [[スキル:エストマ]]
+			CASE 1
+				RESULT:3 = [[スキル:ハピルマ]]
+				RESULT:4 = [[スキル:ドルミナー]]
+				RESULT:5 = [[スキル:テンタラフー]]
+				RESULT:6 = [[スキル:タル・ンダ]]
+			CASE 2
+				RESULT:3 = [[スキル:ディア]]
+				RESULT:4 = [[スキル:ディアラマ]]
+				RESULT:5 = [[スキル:パトラ]]
+				RESULT:6 = [[スキル:デ・カジャ]]
+			CASE 3
+				RESULT:3 = [[スキル:マカ・カジャ]]
+				RESULT:4 = [[スキル:ムド]]
+				RESULT:5 = [[スキル:マハムド]]
+				RESULT:6 = [[スキル:ムドオン]]
+		ENDSELECT
+		SELECTCASE RAND:2
+			CASE 0
+				RESULT:7 = [[スキル:シングルショット]]
+			CASE 1
+				RESULT:7 = [[スキル:クイックドロー]]
+		ENDSELECT
+		RESULT:8 = [[スキル:連続撃ち]]
+		RESULT:9 = [[スキル:散弾撃ち]]
+		RETURN RESULT
+	CASE "相性"
+		SELECTCASE GET_TYPE(ARG:1)
+			CASE "破魔"
+				RETURN 0
+			CASEELSE
+				RETURN 100
+		ENDSELECT
+	CASE "素質"
+		RETURN GETNUM(TALENT, "無関心"), GETNUM(TALENT, "自制心"), GETNUM(TALENT, "解放"), GETNUM(TALENT, "倒錯的"), GETNUM(TALENT, "両刀"), GETNUM(TALENT, "小悪魔"), GETNUM(TALENT, "快感に素直")
+	CASE "除外素質"
+		RETURN GETNUM(TALENT, "貞操観念"), GETNUM(TALENT, "痛みに弱い"), GETNUM(TALENT, "臆病")
+	;処女は特別 0はランダム(20%), 1なら処女, 2なら非処女
+	CASE "処女"
+	;戻り値は0:ランダム 1:小人体型 2:小柄体型 4:大柄 5:巨体
+	CASE "体型"
+		RETURN 0
+	;戻り値は0:ランダム 1:絶壁　2:貧乳　3:並　4:巨乳　5:爆乳
+	CASE "胸"
+		RETURN 0
+	;通常の人間と肉体部位が違う場合はここで直接代入してください
+	CASE "肉体部位"
+		RETURN 0
+	CASE "ABL"
+		SELECTCASE ABLNAME:(ARG:1)
+			CASE "従順", "欲望", "技巧"
+				RETURN !RAND:3+!RAND:5
+			CASE "Ｃ感覚", "Ｖ感覚", "Ｂ感覚"
+				RETURN !RAND:3
+			CASE "マゾっ気", "露出癖", "奉仕精神"
+				RETURN !RAND:5
+			CASE "サドっ気"
+				RETURN !RAND:4 * !ABL:ARG:マゾっ気
+			CASE "Ａ感覚", "自慰中毒", "精液中毒", "レズっ気", "ＢＬっ気", "セックス中毒"
+				RETURN !RAND:10
+		ENDSELECT
+	;EXPはABLが1以上ある場合、ある程度調整される(ただし、ABL0の時は調整が動かないので適当に初期値をきめてください)
+	CASE "EXP"
+		;全く手付かずの場合
+		SIF !GROUPMATCH(1, !TALENT:ARG:処女, ABL:ARG:Ｃ感覚, ABL:ARG:Ｖ感覚, ABL:ARG:Ａ感覚, ABL:ARG:Ｂ感覚, ABL:ARG:技巧)
+			RETURN 0
+		SELECTCASE EXPNAME:(ARG:1)
+			CASE "Ｖ経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "Ａ経験"
+				RETURN RAND(0, 20) * !RAND:5
+			CASE "絶頂経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "射精経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "性交経験"
+				RETURN 0
+			CASE "膣射経験"
+				RETURN EXP:ARG:射精経験/2*EXP:ARG:性交経験 > 0
+			CASE "自慰経験"
+				RETURN RAND(0, 20)
+			CASE "調教自慰経験"
+				RETURN 0
+			CASE "精液経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "奉仕快楽経験"
+				RETURN 0
+			CASE "フェラ経験"
+				RETURN RAND(0, 10) * RAND:2
+			CASE "愛情経験"
+				RETURN 0
+			CASE "苦痛快楽経験"
+				RETURN RAND(0, 20) * !RAND:4
+			CASE "放尿経験"
+				RETURN 0
+			CASE "嗜虐快楽経験"
+				RETURN RAND(0, 10) * !RAND:4
+			CASE "野外露出経験"
+				RETURN 0
+			CASE "レズ経験"
+				RETURN RAND(0, 20) * !RAND:4
+			CASE "ＢＬ経験"
+				RETURN RAND(0, 20) * !RAND:4
+			CASE "異常経験"
+				RETURN 0
+			CASE "緊縛経験"
+				RETURN RAND(0, 10) * EXP:ARG:苦痛快楽経験 > 0
+		ENDSELECT
+	CASE "帽子"
+		IF RAND:5
+			RETURN 0
+		ELSE
+			RETURN [[衣装:帽子]]
+		ENDIF
+	CASE "服"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:ワイシャツ]]
+		ELSE
+			RETURN [[衣装:ブラウス]]
+		ENDIF
+	CASE "下衣"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:ズボン]]
+		ELSE
+			IF RAND:5 > 2
+				RETURN [[衣装:スカート]]
+			ELSEIF RAND:2
+				RETURN [[衣装:ロングスカート]]
+			ELSE
+				RETURN [[衣装:ズボン]]
+			ENDIF
+		ENDIF
+	CASE "全身服"
+		RETURN 0
+	CASE "手"
+		RETURN 0
+	CASE "下着（上）"
+		IF IS_MALE(ARG)
+			RETURN 0
+		ELSE
+			IF RAND:5
+				RETURN [[衣装:ブラジャー]]
+			ELSE
+				RETURN 0
+			ENDIF
+		ENDIF
+	CASE "下着（下）"
+		IF IS_MALE(ARG)
+			IF RAND:5
+				RETURN [[衣装:トランクス]]
+			ELSE
+				RETURN [[衣装:ブーメランパンツ]]
+			ENDIF
+		ELSE
+			LOCALS = 下着（上）
+			IF CFLAG:ARG:LOCALS == 0
+				RETURN 0
+			ELSE
+				RETURN [[衣装:パンティ]]
+			ENDIF
+		ENDIF
+	CASE "全身下着"
+		RETURN 0
+	CASE "靴下"
+		RETURN [[衣装:靴下]]
+	CASE "靴"
+		IF IS_MALE(ARG)
+			RETURN [[衣装:革靴]]
+		ELSE
+			RETURN [[衣装:ブーツ]]
+		ENDIF
+	CASE "会話タイプ"
+	;悪魔汎用使用しています0:ランダム 1:女_子供　2:女_少女　3:女_若者　4:女_大人　5:女_淑女　6:女_古風　7:男_若者　8:男_大人　9:獣_ケダモノ
+		RETURN 0
+	CASE "名前"
+		RESULTS = P・S member
+	CASE "愛称"
+		RESULTS = P・S member
+	CASE "解説"
+		RESULTS = ファントムソサエティの構成員
+		IF TALENT:ARG:異能者
+			RESULTS:1 = 異能者であり、その力で組織に貢献してきた
+		ELSEIF TALENT:ARG:非戦闘員
+			RESULTS:1 = 非戦闘員であり、主にバックアップを担当していた
+		ELSE
+			RESULTS:1 = ダークサマナーであり、仲魔と共に組織に貢献してきた
+		ENDIF
+	;最後に呼び出すので何らかの調整が必要な場合はここで
+	CASE "最終調整"
+		RETURN 0
+ENDSELECT

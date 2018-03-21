@@ -1,0 +1,123 @@
+;-------------------------------------------------
+;蟲風呂
+;ハードな調教コマンド、レベル4
+;-------------------------------------------------
+@ACT_COM152
+PRINTL Insect Bath
+TSTR:0 = 蟲風呂
+;CALL KOJO_MESSAGE_COM
+
+F = 1
+;リグルとヤマメの場合は効果を変更する（蛍の妖怪と土蜘蛛の妖怪なので効き目は薄い）
+;SIF NO:TARGET == 24 && NO:TARGET == 56
+;	F = 0
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+IF F > 0
+	;消費体力、Willpower
+	DOWNBASE:TARGET:体力 += 600
+	DOWNBASE:TARGET:気力 += 900
+
+	SOURCE:TARGET:痛み = 500
+	SOURCE:TARGET:恐れ = 5000
+	SOURCE:TARGET:屈従 = 2000
+	SOURCE:TARGET:不潔 = 1000
+	SOURCE:TARGET:逸脱 = 2500
+	SOURCE:TARGET:反感 = 2500
+ELSE
+	;消費体力、Willpower
+	DOWNBASE:TARGET:体力 += 50
+	DOWNBASE:TARGET:気力 += 100
+
+	SOURCE:TARGET:痛み = 100
+	SOURCE:TARGET:屈従 = 100
+	SOURCE:TARGET:不潔 = 20
+	SOURCE:TARGET:逸脱 = 50
+	SOURCE:TARGET:反感 = 50
+ENDIF
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+IF F > 0
+	;特にハードなコマンドでは、AbnormalEXPに応じて効果を減らす
+	IF EXP:50 < EXPLV:1
+		TIMES SOURCE:TARGET:恐れ , 1.20
+		TIMES SOURCE:TARGET:逸脱 , 1.20
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF EXP:50 < EXPLV:2
+		TIMES SOURCE:TARGET:恐れ , 0.90
+		TIMES SOURCE:TARGET:逸脱 , 0.90
+		TIMES SOURCE:TARGET:反感 , 0.90
+	ELSEIF EXP:50 < EXPLV:3
+		TIMES SOURCE:TARGET:恐れ , 0.80
+		TIMES SOURCE:TARGET:逸脱 , 0.80
+		TIMES SOURCE:TARGET:反感 , 0.80
+	ELSEIF EXP:50 < EXPLV:4
+		TIMES SOURCE:TARGET:恐れ , 0.70
+		TIMES SOURCE:TARGET:逸脱 , 0.70
+		TIMES SOURCE:TARGET:反感 , 0.70
+	ELSEIF EXP:50 < EXPLV:5
+		TIMES SOURCE:TARGET:恐れ , 0.60
+		TIMES SOURCE:TARGET:逸脱 , 0.60
+		TIMES SOURCE:TARGET:反感 , 0.60
+	ELSE
+		TIMES SOURCE:TARGET:恐れ , 0.50
+		TIMES SOURCE:TARGET:逸脱 , 0.50
+		TIMES SOURCE:TARGET:反感 , 0.50
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;粘液の汚れ
+;STAIN:TARGET:1 = 32
+;STAIN:TARGET:2 = 32
+;STAIN:TARGET:3 = 32
+;STAIN:TARGET:4 = 32
+;STAIN:TARGET:5 = 32
+;STAIN:TARGET:6 = 32
+CALL SET_STAIN("手", "粘液", TARGET)
+CALL SET_STAIN("ペニス", "粘液", TARGET)
+CALL SET_STAIN("ヴァギナ", "粘液", TARGET)
+SIF !USE_ANUS(TARGET)
+	CALL SET_STAIN("アナル", "粘液", TARGET)
+CALL SET_STAIN("胸", "粘液", TARGET)
+SIF !USE_VAGINA(TARGET)	
+	CALL SET_STAIN("膣内", "粘液", TARGET)
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;AbnormalEXPが5未満のとき、AbnormalEXP追加
+IF EXP:50 < 5 && F > 0
+;	EXP:50 += 2
+;	PRINTL AbnormalEXP＋２
+	CALL ADDS_ABNORMAL_EXP("Insect bath", TARGET)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_152
+RETURN COMTYPE("ハード系")
+
+
+
+

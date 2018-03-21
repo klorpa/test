@@ -1,0 +1,221 @@
+;-------------------------------------------------
+;アナルバイブ
+;道具使用コマンド、レベル2
+;-------------------------------------------------
+@COMNAME45
+IF TEQUIP:アナルバイブ
+	RESULTS = Remove Anal Vibe
+ELSE
+	RESULTS = Anal Vibe
+ENDIF
+@ACT_COM45
+;-------------------------------------------------
+;特殊派生処理
+;-------------------------------------------------
+IF TEQUIP:25
+	PRINTL Anal tentacle
+	;アナル触手
+	TSTR:0 = アナル触手
+	SELECTCOM = 162
+ELSE
+	PRINTL Anal vibrator
+	TSTR:0 = アナルバイブ
+ENDIF
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:14 == 0
+	TEQUIP:14 = 1
+	;アナル触手は触手の汚れを追加
+	IF TEQUIP:25
+		CALL SET_STAIN("アナル", "粘液", TARGET)
+	ENDIF
+ELSE
+	TEQUIP:14 = 0
+ENDIF
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 60
+DOWNBASE:TARGET:気力 += 150
+
+SOURCE:TARGET:道具快Ａ = 250
+SOURCE:TARGET:露出 = 50
+SOURCE:TARGET:屈従 = 50
+SOURCE:TARGET:逸脱 = 50
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 70
+
+;Aへの苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+IF EXP:1 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 3.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF EXP:1 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 0.80
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF EXP:1 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 0.60
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:1 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.40
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 1.00
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 0.60
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.30
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;アナル触手なら、触手体液がアナルに付く
+SIF TEQUIP:25
+	CALL SET_STAIN("アナル", "粘液", TARGET)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;A経験
+CALL ADDS_EXP("Ａ経験", 2, TARGET)
+;PRINTL ＡEXP＋２
+
+;LesbianEXP
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;触手召喚時、TentacleEXPのリセットをする
+;SIF TEQUIP:25 == 1
+;	T = 0
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM45
+;アナルバイブ挿入中
+IF TEQUIP:25
+	PRINTL ＜Anal tentacle insertion＞
+	;アナル触手挿入中
+ELSE
+	PRINTL ＜Anal vibrator insertion＞
+	;アナルバイブ挿入中
+ENDIF
+
+DOWNBASE:TARGET:体力 += 30
+DOWNBASE:TARGET:気力 += 80
+
+SOURCE:TARGET:道具快Ａ += 125
+SOURCE:TARGET:痛み += 100
+SOURCE:TARGET:露出 += 25
+SOURCE:TARGET:逸脱 += 25
+SOURCE:TARGET:反感 += 40
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 35
+
+;Aへの苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+A = 100
+B = 40
+IF EXP:1 < EXPLV:1
+	TIMES A , 3.00
+	TIMES B , 3.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES A , 1.20
+	TIMES B , 2.00
+ELSEIF EXP:1 < EXPLV:3
+	TIMES A , 0.80
+	TIMES B , 1.50
+ELSEIF EXP:1 < EXPLV:4
+	TIMES A , 0.60
+	TIMES B , 1.20
+ELSEIF EXP:1 < EXPLV:5
+	TIMES A , 0.40
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES A , 0.20
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES A , 1.20
+	TIMES B , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES A , 1.00
+	TIMES B , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES A , 0.60
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES A , 0.30
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES A , 0.20
+ENDIF
+SOURCE:TARGET:痛み += A
+SOURCE:TARGET:反感 += B
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;自慰実行時は経験＋１
+IF SELECTCOM == 11
+	CALL ADDS_EXP("Ａ経験", 2, TARGET)
+	;PRINTL ＡEXP＋２
+ELSE
+	CALL ADDS_EXP("Ａ経験", 1, TARGET)
+	;PRINTL ＡEXP＋１
+ENDIF
+
+;TentacleEXP加算
+SIF TEQUIP:25 == 1
+	CALL ADDS_EXP("触手経験", 1, TARGET)
+;	T += 1
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_45
+RETURN COMTYPE("道具系")
+
+

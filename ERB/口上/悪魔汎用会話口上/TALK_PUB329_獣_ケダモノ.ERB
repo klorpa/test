@@ -1,0 +1,867 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:TALK_PUB302.ERB
+;	Facility	:会話タイプ：男・紳士の会話用メッセージ＋挨拶・問答処理
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/10		Ｎ鳥					基本処理をTALK_COMMONに一元化し、メッセージを口上呼び出し用関数に移植
+;	004		2012/11/04		ネトリス				CASE 9:一発おｋ二ヶ所、41:異性を宛がってもらった時の反応一ヶ所に加筆
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;=====================================================================
+;口調タイプ：○○の汎用口上＋会話用ファイルです
+;=====================================================================
+
+;=====================================================================
+;戦闘時会話および合体時会話の口上テンプレートです。
+
+;個別の悪魔に対応させたい場合はX1をキャラ番号に
+;会話タイプ別に対応させたい場合はKX1をPUB(会話タイプの番号)に
+;置き換えてください。
+
+;例）ピクシーの口上を作りたいならX1⇒501に置き換え
+;　　会話タイプ：女、淑女ならKX1⇒PUB304に置き換え
+
+;知ってると便利そうな表記
+;　%CSTR:ARG:X%　X = 11:一人称 12:二人称 20:種族
+;　\@ CSTR:ARG:種族名 != "" ? %CSTR:ARG:種族名% # %STR:(ABL:ARG:種族)%
+;　┗CSTRに種族名が記載されていればそれを、されていなければABLから種族名を割り出して表示する
+;=====================================================================
+
+@KOJO_TALK_PUB329,ARG,ARG:1
+
+SELECTCASE ARG:1
+	CASE 1
+		;1:Ladyｰkiller
+	CASE 2
+		; 2:おねだり前の逡巡時(あいさつor問答で目的が決まっている場合)
+	PRINTFORML 「ヌウ… ニンゲン チョット マテ」
+	PRINTFORML 「%CSTR:ARG:11% イマ カンガエチュウ…」
+	CASE 3
+		; 3:交渉の目的を尋ねる
+		SELECTCASE CFLAG:ARG:友好度
+			CASE IS < 25
+				;友好度低い
+				PRINTFORML 「ガアーー！！ %CSTR:ARG:11% イソガシイ！」
+				PRINTFORML 「ヨウガ アルナラ ハヤクシロ！」
+			CASE IS < 50
+				;友好度普通
+				PRINTFORML 「ソレデ ニンゲンガ %CSTR:ARG:11%ニ ナンノ ヨウダ？」
+			CASEELSE
+				;友好度高い
+				PRINTFORML 「グウ… ニンゲン ヨウケン イエ」
+				PRINTFORML 「イマナラ タノミ キイテヤル」
+		ENDSELECT
+	CASE 84
+		;84:要求前の1文
+		PRINTFORMW 「ソウダナ…」
+	CASE 4
+		; 4-6:交渉目的：やらせてくれと言った時の反応
+		; 4:取り付く島もなし
+			PRINTFORMW 激しく拒否された
+	CASE 5
+		; 5:交渉次第
+		PRINTFORMW 条件次第でヤらせてくれるようだ
+	CASE 6
+		; 6:一発おｋ
+		CALL MESSAGE_TALK
+		IF TFLAG:メッセージパターン == 1
+			;スカートたくし上げ
+			;ノーパン
+			IF TEQUIP:PLAYER:陰唇露出 == -1
+				IF STAIN:PLAYER:3 & 4
+					;既に精液が…
+					PRINTFORMW 「ナンダ オマエ… ベツノ オス ト コウビ シテタノカ？」
+					PRINTFORMW 「%CSTR:ARG:11% カマワナイ %CSTR:ARG:11%ノ タネノホウ ツヨイ！タクサンノ オンナ ハラマセテキタ」
+					PRINTFORMW 「オマエモ ソノヒトリ ニナル ヨロコベ」
+				ELSE
+					PRINTFORMW 「オマエ ジュンビバンタン %CSTR:ARG:11%モ ジュンビバンタン」
+					PRINTFORMW 「アオーン！ コウビ アオーン！」
+				ENDIF
+			;パンツか何かはいてる
+			ELSE
+				PRINTFORMW 「ヌウ %CSTR:ARG:11% コウフン シテキタ」
+				IF HAVE_PENIS(ARG)
+					PRINTFORMW %CALLNAME:ARG%は自分の一物を曝け出すと、スカートをたくし上げたままの%CALLNAME:PLAYER%の股座に擦り付けた。
+				ELSE
+					PRINTFORMW %CALLNAME:ARG%はスカートをたくし上げたままの%CALLNAME:PLAYER%の股座を上下するように擦り始めた。
+				ENDIF
+				PRINTFORMW 「アオーン！イレルゾ オカスゾ ハラマスゾ!｣
+			ENDIF
+		ELSEIF TFLAG:メッセージパターン == 5
+			;スカートたくし上げ・パンツずらし
+			PRINTFORMW 「ヌウ %CSTR:ARG:11% コウフン シテキタ」
+			PRINTFORMW 「ハヤク ヤラセロ ハヤク！ ハヤク！ ハヤク！」
+			
+		ELSEIF TFLAG:メッセージパターン == 4
+			;四つん這い誘い
+			IF RAND:2 == 0
+				IF TALENT:PLAYER:恋慕 || TALENT:PLAYER:親愛
+					PRINTFORMW 「ヌウ コイツ オマエノ モノカ？」
+					PRINTFORMW 「アオーン！ デモ イマハ %CSTR:ARG:11%ノモノ %CSTR:ARG:11%ノタネデ ハラム」
+					PRINTFORMW 「オマエ ザンネンダッタナ」
+				ELSE
+					PRINTFORMW 「ヌウ オマエ イヤラシイ オンナ レイプサレテ トウゼン」
+					PRINTFORMW 「ダカラ オマエ オカス ホンノウノママ オカス」
+				ENDIF
+			ELSE
+				IF TALENT:PLAYER:恋慕 || TALENT:PLAYER:親愛
+					PRINTFORMW 「ヌウ ナンテ イヤラシイ \@TALENT:PLAYER:オトコ == 0 ? オンナ # アナ\@ %CSTR:ARG:11% キニイッタ」
+					PRINTFORMW 「アオーン！ %CSTR:ARG:11%ノ モノニスル オカシテ オカイシテ %CSTR:ARG:11%ノ モノニスル」
+					PRINTFORMW 「アオーン！ ＮＴＲダ ＮＴＲダ アオーン！」
+				ELSE
+					PRINTFORMW 「アオーン！ \@TALENT:PLAYER:オトコ == 0 ? オンナ # アナ\@ \@TALENT:PLAYER:オトコ == 0 ? オンナ # アナ\@ %CSTR:ARG:11% ヒトリジメ」
+					PRINTFORMW 「タップリ オカスゾ アオアオアオーン！」
+				ENDIF
+			ENDIF
+		ELSE
+			PRINTFORMW 「アオーン！ オンナダ オンナダ」
+			PRINTFORMW 「マンゾクスルマデ オカスゾ｣
+		ENDIF
+
+	CASE 7
+		; 7-9:交渉目的：犯してくれと言った時の反応
+		; 7:取り付く島もなし
+			PRINTFORMW 激しく拒否された
+	CASE 8
+		; 8:交渉次第
+		PRINTFORMW 条件次第で犯してくれるようだ
+	CASE 9
+		; 9:一発おｋ
+		IF TALENT:PLAYER:オトコ == 0
+			IF TALENT:PLAYER:恋慕 || TALENT:PLAYER:親愛
+				PRINTFORML 
+				PRINTFORMW 「オマエ シュジン イルノ ニ %CSTR:ARG:一人称%ニ コウビ モトメル」
+				PRINTFORMW 「オマエノ シュジンハ フノウ ナノカ？」
+				PRINTFORML 
+				PRINTFORMW 「マア %CSTR:ARG:一人称%ハ メノマエノ メスニ タネ ソソグダケ アオーン！！」
+				PRINTFORML 
+			ELSE
+				PRINTFORML 
+				PRINTFORMW 「ナンダ オマエ サカッテルノ カ？」
+				PRINTFORMW 「ナラ オカシテヤル %CSTR:ARG:一人称% ヤサシイナ グフフッ」
+				PRINTFORML 
+			ENDIF
+		ENDIF
+		PRINTFORMW 快く承諾してくれた
+	CASE 10
+		;10:要求額を提示：￥
+		PRINTFORML 「￥{TFLAG:TALK用要求値} ヨコセ！」
+
+	CASE 11
+		;11-13:￥を払おうとしてお金が足りない
+		;11:別のものを要求する
+		PRINTFORMW 「ヌウ… オマエ ビンボウ…」
+		PRINTFORMW 「シカタナイ… %CSTR:ARG:11% チガウモノ ショモウスル！」
+	CASE 85
+		;85:恵まれる
+		PRINTFORMW 「ヌウ… オマエ ビンボウ…」
+		PRINTFORMW 「ビンボウニン コレ ヤル」
+	CASE 12
+		;12:交渉失敗。立ち去る
+		PRINTFORMW 「ヌウ… オマエ ビンボウ…」
+		PRINTFORMW 「%CSTR:ARG:11% ビンボウ ウツルノ イヤ」
+		PRINTFORMW 「コレガ フケイキ カ…」
+	CASE 13
+		;13:交渉失敗。敵対する
+		PRINTFORMW 「ヌウ… オマエ ビンボウ…」
+		PRINTFORMW 「ガアーー！！ %CSTR:ARG:11% ヤスクナイ！ カネ ヨウイシトケ！！」
+	CASE 14
+		;14-16:￥を支払った
+		;14:払ったのに逃げられる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:11% コレデ カネモチ！」 
+	CASE 15
+		;15:さらに要求される
+				PRINTFORML 「ニンゲン モウチョットダケ クレ」 
+	CASE 16
+		;16:交渉成功
+				PRINTFORMW 「ヌウ コレダケアレバ %CSTR:ARG:11% ジュウブン！」
+	CASE 17
+		;17-19:￥を支払うのを断った::
+		;17:交渉失敗。奇襲する
+				PRINTFORMW 「カネ クレナイナラ ニンゲン ヨウズミ！」
+	CASE 18
+		;18:交渉失敗。敵対する
+			PRINTFORMW 「ガアー！ カネ モッテルノニ カネ クレナイ！」
+			PRINTFORMW 「ニンゲン！ ソレ タカラノ モチグサレ！」
+	CASE 19
+		;19:他のものを要求する:
+			PRINTFORMW 「グウ… ナラ %CSTR:ARG:11% チガウモノ ショモウスル」
+	CASE 20
+		;20:要求額を提示：ＭＡＧ
+		PRINTFORML 「{TFLAG:TALK用要求値}MAG クレ！」
+	CASE 21
+		;21-23:ＭＡＧを支払おうとしたが足りない
+		;21:別のものを要求する
+			PRINTFORMW 「グウ… MAG ナイノカ…」
+				PRINTFORMW 「ナラ %CSTR:ARG:11% ベツノモノ ショモウスル！」
+	CASE 86
+		;86:恵まれる
+			PRINTFORMW 「グウ… MAG ナイノカ…」
+			PRINTFORMW 「ニンゲン オマエ コノクライ モッテオケ」
+	CASE 22
+		;22:交渉失敗。立ち去る
+			PRINTFORMW 「グウ… MAG ナイノカ…」
+				PRINTFORMW 「ナライイ… %CSTR:ARG:11% モウ カエル」
+	CASE 23
+		;23:交渉失敗。敵対する
+			PRINTFORMW 「グウ… MAG ナイノカ…」
+				PRINTFORMW 「ニンゲン！ オマエ バカ！」
+	CASE 24
+		;24-26:ＭＡＧを支払った
+		;24:払ったのに逃げられる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:11% ヨウジ オモイダシタ！」
+	CASE 25
+		;25:さらに要求される
+				PRINTFORMW 「%CSTR:ARG:11% シッテル！ ニンゲン マダ モッテルナ？」
+	CASE 26
+		;26:交渉成功
+				PRINTFORMW 「ヨシ コレナラ %CSTR:ARG:11% マンゾク！」
+	CASE 27
+		;27-29:ＭＡＧを支払うのを断った
+		;27:交渉失敗。奇襲する
+				PRINTFORMW 「ヌウ！ ダッタラ %CSTR:ARG:11% ニンゲン コロシテ ゴウダツ！」
+	CASE 28
+		;28:交渉失敗。敵対する
+				PRINTFORMW 「クレナイナラ %CSTR:ARG:11% モウ ハナスコト ナイ」
+	CASE 29
+		;29:他のものを要求する
+				PRINTFORMW 「ヌウ… チガウモノナラ ドウダ…？」
+	CASE 30
+		;30:魔石を要求
+			PRINTFORML 「マセキ ヨコセ！」
+	CASE 31
+		;31-33:魔石を渡そうとしたが持っていない
+		;31:別のものを要求する
+			PRINTFORMW 「ヌウ マセキ ナイノカ！」
+				PRINTFORMW 「ナラ チガウモノ ヨコセ」
+	CASE 87
+		;87:恵まれる
+			PRINTFORMW 「ヌウ マセキ ナイノカ！」
+			PRINTFORMW 「オマエ カイショウナシ！ %CSTR:ARG:一人称% オマエ メグンデヤル！」
+	CASE 32
+		;32:交渉失敗。立ち去る
+			PRINTFORMW 「ヌウ マセキ ナイノカ！」
+				PRINTFORMW 「ナライイ… %CSTR:ARG:11% モウ カエル」
+	CASE 33
+		;33:交渉失敗。敵対する
+			PRINTFORMW 「ヌウ マセキ ナイノカ！」
+			PRINTFORMW 「ニンゲン！ オマエ バカ！」
+	CASE 34
+		;34-36:魔石を渡した
+		;34:払ったのに逃げられる
+				PRINTFORMW ＞%CALLNAME:ARG%は一声鳴いた
+	CASE 35
+		;35:さらに要求される
+				PRINTFORML 「%CSTR:ARG:一人称% マダ タリナイ」
+	CASE 36
+		;36:交渉成功
+				PRINTFORMW 「アオーン！ %CSTR:ARG:一人称% マンゾク！」
+	CASE 37
+		;37-39:魔石を渡すのを断った
+		;37:交渉失敗。奇襲する
+				PRINTFORMW 「ヌウ！ ダッタラ %CSTR:ARG:11% ニンゲン コロシテ ゴウダツ！」
+	CASE 38
+		;38:交渉失敗。敵対する
+			;気分を害される
+				PRINTFORMW 「クレナイナラ %CSTR:ARG:11% モウ ハナスコト ナイ」
+	CASE 39
+		;39:他のものを要求する
+				PRINTFORMW 「ヌウ… チガウモノナラ ドウダ…？」
+	CASE 40
+		;40:異性との性交渉を要求
+		PRINTFORML 「%CSTR:ARG:一人称% オンナ ホシイ！ オンナ ヤリタイ！」
+	CASE 41
+		;18:異性を宛がってもらった時の反応
+			PRINTFORMW 「オンナ！ オンナ！」
+			PRINTFORMW 「アオーン！ %CSTR:ARG:一人称% オンナ ダイコウブツ」
+		IF TALENT:(捧げたキャラ()):恋慕 || TALENT:(捧げたキャラ()):親愛
+			PRINTFORML 
+			PRINTFORML 「ン？コレ オマエノ オンナカ？ オマエノ ニオイ スルゾ」
+			PRINTFORML 「デモキニシナイ！イマハ %CSTR:ARG:一人称%ノ オンナ！！」
+			PRINTFORML 
+		ENDIF
+		CALL MESSAGE_TALK
+	CASE 42
+		;42-46:性交渉が終わった後
+		;42:敗北してる場合ここでゲームオーバー
+		PRINTFORMW 「ヌウ！ モウ ゲンカイ カ！？」
+		PRINTFORMW 「%CSTR:ARG:一人称% マダマダ ヤリタリナイ！」
+		PRINTFORMW 「！ %CSTR:ARG:一人称% イイコト オモイツイタ！」
+		PRINTFORMW 「ニンゲン オマエ キョウカラ %CSTR:ARG:一人称% ノ シモベ！」
+		PRINTFORMW 「アオーン！ %CSTR:ARG:一人称% イツデモ オマエ ヤリマクリ！」
+	CASE 43
+		;43:話しかけたキャラが倒れている
+				PRINTFORMW 「ヌウ！ モウ ゲンカイ カ！？」
+				PRINTFORMW 「%CSTR:ARG:一人称% マダマダ ヤリタリナイ！」
+	CASE 44
+		;44:ヤらせたのに逃げられる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+				PRINTFORMW 「マンゾク シタカラ モウカエル！」
+	CASE 45
+		;45:満足してない
+				PRINTFORML 「アオーン！ %CSTR:ARG:一人称% マンゾク シテナイ！」
+				;PRINTFORML 「%CSTR:ARG:一人称%、もう一発ヤらせてほしーんだよなぁ……」
+	CASE 46
+		;46:満足
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+	CASE 47
+		;47-49:性交渉を断った
+		;47:交渉失敗。奇襲する
+				PRINTFORMW 「アオーン！ オンナ ヨコセ！」
+				PRINTFORMW 「%CSTR:ARG:一人称% オンナ ムリヤリ モラウ！」
+	CASE 48
+		;48:交渉失敗。敵対する
+				PRINTFORMW 「ググ……ニンゲン オマエ ケチンボ！」
+				PRINTFORMW 「%CSTR:ARG:一人称% オマエノ タノミ モウ キカナイ！」
+	CASE 49
+		;49:他のものを要求する
+				PRINTFORMW 「ヌウ……ナラ チガウモノデ %CSTR:ARG:一人称% ガマン……」
+	CASE 50
+		;50-55:ヤらせてもらった後
+		;50:敗北してる場合ここでゲームオーバー
+		PRINTFORMW 「%CSTR:ARG:一人称% マダマダ ヤリタリナイ！」
+		PRINTFORMW 「！ %CSTR:ARG:一人称% イイコト オモイツイタ！」
+		PRINTFORMW 「ニンゲン オマエ キョウカラ %CSTR:ARG:一人称% ノ シモベ！」
+		PRINTFORMW 「アオーン！ %CSTR:ARG:一人称% イツデモ オマエ ヤリマクリ！」
+	CASE 51
+		;51:話かけたキャラが倒れいる
+		PRINTFORMW 「ヌウ！ モウ ゲンカイ カ！？」
+		PRINTFORMW 「%CSTR:ARG:一人称% マダマダ ヤリタリナイ！」
+	CASE 52
+		;52:去っていく
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+				PRINTFORMW 「マンゾク シタカラ モウカエル！」
+	CASE 53
+		;53:満足し、仲魔になる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+	CASE 54
+		;54:満足し、アイテムをくれる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+	CASE 53
+		;53:満足し、見逃してくれる
+		;現状、死に処理
+	CASE 56
+		;56-61:犯してもらった後
+		;56:敗北してる場合ここでゲームオーバー
+		PRINTFORMW 「%CSTR:ARG:一人称% マダマダ ヤリタリナイ！」
+		PRINTFORMW 「！ %CSTR:ARG:一人称% イイコト オモイツイタ！」
+		PRINTFORMW 「ニンゲン オマエ キョウカラ %CSTR:ARG:一人称% ノ シモベ！」
+		PRINTFORMW 「アオーン！ %CSTR:ARG:一人称% イツデモ オマエ ヤリマクリ！」
+	CASE 57
+		;57:話かけたキャラが倒れいる
+		PRINTFORMW 「ヌウ！ モウ ゲンカイ カ！？」
+		PRINTFORMW 「%CSTR:ARG:一人称% マダマダ ヤリタリナイ！」
+	CASE 58
+		;58:去っていく
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+				PRINTFORMW 「マンゾク シタカラ モウカエル！」
+	CASE 59
+		;59:満足し、仲魔になる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+	CASE 60
+		;60:満足し、アイテムをくれる
+				PRINTFORMW 「ヌウ！ %CSTR:ARG:一人称% マンゾク」
+	CASE 61
+		;61:満足し、見逃してくれる
+		;現状、死に処理
+	CASE 62
+		;62:仲魔になる
+		IF FLAG:交渉目的 > 3
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、%CALLNAME:ARG%が仲魔になってくれました
+		ELSE
+			PRINTFORML 「%CSTR:ARG:11%、%STR:(ABL:ARG:種族)% %CALLNAME:ARG%」
+			PRINTFORMW 「コンゴトモ ヨロシク…」
+		ENDIF
+	CASE 63
+		;63:マスターのレベルより高い場合
+		PRINTFORMW 「ヌウ %CSTR:ARG:12%… モット ツヨクナレ…」
+		
+	CASE 64
+		;64:ＣＯＭＰの空きが無い場合
+		PRINTFORML 「ヌウ！ %CSTR:ARG:11% コンナニ セマイ ムリ！！」
+		
+	CASE 65
+		;65:搾りとられた
+	CASE 66 TO 75
+		;66:お金をくれる
+		IF FLAG:交渉目的 > 3 && ARG:1 == 66
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、お金を恵んでもらいました
+		ELSEIF FLAG:交渉目的 > 3 && ARG:1 == 67
+				PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、ＭＡＧを恵んでもらいました
+		ELSE
+PRINTFORMW 「コレ ヤル」
+		ENDIF
+;	CASE 67
+;		;67:ＭＡＧをくれる
+;		IF FLAG:交渉目的 > 3
+;			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、ＭＡＧを恵んでもらいました
+;		ELSE
+;			PRINTFORMW 「コレあげるですぅ！」
+;		ENDIF
+;	CASE 68
+;		;68:ダメージをくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 69
+;		;69-75:アイテムをくれるor回復してくれる
+;		;69:ソーマを使ってくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 70
+;		;70:BeadChainを使ってくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 71
+;		;71:ITEMor魔石をくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 72
+;		;72:魔石をくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 73
+;		;73:魔石を使ってくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 74
+;		;74:宝玉を使ってくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+;	CASE 75
+;		;75:宝玉をくれる
+;		PRINTFORMW 「コレあげるですぅ！」
+	CASE 76
+		;76-78:気まずくなった
+		;76:会話失敗。奇襲する
+		PRINTFORMW 「ガアー！！ モウ ハナスノ ヤメダ！」
+		PRINTFORMW 「%CSTR:ARG:11% オマエ マルカジリ！」
+	CASE 77
+		;77:会話失敗。敵対する
+		PRINTFORMW 「ガアー！！ ニンゲン オマエ タイクツ！」
+	CASE 78
+		;78:会話継続
+		PRINTFORMW 「ヌウ… チガウコト ハナセ」
+	CASE 79
+		;79-83:立ち去る
+		;79:同じ仲魔がいる場合
+	PRINTFORML 「ヌウ！ %CSTR:ARG:11% イチゾク ダイジ…」
+	PRINTFORML 「ナカマノコト タノンダゾ…」
+	CASE 80
+		;険悪な雰囲気
+		PRINTFORML 「ガアーー！！ ツギニ アッタラ マルカジリ！！」
+	CASE 81
+		;友好度が低い
+	CASE 82
+		;友好度が普通
+		PRINTFORML 「グウ ソレデハ ナ…」
+	CASE 83
+		;友好度が高い
+		PRINTFORML 「デハ マタ アオーン！！」
+	CASE 88
+		;ヤらせてもらう・交渉が成功した場合
+		PRINTFORMW 交渉に成功し、犯させてもらえることになった
+		CALL MESSAGE_TALK
+	CASE 89
+		;犯してもらう・交渉が成功した場合
+		PRINTFORMW 交渉に成功し、犯してもらえることになった
+		CALL MESSAGE_TALK
+	CASE 90
+		;ダンジョン内性欲処理：輪姦イベント
+	CASE 91
+		;敵が命乞いCASE91～93
+		;91:命乞い
+	CASE 92
+		;92:助けた場合（RETURN 0, X = 0.逃げる　1.仲魔になる　2.何か貰う　3.奇襲）
+		;『@KOJO_TALK』をはさむ為、RESULT:0が上書きされてしまうのでRESULT:1を使う
+		;とりあえずランダムにしてみる
+	CASE 93
+		;93:断った場合
+	CASE 94
+		;敵から助ける代わりに取引を持ちかけられるCASE94～101
+		;94:取引内容（RETURN 0, X = 1.￥　2.魔貨　3.異性）
+		PRINTFORML %CALLNAME:ARG%が%CALLNAME:PLAYER%に取引を持ちかけてきた
+	CASE 95
+		;95:要求をのむ（￥）
+	CASE 96
+		;96:要求をのむ（魔貨）
+	CASE 97
+		;97:要求をのむ（異性）
+		CALL MESSAGE_TALK
+	CASE 98
+		;98:約束を守るかどうか口上内で決める（RETURN 0, X = 1.去っていく　2.戦闘続行）
+	CASE 99
+		;99:約束を守って去っていく
+	CASE 100
+		;100:約束を守らず戦闘続行
+	CASE 101
+		;101:要求を断る
+ENDSELECT
+
+
+
+
+;===========================================================================
+;会話時挨拶
+;===========================================================================
+@GREET_PUB329,ARG
+
+SELECTCASE CFLAG:ARG:友好度
+	CASE IS > 25
+		PRINTFORML 「%CSTR:ARG:11%ニ ヨウ カ」
+		PRINTFORMW 「イイゾ %CSTR:ARG:11% オマエニ キョウミシンシン チョウドイイ」
+	CASE IS > -25
+		;最初の挨拶
+		PRINTFORML 「%CSTR:ARG:11%ニ ヨウ カ」
+		PRINTFORMW 「イイゾ ニンゲン チョットダケ アイテ シテヤル」
+	CASEELSE
+		PRINTFORML 「%CSTR:ARG:11%ニ ヨウ カ」
+		PRINTFORMW 「%CSTR:ARG:11% イイヤツ メンドウダケド アイテシテヤル」
+ENDSELECT
+PRINTFORML
+
+;質問を増やした場合、RAND:XのXを増やす
+;RETURNの値により回答後の雰囲気が変わる。
+;0.会話継続 1.直接仲魔になる 2.何かくれる 3.奇襲される 4.敵対する 5.逃げる 6.気まずくなる
+
+SELECTCASE RAND:2
+	CASE 0
+		PRINTFORMW 「%CSTR:ARG:11% ホシイモノ イッパイ アル！」
+		PRINTFORMW 「デモ イッパイアッテ チョット コンランチュウ…」
+		PRINTFORMW 「ニンゲン チョットダケ イケン シテケ」 
+		CALL INPUT_SELECT(1, "Buy only what you want most", 2, "Make a list, test and find the best", 3, "Buy everything you want", 4, "Fantasize about it without actually buying")
+		;"本当に欲しいものから買え", 2, "試しに整理してリストにしてみる", 3, "欲しいのなら全て買うべき", 4, "買わずにまず妄想で楽しめ")
+		PRINTFORMW 「ニンゲンノ イケン キイテヤル」
+		IF RESULT == 1
+			;１,本当に欲しいものから買え
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+;			素質によって判定値がランダムに上下することもある
+;			SIF TALENT:ARG:反抗的
+;				LOCAL -= RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「ガアーー！！ ニンゲン ハナシ キケ！！」
+					PRINTFORMW 「%CSTR:ARG:11% エラベナイカラ ナヤンデル！」
+					RETURN 4
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「グウ… タシカニ ソウダ…」
+					PRINTFORMW 「%CSTR:ARG:11% イチバン ホシイモノ カンガエル…」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 2
+			;２,試しに整理してリストにしてみる
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:30
+				;失敗
+					PRINTFORMW 「グウ… ソレハ チョット メンドクサイ」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「ヌウ！ タシカニ セイリ ダイジ！」
+					PRINTFORMW 「ニンゲン オマエ ワカッテル！」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 3
+			;３,欲しいのなら全て買うべき
+			;成功時でも離脱しちゃう
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			;楽観的なら納得しそうなので
+			SIF TALENT:ARG:楽観的
+				LOCAL += RAND:10
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:30
+				;失敗
+					PRINTFORMW 「ガアーー！！ カエルナラ %CSTR:ARG:11% ナヤマナイ！！」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:20
+				;成功
+					PRINTFORMW 「ヌウ… タシカニ ゼンブカエバ ナヤマナイ」
+					PRINTFORMW 「%CSTR:ARG:11% チョット カネ カセイデミル」
+					RETURN 5
+			ENDIF
+		ELSEIF RESULT == 4
+			;４,買わずにまず妄想で楽しめ
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「グウ… モウソウ… %CSTR:ARG:11% クイタイ ギュウニク ブタニク…」
+					PRINTFORMW 「ヌウ！ コンナトコロニ ニンゲンニク ハッケン！」
+					PRINTFORMW 「%CSTR:ARG:11% オマエ マルカジリ！」
+					RETURN 3
+			ELSE
+				CFLAG:ARG:友好度 += RAND:20
+				;成功
+					PRINTFORMW 「モウソウ…カ…」
+					PRINTFORMW 「%CSTR:ARG:11% アトデ タメシテミル」
+					PRINTFORMW 「%CSTR:ARG:11% ケッコウ モウソウ トクイ」
+					RETURN 0
+			ENDIF
+		ENDIF
+	
+	CASE 1
+		PRINTFORMW 「ヌウ！ ニンゲン ココデ アッタガ ヒャクネンメ！」
+		PRINTFORMW 「チョット ショウブ シテケ！ アオーン！！」
+		CALL INPUT_SELECT(1, "Compete by strength comparison", 2, "Do a quiz duel!", 3, "Agility challenge!", 4, "A game of luck, a coin toss!")
+		;"力比べで勝負", 2, "じゃあクイズで勝負！", 3, "徒競走で勝負！", 4, "勝負は時の運なのでコイントス！")
+		PRINTFORMW 「ヨシキタ！」
+		IF RESULT == 1
+			;１,力比べで勝負！
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:力+MAXBASE:PLAYER:運/2) - RAND:20
+			;獰猛な性格なら力技が好き
+			SIF TALENT:ARG:獰猛
+				LOCAL += RAND:10
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:20
+				;失敗
+					PRINTFORMW 「アオーン！！ %CSTR:ARG:11%ノ カチ！」
+					PRINTFORMW 「ニンゲン マケタケド ナカナカ ガンバッタナ！」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:50
+				;成功
+					PRINTFORMW 「ヌウ！ %CSTR:ARG:11% ニンゲンニ マケタ…」
+					PRINTFORMW 「…マケタノナラ シカタナイ …%CSTR:ARG:11% ニンゲンニ シタガッテヤル」
+					RETURN 1
+			ENDIF
+		ELSEIF RESULT == 2
+			;２,じゃあクイズで勝負！
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			;狡猾なら動くよりも頭使う方が好きだろうし
+			SIF TALENT:ARG:狡猾
+				LOCAL += RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「ヌウ！ %CSTR:ARG:11% アタマイイ！」
+					PRINTFORMW 「ニンゲン オマエバカ！ アオーン！！」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:20
+				;成功
+					PRINTFORMW 「グウ… ニンゲン オマエ モノシリ…」
+					PRINTFORMW 「%CSTR:ARG:11% マケタケド モノシリニ ナッタ！」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 3
+			;３,徒競走で勝負！
+			;勝っても負けても微妙な選択…
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:速さ+MAXBASE:PLAYER:運/2)
+			;獣は走り回るのが好き…なはず
+			SIF TALENT:ARG:獣
+				LOCAL += RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:30
+				;失敗
+					PRINTFORMW 「アオーン！！ %CSTR:ARG:11% ハヤイ！」
+					PRINTFORMW 「ノロマナ ニンゲンハ マルカジリ！」
+					RETURN 3
+			ELSE
+				CFLAG:ARG:友好度 += RAND:20
+				;成功
+					PRINTFORMW 「グウ… %CSTR:ARG:11%ノ マケ カ…」
+					PRINTFORMW 「ニンゲンニ マケルナラ %CSTR:ARG:11% エモノニモ オイツケナイ… トホホ…」
+					RETURN 5
+			ENDIF
+		ELSEIF RESULT == 4
+			;４,勝負は時の運なのでコイントス！
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵/2+MAXBASE:PLAYER:運)
+			;愚鈍といえば運試し
+			SIF TALENT:ARG:愚鈍
+				LOCAL += RAND:30
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:20
+				;失敗
+					PRINTFORMW 「ヌウ！ %CSTR:ARG:11%ノ カチ！ 」
+					PRINTFORMW 「…デモ %CSTR:ARG:11% ナニモ シテナイナ…」
+					RETURN 0
+			ELSE
+				CFLAG:ARG:友好度 += RAND:20
+				;成功
+					PRINTFORMW 「ヌウ！ %CSTR:ARG:11%ノ マケ！」
+					PRINTFORMW 「ニンゲン キョウウンノ モチヌシ！」
+					PRINTFORMW 「ケイヒン ヤル！ ニンゲン モラットケ」
+					RETURN 2
+			ENDIF
+		ENDIF
+	
+	
+	
+ENDSELECT
+
+;===========================================================================
+;会話時問答
+;===========================================================================
+@QUESTION_PUB329,ARG,ARG:1
+
+PRINTFORMW 「マダ ジカン アルナ…」
+CUSTOMDRAWLINE ･
+PRINTFORMW 「モウチョットダケ アイテ シテヤル」
+
+DO
+	;設問を増やした場合、RAND:XのXを増やす
+	RESULT:1 = RAND:2
+
+
+	;RETURNの値により回答後の雰囲気が変わる。
+	;0.会話継続 1.直接仲魔になる 2.何かくれる 3.奇襲される 4.敵対する 5.逃げる 6.気まずくなる 7.交渉開始
+	SELECTCASE RESULT:1
+		CASE ARG:1
+			CONTINUE
+		CASE 0
+			PRINTFORMW 「%CSTR:ARG:11% ニガテナモノ チョットダケ アル」
+			PRINTFORMW 「ニンゲンハ ナニガ ニガテダ？」
+			CALL INPUT_SELECT(1, "上司からの呼び出し", 2, "まずい手料理", 3, "実家からの電話", 4, "最新式多機能家電")
+			PRINTFORMW 「ヌウ…」
+			IF RESULT == 1
+				;1.上司からの呼び出し
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:20
+					;失敗
+						PRINTFORMW 「グウ… デンワ ナルト ウルサイ」
+						PRINTFORMW 「ナッテルナラ ハヤク デロ ニンゲン」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:20
+					;成功
+						PRINTFORMW 「ソウカ… ニンゲン シゴト ガンバレ…」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2.まずい手料理
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「ガアーー！！ リョウリ ツクッテモラッテ ズルイ！」
+						PRINTFORMW 「ゼイタク イウナ ニンゲン！」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「ヌウ！ タシカニ マズイモノ クイタクナイ！」
+						PRINTFORMW 「デモ クワナイト キラワレル… コレ タイヘン！」
+						RETURN 7
+				ENDIF
+			ELSEIF RESULT == 3
+				;3.実家からの電話
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				;臆病なら群れてる方が好きそう
+				SIF TALENT:ARG:臆病
+					LOCAL -= RAND:20
+				IF LOCAL < 0
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「ガアーー！！ ニンゲン カゾク ダイジニ シロ！」
+						PRINTFORMW 「カアチャン トーチャン ニンゲンノコト シンパイシテル！」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:20
+					;成功
+						PRINTFORMW 「グウ… ソレハ チョット ワカル」
+						PRINTFORMW 「%CSTR:ARG:11% モウ オトナ… ダカラ %CSTR:ARG:11% ダケデモ ダイジョウブ！」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4.最新式多機能家電
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 0
+					CFLAG:ARG:友好度 -= RAND:30
+					;失敗
+						PRINTFORMW 「グウ… ニンゲン… キカイノハナシ スルナ…」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:10
+					;成功
+						PRINTFORMW 「ヌウ！ ソレハ %CSTR:ARG:11%モ ニガテ！」
+						PRINTFORMW 「ナニガ ナンヤラ… %CSTR:ARG:11% ダイコンラン！！」
+						RETURN 0
+				ENDIF
+			ENDIF
+		
+		CASE 1
+			PRINTFORMW 「デモ %CSTR:ARG:11% フシギナコト アル！」
+			PRINTFORMW 「トラ サル ヘビ…」
+			PRINTFORMW 「ドレガ イチバン サケ ノメル？」
+			CALL INPUT_SELECT(1, "Tiger", 2, "Monkey", 3, "Snake", 4, "Of course")
+			;"トラ", 2, "ザル", 3, "ヘビ", 4, "当然自分")
+			PRINTFORMW 「エランダカ ニンゲン…」
+			IF RESULT == 1
+				;1.トラ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:30
+					;失敗
+						PRINTFORMW 「グウ！ トラハ スグ ヨッパラウ！」
+						PRINTFORMW 「ゾクチョウガ ソウ イッテタ！」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:20
+					;成功
+						PRINTFORMW 「タシカニ トラ オオキイ」
+						PRINTFORML 「ダカラ イッパイ ノメルナ！」
+						RETURN 7
+				ENDIF
+			ELSEIF RESULT == 2
+				;2.ザル
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:30
+					;失敗
+						PRINTFORMW 「ガアーー！！ ザル チガウ！」
+						PRINTFORMW 「ザルハ サケ ノマナイ！ %CSTR:ARG:11% ソレグライ シッテル！」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「ヌウ タシカニ ザルナラ ノンデモ スグ ナガレルナ」
+						PRINTFORMW 「…デモ ソレダト サケ スゴク モッタイナイ」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3.ヘビ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 0
+					CFLAG:ARG:友好度 -= RAND:20
+					;失敗
+						PRINTFORMW 「ヌウ… ヘビハ サケ ノンダラ フクレソウ…」
+						PRINTFORMW 「デモ %CSTR:ARG:11% ソンナ ヘビ ミタコトナイ！」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「グウ ソレハ イイナ！」
+						PRINTFORMW 「%CSTR:ARG:11% ヘビノ サケモ ケッコウ スキ！」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 4
+				;4.当然自分
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 0
+					CFLAG:ARG:友好度 -= RAND:30
+					;失敗
+						PRINTFORMW 「ガアーー！！ ニンゲンハ ドウデモイイ！」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:10
+					;成功
+						PRINTFORMW 「ヌウ！ ニンゲンモ サケ ツヨイカ！」
+						PRINTFORMW 「コンド %CSTR:ARG:11%ト レッツ ノミクラベ！！」
+						RETURN 7
+				ENDIF
+			ENDIF
+		
+	ENDSELECT
+
+LOOP 1
+
+@FUSION_MESSAGE_PUB329,ARG
+PRINTFORMW 「グゥゥ……オレサマ\@ CSTR:ARG:種族名 != "" ? %CSTR:ARG:種族名% # %STR:(ABL:ARG:種族)% \@！オレサマ%CALLNAME:ARG%！」
+PRINTFORMW 「さまなー、オマエ、オレサマノボス！」
+PRINTFORMW 「オレサマ、オマエ、オボエタゾ！」

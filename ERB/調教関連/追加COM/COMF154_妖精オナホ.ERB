@@ -1,0 +1,458 @@
+@CHECK_COM_ABLE154
+;妖精オナホ実行判定
+
+;調教者が小人体型なら主人が禁断の知識を持っていないとダメ
+SIF TALENT:PLAYER:小人体型 && TALENT:MASTER:禁断の知識 == 0
+	RETURN 0
+
+;調教対象が処女で、従順4以下・レズっ気4以下のASSIの場合はできない（サドならＯＫ）
+IF TALENT:0 && PLAYER == ASSI && !IS_MALE(PLAYER)
+	SIF (ABL:PLAYER:0 <= 4 || ABL:PLAYER:11 <= 4) && TALENT:PLAYER:83 == 0
+		RETURN 0
+ENDIF
+;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合はできない（サドならＯＫ）
+IF PALAM:4 < PALAMLV:2 && PLAYER == ASSI && !IS_MALE(PLAYER)
+	SIF (ABL:PLAYER:0 <= 3 || ABL:PLAYER:11 <= 3) && TALENT:PLAYER:83 == 0
+		RETURN 0
+ENDIF
+
+;調教対象のヴァギナが使えないとダメ
+SIF !USE_VAGINA(TARGET)
+	RETURN 0
+;調教者のペニスが使えないとダメ、もしくはペニスバンドがないとダメ
+SIF !USE_PENIS(PLAYER) && !USE_PBAND(PLAYER)
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;三角木馬騎乗中はダメ
+SIF TEQUIP:41
+	RETURN 0
+
+;お風呂場プレイ中はプレイマットが無いとダメ
+IF TEQUIP:31
+	SIF !EXIST_ITEM(20)
+		RETURN 0
+ENDIF
+
+;基本的に調教者が大柄体型以上で体型-1までサイズOKとする
+;調教対象が妖精さんサイズなら調教者は誰でもOK
+SIF TALENT:小人体型
+	RETURN 1
+;調教者が大柄なら小柄体型～普通までOK
+SIF TALENT:PLAYER:大柄 && (TALENT:小柄体型 || (TALENT:小柄体型 == 0 && TALENT:小柄体型 == 0 && TALENT:大柄 == 0 && TALENT:巨体 == 0) )
+	RETURN 1
+;調教者が巨体なら小柄体型～大柄体型までOK
+SIF TALENT:PLAYER:巨体 && TALENT:巨体 == 0 
+	RETURN 1
+
+RETURN 0
+
+;-------------------------------------------------
+;妖精オナホ
+;セックス系コマンド、レベル1
+;-------------------------------------------------
+@COMNAME154
+IF TALENT:小人体型
+	RESULTS = Fairy Onahole
+ELSE
+	RESULTS = Onahole Treatment
+ENDIF
+
+@ACT_COM154
+IF TALENT:小人体型
+	RESULTS = Fairy Onahole
+ELSE
+	RESULTS = Onahole Treatment
+ENDIF
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+
+TSTR:0 = 妖精オナホ
+;CALL KOJO_MESSAGE_COM
+
+;V経験を伴うコマンドのフラグ(処女膜再生対応)
+TFLAG:19 = 1
+SIF (TALENT:3 || TALENT:6) && ASSIPLAY == 0 && EXP:0 == 0
+	TFLAG:20 = 1
+
+;処女喪失時のテキスト用処理
+SIF TFLAG:60 && (PREVCOM == 60 || PREVCOM == 61 || PREVCOM == 66 || PREVCOM == 68 || PREVCOM == 69) && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TFLAG:50 == 0)) && TFLAG:31
+	TFLAG:31 = 2
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 2500
+
+;ABL:技巧をみる
+IF ABL:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:2 == 1
+	TIMES B , 1.10
+ELSEIF ABL:2 == 2
+	TIMES B , 1.20
+ELSEIF ABL:2 == 3
+	TIMES B , 1.30
+ELSEIF ABL:2 == 4
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.50
+ENDIF
+
+;ABL:調教者の技巧をみる
+IF ABL:PLAYER:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:PLAYER:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:PLAYER:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:PLAYER:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:欲望をみる
+IF ABL:1 == 0
+	TIMES B , 1.00
+ELSEIF ABL:1 == 1
+	TIMES B , 1.10
+ELSEIF ABL:1 == 2
+	TIMES B , 1.20
+ELSEIF ABL:1 == 3
+	TIMES B , 1.30
+ELSEIF ABL:1 == 4
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.50
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES B , 0.60
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES B , 0.80
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES B , 1.00
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES B , 1.20
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES B , 1.40
+ENDIF
+
+;ABL:奉仕精神をみる
+IF ABL:7 == 0
+	TIMES B , 0.50
+ELSEIF ABL:7 == 1
+	TIMES B , 0.80
+ELSEIF ABL:7 == 2
+	TIMES B , 1.20
+ELSEIF ABL:7 == 3
+	TIMES B , 1.50
+ELSEIF ABL:7 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.40
+ENDIF
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:PLAYER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+;EXP:Ｖ経験をみる
+;処女だと増える
+SIF EXP:0 < EXPLV:1
+	TIMES B , 2.50
+
+;再装填処理中は射精ゲージは20分の1に
+SIF CFLAG:PLAYER:9 > 0
+	B /= 20
+
+
+SIF HAVE_PENIS(PLAYER)
+	BASE:PLAYER:2 += B
+
+;調教者←→調教対象
+TFLAG:28 = 3
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+LOSEBASE:0 += 250
+LOSEBASE:1 += 150
+
+SOURCE:1 = 650
+SOURCE:4 = 100
+SOURCE:5 = 250
+SOURCE:7 = 1100
+SOURCE:8 = 1600
+SOURCE:9 = 200
+SOURCE:13 = 100
+SOURCE:14 = 1800
+SOURCE:17 = 900
+SOURCE:18 = 900
+
+;上のほうで計算した汚れデータ
+SOURCE:15 = Y*10 + 60
+
+;調教者にFEELＣ
+SOURCE:PLAYER:0 = 200
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:16 += 300
+
+;貞操観念持ちで恋慕、親愛持ち以外には常に反発のソースを追加する（セックス系のみ）
+SIF TALENT:30 && !IS_LOVER(TARGET)
+	SOURCE:18 += 1000
+
+;処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:0 == 1
+	SOURCE:7 += 2000
+	SOURCE:18 += 3000
+ENDIF
+
+;再生処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:1 == 1
+	SOURCE:7 += 500
+	SOURCE:18 += 1000
+ENDIF
+
+;フィストなどのVへの大きな苦痛は先に処理しておく
+;EXP:Ｖ経験をみる
+IF EXP:0 < EXPLV:1
+	TIMES SOURCE:7 , 2.50
+	TIMES SOURCE:18 , 4.00
+ELSEIF EXP:0 < EXPLV:2
+	TIMES SOURCE:7 , 2.00
+	TIMES SOURCE:18 , 3.50
+ELSEIF EXP:0 < EXPLV:3
+	TIMES SOURCE:7 , 1.80
+	TIMES SOURCE:18 , 3.00
+ELSEIF EXP:0 < EXPLV:4
+	TIMES SOURCE:7 , 1.60
+	TIMES SOURCE:18 , 2.50
+ELSEIF EXP:0 < EXPLV:5
+	TIMES SOURCE:7 , 1.40
+	TIMES SOURCE:18 , 2.00
+ELSEIF EXP:0 >= EXPLV:5
+	TIMES SOURCE:7 , 1.20
+	TIMES SOURCE:18 , 2.00
+ENDIF
+
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:7 , 1.20
+	TIMES SOURCE:18 , 1.50
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:7 , 0.70
+	TIMES SOURCE:18 , 1.20
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:7 , 0.40
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:7 , 0.10
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:7 , 0.10
+ENDIF
+
+;中毒による中毒充足のソースは先に処理しておく
+;セックス中毒を見る
+IF ABL:18 == 0
+	TIMES SOURCE:9 , 0.00
+ELSEIF ABL:18 == 1
+	TIMES SOURCE:9 , 0.30
+ELSEIF ABL:18 == 2
+	TIMES SOURCE:9 , 0.60
+ELSEIF ABL:18 == 3
+	TIMES SOURCE:9 , 0.90
+ELSEIF ABL:18 == 4
+	TIMES SOURCE:9 , 1.20
+ELSEIF ABL:18 == 5
+	TIMES SOURCE:9 , 1.50
+ELSEIF ABL:18 == 6
+	TIMES SOURCE:9 , 1.80
+ELSEIF ABL:18 == 7
+	TIMES SOURCE:9 , 2.10
+ELSEIF ABL:18 == 8
+	TIMES SOURCE:9 , 2.40
+ELSEIF ABL:18 == 9
+	TIMES SOURCE:9 , 3.00
+ELSEIF ABL:18 >= 10
+	TIMES SOURCE:9 , 5.00
+ENDIF
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 1
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;射精に関係なく行われる処理はここから
+;膣内に破瓜の血の汚れを付加
+SIF TALENT:0 == 1 || TALENT:1 == 1
+	CALL SET_STAIN("膣内", "破瓜の血", TARGET)
+;奴隷の膣内⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("膣内", TARGET, "ペニス", PLAYER)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;ＶEXP
+CALL ADDS_EXP("Ｖ経験", 6, TARGET)
+
+;ＶExpandEXP
+;IF EXP:52 == 0 && EXP:53 == 0 
+;	EXP:50 += 1
+;	PRINTL AbnormalEXP＋１
+;	CALL ADDS_ABNORMAL_EXP("Expansion first experience", TARGET)
+;ENDIF
+
+IF TALENT:0 == 1
+	CALL ADDS_ABNORMAL_EXP("Lost virginity（Fairy onahole）", TARGET)
+	SIF !IS_MALE(PLAYER)
+		CALL ADDS_ABNORMAL_EXP("Take Virginity（Same Sex）", PLAYER)
+	SIF !IS_MALE(PLAYER)
+		CALL ADDS_ABNORMAL_EXP("Lost virginity（Same sex）", TARGET)
+ENDIF
+
+;近親相姦の場合AbnormalEXP付与
+IF 近親チェック(TARGET , PLAYER)
+	CALL ADDS_ABNORMAL_EXP( @"Incest（%RESULTS:0%）", TARGET)
+	CALL ADDS_ABNORMAL_EXP( @"Incest（%RESULTS:1%）", PLAYER)
+ENDIF
+
+CALL ADDS_EXP("Ｖ拡張経験", 2, TARGET)
+
+;SexEXP
+CALL ADDS_EXP("性交経験", 1, TARGET)
+CALL ADDS_EXP("性交経験", 1, PLAYER)
+
+;LesbianEXP
+A = 4
+;LesbianEXP
+A = 4
+IF IS_LESBIAN(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:40%+{A}
+;	PRINTFORML %EXPNAME:40%(調教者)+{A}
+;	EXP:40 += A
+;	EXP:PLAYER:40 += A
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:41%+{A}
+;	PRINTFORML %EXPNAME:41%(調教者)+{A}
+;	EXP:41 += A
+;	EXP:PLAYER:41 += A
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	
+	
+ENDIF
+
+;LoveEXP
+IF TALENT:3 == 1 && ASSIPLAY == 0
+	CALL ADDS_EXP("愛情経験", 1, PLAYER)
+	CALL ADDS_EXP("愛情経験", 2, TARGET)
+ELSEIF TALENT:6 == 1 && ASSIPLAY == 0
+	CALL ADDS_EXP("愛情経験", 1, PLAYER)
+	CALL ADDS_EXP("愛情経験", 4, TARGET)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 1
+
+;依存度補正値(恋慕で1、親愛で2）
+IF TALENT:3 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:6 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+RETURN 1
+
+
+@MESSAGE_COM154
+;前回と今回の調教者が同じで、前回の調教が正常位であり、抜かないフラグがある場合
+IF TFLAG:60 && PREVCOM == 154 && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TFLAG:50 == 0))
+	;調教者がオトコか半人半妖かふたなりである
+	IF HAVE_PENIS(PLAYER)
+		PRINTFORMW %CALLNAME:TARGET%の膣内の感触を味わいながら、再び%CALLNAME:TARGET%でペニスを扱き始めた……
+	;ペニスバンドを使用している場合
+	ELSE
+		PRINTFORMW %CALLNAME:TARGET%の膣内から抜かずに、再び%CALLNAME:TARGET%でペニスを扱き始めた……
+	ENDIF
+ELSE
+	PRINTFORM %CALLNAME:TARGET%を鷲掴みにし、その
+	;処女
+	IF TALENT:0
+		PRINT 男を知らない
+	;潤滑LV4以上
+	ELSEIF PALAM:4 >= PALAMLV:4
+		PRINT 濡れそぼった
+	ENDIF
+	;小柄体型か小人体型で
+	IF TALENT:小柄体型 || TALENT:小人体型
+		PRINTL 小さなワレメにペニスをあてがって一息に貫き、
+	ELSE
+		PRINTL 秘裂にペニスをあてがって一息に貫き、
+	ENDIF
+	IF ABL:マゾっ気 > 4 && ABL:Ｖ感覚 > 4
+		PRINT 恍惚とした表情でよがる
+	ELSEIF ABL:マゾっ気 > 2 && ABL:Ｖ感覚 > 2
+		PRINT 口をパクパクさせながらも顔を上気させる
+	ELSE
+		PRINT 苦痛のあまり泡を吹く
+	ENDIF
+	
+	PRINTFORML %CALLNAME:TARGET%の体を、オナホールのように使ってペニスを扱いた。
+	PRINTFORMW 動かすたびに%CALLNAME:TARGET%のお腹が%CALLNAME:PLAYER%のペニスの形にボッコリと膨らんだ……
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_154
+RETURN COMTYPE("ハード系")
+
+

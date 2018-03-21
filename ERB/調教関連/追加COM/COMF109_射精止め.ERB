@@ -1,0 +1,149 @@
+;--------------------------------------------------
+;射精止め
+;--------------------------------------------------
+@CHECK_COM_ABLE109
+
+;解除はいつでも可能
+SIF TEQUIP:42
+	RETURN 1
+
+;オナホール実行中はダメ
+SIF TEQUIP:12
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:12
+	RETURN 0
+
+;アイテムを持っているか、アイテムなし設定でないとダメ
+SIF !EXIST_ITEM(28)
+	RETURN 0
+
+
+;小人体型持ちは、双方が調教者と調教対象ならOK
+;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
+SIF TALENT:142 && (TALENT:MASTER:144 == 0 && TALENT:PLAYER:142 == 0)
+	RETURN 0
+
+SIF !USE_PENIS(TARGET)
+	RETURN 0
+
+;ASSIの場合、技巧3以上じゃないと使えない。
+IF ASSIPLAY
+	SIF ABL:ASSI:2 < 3
+		RETURN 0
+ENDIF
+;新妻プレイ中はダメ
+SIF TEQUIP:33
+	RETURN 0
+RETURN 1
+
+@ACT_COM109
+PRINTL Ejaculation Stopper
+TSTR:0 = 射精止め
+;CALL KOJO_MESSAGE_COM
+
+;リボンの着脱
+IF TEQUIP:42
+	TEQUIP:42 = 0
+ELSE
+	TEQUIP:42 = 1
+ENDIF
+
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+DOWNBASE:0 += 10
+DOWNBASE:1 += 100
+
+SOURCE:快Ｃ = 50
+SOURCE:露出 = 100
+SOURCE:痛み = 100
+SOURCE:屈従 = 250
+SOURCE:逸脱 = 500
+
+;PALAM:Ｃ感覚をみる
+IF PALAM:0 < PALAMLV:1
+	SOURCE:痛み += 100
+ELSEIF PALAM:0 < PALAMLV:2
+	SOURCE:痛み += 110
+ELSEIF PALAM:0 < PALAMLV:3
+	SOURCE:痛み += 120
+ELSEIF PALAM:0 < PALAMLV:4
+	SOURCE:痛み += 130
+ELSE
+	SOURCE:痛み += 140
+ENDIF
+
+;PALAM:欲情をみる
+IF PALAM:13 < PALAMLV:1
+	SOURCE:欲情 = 100
+ELSEIF PALAM:13 < PALAMLV:2
+	SOURCE:欲情 = 110
+ELSEIF PALAM:13 < PALAMLV:3
+	SOURCE:欲情 = 120
+ELSEIF PALAM:13 < PALAMLV:4
+	SOURCE:欲情 = 130
+ELSE
+	SOURCE:欲情 = 140
+ENDIF
+
+;ABL:マゾっ気をみる
+IF ABL:マゾっ気 == 0
+	TIMES SOURCE:欲情 , 0.80
+ELSEIF ABL:マゾっ気 == 1
+	TIMES SOURCE:欲情 , 1.00
+ELSEIF ABL:マゾっ気 == 2
+	TIMES SOURCE:欲情 , 1.30
+ELSEIF ABL:マゾっ気 == 3
+	TIMES SOURCE:欲情 , 1.60
+ELSEIF ABL:マゾっ気 == 4
+	TIMES SOURCE:欲情 , 2.00
+ELSE
+	TIMES SOURCE:欲情 , 3.00
+ENDIF
+
+;倒錯的
+SIF TALENT:倒錯的
+	TIMES SOURCE:欲情 , 2.00
+;調教者がサド、ドＳ、サドっ気3以上
+SIF TALENT:PLAYER:サド || ABL:PLAYER:サドっ気 > 2
+	TIMES SOURCE:欲情 , 1.20
+
+RETURN 1
+
+;--------------------------------------------------
+;射精止め
+;--------------------------------------------------
+@EQUIP_COM109
+PRINTL ＜射精抑制中＞
+
+DOWNBASE:0 += 5
+DOWNBASE:1 += 15
+
+SOURCE:痛み += 20
+
+;--------------------------------------------------
+;調教時メッセージ
+;--------------------------------------------------
+@MESSAGE_COM109
+PRINTL 
+;装着時
+IF TEQUIP:42
+	PRINTFORML %CALLNAME:TARGET%のペニスの根元に、フリルのついた可愛いリボンをきつく結びつけた
+	PRINTL 血流が集まり締め付けられ、亀頭が赤黒く膨張している…
+;解除時
+ELSE
+	PRINTFORML %CALLNAME:TARGET%を戒めるリボンをするりと解いてやった…
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_109
+RETURN COMTYPE("道具系")
+

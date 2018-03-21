@@ -1,0 +1,508 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SHOP_NEWGAME.ERB
+;	Facility	:キャラソートに関する関数群です
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/10/16		黒天					キャラの挿入による位置変更機能を追加
+;													二人目のキャラ選択を一人目のキャラ選択と同じ処理で行うよう変更
+;	003		2012/03/26		初改造者				自動ソートにキャラ番号でのソートを追加
+;	004		2013/11/24		ひみつ					リスト表示数設定
+;	005		2014/03/21		√						自動ソートに契約素質でのソートを追加
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+@SHOPCOMABLE_666
+RESULTS = Sort Chars
+SIF CHARANUM < 3
+	RETURN 0
+RETURN 1
+
+
+
+
+;---------------------------------------------------------------------
+;キャラ入れ替え・ソート
+;ここで使用する変数---------------------------------------------------
+; LOCAL:0  : 20限定表記に使用 現在ページ
+; LOCAL:1  : 入れ替え／挿入に使用   一人めの奴隷番号
+; LOCAL:2  : 入れ替え／挿入に使用   二人めの奴隷番号
+; LOCAL:4  : 20限定表記に使用 表記できる奴隷の人数
+; LOCAL:5  : 20限定表記に使用 ↑を20で割ったもの・最大ページの算出に使う
+; LOCAL:6  : TARGETのIDを保存
+; LOCAL:7  : ASSIのIDを保存
+; LOCAL:8  : 奴隷一人目の出演番号
+; LOCAL:9  : 奴隷一人目の出演番号
+; LOCAL:10 : 奴隷二人目の出演番号
+; LOCAL:11 : 奴隷二人目の出演番号
+; LOCAL:12 : 出演店舗判定
+; LOCAL:13 : 並べ替え順序保存に使用
+; LOCAL:14 : 入れ替え／挿入判定用(0:入れ替え／1:挿入)
+; LOCAL:15 : 挿入時のループ処理での入れ替えキャラ番号保存用
+; LOCAL:99 : 20限定表記に使用 現在ページの保存・再現
+; MARK:98  : 1 = 存在 2 = 調教対象 3 = 助手
+; S,T,U    : ソート時に使用
+; TFLAG:0  : オートソート時に使用
+; TFLAG:1  : オートソート時に使用
+; TFLAG:2  : オートソート時に使用
+; TFLAG:4  : 入れ替えに使用   一人目に選んだ奴隷番号を二度目に除外するために使う
+
+@SHOP_COM_666
+#LOCALSIZE 100
+TFLAG:4 = -1
+
+LOCAL:1 = 0
+LOCAL:2 = 0
+LOCAL:8 = -1
+LOCAL:9 = -1
+LOCAL:10 = -1
+LOCAL:11 = -1
+;LOCAL:14 = 0
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:2に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	MARK:COUNT:98 = 0
+	;主人公は除外
+	SIF COUNT == 0
+		CONTINUE
+	;失踪中も除外
+	SIF CFLAG:COUNT:この場に居ないフラグ
+		CONTINUE
+	;調教対象と助手を保存する
+;	IF COUNT == TARGET
+;		MARK:COUNT:98 = 2
+;	ELSEIF COUNT == ASSI
+;		MARK:COUNT:98 = 3
+;	ELSE
+		MARK:COUNT:98 = 1
+;	ENDIF
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:3 = A
+LOCAL:6 = TARGET >= 0 ? CFLAG:TARGET:キャラ固有の番号 # -1
+LOCAL:7 = ASSI >= 0 ? CFLAG:ASSI:キャラ固有の番号 # -1
+IF LOCAL:3 < 1
+	PRINTW There are no characters to be sorted.
+	RETURN 0
+ELSE
+	PRINTFORML Sorting characters.
+ENDIF
+
+;一人目選択
+$CHARA_SORT_FIRST
+DRAWLINE
+IF LOCAL:14
+	IF LOCAL:1
+		PRINTFORML Where do you want to insert this character? (Currently selected: {LOCAL:1}.%CALLNAME:(LOCAL:1)%) ＜page.{P+1} / {((LOCAL:3-1)/リスト表示数()+1)}＞
+	ELSE
+		PRINTFORML Who do you want to insert somewhere else?　＜page.{P+1} / {((LOCAL:3-1)/リスト表示数()+1)}＞
+	ENDIF
+ELSE
+	IF LOCAL:1
+		PRINTFORML Switch with which character? (Currently selected: {LOCAL:1}.%CALLNAME:(LOCAL:1)%) ＜page.{P+1} / {((LOCAL:3-1)/リスト表示数()+1)}＞
+	ELSE
+		PRINTFORML Who do you want to switch with someone?　＜page.{P+1} / {((LOCAL:3-1)/リスト表示数()+1)}＞
+	ENDIF
+ENDIF
+DRAWLINE
+CALL SHOW_CHARA_SORT
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1007]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:3 - 1) / リスト表示数()) ? %" " * 16% # [1009]Next page\@
+SIF LOCAL:1 == 0
+PRINTLC [1100]Auto Sort
+PRINTL
+PRINTFORMLC [1101]Change Sorting method (\@LOCAL:14 ? Insert→Replace # Replace→Insert\@)
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	IF LOCAL:1
+		;二人目選択中
+		LOCAL:1 = 0
+		TFLAG:4 = -1
+		GOTO CHARA_SORT_FIRST
+	ELSE
+		RETURN 0
+	ENDIF
+ELSEIF RESULT == 1007
+	IF P > 0
+		P -= 1
+		GOTO CHARA_SORT_FIRST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:3 - 1) / リスト表示数()
+	IF P < LOCAL
+		P += 1
+		GOTO CHARA_SORT_FIRST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1100
+
+	$SORTSELECT_ROOP
+	DRAWLINE
+	PRINTL Please select a category to sort by
+	DRAWLINE
+
+	PRINTL [10]ＬＶ
+	PRINTL [20]Max ＨＰ
+	PRINTL [30]Max ＭＰ
+	PRINTL [40]Loyalty
+	PRINTL [50]Max Stamina
+	PRINTL [60]Max Willpower
+	PRINTL [70]Stress
+	PRINTL [80]ＭＡＧ
+	PRINTL [90]Surrender Mark
+	PRINTL [100]Chest Size
+	PRINTL [110]Race
+	PRINTL [120]Gender
+	PRINTL [130]Character Number
+	PRINTL [140]Contract Mark
+	PRINTL [1000]Return
+
+	CALL INPUTINT(10,20,30,40,50,60,70,80,90,100,110,120,130,140,1000)
+
+	IF RESULT == 1000
+		GOTO CHARA_SORT_FIRST
+	ENDIF
+
+	LOCAL:13 = RESULT
+
+	DRAWLINE
+	PRINTL Please select the order to sort in
+	DRAWLINE
+
+	PRINTL [1]Ascending
+	PRINTL [2]Descending
+	PRINTL [1000]Return
+
+	CALL INPUTINT(1,2,1000)
+
+	IF RESULT == 1000
+		GOTO SORTSELECT_ROOP
+	ENDIF
+	
+	SELECTCASE LOCAL:13
+		CASE 10
+			PRINT Sorting by ＬＶ
+			IF RESULT == 1
+				SORTCHARA BASE:LV
+			ELSE
+				SORTCHARA BASE:LV,BACK
+			ENDIF
+		CASE 20
+			PRINT Sorting by Max ＨＰ
+			IF RESULT == 1
+				SORTCHARA MAXBASE:ＨＰ
+			ELSE
+				SORTCHARA MAXBASE:ＨＰ,BACK
+			ENDIF
+		CASE 30
+			PRINT Sorting by Max ＭＰ
+			IF RESULT == 1
+				SORTCHARA MAXBASE:ＭＰ
+			ELSE
+				SORTCHARA MAXBASE:ＭＰ,BACK
+			ENDIF
+		CASE 40
+			PRINT Sorting by Loyalty
+			IF RESULT == 1
+				SORTCHARA BASE:忠誠度
+			ELSE
+				SORTCHARA BASE:忠誠度,BACK
+			ENDIF
+		CASE 50
+			PRINT Sorting by Max Stamina
+			IF RESULT == 1
+				SORTCHARA MAXBASE:体力
+			ELSE
+				SORTCHARA MAXBASE:体力,BACK
+			ENDIF
+		CASE 60
+			PRINT Sorting by Max Willpower
+			IF RESULT == 1
+				SORTCHARA MAXBASE:気力
+			ELSE
+				SORTCHARA MAXBASE:気力,BACK
+			ENDIF
+		CASE 70
+			PRINT Sorting by Stress
+			IF RESULT == 1
+				SORTCHARA CFLAG:ストレス値
+			ELSE
+				SORTCHARA CFLAG:ストレス値,BACK
+			ENDIF
+		CASE 80
+			PRINT Sorting by ＭＡＧ
+			IF RESULT == 1
+				SORTCHARA BASE:ＭＡＧ
+			ELSE
+				SORTCHARA BASE:ＭＡＧ,BACK
+			ENDIF
+		CASE 90
+			PRINT Sorting by Surrender Mark/Status
+			IF RESULT == 1
+				SORTCHARA TALENT:恋慕
+				SORTCHARA TALENT:親愛
+				SORTCHARA TALENT:淫乱
+				SORTCHARA TALENT:娼婦
+				SORTCHARA TALENT:服従
+				SORTCHARA TALENT:隷属
+				SORTCHARA TALENT:崩壊
+			ELSE
+				SORTCHARA TALENT:恋慕,BACK
+				SORTCHARA TALENT:親愛,BACK
+				SORTCHARA TALENT:淫乱,BACK
+				SORTCHARA TALENT:娼婦,BACK
+				SORTCHARA TALENT:服従,BACK
+				SORTCHARA TALENT:隷属,BACK
+				SORTCHARA TALENT:崩壊,BACK
+			ENDIF
+		CASE 100
+			PRINT Sorting by Chest Size
+			IF RESULT == 1
+			;	SORTCHARA TALENT:巨乳
+			;	SORTCHARA TALENT:爆乳
+			;	SORTCHARA TALENT:貧乳,BACK
+			;	SORTCHARA TALENT:絶壁,BACK
+			;ELSE
+			;	SORTCHARA TALENT:貧乳
+			;	SORTCHARA TALENT:絶壁
+			;	SORTCHARA TALENT:巨乳,BACK
+			;	SORTCHARA TALENT:爆乳,BACK
+			;ENDIF
+				SORTCHARA BASE:バスト
+				SORTCHARA TALENT:巨乳
+				SORTCHARA TALENT:爆乳
+				SORTCHARA TALENT:魔乳
+				SORTCHARA TALENT:貧乳,BACK
+				SORTCHARA TALENT:絶壁,BACK
+			ELSE
+				SORTCHARA BASE:バスト,BACK
+				SORTCHARA TALENT:貧乳
+				SORTCHARA TALENT:絶壁
+				SORTCHARA TALENT:巨乳,BACK
+				SORTCHARA TALENT:爆乳,BACK
+				SORTCHARA TALENT:魔乳,BACK
+			ENDIF
+		CASE 110
+			PRINT Sorting by Race
+			IF RESULT == 1
+				SORTCHARA ABL:種族
+			ELSE
+				SORTCHARA ABL:種族,BACK
+			ENDIF
+		CASE 120
+			PRINT Sorting by Gender
+			IF RESULT == 1
+				SORTCHARA TALENT:ふたなり,BACK
+				SORTCHARA TALENT:男の娘
+				SORTCHARA TALENT:オトコ,BACK
+			ELSE
+				SORTCHARA TALENT:ふたなり
+				SORTCHARA TALENT:男の娘,BACK
+				SORTCHARA TALENT:オトコ
+			ENDIF
+		CASE 130
+			PRINT Sorting by Character Number
+			IF RESULT == 1
+				SORTCHARA NO:U
+			ELSE
+				SORTCHARA NO:U,BACK
+			ENDIF
+		CASE 140
+			PRINT Sorting by Contract Mark/Status
+			IF RESULT == 1
+				SORTCHARA TALENT:妻
+				SORTCHARA TALENT:淫魔
+				SORTCHARA TALENT:玩具
+			ELSE
+				SORTCHARA TALENT:妻,BACK
+				SORTCHARA TALENT:淫魔,BACK
+				SORTCHARA TALENT:玩具,BACK
+			ENDIF
+	ENDSELECT
+
+	IF RESULT == 1
+		PRINTW Sorted in ascending order
+	ELSE
+		PRINTW Sorted in descending order
+	ENDIF
+
+	;FOR LOCAL:14, 1, CHARANUM
+	;	IF CFLAG:(LOCAL:14):労役フラグ >= 10 && (CFLAG:(LOCAL:14):労役店舗) > 0
+	;		DE:(50+(CFLAG:(LOCAL:14):劇場出演順番 - 1)):((CFLAG:(LOCAL:14):労役店舗) - 1)= LOCAL:14
+	;	ENDIF
+	;NEXT
+
+	PRINTL
+
+	GOTO CHARA_SORT_END
+ELSEIF RESULT == 1101
+	;ソート方法変更
+	INVERTBIT LOCAL:14 , 0
+	PRINTFORML Changed sorting method to \@ LOCAL:14 ? Insert # Replace\@.
+	GOTO CHARA_SORT_FIRST
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MARK:RESULT:98 == 0
+	PRINTL Invalid input
+	GOTO CHARA_SORT_FIRST
+ENDIF
+
+IF LOCAL:1 == 0
+	LOCAL:1 = RESULT
+	TFLAG:4 = LOCAL:1
+	GOTO CHARA_SORT_FIRST
+ENDIF
+;DRAWLINE
+;DRAWLINE
+;二人目選択
+;$CHARA_SORT_SECOND
+;PRINTFORML 誰を入れ替えますか？(現在 {LOCAL:1}.%CALLNAME:(LOCAL:1)% を選択中) ＜page.{P}＞
+;DRAWLINE
+;CALL SHOW_CHARA_SORT
+;DRAWLINE
+;PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1007]Previous page\@
+;PRINTLC [1000]Return
+;PRINTFORMLC \@(P >= (LOCAL:3 - 1) / 20) ? %" " * 16% # [1009]Next page\@
+;INPUT
+
+;IF RESULT == 1000
+;	GOTO CHARA_SORT_FIRST
+;ELSEIF RESULT == 1007
+;	IF P > 0
+;		P -= 1
+;		GOTO CHARA_SORT_SECOND
+;	ELSE
+;		GOTO INPUT_LOOP_1
+;	ENDIF
+;ELSEIF RESULT == 1009
+;	LOCAL = (LOCAL:3 - 1) / 20
+;	IF P < LOCAL
+;		P += 1
+;		GOTO CHARA_SORT_SECOND
+;	ELSE
+;		GOTO INPUT_LOOP_1
+;	ENDIF
+;ELSEIF RESULT < 0 || RESULT >= CHARANUM || RESULT == TFLAG:4 || MARK:RESULT:98 == 0
+;	PRINTL 無効な値です
+;	GOTO CHARA_SORT_SECOND
+;ENDIF
+
+LOCAL:2 = RESULT
+;REPEAT 10
+;	FOR LOCAL:12, 0, 10
+;		IF DE:(50+(LOCAL:12)):COUNT == LOCAL:2
+;			LOCAL:10 = 50+(LOCAL:12)
+;			LOCAL:11 = COUNT
+;		ENDIF
+;	NEXT
+;REND
+IF LOCAL:14
+	;挿入
+	PRINTFORMW %CALLNAME:(LOCAL:1)% has been inserted before %CALLNAME:(LOCAL:2)%.
+	IF LOCAL:1 > LOCAL:2
+		;後ろのキャラを前に挿入するパターン
+		FOR LOCAL:15, LOCAL:1, LOCAL:2, -1
+			SWAPCHARA LOCAL:15,LOCAL:15-1
+		NEXT
+	ELSE
+		;前のキャラを後ろに挿入するパターン
+		FOR LOCAL:15, LOCAL:1, LOCAL:2 - 1
+			SWAPCHARA LOCAL:15,LOCAL:15+1
+		NEXT
+	ENDIF
+ELSE
+	;入れ替え
+	PRINTFORMW %CALLNAME:(LOCAL:1)% has been switched with %CALLNAME:(LOCAL:2)%.
+	SWAPCHARA LOCAL:1,LOCAL:2
+ENDIF
+;IF LOCAL:8 >= 0 && LOCAL:10 >= 0
+;	LOCAL:12 = DE:(LOCAL:10):(LOCAL:11)
+;	DE:(LOCAL:10):(LOCAL:11) = DE:(LOCAL:8):(LOCAL:9)
+;	DE:(LOCAL:8):(LOCAL:9) = LOCAL:12
+;ELSEIF LOCAL:8 >= 0
+;	DE:(LOCAL:8):(LOCAL:9) = LOCAL:2
+;ELSEIF LOCAL:10 >= 0
+;	DE:(LOCAL:10):(LOCAL:11) = LOCAL:1
+;ENDIF
+
+$CHARA_SORT_END
+;調教対象と助手を保存していたものにする
+TARGET = LOCAL:6 >= 0 ? FINDCHARA_ID(LOCAL:6) # -1
+ASSI = LOCAL:7 >= 0 ? FINDCHARA_ID(LOCAL:7) # -1
+;REPEAT CHARANUM
+;	SIF MARK:COUNT:98 == 2
+;		TARGET = COUNT
+;	SIF MARK:COUNT:98 == 3
+;		ASSI = COUNT
+;REND
+;ポジションに齟齬が発生するので、FLAG側を初期化＋CFLAG側から読み込み
+CALL REFRESH_POS
+
+RESTART
+
+
+;-------------------------------------------------
+;キャラ一覧表示処理(SORT用)
+;-------------------------------------------------
+@SHOW_CHARA_SORT
+LOCAL:3 = 0
+REPEAT リスト表示数()
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF TFLAG:4 == LOCAL
+		CONTINUE
+	SIF LOCAL < 0
+		CONTINUE
+	SIF CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	IF LOCAL == TARGET
+		PRINT ☆
+	ELSEIF LOCAL == ASSI
+		PRINT ★
+	ELSEIF CFLAG:LOCAL:この場に居ないフラグ == 4
+		PRINT ◆
+		LOCAL:3 |= 1
+	ELSEIF CFLAG:LOCAL:この場に居ないフラグ == 8
+		PRINT ▲
+		LOCAL:3 |= 2
+	ELSEIF CFLAG:LOCAL:この場に居ないフラグ & 1024
+		PRINT ◇
+		LOCAL:3 |= 4
+	ELSEIF ISASSI:LOCAL == 1
+		PRINT ●
+	ELSEIF CFLAG:LOCAL:売却可能 == 2
+		PRINT ○
+	ELSE
+		PRINT 　
+	ENDIF
+	CALL ARRANGE_CHARALIST, LOCAL
+	CALL ARRANGE_CHARALIFE, LOCAL
+	CALL ARRANGE_CHARAPOSITION, LOCAL
+	
+	SIF FLAG:ショップコマンド == 122
+		PRINTFORM 　　MAG:{BASE:LOCAL:ＭＡＧ,5}/{MAXBASE:LOCAL:ＭＡＧ,5}
+	PRINTL 
+	;一言呼び出し
+REND
+IF E >= 1
+	PRINT 　　　☆:Partner ★:Assistant ○:Can assist ●:Former assistant
+	SIF FLAG:15 & 4096 && FLAG:75 & 32768 && LOCAL:3 & 1
+		PRINT  ◆:触手幽閉中
+;	SIF FLAG:15 & 4096 && LOCAL:3 & 2
+;		PRINT  ▲:檻幽閉中
+	SIF LOCAL:3 & 4 && FLAG:13 & 1024
+		PRINT  ◇：売春中
+	;PRINTL 　を表しています
+ENDIF
+

@@ -1,0 +1,202 @@
+; 群青色の招待状
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_16
+[IF_DEBUG]
+	LOCAL = 1
+[ENDIF]
+; P4系イベントの進行+エリザベス撃破
+IF ((イベントフラグ:12:0 == 3 && ダンジョンフラグ:70:(96) == 4) || FLAG:DEBUG || LOCAL) && イベントフラグ:16:0 == 0
+	RESULTS = 群青色の招待状
+	RETURN 1
+ELSEIF イベントフラグ:16:0 == 1
+	RESULTS = 天国の最果てにて
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+; エリザベスとの戦闘
+; 天上楽土が実装されるようならそっちに引っ越し
+@SHOPCOM_EVENT_16
+IF イベントフラグ:16:0 == 0
+	PRINTW 事務所に目を奪われるような群青色の招待状が送られてきていた
+	PRINTW “天国の最果てにて待つ”と簡潔に書かれている
+	PRINTW これは果たし状だろうか……？
+	PRINTL  
+	CALL INPUT_YN, "準備して行く", "破棄して忘れる"
+	PRINTL  
+	IF RESULT == 0
+		PRINTFORMW 悩んだ末に%CALLNAME:MASTER%は行くことにした
+		PRINTW 相当腕に自信のある人物が待ち受けていると思われる
+		PRINTW 向かう前に準備は周到に行った方が良いだろう
+		イベントフラグ:16:0 = 1
+	ELSE
+		; フラグ折り
+		PRINTW こんな得体の知れないものに付き合う必要はない
+		PRINTFORMW %CALLNAME:MASTER%はそう判断して招待状をシュレッダーにかけた
+		PRINTW この出来事を思い返すことはおそらく二度とないだろう
+		イベントフラグ:16:0 = 4
+	ENDIF
+ELSEIF イベントフラグ:16:0 == 1
+	PRINTW 指定された場所は美しい風景の中をおぞましいシャドウが蠢く異界だった
+	PRINTFORMW 薄ら寒いものを覚えつつ、%CALLNAME:MASTER%は天上楽土を駆け上がり始めた
+	PRINTW  
+	PRINTL ……
+	PRINTL …………
+	PRINTL ………………
+	PRINTW 途中で天秤のような受け皿を持つ、巨大な十字架のようなシャドウが立ち塞がった！
+	PRINTW この一本道を守っているのか倒さなければ通れそうにない
+	[IF_DEBUG]
+		CALL INPUT_YN("スキップする", "スキップしない")
+		SIF !RESULT
+			GOTO MARGARET
+	[ENDIF]
+	; 全能のバランサー 基本HP10000,MP999(毎ターン全快)
+	; マーガレット前の削り役
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	CALL SET_ENEMY, 9, 3276, 68, 0, 1
+	LOCAL = CHARANUM-1
+	LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+	CALL SET_BATTLE_STATUS(LOCAL, 100 * LOCAL:1, "ＨＰ")
+	CALL SET_BATTLE_STATUS(LOCAL, 999, "ＭＰ")
+	CSTR:LOCAL:思考パターン = 全能バランサ
+	CFLAG:LOCAL:行動回数 = 2
+	MAXBASE:LOCAL:万能 = 50
+	; 状態異常耐性セット
+	FOR LOCAL:1, 0, 14
+		BASE:LOCAL:(61+LOCAL:1) = 0
+	NEXT
+	BASE:LOCAL:SHOCK = 10
+	BASE:LOCAL:FREEZE = 10
+	CALL SYNC_STATUS, LOCAL
+	CALL HEALTH_CHARA, LOCAL
+	PRINTW 全能のバランサーが出た！
+	CALL BATTLE_START
+	CUSTOMDRAWLINE =
+	WAIT
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	PRINTL  
+	PRINTW 全能のバランサーは消滅した
+	PRINTW 他のシャドウに気付かれる前に先を急ごう
+	PRINTW  
+	PRINTL ……
+	PRINTL …………
+	PRINTL ………………
+	PRINTW ようやく最上と思われるフロアに辿り着いた
+	PRINTW 扉を開けて先にある吊り橋を渡ると怜悧そうな女が一人佇んでいる
+	PRINTW 「はじめまして、私はマーガレット。ベルベットルームの従者よ」
+	PRINTL ベルベットルームの名を出すという事はペルソナ使いか、もしくはそれに関わる者か、
+	PRINTW どうにしても只者ではないのは確かだろう
+	PRINTW 「貴方が妹と手合せしたのね。なるほど、只者ではないようね」
+	PRINTW 「私の目的は妹を連れ戻すこと。でも貴方と戦うことも楽しみになってきたわ」
+	PRINTL  
+	$MARGARET
+	; マーガレット
+	; E, N, H, = Lv 96, HP15198, MP∞, 力 60/ 知 50/ 魔 60/ 耐 60/ 速 30/ 運 50,
+	;                                  攻497/ 命321/ 防407/ 回321/ 威495/ 効376,
+	; M,       = Lv107, HP25839, MP∞, 力110/ 知 90/ 魔110/ 耐100/ 速 70/ 運 90,
+	;                                  攻537/ 命350/ 防436/ 回350/ 威535/ 効405,
+	; L,       = Lv119, HP28908, MP∞, 力160/ 知130/ 魔160/ 耐140/ 速110/ 運130,
+	;                                  攻577/ 命377/ 防464/ 回377/ 威574/ 効432,
+	; 悪夢,    = Lv130, HP31878, MP∞, 力210/ 知170/ 魔210/ 耐180/ 速150/ 運170,
+	;                                  攻613/ 命403/ 防489/ 回403/ 威611/ 効458,
+	; 
+	; 参考用	仲魔の最高レベルLv90で妹に挑んだ時の能力
+	; E, N, H, = Lv 100, 全能力52
+	; M,       = Lv 100, 全能力65
+	; L,       = Lv 100, 全能力115
+	; 悪夢,    = Lv 100, 全能力165
+	イベントフラグ:16:0 = 0
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+	; 基本Lv98
+	CALL SET_ENEMY, 9, 4574, 96 * (FLAG:戦闘難易度 - 3 > 0 ? 100 + (FLAG:戦闘難易度 - 3) * 12 # 100) / 100, 0, 1
+	LOCAL = CHARANUM-1
+	CFLAG:LOCAL:行動回数 = 2
+	ABL:LOCAL:種族 = 33
+	CSTR:LOCAL:思考パターン = マーガレット
+	; 状態異常耐性セット
+	FOR LOCAL:2, 0, 14
+		BASE:LOCAL:(61+LOCAL:2) = 0
+	NEXT
+	; ステータスセット
+	BASE:LOCAL:力   = 60 + (50 * FLAG:戦闘難易度 - 3 > 0 ? FLAG:戦闘難易度 - 3 # 0)
+	BASE:LOCAL:知恵 = 50 + (40 * FLAG:戦闘難易度 - 3 > 0 ? FLAG:戦闘難易度 - 3 # 0)
+	BASE:LOCAL:魔力 = 60 + (50 * FLAG:戦闘難易度 - 3 > 0 ? FLAG:戦闘難易度 - 3 # 0)
+	BASE:LOCAL:耐力 = 60 + (40 * FLAG:戦闘難易度 - 3 > 0 ? FLAG:戦闘難易度 - 3 # 0)
+	BASE:LOCAL:速さ = 30 + (40 * FLAG:戦闘難易度 - 3 > 0 ? FLAG:戦闘難易度 - 3 # 0)
+	BASE:LOCAL:運   = 50 + (40 * FLAG:戦闘難易度 - 3 > 0 ? FLAG:戦闘難易度 - 3 # 0)
+	; スキルセット
+	; カジャオート4種追加。
+	; 弱点無しになったため、CO-OPを取りやすいようハイパーカウンタ削除。
+	; 会心スキル対策に会心スキル追加。
+	; 速攻対策に不屈の闘志追加。最終段階まで進むと消去される。食いしばりフラグが立つと全無効で9999メギドラオン連発モード化。
+	ABL:LOCAL:スキル1 = [[スキル:タルカジャオート]]
+	ABL:LOCAL:スキル2 = [[スキル:ラクカジャオート]]
+	ABL:LOCAL:スキル3 = [[スキル:マカカジャオート]]
+	ABL:LOCAL:スキル4 = [[スキル:スクカジャオート]]
+	ABL:LOCAL:スキル5 = [[スキル:煌天の会心]]
+	ABL:LOCAL:スキル6 = [[スキル:静天の会心]]
+	ABL:LOCAL:スキル7 = [[スキル:コーチング]]
+	ABL:LOCAL:スキル8 = [[スキル:不屈の闘志]]
+	; 装備セット
+	EQUIP:LOCAL:剣 = [[アイテム:Shadow Needle]]
+	EQUIP:LOCAL:銃 = [[アイテム:Railgun]]
+	EQUIP:LOCAL:頭 = [[アイテム:Sturm Helm]]
+	EQUIP:LOCAL:胴 = [[アイテム:Sturm Suit]]
+	EQUIP:LOCAL:腕 = [[アイテム:Sturm Glove]]
+	EQUIP:LOCAL:足 = [[アイテム:Sturm Leg]]
+	EQUIP:LOCAL:アクセサリ = [[アイテム:Omega Tribe]]
+;売値0のアイテムは設定してもドロップされない
+;	IF ITEM:ダブルヒランヤスプレッド == 0
+;		ABL:LOCAL:アイテム1 = GETNUM(ITEM, "ダブルヒランヤスプレッド")
+;		ABL:LOCAL:入手確率1 = 100
+;	ENDIF
+;	CALL SET_BATTLE_STATUS(LOCAL, 150 * (FLAG:戦闘難易度 - 3 > 0 ? 100 + (FLAG:戦闘難易度 - 3) * 80 # 100), "ＨＰ")
+	; 定型文
+	CALL SYNC_STATUS, LOCAL
+	CALL HEALTH_CHARA, LOCAL
+	PRINTW 力を司る者 マーガレットが出た！
+	CALL BATTLE_START
+	CUSTOMDRAWLINE =
+	WAIT
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+	IF ITEM:ダブルヒランヤスプレッド == 0
+		PRINTW ＞マテリアルカード【ダブルヒランヤスプレッド】を手に入れた
+		PRINTL  
+		ITEM:ダブルヒランヤスプレッド = 1
+	ENDIF
+	PRINTW マーガレットは倒れた
+	PRINTW 生死を確かめると殺す気でかかったというのにマーガレットは気絶しているだけのようだ
+	PRINTW 今のうちに攫って帰ってもいいし、このまま放っておいても死ぬようなことはないだろう
+	PRINTW さて、どうしようか？
+	PRINTL  
+	CALL INPUT_YN, "お持ち帰り", "放置して帰る"
+	IF RESULT == 0
+		PRINTL  
+		PRINTW マーガレットを手に入れた
+		CALL ADD_NEW_COMPANION, 4574, 200
+		CALL SYNC_STATUS, (GETCHARA(4574))
+		CALL HEALTH_CHARA, (GETCHARA(4574))
+		イベントフラグ:16:0 = 2
+	ELSE
+		PRINTL  
+		PRINTW 結局放置して帰ることにした
+		PRINTW この出来事を思い返すことはおそらく二度とないだろう
+		イベントフラグ:16:0 = 3
+	ENDIF
+	
+ENDIF
+RETURN 0

@@ -1,0 +1,982 @@
+;公衆便所に必要な処理置き場
+@MANAGEMENT_PUBLIC_TOILET,ARG
+	VARSET LOCAL , 0
+	;客入りを計算
+	;LOCAL:2 = 客入り
+	;店舗の人気10につき一人訪れるかどうかの判定を行う
+	LOCAL:1 = MAX(1,店舗("人気",ARG)/10)
+	LOCAL:2 = 0
+	;店の規模が小さいフラグ
+	LOCAL:3 = 0
+	;設置している便器数
+	LOCAL:4 = 0
+	
+	;総売上
+	LOCAL:6 = 0
+	;平均成功度
+	LOCAL:7 = 0
+	;合計人数判定用
+	LOCAL:8 = 0
+	;働いた人数判定
+	LOCAL:10 = 0
+	
+	FOR LOCAL,0,MAX(1,(店舗("人気",ARG) + 店舗("宣伝効果",ARG))/10)
+		SIF RAND:2 == 0
+			LOCAL:2 += 1
+	NEXT
+	;PRINTFORML 個人以外の来客数は{LOCAL:2}人
+	IF LOCAL:2 > 店舗("規模",ARG)
+		LOCAL:2 = 店舗("規模",ARG)
+		LOCAL:3 = 1
+	ENDIF
+	;PRINTFORML 個人以外の来客数は{LOCAL:2}人になった
+	
+	VARSET C , -1
+	FOR LOCAL,0,CHARANUM
+		IF CFLAG:LOCAL:労役フラグ == 10+ARG
+			CFLAG:LOCAL:便器使用予定人数 = CFLAG:LOCAL:便器人気/25
+			;PRINTFORML %CALLNAME:LOCAL%を個人的に使いに来たのは{CFLAG:LOCAL:便器使用予定人数}ニンです
+			IF CFLAG:LOCAL:便器使用予定人数 > 店舗("規模",ARG) - LOCAL:8 - LOCAL:2
+				CFLAG:LOCAL:便器使用予定人数 = 店舗("規模",ARG) - LOCAL:8 - LOCAL:2
+				LOCAL:3 = 1
+			ENDIF
+			;PRINTFORML %CALLNAME:LOCAL%を個人的に使いに来たのは{CFLAG:LOCAL:便器使用予定人数}人になりました
+			
+			LOCAL:8 += CFLAG:LOCAL:便器使用予定人数
+			C:(LOCAL:4) = LOCAL
+			LOCAL:4 += 1
+		ENDIF
+	NEXT
+	IF LOCAL:4 == 0
+		PRINTW 肉便器を一人も設置していないため、利用者は誰も来なかった
+		GOTO TOILET_END
+	ENDIF
+	C:(LOCAL:4) = 看板便器(ARG)
+	;PRINTFORML 看板便器は%CALLNAME:(C:(LOCAL:4))%です
+	;PRINTFORML 合計{LOCAL:2}+{LOCAL:8}人を割り振ります
+	FOR LOCAL,0,LOCAL:2
+		COUNT = (C:(RAND:(LOCAL:4+1)))
+		;PRINTFORML %CALLNAME:COUNT%
+		;CFLAG:(C:(RAND:(LOCAL:4+1))):便器使用予定人数 ++
+		CFLAG:COUNT:便器使用予定人数 += 1
+	NEXT
+	
+	;キャラ一人一人について結果を計算
+	FOR LOCAL,0,CHARANUM
+		SIF CFLAG:LOCAL:労役フラグ != 10+ARG
+			CONTINUE
+		;PRINTFORML %CALLNAME:LOCAL%を{CFLAG:LOCAL:便器使用予定人数}人使います
+		PALAM:LOCAL:潤滑 = 1000
+		LOCAL:9 = 0
+		FOR LOCAL:1,0,CFLAG:LOCAL:便器使用予定人数
+			LOCAL:11 = 0
+			IF CFLAG:LOCAL:個別性的サービス& 8
+				LOCAL:13 = 1+((便器誘惑度(LOCAL) + RAND:(便器誘惑度(LOCAL)))/20)
+				FOR LOCAL:5,0,LOCAL:13
+					IF CFLAG:LOCAL:フェラ価格 * (40 + LOCAL:11*40) <= 便器誘惑度(LOCAL)/2 + RAND:(便器誘惑度(LOCAL))
+						CALL フェラ_便器_MANAGEMENT,LOCAL
+						LOCAL:11 += 1
+						LOCAL:9 += RESULT
+					ELSE
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			LOCAL:11 = 0
+			LOCAL:12 = 0
+			IF TALENT:LOCAL:オトコ == 0 && CFLAG:LOCAL:個別性的サービス & 16
+				LOCAL:13 = 1+((便器誘惑度(LOCAL) + RAND:(便器誘惑度(LOCAL)))/20)
+				FOR LOCAL:5,0,LOCAL:13
+					IF CFLAG:LOCAL:本番価格 * (20 + LOCAL:11*20) + CFLAG:LOCAL:処女価格 * TALENT:LOCAL:再生処女 * 2  + CFLAG:LOCAL:処女価格 * TALENT:LOCAL:処女 * 1 <= 便器誘惑度(LOCAL)/2 + RAND:(便器誘惑度(LOCAL)) + TALENT:LOCAL:処女 * 25  + TALENT:LOCAL:再生処女 * 5
+						CALL 本番_便器_MANAGEMENT,LOCAL
+						LOCAL:9 += RESULT
+						LOCAL:11 += 1
+						IF CFLAG:LOCAL:個別性的サービス& 64
+							IF CFLAG:LOCAL:中出し価格 * (10 + LOCAL:12*2) <= 便器誘惑度(LOCAL)/2 + RAND:(便器誘惑度(LOCAL))
+								CALL 中出し_便器_MANAGEMENT,LOCAL
+								LOCAL:9 += RESULT
+								LOCAL:12 += 1
+							ENDIF
+						ENDIF
+					ELSE
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			LOCAL:11 = 0
+			IF CFLAG:LOCAL:個別性的サービス & 32
+				LOCAL:13 = 1+((便器誘惑度(LOCAL) + RAND:(便器誘惑度(LOCAL)))/20)
+				FOR LOCAL:5,0,LOCAL:13
+					IF CFLAG:LOCAL:アナル価格 * (20 + LOCAL:11*20) <= 便器誘惑度(LOCAL)/2 + RAND:(便器誘惑度(LOCAL))
+						CALL アナル_便器_MANAGEMENT,LOCAL
+						LOCAL:11 += 1
+						LOCAL:9 += RESULT
+					ELSE
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+		NEXT
+		;成功度(使われなかったら-1)
+		IF CFLAG:LOCAL:中出し回数 + CFLAG:LOCAL:フェラ回数 + CFLAG:LOCAL:本番回数 + CFLAG:LOCAL:アナル回数
+			CFLAG:LOCAL:労役成功度 = LOCAL:9 / (CFLAG:LOCAL:中出し回数 + CFLAG:LOCAL:フェラ回数 + CFLAG:LOCAL:本番回数 + CFLAG:LOCAL:アナル回数)
+			LOCAL:10 += 1
+			LOCAL:7 += CFLAG:LOCAL:労役成功度
+		ELSE
+			CFLAG:LOCAL:労役成功度 = -1
+		ENDIF
+		
+		;妊娠用
+		IF CFLAG:LOCAL:108 == 0
+			SIF TALENT:LOCAL:オトコ == 0
+				CFLAG:LOCAL:105 += CFLAG:LOCAL:中出し回数
+			SIF TALENT:LOCAL:オトコ && TALENT:LOCAL:男の娘
+				CFLAG:LOCAL:105 += CFLAG:LOCAL:アナル回数
+		ENDIF
+		
+		;ストレス増加
+		LOCAL:9 = CFLAG:LOCAL:フェラ回数 + CFLAG:LOCAL:本番回数*2 + CFLAG:LOCAL:アナル回数*2 + CFLAG:LOCAL:中出し回数*5
+		LOCAL:9 /= 1+ABL:LOCAL:従順+ABL:LOCAL:欲望+ABL:LOCAL:奉仕精神+ABL:LOCAL:マゾっ気
+		LOCAL:9 *= MAX(0,3-陥落(LOCAL) *2)
+		CFLAG:LOCAL:ストレス増加値 = LOCAL:9
+	NEXT
+	
+	;キャラの結果表示
+	FOR LOCAL,0,CHARANUM
+		SIF CFLAG:LOCAL:労役フラグ != 10+ARG || CFLAG:LOCAL:労役成功度 == -1
+			CONTINUE
+		;メッセージ表示
+		CALL WORK_MESSAGE_TOILET,LOCAL
+		PRINTFORML %CALLNAME:LOCAL%の労役結果
+		
+		SIF CFLAG:LOCAL:便器使用予定人数
+			PRINTFORML 使ってもらった人数：{CFLAG:LOCAL:便器使用予定人数}人　　成功度　{CFLAG:LOCAL:労役成功度}％
+		PRINTL
+		;回数の表示
+		SIF CFLAG:LOCAL:フェラ回数
+			PRINTFORM フェラ　{CFLAG:LOCAL:フェラ回数}回　　
+		CFLAG:LOCAL:個別売り上げ += CFLAG:LOCAL:フェラ回数 * CFLAG:LOCAL:フェラ価格
+		SIF CFLAG:LOCAL:本番回数
+			PRINTFORM 本番　　{CFLAG:LOCAL:本番回数}回　　
+		CFLAG:LOCAL:個別売り上げ += CFLAG:LOCAL:本番回数 * CFLAG:LOCAL:本番価格
+		SIF CFLAG:LOCAL:アナル回数
+			PRINTFORM アナル　{CFLAG:LOCAL:アナル回数}回　　
+		CFLAG:LOCAL:個別売り上げ += CFLAG:LOCAL:アナル回数 * CFLAG:LOCAL:アナル価格
+		SIF CFLAG:LOCAL:中出し回数
+			PRINTFORM 中出し　{CFLAG:LOCAL:中出し回数}回　　
+		CFLAG:LOCAL:個別売り上げ += CFLAG:LOCAL:中出し回数 * CFLAG:LOCAL:中出し価格
+		PRINTL
+		;経験の増加
+		SIF CFLAG:LOCAL:便器使用予定人数
+			PRINTFORM ToiletEXP + {CFLAG:LOCAL:便器使用予定人数}　　
+		EXP:LOCAL:便器経験 += CFLAG:LOCAL:便器使用予定人数
+		SIF CFLAG:LOCAL:フェラ回数
+			PRINTFORM BlowjobEXP + {CFLAG:LOCAL:フェラ回数}　　
+		EXP:LOCAL:フェラ経験 += CFLAG:LOCAL:フェラ回数
+		SIF CFLAG:LOCAL:本番回数
+			PRINTFORM ＶEXP + {CFLAG:LOCAL:本番回数}　　
+		EXP:LOCAL:Ｖ経験 += CFLAG:LOCAL:本番回数
+		SIF CFLAG:LOCAL:アナル回数
+			PRINTFORM ＡEXP + {CFLAG:LOCAL:アナル回数}　　
+		EXP:LOCAL:Ａ経験 += CFLAG:LOCAL:アナル回数
+		PRINTL
+		IF CFLAG:LOCAL:108 == 0
+			SIF CFLAG:LOCAL:中出し回数
+				PRINTFORM CreampieEXP + {CFLAG:LOCAL:中出し回数}　　
+			EXP:LOCAL:膣射経験 += CFLAG:LOCAL:中出し回数
+		ELSE
+			SIF CFLAG:LOCAL:中出し回数
+			PRINTFORM <避妊結界>
+		ENDIF
+		SIF CFLAG:LOCAL:アナル回数 + CFLAG:LOCAL:本番回数
+			PRINTFORM SexEXP + {CFLAG:LOCAL:アナル回数 + CFLAG:LOCAL:本番回数}　　
+		EXP:LOCAL:性交経験 += CFLAG:LOCAL:アナル回数 + CFLAG:LOCAL:本番回数
+		SIF CFLAG:LOCAL:中出し回数 + CFLAG:LOCAL:フェラ回数 + CFLAG:LOCAL:本番回数 + CFLAG:LOCAL:アナル回数
+			PRINTFORM SemenEXP + {CFLAG:LOCAL:中出し回数 + CFLAG:LOCAL:フェラ回数 + CFLAG:LOCAL:本番回数 + CFLAG:LOCAL:アナル回数}　　
+		EXP:LOCAL:精液経験 += CFLAG:LOCAL:中出し回数 + CFLAG:LOCAL:フェラ回数 + CFLAG:LOCAL:本番回数 + CFLAG:LOCAL:アナル回数
+		SIF EX:LOCAL:0 + EX:LOCAL:1 + EX:LOCAL:2 + EX:LOCAL:3
+			PRINTFORM ClimaxEXP + {EX:LOCAL:0 + EX:LOCAL:1 + EX:LOCAL:2 + EX:LOCAL:3}
+		EXP:LOCAL:絶頂経験 += EX:LOCAL:0 + EX:LOCAL:1 + EX:LOCAL:2 + EX:LOCAL:3
+		PRINTL
+		;珠の増加
+		CALL JUEL_CHECK_TOILET,LOCAL
+		IF CFLAG:LOCAL:処女喪失フラグ
+			PRINTL Virginity Lost
+			PRINTFORML AbnormalEXP + 2
+			EXP:LOCAL:異常経験 += 2
+			CFLAG:LOCAL:個別売り上げ += CFLAG:LOCAL:処女価格
+		ELSEIF CFLAG:LOCAL:再生処女喪失フラグ
+			PRINTFORML Restored Virginity Lost
+			CFLAG:LOCAL:個別売り上げ += CFLAG:LOCAL:処女価格
+		ENDIF
+		;MAG増加処理
+		PRINTFORML ＭＡＧ + {(CFLAG:LOCAL:フェラ回数*5 + CFLAG:LOCAL:本番回数*2 + CFLAG:LOCAL:アナル回数*10 + CFLAG:LOCAL:中出し回数*20)*(MAXBASE:LOCAL:LV/5+1)*(1+(LOCAL == MASTER)*2+TALENT:LOCAL:供倶璃*9)}
+		CALL CONTROL_MAG,LOCAL,(CFLAG:LOCAL:フェラ回数*5 + CFLAG:LOCAL:本番回数*2 + CFLAG:LOCAL:アナル回数*10 + CFLAG:LOCAL:中出し回数*20)*(MAXBASE:LOCAL:LV/5+1)*(1+(LOCAL == MASTER)*2+TALENT:LOCAL:供倶璃*9)
+		;体力の消費
+		PRINTFORML Stamina - {(CFLAG:LOCAL:フェラ回数*10 + CFLAG:LOCAL:本番回数*15 + CFLAG:LOCAL:アナル回数*25 + CFLAG:LOCAL:中出し回数*5) + DOWNBASE:LOCAL:0}
+		BASE:LOCAL:体力 -= (CFLAG:LOCAL:フェラ回数*10 + CFLAG:LOCAL:本番回数*15 + CFLAG:LOCAL:アナル回数*25 + CFLAG:LOCAL:中出し回数*5) + DOWNBASE:LOCAL:0
+		;ストレス増加
+		IF LOCAL != MASTER
+			PRINTFORML Stress + {CFLAG:LOCAL:ストレス増加値}
+			CFLAG:LOCAL:ストレス値 += CFLAG:LOCAL:ストレス増加値
+		ENDIF
+		;非戦闘員は経験値獲得
+		IF TALENT:LOCAL:非戦闘員
+			PRINTFORML EXP： +{CFLAG:LOCAL:個別売り上げ*(1+BASE:LOCAL:LV/5)}
+			BASE:LOCAL:ＥＸＰ += CFLAG:LOCAL:個別売り上げ*(1+BASE:LOCAL:LV/5)
+			;レベルアップ判定
+			IF TALENT:LOCAL:非戦闘員 && BASE:LOCAL:ＥＸＰ >= MAXBASE:LOCAL:ＥＸＰ
+				PRINTFORML LEVEL UP!
+				BASE:LOCAL:LV += 1
+				CALL SYNC_STATUS,LOCAL
+			ENDIF
+		ENDIF
+		;人気増減
+		IF CFLAG:LOCAL:労役成功度 < 30
+			PRINTFORML Popular {CFLAG:LOCAL:便器人気} - {6-CFLAG:LOCAL:労役成功度/5}
+		ELSE
+			PRINTFORML Popular {CFLAG:LOCAL:便器人気} + {CFLAG:LOCAL:労役成功度/5 - 6}
+		ENDIF
+		CFLAG:LOCAL:便器人気 += CFLAG:LOCAL:労役成功度/5 - 6
+		PRINTFORML 売り上げ：{CFLAG:LOCAL:個別売り上げ}
+		LOCAL:6 += CFLAG:LOCAL:個別売り上げ
+		SIF LOCAL == MASTER
+			CALL EVENTCHECK_M
+				
+		;主人の属性値変動
+		CALL INCREASE_LD,-3
+		CALL SYNC_STATUS,MASTER
+		
+		IF BASE:LOCAL:体力 <= 0
+			PRINTL
+			PRINTFORMW %CALLNAME:LOCAL%は酷く消耗し、気絶してしまった。
+			;従順ダウン
+			IF ABL:LOCAL:0 > 0
+				ABL:LOCAL:0 -= 1
+				PRINTFORML %CALLNAME:LOCAL%の従順が１下がった
+			ENDIF
+			;体力回復停止フラグ
+			CFLAG:LOCAL:6 += 3
+			SIF TALENT:LOCAL:147
+				CFLAG:LOCAL:6 -= 1
+			CFLAG:LOCAL:10 += 10
+			BASE:LOCAL:0 = 1
+		ENDIF
+		PRINTW
+	NEXT
+	;平均の人気 LOCAL:8
+	LOCAL:7 /= MAX(1,LOCAL:10)
+	$TOILET_END
+	PRINTFORML %SAVESTR:(20+ARG)%
+	IF LOCAL:7 > 0
+		PRINTFORML 利用者満足度 {LOCAL:7}％
+		IF LOCAL:7 > 29
+			PRINTFORML 評判 {店舗("人気",ARG)} + {LOCAL:7/5-6}
+		ELSE
+			PRINTFORML 評判 {店舗("人気",ARG)} - {-LOCAL:7/5+6}
+		ENDIF
+		CALL 店舗演算("人気",ARG,LOCAL:7/5-6,"+")
+		IF LOCAL:3 == 1
+			PRINTFORML 来訪者が便所の規模を越えて現れ、便器を利用できなかった客から苦情が届いた…
+			PRINTFORML 評判 - {店舗("人気",ARG)/10}
+			CALL 店舗演算("人気",ARG,店舗("人気",ARG)/10,"-")
+		ENDIF
+		;IF LOCAL:8 + LOCAL:2 > 接客人数(ARG) * 20
+		;	PRINTFORML 多すぎる利用者の人数に便器の数が間に合わず、あぶれる客が出てしまった……
+		;	PRINTFORML 評判 - {店舗("人気",ARG)/10}
+		;	CALL 店舗演算("人気",ARG,店舗("人気",ARG)/10,"-")
+		;ENDIF
+	ENDIF
+	SIF LOCAL:10 == 0
+		PRINTFORML この日便器は一度も利用されなかった。
+	PRINTFORML 収入合計: {LOCAL:6}魔貨
+	MONEY:1 += LOCAL:6
+	PRINTFORML 維持費：￥{店舗("規模",ARG) * 500 + 接客人数(ARG) * 500}
+	MONEY -= 店舗("規模",ARG) * 500 + 接客人数(ARG) * 500
+	
+	
+	
+	
+	WAIT
+
+
+
+
+;=============================================
+;珠入手処理（便所
+;=============================================
+@JUEL_CHECK_TOILET,ARG
+FOR LOCAL,0,15
+	IF PALAM:ARG:LOCAL < PALAMLV:1
+		LOCAL:1 = 0
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:1*3
+		LOCAL:1 = 1
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:2
+		LOCAL:1 = 2
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:2*3
+		LOCAL:1 = 10
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:3
+		LOCAL:1 = 20
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:3*2
+		LOCAL:1 = 100
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:4
+		LOCAL:1 = 200
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:5
+		LOCAL:1 = 1000
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:6
+		LOCAL:1 = 2000
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:7
+		LOCAL:1 = 3000
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:8
+		LOCAL:1 = 5000
+	ELSEIF PALAM:ARG:LOCAL < PALAMLV:9
+		LOCAL:1 = 8000
+	ELSEIF PALAM:ARG:LOCAL < 1000000
+		LOCAL:1 = 12000
+	ELSEIF PALAM:ARG:LOCAL < 5000000
+		LOCAL:1 = 25000
+	ELSEIF PALAM:ARG:LOCAL < 30000000
+		LOCAL:1 = 40000
+	ELSEIF PALAM:ARG:LOCAL < 100000000
+		LOCAL:1 = 60000
+	ELSE
+		LOCAL:1 = 100000
+	ENDIF
+	IF LOCAL == 0
+		GOTJUEL:ARG:LOCAL = LOCAL:1 / 10 + EX:ARG:0 * 100
+	ELSEIF LOCAL == 1
+		GOTJUEL:ARG:LOCAL = LOCAL:1 + EX:ARG:1 * 100
+	ELSEIF LOCAL == 2
+		GOTJUEL:ARG:LOCAL = LOCAL:1 + EX:ARG:2 * 100
+	ELSEIF LOCAL == 3
+		GOTJUEL:ARG:LOCAL = LOCAL:1 + EX:ARG:3 * 100
+	ELSEIF LOCAL == 4
+	ELSEIF LOCAL < 12
+		GOTJUEL:ARG:LOCAL = LOCAL:1 / 10
+	ELSE
+		SIF ARG != MASTER
+		GOTJUEL:ARG:100 += LOCAL:1
+	ENDIF
+	IF LOCAL < 12 && GOTJUEL:ARG:LOCAL > 0
+		PRINTFORML %PALAMNAME_E(LOCAL)%の珠 + {GOTJUEL:ARG:LOCAL}
+		JUEL:ARG:LOCAL += GOTJUEL:ARG:LOCAL
+	ENDIF
+NEXT
+
+SIF GOTJUEL:ARG:100 > 0
+	PRINTFORML 否定の珠 + {GOTJUEL:ARG:100}
+JUEL:ARG:否定 += GOTJUEL:ARG:100
+;否定の珠による反発
+IF JUEL:ARG:否定 > 1500 && MARK:ARG:反発刻印 < 3 && ARG != MASTER
+	PRINTFORML 反発刻印LV3取得
+	MARK:ARG:反発刻印 = 3
+	SIF MARK:ARG:4 < 3
+		MARK:ARG:4 = 3
+ELSEIF JUEL:ARG:否定 > 1000 && MARK:ARG:反発刻印 < 2 && ARG != MASTER
+	PRINTFORML 反発刻印LV2取得
+	MARK:ARG:反発刻印 = 2
+	SIF MARK:ARG:4 < 2
+		MARK:ARG:4 = 2
+ELSEIF JUEL:ARG:否定 > 500 && MARK:ARG:反発刻印 < 1 && ARG != MASTER
+	PRINTFORML 反発刻印LV1取得
+	MARK:ARG:反発刻印 = 1
+	SIF MARK:ARG:4 < 1
+		MARK:ARG:4 = 1
+ENDIF
+
+;=============================================
+;サービスの処理
+;=============================================
+;フェラ
+@フェラ_便器_MANAGEMENT,ARG
+
+;とりあえず回数増える
+CFLAG:ARG:フェラ回数 += 1
+SOURCE:ARG:4 = 100
+SOURCE:ARG:5 = 300
+SOURCE:ARG:6 = 150
+SOURCE:ARG:14 = 700
+SOURCE:ARG:17 = 200
+SOURCE:ARG:18 = 200
+CALL SOURCE_MANAGEMENT_CHECK,ARG
+CALL CUP_MANAGEMENT,ARG
+;満足度判定
+;まず成功度を計算
+;ランダムで30を追加します。ToiletEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:便器経験
+	CASE IS > EXPLV:5*10
+		LOCAL = 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL = 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL = 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL = 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL = 5 + RAND:26
+	CASEELSE
+		LOCAL = RAND:30
+ENDSELECT
+;ランダムで30を追加します。BlowjobEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:フェラ経験
+	CASE IS > EXPLV:5*10
+		LOCAL += 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL += 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL += 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL += 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL += 5 + RAND:26
+	CASEELSE
+		LOCAL += RAND:30
+ENDSELECT
+
+
+;欲望をチェックする。欲望が相手の欲望を上回るかどうか。成功なら欲望レベルの２倍、失敗なら１倍入ります。
+;CBVA売春では、相手の欲望の最大値が4です。
+LOCAL:9 = RAND:10
+IF LOCAL:9 <= ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+ELSE
+	LOCAL += ABL:ARG:技巧
+ENDIF
+
+;相手からの行動が発生します。相手の技巧がこちらの欲望以下の場合、不満そうな表情が出る可能性があります。
+;相手の技巧＋こちらの従順の２倍＞こちらの欲望＋２なら、問題なく行為を露出癖と奉仕精神を加える事が出来ます。
+;足りない場合は加えられません。
+LOCAL:9 = RAND:10
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 -= 2
+
+IF LOCAL:9 >= ABL:ARG:欲望
+	LOCAL += ABL:ARG:奉仕精神
+	LOCAL += ABL:ARG:精液中毒
+ENDIF
+
+;ここまでで最大120％
+
+;価格による補正()
+LOCAL:1 = 100*(1+1)/(CFLAG:ARG:フェラ価格+1)*LOCAL/40 - 100
+LOCAL += LOCAL:1 / 10
+
+;従順が3LVないと、著しく微妙になります
+IF ABL:ARG:従順 < 3 && ARG != MASTER
+	LOCAL /= 2
+ENDIF
+RETURN LOCAL
+
+
+;本番
+@本番_便器_MANAGEMENT,ARG
+
+;とりあえず回数増える
+CFLAG:ARG:本番回数 += 1
+SOURCE:ARG:1 = 400
+SOURCE:ARG:4 = 150
+SOURCE:ARG:7 = 400
+SOURCE:ARG:9 = 150
+SOURCE:ARG:13 = 70
+SOURCE:ARG:18 = 300
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:ARG:32 || TALENT:ARG:34
+	SOURCE:ARG:16 += 300
+
+;貞操観念持ちで恋慕、親愛持ち以外には常に反発のソースを追加する（セックス系のみ）
+SIF TALENT:ARG:30 && 陥落(ARG) == 0
+	SOURCE:ARG:18 += 1000
+LOCAL:10 = 0
+;処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:ARG:0 == 1
+	TALENT:ARG:処女 = 0
+	CFLAG:ARG:処女喪失フラグ = 1
+	SOURCE:ARG:7 += 2000
+	SOURCE:ARG:18 += 3000
+	LOCAL:10 = 2
+ENDIF
+
+;再生処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:ARG:1 == 1
+	TALENT:ARG:再生処女 = 0
+	CFLAG:ARG:再生処女喪失フラグ = 1
+	SOURCE:ARG:7 += 500
+	SOURCE:ARG:18 += 1000
+	LOCAL:10 = 1
+ENDIF
+
+;Vへの苦痛は先に処理しておく
+;EXP:ARG:Ｖ経験をみる（処女の反感は別途処理済みなので省略）
+IF EXP:ARG:0 < EXPLV:1
+	TIMES SOURCE:ARG:7 , 2.50
+ELSEIF EXP:ARG:0 < EXPLV:2
+	TIMES SOURCE:ARG:7 , 0.80
+	TIMES SOURCE:ARG:18 , 1.20
+ELSEIF EXP:ARG:0 < EXPLV:3
+	TIMES SOURCE:ARG:7 , 0.40
+ELSEIF EXP:ARG:0 < EXPLV:4
+	TIMES SOURCE:ARG:7 , 0.10
+ELSEIF EXP:ARG:0 < EXPLV:5
+	TIMES SOURCE:ARG:7 , 0.00
+ELSEIF EXP:ARG:0 >= EXPLV:5
+	TIMES SOURCE:ARG:7 , 0.00
+ENDIF
+
+;PALAM:ARG:潤滑をみる
+IF PALAM:ARG:4 < PALAMLV:1
+	TIMES SOURCE:ARG:7 , 1.20
+	TIMES SOURCE:ARG:18 , 1.50
+ELSEIF PALAM:ARG:4 < PALAMLV:2
+	TIMES SOURCE:ARG:7 , 0.70
+	TIMES SOURCE:ARG:18 , 1.20
+ELSEIF PALAM:ARG:4 < PALAMLV:3
+	TIMES SOURCE:ARG:7 , 0.40
+ELSEIF PALAM:ARG:4 < PALAMLV:4
+	TIMES SOURCE:ARG:7 , 0.10
+ELSEIF PALAM:ARG:4 >= PALAMLV:4
+	TIMES SOURCE:ARG:7 , 0.10
+ENDIF
+
+;中毒による中毒充足のソースは先に処理しておく
+;セックス中毒を見る
+IF ABL:ARG:18 == 1
+	TIMES SOURCE:ARG:9 , 0.00
+ELSEIF ABL:ARG:18 == 2
+	TIMES SOURCE:ARG:9 , 0.30
+ELSEIF ABL:ARG:18 == 3
+	TIMES SOURCE:ARG:9 , 0.60
+ELSEIF ABL:ARG:18 == 4
+	TIMES SOURCE:ARG:9 , 0.90
+ELSEIF ABL:ARG:18 == 5
+	TIMES SOURCE:ARG:9 , 1.20
+ELSEIF ABL:ARG:18 == 6
+	TIMES SOURCE:ARG:9 , 1.50
+ELSEIF ABL:ARG:18 == 7
+	TIMES SOURCE:ARG:9 , 1.80
+ELSEIF ABL:ARG:18 == 8
+	TIMES SOURCE:ARG:9 , 2.30
+ELSEIF ABL:ARG:18 == 9
+	TIMES SOURCE:ARG:9 , 3.00
+ELSEIF ABL:ARG:18 >= 10
+	TIMES SOURCE:ARG:9 , 5.00
+ENDIF
+CALL SOURCE_MANAGEMENT_CHECK,ARG
+CALL CUP_MANAGEMENT,ARG
+;満足度判定
+;まず成功度を計算
+;ランダムで30を追加します。ToiletEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:便器経験
+	CASE IS > EXPLV:5*10
+		LOCAL = 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL = 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL = 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL = 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL = 5 + RAND:26
+	CASEELSE
+		LOCAL = RAND:30
+ENDSELECT
+;ランダムで30を追加します。ＶEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:Ｖ経験
+	CASE IS > EXPLV:5*10
+		LOCAL += 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL += 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL += 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL += 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL += 5 + RAND:26
+	CASEELSE
+		LOCAL += RAND:30
+ENDSELECT
+
+
+;欲望をチェックする。欲望が相手の欲望を上回るかどうか。成功なら欲望レベルの２倍、失敗なら１倍入ります。
+;CBVA売春では、相手の欲望の最大値が4です。
+LOCAL:9 = RAND:10
+IF LOCAL:9 <= ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+ELSE
+	LOCAL += ABL:ARG:技巧
+ENDIF
+
+;相手からの行動が発生します。相手の技巧がこちらの欲望以下の場合、不満そうな表情が出る可能性があります。
+;相手の技巧＋こちらの従順の２倍＞こちらの欲望＋２なら、問題なく行為を露出癖と奉仕精神を加える事が出来ます。
+;足りない場合は加えられません。
+LOCAL:9 = RAND:10
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 -= 2
+
+IF LOCAL:9 >= ABL:ARG:欲望
+	LOCAL += ABL:ARG:セックス中毒
+	LOCAL += ABL:ARG:精液中毒 * 2
+ENDIF
+
+;価格による補正()
+LOCAL:1 = 100*(2+1)/(CFLAG:ARG:本番価格+1)*LOCAL/40 - 100
+LOCAL += LOCAL:1 / 10
+
+
+;ここまでで最大120％
+;処女・再生処女を買ってもらった場合、満足度+
+LOCAL += LOCAL:10 *20
+
+;従順が3LVないと、著しく微妙になります
+IF ABL:ARG:従順 < 3 && ARG != MASTER
+	LOCAL /= 2
+ENDIF
+RETURN LOCAL
+
+;中出し
+@中出し_便器_MANAGEMENT,ARG
+
+;とりあえず回数増える
+CFLAG:ARG:中出し回数 += 1
+SIF TALENT:ARG:妊娠 == 0
+	CALL SAMEN_SHOOT_SOURCE_MANAGEMENT,ARG
+CALL SOURCE_MANAGEMENT_CHECK,ARG
+CALL CUP_MANAGEMENT,ARG
+;満足度判定
+;まず成功度を計算
+;ランダムで30を追加します。ToiletEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:便器経験
+	CASE IS > EXPLV:5*10
+		LOCAL = 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL = 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL = 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL = 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL = 5 + RAND:26
+	CASEELSE
+		LOCAL = RAND:30
+ENDSELECT
+;ランダムで30を追加します。CreampieEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:膣射経験
+	CASE IS > EXPLV:5*10
+		LOCAL += 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL += 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL += 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL += 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL += 5 + RAND:26
+	CASEELSE
+		LOCAL += RAND:30
+ENDSELECT
+
+
+;欲望をチェックする。欲望が相手の欲望を上回るかどうか。成功なら欲望レベルの２倍、失敗なら１倍入ります。
+;CBVA売春では、相手の欲望の最大値が4です。
+LOCAL:9 = RAND:10
+IF LOCAL:9 <= ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+ELSE
+	LOCAL += ABL:ARG:技巧
+ENDIF
+
+;相手からの行動が発生します。相手の技巧がこちらの欲望以下の場合、不満そうな表情が出る可能性があります。
+;相手の技巧＋こちらの従順の２倍＞こちらの欲望＋２なら、問題なく行為を露出癖と奉仕精神を加える事が出来ます。
+;足りない場合は加えられません。
+LOCAL:9 = RAND:10
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 -= 2
+
+IF LOCAL:9 >= ABL:ARG:欲望
+	LOCAL += ABL:ARG:精液中毒*2
+	LOCAL += ABL:ARG:奉仕精神*2
+ENDIF
+
+;ここまでで最大120％
+
+;価格による補正()
+LOCAL:1 = 100*(4+1)/(CFLAG:ARG:中出し価格+1)*LOCAL/40 - 100
+LOCAL += LOCAL:1 / 10
+
+;従順が3LVないと、著しく微妙になります
+IF ABL:ARG:従順 < 3 && ARG != MASTER
+	LOCAL /= 2
+ENDIF
+RETURN LOCAL
+
+;アナル
+@アナル_便器_MANAGEMENT,ARG
+
+;とりあえず回数増える
+CFLAG:ARG:アナル回数 += 1
+SOURCE:ARG:2 = 400
+SOURCE:ARG:4 = 100
+SOURCE:ARG:7 = 800
+SOURCE:ARG:9 = 200
+SOURCE:ARG:13 = 60
+SOURCE:ARG:17 = 200
+SOURCE:ARG:18 = 500
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:ARG:32 || TALENT:ARG:34
+	SOURCE:ARG:16 += 500
+
+;Aへの苦痛は先に処理しておく
+;EXP:ARG:Ａ経験をみる
+IF EXP:ARG:1 < EXPLV:1
+	TIMES SOURCE:ARG:7 , 3.00
+	TIMES SOURCE:ARG:18 , 3.00
+ELSEIF EXP:ARG:1 < EXPLV:2
+	TIMES SOURCE:ARG:7 , 1.20
+	TIMES SOURCE:ARG:18 , 2.00
+ELSEIF EXP:ARG:1 < EXPLV:3
+	TIMES SOURCE:ARG:7 , 0.80
+	TIMES SOURCE:ARG:18 , 1.50
+ELSEIF EXP:ARG:1 < EXPLV:4
+	TIMES SOURCE:ARG:7 , 0.60
+	TIMES SOURCE:ARG:18 , 1.20
+ELSEIF EXP:ARG:1 < EXPLV:5
+	TIMES SOURCE:ARG:7 , 0.40
+ELSEIF EXP:ARG:1 >= EXPLV:5
+	TIMES SOURCE:ARG:7 , 0.20
+ENDIF
+
+;PALAM:ARG:潤滑をみる
+IF PALAM:ARG:4 < PALAMLV:1
+	TIMES SOURCE:ARG:7 , 1.20
+	TIMES SOURCE:ARG:18 , 2.00
+ELSEIF PALAM:ARG:4 < PALAMLV:2
+	TIMES SOURCE:ARG:7 , 1.00
+	TIMES SOURCE:ARG:18 , 1.50
+ELSEIF PALAM:ARG:4 < PALAMLV:3
+	TIMES SOURCE:ARG:7 , 0.60
+ELSEIF PALAM:ARG:4 < PALAMLV:4
+	TIMES SOURCE:ARG:7 , 0.30
+ELSEIF PALAM:ARG:4 >= PALAMLV:4
+	TIMES SOURCE:ARG:7 , 0.20
+ENDIF
+
+;中毒による中毒充足のソースは先に処理しておく
+;セックス中毒を見る
+IF ABL:ARG:18 == 1
+	TIMES SOURCE:ARG:9 , 0.00
+ELSEIF ABL:ARG:18 == 2
+	TIMES SOURCE:ARG:9 , 0.30
+ELSEIF ABL:ARG:18 == 3
+	TIMES SOURCE:ARG:9 , 0.60
+ELSEIF ABL:ARG:18 == 4
+	TIMES SOURCE:ARG:9 , 0.90
+ELSEIF ABL:ARG:18 == 5
+	TIMES SOURCE:ARG:9 , 1.20
+ELSEIF ABL:ARG:18 == 6
+	TIMES SOURCE:ARG:9 , 1.50
+ELSEIF ABL:ARG:18 == 7
+	TIMES SOURCE:ARG:9 , 1.80
+ELSEIF ABL:ARG:18 == 8
+	TIMES SOURCE:ARG:9 , 2.30
+ELSEIF ABL:ARG:18 == 9
+	TIMES SOURCE:ARG:9 , 3.00
+ELSEIF ABL:ARG:18 >= 10
+	TIMES SOURCE:ARG:9 , 5.00
+ENDIF
+CALL SOURCE_MANAGEMENT_CHECK,ARG
+CALL CUP_MANAGEMENT,ARG
+;満足度判定
+;まず成功度を計算
+;ランダムで30を追加します。ToiletEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:便器経験
+	CASE IS > EXPLV:5*10
+		LOCAL = 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL = 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL = 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL = 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL = 5 + RAND:26
+	CASEELSE
+		LOCAL = RAND:30
+ENDSELECT
+;ランダムで30を追加します。ＡEXPに応じて期待値は上昇します。
+SELECTCASE EXP:ARG:Ａ経験
+	CASE IS > EXPLV:5*10
+		LOCAL += 25 + RAND:6
+	CASE IS > EXPLV:4*10
+		LOCAL += 20 + RAND:11
+	CASE IS > EXPLV:3*10
+		LOCAL += 15 + RAND:16
+	CASE IS > EXPLV:2*10
+		LOCAL += 10 + RAND:21
+	CASE IS > EXPLV:1*10
+		LOCAL += 5 + RAND:26
+	CASEELSE
+		LOCAL += RAND:30
+ENDSELECT
+
+
+;欲望をチェックする。欲望が相手の欲望を上回るかどうか。成功なら欲望レベルの２倍、失敗なら１倍入ります。
+;CBVA売春では、相手の欲望の最大値が4です。
+LOCAL:9 = RAND:10
+IF LOCAL:9 <= ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+	LOCAL += ABL:ARG:技巧
+ELSE
+	LOCAL += ABL:ARG:技巧
+ENDIF
+
+;相手からの行動が発生します。相手の技巧がこちらの欲望以下の場合、不満そうな表情が出る可能性があります。
+;相手の技巧＋こちらの従順の２倍＞こちらの欲望＋２なら、問題なく行為を露出癖と奉仕精神を加える事が出来ます。
+;足りない場合は加えられません。
+LOCAL:9 = RAND:10
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 += ABL:ARG:従順
+LOCAL:9 -= 2
+
+IF LOCAL:9 >= ABL:ARG:欲望
+	LOCAL += ABL:ARG:マゾっ気
+	LOCAL += ABL:ARG:精液中毒
+ENDIF
+
+;ここまでで最大120％
+
+;価格による補正()
+LOCAL:1 = 100*(2+1)/(CFLAG:ARG:アナル価格+1)*LOCAL/40 - 100
+LOCAL += LOCAL:1 / 10
+
+;従順が3LVないと、著しく微妙になります
+IF ABL:ARG:従順 < 3 && ARG != MASTER
+	LOCAL /= 2
+ENDIF
+RETURN LOCAL
+
+
+;================================================
+;FUNCTION
+;================================================
+@看板便器(ARG)
+#FUNCTION
+LOCAL:1 = -1
+FOR LOCAL,0,CHARANUM
+	IF CFLAG:LOCAL:労役フラグ == 10+ARG && CFLAG:LOCAL:従事内容 == 1
+		IF LOCAL:1 == -1
+			LOCAL:1 = LOCAL
+		ELSE
+			SIF CFLAG:LOCAL:便器人気 > CFLAG:(LOCAL:1):便器人気
+				LOCAL:1 = LOCAL
+		ENDIF
+	ENDIF
+NEXT
+RETURNF LOCAL:1
+
+
+@便器誘惑度(ARG)
+#FUNCTION
+
+;ふつう全裸なので服装は無し
+LOCAL:1 = 50
+
+;従順で追加
+LOCAL:1 += ABL:ARG:従順 * 4
+;奉仕精神で追加
+LOCAL:1 += ABL:ARG:奉仕精神 * 3
+;精液中毒で追加
+LOCAL:1 += ABL:ARG:精液中毒 * 5
+
+;PALAM・屈服で追加
+LOCAL:1 += PALAMLV_F(ARG,"屈服")*3
+;PALAM・欲望で追加
+LOCAL:1 += PALAMLV_F(ARG,"欲情")*1
+;PALAM・潤滑で追加
+LOCAL:1 += PALAMLV_F(ARG,"潤滑")*1
+
+
+;恋慕・親愛持ちは10%の確率でＮＴＲ好きをそそって大幅ＵＰ、そうでなければＤＯＷＮ
+IF RAND:100 < 10
+	SIF TALENT:ARG:恋慕
+		TIMES LOCAL:1 , 2.00
+	SIF TALENT:ARG:親愛
+		TIMES LOCAL:1 , 5.00
+ELSE
+	SIF TALENT:ARG:恋慕
+		TIMES LOCAL:1 , 0.50
+	SIF TALENT:ARG:親愛
+		TIMES LOCAL:1 , 0.20
+ENDIF
+
+;淫乱・娼婦で追加
+SIF TALENT:ARG:淫乱
+	TIMES LOCAL:1 , 1.30
+SIF TALENT:ARG:娼婦
+	TIMES LOCAL:1 , 1.60
+
+;服従・隷属で追加
+SIF TALENT:ARG:服従
+	TIMES LOCAL:1 , 2.00
+SIF TALENT:ARG:隷属
+	TIMES LOCAL:1 , 2.50
+
+SIF CFLAG:ARG:引継ぎフラグ && FLAG:5 != 9
+	LOCAL:1 = LOCAL:1 * DAY:1 / 100
+
+RETURNF LOCAL:1
+
+;=====================================================
+;メッセージを表示
+;=====================================================
+@WORK_MESSAGE_TOILET,ARG
+;成功度で分岐
+	PRINTFORML %CALLNAME:ARG%は{CFLAG:ARG:便器使用予定人数}人の客に性欲処理用便器として使用してもらい、
+	SIF CFLAG:ARG:フェラ回数
+		PRINTFORM 口の中に{CFLAG:ARG:フェラ回数}回、
+	SIF CFLAG:ARG:アナル回数
+		PRINTFORM 尻穴に{CFLAG:ARG:アナル回数}回、
+	SIF CFLAG:ARG:中出し回数
+		PRINTFORM 膣内に{CFLAG:ARG:中出し回数}回、
+	SIF CFLAG:ARG:フェラ回数+CFLAG:ARG:アナル回数+CFLAG:ARG:中出し回数
+		PRINTL 精液を注ぎ込んでもらった。
+IF CFLAG:ARG:労役成功度 > 29
+	;陥落状況で分岐
+	IF TALENT:ARG:崩壊
+		PRINTFORML 特に、壊れた人形のように犯されるのを大人しく受け入れる様が、
+		PRINTFORML 逆に肉便器としての使い心地をよくしていたようだ。
+	ELSEIF TALENT:ARG:恋慕 || TALENT:ARG:親愛
+		;Ｖ感覚で分岐
+		IF ABL:ARG:Ｖ感覚 > 3 && CFLAG:ARG:本番回数
+			PRINTFORML 特に、%CALLNAME:MASTER%の名前を呼びながらも
+			PRINTFORML 両足で客の体をガッチリと挟み込み、下の口で肉棒を咥えこんで離さず
+			PRINTFORMW 自分から腰を振って快楽を貪ろうとする様が客を喜ばせたようだ。
+		ELSE
+			PRINTFORML 特に、%CALLNAME:MASTER%の名前を呼びながら泣き叫ぶ様が、
+			PRINTFORMW 一部の客の嗜虐趣味をそそらせて好評だったようだ。
+		ENDIF
+	ELSEIF TALENT:ARG:淫乱 || TALENT:ARG:娼婦
+		PRINTFORML 特に、客と共に積極的に快楽を得ようとする淫乱な様が、
+		PRINTFORMW 使用者に好評だったようだ。
+	ELSEIF TALENT:ARG:服従 || TALENT:ARG:隷属
+		PRINTFORML 特に、男の欲望を吐き出されるために存在する「便器」に徹する従順な姿勢が好評で、
+		PRINTFORMW 客達に使い込まれていたようだ。
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%の穴は具合がよく、客達からの評価は高かったようだ。
+	ENDIF
+ELSE
+	PRINTFORMW だが、客の評判はよくなかった様だ……
+ENDIF
+;イベント口上
+T = TARGET
+TARGET = ARG
+TFLAG:13 = 22
+CALL KOJO_MESSAGE_EVENT
+TARGET = T

@@ -1,0 +1,270 @@
+; オラクルの改造
+; 毎ターン発動できる代わりに効果がマイルドなオラクル
+
+
+;スキル名
+@SKILL_NAME_2865, ARG
+RESULTS = "Five-Colored Shots"
+SIF  GETBIT (FLAG:カスタムゲーム画面,1)
+	RESULTS = Impossible Request "Five-Colored Shots"
+
+;　命中
+@SKILL_HITRATE_2865, ARG
+RETURN 0
+
+;　威力
+@SKILL_POWER_2865, ARG
+RETURN 320
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2865, ARG
+RETURN 0
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2865, ARG
+RETURN 0
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2865, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2865, ARG
+RETURN 30
+
+;　相性
+@SKILL_TYPE_2865, ARG
+RETURN GET_TYPE_NUM("万能")
+;相性なし
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2865
+RETURN 1
+;EXTRA
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2865
+RETURN 0
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2865
+RETURN 2
+
+;　射程
+@SKILL_RANGE_2865, ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2865, ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2865
+RETURN 4
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_2865, ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2865
+RETURN 5
+
+@継承不能_2865
+RETURN 1
+;継承不可
+
+;速度補正
+@SKILL_SPEED_2865, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2865, ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2865
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_2865
+RETURN 0
+;変化不可
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_2865, ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_2865, ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_2865, ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_2865, ARG
+RETURN 0
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_2865, ARG, ARG:1
+;ARG:0…実行者のCHARA Num　ARG:1…対象のポジションNum
+
+;------------------------------------------------
+; LOCAL:0 対象Chara Num
+; LOCAL:1 効果種別
+;	0.味方全員の状態異常を完治,		 20.00%
+;	1.味方にタル・マカカジャ効果,	 20.00%
+;	2.味方全員のHPを大回復,			 20.00%
+;	3.デカジャ版泡沫の波紋,			 20.00%
+;	4.味方全員に万能防御壁,			 10.00%
+;	5.何も起こらない,				 10.00%
+;	6.エラー,						 0%
+; LOCAL:2 一時計算用
+; LOCAL:7 カウンタ変数
+; LOCAL:8 範囲Un
+; LOCAL:9 範囲Up
+;------------------------------------------------
+; 初期化処理
+VARSET LOCAL, 0, 0, 10
+LOCAL:1 = RAND:10000
+SELECTCASE LOCAL:1
+	CASE IS < 1000
+		LOCAL:1 = 5
+	CASE IS < 2000
+		LOCAL:1 = 4
+	CASE IS < 4000
+		LOCAL:1 = 3
+	CASE IS < 6000
+		LOCAL:1 = 2
+	CASE IS < 8000
+		LOCAL:1 = 1
+	CASE IS < 10000
+		LOCAL:1 = 0
+	CASEELSE
+		; ここに来ることは無いはずだが……
+		LOCAL:1 = 6
+ENDSELECT
+; 範囲設定
+IF CFLAG:ARG:PTフラグ == 0
+	LOCAL:8 = 7
+	LOCAL:9 = 17
+ELSE
+	LOCAL:8 = 1
+	LOCAL:9 = 7
+ENDIF
+
+; オラクル本処理
+;難題名表示
+LOCALS = "ENPTY"
+SELECTCASE LOCAL:1
+	CASE 0
+		LOCALS = 神宝「ブディストダイアモンド」
+	CASE 1
+		LOCALS = 神宝「蓬莱の玉の枝」
+	CASE 2
+		LOCALS = 神宝「ライフスプリングインフィニティ」
+	CASE 3
+		LOCALS = 神宝「ブリリアントドラゴンバレッタ」
+	CASE 4
+		LOCALS = 神宝「サラマンダーシールド」
+	CASE 5
+		LOCALS = 贋作「うろおぼえの金閣寺」
+ENDSELECT
+CALL MESSAGE_B(1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+;何も起こらない
+IF LOCAL:1 == 5
+	PRINTFORMW Nothing happened…
+ELSEIF LOCAL:1 == 6
+	PRINTFORMW ERROR: A result that doesn't exist occurs.
+ELSE
+	FOR LOCAL:7, LOCAL:8, LOCAL:9
+		LOCAL = POS(LOCAL:7)
+		; 空きポジションスキップ
+		SIF LOCAL < 0
+			CONTINUE
+		; DYINGスキップ
+		SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+			CONTINUE
+		; 分岐
+		SELECTCASE LOCAL:1
+			CASE 0
+				; アムリタから流用
+				CALL SKILL_CURE_STATE_2865, CFLAG:LOCAL:ステート
+				IF RESULT == 1
+					PRINTFORML 　　TARGET:[{LOCAL:7,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　Status recovered!
+					CFLAG:LOCAL:ステート = 0
+					CFLAG:LOCAL:ステート経過ターン = 0
+				ENDIF
+			CASE 1
+				; 流用
+				CFLAG:LOCAL:攻撃強化 += 4
+				SIF CFLAG:LOCAL:攻撃強化 > 32
+					CFLAG:LOCAL:攻撃強化 = 32
+				CFLAG:LOCAL:魔法威力強化 += 4
+				SIF CFLAG:LOCAL:魔法威力強化 > 32
+					CFLAG:LOCAL:魔法威力強化 = 32
+			CASE 2
+				CALL HEAL_SINGLE,ARG, LOCAL, 2865, 1
+			CASE 3
+				; 泡沫の波紋を改造
+				FOR LOCAL:2, GETNUM(CFLAG,"攻撃強化"), GETNUM(CFLAG,"クリティカル強化")+1
+					SIF CFLAG:LOCAL:(LOCAL:2) < 0
+						CFLAG:LOCAL:(LOCAL:2) = 0
+					CFLAG:LOCAL:(GETNUM(CFLAG,"BS付着率強化")) = 0
+				NEXT
+			CASE 4
+				IF CFLAG:LOCAL:万能ガードキル
+					CFLAG:LOCAL:万能ガードキル --
+				ELSEIF CFLAG:LOCAL:万能無効化回数 < 1
+					CFLAG:LOCAL:万能無効化回数 = 1
+				ENDIF
+		ENDSELECT
+	NEXT
+ENDIF
+
+PRINTL 
+SELECTCASE LOCAL:1
+	CASE 0
+		PRINTFORMW \@ CFLAG:ARG:PTフラグ == 0 ? 敵 # 味方 \@全体の状態異常が回復した！
+	CASE 1
+		PRINTFORMW \@ CFLAG:ARG:PTフラグ == 0 ? 敵 # 味方 \@全体の物理・魔法攻撃力が上がった！
+	CASE 2
+		PRINTFORMW \@ CFLAG:ARG:PTフラグ == 0 ? 敵 # 味方 \@全体の体力が回復！
+	CASE 3
+		PRINTFORMW \@ CFLAG:ARG:PTフラグ == 0 ? 敵 # 味方 \@全体の能力低下を打ち消した！
+	CASE 4
+		PRINTFORMW \@ CFLAG:ARG:PTフラグ == 0 ? 敵 # 味方 \@全体に万能防御壁を展開！
+ENDSELECT
+WAIT
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2865
+PRINTL Invokes a random, mysterious miracle out of the treasures at hand.
+PRINTL Spell Card of Megami Houraisan Kaguya.
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2865, ARG
+RETURN 1
+
+
+;何のバッドステータスを治せるか
+@SKILL_CURE_STATE_2865, ARG
+SELECTCASE GET_STATE(ARG)
+	CASE "GOOD", "DYING"
+		RETURN 0
+	CASEELSE
+		RETURN 1
+ENDSELECT
+

@@ -1,0 +1,683 @@
+;-----------------------------------
+;キングレオ(罪ルートボス)
+;-----------------------------------
+@SET_ACTION_キング・レオ, ARG
+;HP減少による確率補正を作成
+LOCAL = (100 - 現HP割合(ARG)) / 5
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+IF CFLAG:ARG:１moreフラグ == 2
+	SELECTCASE RAND:100
+		CASE 0 TO LOCAL * 2
+			CFLAG:ARG:入力行動 = [[スキル:烈火の勾玉]]
+		CASE LOCAL * 2 TO LOCAL * 4
+			CFLAG:ARG:入力行動 = [[スキル:暗黒狂焔乱舞]]
+	ENDSELECT
+;1ターン目は補助的な行動を取る
+ELSEIF CFLAG:ARG:行動した回数 == 0
+		IF MAX(100 - CFLAG:ARG:攻撃強化 * 3, 80) > RAND:100
+			IF CFLAG:ARG:攻撃強化 < 16
+				CFLAG:ARG:入力行動 = [[スキル:タル・カジャ]]
+			ELSE
+				CFLAG:ARG:入力行動 = [[スキル:ヒートライザ]]
+			ENDIF
+		ELSE
+			SELECTCASE RAND:100
+				CASE 0 TO 70
+					IF CFLAG:ARG:氷結無効化回数 == 0
+						CFLAG:ARG:入力行動 = [[スキル:明王神符]]
+					ELSE
+						CFLAG:ARG:入力行動 = [[スキル:雄叫び]]
+					ENDIF
+				CASEELSE
+					CFLAG:ARG:入力行動 = [[スキル:NitrogenCylinder]]
+			ENDSELECT
+		ENDIF
+ELSEIF CFLAG:ARG:行動した回数 == 1
+	SELECTCASE RAND:100
+		CASE 0 TO 19 +LOCAL
+			CFLAG:ARG:入力行動 = [[スキル:木っ端微塵斬り]]
+		CASE 20 TO 39 +LOCAL
+			CFLAG:ARG:入力行動 = [[スキル:暗黒狂焔乱舞]]
+	ENDSELECT
+ELSE
+	;ニャルルートの場合、水晶髑髏攻撃をしてくる
+	IF STRFLAG_NUM_EV("ニャル進行", , , , [[イベント:ペルソナ２]]) == 3 && RAND:2 && EQUIP:ARG:特殊弾1
+		CALL RANDOM_TARGET, ARG, 0
+		TSTR = 水晶髑髏
+		CFLAG:ARG:入力行動 = [[スキル:ＤＵＭＭＹ]]
+		RETURN 1
+	ENDIF
+	SELECTCASE RAND:100
+		CASE 0 TO 19 +LOCAL
+			CFLAG:ARG:入力行動 = [[スキル:フレイラ]]
+		CASE 20 TO 49 +LOCAL
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギオン]]
+		CASE 50 TO 54 +LOCAL * 2
+			CFLAG:ARG:入力行動 = [[スキル:烈火の勾玉]]
+	ENDSELECT
+ENDIF
+;ここまで入力行動が決まってなかったら、汎用3種に行く
+;GUNは特殊弾でも撃って来やすいので減らしとく
+IF CFLAG:ARG:入力行動 == -1
+	SELECTCASE RAND:100
+		CASE 0 TO 34
+			CFLAG:ARG:入力行動 = [[スキル:アギダイン]]
+		CASE 35 TO 69 
+			CFLAG:ARG:入力行動 = 0
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:火炎撃]]
+	ENDSELECT
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+
+;口上
+@ENEMY_BATTLE_MESSAGE_K4010, ARG
+SKIPDISP 0
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = EMPTY
+IF CFLAG:ARG:入力行動 == [[スキル:ＤＵＭＭＹ]]
+	IF RAND:3 == 0
+		CALL MESSAGE_B(1, "あの方から戴いた力…、お前らなんかに耐えられるわけがねぇ！！")
+	ELSEIF RAND:2
+		CALL MESSAGE_B(1, "水晶髑髏によって死ねることを光栄に思え！！")
+	ELSE
+		CALL MESSAGE_B(1, "偉大なるマイアの力よ！！")
+	ENDIF
+	WHILE 1
+		LOCAL:1 = RAND:6 + 1
+		LOCALS = ポジション{LOCAL:1}
+		SIF FLAG:LOCALS >= 0 && GET_STATE(CFLAG:(FLAG:LOCALS):ステート) != "DYING"
+			BREAK
+	WEND
+	LOCAL:1 = FLAG:LOCALS
+	LOCALS = %GET_TYPE(EQUIP:ARG:特殊弾1)%
+	EQUIP:ARG:特殊弾1 = 0
+	IF MAXBASE:(LOCAL:1):LOCALS == 999 || MAXBASE:(LOCAL:1):LOCALS <= 0 || LOCAL:1 == 0
+		LOCALS =  "天の水晶髑髏が輝き、%CALLNAME:MASTER%を守った！
+		SIF LOCAL:1 == 0
+			CALL MESSAGE_B(1, LOCALS)
+		LOCALS = BLOCK
+		LOCAL:3 = 0
+	ELSE
+		LOCAL:3 = (MAXBASE:(LOCAL:1):ＨＰ * MAXBASE:(LOCAL:1):LOCALS) / 100
+		SIF CFLAG:(LOCAL:1):防御フラグ
+			LOCAL:3 /= 2
+		LOCALS = {LOCAL:3} DAMAGE
+	ENDIF
+	PRINTFORMW TARGET:[{LOCAL:1,2}] %CALLNAME:(LOCAL:1),20,LEFT%　>>>>>>　%LOCALS%
+	CALL VAR_HP, LOCAL:1, -(LOCAL:3), 0
+	RETURN 0
+ENDIF
+;実は1MOREとるたびに徐々に攻撃力があがる
+IF CFLAG:ARG:１moreフラグ
+	MAXBASE:ARG:攻撃 += 5
+	MAXBASE:ARG:魔法威力 += 5
+	CFLAG:ARG:攻撃強化 += 5
+	CFLAG:ARG:魔法威力強化 += 5
+	LOCALS = いいぞぉ！　力が湧いてくる…！　お前らをぶち殺す力がなぁ！！
+ELSE
+	;消し炭にしてやる
+	;ペルソナー
+	SELECTCASE LOCAL
+		CASE 0, [[スキル:木っ端微塵斬り]]
+			IF !RAND:3
+				LOCALS = あの方の邪魔をさせてたまるかよぉ！
+			ELSEIF RAND:2
+				LOCALS = ヒャハァ！！　切り刻んでやる！
+			ELSE
+				LOCALS = 死ね！　死ね！　死んじまぇよぉ！！
+			ENDIF
+		CASE [[スキル:マハ・ラギオン]], [[スキル:アギダイン]]
+			IF !RAND:3
+				LOCALS = 焼き尽くしてやるよぉ！！
+			ELSEIF RAND:2
+				LOCALS = ヒャーハッハ！！燃えるんだよぉ！！
+			ELSE
+				LOCALS = 燃えろ燃えろぉ！燃えちまえェェェ！！
+			ENDIF
+		CASE [[スキル:フレイラ]]
+			LOCALS = うるさい！　うるさい！　みんな吹き飛んじまェェェ！！
+		CASE [[スキル:暗黒狂焔乱舞]], [[スキル:烈火の勾玉]]
+			IF !RAND:3
+				LOCALS = みんな、まとめて皆殺しだぁぁぁ！！
+			ELSEIF RAND:2
+				LOCALS = …ヒ…イヒ…ヒャハ！ヒャーハハハァァァァ！！
+			ELSE
+				LOCALS = 消し炭にしてやる！
+			ENDIF
+		CASE [[スキル:明王神符]], [[スキル:NitrogenCylinder]]
+			LOCALS = イヒ…ヒヒ…ヒハァ！　こういうのもあるんだよぁ！！
+		CASE [[スキル:タル・カジャ]], [[スキル:ヒートライザ]]
+			IF RAND:2
+				LOCALS = 電波電波電波！！　電波が体に満ちてくるんだよぉ！
+			ELSE
+				LOCALS = ヒャハァ！！　燃えてきたぁ！！
+			ENDIF
+		CASE [[スキル:雄叫び]]
+			IF RAND:2
+				LOCALS = ヒーヤッハッハァーッ！
+			ELSE
+				LOCALS = 俺は自由だ！　自由なんだよぉぉぉぉ！！
+			ENDIF
+	ENDSELECT
+ENDIF
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+@EVENT_BATTLE_TURNEND_DUNGEON14
+SIF !FINDCHARA_ENEMY([[キャラ:キング・レオ]])
+	RETURN 0
+LOCAL= RESULT:1
+SIF STRFLAG_NUM_EV("ニャル進行", , , ,  [[イベント:ペルソナ２]]) != 3
+	RETURN 0
+IF EQUIP:LOCAL:特殊弾1 == 0
+	SELECTCASE RAND:4
+		CASE 0
+			EQUIP:LOCAL:特殊弾1 = 12
+			LOCALS = 地
+		CASE 1
+			EQUIP:LOCAL:特殊弾1 = 13
+			LOCALS = 水
+		CASE 2
+			EQUIP:LOCAL:特殊弾1 = 4
+			LOCALS = 火
+		CASE 3
+			EQUIP:LOCAL:特殊弾1 = 14
+			LOCALS = 風
+	ENDSELECT
+	SETCOLOR 0x990000
+	PRINTFORML ┏>CHARA━━━━━━━━━━┓　┏>ACT━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃[9] キング・レオ　　　　　┃　┃%LOCALS%の水晶髑髏　　　　　　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━┛　┗━━━━━━━━━━━━━━━━━━━━┛
+	PRINTFORMW キング・レオは%LOCALS%の水晶髑髏を掲げた！
+	RESETCOLOR
+	WAIT
+ENDIF
+
+;----------------------------------
+;ショゴス　罰ルート前座
+;一斉自爆テロ子ちゃん
+;----------------------------------
+@SET_ACTION_ショゴス, ARG
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+SELECTCASE RAND:100
+	CASE IS < 20
+		IF CFLAG:ARG:BS付着率強化 < 2
+			CFLAG:ARG:入力行動 = [[スキル:淀んだ空気]]
+		ELSE
+			CFLAG:ARG:入力行動 = [[スキル:混濁の瘴気]]
+		ENDIF
+	CASE IS < 40
+		CFLAG:ARG:入力行動 = [[スキル:バイエイハ]]
+	CASE IS < 60
+		CFLAG:ARG:入力行動 = [[スキル:突撃]]
+	CASE IS < 80
+		CFLAG:ARG:入力行動 = [[スキル:ラク・ンダ]]
+	CASEELSE
+		CFLAG:ARG:入力行動 = 0
+ENDSELECT
+;HP20%以下のショゴスがでたら一斉に自爆（死亡も含む）
+FOR LOCAL, 7, 12
+	SIF 現HP割合(POS(LOCAL)) < 20
+		CFLAG:ARG:入力行動 = [[スキル:玉砕破]]
+NEXT
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+
+;-------------------------------
+;須藤 竜也
+;罰ルートボス
+;-------------------------------
+@SET_ACTION_須藤竜也, ARG
+;HP減少による確率補正を作成
+LOCAL = (100 - 現HP割合(ARG)) / 5
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+IF CFLAG:ARG:１moreフラグ == 2
+	SELECTCASE RAND:100
+		CASE 0 TO LOCAL * 2
+			CFLAG:ARG:入力行動 = [[スキル:フレイラ]]
+		CASE LOCAL * 2 TO LOCAL * 4
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギオン]]
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 == 0
+	CALL OLDMADE, ARG
+	SELECTCASE RAND:100
+		CASE IS < 20
+			CFLAG:ARG:入力行動 = [[スキル:プリンパ]]
+		CASE IS < 40
+			IF CFLAG:ARG:氷結無効化回数 == 0
+				CFLAG:ARG:入力行動 = [[スキル:明王神符]]
+			ELSE
+				CFLAG:ARG:入力行動 = [[スキル:挑発]]
+			ENDIF
+		CASE IS < 60 + LOCAL
+			TSTR = オールドメイド
+			;オールドメイド
+			CFLAG:ARG:入力行動 = [[スキル:ＤＵＭＭＹ]]
+	ENDSELECT
+ELSE
+	SELECTCASE RAND:100
+		CASE 0 TO 19 +LOCAL
+			CFLAG:ARG:入力行動 = [[スキル:フレイラ]]
+		CASE 20 TO 49 +LOCAL
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギオン]]
+	ENDSELECT
+ENDIF
+;ここまで入力行動が決まってなかったら、汎用3種に行く
+;GUNは特殊弾でも撃って来やすいので減らしとく
+IF CFLAG:ARG:入力行動 == -1
+	SELECTCASE RAND:100
+		CASE 0 TO 24
+			CFLAG:ARG:入力行動 = [[スキル:アギラオ]]
+		CASE 25 TO 49 
+			CFLAG:ARG:入力行動 = 0
+		CASE 50 TO 74
+			CFLAG:ARG:入力行動 = [[スキル:ソニックパンチ]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:火炎撃]]
+	ENDSELECT
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+;力技で、JOKERを最速行動させて、そこで処理を行う
+@EVENT_BATTLE_TURNTOP_DUNGEON52
+LOCAL = GETCHARA([[キャラ:須藤 竜也]])
+SIF LOCAL == -1
+	RETURN 0
+SIF ABL:LOCAL:初期ペルソナ == -1
+	RETURN 0
+CFLAG:LOCAL:速度補正 += 50000
+
+@ENEMY_BATTLE_MESSAGE_K4043, ARG
+SKIPDISP 0
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = EMPTY
+SELECTCASE LOCAL
+	CASE 0, [[スキル:火炎撃]]
+		IF !RAND:3
+			LOCALS = 間違いを正すんだよぉぉ！
+		ELSEIF RAND:2
+			LOCALS = ヒャハァ！！　切り刻んでやる！
+		ELSE
+			LOCALS = 死ね！　死ね！　死んじまぇよぉ！！
+		ENDIF
+	CASE [[スキル:マハ・ラギオン]], [[スキル:アギラオ]]
+		IF !RAND:3
+			LOCALS = 焼き尽くしてやるよぉ！！
+		ELSEIF RAND:2
+			LOCALS = ヒャーハッハ！！燃えるんだよぉ！！
+		ELSE
+			LOCALS = 燃えろ燃えろぉ！燃えちまえェェェ！！
+		ENDIF
+	CASE [[スキル:フレイラ]]
+		LOCALS = うるさい！　うるさい！　みんな吹き飛んじまェェェ！！
+	CASE [[スキル:明王神符]]
+		LOCALS = イヒ…ヒヒ…ヒハァ！　こういうのもあるんだよぁ！！
+	CASE [[スキル:雄叫び]]
+		IF RAND:2
+			LOCALS = ヒーヤッハッハァーッ！
+		ELSE
+			LOCALS = 俺は自由だ！　自由なんだよぉぉぉぉ！！
+		ENDIF
+	CASE  [[スキル:ＤＵＭＭＹ]]
+		PRINTFORMW 味方の誰かにＪＯＫＥＲが憑依した！
+		WHILE 1
+			LOCAL = RAND:6 + 1
+			SIF POS(LOCAL) >= 0 && GET_STATE(CFLAG:POS(LOCAL):ステート) != "DYING"
+				BREAK
+			LOCAL = 0
+		WEND
+		ABL:ARG:初期ペルソナ = POS(LOCAL)
+		IF RAND:2
+			LOCALS = ジョーカァァァ！
+		ELSE
+			LOCALS = 電波電波電波！！
+		ENDIF
+	CASEELSE
+		IF RAND:2
+			LOCALS = 死ねやぁ！
+		ELSE
+			LOCALS = ヒャハァ！
+		ENDIF
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+
+;--------------------------------
+;炎ダメージ
+;--------------------------------
+@EVENT_BATTLE_ACTEND_DUNGEON52
+LOCAL = FLAG:行動順1
+SIF LOCAL < 0
+	RETURN 0
+SIF CFLAG:LOCAL:ステート == GET_STATE_NUM("DYING")
+	RETURN 0
+IF MAXBASE:LOCAL:火炎 == 999
+	LOCAL:1 = 0
+ELSE
+	LOCAL:1 = RAND:20 + 10
+	IF CFLAG:LOCAL:火炎無効化回数 > 0
+		LOCAL:1 = 0
+		CFLAG:LOCAL:火炎無効化回数 -= 1
+	ELSE
+		LOCAL:1 = LOCAL:1 * MAXBASE:LOCAL:火炎 / 100
+		SIF NO:LOCAL == [[キャラ:キング・レオ]] || NO:LOCAL == [[キャラ:須藤 竜也]]
+			LOCAL:1 *= 4
+	ENDIF
+ENDIF
+IF LOCAL:1 < 0
+	LOCALS:1 = {-LOCAL:1}回復
+ELSEIF LOCAL:1 == 0
+	LOCALS:1 = BLOCK
+ELSE
+	LOCALS:1 = {LOCAL:1} DAMAGE
+ENDIF
+LOCALS = 炎が%CALLNAME:LOCAL%を襲う！
+CALL MESSAGE_B(1, LOCALS)
+PRINTFORMW TARGET:[{LOCAL,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　%LOCALS:1%
+CALL VAR_HP, LOCAL, -(LOCAL:1), 0
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_52
+;火がつくまでは敵が出ない
+FLAG:エンカウント率 = STRFLAG_D("炎上開始") ? FLAG:未遭遇歩数*5 # 0
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_52
+IF STRFLAG_EV("罪ルート", , [[イベント:ペルソナ２]])
+	RETURN 31, 28, 31, 35
+ELSE
+	RETURN 20, 20, 21, 25
+ENDIF
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_52
+IF RAND:100 < FLAG:エンカウント率
+	IF STRFLAG_EV("罪ルート", , [[イベント:ペルソナ２]])
+		FOR LOCAL, 7, 17
+			LOCAL:LOCAL = -1
+		NEXT
+		LOCAL:20 = 0
+		$ENCOUNT_LOOP
+		;噂の状況では仮面党員が出てくる
+		IF RAND:2 && STRFLAG_NUM_EV("アジトの噂", , , , [[イベント:噂]]) == 2
+			SELECTCASE RAND:100
+				;4色
+				CASE 0 TO 19
+					LOCAL:7 = 21
+					LOCAL:8 = 21
+					LOCAL:10 = 22
+					LOCAL:11 = 22
+					LOCAL:12 = 23
+					LOCAL:13 = 23
+					LOCAL:15 = 24
+					LOCAL:16 = 24
+				;前衛後衛2色 10体
+				CASE 10 TO 29
+					LOCAL:1 = RAND:2 + 21
+					LOCAL:2 = RAND:2 + 23
+					FOR LOCAL, 7, 17
+						IF LOCAL > 11
+							LOCAL:LOCAL = LOCAL:1
+						ELSE
+							LOCAL:LOCAL = LOCAL:2
+						ENDIF
+					NEXT
+				;1色1列
+				CASE 30 TO 49
+					LOCAL:1 = RAND:4 + 21
+					FOR LOCAL, 7, 17
+						LOCAL:LOCAL = LOCAL:1
+					NEXT
+				;40%の確率でランダム配置、1枠50%
+				CASEELSE
+					FOR LOCAL, 7, 17
+						SIF RAND:2
+							LOCAL:LOCAL = RAND:4 + 21
+					NEXT
+			ENDSELECT
+		ELSE
+			SELECTCASE RAND:100
+				;一種
+				CASE 0 TO 29
+					;モスマンは少なめ
+					IF RAND:6 == 0
+						LOCAL:1 = 4
+					ELSE
+						LOCAL:1 = RAND:3 + 1
+					ENDIF
+					FOR LOCAL, 7, 17
+						IF RAND:2
+							LOCAL:LOCAL = LOCAL:1
+						ENDIF
+					NEXT
+				;二種
+				CASE 30 TO 49
+					;モスマンは少なめ
+					DO
+						IF RAND:6 == 0
+							LOCAL:2 = 4
+						ELSE
+							LOCAL:2 = RAND:3 + 1
+						ENDIF
+					LOOP LOCAL:1 == LOCAL:2
+					FOR LOCAL, 7, 17
+						SIF RAND:2
+							LOCAL:LOCAL = LOCAL:(RAND:2 + 1)
+					NEXT
+				;四種
+				CASE 50 TO 59
+					FOR LOCAL, 7, 17
+						SIF RAND:2
+							LOCAL:LOCAL = RAND:4 + 1
+					NEXT
+				;氷結のみテーブル
+				CASE 69 TO 89
+					FOR LOCAL, 7, 17
+						IF RAND:2
+							LOCAL:LOCAL = RAND:2 + 11
+						ENDIF
+					NEXT
+				;混合テーブル
+				CASEELSE
+					FOR LOCAL, 7, 17
+						IF RAND:2
+							IF RAND:3
+								LOCAL:LOCAL = RAND:4 + 1
+							ELSE
+								LOCAL:LOCAL = RAND:2 + 11
+							ENDIF
+						ENDIF
+					NEXT
+			ENDSELECT
+		ENDIF
+		FOR LOCAL, 7, 17
+			SIF LOCAL:LOCAL >= 0
+				CALL SET_DUNGEON_ENEMY_52, LOCAL, LOCAL:LOCAL / 10, LOCAL:LOCAL % 10
+		NEXT
+		FOR LOCAL,7,17
+			SIF POS(LOCAL) > -1
+				LOCAL:20 += 1
+		NEXT
+		SIF LOCAL:20 == 0
+			GOTO ENCOUNT_LOOP
+		RETURN 1
+	ELSE
+		CALL ENEMY_TABLE
+		RETURN 1
+	ENDIF
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵キャラの中身
+;=======================================================================
+@SET_DUNGEON_ENEMY_52, ARG, ARG:1, ARG:2
+;ARG ポジション
+;ARG:1 テーブルパターン
+;ARG:2 キャラ指定
+;LOCAL 作った敵の登録番号
+;LOCAL;1 キャラ番号
+;LOCAL:2 ランク
+LOCAL:2 = 0
+;通常テーブル
+IF ARG:1 == 0
+	ARG:2 = ARG:2 ? ARG:2 # RAND:4 + 1
+	SELECTCASE ARG:2
+		CASE 1
+			LOCAL:1 = [[キャラ:ケライノー]]
+			LOCAL:2 = 28
+		CASE 2
+			LOCAL:1 = [[キャラ:カラステング]]
+			LOCAL:2 = 28
+		CASE 3
+			LOCAL:1 = [[キャラ:プリンシパリティ]]
+			LOCAL:2 = 28
+		CASE 4
+			LOCAL:1 = [[キャラ:モスマン]]
+			LOCAL:2 = 30
+	ENDSELECT
+	LOCAL:2 += ((FLAG:現M - 1) * 10 > RAND:100) * 3
+;氷結持ちテーブル
+ELSEIF ARG:1 == 1
+	ARG:2 = ARG:2 ? ARG:2 # RAND:2 + 1
+	SELECTCASE ARG:2
+		CASE 1
+			LOCAL:1 = [[キャラ:ハルワタート]]
+			LOCAL:2 = 28
+		CASE 2
+			LOCAL:1 = [[キャラ:アエロー]]
+			LOCAL:2 = 28
+	ENDSELECT
+	LOCAL:2 += ((FLAG:現M - 1) * 10 > RAND:100)
+;仮面党テーブル
+ELSEIF ARG:1 == 2
+	ARG:2 = ARG:2 ? ARG:2 # RAND:4 + 1
+	LOCAL:2 = 28 + ((FLAG:現M - 1) * 10 > RAND:100) * 2 + ((FLAG:現M - 2) * 10 > RAND:100) * 2
+	SELECTCASE ARG:2
+		CASE 1
+			LOCAL:1 = [[キャラ:牡牛カメーン]]
+		CASE 2
+			LOCAL:1 = [[キャラ:獅子カメーン]]
+		CASE 3
+			LOCAL:1 = [[キャラ:蠍カメーン]]
+		CASE 4
+			LOCAL:1 = [[キャラ:水瓶カメーン]]
+	ENDSELECT
+ENDIF
+CALL SET_ENEMY, ARG, LOCAL:1, LOCAL:2
+LOCAL = CHARANUM - 1
+SELECTCASE LOCAL:1
+	CASE [[キャラ:プリンシパリティ]]
+		ABL:LOCAL:スキル1 = [[スキル:アギラオ]]
+	CASE [[キャラ:モスマン]]
+		IF LOCAL:2 == 1
+			ABL:LOCAL:スキル6 = [[スキル:ファイアブレス]]
+		ELSE
+			ABL:LOCAL:スキル4 = [[スキル:ファイアブレス]]
+		ENDIF
+	CASE [[キャラ:カラステング]]
+		ABL:LOCAL:スキル4 = [[スキル:マハ・ラギオン]]
+		ABL:LOCAL:スキル5 = [[スキル:天狗神符]]
+	CASE [[キャラ:ハルワタート]]
+		MAXBASE:LOCAL:衝撃 = 150
+		BASE:LOCAL:衝撃 = 150
+	CASE [[キャラ:ケライノー]]
+		ABL:LOCAL:スキル2 = [[スキル:マハ・ラギ]]
+		ABL:LOCAL:スキル4 = [[スキル:アギラオ]]
+	CASE [[キャラ:牡牛カメーン]]
+		ABL:LOCAL:スキル2 = [[スキル:マハ・マグナス]]
+		ABL:LOCAL:スキル3 = [[スキル:サマーソルト]]
+	CASE [[キャラ:獅子カメーン]]
+		ABL:LOCAL:スキル2 = [[スキル:マハ・ラギオン]]
+		ABL:LOCAL:スキル3 = [[スキル:回転斬り]]
+	CASE [[キャラ:蠍カメーン]]
+		ABL:LOCAL:スキル2 = [[スキル:マハ・アクエス]]
+		ABL:LOCAL:スキル3 = [[スキル:メ・ディアラマ]]
+	CASE [[キャラ:水瓶カメーン]]
+		ABL:LOCAL:スキル2 = [[スキル:マハ・ガルーラ]]
+ENDSELECT
+
+;罰ルート用
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_52
+RETURN CLASS_NUM_COMMON("中級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_52, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_52, ARG
+SELECTCASE RAND:100
+	CASE IS < 15
+		RETURN [[キャラ:イシュタム]], 21
+	CASE IS < 30
+		RETURN [[キャラ:オキュペテー]], 20
+	CASE IS < 45
+		RETURN [[キャラ:クシナダヒメ]], 20
+	CASE IS < 60
+		RETURN [[キャラ:ヴィーヴル]], 21
+	CASE IS < 90
+		RETURN [[キャラ:オルトロス]], 21
+	CASEELSE
+		RETURN [[キャラ:ジャックランタン]], 20
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_52
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+RETURN [[キャラ:オルトロス]] , 3 + RAND:10 , CSVBASE([[キャラ:オルトロス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+

@@ -1,0 +1,76 @@
+;-------------------------------------------------
+;@ADD_GUEST_COMPANION(ARG, ARG:1, ARG:2)
+;ゲストキャラを参戦させる関数
+;ARGのキャラをARG:1の忠誠度で
+;パーティに空白があればその場所
+;なければ悪魔を押しのけて入ってくる
+;RESULTに実際にいれたポジション（いれてないなら0）
+;RESULT:1に押しのけたキャラのキャラ番号（おしのけてないなら-1）
+;RESULT:2が1の場合は新しくキャラ追加、0の場合は引継ぎキャラを復活
+;を入れて返す
+;ARG:2をONにした場合は後列から判定するので、後列向けキャラの場合はどうぞ
+;-------------------------------------------------
+@ADD_GUEST_COMPANION(ARG, ARG:1, ARG:2)
+#LOCALSIZE 4
+LOCAL:1 = -1
+LOCAL:2 = -1
+IF ARG:2
+	FOR LOCAL, 6, 0, -1
+		LOCALS = ポジション{LOCAL} 
+		IF FLAG:LOCALS < 0
+			LOCAL:1 = LOCAL
+			BREAK
+		ENDIF
+	NEXT
+	IF LOCAL:1 == -1
+		FOR LOCAL, 6, 0, -1
+			LOCALS = ポジション{LOCAL} 
+			IF ABL:(FLAG:LOCALS):種族 || NO:(FLAG:LOCALS) == [[キャラ:メアリ]]
+				LOCAL:1 = LOCAL
+				;LOCAL:2にどかすキャラを入れる
+				LOCAL:2 = POS(LOCAL)
+				;ポジションから外す
+				CALL REMOVE_POSITION(LOCAL)
+				BREAK
+			ENDIF
+		NEXT
+	ENDIF
+ELSE
+	FOR LOCAL, 1, 7
+		LOCALS = ポジション{LOCAL} 
+		IF FLAG:LOCALS < 0
+			LOCAL:1 = LOCAL
+			BREAK
+		ENDIF
+	NEXT
+	IF LOCAL:1 == -1
+		FOR LOCAL, 1, 7
+			LOCALS = ポジション{LOCAL} 
+			IF ABL:(FLAG:LOCALS):種族 || NO:(FLAG:LOCALS) == [[キャラ:メアリ]]
+				LOCAL:1 = LOCAL
+				;LOCAL:2にどかすキャラを入れる
+				LOCAL:2 = POS(LOCAL)
+				;ポジションから外す
+				CALL REMOVE_POSITION(LOCAL)
+				BREAK
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+IF LOCAL:1 >= 0
+	;キャラを加入させる
+	IF GETCHARA(ARG) >= 0
+		CFLAG:GETCHARA(ARG):この場に居ないフラグ = 0
+		CFLAG:GETCHARA(ARG):ゲスト加入フラグ = 1
+		CALL INSERT_POSITION, LOCAL:1, GETCHARA(ARG)
+		LOCAL:3 = 0
+	ELSE
+		CALL ADD_NEW_COMPANION, ARG , ARG:1
+		CFLAG:RESULT:ゲスト加入フラグ = 1
+		CALL INSERT_POSITION, LOCAL:1, RESULT:1
+		LOCAL:3 = 1
+	ENDIF
+	;いれたポジションをかえす
+	RETURN LOCAL:1, LOCAL:2, LOCAL:3
+ENDIF
+RETURN 0

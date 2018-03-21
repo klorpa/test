@@ -1,0 +1,430 @@
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:SET_BATTLE.ERB
+;	Facility	:戦闘するための前準備を行う処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/14		Ｎ鳥					REPEATをセットする際の条件分岐を一部変更し、可読性の向上を図る
+;	003		2013/03/15		ネトリス				野良悪魔素質ランダム設定の処理を追加
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;===================================
+;敵の設定
+;===================================
+@SET_ENEMY,ARG,ARG:1,ARG:2,ARG:3,ARG:4 = 0
+;ARG:0 セットするポジション　ARG:1　セットする悪魔　ARG:2 セットする悪魔のレベル　ARG:3　死体残存フラグの有無 ARG:4ボスフラグ
+;1-6指定してたら面倒なので帰る
+;LOCAL:4 レベルアップによる能力の増加値合計
+
+IF ARG < 7
+	RETURN 0
+ENDIF
+;LOCALに現在のキャラ数＝次に加えるキャラの番号を代入
+LOCAL = CHARANUM
+LOCAL:1 = TARGET
+
+ADDCHARA ARG:1
+
+;解析度が0でボスじゃない場合名前が分からず、アンノウンフラグが立つ
+IF FLAG:(20000+ARG:1) == 0 && ARG:4 == 0
+	NAME:LOCAL = ？？？？
+	CALLNAME:LOCAL = ？？？？
+	CFLAG:LOCAL:アンノウンフラグ = 1
+ENDIF
+
+CFLAG:LOCAL:行動回数 = 1
+CFLAG:LOCAL:キャラ固有の番号 = -2
+
+CFLAG:LOCAL:死体残存 = ARG:3
+;攻撃力と魔法威力に下駄
+CFLAG:LOCAL:攻撃補正 = (ARG:2)
+CFLAG:LOCAL:魔法威力補正 = (ARG:2)
+
+;レベル変化
+BASE:LOCAL:LV = ARG:2
+;強化ランクを一応セットしておく
+CFLAG:LOCAL:強化ランク = ARG:2 - CSVBASE(NO:LOCAL,GETNUM(BASE,"LV"),0) 
+;ボスフラグセット
+CFLAG:LOCAL:ボスフラグ = ARG:4
+;能力値の合計を計算
+SELECTCASE FLAG:戦闘難易度
+	CASE 4
+		LOCAL:4 = (18 + BASE:LOCAL:LV * 3 / 2)
+		IF ARG:2 >= 6
+			LOCAL:4 = (18 + BASE:LOCAL:LV * 2)
+		ENDIF
+	CASE 5
+		LOCAL:4 = (18 + BASE:LOCAL:LV * 3 / 2)
+		IF ARG:2 >= 6
+			LOCAL:4 = (18 + BASE:LOCAL:LV * 4)
+		ENDIF
+	CASE IS >= 6
+		LOCAL:4 = (18 + BASE:LOCAL:LV * 6)
+	CASEELSE
+		LOCAL:4 = (18 + BASE:LOCAL:LV * 3 / 2)
+ENDSELECT
+
+FOR LOCAL:2,0,6
+	;レベルに応じて能力値増減
+	BASE:LOCAL:(GET_BASESTATUS(1+LOCAL:2)) *= LOCAL:4
+	BASE:LOCAL:(GET_BASESTATUS(1+LOCAL:2)) /= (18 + CSVBASE(NO:LOCAL,GETNUM(BASE,"LV"),0) * 3 / 2)
+	SIF CFLAG:LOCAL:ボスフラグ
+		BASE:LOCAL:(GET_BASESTATUS(1+LOCAL:2)) += 1
+NEXT
+FOR LOCAL:2,1,21
+	IF ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:2)) > 0
+		TRYCCALLFORM 味方専用_{ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:2))}
+			IF RESULT == 0
+				IF ABL:LOCAL:("習得LV"+TOSTR(LOCAL:2)) <= BASE:LOCAL:LV
+					CALL LEARN_SKILL_ENEMY,LOCAL,ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:2))
+					ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:2)) = 0
+					ABL:LOCAL:("習得LV"+TOSTR(LOCAL:2)) = 0
+				ENDIF
+			ENDIF
+		CATCH
+			IF ABL:LOCAL:("習得LV"+TOSTR(LOCAL:2)) <= BASE:LOCAL:LV
+				CALL LEARN_SKILL_ENEMY,LOCAL,ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:2))
+				ABL:LOCAL:("習得スキル"+TOSTR(LOCAL:2)) = 0
+				ABL:LOCAL:("習得LV"+TOSTR(LOCAL:2)) = 0
+			ENDIF
+		ENDCATCH
+	ENDIF
+NEXT
+;味方専用スキルを削除
+FOR LOCAL:3,1,FLAG:スキル数+1
+	LOCALS = スキル{LOCAL:3}
+	TRYCCALLFORM 味方専用_{ABL:LOCAL:LOCALS}
+		SIF RESULT == 1
+			ABL:LOCAL:LOCALS = 0
+	CATCH
+	ENDCATCH
+NEXT
+;二人称を変換する
+CALL CONVERT_SECOND_PERSON, LOCAL
+;配偶者ランダム付与
+;配偶者が設定されている場合はスキップ
+IF CSVCSTR(NO:LOCAL , GETNUM(CSTR , "配偶者") , 0) == "" && FLAG:配偶者ランダム付与 && RAND:100 < FLAG:配偶者ランダム付与
+	IF TALENT:LOCAL:オトコ
+		CSTR:LOCAL:配偶者 = 妻
+	ELSE
+		CSTR:LOCAL:配偶者 = 夫
+	ENDIF
+ENDIF
+;野良悪魔素質ランダム設定
+;とりあえず胸のみ
+IF FLAG:野良悪魔素質ランダム設定 && RAND:100 < FLAG:野良悪魔素質ランダム設定
+	IF TALENT:LOCAL:オトコ == 0
+		TALENT:LOCAL:貧乳 = 0
+		TALENT:LOCAL:絶壁 = 0
+		TALENT:LOCAL:巨乳 = 0
+		TALENT:LOCAL:爆乳 = 0
+		SELECTCASE RAND:5
+			CASE 0
+				TALENT:LOCAL:貧乳 = 1
+			CASE 1
+				TALENT:LOCAL:絶壁 = 1
+			CASE 2
+				TALENT:LOCAL:巨乳 = 1
+			CASE 3
+				TALENT:LOCAL:爆乳 = 1
+			;普乳
+			CASE 4
+
+		ENDSELECT
+	ENDIF
+ENDIF
+
+CALL ADJUST_CHARA_ALI,LOCAL
+CALL SYNC_STATUS,LOCAL
+CALL HEALTH_CHARA,LOCAL
+CALL INSERT_POSITION,ARG,LOCAL
+TARGET = LOCAL:1
+
+RETURN 1
+
+;二人称を変換する
+@CONVERT_SECOND_PERSON, ARG
+IF TALENT:MASTER:オトコ == 0
+	SIF CSTR:ARG:二人称 == "お兄ちゃん"
+		CSTR:ARG:二人称 = お姉ちゃん
+	SIF CSTR:ARG:二人称 == "お兄さん"
+		CSTR:ARG:二人称 = お姉さん
+	SIF CSTR:ARG:二人称 == "お兄様"
+		CSTR:ARG:二人称 = お姉様
+ENDIF
+
+
+@LEARN_SKILL_ENEMY,ARG,ARG:1
+;ARG = レベルアップしたキャラ
+;ARG:1 = 習得するスキル
+;まず空のスキル枠を探す
+LOCAL:1 = 0
+LOCALS:1 = 
+FOR LOCAL,1,FLAG:スキル数+1
+	LOCALS = スキル{LOCAL}
+	;既に習得していたら関数を抜ける
+	SIF ABL:ARG:LOCALS == ARG:1
+		RETURN 0
+	IF ABL:ARG:LOCALS < 1
+		LOCAL:1 = 1
+		LOCALS:1 = %LOCALS%
+		BREAK
+	ENDIF
+NEXT
+
+IF LOCAL:1 > 0
+	;空のスキル枠があれば習得
+	ABL:ARG:(LOCALS:1) = ARG:1
+ENDIF
+
+
+;===============================
+;戦闘初期化
+;===============================
+@REFRESH_BATTLE
+FOR LOCAL:1,0,CHARANUM
+	CFLAG:(LOCAL:1):入力行動 = -1
+	CFLAG:(LOCAL:1):防御フラグ = 0
+	CFLAG:(LOCAL:1):入手経験点 = 0
+	CFLAG:(LOCAL:1):入手ＭＡＧ = 0
+	CFLAG:(LOCAL:1):入手AP = 0
+	TCVAR:(LOCAL:1):獲得忠誠度 = 0
+	CFLAG:(LOCAL:1):行動した回数 = 0
+	CFLAG:(LOCAL:1):ＣＨＡＮＧＥ対象フラグ = 0
+	CFLAG:(LOCAL:1):攻撃強化 = 0
+	CFLAG:(LOCAL:1):命中強化 = 0
+	CFLAG:(LOCAL:1):防御強化 = 0
+	CFLAG:(LOCAL:1):回避強化 = 0
+	CFLAG:(LOCAL:1):魔法威力強化 = 0
+	CFLAG:(LOCAL:1):魔法効果強化 = 0
+	CFLAG:(LOCAL:1):魔法威力強化 = 0
+	CFLAG:(LOCAL:1):クリティカル強化 = 0
+	CFLAG:(LOCAL:1):BS付着率強化 = 0
+	CFLAG:(LOCAL:1):召喚予定キャラ = -1
+	CFLAG:(LOCAL:1):ＣＯＯＰフラグ = 0
+	CFLAG:(LOCAL:1):ＣＯＯＰ参加フラグ = 0
+	CFLAG:(LOCAL:1):ダメージ吸収量 = 0
+	CFLAG:(LOCAL:1):Longinus = 0
+	CFLAG:(LOCAL:1):ハント回数 = 0
+	VARSET TFLAG, 0, 300, 500
+	TFLAG:戦闘中 = 1
+	REPEAT 19
+		CFLAG:(LOCAL:1):(GET_TYPE(COUNT)+"無効化回数") = 0
+		CFLAG:(LOCAL:1):(GET_TYPE(COUNT)+"ガードキル") = 0
+		CFLAG:(LOCAL:1):(GET_TYPE(COUNT)+"ウェイト") = 0
+	REND
+	REPEAT FLAG:ステート数
+		CFLAG:(LOCAL:1):(GET_STATE(COUNT)+"無効化回数") = 0
+	REND
+	CFLAG:(LOCAL:1):バステ無効化回数 = 0
+	CFLAG:(LOCAL:1):アタッカ = -1
+	CFLAG:(LOCAL:1):物理反射フラグ = 0
+	CFLAG:(LOCAL:1):魔法反射フラグ = 0
+	CFLAG:(LOCAL:1):無効フラグ = 0
+	CFLAG:(LOCAL:1):食いしばりフラグ = 0
+	CFLAG:(LOCAL:1):気合フラグ = 0
+	CFLAG:(LOCAL:1):集中フラグ = 0
+	CFLAG:(LOCAL:1):リンケージ参加 = 0
+	CFLAG:(LOCAL:1):リンケージ発動 = 0
+	CFLAG:(LOCAL:1):DDS使用回数 = 0
+	CFLAG:(LOCAL:1):防御半減フラグ = 0
+	CFLAG:(LOCAL:1):魔法効果半減フラグ = 0
+	CFLAG:(LOCAL:1):回復不能フラグ = 0
+NEXT
+
+;入力行動をＲＥＰＥＡＴから呼び出して登録
+FOR LOCAL,0,6
+	LOCALS = ポジション{LOCAL+1}
+	SIF FLAG:LOCALS > -1
+	CALL COMMAND_REPEAT,FLAG:LOCALS
+NEXT
+
+
+
+
+
+FLAG:勝利フラグ = 0
+FLAG:敗北フラグ = 0
+FLAG:経過ターン数 = 0
+FLAG:交渉目的 = 0
+
+;===============================
+;戦闘キャラ初期化
+;===============================
+
+;===============================
+;REPEAT入力
+;===============================
+@COMMAND_REPEAT,ARG
+#DIM リンケ , 1
+#DIM 人数 , 1
+#LOCALSIZE 1
+#DIM 元参加者 , 5
+	IF ARG > -1
+		;行動入力可能でなければ行動不能にして飛ばす
+		CALL INPUTABLE_CHARA,ARG
+		IF RESULT == 0
+			CFLAG:(ARG):入力行動 = -1
+			RETURN 0
+		ENDIF
+		IF CFLAG:(ARG):ＲＥＰＥＡＴ行動 == -1
+			CFLAG:(ARG):入力行動 = -1
+			CFLAG:(ARG):防御フラグ = 1
+			RETURN 0
+		ENDIF
+		
+		;リピートスキルを習得していなかったら通常攻撃を入力 ただし、銃スキルとアイテムスキルに関しては持ってなくても通常攻撃にいかない
+		IF CHECK_SKILL(ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動) == 0
+			;通常攻撃になるところ
+			$通常攻撃にします
+			
+			;可読性のため、もっていなくても良いスキルはここへ
+			;銃スキルは習得していなくてもおｋ
+			SIF CFLAG:(ARG):ＲＥＰＥＡＴ行動 / 100 == 21
+				GOTO 持ってなくて良いスキルはここ
+			;アイテムスキルは習得していなくておｋ
+			SIF CFLAG:(ARG):ＲＥＰＥＡＴ行動 / 1000 == 3
+				GOTO 持ってなくて良いスキルはここ
+			;ＧＵＮ
+			SIF CFLAG:(ARG):ＲＥＰＥＡＴ行動 == 2101
+				GOTO 持ってなくて良いスキルはここ
+			;ＤＯＵＢＬＥ・ＴＡＰ
+			SIF CFLAG:(ARG):ＲＥＰＥＡＴ行動 == 138
+				GOTO 持ってなくて良いスキルはここ
+			;Hi-DAS
+			SIF (CFLAG:(ARG):ＲＥＰＥＡＴ行動 == 2306 && EQUIP:MASTER:Ｈｉ－ＤＡＳ)
+				GOTO 持ってなくて良いスキルはここ
+			
+			;リピートスキルがリンケージである場合、使用者と参加者全員をチェック
+			IF RANGE(CFLAG:ARG:ＲＥＰＥＡＴ行動,4000,4999)
+				;前回使用したメンバーで使用できるかチェック
+				VARSET 元参加者 , -1
+				FOR LOCAL , 0 , 5
+					IF CFLAG:ARG:("リンケージ参加者"+ TOSTR(LOCAL+1)) > -1 && CFLAG:ARG:("リンケージ参加者"+ TOSTR(LOCAL+1)) < CHARANUM
+						IF CFLAG:(CFLAG:ARG:("リンケージ参加者"+ TOSTR(LOCAL+1))):PTフラグ == 2
+							元参加者:LOCAL = CFLAG:ARG:("リンケージ参加者"+ TOSTR(LOCAL+1))
+						ENDIF
+					ENDIF
+				NEXT
+				リンケ = CFLAG:ARG:ＲＥＰＥＡＴ行動
+				CALL CHECK_ACTIONABLE,ARG,リンケ
+				SIF RESULT == 0
+					GOTO NOLINK
+				CALLFORM 参加人数_{リンケ}
+				人数 = RESULT
+				FOR LOCAL , 1 , 人数+1
+					SIF 元参加者:(LOCAL-1) < 0
+						GOTO NOLINK
+					;条件を満たせないキャラはダメ
+					CALLFORM 参加者条件_{リンケ}, 元参加者:(LOCAL-1) , LOCAL
+					SIF RESULT == 0
+						GOTO NOLINK
+					;動けないキャラは駄目
+					CALL ACTIONABLE_CHARA,元参加者:(LOCAL-1)
+					SIF RESULT == 0
+						GOTO NOLINK
+					;戦闘に出てないキャラは駄目
+					SIF CFLAG:(元参加者:(LOCAL-1)):PTフラグ < 2
+						GOTO NOLINK
+					;既に参加しているキャラはダメ
+					SIF CFLAG:(元参加者:(LOCAL-1)):リンケージ参加 == 1
+						GOTO NOLINK
+				NEXT
+				;全員可能なら、行動入力
+				CFLAG:(ARG):入力行動 = リンケ
+				CFLAG:ARG:使用リンケージ = リンケ
+				CFLAG:ARG:リンケージ発動 = 1
+				
+				FOR LOCAL,1,人数+1
+					CFLAG:ARG:("リンケージ参加者"+ TOSTR(LOCAL)) = 元参加者:(LOCAL-1)
+					CFLAG:(元参加者:(LOCAL-1)):リンケージ参加 = 1
+				NEXT
+				GOTO 持ってなくて良いスキルはここ
+				
+			ELSE
+				$NOLINK
+				CALL CHECK_ACTIONABLE,ARG,0
+				IF RESULT == 1
+					CFLAG:(ARG):入力行動 = 0
+					CFLAG:(ARG):ＲＥＰＥＡＴ行動 = 0
+					CALL RANDOM_TARGET,ARG,0
+					CFLAG:(ARG):ＲＥＰＥＡＴターゲット = CFLAG:(ARG):ターゲット
+				ELSE
+					CFLAG:(ARG):入力行動 = -1
+					CFLAG:(ARG):防御フラグ = 1
+				ENDIF
+				RETURN 0
+			ENDIF
+		ENDIF
+		
+		;REPEATしないスキルはここで処理
+		;サバトマと招来の舞踏
+		SIF CFLAG:(ARG):ＲＥＰＥＡＴ行動 == [[スキル:サバトマ]] || CFLAG:(ARG):ＲＥＰＥＡＴ行動 == [[スキル:招来の舞踏]] 
+			GOTO 通常攻撃にします
+		$持ってなくて良いスキルはここ
+		
+		
+		;スキルの対象と範囲が合ってなかったら修正
+		CALLFORM SKILL_SPHERE_{CFLAG:(ARG):ＲＥＰＥＡＴ行動} , ARG
+		IF RESULT == 1 && (CFLAG:(ARG):ＲＥＰＥＡＴターゲット > 16 || CFLAG:(ARG):ＲＥＰＥＡＴターゲット < 1)
+			CALL RANDOM_TARGET,ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動
+					CFLAG:(ARG):ＲＥＰＥＡＴターゲット = CFLAG:(ARG):ターゲット
+		ELSEIF RESULT == 2 && (CFLAG:(ARG):ＲＥＰＥＡＴターゲット != 17 && CFLAG:(ARG):ＲＥＰＥＡＴターゲット != 18 && CFLAG:(ARG):ＲＥＰＥＡＴターゲット != 20 && CFLAG:(ARG):ＲＥＰＥＡＴターゲット != 21)
+			CALL RANDOM_TARGET,ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動
+			CFLAG:(ARG):ＲＥＰＥＡＴターゲット = CFLAG:(ARG):ターゲット
+		ELSEIF RESULT == 3 && (CFLAG:(ARG):ＲＥＰＥＡＴターゲット != 19 && CFLAG:(ARG):ＲＥＰＥＡＴターゲット != 21)
+			CALL RANDOM_TARGET,ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動
+			CFLAG:(ARG):ＲＥＰＥＡＴターゲット = CFLAG:(ARG):ターゲット
+		ENDIF
+		CALL CHECK_ACTIONABLE,ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動
+		IF RESULT == 1
+			IF (CFLAG:(ARG):ＲＥＰＥＡＴターゲット < 17 && CFLAG:(ARG):ＲＥＰＥＡＴターゲット > 0)
+				IF POS(CFLAG:(ARG):ＲＥＰＥＡＴターゲット) > -1 && CFLAG:(POS(CFLAG:(ARG):ＲＥＰＥＡＴターゲット)):ステート < GET_STATE_NUM("STONE")
+					CFLAG:(ARG):入力行動 = CFLAG:(ARG):ＲＥＰＥＡＴ行動
+					CFLAG:(ARG):ターゲット = CFLAG:(ARG):ＲＥＰＥＡＴターゲット
+				ELSE
+					CFLAG:(ARG):入力行動 = CFLAG:(ARG):ＲＥＰＥＡＴ行動
+					CALL RANDOM_TARGET,ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動
+					CFLAG:(ARG):ＲＥＰＥＡＴターゲット = CFLAG:(ARG):ターゲット
+				ENDIF
+			ELSE
+				CFLAG:(ARG):入力行動 = CFLAG:(ARG):ＲＥＰＥＡＴ行動
+				IF CFLAG:(ARG):ＲＥＰＥＡＴターゲット == 0
+					CALL RANDOM_TARGET,ARG,CFLAG:(ARG):ＲＥＰＥＡＴ行動
+					CFLAG:(ARG):ＲＥＰＥＡＴターゲット = CFLAG:(ARG):ターゲット
+				ENDIF
+				CFLAG:(ARG):ターゲット = CFLAG:(ARG):ＲＥＰＥＡＴターゲット
+			ENDIF
+			
+			
+		ELSE
+			$SET_GUARD
+			CFLAG:(ARG):入力行動 = -1
+			CFLAG:(ARG):防御フラグ = 1
+		ENDIF
+	ENDIF
+
+;後衛を狙っている場合、後衛に誰も居ないと前衛にセット
+IF CFLAG:ARG:ターゲット == 21
+	CFLAG:ARG:ターゲット = 20
+	FOR LOCAL,12,17
+		IF POS(LOCAL) > -1
+			CFLAG:ARG:ターゲット = 21
+			BREAK
+		ENDIF
+	NEXT
+ELSEIF CFLAG:ARG:ターゲット == 18
+	FOR LOCAL,1,7
+		IF POS(LOCAL) > -1
+			CFLAG:ARG:ターゲット = 21
+			BREAK
+		ENDIF
+	NEXT
+ENDIF

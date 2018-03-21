@@ -1,0 +1,2110 @@
+;--------
+;上司来襲
+;--------
+@JOUSHI_RAISYUU
+#LOCALSIZE 7
+#DIM リスト, 200
+;CFLAG:上司来襲持ち用
+#DIM 上司リスト, 200
+VARSET リスト, -1
+VARSET 上司リスト, -1
+LOCAL:1 = 0
+LOCAL:5 = 0
+LOCAL:6 = 0
+FOR LOCAL,1,CHARANUM
+	LOCAL:2 = 0
+	SIF CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	SIF TALENT:LOCAL:ＮＴＲ
+		CONTINUE
+	SIF !(TALENT:LOCAL:恋慕 || TALENT:LOCAL:親愛)
+		CONTINUE
+	SIF TALENT:LOCAL:妊娠 || TALENT:LOCAL:育児中
+		CONTINUE
+	SIF CFLAG:LOCAL:労役フラグ > 0
+		CONTINUE
+	SIF (CFLAG:LOCAL:その他 == 1116 || CFLAG:LOCAL:その他2 == 1116 || CFLAG:LOCAL:その他3 == 1116)
+		CONTINUE
+	SIF TALENT:LOCAL:オトコ
+		CONTINUE
+	SIF TALENT:LOCAL:魅力
+		LOCAL:2 += 10
+	SIF TALENT:LOCAL:巨乳 || TALENT:LOCAL:爆乳
+		LOCAL:2 += 30
+	SIF TALENT:LOCAL:妻
+		LOCAL:2 += 30
+	SIF (CFLAG:LOCAL:その他 == 1117 || CFLAG:LOCAL:その他2 == 1117 || CFLAG:LOCAL:その他3 == 1117)
+		LOCAL:2 += 50
+	SIF (危険日(LOCAL)) > 0
+		LOCAL:2 += 40
+		
+	IF CFLAG:LOCAL:上司イベント進行度 > 0
+		上司リスト:(LOCAL:6) = LOCAL
+		LOCAL:5 = 1
+		LOCAL:6 ++
+	ELSEIF RAND:100 < 10 + LOCAL:2
+		リスト:(LOCAL:1) = LOCAL
+		LOCAL:1 ++
+	ENDIF
+NEXT
+;LOCAL:1 == 0の場合、女要求率０
+SIF LOCAL:1 == 0 && LOCAL:6 == 0
+	GOTO YOUKYUUNASHI
+;上司の餌食決定＞LOCAL
+;CFLAG:上司イベント進行度がある場合は優先
+$LOOP_JOUSHILIST
+IF LOCAL:5 == 1
+	LOCAL = 上司リスト:(RAND:(LOCAL:6))
+ELSE
+	LOCAL = リスト:(RAND:(LOCAL:1))
+ENDIF
+;ありえないと思うけど念のため。LOCALがキャラ登録番号の範囲外の場合なにもしない。
+;CFLAG:上司イベント進行度持ちがいる場合はループする
+IF LOCAL < 1 && LOCAL >= CHARANUM
+	SIF LOCAL:5 == 1
+		GOTO LOOP_JOUSHILIST
+	RETURN 0
+ENDIF
+;女要求率
+LOCAL:2 = 100
+;要求金額倍率
+LOCAL:3 = 0
+;要求額
+LOCAL:4 = 0
+
+;金のみ（所持額の３分の一）か、金（所持額の半分）か彼女かの分岐
+;どちらかの所持金が目標金額の半分を超えると、選択肢に恋慕持ちの人間の女が加わる率が+40％
+SIF MONEY > (MONEY:2 / 2) || (MONEY:1 * 50) > (MONEY:2 / 2)
+	LOCAL:2 += 40
+;以下の素質が有ると+30％
+SIF TALENT:LOCAL:魅力 || TALENT:LOCAL:巨乳 || TALENT:LOCAL:爆乳 || TALENT:LOCAL:妻
+	LOCAL:2 += 30
+;危険日は+40％
+SIF (危険日(LOCAL)) > 0
+	LOCAL:2 += 40
+;要求金額倍率（選択肢）決定
+IF RAND:100 < LOCAL:2
+	LOCAL:3 = 2
+ELSE
+	LOCAL:3 = 5
+ENDIF
+;LOCAL:1 == 0の場合、女要求率０
+$YOUKYUUNASHI
+SIF LOCAL:1 == 0 && LOCAL:6 == 0
+	LOCAL:3 = 5
+;魔貨（換金した値）が￥の2倍より多い場合は魔貨要求
+;最低要求額は￥１０万（2000魔貨）
+;金も女も無い様な所には来ない
+IF (MONEY:1 * 50) > MONEY * 2
+	LOCAL:4 = MONEY:1 / LOCAL:3
+	IF LOCAL:4 < 2000
+		LOCAL:4 = 2000
+		LOCAL:3 = 1
+		SIF LOCAL:1 == 0
+			RETURN 1
+	ENDIF
+ELSE
+	LOCAL:4 = MONEY / LOCAL:3
+	IF LOCAL:4 < 100000
+		LOCAL:4 = 100000
+		LOCAL:3 = 1
+		SIF LOCAL:1 == 0
+			RETURN 1
+	ENDIF
+ENDIF
+;CFLAG:LOCAL:上司イベント進行度が6の場合は最終段階へ
+IF LOCAL:5 > 0
+	IF CFLAG:LOCAL:上司イベント進行度 == 10
+		LOCAL:3 = 10
+	ENDIF
+ENDIF
+IF LOCAL:3 == 10
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORMW ファントムソサエティの幹部の男が訪ねて来た
+	PRINTFORML 
+	PRINTFORML 『先日、貴様が組織の情報を外部に流しているとの情報が入ってな』
+	PRINTFORML 『貴様をよく思っていない連中が始末しろと言い出し始めたのだ』
+	PRINTFORML 『私もこんな下らん事で優秀な駒を失いたくないのでな、火消しを引き受けてやる』
+	LOCAL:4 = MONEY
+	TIMES LOCAL:4,0.9
+	LOCAL:4 = LIMIT(LOCAL:4 , 1000000, LOCAL:4)
+	PRINTFORM 『なに、￥
+	SETCOLOR COLOR("RED")
+	PRINTFORM ￥{LOCAL:4}
+	RESETCOLOR
+	PRINTFORMW もあれば事足りるだろうが、まあ額が額だ』
+	PRINTFORM 『なければ…
+	SETCOLOR COLOR("Dark-pink")
+	PRINTFORM %CALLNAME:LOCAL%
+	RESETCOLOR
+	PRINTFORMW を助手として借りようか』
+ELSE
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORMW ファントムソサエティの幹部の男が訪ねて来た
+	PRINTFORML 
+	PRINTFORML 『ふんっ、相変わらず癇に障る面をしているな』
+	PRINTFORMW 『急遽、財界の人間を饗応する事になってな、貴様にも協力して貰う事になった』
+	PRINTFORML 
+	IF (MONEY:1 * 50) > MONEY * 2
+		PRINTFORM 『
+		SETCOLOR COLOR("RED")
+		PRINTFORM {LOCAL:4}魔貨
+		RESETCOLOR
+		PRINTFORMW 程、都合してもらおうか』
+	ELSE
+		PRINTFORM 『
+		SETCOLOR COLOR("RED")
+		PRINTFORM ￥{LOCAL:4}
+		RESETCOLOR
+		PRINTFORMW 程、都合してもらおうか』
+	ENDIF
+	IF LOCAL:3 < 5
+		PRINTFORML 『無理ならば、そうだな…』
+		PRINTFORMW 男の視線が%CALLNAME:MASTER%の後ろへ向けられる
+		PRINTFORML 
+		;目をつけられた場合
+		IF CFLAG:LOCAL:上司イベント進行度 > 0
+			PRINTFORM 『代わりに
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORM %CALLNAME:LOCAL%
+			RESETCOLOR
+			PRINTFORML を預けて貰おうか』
+			PRINTFORMW 『前回好評だったのでな、クックックッ』
+		;通常
+		ELSE
+			PRINTFORML 『代わりにそのオンナを預けて貰おうか』
+			PRINTFORM ニヤニヤと笑みを浮かべながら、
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORM %CALLNAME:LOCAL%
+			RESETCOLOR
+			PRINTFORML を舐めるように見ている
+			PRINTFORML 
+			PRINTFORML 『その器量ならば、さぞ役に立つだろうな、クククッ』
+		ENDIF
+	ENDIF
+ENDIF
+PRINTFORML 
+IF LOCAL:3 == 2 || LOCAL:3 == 10
+	PRINTFORM どうする？　　　所持金:￥{MONEY}　　{MONEY:1}魔貨　　　
+	PRINTFORM %CALLNAME:LOCAL%　
+	IF (危険日(LOCAL)) == 2
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM 発情中
+			CALL HEARTB
+		RESETCOLOR
+	ELSEIF (危険日(LOCAL)) == 1
+		SETCOLOR 0xCC33FF
+			CALL HEARTB
+		PRINTFORM 危険日
+			CALL HEARTB
+		RESETCOLOR
+	ELSE
+		PRINTFORM 
+	ENDIF
+	PRINTFORMW 
+ELSE
+	PRINTFORMW どうする？　　　所持金:￥{MONEY}　　{MONEY:1}魔貨
+ENDIF
+
+IF LOCAL:3 == 10
+	IF MONEY < 1000000
+		CALL INPUT_SELECT(2, "女を預ける")
+	ELSE
+		CALL INPUT_SELECT(1, "支払う",2, "女を預ける")
+	ENDIF
+ELSEIF LOCAL:3 == 2
+	CALL INPUT_SELECT(1, "支払う",2, "女を預ける", 3, "断る")
+ELSEIF LOCAL:3 == 1
+	CALL INPUT_SELECT(2, "女を預ける", 3, "断る")
+ELSE
+	CALL INPUT_SELECT(1, "支払う", 3, "断る")
+ENDIF
+	SELECTCASE RESULT
+		CASE 1
+			IF (MONEY:1 * 50) > MONEY * 2
+				MONEY:1 -= LOCAL:4
+				PRINTFORMW {LOCAL:4}魔貨を支払った
+			ELSE
+				MONEY -= LOCAL:4
+				PRINTFORMW ￥{LOCAL:4}を支払った
+			ENDIF
+			IF LOCAL:3 == 10
+				PRINTFORML 『おおっ、確かに受け取ったぞ』
+				PRINTFORML 『後は私に任せておけ』
+				PRINTFORMW 男は入金を確認すると、足早に去っていった
+				FLAG:上司来襲率 = 0
+				CFLAG:LOCAL:上司イベント進行度 = 0
+			ELSE
+				PRINTFORML 
+				PRINTFORML 『なかなか物分りのいいヤツだな』
+				PRINTFORML 『これからも貴様なりに組織の役に立つように』
+				PRINTFORMW 男は見下しながら言い捨て、去っていった
+				FLAG:上司来襲率 = FLAG:上司来襲率 / 3
+				;10％の確率で上司のターゲットから外れる
+				IF RAND:100 < 10 && LOCAL:3 == 2 && CFLAG:LOCAL:上司イベント進行度 > 0
+					PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%にそっと抱きつき、労っている
+					CFLAG:LOCAL:上司イベント進行度 = 0
+				ENDIF
+				;CFLAG:上司イベント進行度がある場合は10％の確率で3段階目に移行する
+				IF RAND:100 < 10 && LOCAL:3 == 2 && CFLAG:LOCAL:上司イベント進行度 < 7
+					PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%を心配そうに見つめている
+					PRINTFORMW そして、幹部の男に密かに渡されたメモを握り締めた…
+					CFLAG:LOCAL:上司イベント進行度 = 7
+				ENDIF
+			ENDIF
+		CASE 2
+			IF LOCAL:3 == 10
+				PRINTFORML 
+				PRINTFORML 『そうか、では預かるとしよう…助手としてな』
+				PRINTFORML 『事態の収拾には一晩あれば十分だろう』
+				PRINTFORML 『ではな…楽しみにしておけ』
+				PRINTFORMW %CALLNAME:LOCAL%は悲しげな表情で男に連れて行かれた
+			ELSEIF CFLAG:LOCAL:上司イベント進行度 > 3 && CFLAG:LOCAL:上司イベント進行度 <= 6
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:MASTER%が%CALLNAME:LOCAL%を預けると述べると、男はニタリと頬を吊り上げた
+				PRINTFORML 『ククッ、では、預からせてもらおう』
+				PRINTFORML 『なに、明日の朝までには送り届けさせてもらうよ』
+				PRINTFORMW 『それにしても…』
+				IF TALENT:LOCAL:巨乳 || TALENT:LOCAL:爆乳
+					PRINTFORML 男は%CALLNAME:LOCAL%の後ろに周ると
+					PRINTFORML 豊満な胸を揉みしだきながら%CALLNAME:LOCAL%の股間に手をやり愛撫し始めた…
+					PRINTFORML 男の激しい指使いに%CALLNAME:LOCAL%は腰砕けになり、足は今にも崩れそうなほど震えている
+					PRINTFORMW 『ハハハハッ、相変わらずいやらしいカラダだ…これは今度の先方も満足するだろうな』
+				ELSE
+					PRINTFORML 男は%CALLNAME:LOCAL%を抱き寄せ、%CALLNAME:LOCAL%の唇にキスをしながら
+					PRINTFORML %CALLNAME:LOCAL%の股間を弄り始めた…
+					PRINTFORML %CALLNAME:LOCAL%は男の巧みな指使いに翻弄され、蕩けた顔をしながら男の唇にしゃぶりついている
+					PRINTFORMW 『ククッ、相変わらず感度の良いカラダだ…これは今度の先方も満足するだろうな』
+				ENDIF
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は快楽で腰砕けになったカラダを引きずられながら、男に連れられていった
+			ELSEIF CFLAG:LOCAL:上司イベント進行度 > 6
+				;セックス系
+				IF RAND:2 == 0
+					PRINTFORML 
+					PRINTFORMW %CALLNAME:MASTER%が%CALLNAME:LOCAL%を預けると述べると、男はニタリと頬を吊り上げた
+					PRINTFORML 『ククッ、では、預からせてもらおう』
+					PRINTFORML 『なに、明日の朝までには送り届けさせてもらうよ』
+					PRINTFORMW 『それにしても…』
+					IF TALENT:LOCAL:巨乳 || TALENT:LOCAL:爆乳
+						PRINTFORML 男は%CALLNAME:LOCAL%の後ろに周りジッパーを下しペニスを取り出すと
+						PRINTFORML %CALLNAME:LOCAL%の豊満な胸を揉みしだきながら%CALLNAME:LOCAL%の下着をずらし膣内に挿入した
+						PRINTFORML %CALLNAME:LOCAL%はいきなりの衝撃に目を白黒させながら喘いでいる
+						PRINTFORMW 『ハハハッ、相変わらず良い具合の穴だ、先方がご執心になるのもわかるな』
+						PRINTFORMW 
+						PRINTFORMW %CALLNAME:LOCAL%は男にバックから突かれ、豊満な胸を大きく揺らしながら蕩けた表情を浮かべている
+						PRINTFORMW 男が一際強く突き、%CALLNAME:LOCAL%が歓喜の悲鳴を上げると、男と%CALLNAME:LOCAL%の結合部から大量の精液が溢れ出した…
+						PRINTFORMW 『おっと、あまりに気持ちが良すぎて思わず中出ししてしまったよ』
+						PRINTFORMW 『まぁ、別に孕ませてしまってもかまわんだろう…？』
+						PRINTFORML 
+						PRINTFORMW 
+						PRINTFORMW 『クククッ、もう少し味わいたいが、そろそろ行かんとな』
+						
+;						PRINTFORMW 『クククッ、どうやら%CALLNAME:LOCAL%クンはあまりに気持ち良くて腰を抜かしてしまったようだな』
+;						PRINTFORMW 『私がこのまま今日の会場まで連れて行ってやるとするよ』
+					ELSE
+						PRINTFORML 男は%CALLNAME:LOCAL%を抱き寄せ唇を奪うと、ジッパーを下してペニスを取り出し%CALLNAME:LOCAL%の秘部に押し当て
+						PRINTFORML キスで惚けた顔をしている%CALLNAME:LOCAL%の秘部を下から一気に突きあげた
+						PRINTFORMW %CALLNAME:LOCAL%は男に抱えられながら犯され、声にならない声をあげている
+						PRINTFORMW 『やはり%CALLNAME:LOCAL%クンのカラダは魅力的だな、思わず貴様の前で襲ってしまったよ』
+						PRINTFORMW 
+						PRINTFORMW %CALLNAME:LOCAL%は振り落とされないように男の腰に足を絡ませながら、男と熱烈なキスを交わしている
+						PRINTFORMW 男は数回激しく突きあげたあと、%CALLNAME:LOCAL%を強く抱きしめそのままの体勢で射精をはじめた
+						PRINTFORMW %CALLNAME:LOCAL%もまた、手を男の首にまわし、腰に絡ませている足に力をこめた
+						PRINTFORMW 余韻に浸る%CALLNAME:LOCAL%と男との結合部から大量の精液が流れおち、床に白い水たまりを作っている
+						PRINTFORML 
+						PRINTFORMW 
+						PRINTFORMW 『クククッ、もう少し味わいたいが、そろそろ行かんとな』
+						
+;						PRINTFORMW 『クククッ、どうやら%CALLNAME:LOCAL%クンはあまりに気持ち良くて腰を抜かしてしまったみたいでな』
+;						PRINTFORMW 『私がこのまま今日の会場まで連れて行ってやるとするよ』
+					ENDIF
+					PRINTFORML 
+					PRINTFORMW 乱れた衣装を馴れた手つきで整えると、%CALLNAME:LOCAL%は%CALLNAME:MASTER%を一瞥することなく、男に続いて部屋を出て行った
+					
+;					PRINTFORMW %CALLNAME:LOCAL%は男と恋人のように交わったまま連れられていった
+				;奉仕系
+				ELSE
+					PRINTFORML 
+					PRINTFORMW %CALLNAME:MASTER%が%CALLNAME:LOCAL%を預けると述べると、男はニタリと頬を吊り上げた
+					PRINTFORML 『ククッ、では、預からせてもらおう』
+					PRINTFORMW 『なに、明日の朝までには送り届けさせてもらうよ』
+					PRINTFORML 
+					PRINTFORMW 『それにしても…』
+					PRINTFORML 『%CALLNAME:LOCAL%クンのウデは落ちてないだろうな？』
+					PRINTFORML 『ククッ、大事な接待だ…　粗相があってはな…』
+					PRINTFORMW わざとらしい言葉とともに男が%CALLNAME:LOCAL%の体を舐めるように見つめる
+					PRINTFORML 
+					IF RAND:2 == 0 && (TALENT:LOCAL:巨乳 || TALENT:LOCAL:爆乳)
+						PRINTFORMW それだけで意図を察した%CALLNAME:LOCAL%は男の前にひざまずくと慣れた手つきでペニスを取り出し咥え始めた
+						PRINTFORML 『ハハッ、わるいな、%CALLNAME:LOCAL%クン』
+						PRINTFORMW 『おおぅ…この舌使い、先方がご執心になるのも無理もない』
+						PRINTFORML 
+						PRINTFORMW %CALLNAME:LOCAL%は、口での奉仕を続けながら胸をはだけると当然のように男のモノを胸で挟み込んだ
+						PRINTFORML 『おおぅ…胸まで使うとは…』
+						PRINTFORML 男の声を聞きいた%CALLNAME:LOCAL%は、豊満な胸と口を使っての奉仕をより激しくしていく
+						PRINTFORMW やがて、男が呻きながら射精を始めると%CALLNAME:LOCAL%は蕩けた表情で顔や胸に飛び散った精液を舐め取っていった
+						PRINTFORML 
+						PRINTFORMW 『ククッ、いい体だ…これなら問題はないだろう…ハハハッ』
+						PRINTFORML 
+						PRINTFORMW 男は笑いながらペニスをしまうと、体に付いた精液を指ですくって舐め取っている%CALLNAME:LOCAL%を連れ部屋を出て行った
+					ELSE
+						PRINTFORMW それだけで意図を察した%CALLNAME:LOCAL%は男の前にひざまずくと慣れた手つきでペニスを取り出し咥え始めた
+						PRINTFORML 『ハハッ、わるいな、%CALLNAME:LOCAL%クン』
+						PRINTFORMW 『おおぅ…この舌使い、先方がご執心になるのも無理もない』
+						PRINTFORML 
+						PRINTFORMW 男のモノを口に含み舐めているだけで、奉仕する%CALLNAME:LOCAL%の顔がとろんと蕩けた顔になっていく
+						PRINTFORML やがて、男が呻きながら%CALLNAME:LOCAL%の口内へ精液を吐き出すと、
+						PRINTFORMW %CALLNAME:LOCAL%は喉を鳴らして飲み込み、当然とばかりにペニスに吸い付き口を使って掃除を始めた
+						PRINTFORML 
+						PRINTFORMW 『ククッ、後始末までしようとするとは…躾が行き届いているな…』
+						PRINTFORMW 『これなら問題はないだろう…ハハハッ』
+						PRINTFORML 
+						PRINTFORMW 男は笑いながらペニスをしまうと、名残惜しそうに唇についた精液を舐め取る%CALLNAME:LOCAL%を連れ部屋を出て行った
+					ENDIF
+				ENDIF
+			ELSE
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:MASTER%が%CALLNAME:LOCAL%を預けると述べると、男はニタリと頬を吊り上げた
+				PRINTFORML 『ククッ、では、預からせてもらおう』
+				PRINTFORML 『なに、明日の朝までには送り届けさせてもらうよ』
+				PRINTFORMW 『それにしても…』
+				IF TALENT:LOCAL:巨乳 || TALENT:LOCAL:爆乳
+					PRINTFORML 男は%CALLNAME:LOCAL%の豊満な胸を鷲掴みにした
+					PRINTFORMW 『このカラダなら先方も喜ぶだろうなぁ、ハハハハッ』
+				ELSE
+					PRINTFORML 男は%CALLNAME:LOCAL%を抱き寄せ、指で顎先を持ち上げると%CALLNAME:LOCAL%の顔をネットリと眺めた
+					PRINTFORMW 『ククッ、これなら先方も満足するだろうなぁ』
+				ENDIF
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:LOCAL%は不安そうな視線をこちらに送りながら、男に連れられていった
+			ENDIF
+			FLAG:上司来襲率 = 0
+			;労役とパーティーを外す
+			SIF TARGET == LOCAL
+				TARGET = -1
+			SIF ASSI == LOCAL
+				ASSI = -1
+			CFLAG:LOCAL:この場に居ないフラグ = 1
+			CFLAG:LOCAL:労役フラグ = 0
+			IF CFLAG:LOCAL:劇場出演順番 != 0
+				DE:(49+(CFLAG:LOCAL:劇場出演順番)):(CFLAG:LOCAL:労役店舗-1) = -1
+				DE:(59+(CFLAG:LOCAL:劇場出演順番)):(CFLAG:LOCAL:労役店舗-1) = -1
+				CFLAG:LOCAL:労役フラグ = 0
+				CFLAG:LOCAL:劇場出演順番 = 0
+				CFLAG:LOCAL:労役店舗 = 0
+			ENDIF
+			SIF CPOS(LOCAL) > 0
+				CALL REMOVE_POSITION,CPOS(LOCAL)
+			;これが付くとNTR夜這い後に陵辱描写、翌朝帰ってくる
+			CFLAG:LOCAL:上司来襲 = 1
+			;上司イベントの進行度
+			SIF CFLAG:LOCAL:上司イベント進行度 == 0
+				CFLAG:LOCAL:上司イベント進行度 = 1
+		CASE 3
+			PRINTFORML 
+			PRINTFORMW 『貴様っ…』
+			PRINTFORML 『この事は上に報告させてもらうからなっ！！』
+			PRINTFORML 男はドアを乱暴に閉め、去っていった
+			PRINTFORML 
+			PRINTFORMW 組織貢献度が{(FLAG:組織貢献度 / 20)}下がりました
+			;断ると組織貢献度が20％減
+			FLAG:組織貢献度 -= FLAG:組織貢献度 / 20
+			FLAG:上司来襲率 += 5
+			SIF FLAG:上司来襲率 > 100
+				FLAG:上司来襲率 = 90
+			;10％の確率で上司のターゲットから外れる
+			IF RAND:100 < 10 && LOCAL:3 < 3 && CFLAG:LOCAL:上司イベント進行度 > 0
+				SIF LOCAL:3 == 2
+					PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%にそっと抱きつき、労っている
+				SIF LOCAL:3 == 1
+					PRINTFORMW %CALLNAME:LOCAL%は嬉しそうに%CALLNAME:MASTER%に抱きついた
+				CFLAG:LOCAL:上司イベント進行度 = 0
+			ENDIF
+			;CFLAG:上司イベント進行度がある場合は20％の確率で2段階目に移行する
+			IF RAND:100 < 20 && LOCAL:3 == 2 && CFLAG:LOCAL:上司イベント進行度 < 9
+					PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%を心配そうに見つめている
+					PRINTFORMW そして、幹部の男に密かに渡されたメモを握り締めた…
+						CFLAG:LOCAL:上司イベント進行度 = 3
+			ENDIF
+	ENDSELECT
+
+;女を渡した場合の夜or呼び出された夜
+@NTR_JOUSHI_1
+#LOCALSIZE 4
+DRAWLINE
+PRINTFORML ・
+PRINTFORML ・・
+PRINTFORML ・・・
+;初回処女
+IF TALENT:COUNT:処女
+	PRINTFORML %CALLNAME:COUNT%は幹部の男の自室に連れ込まれた
+	PRINTFORM 『あの\@TALENT:MASTER:オトコ == 0 ? 女 # 男\@も間抜けだな、易々と
+	
+	IF TALENT:COUNT:妻
+		PRINTFORMW 自分の妻を渡すとはな』
+		PRINTFORML 『どれ、会場に向かう前に『味見』をしておくか』
+		PRINTFORMW 『先方に失礼があってはならんからなぁっ』
+		PRINTFORMW %CALLNAME:COUNT%は乱暴にベットへ押し倒された
+		PRINTFORML 
+		PRINTFORM %CALLNAME:MASTER%に捧げるはずだった
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORM %CALLNAME:COUNT%の純潔
+		RESETCOLOR
+		PRINTFORM は、幹部の男によって
+		SETCOLOR COLOR("RED")
+		PRINTFORMW 無惨にも散らされてしまった
+		RESETCOLOR
+		PRINTFORML 幹部の男は、妻にまでしたオンナが処女であったことに驚きつつ
+		PRINTFORMW %CALLNAME:COUNT%の膣内を醜悪な男根で擦りあげている
+	ELSE
+		PRINTFORML こんな良いオンナ…しかも、生娘を渡すとはな』
+		PRINTFORML 『ククッ、饗宴に出す前に私がオトコの味を教えてやるとするかな』
+		PRINTFORMW %CALLNAME:COUNT%はベッドに押し倒された
+		PRINTFORML 
+		PRINTFORM %CALLNAME:MASTER%に捧げるはずだった
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORM %CALLNAME:COUNT%の純潔
+		RESETCOLOR
+		PRINTFORM は、幹部の男によって
+		SETCOLOR COLOR("RED")
+		PRINTFORM 無惨にも散らされてしまった
+		RESETCOLOR
+		PRINTFORMW 手付かずの狭い膣内は醜悪な男根の形に合うように押し広げられている
+	ENDIF
+	LOCAL:1 = 2 + RAND:4
+	LOCAL:2 = 0 + RAND:3
+	LOCAL:3 = 1 + RAND:3
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORMW %CALLNAME:COUNT%は幹部の男にレイプされたショックも癒えぬまま会場に赴き…
+	PRINTFORML 
+	PRINTFORMW また見知らぬ男に犯された……
+	PRINTFORMW 『女』になったばかりのカラダは、禿げ上がった男によって種付けされる悦びを仕込まれた
+	LOCAL:1 += 2 + RAND:6
+	LOCAL:2 += 0 + RAND:2
+	LOCAL:3 += 1 + RAND:3
+	;あなたの好感度が半分になる
+	CFLAG:COUNT:2100 /= 2
+
+;初回通常
+ELSEIF CFLAG:COUNT:上司イベント進行度 == 1
+	PRINTFORMW %CALLNAME:COUNT%は幹部の男の自室に連れ込まれた
+	PRINTFORMW 『どれ、会場に向かう前に『味見』をしておくか』
+	PRINTFORMW 『先方に失礼があってはならんからなぁっ』
+	PRINTFORMW %CALLNAME:COUNT%は乱暴にベットへ押し倒された
+	LOCAL:1 = 2 + RAND:6
+	LOCAL:2 = 0 + RAND:3
+	LOCAL:3 = 1 + RAND:3
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORMW 幹部の男の精液が{(LOCAL:1 / 2)}回、%CALLNAME:COUNT%の中を侵した後、
+	PRINTFORMW 車内でペニスを咥えさせられながら会場へ向かった…そして
+	PRINTFORML 
+	PRINTFORMW また見知らぬ男に犯された……
+	PRINTFORMW 禿げ上がった男が精力的な腰使いで、%CALLNAME:COUNT%のカラダを味わっている
+	LOCAL:1 += 2 + RAND:4
+	LOCAL:2 += 0 + RAND:3
+	LOCAL:3 += 1 + RAND:3
+
+;第二段階
+ELSEIF CFLAG:COUNT:上司イベント進行度 >= 2 && CFLAG:COUNT:上司イベント進行度 < 9
+	;上司イベント進行度2～3
+	;第二段階を分割してみる
+	;上司イベント進行度2.3
+	;少しClimaxEXPを減らして進行を鈍らせてみる
+	IF CFLAG:COUNT:上司イベント進行度 >= 2 && CFLAG:COUNT:上司イベント進行度 <= 3
+		;幹部
+		IF RAND:2 == 0
+			PRINTFORMW 幹部の男は接待の練習と称して、%CALLNAME:COUNT%の『肢体』を味わっている
+			PRINTFORML 
+			LOCAL:1 = 3 + RAND:6
+			LOCAL:2 = 0 + RAND:3
+			LOCAL:3 = 2 + RAND:3
+			IF CFLAG:COUNT:上司イベント進行度 > 4
+				LOCAL:1 = 4 + RAND:7
+				LOCAL:2 = 1 + RAND:4
+				LOCAL:3 = 3 + RAND:4
+			ENDIF
+			;危険日
+			IF (危険日(COUNT)) == 1
+				LOCAL:1 += 3
+				IF RAND:2 == 0
+					PRINTFORML 男は%CALLNAME:COUNT%の奉仕でそそり立った怒張を誇示するように扱くと
+					PRINTFORMW 避妊を懇願する声を無視し覆いかぶさっていった
+					PRINTFORML 
+					PRINTFORMW 先走りの滲んだペニスが膣肉を掻き分けていく感触に%CALLNAME:COUNT%の口から悲痛な声が漏れた
+					PRINTFORML 
+					PRINTFORML 男は目に涙を浮かべ嫌がる%CALLNAME:COUNT%に構わず激しく腰をふると
+					PRINTFORMW 逃れようとする体を押さえつけ膣内へ射精し始めた
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORML %CALLNAME:MASTER%のものではない精液が、子宮へと注ぎ込まれる感触に%CALLNAME:COUNT%は目を見開き涙をこぼしている
+					RESETCOLOR
+				;無理矢理騎乗位いいよね…
+				ELSE
+					PRINTFORML 危険日であることを告げられた男は悪意のある笑みを浮かべながら横になると、
+					PRINTFORMW %CALLNAME:COUNT%に自分から入れて動くように命じた
+					PRINTFORMW %CALLNAME:COUNT%は嗚咽を漏らしながら男の上にまたがり、ゆっくりと腰をおろしていった
+					PRINTFORML 
+					PRINTFORM 男は自分の上で
+					;巨乳、爆乳
+					IF TALENT:COUNT:111 || TALENT:COUNT:112
+						PRINTFORM 豊かな胸が揺れる
+					ELSE
+						PRINTFORM 美しい肢体が動く
+					ENDIF
+					PRINTFORMW 姿を楽しみながら、予告なしで膣内へと射精を始めた
+					PRINTFORML 胎内で震えたペニスに驚いた%CALLNAME:COUNT%が腰を浮かして離れようとすると
+					PRINTFORMW 男は両手で腰を引き寄せ膣の深い所へと残りの精を吐き出した
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORML %CALLNAME:MASTER%のものではない精液が、逃れようともがく%CALLNAME:COUNT%の子宮へ注ぎ込まれていった
+					RESETCOLOR
+				ENDIF
+				;CFLAG:COUNT:上司イベント進行度 += 1
+			ELSE
+				PRINTFORM 男は%CALLNAME:COUNT%
+				;巨乳、爆乳
+				IF TALENT:COUNT:111 || TALENT:COUNT:112
+					PRINTFORM に豊かな胸を使って
+				ELSE
+					PRINTFORM に口を使ってたっぷりと
+				ENDIF
+				PRINTFORML 奉仕させた後
+				IF RAND:2 == 0
+					PRINTFORMW 挿入をねだる台詞を言わせながら怒張で貫き犯し始めた
+					PRINTFORML 
+					PRINTFORMW %CALLNAME:COUNT%は男に激しく突かれながら、%CALLNAME:MASTER%の事を思い涙を流している
+				ELSE
+					PRINTFORMW 上になって自分から動くように命じた
+					PRINTFORML 
+					PRINTFORMW %CALLNAME:COUNT%は涙を浮かべながら男の上で腰を動かしている
+				ENDIF
+			ENDIF
+		;性接待
+		ELSEIF CFLAG:COUNT:上司イベント進行度 > 3
+			PRINTFORMW %CALLNAME:COUNT%は豪奢なベットの上で見知らぬ男に奉仕をしている
+			PRINTFORML %CALLNAME:COUNT%は男のモノが元気になったのを確認すると
+			PRINTFORMW 自らの手で秘唇を開き、挿入をねだった
+			PRINTFORML 
+			PRINTFORMW 男が好色そうな笑みを浮かべながら怒張を膣にねじ込むと、顔を背けた%CALLNAME:COUNT%の目に涙が滲んだ
+			LOCAL:1 = 3 + RAND:6
+			LOCAL:2 = 0 + RAND:3
+			LOCAL:3 = 2 + RAND:3
+		;性接待
+		ELSE
+			PRINTFORMW %CALLNAME:COUNT%は豪奢なベットの上で見知らぬ男に抱かれている
+		LOCAL:1 = 3 + RAND:6
+		LOCAL:2 = 0 + RAND:3
+		LOCAL:3 = 2 + RAND:3
+		ENDIF
+	;上司イベント進行度4～6
+	ELSEIF CFLAG:COUNT:上司イベント進行度 >= 4 && CFLAG:COUNT:上司イベント進行度 <= 6
+		;幹部
+		IF RAND:3 == 0
+			PRINTFORMW 幹部の男は饗応の場へ赴く事なく、%CALLNAME:COUNT%の『肢体』を味わっている
+			PRINTFORML 
+			LOCAL:1 = 3 + RAND:6
+			LOCAL:2 = 0 + RAND:3
+			LOCAL:3 = 2 + RAND:3
+			IF CFLAG:COUNT:上司イベント進行度 > 4
+				LOCAL:1 = 4 + RAND:7
+				LOCAL:2 = 1 + RAND:4
+				LOCAL:3 = 3 + RAND:4
+			ENDIF
+			;発情可があると30％の確率で一発堕ち
+			IF (危険日(COUNT)) == 2
+				LOCAL:1 += 3
+				TCVAR:COUNT:獲得絶頂経験 += 1
+				PRINTFORML %CALLNAME:COUNT%は昂ぶる情欲に逆らうことができず、男との情事に溺れてしまっている
+				PRINTFORM 牝の容貌を晒す%CALLNAME:COUNT%の胎内に、
+				SETCOLOR COLOR("Dark-pink")
+				PRINTFORML 他人の濃厚な子種が放たれてしまった…
+				RESETCOLOR
+				IF RAND:100 < 30
+					PRINTFORML %CALLNAME:COUNT%は牝の本能のままに腰を使い、媚びた表情で男に中出しをおねだりしている
+					PRINTFORM 男の怒張から放たれた子種が胎内を満たすたびに、牝の悦びと引き換えに
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORML 大切な『何か』が崩れていった
+					RESETCOLOR
+					CFLAG:COUNT:上司イベント進行度 = 15
+				ENDIF
+			ELSEIF (危険日(COUNT)) == 1
+				LOCAL:1 += 3
+				TCVAR:COUNT:獲得絶頂経験 += 1
+				IF RAND:2 == 0
+					PRINTFORML 男は%CALLNAME:COUNT%の奉仕でそそり立った怒張を誇示するように扱くと
+					PRINTFORMW 避妊を望む声を無視し覆いかぶさっていった
+					PRINTFORML 
+					PRINTFORMW 先走りの滲んだペニスが膣肉を掻き分けていく感触に%CALLNAME:COUNT%の口から無意識のうちに甘い声がもれている
+					PRINTFORML 
+					PRINTFORML 男は巧みな腰使いで膣を擦り続けるた後
+					PRINTFORMW 快楽に流され喘ぎ始めた%CALLNAME:COUNT%の深い所で精を吐き出した
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORMW %CALLNAME:COUNT%は%CALLNAME:MASTER%以外の子を孕むという恐怖に、一瞬で我に返り青ざめている
+					RESETCOLOR
+				;無理矢理騎乗位いいよね…
+				ELSE
+					PRINTFORML 危険日であることを告げられた男はニヤニヤ笑いながら横になると、
+					PRINTFORML %CALLNAME:COUNT%に自分から入れて動くように命じた
+					PRINTFORML %CALLNAME:COUNT%は諦めたような表情で男の上にまたがると、
+					;巨乳、爆乳
+					IF TALENT:COUNT:111 || TALENT:COUNT:112
+						PRINTFORM 胸を揺らしながら
+					ELSE
+						PRINTFORM リズミカルに
+					ENDIF
+					PRINTFORMW 腰を動かしはじめた
+					PRINTFORML 
+					PRINTFORMW 男が射精の予告をすると、%CALLNAME:COUNT%は体を上下させながら逡巡の表情を見せた
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORMW その一瞬があだとなり、%CALLNAME:MASTER%のものではない精液が、危険日の子宮へと注ぎ込まれてしまった
+					RESETCOLOR
+				ENDIF
+				CFLAG:COUNT:上司イベント進行度 += 1
+			ELSE
+				PRINTFORM 男は%CALLNAME:COUNT%
+				;巨乳、爆乳
+				IF TALENT:COUNT:111 || TALENT:COUNT:112
+					PRINTFORM に豊かな胸を使って
+				ELSE
+					PRINTFORM に口を使ってたっぷりと
+				ENDIF
+				PRINTFORML 奉仕させた後
+				IF RAND:2 == 0
+					PRINTFORMW 挿入をねだる台詞を言わせながら怒張で犯し始めた
+					PRINTFORML 
+					PRINTFORMW 男の腰使いに%CALLNAME:COUNT%は目を逸らしながら、声を抑えている
+				ELSE
+					PRINTFORMW 上になって自分から動くように命じた
+					PRINTFORML 
+					PRINTFORMW %CALLNAME:COUNT%は、小さく喘ぎながら男の上で腰を動かしている
+				ENDIF
+			ENDIF
+		;性接待
+		ELSE
+			PRINTFORMW %CALLNAME:COUNT%は豪奢なベットの上で見知らぬ男に奉仕をしている
+			PRINTFORMW %CALLNAME:COUNT%は男のモノが元気になったのを確認すると
+			PRINTFORMW 自らの手で秘唇を開き、種付けをねだった
+			PRINTFORML 
+			PRINTFORML 男が好色そうな笑みを浮かべながら怒張を膣に挿入すると、%CALLNAME:COUNT%は顔を背け悲しみの表情を見せた
+			PRINTFORMW しかし、男が腰を動かし始めると、すぐに快楽へと上書きされてしまった
+			LOCAL:1 = 3 + RAND:6
+			LOCAL:2 = 0 + RAND:3
+			LOCAL:3 = 2 + RAND:3
+		ENDIF
+	;上司イベント進行度7～8
+	ELSE
+		;幹部
+		IF RAND:3 == 0
+			PRINTFORMW 幹部の男は饗応の場へ赴く事なく、%CALLNAME:COUNT%の『肢体』を味わっている
+			PRINTFORML 
+			LOCAL:1 = 3 + RAND:6
+			LOCAL:2 = 0 + RAND:3
+			LOCAL:3 = 2 + RAND:3
+			IF CFLAG:COUNT:上司イベント進行度 > 4
+				LOCAL:1 = 4 + RAND:7
+				LOCAL:2 = 1 + RAND:4
+				LOCAL:3 = 3 + RAND:4
+			ENDIF
+			;危険日はCFLAG:上司イベント進行度が+1～2
+			;発情可があると50％の確率で一発堕ち
+			IF (危険日(COUNT)) == 2
+				LOCAL:1 += 3
+				TCVAR:COUNT:獲得絶頂経験 += 1
+				PRINTFORML %CALLNAME:COUNT%は昂ぶる情欲のままに、男との情事に溺れている	
+				PRINTFORM 牝の容貌を晒す%CALLNAME:COUNT%の胎内に、
+				SETCOLOR COLOR("Dark-pink")
+				PRINTFORML 他人の濃厚な子種が放たれてしまった…
+				RESETCOLOR
+				IF RAND:100 < 50
+					;TCVAR:COUNT:獲得絶頂経験 += 1
+					PRINTFORML %CALLNAME:COUNT%は牝の本能のままに腰を使い、媚びた表情で男に中出しをおねだりしている
+					PRINTFORM 男の怒張から放たれた子種が胎内を満たすたびに、牝の悦びと引き換えに
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORML 大切な『何か』が崩れていった
+					RESETCOLOR
+					CFLAG:COUNT:上司イベント進行度 = 15
+				ENDIF
+			ELSEIF (危険日(COUNT)) == 1
+				LOCAL:1 += 3
+				TCVAR:COUNT:獲得絶頂経験 += 1
+				IF RAND:2 == 0
+					PRINTFORML 男は%CALLNAME:COUNT%の奉仕でそそり立った怒張を誇示するように扱くと
+					PRINTFORMW 避妊を望む声を無視し覆いかぶさっていった
+					PRINTFORML 
+					PRINTFORMW 先走りの滲んだペニスが入ってくる感触に%CALLNAME:COUNT%の口から甘い声がもれている
+					PRINTFORML 
+					PRINTFORMW 男は巧みな腰使いで%CALLNAME:COUNT%に嬌声をあげさせると危険日の膣内へと精を吐き出した
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORML %CALLNAME:COUNT%は妊娠を嫌がる言葉を発しながらも、逃れようとはせずに
+					PRINTFORMW %CALLNAME:MASTER%のものではない精液を、子を孕む準備の整った子宮へで受け止めている
+					RESETCOLOR
+				;無理矢理騎乗位いいよね…
+				ELSE
+					PRINTFORML 危険日であることを告げられた男はニヤニヤ笑いながら横になると、
+					PRINTFORML 自分から入れて動くように命じた
+					PRINTFORML %CALLNAME:COUNT%は期待と不安の混ざった表情を浮かべて男の上にまたがると
+					;巨乳、爆乳
+					IF TALENT:COUNT:111 || TALENT:COUNT:112
+						PRINTFORM 豊かな胸を揺らしながら
+					ELSE
+						PRINTFORM 男の体に手をつきながら
+					ENDIF
+					PRINTFORMW 腰を動かしはじめた
+					PRINTFORML 
+					SETCOLOR COLOR("Dark-pink")
+					PRINTFORML 巧みな腰使いに男が射精の予告をすると、%CALLNAME:COUNT%は妊娠を嫌がる言葉をつぶやいた
+					PRINTFORMW しかし、%CALLNAME:COUNT%は、その台詞とは裏腹に男の上で淫らに体を上下させ続けている
+					RESETCOLOR
+				ENDIF
+				CFLAG:COUNT:上司イベント進行度 += 1
+			ELSE
+				PRINTFORM 男は%CALLNAME:COUNT%
+				;巨乳、爆乳
+				IF TALENT:COUNT:111 || TALENT:COUNT:112
+					PRINTFORM に豊かな胸を使って
+				ELSE
+					PRINTFORM に口を使ってたっぷりと
+				ENDIF
+				PRINTFORML 奉仕させた後
+				IF RAND:2 == 0
+					PRINTFORMW 挿入をねだる台詞を言わせながら怒張で貫き犯し始めた
+					PRINTFORML 
+					PRINTFORMW 男が腰を動かすたびに%CALLNAME:COUNT%は蕩けた顔で喘ぎ声をあげている
+				ELSE
+					PRINTFORMW 上になって自分から動くように命じた
+					PRINTFORML 
+					PRINTFORMW %CALLNAME:COUNT%は、喘ぎ声をあげながら男の上で淫らに腰を動かしている
+				ENDIF
+			ENDIF
+		;性接待
+		ELSE
+			PRINTFORMW %CALLNAME:COUNT%は豪奢なベットの上で見知らぬ男に熱心に奉仕をしている
+			PRINTFORMW %CALLNAME:COUNT%は男のモノが元気になったのを確認すると
+			PRINTFORMW 自らの手で秘唇を開き、種付けをねだった
+			PRINTFORML 
+			PRINTFORML 男が好色そうな笑みを浮かべながら蕩けた膣へ挿入すると、%CALLNAME:COUNT%は仰け反って嬌声をあげた
+			PRINTFORMW %CALLNAME:COUNT%の肉壷は、男のモノを逃すまいと締め付けている
+			LOCAL:1 = 3 + RAND:6
+			LOCAL:2 = 0 + RAND:3
+			LOCAL:3 = 2 + RAND:3
+		ENDIF
+	ENDIF
+;第三段階:女を渡した場合の夜
+ELSEIF CFLAG:COUNT:上司イベント進行度 == 9 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORML 幹部の男は%CALLNAME:COUNT%の膣内に、自らの怒張の形を教え込むように抽送を繰り返している
+	PRINTFORML 
+	LOCAL:1 = 3 + RAND:6
+	LOCAL:2 = 0 + RAND:3
+	LOCAL:3 = 2 + RAND:3
+	;危険日はCFLAG:上司イベント進行度が+1～2
+	;発情可があると50％の確率で一発堕ち
+	IF (危険日(COUNT)) == 2
+		LOCAL:1 += 3
+		TCVAR:COUNT:獲得絶頂経験 += 1
+		PRINTFORML %CALLNAME:COUNT%は昂ぶる情欲のままに、男との情事に溺れている	
+		PRINTFORM 牝の容貌を晒す%CALLNAME:COUNT%の胎内に、
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 他人の濃厚な子種が放たれてしまった…
+		RESETCOLOR
+		CFLAG:COUNT:上司イベント進行度 += RAND:1
+		IF RAND:100 < 50
+			TCVAR:COUNT:獲得絶頂経験 += 1
+			PRINTFORML 
+			PRINTFORML %CALLNAME:COUNT%は牝の本能のままに腰を使い、媚びた表情で男に中出しをおねだりしている
+			PRINTFORM 男の怒張から放たれた子種が胎内を満たすたびに、牝の悦びと引き換えに
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 大切な『何か』が崩れていった
+			RESETCOLOR
+			CFLAG:COUNT:上司イベント進行度 = 15
+		ENDIF
+	ELSEIF (危険日(COUNT)) == 1
+		LOCAL:1 += 3
+		TCVAR:COUNT:獲得絶頂経験 += 1
+		IF RAND:2 == 0
+			PRINTFORMW 男はそそり立つ怒張を誇示するように扱くと、挿入をねだる%CALLNAME:COUNT%へ覆いかぶさっていった
+			PRINTFORML 
+			PRINTFORMW 先走りの滲んだペニスが入ってくる感触に%CALLNAME:COUNT%は仰け反り嬌声をあげている
+			PRINTFORML 
+			PRINTFORMW 男は巧みな腰使いで%CALLNAME:COUNT%の膣を擦りあげながら危険日の膣内へと精を吐き出し始めた
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML %CALLNAME:MASTER%のものではない精液が、子を孕む準備の整った子宮へと吐き出されているにもかかわらず
+			PRINTFORMW %CALLNAME:COUNT%の柔肉は男のモノへと絡みつき最後の一滴まで搾り取ろうと締め付けている
+			RESETCOLOR
+		;無理矢理騎乗位いいよね…
+		ELSE
+			PRINTFORML 危険日であることを告げられた男はニヤニヤ笑いながら横になると、
+			PRINTFORML 自分から入れて動くように命じた
+			PRINTFORML %CALLNAME:COUNT%は微笑みながら男の上にまたがると
+			;巨乳、爆乳
+			IF TALENT:COUNT:111 || TALENT:COUNT:112
+				PRINTFORM 豊かな胸を揺らしながら
+			ELSE
+				PRINTFORM 男の体に手をつきながら
+			ENDIF
+			PRINTFORMW 腰を動かしはじめた
+			PRINTFORML 
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 巧みな腰使いに男が射精の予告をしても、%CALLNAME:COUNT%は淫らに体を上下させ続けている
+			PRINTFORMW %CALLNAME:MASTER%のものではない精液が、子を孕む準備の整った子宮へと叩きつけるような勢いで吐き出されている
+			RESETCOLOR
+		ENDIF
+		CFLAG:COUNT:上司イベント進行度 += RAND:1
+	ELSE
+		;30％の確率でCFLAG:上司イベント進行度+1
+		IF RAND:100 < 30
+			LOCAL:1 += 1
+			PRINTFORM 男は%CALLNAME:COUNT%
+			;巨乳、爆乳
+			IF TALENT:COUNT:111 || TALENT:COUNT:112
+				PRINTFORM に豊かな胸を使って
+			ELSE
+				PRINTFORM に口を使ってたっぷりと
+			ENDIF
+			PRINTFORMW 奉仕させた後、%CALLNAME:COUNT%を犯し始めた
+			PRINTFORML 
+			PRINTFORMW 男は巧みな腰使いで%CALLNAME:COUNT%の膣奥を小突いている
+			TCVAR:COUNT:獲得絶頂経験 += 1
+			PRINTFORM 執拗に続く甘い責めに%CALLNAME:COUNT%は喘ぎ声を上げながら男の腰に足を絡め、
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 蕩けた表情で射精を受け止めている
+			RESETCOLOR
+			CFLAG:COUNT:上司イベント進行度 += 1
+		ELSE
+			PRINTFORM 男は%CALLNAME:COUNT%
+			;巨乳、爆乳
+			IF TALENT:COUNT:111 || TALENT:COUNT:112
+				PRINTFORM に豊かな胸を使って
+			ELSE
+				PRINTFORM に口を使ってたっぷりと
+			ENDIF
+			PRINTFORML 奉仕させた後
+			IF RAND:2 == 0
+				PRINTFORMW 挿入をねだる台詞を言わせながら怒張で貫き犯し始めた
+				PRINTFORML 
+				PRINTFORMW 男が腰を動かすたびに%CALLNAME:COUNT%は蕩けた顔で喘ぎ声をあげている
+			ELSE
+				PRINTFORMW 上になって自分から動くように命じた
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:COUNT%は、喘ぎ声をあげながら男の上で淫らに腰を動かしている
+			ENDIF
+		ENDIF
+	ENDIF
+;第三段階:呼び出された夜
+ELSEIF CFLAG:COUNT:上司イベント進行度 == 9 && CFLAG:COUNT:上司来襲 == 2
+	PRINTFORML %CALLNAME:COUNT%は幹部の男に%CALLNAME:MASTER%の立場を守る代償に身体を要求された
+	PRINTFORML %CALLNAME:COUNT%は%CALLNAME:MASTER%の為と言いつつ男に身体を開いた
+	PRINTFORML 
+	LOCAL:1 = 3 + RAND:6
+	LOCAL:2 = 0 + RAND:3
+	LOCAL:3 = 2 + RAND:3
+	;危険日はCFLAG:上司イベント進行度が+1～2
+	;発情可があると50％の確率で一発堕ち
+	IF (危険日(COUNT)) == 2
+		LOCAL:1 += 3
+		TCVAR:COUNT:獲得絶頂経験 += 1
+		PRINTFORML %CALLNAME:COUNT%は昂ぶる情欲のままに、男との情事に溺れている	
+		PRINTFORM 牝の容貌を晒す%CALLNAME:COUNT%の胎内に、
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 他人の濃厚な子種が放たれてしまった…
+		RESETCOLOR
+		CFLAG:COUNT:上司イベント進行度 += RAND:1
+		IF RAND:100 < 50
+			TCVAR:COUNT:獲得絶頂経験 += 1
+			PRINTFORML 
+			PRINTFORML %CALLNAME:COUNT%は牝の本能のままに腰を使い、媚びた表情で男に中出しをおねだりしている
+			PRINTFORM 男の怒張から放たれた子種が胎内を満たすたびに、牝の悦びと引き換えに
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 大切な『何か』が崩れていった
+			RESETCOLOR
+			CFLAG:COUNT:上司イベント進行度 = 15
+		ENDIF
+	ELSEIF (危険日(COUNT)) == 1
+		LOCAL:1 += 3
+		TCVAR:COUNT:獲得絶頂経験 += 1
+		IF RAND:2 == 0
+			PRINTFORMW 男はそそり立つ怒張を誇示するように扱くと、挿入をねだる%CALLNAME:COUNT%へ覆いかぶさっていった
+			PRINTFORML 
+			PRINTFORMW 先走りの滲んだペニスが入ってくる感触に%CALLNAME:COUNT%は仰け反り嬌声をあげている
+			PRINTFORML 
+			PRINTFORMW 男は巧みな腰使いで%CALLNAME:COUNT%の膣を擦りあげながら危険日の膣内へと精を吐き出し始めた
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML %CALLNAME:MASTER%のものではない精液が、子を孕む準備の整った子宮へと吐き出されているにもかかわらず
+			PRINTFORMW %CALLNAME:COUNT%の柔肉は男のモノへと絡みつき最後の一滴まで搾り取ろうと締め付けている
+			RESETCOLOR
+		;無理矢理騎乗位いいよね…
+		ELSE
+			PRINTFORML 危険日であることを告げられた男はニヤニヤ笑いながら横になると、
+			PRINTFORML 自分から入れて動くように命じた
+			PRINTFORML %CALLNAME:COUNT%は微笑みながら男の上にまたがると
+			;巨乳、爆乳
+			IF TALENT:COUNT:111 || TALENT:COUNT:112
+				PRINTFORM 豊かな胸を揺らしながら
+			ELSE
+				PRINTFORM 男の体に手をつきながら
+			ENDIF
+			PRINTFORMW 腰を動かしはじめた
+			PRINTFORML 
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 巧みな腰使いに男が射精の予告をしても、%CALLNAME:COUNT%は淫らに体を上下させ続けている
+			PRINTFORMW %CALLNAME:MASTER%のものではない精液が、子を孕む準備の整った子宮へと叩きつけるような勢いで吐き出されている
+			RESETCOLOR
+		ENDIF
+		CFLAG:COUNT:上司イベント進行度 += RAND:1
+	ELSE
+		;30％の確率でCFLAG:上司イベント進行度+1
+		IF RAND:100 < 30
+			LOCAL:1 += 1
+			PRINTFORM 男は%CALLNAME:COUNT%
+			;巨乳、爆乳
+			IF TALENT:COUNT:111 || TALENT:COUNT:112
+				PRINTFORM に豊かな胸を使って
+			ELSE
+				PRINTFORM に口を使ってたっぷりと
+			ENDIF
+			PRINTFORMW 奉仕させた後、%CALLNAME:COUNT%を犯し始めた
+			PRINTFORML 
+			PRINTFORMW 男は巧みな腰使いで%CALLNAME:COUNT%の膣奥を小突いている
+			TCVAR:COUNT:獲得絶頂経験 += 1
+			PRINTFORM 執拗に続く甘い責めに%CALLNAME:COUNT%は喘ぎ声を上げながら男の腰に足を絡め、
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 蕩けた表情で射精を受け止めている
+			RESETCOLOR
+			CFLAG:COUNT:上司イベント進行度 += 1
+		ELSE
+			PRINTFORM 男は%CALLNAME:COUNT%
+			;巨乳、爆乳
+			IF TALENT:COUNT:111 || TALENT:COUNT:112
+				PRINTFORM に豊かな胸を使って
+			ELSE
+				PRINTFORM に口を使ってたっぷりと
+			ENDIF
+			PRINTFORML 奉仕させた後
+			IF RAND:2 == 0
+				PRINTFORMW 挿入をねだる台詞を言わせながら怒張で貫き犯し始めた
+				PRINTFORML 
+				PRINTFORMW 男が腰を動かすたびに%CALLNAME:COUNT%は蕩けた顔で喘ぎ声をあげている
+			ELSE
+				PRINTFORMW 上になって自分から動くように命じた
+				PRINTFORML 
+				PRINTFORMW %CALLNAME:COUNT%は、喘ぎ声をあげながら男の上で淫らに腰を動かしている
+			ENDIF
+		ENDIF
+	ENDIF
+
+;最終段階
+ELSEIF CFLAG:COUNT:上司イベント進行度 == 10 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORML 幹部の男は妖しげな薬を用いて%CALLNAME:COUNT%の恋情を砕こうとしている
+	PRINTFORML ・
+	PRINTFORML ・
+	PRINTFORML ・
+	;耐え切る：愛は奇跡だから低確率
+	IF RAND:100 < 5
+		PRINTFORML %CALLNAME:COUNT%は%CALLNAME:MASTER%を思う心だけを頼りに、粘着質な調教に耐え切った
+		CFLAG:COUNT:上司イベント進行度 = 11
+	;堕ちる：現実は厳しい？
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%は喜悦の笑みを浮かべながら、男の上で腰を振っている
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML …そして、致命的な一撃が%CALLNAME:COUNT%の中に放たれた…
+		RESETCOLOR
+		PRINTFORML
+		PRINTFORML 幹部の男に自分の牝の部分を支配された%CALLNAME:COUNT%は
+		PRINTFORML 更なる快楽と引き換えに自らのカラダを捧げ、幹部の男に忠誠を誓ってしまったようだ…
+		CFLAG:COUNT:上司イベント進行度 = 12
+	ENDIF
+	LOCAL:1 = 6 + RAND:6
+	LOCAL:2 = 2 + RAND:3
+	LOCAL:3 = 4 + RAND:3
+;寝取られ後
+ELSEIF CFLAG:COUNT:上司イベント進行度 >= 13
+	;上司の性処理（危険日）
+	IF (危険日(COUNT)) > 0
+		PRINTFORML %CALLNAME:COUNT%はどうやら幹部の男の性欲処理のために呼び出されたようだ
+		PRINTFORMW ベッドの上で葉巻を吹かす男の股間に顔を埋め、男のペニスに愛おしそうに奉仕している
+		PRINTFORML
+		PRINTFORML 男のペニスが元気になるのを見ると、男の上に跨り自分で挿入しはじめた
+		PRINTFORML %CALLNAME:COUNT%は膣内が満たされる感触に幸福感を覚えながら、射精をうながすように一心不乱に腰をふりはじめた
+		PRINTFORML 男がそろそろ射精しそうだと告げると、%CALLNAME:COUNT%は自身が危険日であることを告げ
+		PRINTFORMW 『受精させてください』と中出しを懇願した
+		PRINTFORML
+		PRINTFORML その言葉を聞いた男は愉悦の表情を浮かべ%CALLNAME:COUNT%を強く突き上げた
+		PRINTFORML 子宮口に鈴口を押し当て、子宮内に直接大量の精液を吐き出すと
+		PRINTFORMW 収まりきらなかった精液が、二人の接合部からあふれだした
+		PRINTFORML
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は危険日の子宮を満たす精液の熱に侵され、だらしないイキ顔を晒しながら腰をふり続けている
+		PRINTFORML その下腹部には油性マジックで『受精済み』と書かれている
+		RESETCOLOR
+		LOCAL:1 = 5 + RAND:5
+		LOCAL:2 = 2 + RAND:4
+		LOCAL:3 = 3 + RAND:4
+		CFLAG:COUNT:(2080) += 50
+	;上司の性処理（ベッドの上で種付け）
+	ELSEIF RAND:10 == 0
+		PRINTFORML %CALLNAME:COUNT%はどうやら幹部の男の性欲処理のために呼び出されたようだ
+		PRINTFORMW ベッドの上で葉巻を吹かす男の股間に顔を埋め、男のペニスに愛おしそうに奉仕している
+		PRINTFORML
+		PRINTFORML 男のペニスが元気になるのを見ると、男の上に跨り自分で挿入しはじめた
+		PRINTFORML %CALLNAME:COUNT%は膣内が満たされる感触に幸福感を覚えながら、射精をうながすように一心不乱に腰をふりはじめた
+		PRINTFORMW 男がそろそろ射精しそうだと告げると、%CALLNAME:COUNT%は『種付けしてください』と中出しを懇願した
+		PRINTFORML
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 子宮を侵す男の精液の熱に、喜悦の表情を浮かべる%CALLNAME:COUNT%のお腹には
+		PRINTFORML 油性マジックで『種付け済み』と書かれている
+		RESETCOLOR
+		LOCAL:1 = 4 + RAND:4
+		LOCAL:2 = 1 + RAND:3
+		LOCAL:3 = 2 + RAND:3
+		CFLAG:COUNT:(2080) += 50
+
+
+	ELSEIF RAND:9 == 0
+		PRINTFORMW %CALLNAME:COUNT%はいつものように、幹部の男の性処理の為に呼び出されていた
+		PRINTFORML 
+		PRINTFORML オフィスの机の下に隠れて、男のペニスに奉仕している
+		PRINTFORML ねっとりと舌をペニスに絡め、じゅるりと音を立てながら吸い付いていく
+		PRINTFORMW 時には根元まで咥え、時には頬ずりしながら丁寧に、愛情を込めたフェラチオを続けている
+		PRINTFORML 
+		PRINTFORML 熱心な愛撫にやがて幹部の男は限界を迎えると
+		PRINTFORML %CALLNAME:COUNT%の頭を掴んで、乱暴に喉の奥まで押し込んだ
+		PRINTFORML その行為でいよいよ精液が発射される事を知った%CALLNAME:COUNT%は
+		PRINTFORMW 潤んだ瞳で男を上目遣いで見上げながら、その瞬間を待っている……
+		PRINTFORML 
+		PRINTFORML そして、喉の奥に激しく精液が叩きつけられた
+		PRINTFORMW むせ返るような匂いを鼻腔に感じて、%CALLNAME:COUNT%はうっとりした顔で受け止めていた…
+		PRINTFORML 幹部の男は%CALLNAME:COUNT%がこくりと喉をならして全てを飲み込むのを見届けると
+		PRINTFORMW やっとペニスを口から抜き、押さえつけていた%CALLNAME:COUNT%を解放した
+		PRINTFORML 
+		PRINTFORML %CALLNAME:COUNT%は命じられるまでもなく、自ら再びペニスに飛びつくと
+		PRINTFORMW 残った精液を丁寧に舐めとっている……
+		TCVAR:COUNT:獲得フェラ経験 = 4 + LOCAL:1
+
+	ELSEIF RAND:8 == 0
+		PRINTFORMW %CALLNAME:COUNT%はいつものように、幹部の男の性処理の為に呼び出されていた
+		PRINTFORML 
+		PRINTFORML ホテルの一室に連れ込まれた%CALLNAME:COUNT%は、
+		PRINTFORMW 一糸纏わぬ姿で幹部の男に貫かれ、幾度も絶頂させられている
+		PRINTFORML 激しく突かれる度に下腹部から快楽が脳天に突き抜けていき
+		PRINTFORML %CALLNAME:COUNT%は自ら幹部の男を抱き寄せて、更なる刺激をねだってしまう
+		PRINTFORMW 膣はだらだらと愛液を垂らし、男のペニスを強く吸い付いて離そうとしない
+		PRINTFORML 
+		PRINTFORML 何度も男の精子を身体に受け、悦楽の喜びを全身で感じながら、
+		PRINTFORML %CALLNAME:COUNT%は幹部の男に対する忠誠を夢中で何度も誓い、
+		PRINTFORMW その寵愛がいつまでも続くように心から懇願していた……
+		LOCAL:1 = 4 + RAND:4
+		LOCAL:2 = 1 + RAND:3
+		LOCAL:3 = 2 + RAND:3
+		CFLAG:COUNT:(2080) += 50
+
+
+	ELSEIF RAND:7 == 0
+		PRINTFORML %CALLNAME:COUNT%は、幹部の男に裏路地に連れ込まれると
+		PRINTFORMW その場で後ろから挿入された
+		PRINTFORML 屋外で、誰に見られるとも知れない事への恐怖を感じながらも、
+		PRINTFORMW 自らも待ち望んでいた男との行為に身体を震わせ悦んでいる
+		PRINTFORML 
+		PRINTFORML 大きく甘い嬌声をあげそうになるのを堪えて幹部の男を受け入れていたが
+		PRINTFORML 男は執拗に%CALLNAME:COUNT%の弱点を責め、耳元では羞恥を煽る言葉を告げる
+		PRINTFORML 恐怖と羞恥は更なる興奮を呼び、%CALLNAME:COUNT%は
+		PRINTFORMW 声を何とか抑えたままで身体を何度もびくんびくんと震わせて絶頂を味わった
+		PRINTFORML 
+		PRINTFORML 行為の後、%CALLNAME:COUNT%は幹部の男に寄り添うように腕を組み、その場を離れた
+		PRINTFORMW 大量に出された精液が、膣から太ももを伝って流れてゆく……
+		LOCAL:1 = 4 + RAND:4
+		LOCAL:2 = 1 + RAND:3
+		LOCAL:3 = 2 + RAND:3
+		CFLAG:COUNT:(2080) += 50
+
+	;上司の性処理(新薬実験）
+	ELSEIF RAND:6 == 0
+		PRINTFORML %CALLNAME:COUNT%はどうやら組織の新薬の実験のために呼び出されたようだ
+		PRINTFORMW 薬を打たれた%CALLNAME:COUNT%は白目をむき、涎を垂らしながら幹部の男に犯されている
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 幹部の男に子宮を小突かれる度に%CALLNAME:COUNT%はケモノのような喘ぎ声をあげた…
+		RESETCOLOR
+		LOCAL:1 = 6 + RAND:4
+		LOCAL:2 = 4 + RAND:3
+		LOCAL:3 = 4 + RAND:3
+		CFLAG:COUNT:(2080) += 50
+	;上司の性処理(机の下で口奉仕）
+	ELSEIF RAND:5 == 0
+		PRINTFORML %CALLNAME:COUNT%はどうやら幹部の男の性欲処理のために呼び出されたようだ
+		PRINTFORMW %CALLNAME:COUNT%はデスクに座って仕事をしている幹部の男のペニスに口で奉仕している
+		PRINTFORML
+		PRINTFORML 技巧を尽くした%CALLNAME:COUNT%の奉仕にたまらず幹部の男が射精すると
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は一滴もこぼさずに精液を飲みほし
+		PRINTFORML ペニスにこびりついた精液を舐めとって掃除をしている
+		RESETCOLOR
+		TCVAR:COUNT:獲得フェラ経験 = 4 + LOCAL:1
+	;上司のペットの性欲処理(ｳﾏｰ）
+	ELSEIF RAND:4 == 0
+		PRINTFORML %CALLNAME:COUNT%は上司のペットの性欲処理のために呼び出された
+		PRINTFORML %CALLNAME:COUNT%は大型の馬の悪魔の足元に跪きながら
+		PRINTFORMW 巨大なペニスに舌を這わせている
+		PRINTFORML
+		PRINTFORML 口を大きく開けてペニスの先端を咥えこむと
+		PRINTFORML 両手で大きくしごきながら顔を前後させて丹念に奉仕をはじめた
+		PRINTFORML ガポ、ガボンと音を立てながら奉仕する%CALLNAME:COUNT%の口から
+		PRINTFORMW 大量の先走り汁が漏れ出している
+		PRINTFORML
+		PRINTFORML 馬の悪魔が%CALLNAME:COUNT%に挿入したさそうにすると
+		PRINTFORML %CALLNAME:COUNT%は壁に手をつき尻を突き出して挿入を誘った
+		PRINTFORML 馬の悪魔が我慢できないとばかりに%CALLNAME:COUNT%に覆いかぶさり
+		PRINTFORML 十分に濡れた女陰に一気に剛直を突きたてた
+		PRINTFORMW あまりの衝撃に%CALLNAME:COUNT%はカラダを仰け反らせながら絶叫をあげている
+		PRINTFORML
+		PRINTFORML 馬の悪魔が子宮口を突くたびに、%CALLNAME:COUNT%の下腹部が歪な形に変形した
+		PRINTFORML 馬の悪魔が淫らに蠢く%CALLNAME:COUNT%の膣内の感触にたまらず射精すると
+		PRINTFORMW %CALLNAME:COUNT%は白目をむき舌を突き出しながら嬌声をあげている
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%のお腹は妊娠したかのように膨らみ
+		PRINTFORML 結合部からはケモノ臭い精液が溢れだしている
+		RESETCOLOR
+		LOCAL:1 = 15 + RAND:7
+		LOCAL:2 = 8 + RAND:4
+		LOCAL:3 = 10 + RAND:5
+		TCVAR:COUNT:獲得吸血経験 = LOCAL:1 + LOCAL:2
+	;部下達への慰安
+	ELSEIF RAND:3 == 0
+		PRINTFORML %CALLNAME:COUNT%は幹部の男によって下級サマナー達の慰安に使われた
+		PRINTFORMW %CALLNAME:COUNT%はならず者同然の男達の欲望の捌け口になっている
+		PRINTFORML
+		PRINTFORML 何かしらの薬でも打たれたのか、ケモノのような声をあげて喘ぐ%CALLNAME:COUNT%の腕には青い痣ができており
+		PRINTFORMW 男達の足元には何本もの空の注射器が転がっている…
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 新たな薬を打たれる度に%CALLNAME:COUNT%は髪を振り乱してよがり狂い
+		PRINTFORML またがっている男の精液を全て搾りとるかのように、激しく腰を動かしている
+		RESETCOLOR
+		LOCAL:1 = 12 + RAND:7
+		LOCAL:2 = 6 + RAND:4
+		LOCAL:3 = 8 + RAND:5
+		TCVAR:COUNT:獲得輪姦経験 = 1
+	;接待の場で大型の悪魔（イメージはミノタウロス）との本番ショー（人間オナホ）
+	ELSEIF RAND:2 == 0
+		PRINTFORML %CALLNAME:COUNT%は幹部の男によって饗応の席での見世物に使われた
+		PRINTFORML ステージ上では大型の悪魔を使った%CALLNAME:COUNT%への種付けショーが行われている
+		PRINTFORML 大型の悪魔は%CALLNAME:COUNT%のカラダをまるでオナホールのように使って自らの剛直をしごいている
+		PRINTFORMW 大型の悪魔に突かれる度に%CALLNAME:COUNT%のお腹が巨大な剛直の形に変形している
+		PRINTFORML
+		PRINTFORML 激しい交尾に%CALLNAME:COUNT%は気を失ってしまったようだが
+		PRINTFORML 大型の悪魔はそんなことはお構いなしに%CALLNAME:COUNT%のカラダで剛直をしごきながら
+		PRINTFORMW 子宮口を貫く感触を楽しんでいる
+		PRINTFORML
+		PRINTFORML 大型の悪魔が雄叫びをあげて射精すると、
+		PRINTFORMW %CALLNAME:COUNT%のお腹は大量の精液で妊婦のようになってしまった…
+		PRINTFORML
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 丸太のような剛直の刺さった%CALLNAME:COUNT%の膣内からは
+		PRINTFORML 入りきらなかった精液が滝のように流れ落ちている…
+		RESETCOLOR
+		LOCAL:1 = 15 + RAND:7
+		LOCAL:2 = 8 + RAND:4
+		LOCAL:3 = 10 + RAND:5
+		TCVAR:COUNT:獲得吸血経験 = LOCAL:1 + LOCAL:2
+		
+	;接待の場でザコ悪魔との本番ショー
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%は饗応の席での見世物に使われた
+		PRINTFORMW ステージの上では下級悪魔を使った%CALLNAME:COUNT%への種付けショーが行われている
+		PRINTFORML
+		PRINTFORML 下級悪魔の精液が膣内を満たすたびに%CALLNAME:COUNT%は
+		PRINTFORMW 人間から与えられるものとは比べ物にならない快楽に頭が真っ白になっていった…
+		PRINTFORML
+		PRINTFORML 下級悪魔の射精は３０分以上も続き、射精が終わった頃には
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%のお腹は下級悪魔の精液で風船のように膨らみ
+		PRINTFORML 膣内からはゼリー状の精液がこぼれおちていた…
+		RESETCOLOR
+		LOCAL:1 = 6 + RAND:4
+		LOCAL:2 = 5 + RAND:3
+		LOCAL:3 = 3 + RAND:5
+		TCVAR:COUNT:獲得吸血経験 = LOCAL:1 + LOCAL:2
+	ENDIF
+
+ENDIF
+TARGET = COUNT
+TFLAG:13 = 64
+PRINTFORML 
+CALL KOJO_MESSAGE_EVENT
+;口上の為に此処で処理してます
+SIF CFLAG:COUNT:上司イベント進行度 == 1
+	CFLAG:COUNT:上司イベント進行度 = 2
+
+;処女喪失処理
+PRINTFORML 
+CALL 処女喪失, COUNT
+CALL 処女喪失イベント, COUNT
+
+TCVAR:COUNT:獲得Ｖ経験 += LOCAL:1
+TCVAR:COUNT:獲得Ａ経験 += LOCAL:2
+TCVAR:LOCAL:獲得キス経験 += LOCAL:1
+TCVAR:COUNT:獲得フェラ経験 += LOCAL:3
+TCVAR:COUNT:獲得精液経験 += (LOCAL:1 + LOCAL:2 + LOCAL:3) / 2
+TCVAR:COUNT:獲得奉仕快楽経験 += LOCAL:3
+TCVAR:COUNT:獲得性交経験 += LOCAL:1 + LOCAL:2
+TCVAR:COUNT:獲得膣射経験 += LOCAL:1 / 2
+TCVAR:COUNT:獲得絶頂経験 += RAND:(LOCAL:1 + LOCAL:2 + 1)
+TCVAR:COUNT:獲得貸し出し経験 += 1
+CFLAG:COUNT:105 += LOCAL:1 + TCVAR:COUNT:獲得絶頂経験
+;ＮＴＲ前の場合
+;獲得絶頂経験が6以上になるとCFLAG:COUNT:上司イベント進行度+1
+;上司イベント進行度12の時に+1されて13になってしまってたぽいので修正
+IF TCVAR:COUNT:獲得絶頂経験 >= 6 && CFLAG:COUNT:上司イベント進行度 != 11 && CFLAG:COUNT:上司イベント進行度 != 12
+	SIF CFLAG:COUNT:上司イベント進行度 <= 9
+		CFLAG:COUNT:上司イベント進行度 += 1
+	;CFLAG:COUNT:上司イベント進行度が11にならないように
+	SIF CFLAG:COUNT:上司イベント進行度 >= 11 && !TALENT:COUNT:ＮＴＲ
+		CFLAG:COUNT:上司イベント進行度 = 10
+ENDIF
+;好感度の増減：行為数*絶頂数+中出し回数*1～4
+;数値は要検討
+CALL NTR_SHOOT, COUNT, -20, ((TCVAR:COUNT:獲得性交経験 + TCVAR:COUNT:獲得奉仕快楽経験) * (TCVAR:COUNT:獲得絶頂経験 + 1) + TCVAR:COUNT:獲得膣射経験 * (RAND:4 + 1))
+PRINTFORML 
+CALL SHOW_ADD_EXP, COUNT
+DRAWLINE
+
+;女を渡した場合の翌日
+@NTR_JOUSHI_2
+#LOCALSIZE 3
+LOCAL:1 = 1 + RAND:3
+LOCAL:2 = RAND:100 + 1
+	IF CFLAG:COUNT:上司イベント進行度 >= 13
+		LOCAL:1 += 1 + RAND:3
+	ENDIF
+DRAWLINE
+
+;調教に耐え切る
+IF CFLAG:COUNT:上司イベント進行度 == 11 && CFLAG:COUNT:上司来襲 == 1
+	;妊娠時は上司も煽りにやってくる
+	IF TALENT:COUNT:妊娠
+		PRINTFORMW 幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+		PRINTFORMW 『やあ、例の件は万事良好だ。キミへの疑いは晴れたよ、喜びたまえ』
+		PRINTFORMW 『%CALLNAME:COUNT%クンが頑張ってくれたおかげで、ずいぶんと助かったよ』
+		PRINTFORMW 『それでだな、言いにくいのだが、%CALLNAME:COUNT%クンは妊娠してしまったようなのだよ』
+		PRINTFORMW 『貴様を守るために色々とやってもらったからな…、ククッ』
+		PRINTFORML 
+		PRINTFORMW ニヤニヤと笑いながら説明する男の後ろで、%CALLNAME:COUNT%は涙を浮かべ微笑んでいる
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%が一人で戻ってきた
+		PRINTFORML 手渡された手紙には、万事上手くいったとの旨が書きなぐられていた
+		PRINTFORML 
+		PRINTFORMW %CALLNAME:COUNT%は%CALLNAME:MASTER%に抱きつき、その温もりに涙を流した
+	ENDIF
+	
+	;リセットってのもアレだから第二段階最終まで戻す
+	CFLAG:COUNT:上司イベント進行度 = 7
+	;CFLAG:COUNT:上司イベント進行度 = 0
+
+;ＮＴＲ
+ELSEIF CFLAG:COUNT:上司イベント進行度 == 12 && CFLAG:COUNT:上司来襲 == 1 || CFLAG:COUNT:上司イベント進行度 == 15
+	;通常
+	IF CFLAG:COUNT:上司イベント進行度 == 12 && CFLAG:COUNT:上司来襲 == 1
+		PRINTFORML 幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+		PRINTFORML 『やあ、例の件は万事良好だ。キミへの疑いは晴れたよ、喜びたまえ』
+		PRINTFORML 『それで、%CALLNAME:COUNT%クンの事だがな…、助手を続けたいと申し出てな』
+		PRINTFORML 『まあ、貴様の為にも…カノジョの為にもなるだろうしなぁ』
+		PRINTFORML 
+		PRINTFORML %CALLNAME:COUNT%の表情は陰になってよく見えない…
+		PRINTFORML 『契約期限はカノジョが辞めるというまでだ』
+		PRINTFORML 『細かい契約内容はコレに書かれている。後で目を通しておきたまえ』
+		IF TALENT:COUNT:妊娠
+			PRINTFORML 
+			PRINTFORML 『それとだな、%CALLNAME:COUNT%クンのことだが、彼女は妊娠してしまったようなのだよ』
+			PRINTFORMW 『貴様を守るために色々とやってもらったからな…、ククッ』
+			PRINTFORM 『そうそう、私の助手とは言っても、%CALLNAME:COUNT%クンは貴様の
+			IF TALENT:LOCAL:妻
+				PRINTFORM 妻
+			ELSE
+				PRINTFORM モノ
+			ENDIF
+			PRINTFORMW なのだから、体調管理のほうは任せたよ』
+			PRINTFORMW 『いつでも、使えるようにしておいてくれたまえ…ハハ、ハハハッ』
+			PRINTFORMW 笑いながら去っていく男に対し%CALLNAME:COUNT%は深々と礼をして見送っている…
+		ELSE
+			PRINTFORMW 背を向ける男に対し%CALLNAME:COUNT%は深々と礼をして見送っている…
+		ENDIF
+	;発情一発:女を渡した場合
+	ELSEIF CFLAG:COUNT:上司イベント進行度 == 15 && CFLAG:COUNT:上司来襲 == 1
+		PRINTFORML 幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+		PRINTFORML 『いやあ、今回の饗応は大成功だったよ。%CALLNAME:COUNT%クンは実に優秀だなぁ』
+		PRINTFORML 『それで…ソノ優秀な%CALLNAME:COUNT%クンなんだがな』
+		PRINTFORML 『私の助手を務めたいと申し出てな…』
+		PRINTFORML 『貴様の為にイロイロと学びたいコトが有るとの事だ』
+		PRINTFORML 
+		PRINTFORML %CALLNAME:COUNT%は男の後ろで微笑んでいる…
+		PRINTFORML 『ずいぶんと思われているようだなぁ、クックックッ』
+		PRINTFORML 『契約期限はカノジョが辞めるというまでだ』
+		PRINTFORML 『細かい契約内容はコレに書かれている。後で目を通しておきたまえ』
+		IF TALENT:COUNT:妊娠
+			PRINTFORML 
+			PRINTFORML 『それとだな、今回の饗応で%CALLNAME:COUNT%クンは妊娠してしまったようなのだよ』
+			PRINTFORMW 『貴様のために頑張った結果なのだから、責めないでくれたまえ、ククッ』
+			PRINTFORM 『そうそう、私の助手とは言っても、%CALLNAME:COUNT%クンは貴様の
+			IF TALENT:LOCAL:妻
+				PRINTFORM 妻
+			ELSE
+				PRINTFORM モノ
+			ENDIF
+			PRINTFORMW なのだから、体調管理のほうは任せたよ』
+			PRINTFORMW 『いつでも、使えるようにしておいてくれたまえ…ハハ、ハハハッ』
+			PRINTFORMW 笑いながら去っていく男に対し%CALLNAME:COUNT%は深々と礼をして見送っている…
+		ELSE
+			PRINTFORMW 背を向ける男に対し%CALLNAME:COUNT%は深々と礼をして見送っている…
+		ENDIF
+	;発情一発:呼び出し
+	ELSEIF CFLAG:COUNT:上司イベント進行度 == 15 && CFLAG:COUNT:上司来襲 == 2
+		PRINTFORML なぜか幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+		PRINTFORML 『突然の事でスマンな』
+		PRINTFORML 『昨日、%CALLNAME:COUNT%クンが私の元を尋ねてきてな』
+		PRINTFORML 『私の助手を務めたいと申し出たのだよ…』
+		PRINTFORML 『貴様の為にイロイロと学びたいコトが有るとの事だ』
+		PRINTFORML 
+		PRINTFORML %CALLNAME:COUNT%は男の後ろで微笑んでいる…
+		PRINTFORML 『ずいぶんと思われているようだなぁ、クックックッ』
+		PRINTFORML 『契約期限はカノジョが辞めるというまでだ』
+		PRINTFORML 『細かい契約内容はコレに書かれている。後で目を通しておきたまえ』
+		IF TALENT:COUNT:妊娠
+			PRINTFORML 
+			PRINTFORML 『それとだな、%CALLNAME:COUNT%クンのことだが、彼女は妊娠しているようなのだよ』
+			PRINTFORML 『どこで男を咥え込んだのかは知らんが、私の助手になるからにはしっかりしてもらわねば…な…ククッ』
+			PRINTFORM 『そうそう、私の助手とは言っても、%CALLNAME:COUNT%クンは貴様の
+			IF TALENT:LOCAL:妻
+				PRINTFORM 妻
+			ELSE
+				PRINTFORM モノ
+			ENDIF
+			PRINTFORMW なのだから、体調管理のほうは任せたよ』
+			PRINTFORMW 『いつでも、使えるようにしておいてくれたまえ…ハハ、ハハハッ』
+			PRINTFORMW 笑いながら去っていく男に対し%CALLNAME:COUNT%は深々と礼をして見送っている…
+		ELSE
+			PRINTFORMW 背を向ける男に対し%CALLNAME:COUNT%は深々と礼をして見送っている…
+		ENDIF
+	ENDIF
+	IF CFLAG:COUNT:(2100) >= 3000
+		CFLAG:COUNT:(2080) = CFLAG:COUNT:(2100) * (-1)
+		CFLAG:COUNT:(2100) -= 3000
+		CFLAG:COUNT:隷ＮＴＲ進行度 = 2
+	ELSEIF CFLAG:COUNT:(2100) < 3000
+		CFLAG:COUNT:(2080) = (CFLAG:COUNT:(2100) + 3000) * (-1)
+		CFLAG:COUNT:(2100) = 0
+		CFLAG:COUNT:隷ＮＴＲ進行度 = 2
+	ENDIF
+	CALL NTR_CHECK , COUNT , 1
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORML 
+	SETCOLOR COLOR("Dark-pink")
+	;CFLAG:上司イベント進行度の数値で区別する
+	;9は非戦闘員持ち、10は戦闘員
+	CFLAG:COUNT:上司イベント進行度 = 13
+	IF TALENT:COUNT:非戦闘員 == 0 
+		PRINTFORML %CALLNAME:COUNT%をパーティーに編入できなくなりました
+		TALENT:COUNT:非戦闘員 = 1
+		CFLAG:COUNT:上司イベント進行度 = 14
+	ENDIF
+	PRINTFORML %CALLNAME:COUNT%は労役に付けなくなりました
+	;これで労役を弾きます
+	CFLAG:COUNT:労役フラグ = 9
+	PRINTFORML %CALLNAME:COUNT%を売却できなくなりました
+	;これで売却と便器を弾きます
+	CFLAG:COUNT:売却可能 = 0
+	RESETCOLOR
+	PRINTFORMW ＊ＮＴＲが外れると解除されます＊
+ENDIF
+;呼び出し：寝取られ後
+IF CFLAG:COUNT:上司イベント進行度 >= 13 && CFLAG:COUNT:上司来襲 == 2
+	MONEY:0 += LOCAL:2
+	IF RAND:10 == 0
+		IF RAND:2 == 0
+			PRINTFORML 幹部の男から電話がかかってきた
+			PRINTFORML 『少し仕事が長引いてしまってな、遅れるのも悪いと思って』
+			PRINTFORML 『今組織に所属している足の速い悪魔に%CALLNAME:COUNT%を送らせたとこだ』
+			PRINTFORMW 『あぁ、送らせる駄賃は既に払っているのでな、そちらで何か用意する必要はないぞ、クククッ』
+			PRINTFORML 丁度そのとき、悪魔の雄叫びが聞こえてきた…
+			PRINTFORMW 『おぉ着いたようだな、早速出迎えにいってやるといい』
+			PRINTFORML
+			PRINTFORML %CALLNAME:MASTER%が外に出ると、そこにはねじれた角のはえた大きな馬の悪魔が佇んでいた
+			PRINTFORML 馬の悪魔の背には%CALLNAME:COUNT%の姿はなく、どこかと探していると
+			PRINTFORML 馬の悪魔の腹の下から%CALLNAME:COUNT%らしき声が聞こえてきた
+			PRINTFORMW %CALLNAME:MASTER%がそこに目をやると馬の悪魔の腹に括りつけられている%CALLNAME:COUNT%の姿があった
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML %CALLNAME:COUNT%の女陰には馬の悪魔の巨大なペニスが突き刺さっており
+			PRINTFORMW 秘唇とペニスとの間からは入りきらなかった精液が道に流れ落ちている
+			RESETCOLOR
+			PRINTFORML
+			PRINTFORML 『その悪魔が、%CALLNAME:COUNT%を孕ませたいと要求してきてな』
+			PRINTFORMW 『駄賃代わりに交尾させてやったのだよ、ハハハハハッ』
+			PRINTFORMW %CALLNAME:MASTER%が慌てて%CALLNAME:COUNT%を括っているロープをほどくと
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORMW %CALLNAME:COUNT%は膣口から大量の精液を撒き散らしながら崩れ落ちた…
+			RESETCOLOR
+			PRINTFORML
+			PRINTFORML %CALLNAME:COUNT%の傍に落ちていた『給与』と書かれた封筒を開けると
+			PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+			PRINTFORML
+			PRINTFORML
+			TCVAR:COUNT:獲得吸血経験 = 2 + LOCAL:1
+		ELSE
+			PRINTFORML 幹部の男から電話がかかってきた
+			PRINTFORML 『少し仕事が長引いてしまってな、遅れるのも悪いと思って』
+			PRINTFORML 『今組織に所属している若いのに%CALLNAME:COUNT%を送らせたとこだ』
+			PRINTFORMW 『あぁ、送らせる駄賃は既に払っているのでな、そちらで何か用意する必要はないぞ、クククッ』
+			PRINTFORML 丁度そのとき、車のクラクションが聞こえてきた…
+			PRINTFORMW 『おぉ着いたようだな、早速出迎えにいってやるといい』
+			PRINTFORML
+			PRINTFORML %CALLNAME:MASTER%が外に出ると、黒塗りの車が一台停められていた
+			PRINTFORML 車内はカーテンが引かれ中は見えないが、停まったままギシギシ揺れる様に悪寒を感じ、扉を開けると
+			PRINTFORML %CALLNAME:COUNT%が見知らぬ男に貫かれ、あられもなく喘いでいる姿が目に飛び込んできた
+			PRINTFORMW 自ら絡みついて腰の動きを男にあわせ、涎を垂らして男の剛直を受け入れている
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML %CALLNAME:MASTER%の視線に気が付くと、%CALLNAME:COUNT%は悦楽に蕩けた顔で男と繋がったまま、
+			PRINTFORMW 聞こえるように%CALLNAME:MASTER%の目の前で種付けをせがみ、更に行為を加速させていった…
+			RESETCOLOR
+			PRINTFORML
+			PRINTFORML 『その男が、%CALLNAME:COUNT%を孕ませたいと要求してきてな』
+			PRINTFORMW 『駄賃代わりに種付けさせてやったのだよ、ハハハハハッ』
+			PRINTFORMW しばらくして車から降りてきた%CALLNAME:COUNT%は、%CALLNAME:MASTER%とは目を合わさずに戻っていった
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORMW %CALLNAME:COUNT%は膣口からは精液がとろとろと垂れ、太ももを濡らしている…
+			RESETCOLOR
+			PRINTFORML
+			PRINTFORML %CALLNAME:COUNT%の傍に落ちていた『給与』と書かれた封筒を開けると
+			PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+			PRINTFORML
+			PRINTFORML
+		ENDIF
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+	ELSEIF RAND:9 == 0
+		PRINTFORML 窓の外で幹部の男の車が止まる様子が、%CALLNAME:MASTER%の視界の片隅に入ってきた
+		PRINTFORMW %CALLNAME:COUNT%が送られてきたようだ
+		PRINTFORML 
+		PRINTFORML 車から降りてきた二人が親密な様子で別れを惜しみ、
+		PRINTFORML 熱く抱擁と口付けを交わしている様子を
+		PRINTFORMW %CALLNAME:MASTER%は目を逸らす事が出来ずに見届けてしまう
+		PRINTFORML 
+		PRINTFORML %CALLNAME:MASTER%の視線の先で、二人の抱擁は求め合う激しい愛撫と変わり
+		PRINTFORMW 口付けはお互いの唾液を貪る激しいものとなってゆく…
+		PRINTFORML 
+		PRINTFORML 抱き合ったまま幹部の男が%CALLNAME:COUNT%の耳元で何かを告げると、
+		PRINTFORML 顔を赤らめた%CALLNAME:COUNT%が小さくこくりと頷いた
+		PRINTFORML 密着したままの二人は再び車に乗り込んで、
+		PRINTFORMW %CALLNAME:MASTER%が見ていた事を知らないままに、そのままどこかへ向かっていった……
+		PRINTFORML 
+		PRINTFORML ・
+		PRINTFORML ・・
+		PRINTFORMW ・・・
+		PRINTFORML たっぷり3時間以上経った後、再び車が停まり%CALLNAME:COUNT%が降りて戻ってきた
+		PRINTFORML %CALLNAME:COUNT%は何も無かったかのように%CALLNAME:MASTER%に向けて会釈をすると、
+		PRINTFORMW 普段と変わらぬ足取りで退出していった
+		PRINTFORML 
+		PRINTFORML 
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+
+
+	ELSEIF RAND:8 == 0
+		PRINTFORML 疲れた表情で戻ってきた%CALLNAME:COUNT%は、
+		PRINTFORMW %CALLNAME:MASTER%と視線を合わせる事無く退出していった
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+
+	ELSEIF RAND:7 == 0
+		PRINTFORML %CALLNAME:MASTER%の元に戻らねばならない時間はとうに過ぎていたが
+		PRINTFORMW %CALLNAME:COUNT%は幹部の男に身体を求められ、自らも積極的に応えている
+		PRINTFORML 身体を重ねる事に後ろめたさも罪悪感も既に無く、
+		PRINTFORMW 望まれるままに抱かれる事に、%CALLNAME:COUNT%は心から悦びを感じていた
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+
+	ELSEIF RAND:6 == 0
+		PRINTFORML 戻ってきた%CALLNAME:COUNT%は、思いつめた表情で
+		PRINTFORML %CALLNAME:MASTER%をじっと見つめていた…が、
+		PRINTFORMW 結局何も言い出せずに退出していった
+
+	ELSEIF RAND:5 == 0
+		PRINTFORML %CALLNAME:COUNT%が戻ってきた
+		PRINTFORML %CALLNAME:COUNT%は『給与』と書かれた封筒を渡された
+		PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+		PRINTFORML 
+		PRINTFORML そしてそれとは別に、直接渡すように言い付けられたという大きめの封筒を手渡すと
+		PRINTFORMW %CALLNAME:COUNT%は目を伏せたまま逃げるように退出していった
+		PRINTFORML 
+		PRINTFORML 渡された封筒を開いてみると、
+		PRINTFORML 中には幹部の男に抱かれる%CALLNAME:COUNT%の姿が収められた写真が何枚も入っていた
+		IF TALENT:LOCAL:妻
+			PRINTFORM 自分の妻である
+		ELSE
+			PRINTFORM 見知った筈の
+		ENDIF
+		PRINTFORML %CALLNAME:COUNT%の身体が他の男に抱かれる様が、次々に%CALLNAME:MASTER%の目に飛び込んでくる
+		PRINTFORML 写真の中の%CALLNAME:COUNT%は、満足げに下卑た笑みを浮かべる幹部の男の下で、
+		PRINTFORMW 歓喜の、悦楽の、そして心からの安堵の表情を浮かべている…
+		PRINTFORML
+		PRINTFORML
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+
+	ELSEIF RAND:4 == 0
+		PRINTFORML 幹部の男から電話がかかってきた
+		PRINTFORML 『少し仕事が長引いてしまっていてな、スマンが%CALLNAME:COUNT%クンが帰るのは遅くなりそうだ』
+		PRINTFORML 用件を話す幹部の男の声にまぎれて、ベッドが軋む音と押し殺した喘ぎ声が聞こえている
+		PRINTFORMW 『心配せずとも今日中にはちゃんと帰してやろう、ちゃんと、なっ！』
+		PRINTFORML
+		PRINTFORMW 幹部の男が語尾に力をこめると、電話から幹部の男が荒く息をつく音と女性のものらしき嬌声が聞こえた
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW その女性の声は%CALLNAME:COUNT%にとてもよく似ていた…
+		RESETCOLOR
+		PRINTFORML
+		PRINTFORML ・
+		PRINTFORML ・・
+		PRINTFORML ・・・
+		PRINTFORML 遅れて帰ってきた%CALLNAME:COUNT%は『給与』と書かれた封筒を渡すと退室していった
+		PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+		PRINTFORML
+		PRINTFORML
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+	ELSEIF RAND:3 == 0
+		PRINTFORML %CALLNAME:COUNT%から電話がかかってきた
+		PRINTFORML %CALLNAME:COUNT%は甘く鼻にかかったような声で、途切れ途切れに用件を伝えてきた
+		PRINTFORMW どうやら今日は帰るのが遅くなるらしい…
+		PRINTFORML
+		PRINTFORML 電話からは%CALLNAME:COUNT%の声とともに、男のものらしき息づかいと
+		PRINTFORML 『何か』と『何か』がぶつかるようなリズミカルな音が聞こえている
+		PRINTFORML その音のリズムが速くなるごとに%CALLNAME:COUNT%の声は更に途切れがちになり
+		PRINTFORML 一言喋るたびに喘ぎ声のようなものが混じるようになった
+		PRINTFORMW %CALLNAME:COUNT%が息も絶え絶えに『心配しないで』と言うと、いきなり電話が切れてしまった
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW 電話が切れる直前、%CALLNAME:COUNT%の中だしをねだるような声が聞こえた気がした…
+		RESETCOLOR
+		PRINTFORML
+		PRINTFORML ・
+		PRINTFORML ・・
+		PRINTFORML ・・・
+		PRINTFORML 遅れて帰ってきた%CALLNAME:COUNT%は『給与』と書かれた封筒を渡すと退室していった
+		PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+		PRINTFORML
+		PRINTFORML
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+	ELSEIF RAND:2 == 0
+		IF RAND:2 == 0
+			PRINTFORML 幹部の男から電話がかかってきた
+			PRINTFORML 『忙しいところスマンな』
+			PRINTFORML 『%CALLNAME:COUNT%クンなんだが、今日の仕事がよほど疲れたのか、眠ってしまってな』
+			PRINTFORML 『起こすのも可哀想だから、こちら側でそちらに送ってやったよ』
+			PRINTFORML 『もうそろそろ、そちらに『届く』のではないかな
+			PRINTFORMW 幹部の男がそういうと同時に玄関のチャイムが鳴った
+			PRINTFORML
+			PRINTFORML ドアを開けてみると、宅配便の男が大きなダンボール箱を持ってきていた
+			PRINTFORMW %CALLNAME:MASTER%が箱を中に運び込み開けてみると
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML 全身を白い粘液で汚した%CALLNAME:COUNT%が四肢を縛られて入っていた
+			RESETCOLOR
+			PRINTFORMW 『ちゃんと届いただろう、何せ『こわれもの』で送ったからな、クククッ』
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORML %CALLNAME:COUNT%は虚ろな目をしながら幹部の男への忠誠の言葉を呟いている…
+			RESETCOLOR
+		ELSE
+			PRINTFORML %CALLNAME:COUNT%がふらふらとした足取りで戻ってきた
+			PRINTFORML 服は引き裂かれ、身体中が精液にまみれ汚れている。
+			PRINTFORML たった今まで大勢に犯されていたような酷い有様だった。
+			PRINTFORML 
+			PRINTFORML %CALLNAME:MASTER%が駆け寄よって声を掛けても%CALLNAME:COUNT%は何も答えず、
+			SETCOLOR COLOR("Dark-pink")
+			PRINTFORMW 虚ろな瞳で幹部の男への忠誠の言葉をただ繰り返している……
+			RESETCOLOR
+		ENDIF
+		
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML %CALLNAME:COUNT%に貼り付けてあった『給与』と書かれた封筒を開けると
+		PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+		PRINTFORML
+		PRINTFORML
+		TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+		TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+	ELSE
+	;	LOCAL:2 = RAND:100 + 1
+		PRINTFORML %CALLNAME:COUNT%が戻ってきた
+		PRINTFORML %CALLNAME:COUNT%は『給与』と書かれた封筒を渡すと退室していった
+		PRINTFORMW 中には￥{LOCAL:2}が入っていた…
+	ENDIF
+	
+;呼び出し：寝取られ前
+ELSEIF CFLAG:COUNT:上司来襲 == 2
+	PRINTFORML %CALLNAME:COUNT%が戻ってきた
+	PRINTFORMW %CALLNAME:COUNT%は%CALLNAME:MASTER%にそっとキスをすると、逃げるように退室していった
+	
+;報告
+ELSEIF RAND:3 == 0 && CFLAG:COUNT:上司イベント進行度 <= 3 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間通りに、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応は大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『そうそう、彼女もガンバッテいたよ。褒めてやるといい』
+	PRINTFORMW 『先方が大層気に入ってね、ククッ。なかなか放してくれなかったのだよ』
+	PRINTFORML 
+	IF TALENT:COUNT:妊娠
+		PRINTFORML %CALLNAME:COUNT%が悲痛な表情で%CALLNAME:MASTER%に近づいてきた
+		PRINTFORMW そして、%CALLNAME:MASTER%に抱きつくなり声を上げて泣き出した
+		PRINTFORML 
+		PRINTFORMW 『ああ、忘れてたが、%CALLNAME:COUNT%クンは妊娠してしまったようなのだよ』
+		PRINTFORMW 『ククッ、あれだけ出されてしまっては…な』
+;		PRINTFORMW 『そうそう…、私の顧客の中には妊婦好きはいないのでな』
+;		PRINTFORMW 『次回までになんとかしてくれると助かるよ…　クククッ』
+		PRINTFORMW そう言うと男は泣き崩れる%CALLNAME:COUNT%を残し去っていった
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%が無言で%CALLNAME:MASTER%に抱きついた
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW しがみ付く手は小さく震えている
+		RESETCOLOR
+	ENDIF
+ELSEIF RAND:3 == 0 && CFLAG:COUNT:上司イベント進行度 > 3 && CFLAG:COUNT:上司イベント進行度 <= 6 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間より少し遅れて、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応も大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『%CALLNAME:COUNT%クンは相変わらず頑張り屋だね、君のために懸命に働いていたよ』
+	PRINTFORMW 『先方が%CALLNAME:COUNT%クンにご執心のようでね、彼女を孕ませようと頑張っていたよ』
+	PRINTFORML 
+	IF TALENT:COUNT:妊娠
+		PRINTFORML 『その結果、妊娠したようだが…　別にかまわんよな　ククッ』
+		PRINTFORML 男は小さく笑いながら%CALLNAME:COUNT%を%CALLNAME:MASTER%へと押しやった
+		PRINTFORMW 呆然とした顔の%CALLNAME:COUNT%がフラフラとした足取りで%CALLNAME:MASTER%の元へと歩いてくる
+		PRINTFORML 
+		PRINTFORMW 『ククッ、あとで%CALLNAME:COUNT%クンを褒めてやってくれたまえ』
+		PRINTFORMW 『妊娠するまで君のために頑張ったのだからな…　クククッ』
+;		PRINTFORML 
+;		PRINTFORMW 『そうそう…、私の顧客の中には妊婦好きはいないのでな』
+;		PRINTFORMW 『次回までになんとかしてくれると助かるよ…　クククッ』
+;		PRINTFORML 
+		PRINTFORMW 男が笑いながら話すなか、%CALLNAME:COUNT%の膣から黄みがかった精液が垂れ太ももを汚していった
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%は深々と礼をしながら幹部の男を見送っている
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 幹部の男を見送る%CALLNAME:COUNT%の太股から黄みがかった精液が垂れていた
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+ELSEIF RAND:3 == 0 && CFLAG:COUNT:上司イベント進行度 > 6 && CFLAG:COUNT:上司イベント進行度 <= 9 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間より大幅に遅れて、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 連れて来られた%CALLNAME:COUNT%は何も身に着けておらず
+	PRINTFORMW お腹はまるで妊婦のように膨れあがっており、秘部には極太のバイブを挿入され淫らな音をたてていた
+	PRINTFORMW
+	PRINTFORMW 『いやあ、今回の饗応も大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『%CALLNAME:COUNT%クンは大変仕事熱心でね、こんな時間まで残業してくれたよ』
+	PRINTFORMW 『先方が相変わらず%CALLNAME:COUNT%クンにご執心でね』
+	PRINTFORMW 『精力増強剤まで飲んで%CALLNAME:COUNT%クンを孕ませようとしていたよ』
+	PRINTFORMW
+	PRINTFORML 幹部の男はそういうと、%CALLNAME:COUNT%の秘部に挿さっていたバイブを引き抜いた
+	PRINTFORML ぽっかりと口のあいた%CALLNAME:COUNT%の膣口から黄みがかった精液が大量に噴出し、床に大きな水たまりを作った
+	IF TALENT:COUNT:妊娠
+		PRINTFORML 『ハハハッ、こんなに出されていたとはな、孕むはずだ…、クククッ』
+		PRINTFORML 『ここへ来る前に検査したのだが、見たまえ…』
+		PRINTFORMW そう言いながら男は%CALLNAME:MASTER%に使用済みの妊娠検査薬を手渡してきた
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW それにははっきりと妊娠を示す線が浮かび上がっていた
+		RESETCOLOR
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW %CALLNAME:COUNT%は妊娠という事実にカラダを震わせながら
+		PRINTFORML 床に吐き出された酷く粘つく精液を舌で舐めとっていた…
+		RESETCOLOR
+	ELSE
+		PRINTFORML 『ハハハッ、こんなに出されていたとはな、これはホントに孕んでるかもしれんなぁ…』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW %CALLNAME:COUNT%は未だ子宮から逆流しつづける精液の感触にカラダを震わせながら
+		PRINTFORML 床に吐き出された酷く粘つく精液を舌で舐めとっていた…
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得Ｖ経験 = 3 + LOCAL:1 + RAND:(LOCAL:1)
+	TCVAR:COUNT:獲得精液経験 = 3 + LOCAL:1 + RAND:(LOCAL:1)
+	TCVAR:COUNT:獲得性交経験 = 3 + LOCAL:1 + RAND:(LOCAL:1)
+	TCVAR:COUNT:獲得膣射経験 = 3 + LOCAL:1 + RAND:(LOCAL:1)
+	TCVAR:COUNT:獲得絶頂経験 = 2 + LOCAL:1
+;つまみ食いフェラ編
+ELSEIF RAND:2 == 0 && CFLAG:COUNT:上司イベント進行度 <= 3 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間通りに、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応は大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『そうそう、彼女もガンバッテいたよ。褒めてやるといい』
+	IF TALENT:COUNT:妊娠
+		PRINTFORML %CALLNAME:COUNT%は暗い表情で、俯いている
+		PRINTFORML 
+		PRINTFORMW 『先方があまりに彼女の奉仕を褒めるのでね…』
+		PRINTFORMW 『此処に来るまでに少し試させてもらったが、妊婦の奉仕というのも、なかなか…　ククッ』
+		PRINTFORMW 『ん？　ああ…、忘れてたが、%CALLNAME:COUNT%クンは妊娠してしまったようなのだよ』
+		PRINTFORMW 『ハハッ、あれだけ出されてしまっては…な』
+		PRINTFORMW そう言うと男は泣き崩れる%CALLNAME:COUNT%を残し去っていった
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%はお腹に手を当てたまま、嗚咽を漏らしている
+		RESETCOLOR
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%は口を押さえ、俯いている
+		PRINTFORML 
+		PRINTFORMW 『先方があまりに彼女の奉仕を褒めるのでね…』
+		PRINTFORMW 『此処に来るまでに少し試させてもらったよ、中々良く仕込んであるようだなぁ』
+		PRINTFORML 『ザーメンを飲み込む様などはなかなか…クククッ』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は口を覆ったまま、嗚咽を漏らしている
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得フェラ経験 = LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = LOCAL:1
+	TCVAR:COUNT:獲得奉仕快楽経験 = LOCAL:1
+
+ELSEIF RAND:2 == 0 && CFLAG:COUNT:上司イベント進行度 > 3 && CFLAG:COUNT:上司イベント進行度 <= 6 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間より少し遅れて、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応も大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『%CALLNAME:COUNT%クンは相変わらず頑張り屋だね、君のために懸命に働いていたよ』
+	IF TALENT:COUNT:妊娠
+		PRINTFORML %CALLNAME:COUNT%は男の後ろに無表情で立っている
+		PRINTFORML 
+		PRINTFORMW 『やはり彼女の奉仕は評判が良くてね』
+		PRINTFORMW 『また少し使わせてもらったよ』
+		PRINTFORML 『妊娠に驚きながらも、尿道の中のザーメンを啜る姿は…クククッ』
+		PRINTFORMW 『ん？　ああ…、忘れてたが、%CALLNAME:COUNT%クンは妊娠してしまったようなのだよ』
+		PRINTFORMW 『ハハッ、あれだけ出されてしまっては…な』
+		PRINTFORML 幹部の男が笑いながら目配せすると%CALLNAME:COUNT%は男の後ろから一歩進み出た
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORMW 俯きながらお腹に手を当てる%CALLNAME:COUNT%の表情は男の言葉が本当であることを示していた
+		RESETCOLOR
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%は口の中に『何か』を溜めこんだまま無表情で立っている
+		PRINTFORML 
+		PRINTFORMW 『やはり彼女の奉仕は評判が良くてね』
+		PRINTFORMW 『また少し使わせてもらったよ』
+		PRINTFORML 『尿道の中のザーメンまで啜ってくれるとは、中々躾が行きとどいているようだな…クククッ』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML 幹部の男が目配せすると%CALLNAME:COUNT%は口の中の『何か』を飲み込んだ
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得フェラ経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得奉仕快楽経験 = 2 + LOCAL:1
+ELSEIF RAND:2 == 0 && CFLAG:COUNT:上司イベント進行度 > 6 && CFLAG:COUNT:上司イベント進行度 <= 9 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間より大幅に遅れて、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応も大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『%CALLNAME:COUNT%クンは大変仕事熱心でね、こんな時間まで残業してくれたよ』
+	IF TALENT:COUNT:妊娠
+		PRINTFORML 男の横に立つ%CALLNAME:COUNT%はお腹に手を当て、どこか陶然とした様子で微笑んでいる
+		PRINTFORML 
+		PRINTFORMW 『相変わらず%CALLNAME:COUNT%クンの舌づかいは素晴らしいね』
+		PRINTFORMW 『ここに来るまでに何回も搾りとられてしまったよ』
+		PRINTFORML 『ん？　ああ、%CALLNAME:COUNT%クンの様子が気になるのかね？』
+		PRINTFORML 『クククッ、これは先方の努力の結果でね…』
+		PRINTFORML 『おっと、思い出したら勃起してしまったよ』
+		PRINTFORML 
+		PRINTFORML 幹部の男はジッパー下ろすと、ズボンから逞しくそそりたった剛直が飛び出した
+		PRINTFORML 『%CALLNAME:COUNT%クン、すまんがまた処理してくれないか』
+		PRINTFORML %CALLNAME:COUNT%は幹部の男に命令されると、『奉仕させていただきます』と
+		PRINTFORMW 幹部の男に深々とお辞儀した後、ペニスに舌を這わせ、口奉仕をはじめた…
+		PRINTFORML 
+		PRINTFORML 『中出しをねだる%CALLNAME:COUNT%クンにこたえた結果、妊娠してしまったのだが』
+		PRINTFORMW 『蕩けた顔でザーメンを受け止める%CALLNAME:COUNT%クンの姿は…おおぅ…最高だったよ、ハハハッ』
+		PRINTFORML 
+		PRINTFORMW %CALLNAME:COUNT%は上目遣いをしながら、上機嫌に笑う幹部の男のペニスを丹念に奉仕している
+		PRINTFORMW その奉仕の仕方は%CALLNAME:MASTER%にするよりも熱心にしているように見えた…
+		PRINTFORMW
+		PRINTFORMW
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は口の中に出された精液を%CALLNAME:MASTER%に見せた後
+		PRINTFORML 味わいながら飲み込み、『使っていただいてありがとうございました』と
+		PRINTFORML 幹部の男に深々とお辞儀をした…
+		RESETCOLOR
+	ELSE
+		PRINTFORML %CALLNAME:COUNT%は口の周りに白い粘液をこびりつかせたまま、こちらをみて微笑んでいる
+		PRINTFORML 
+		PRINTFORMW 『相変わらず%CALLNAME:COUNT%クンの舌づかいは素晴らしいね』
+		PRINTFORMW 『ここに来るまでに何回も搾りとられてしまったよ』
+		PRINTFORML 『おっと、話しているうちにまた勃起してしまったようだ』
+		PRINTFORML 
+		PRINTFORML 幹部の男はジッパー下ろすと、ズボンから逞しくそそりたった剛直が飛び出した
+		PRINTFORML 『%CALLNAME:COUNT%クン、すまんがまた処理してくれないか』
+		PRINTFORML %CALLNAME:COUNT%は幹部の男に命令されると、『奉仕させていただきます』と
+		PRINTFORMW 幹部の男に深々とお辞儀した後、ペニスに舌を這わせ、口奉仕をはじめた…
+		PRINTFORMW %CALLNAME:COUNT%は上目遣いをしながら、丹念に幹部の男のペニスに奉仕している
+		PRINTFORMW その奉仕の仕方は%CALLNAME:MASTER%にするよりも熱心にしているように見えた…
+		PRINTFORMW
+		PRINTFORMW
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は口の中に出された精液を%CALLNAME:MASTER%に見せた後
+		PRINTFORML 味わいながら飲み込み、『使っていただいてありがとうございました』と
+		PRINTFORML 幹部の男に深々とお辞儀をした…
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得フェラ経験 = 4 + LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = 4 + LOCAL:1
+	TCVAR:COUNT:獲得奉仕快楽経験 = 4 + LOCAL:1
+;つまみ食い本番編
+ELSEIF CFLAG:COUNT:上司来襲 == 1 && CFLAG:COUNT:上司イベント進行度 <= 3
+	PRINTFORMW 連絡のあった時間通りに、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応は大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『そうそう、彼女もガンバッテいたよ。褒めてやるといい』
+	IF TALENT:COUNT:妊娠
+		PRINTFORMW %CALLNAME:COUNT%は自らを抱きしめながら涙を流している
+		PRINTFORML 
+		PRINTFORMW 『彼女の評判が中々良かったのでね…』
+		PRINTFORML 『此処に来るまでに少し使わせてもらったよ』
+		PRINTFORML 
+		PRINTFORML 『今回の饗宴で妊娠してしまったようなので遠慮なく中に出させてもらったが』
+		PRINTFORMW 『膣内射精の時のアノ締め付けは中々…、クククッ』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML ビクンと身体を震わせた%CALLNAME:COUNT%の太股を白い粘液が伝っている
+		RESETCOLOR
+	ELSE
+		PRINTFORMW %CALLNAME:COUNT%は自らを抱きしめながら震えている
+		PRINTFORML 
+		PRINTFORMW 『彼女の評判が中々良かったのでね…』
+		PRINTFORML 『此処に来るまでに少し使わせてもらったよ』
+		PRINTFORML 
+		PRINTFORML 『ずいぶんと良い穴に仕上げたものだなぁ、実に良い使い心地だったよ』
+		PRINTFORMW 『膣内射精の時のアノ締め付けは中々…、クククッ』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML ビクンと身体を震わせた%CALLNAME:COUNT%の太股を白い粘液が伝っている
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得Ｖ経験 = LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = LOCAL:1
+	TCVAR:COUNT:獲得性交経験 = LOCAL:1
+	TCVAR:COUNT:獲得膣射経験 = LOCAL:1
+	TCVAR:COUNT:獲得絶頂経験 = RAND:(LOCAL:1)
+	CFLAG:COUNT:105 += LOCAL:1 + TCVAR:COUNT:獲得絶頂経験
+
+ELSEIF CFLAG:COUNT:上司イベント進行度 <= 6 && CFLAG:COUNT:上司イベント進行度 > 3 && CFLAG:COUNT:上司来襲 == 1
+	PRINTFORMW 連絡のあった時間より少し遅れて、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+	PRINTFORMW 『いやあ、今回の饗応も大成功でね。これでまた組織の影響力を強める事ができるよ』
+	PRINTFORML 『%CALLNAME:COUNT%クンは相変わらず頑張り屋だね、君のために懸命に働いていたよ』
+	PRINTFORMW 連れて来られた%CALLNAME:COUNT%は所々服が肌蹴ており
+	PRINTFORMW 顔は上気し、息も『何か激しい運動』をした後のように乱れている
+	IF TALENT:COUNT:妊娠
+		PRINTFORML 
+		PRINTFORMW 『それはそうと、また%CALLNAME:COUNT%クンの穴を少し使わせてもらったよ』
+		PRINTFORML 『もちろん彼女の許可は貰ってね』
+		PRINTFORML 
+		PRINTFORML 『妊娠しているのにもかかわらず途中から%CALLNAME:COUNT%クンも積極的に求めてきてね…』
+		PRINTFORMW 『宿ったばかりの赤ん坊が心配になったよ、ハハ、ハハハッ』
+		PRINTFORML 
+		IF HAVE_PENIS(MASTER)
+			PRINTFORML 『ん？　ああ、今回の饗宴で%CALLNAME:COUNT%クンは孕んでしまったようでね…』
+			PRINTFORMW 『これからは君も気兼ねなく中出しできるな、クククッ』
+		ELSE
+			PRINTFORML 『ん？　ああ、今回の饗宴で%CALLNAME:COUNT%クンは孕んでしまったようでね…』
+			PRINTFORMW 『組織のためだ、奴隷の妊娠くらいかまわんだろう？　ハハハッ』
+		ENDIF
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML ビクンと身体を震わせた%CALLNAME:COUNT%の膣から白い粘液の塊がこぼれおちた
+		RESETCOLOR
+	ELSE
+		PRINTFORML 
+		PRINTFORMW 『それはそうと、また%CALLNAME:COUNT%クンの穴を少し使わせてもらったよ』
+		PRINTFORML 『もちろん彼女の許可は貰ってね』
+		PRINTFORML 
+;		PRINTFORML 『途中から%CALLNAME:COUNT%クンも積極的に求めてきてね…最後には中出しをねだられたよ』
+		PRINTFORML 『途中から%CALLNAME:COUNT%クンも積極的に求めてきてね…、中出しをねだって足を絡めてくる姿はなかなか…』
+		PRINTFORMW 『私と%CALLNAME:COUNT%クンはカラダの相性が良いのかもしれんな…、クククッ』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML ビクンと身体を震わせた%CALLNAME:COUNT%の膣から白い粘液の塊がこぼれおちた
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得Ｖ経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得性交経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得膣射経験 = 2 + LOCAL:1
+	TCVAR:COUNT:獲得絶頂経験 = 1 + RAND:(LOCAL:1)
+	CFLAG:COUNT:105 += LOCAL:1 + TCVAR:COUNT:獲得絶頂経験
+ELSEIF CFLAG:COUNT:上司イベント進行度 <= 9 && CFLAG:COUNT:上司イベント進行度 > 6 && CFLAG:COUNT:上司来襲 == 1
+	IF TALENT:COUNT:妊娠
+		PRINTFORMW 連絡のあった時間より大幅に遅れて、事務所前まで迎えに来るように幹部の男からの連絡が入った
+		PRINTFORMW 表に出ると道の端に不自然に揺れ動く幹部の男の車があった
+		PRINTFORMW 覗き込んだ車内では%CALLNAME:COUNT%が座席に座った男に跨り腰をくねらせていた
+		PRINTFORML 
+		PRINTFORMW 『ハハハッ、こんな姿ですまんね』
+		PRINTFORML 『とっくの前に着いてはいたのだが、%CALLNAME:COUNT%クンが中々離してくれなくてね…』
+		PRINTFORML 『まぁ、もう少しで終わるので、ちょっと待っていてくれ』
+		PRINTFORML 
+		PRINTFORML 幹部の男はそういうと%CALLNAME:COUNT%のカラダを強く抱きしめ、激しく動き始めた
+		PRINTFORML 幹部の男が腰を一気に突きだすと、%CALLNAME:COUNT%は背中をのけ反らせながら絶頂した
+		PRINTFORML 『ふぅ…、まったく、性欲の強い奴隷を持つと大変みたいだな…ククッ』
+		PRINTFORMW 『事務所で待つ君の事を話してもペニスから離れようとしないのだよ、ハハハッ』
+		PRINTFORMW 
+		PRINTFORML 『そうそう、迎えに出てもらったのには理由があってね』
+		PRINTFORML 『今回の饗宴で%CALLNAME:COUNT%クンが孕んでしまって、それを気遣ってのことなのだよ』
+		PRINTFORMW 『私の優しさに感謝してくれたまえ　ハハ、ハハハッ』
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は絶頂の余韻に震えながらも男にしがみつき、まだ足りないとばかりに腰を動かしていた
+		RESETCOLOR
+	ELSE
+		PRINTFORMW 連絡のあった時間より大幅に遅れて、幹部の男が%CALLNAME:COUNT%を連れて訪ねて来た
+		PRINTFORMW 『いやあ、今回の饗応も大成功でね。これでまた組織の影響力を強める事ができるよ』
+		PRINTFORML 『%CALLNAME:COUNT%クンは大変仕事熱心でね、こんな時間まで残業してくれたよ』
+		PRINTFORMW %CALLNAME:COUNT%は駅弁の体勢で幹部の男と交わりながら連れて来られた
+		PRINTFORMW %CALLNAME:COUNT%は足を絡ませ自ら腰を動かしながら、幹部の男の精液を搾りとろうとしている
+		PRINTFORML 
+		PRINTFORMW 『ハハハッ、こんな姿ですまんね』
+		PRINTFORML 『また%CALLNAME:COUNT%クンの穴を使わせてもらっていたんだが』
+		PRINTFORML 『%CALLNAME:COUNT%クンが中々離してくれなくてね…』
+		PRINTFORML 『まぁ、もう少しで終わるので、ちょっと待っていてくれ』
+		PRINTFORML 
+		PRINTFORML 幹部の男はそういうと%CALLNAME:COUNT%のカラダを強く抱きしめ、激しく動き始めた
+		PRINTFORML 幹部の男が腰を一気に突きだすと、%CALLNAME:COUNT%は背中をのけ反らせながら絶頂した
+		PRINTFORML 『ふぅ…、まったく、性欲の強い奴隷を持つと大変みたいだな…ククッ』
+		PRINTFORMW 『それはそうと、床を汚さないために中に出してしまったが、孕んでしまっていたらスマンな、ハハハッ』
+		PRINTFORMW  
+		PRINTFORML 
+		SETCOLOR COLOR("Dark-pink")
+		PRINTFORML %CALLNAME:COUNT%は膣内から精液がこぼれおちないように自ら極太のバイブを挿入し子宮に栓をした
+		PRINTFORML %CALLNAME:COUNT%はバイブの振動を感じながら幹部の男のペニスを掃除している
+		RESETCOLOR
+	ENDIF
+	TCVAR:COUNT:獲得Ｖ経験 = 3 + LOCAL:1
+	TCVAR:COUNT:獲得精液経験 = 3 + LOCAL:1
+	TCVAR:COUNT:獲得性交経験 = 3 + LOCAL:1
+	TCVAR:COUNT:獲得膣射経験 = 3 + LOCAL:1
+	TCVAR:COUNT:獲得絶頂経験 = 2 + RAND:(LOCAL:1)
+	CFLAG:COUNT:105 += LOCAL:1 + TCVAR:COUNT:獲得絶頂経験
+
+ENDIF
+IF  CFLAG:COUNT:上司来襲 == 1 && !CFLAG:COUNT:上司イベント進行度 == 11
+	PRINTFORML 
+	PRINTFORML 『それでは、また何かあれば連絡を入れる。組織の為に身を粉にして励みたまえ』
+	PRINTFORMW 男は機嫌よく去っていった
+	PRINTFORML 
+ENDIF
+CALL SHOW_ADD_EXP, COUNT
+DRAWLINE
+
+;呼び出されていた場合、FLAG:上司来襲率-5
+SIF CFLAG:COUNT:上司来襲 == 2
+	FLAG:上司来襲率 -= 0
+	
+;数値がマイナスにならない様に
+SIF FLAG:上司来襲率 < 0
+	FLAG:上司来襲率 = 0
+
+CFLAG:COUNT:上司来襲 = 0
+CFLAG:COUNT:この場に居ないフラグ = 0
+SIF CFLAG:COUNT:上司イベント進行度 == 1
+	CFLAG:COUNT:上司イベント進行度 = 2
+
+;上司来襲
+@NTRJOUSHI
+#LOCALSIZE 4
+#DIM ＮＴＲリスト, 200
+VARSET ＮＴＲリスト, -1
+LOCAL:1 = 0
+;呼び出しの計算用
+LOCAL:2 = 0
+;上司が前日来ていたかどうかの判定用
+LOCAL:3 = 0
+IF GETBIT(FLAG:ＮＴＲ機能 , 63)
+	REPEAT CHARANUM
+		;女を渡した場合の翌日
+		IF CFLAG:COUNT:上司来襲 > 0
+			;上司が前日来ていたかどうか
+			SIF CFLAG:COUNT:上司来襲 == 2
+				LOCAL:3 = 1
+			CALL NTR_JOUSHI_2
+		ENDIF
+	REND
+	;CFLAG:上司イベント進行度が7以上のキャラがいる場合
+	;20％の確率で呼び出される
+	LOCAL:2 = FLAG:上司来襲率 - 30
+	LOCAL:2 = LIMIT(LOCAL:2 , 0, 30)
+	IF RAND:100 < 20 + LOCAL:2
+		FOR LOCAL,1,CHARANUM
+			SIF TALENT:LOCAL:妊娠 || TALENT:LOCAL:育児中
+				CONTINUE
+			SIF CFLAG:LOCAL:労役フラグ == 3
+				CONTINUE
+			SIF (CFLAG:LOCAL:その他 == 1116 || CFLAG:LOCAL:その他2 == 1116 || CFLAG:LOCAL:その他3 == 1116)
+				CONTINUE
+			SIF CFLAG:LOCAL:上司イベント進行度 < 7
+				CONTINUE
+			SIF CFLAG:LOCAL:上司イベント進行度 == 10
+				CONTINUE
+			ＮＴＲリスト:(LOCAL:1) = LOCAL
+			LOCAL:1 ++
+		NEXT
+		SIF LOCAL:1 == 0
+			RETURN 0
+		LOCAL = ＮＴＲリスト:(RAND:(LOCAL:1))
+		SIF LOCAL < 1 && LOCAL >= CHARANUM
+			RETURN 0
+		;CFLAG:上司来襲が２の場合は呼び出しに分岐
+		CFLAG:LOCAL:上司来襲 = 2
+		;労役とパーティーを外す
+		SIF TARGET == LOCAL
+			TARGET = -1
+		SIF ASSI == LOCAL
+			ASSI = -1
+		CFLAG:LOCAL:この場に居ないフラグ = 1
+		CFLAG:LOCAL:労役フラグ = 0
+		IF CFLAG:LOCAL:劇場出演順番 != 0
+			DE:(49+(CFLAG:LOCAL:劇場出演順番)):(CFLAG:LOCAL:労役店舗-1) = -1
+			DE:(59+(CFLAG:LOCAL:劇場出演順番)):(CFLAG:LOCAL:労役店舗-1) = -1
+			CFLAG:LOCAL:労役フラグ = 0
+			CFLAG:LOCAL:劇場出演順番 = 0
+			CFLAG:LOCAL:労役店舗 = 0
+		ENDIF
+		SIF CPOS(LOCAL) > 0
+			CALL REMOVE_POSITION,CPOS(LOCAL)
+		SETCOLOR COLOR("RED")
+		IF CFLAG:LOCAL:上司イベント進行度 >= 13
+			PRINTFORMW %CALLNAME:LOCAL%はどこかに出かけたようだ
+		ELSE
+			PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%に微笑みかけると、なにかを決意した表情で出かけていった
+		ENDIF
+		RESETCOLOR
+	;上司が来るかどうかの判定
+	ELSEIF RAND:60 < FLAG:上司来襲率 && !LOCAL:3 == 1
+		CALL JOUSHI_RAISYUU
+
+	ENDIF
+	;上司の来る確率は最大100％
+	FLAG:上司来襲率 += RAND:6
+	SIF FLAG:上司来襲率 > 100
+		FLAG:上司来襲率 = 100
+ENDIF
+
+

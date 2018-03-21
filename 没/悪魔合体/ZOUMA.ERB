@@ -1,0 +1,647 @@
+
+;================================================================
+;Zoma作成
+;================================================================
+@MAKE_ZOUMA
+;LOCAL:1 素材の登録番号
+LOCAL:1 = -1
+$START_MAKE
+LOCAL:6 = 0
+
+;キャラリストを表示
+
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:3に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+
+	SIF 契約(COUNT) > 0
+		CONTINUE
+	SIF ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 44
+		CONTINUE
+	SIF CFLAG:COUNT:労役フラグ == 3
+		CONTINUE
+	SIF CFLAG:COUNT:合体不可
+		CONTINUE
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:5 = A
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML 素体にする悪魔を選んでください　＜page.{P}＞
+DRAWLINE
+CALL SHOW_CHARA_LIST
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1001]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:5 - 1) / 20) ? %" " * 16% # [1009]Next page\@
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+		RETURN 0
+ELSEIF RESULT == 1001
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:5 - 1) / 20
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+LOCAL:1 = RESULT
+
+
+LOCAL:3 = CHARANUM
+
+
+;一旦合体結果の悪魔をキャラ登録
+CALL ADD_NEW_COMPANION,4402,500, -1
+
+
+;スキル継承
+FOR LOCAL,1,FLAG:スキル数+1
+	LOCALS = スキル{LOCAL}
+	ABL:(LOCAL:3):LOCALS = ABL:(LOCAL:1):LOCALS
+NEXT
+;能力継承
+FOR LOCAL,0,7
+	BASE:(LOCAL:3):(GET_BASESTATUS(LOCAL)) = BASE:(LOCAL:1):(GET_BASESTATUS(LOCAL)) +1
+NEXT
+;CFLAG:(LOCAL:3):初期LV = CSVBASE(NO:(LOCAL:1),GETNUM(BASE,"LV"),0)
+CFLAG:(LOCAL:3):初期LV = BASE:(LOCAL:3):LV
+
+;調教効果による能力アップ
+BASE:(LOCAL:3):力 += (ABL:(LOCAL:1):欲望+1)/2
+BASE:(LOCAL:3):知恵 += (ABL:(LOCAL:1):技巧+1)/2
+BASE:(LOCAL:3):魔力 += (ABL:(LOCAL:1):欲望+1)/2
+BASE:(LOCAL:3):耐力 += (ABL:(LOCAL:1):従順+1)/2
+BASE:(LOCAL:3):速さ += (ABL:(LOCAL:1):技巧+1)/2
+BASE:(LOCAL:3):運 += (ABL:(LOCAL:1):従順+1)/2
+
+
+SIF TALENT:(LOCAL:1):武器
+	TALENT:(LOCAL:3):武器 = 1
+SIF TALENT:(LOCAL:1):鉤爪
+	TALENT:(LOCAL:3):鉤爪 = 1
+SIF TALENT:(LOCAL:1):鉤足
+	TALENT:(LOCAL:3):鉤足 = 1
+SIF TALENT:(LOCAL:1):羽
+	TALENT:(LOCAL:3):羽 = 1
+SIF TALENT:(LOCAL:1):尾
+	TALENT:(LOCAL:3):尾 = 1
+SIF TALENT:(LOCAL:1):射撃武器
+	TALENT:(LOCAL:3):射撃武器 = 1
+SIF TALENT:(LOCAL:1):毛皮
+	TALENT:(LOCAL:3):毛皮 = 1
+SIF TALENT:(LOCAL:1):触手
+	TALENT:(LOCAL:3):触手 = 1
+SIF TALENT:(LOCAL:1):嘴
+	TALENT:(LOCAL:3):嘴 = 1
+SIF TALENT:(LOCAL:1):動物耳
+	TALENT:(LOCAL:3):動物耳 = 1
+SIF TALENT:(LOCAL:1):小柄体型
+	TALENT:(LOCAL:3):小柄体型 = 1
+SIF TALENT:(LOCAL:1):小人体型
+	TALENT:(LOCAL:3):小人体型 = 1
+SIF TALENT:(LOCAL:1):大柄
+	TALENT:(LOCAL:3):大柄 = 1
+SIF TALENT:(LOCAL:1):巨体
+	TALENT:(LOCAL:3):巨体 = 1
+
+
+
+
+IF TALENT:(LOCAL:1):獣
+	TALENT:(LOCAL:3):動物耳 = 1
+	TALENT:(LOCAL:3):尾 = 1
+	TALENT:(LOCAL:3):毛皮 = 1
+ENDIF
+IF TALENT:(LOCAL:1):爬虫類
+	TALENT:(LOCAL:3):尾 = 1
+ENDIF
+
+;武器によって射程と相性が変更
+IF TALENT:(LOCAL:3):武器
+	ABL:(LOCAL:3):攻撃相性 = 0
+ELSEIF TALENT:(LOCAL:3):射撃武器
+	ABL:(LOCAL:3):攻撃相性 = 1
+	ABL:(LOCAL:3):射程 = 3
+ENDIF
+
+CALL CONTROL_MAG,LOCAL:3,BASE:(LOCAL:1):ＭＡＧ+CFLAG:(LOCAL:1):強化使用ＭＡＧ
+
+CALL SYNC_STATUS,LOCAL:3
+CALL HEALTH_CHARA,LOCAL:3
+
+NAME:(LOCAL:3) = %" "%
+CALLNAME:(LOCAL:3) = %" "%
+
+CUSTOMDRAWLINE =
+;合体結果のステータスを表示
+U = LOCAL:3
+LOCAL:10 = 2
+$PRINT_STATUS
+PRINTFORML %STR:(ABL:U:80)%　　%CALLNAME:U%　　
+CALLFORM SHOW_INFO_PAGE_{LOCAL:10}
+CUSTOMDRAWLINE =
+
+
+	;ステータスの表示切替用
+PRINTFORMLC \@ LOCAL:10 == 2 ? [1007]Prev. Page # %" " * 16% \@
+PRINTFORMLC                 
+PRINTFORMLC \@ LOCAL:10 == 1 ? [1009]Next. Page # %" " * 16% \@
+PRINTL
+PRINTL
+
+;合体するかどうか　→　合体実行（実際には既に終わっている）
+PRINTL この悪魔でよろしいですか？ [0]Yes [1]No
+$INPUT_LOOP
+INPUT
+IF RESULT == 1007 && LOCAL:10 == 2
+	LOCAL:10 = 1
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1009 && LOCAL:10 == 1
+	LOCAL:10 = 2
+	GOTO PRINT_STATUS
+ELSEIF RESULT == 1
+	DELCHARA LOCAL:3
+	REPEAT 4
+		LOCAL:(COUNT+1) = -1
+	REND
+	RESTART
+ELSEIF RESULT == 0
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+
+;名称決定
+CALL NAME_ZOUMA,LOCAL:3
+
+;作成時のセリフを表示
+TRYCCALLFORM FUSION_MESSAGE_K{NO:(LOCAL:3)},LOCAL:3
+
+CATCH
+	TRYCALLFORM FUSION_MESSAGE_PUB{ABL:(LOCAL:3):会話タイプ},LOCAL:3
+ENDCATCH
+
+;忠誠度による素質変更
+CALL MAKE_TALENT,LOCAL:3,BASE:(LOCAL:1):忠誠度*3
+
+PRINTFORMW %STR:(ABL:(LOCAL:3):種族)% %CALLNAME:(LOCAL:3)%が仲魔になった。
+
+CALL FUSION_LETTER,LOCAL:1,3
+
+;合体素材の悪魔を消去
+SIF GET_STATE(CFLAG:(LOCAL:1):ステート) == "DYING"
+	CALL INCREASE_LD,-7
+CALL キャラ削除, LOCAL:1
+
+ITEM:ドリー・カドモン -= 1
+
+RETURN 0
+
+GOTO START_MAKE
+
+
+;==========================================================================
+;Zomaをドリー・カドモンに戻す
+;==========================================================================
+@DEL_ZOUMA
+
+;キャラリストを表示
+
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:3に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+
+	SIF ABL:COUNT:種族 != 45
+		CONTINUE
+	;メアリは削除できない
+	SIF NO:COUNT == 4509
+		CONTINUE
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:5 = A
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML どのZomaをドリー・カドモンに戻しますか？　＜page.{P}＞
+DRAWLINE
+CALL SHOW_CHARA_LIST
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1001]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:5 - 1) / 20) ? %" " * 16% # [1009]Next page\@
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+		RETURN 0
+ELSEIF RESULT == 1001
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:5 - 1) / 20
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+LOCAL:1 = RESULT
+PRINTFORMW %NAME:(LOCAL:1)%はドリー・カドモンに戻った
+
+CALL FUSION_LETTER,LOCAL:1,5
+
+IF TARGET == LOCAL:1
+	TARGET = -1
+ELSE
+	SIF TARGET > LOCAL:1
+		TARGET -= 1
+ENDIF
+IF ASSI == LOCAL:1
+	ASSI = -1
+ELSE
+	SIF ASSI > LOCAL:1
+		ASSI -= 1
+ENDIF
+
+;合体素材の悪魔を消去
+;SIF CFLAG:(LOCAL:1):ポジション > 0
+;	CALL REMOVE_POSITION,CFLAG:(LOCAL:1):ポジション
+;DELCHARA LOCAL:1
+CALL キャラ削除, LOCAL:1
+;ポジションに齟齬が発生するので、FLAG側を初期化＋CFLAG側から読み込み
+;CALL REFRESH_POS
+
+ITEM:ドリー・カドモン += 1
+
+;================================================================
+;Zoma強化合体
+;================================================================
+@FUSION_ZOUMA
+;LOCAL:1、LOCAL:2　Zoma、素材の登録番号
+LOCAL:1 = -1
+LOCAL:2 = -1
+$START_FUSION
+LOCAL:6 = 0
+
+;キャラリストを表示
+
+P = 0
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、LOCAL:3に人数）
+VARSET Q, -1
+A = 0
+REPEAT CHARANUM
+	SIF 契約(COUNT) > 0 && LOCAL:1 > -1 
+		CONTINUE
+	SIF (LOCAL:1 > -1 && (ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 44)) || (LOCAL:1 == -1 && ABL:COUNT:種族 != 45)
+		CONTINUE
+	SIF COUNT == LOCAL:1 || COUNT == LOCAL:2
+		CONTINUE
+	SIF CFLAG:COUNT:労役フラグ == 3
+		CONTINUE
+	SIF CFLAG:COUNT:この場に居ないフラグ == 1
+		CONTINUE
+
+	Q:A = COUNT
+	A += 1
+REND
+LOCAL:5 = A
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML 合体させたい悪魔を選んでください　＜page.{P}＞
+DRAWLINE
+CALL SHOW_CHARA_LIST
+DRAWLINE
+PRINTFORMLC \@(P <= 0) ? %" " * 16% # [1001]Previous page\@
+PRINTLC [1000]Return
+PRINTFORMLC \@(P >= (LOCAL:5 - 1) / 20) ? %" " * 16% # [1009]Next page\@
+SIF LOCAL:1 > -1
+	PRINTFORML 選択Zoma:%CALLNAME:(LOCAL:1)%
+SIF LOCAL:2 > -1
+	PRINTFORML ２体目:%CALLNAME:(LOCAL:2)%
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	IF LOCAL:1 > -1
+		LOCAL:1 = -1
+		GOTO START_FUSION
+	ELSE
+		RETURN 0
+	ENDIF
+ELSEIF RESULT == 1001
+	IF P > 0
+		P -= 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT == 1009
+	LOCAL = (LOCAL:5 - 1) / 20
+	IF P < LOCAL
+		P += 1
+		GOTO PRINT_LIST
+	ELSE
+		GOTO INPUT_LOOP_1
+	ENDIF
+ELSEIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+	GOTO INPUT_LOOP_1
+ENDIF
+
+
+
+IF LOCAL:1 > 0
+	LOCAL:2 = RESULT
+	
+	;能力とスキルを保存
+	FOR LOCAL,1,7
+		LOCAL:(10+LOCAL) = BASE:(LOCAL:1):(GET_BASESTATUS(LOCAL))
+	NEXT
+	FOR LOCAL,1,FLAG:スキル数+1
+		LOCALS = スキル{LOCAL}
+		LOCAL:(20+LOCAL) = ABL:(LOCAL:1):LOCALS
+		ABL:(LOCAL:1):LOCALS = 0
+	NEXT
+	
+	
+	
+	
+	;能力平均化処理
+	FOR LOCAL,1,7
+		BASE:(LOCAL:1):(GET_BASESTATUS(LOCAL)) = (BASE:(LOCAL:1):(GET_BASESTATUS(LOCAL)) + MAXBASE:(LOCAL:2):(GET_BASESTATUS(LOCAL))*3)/4
+	NEXT
+	
+	
+	
+	;スキルごちゃ混ぜ処理
+	$WHI
+		;LOCAL:1の空いているスキル枠を参照する
+		;空いていなければRETURN 0
+		FOR LOCAL:3,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL:3}
+			IF ABL:(LOCAL:1):LOCALS == 0
+				LOCALS:1 = %LOCALS%
+				BREAK
+			ENDIF
+			SIF LOCAL:3 == FLAG:スキル数
+				GOTO WEN
+		NEXT
+
+		;LOCAL:1とLOCAL:2のスキルの中から継承可能かつ持っていないスキルをピックアップ。
+		;見つけた場合、LOCALに放り込む。
+		;LOCALが埋まっている場合は、優先度がより高ければLOCALに上書き。
+
+		LOCAL = 0
+
+		;LOCAL:2
+		FOR LOCAL:3,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL:3}
+			;未修得なら次へ
+			SIF ABL:(LOCAL:2):LOCALS == 0
+				CONTINUE
+			;継承必要部位読み込み、LOCAL:1が持ってなければ次へ
+			RESULT = 1
+			TRYCALLFORM 継承部位_{ABL:(LOCAL:2):LOCALS},LOCAL:1
+			SIF RESULT == 0
+				CONTINUE
+			;既に習得しているスキルかつ、重複習得数（通常１）以上になるならば次へ
+			IF CHECK_SKILL(LOCAL:1,ABL:(LOCAL:2):LOCALS)
+				TRYCCALLFORM 重複習得数_{ABL:(LOCAL:2):LOCALS}
+					SIF HAVE_SKILL_OVERLAP(LOCAL:1,ABL:(LOCAL:2):LOCALS) + 1 > RESULT
+						CONTINUE
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ENDIF
+			
+			IF LOCAL == 0
+				LOCAL = ABL:(LOCAL:2):LOCALS
+				TRYCCALLFORM SKILL_RANK_{ABL:(LOCAL:2):LOCALS}
+					LOCAL:4 = RESULT
+				CATCH
+					LOCAL:4 = 0
+				ENDCATCH
+			ENDIF
+			
+			TRYCCALLFORM SKILL_RANK_{ABL:(LOCAL:2):LOCALS}
+				LOCAL:6 = RESULT
+			CATCH
+				LOCAL:6 = 0
+			ENDCATCH
+			
+			IF LOCAL:6 < LOCAL:4
+				LOCAL = ABL:(LOCAL:2):LOCALS
+				LOCAL:4 = LOCAL:6
+			ENDIF
+		NEXT
+
+		;LOCAL:20~
+		FOR LOCAL:3,1,FLAG:スキル数+1
+			;未修得なら次へ
+			SIF LOCAL:(20+LOCAL:3) == 0
+				CONTINUE
+			;継承必要部位読み込み、LOCAL:1が持ってなければ次へ
+			RESULT = 1
+			TRYCALLFORM 継承部位_{LOCAL:(20+LOCAL:3)},LOCAL:1
+			SIF RESULT == 0
+				CONTINUE
+			;既に習得しているスキルかつ、重複習得数（通常１）以上になるならば次へ
+			IF CHECK_SKILL(LOCAL:1,LOCAL:(20+LOCAL:3))
+				TRYCCALLFORM 重複習得数_{LOCAL:(20+LOCAL:3)}
+					SIF HAVE_SKILL_OVERLAP(LOCAL:1,LOCAL:(20+LOCAL:3)) + 1 > RESULT
+						CONTINUE
+				CATCH
+					CONTINUE
+				ENDCATCH
+			ENDIF
+			
+			IF LOCAL == 0
+				LOCAL = LOCAL:(20+LOCAL:3)
+				TRYCCALLFORM SKILL_RANK_{LOCAL:(20+LOCAL:3)}
+					LOCAL:4 = RESULT
+				CATCH
+					LOCAL:4 = 0
+				ENDCATCH
+			ENDIF
+			
+			TRYCCALLFORM SKILL_RANK_{LOCAL:(20+LOCAL:3)}
+				LOCAL:6 = RESULT
+			CATCH
+				LOCAL:6 = 0
+			ENDCATCH
+			
+			IF LOCAL:6 < LOCAL:4
+				LOCAL = LOCAL:(20+LOCAL:3)
+				LOCAL:4 = LOCAL:6
+			ENDIF
+		NEXT
+
+		;この時点でLOCALが0＝継承できるスキルが無いのでBREAK
+		SIF LOCAL == 0
+			GOTO WEN
+
+		;全部捜査したらLOCALS:1のスキル枠に習得させる。
+		ABL:(LOCAL:1):(LOCALS:1) = LOCAL
+	GOTO WHI
+	$WEN
+	
+	
+	
+	
+	
+	CALL SYNC_STATUS,LOCAL:1
+	CALL HEALTH_CHARA,LOCAL:1
+	CUSTOMDRAWLINE =
+	;合体結果のステータスを表示
+	U = LOCAL:1
+	PRINTFORML %STR:(ABL:U:80)%　　%CALLNAME:U%　　
+	CALL SHOW_INFO_PAGE_2
+	CUSTOMDRAWLINE =
+	
+	
+	;合体するかどうか　→　合体実行（実際には既に終わっている）
+	PRINT この悪魔でよろしいですか？ 
+
+	CALL INPUT_YN,"Yes","No",2
+
+	IF RESULT == 1
+		;能力とスキルを復元
+		FOR LOCAL,1,7
+			BASE:(LOCAL:1):(GET_BASESTATUS(LOCAL)) = LOCAL:(10+LOCAL)
+		NEXT
+		FOR LOCAL,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL}
+			ABL:(LOCAL:1):LOCALS = LOCAL:(20+LOCAL) 
+		NEXT
+			CALL SYNC_STATUS,LOCAL:1
+			CALL HEALTH_CHARA,LOCAL:1
+		RESTART
+	ENDIF
+	
+	;ＭＡＧを吸収
+	CALL CONTROL_MAG,LOCAL:1,BASE:(LOCAL:2):ＭＡＧ+CFLAG:(LOCAL:2):強化使用ＭＡＧ
+	
+;	;作成時のセリフを表示
+;	TRYCCALLFORM FUSION_MESSAGE_K{NO:(LOCAL:1)},LOCAL:3
+;	
+;	
+;	
+;	CATCH
+;		TRYCALLFORM FUSION_MESSAGE_PUB{ABL:(LOCAL:1):会話タイプ},LOCAL:3
+;	ENDCATCH
+;	
+;	;ここに忠誠度による素質変化とか予定
+;	CALL MAKE_TALENT,LOCAL:3,(BASE:(LOCAL:1):忠誠度+BASE:(LOCAL:2):忠誠度)
+;	BASE:(LOCAL:3):忠誠度 = MAX(100,RESULT/2)
+;	
+;	PRINTFORMW %STR:(ABL:(LOCAL:3):種族)% %CALLNAME:(LOCAL:3)%が仲魔になった。
+	
+	IF TARGET == LOCAL:2
+		TARGET = -1
+	ELSE
+		SIF TARGET > LOCAL:2
+			TARGET -= 1
+	ENDIF
+	IF ASSI == LOCAL:2
+		ASSI = -1
+	ELSE
+		SIF ASSI > LOCAL:2
+			ASSI -= 1
+	ENDIF
+	
+	;手紙システム
+	CALL FUSION_LETTER,LOCAL:2,4
+	
+	;合体素材の悪魔を消去
+	SIF GET_STATE(CFLAG:(LOCAL:2):ステート) == "DYING"
+		CALL INCREASE_LD,-7
+	CALL キャラ削除, LOCAL:2
+	RETURN 0
+ELSE
+	LOCAL:1 = RESULT
+ENDIF
+
+GOTO START_FUSION
+
+;===========================================
+;Zomaの名前決定
+;===========================================
+@NAME_ZOUMA,ARG
+PRINTL Zomaに名前を付けてください
+
+	CALL CREATE_RANDOM_NAME_IF
+	NAME:ARG     = %RESULTS%
+	CALLNAME:ARG = %RESULTS%
+;PRINTL [0]このまま
+;PRINTL [1]変更する
+;PRINTL [2]ランダム
+;
+;$INPUT_LOOP
+;INPUT
+;IF RESULT == 0
+;	RETURN 0
+;ELSEIF RESULT == 1
+;	$INPUTS_NAME
+;	PRINTL 名称を入力してください
+;	INPUTS
+;	LOCALS = %RESULTS%
+;	PRINTL 愛称を入力してください
+;	INPUTS
+;	LOCALS:1 = %RESULTS%
+;	DRAWLINE
+;	PRINTFORML 名称：%LOCALS%　愛称：%LOCALS:1%
+;	PRINTL これでいいですか？
+;	PRINTL [0]Yes [1]No
+;	$INPUT_LOOP1
+;	INPUT
+;	IF RESULT == 0
+;		NAME:ARG = %LOCALS%
+;		CALLNAME:ARG = %LOCALS:1%
+;	ELSEIF RESULT == 1
+;		GOTO INPUTS_NAME
+;	ELSE
+;		GOTO INPUT_LOOP1
+;	ENDIF
+;ELSEIF RESULT == 2
+;	CALL CREATE_RANDOM_NAME_IF
+;	NAME:ARG     = %LOCALS@CREATE_RANDOM_NAME_IF%
+;	CALLNAME:ARG = %LOCALS@CREATE_RANDOM_NAME_IF%
+;ELSE
+;	GOTO INPUT_LOOP
+;ENDIF
+
+
+

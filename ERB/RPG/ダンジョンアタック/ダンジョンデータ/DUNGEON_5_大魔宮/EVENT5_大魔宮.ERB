@@ -1,0 +1,2613 @@
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_5
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)% 10
+	;イベントタイル
+	CASE 1
+		CALL TILE_5
+		RETURN RESULT
+	;========
+	;宝の処理
+	;========
+	CASE 3
+		CALL TREASURE_5
+		RETURN 1
+	;========================
+	;イベント
+	;========================
+	CASE 4
+		CALL EVENT_5
+		RETURN 0
+	;=======
+	;罠
+	;=======
+	CASE 5
+		CALL TRAP_5
+		RETURN 1
+	CASE 6,7
+		CALL WORP_5
+		RETURN 1
+	;=======
+	;メッセンジャー
+	;=======
+	CASE 8
+		CALL MESSAGE_5, 0
+		RETURN 1
+	;=======
+	;特殊タイル
+	;=======
+	CASE 9
+		CALL SPECIAL_5
+		RETURN 1
+	;=======
+	;ダークゾーン
+	;=======
+	CASE -1
+		IF DA:(FLAG:現X):(FLAG:現Y) < -10
+			CALL DARK_5
+			RETURN RESULT
+		ENDIF
+	CASEELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDSELECT
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_5,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+	;イベントタイル
+	CASE 1
+		CALL TILE_5, 1
+	;==========
+	;扉の処理
+	;==========
+	CASE 2
+		SIF GROUPMATCH(DA:(FLAG:現X):(FLAG:現Y),902,922,942,962)
+			DA:(FLAG:現X):(FLAG:現Y) += 10
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_5
+		RETURN 1
+;========================
+;イベント
+;========================
+	CASE 4
+		CALL EVENT_5, 1
+		RETURN 1
+;=======
+;罠
+;=======
+CASE 5
+	CALL TRAP_5
+	RETURN 1
+;=======
+;ワープゾーン
+;=======
+	CASE 6,7
+		CALL WORP_5
+		RETURN 1
+;=======
+;メッセンジャー
+;=======
+	CASE 8
+		CALL MESSAGE_5, 1
+		RETURN 1
+;=======
+;特殊タイル
+;=======
+	CASE 9
+		CALL SPECIAL_5
+		RETURN 1
+;=======
+;ダークゾーン
+;=======
+	CASE -1
+		CALL DARK_5, 1
+		RETURN RESULT
+ENDSELECT
+;=======================================
+;床
+;=======================================
+@TILE_5, ARG
+#LOCALSIZE 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 1600
+		IF !STRFLAG_D("ヒノカグツチ入り口発見")
+			;侵入＋小瓶あり
+			IF ARG == 1 && ITEM:ルースの小瓶
+				CALL MESSAGE_WINDOW_D, "ルース", "ここだ！/ここだ！/ここが怪しい！"
+				CALL MESSAGE_WINDOW_D, "", "＞小瓶の中のルースが騒ぎ出した！"
+				RETURN 1
+			;調べた時
+			ELSEIF ARG == 0
+				CALL MESSAGE_WINDOW_D, "", "＞壁を丁寧に調べてみた……"
+				CALL MESSAGE_WINDOW_D, "", "＞なんと扉が現れた！"
+				CALLF STRFLAG_D("ヒノカグツチ入り口発見", 1)
+				RETURN 1
+			ENDIF
+		ENDIF
+	CASE 3800
+		IF !STRFLAG_D("セト入り口発見")
+			;侵入＋小瓶あり
+			IF ARG == 1 && ITEM:ルースの小瓶
+				CALL MESSAGE_WINDOW_D, "ルース", "ここだ！/ここだ！/ここが怪しい！"
+				CALL MESSAGE_WINDOW_D, "", "＞小瓶の中のルースが騒ぎ出した！"
+				RETURN 1
+			;調べた時
+			ELSEIF ARG == 0
+				CALL MESSAGE_WINDOW_D, "", "＞壁を丁寧に調べてみた……"
+				CALL MESSAGE_WINDOW_D, "", "＞なんと扉が現れた！"
+				CALLF STRFLAG_D("セト入り口発見", 1)
+				RETURN 1
+			ENDIF
+		ENDIF
+	CASE 3900
+		CALL MESSAGE_WINDOW_D, "", "＞ワープゾーンだ！"
+		CALL SHOW_PICTURE, "EMPTY"
+		CALL DUNGEON_WORP_ID, FLAG:現M, DA:(FLAG:現X):(FLAG:現Y) + 10
+		RETURN 1
+ENDSELECT
+SIF RANGE(FLAG:現M, 32, 39)
+	CALL FIRE_TILE_5
+SIF !ARG
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+RETURN 0
+;=======================================
+;扉
+;=======================================
+@TILE_MARK_COMMON_5_2, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASE 900, 904, 905, 1300, 1301, 1302, 2500, 4400
+		RESULTS = 門
+	CASE 1601
+		RESULTS = %\@STRFLAG_D("ヒノカグツチ入り口発見") ? 扉 # ■ \@%
+	CASE 3801
+		RESULTS = %\@STRFLAG_D("セト入り口発見") ? 扉 # ■ \@%
+	;一方通行
+	CASE 90, 92, 94, 96
+		RESULTS = 扉
+	CASE 91, 93, 95, 97, 1601
+		RESULTS = ■
+	CASE 3001
+		RESULTS = \@ITEM:銀のレリーフ == -1 ? 扉 # ■\@
+	CASEELSE
+		RESULTS = 扉
+ENDSELECT
+@DOOR_5, ARG
+SELECTCASE ARG
+	CASE 700
+		IF !STRFLAG_D("ミノタウロス撃破")
+			CALL MESSAGE_WINDOW_D, "", "＞強大な悪魔の気配を感じる…/＞進みますか？"
+			CALL INPUT_YN_D
+			RETURN !RESULT
+		ENDIF
+	CASE 900, 1300
+		IF STRFLAG_NUM_D("ビエン位置") != 0
+			IF FLAG:現M == 9
+				CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "ガル", "この門を使えるのはビエンが【ヴァルハラの回廊】にいるときだけです/中央門を使ってください"
+			ENDIF
+		ELSEIF ITEM:ガルの盾
+		;ELSEIF STRFLAG_D("盾ゲット")
+			;IF STRFLAG_D("ガルクリア")
+			IF ITEM:ガルの盾 == -1
+				IF STRFLAG_D("メデューサ撃破")
+					IF !ITEM:ロルの魔除け
+						CALL MESSAGE_WINDOW_D, "ガル", "盾ばかりか、街まで救ってくださるとは！/…あなたにならこの魔除けを託せます/これは、我が友ロルがいまわの際に私に託した物で/魔王ロキの力を封じようとしてを作ったものです"
+						CALL MESSAGE_WINDOW_D, "ガル", "残念ながら、ロルはついに完成させることはできませんでしたが…/しかし、ロキに近しい悪魔の助けがあれば完成するとロルは言っておりました/あなたならこの魔除けを完成させられるはずです！"
+						ITEM:ロルの魔除け = 1
+						CALL MESSAGE_WINDOW_D, "", "＞【ロルの魔除け】を手に入れた"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "ガル", "これはこれは、みなさんがた、/ささっ…お通り下され！"
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガル", "これはこれは、みなさんがた、/ささっ…お通り下され！/ただし、盾のことは他言無用ですぞ"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "ガル", "おお！若者よ！/私の盾ではないか！/ありがとう"
+				CALL MESSAGE_WINDOW_D, "ガル", "お礼にビエンへの通路を開けてあげましょう/ドルの所がダメなら　いつでもこちらへいらっしゃい"
+				ITEM:ガルの盾 = -1
+				;CALLF STRFLAG_D("ガルクリア", 1)
+			ENDIF
+			IF FLAG:現M == 9
+				CALL DUNGEON_WORP_ID, 13, 13001, 1
+			ELSE
+				CALL DUNGEON_WORP_ID, 9, 9001, 1
+			ENDIF
+		ELSEIF STRFLAG_D("ガル依頼")
+			CALL MESSAGE_WINDOW_D, "ガル", "盾を盗んだネコマタをダイタロスで見かけた者がいるらしい/では、頼んだぞ！"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞門の前に門番が立っている"
+			CALL MESSAGE_WINDOW_D, "門番", "私は副門の兵士ガル　正門の兵士ドルの弟だ！/ドルは、門を通してはくれないだろう/奴は頑固だからな"
+			CALL MESSAGE_WINDOW_D, "ガル", "私なら通してやらないこともない/ただし私の条件を飲めばの話だが…"
+			CALL INPUT_YN_D
+			IF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "ガル", "そうか、私も無理にとは言わぬ/他の入り口を永久に探し続けるがよい"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "ガル", "ならば話そう、実は…/いたずら好きのネコマタが私の盾を奪って行ったのだ！/このままでは、どうも格好がつかぬ"
+				CALL MESSAGE_WINDOW_D, "ガル", "どうか私の盾を取り返して来てほしい…/ダイタロスで奴を見かけた者がいるらしいのだが…/これが条件だ！頼んだぞ！"
+				CALLF STRFLAG_D("ガル依頼", 1)
+			ENDIF
+		ENDIF
+		RETURN 0
+	CASE 901
+		IF !STRFLAG_D("ロキ撃破")
+			CALL MESSAGE_WINDOW_D, "", "＞強大な悪魔の気配を感じる…/＞進みますか？"
+			CALL INPUT_YN_D
+			RETURN !RESULT
+		ENDIF
+	CASE 902, 903
+		;ロキの宝物庫
+		IF !STRFLAG_D("ロキ撃破")
+			CALL MESSAGE_WINDOW_D, "", "＞扉には鍵がかかっている"
+			RETURN 0
+		ENDIF
+	CASE 904
+		IF STRFLAG_NUM_D("ビエン位置") != 0 || !STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+		ELSE
+			IF FLAG:現M == 9
+				CALL DUNGEON_WORP_ID, 13, 13011, 1
+			ELSE
+				CALL DUNGEON_WORP_ID, 9, 9011, 1
+			ENDIF
+		ENDIF
+		RETURN 0
+	CASE 905, 1302
+		IF STRFLAG_NUM_D("ビエン位置") != 0
+			IF FLAG:現M == 9
+				CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "ドル", "今、この先には何も無いですぞ/中央門からでてくだされ"
+			ENDIF
+		ELSEIF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "ドル", "あなたたちは…お強いのお…/わしも若ければついて行くのじゃが"
+			IF FLAG:現M == 9
+				CALL DUNGEON_WORP_ID, 13, 13021, 1
+			ELSE
+				CALL DUNGEON_WORP_ID, 9, 9021, 1
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞門の前に門番が立っている"
+			CALL MESSAGE_WINDOW_D, "門番", "…………"
+			CALL MESSAGE_WINDOW_D, "", @"＞門番は%CALLNAME:MASTER%に一瞥もくれない/＞この門は通れないようだ"
+		ENDIF
+		RETURN 0
+	CASE 901
+		IF !STRFLAG_D("メデューサ撃破") || STRFLAG_NUM_D("ビエン位置") != 0
+			CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+		ELSE
+			CALL DUNGEON_WORP_ID, 8, 8001, 1
+		ENDIF
+		RETURN 0
+	;門
+	CASE 1301
+		IF !STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+			RETURN 0
+		ELSE
+			SELECTCASE STRFLAG_NUM_D("ビエン位置")
+				CASE 0
+					CALL DUNGEON_WORP_ID, 9, 9011, 1
+				CASE 1
+					CALL DUNGEON_WORP_ID, 25, 25001, 1
+				CASE 2
+					CALL DUNGEON_WORP_ID, 44, 44001, 1
+			ENDSELECT
+			RETURN 0
+		ENDIF
+	CASE 1400
+		;小さなカギ
+		IF !ITEM:小さな鍵
+			CALL MESSAGE_WINDOW_D, "", "＞扉には鍵がかかっている"
+			RETURN 0
+		ENDIF
+	CASE 1401,1402,1403
+		;牡牛のキー
+		IF !ITEM:牡牛のキー
+			CALL MESSAGE_WINDOW_D, "", "＞扉には鍵がかかっている"
+			RETURN 0
+		ENDIF
+	CASE 1600
+		IF !STRFLAG_D("メデューサ撃破",,[[ダンジョン:大魔宮]])
+			CALL MESSAGE_WINDOW_D, "", "＞扉のむこうから、邪悪な気配を感じる…/＞扉をあけますか？"
+			CALL INPUT_YN_D
+			SIF RESULT == 1
+				RETURN 0
+		ENDIF
+	CASE 1601
+		RETURN STRFLAG_D("ヒノカグツチ入り口発見")
+	CASE 2500
+		IF STRFLAG_NUM_D("ビエン位置") != 1
+			CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+			RETURN 0
+		ELSE
+			CALL DUNGEON_WORP_ID, 13, 13011, 1
+		ENDIF
+	CASE 3000
+		IF !STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "", "＞扉は開かない/＞何らかの魔力が働いているようだ"
+			RETURN 0
+		ENDIF
+	CASE 3001
+		RETURN ITEM:銀のレリーフ == -1
+	;イザナミ（セト）前
+	CASE 3600
+		IF STRFLAG_D("封印解除失敗")
+			CALL MESSAGE_WINDOW_D, "", "＞扉は閉ざされている…"
+			RETURN 0
+		ENDIF
+	CASE 3800
+		IF STRFLAG_D("セト封印解除")
+			CALL MESSAGE_WINDOW_D, "", "＞扉の奥から強大な力を感じる……/＞扉を開けますか？"
+			CALL INPUT_YN_D
+			IF RESULT == 0
+				RETURN 1
+			ELSE
+				RETURN 0
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞扉は開かない/＞何かの力で封印されているようだ……"
+			RETURN 0
+		ENDIF
+	CASE 3801
+		RETURN STRFLAG_D("セト入り口発見")
+	CASE 4400
+		IF STRFLAG_NUM_D("ビエン位置") != 2
+			CALL MESSAGE_WINDOW_D, "", "＞門は閉じられている"
+			RETURN 0
+		ELSE
+			CALL DUNGEON_WORP_ID, 13, 13011, 1
+		ENDIF
+ENDSELECT
+RETURN 1
+
+;=======================================
+;特殊タイル
+;=======================================
+@TILE_MARK_COMMON_5_9, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASE 90
+		RESULTS = 酒
+	CASE 97
+		RESULTS = Ｃ
+	CASE 98
+		RESULTS = 店
+	CASE 99
+		RESULTS = 出
+ENDSELECT
+@SPECIAL_5
+#LOCALSIZE 7
+#LOCALSSIZE 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 90
+		CALL SHOW_PICTURE, "NONFLOORD", "POIZON BAR"
+		CALL MESSAGE_WINDOW_D, "バーテン", "いらっしゃいませ　どうぞごゆっくり"
+		$START
+		CALL MESSAGE_WINDOW_D, "バーテン", "どうします？"
+		CALL INPUT_SELECT_D, "[0] 飲み物を注文する/[1] はげた男の客に話しかける/[2] 若い女の客に話しかける/[3] 女の客に話しかける/[9] 店を出る", , , 2
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "バーテン", "20魔貨になります/よろしいですか？"
+			CALL INPUT_YN_D
+			IF RESULT == 0
+				IF MONEY:1 < 20
+					CALL MESSAGE_WINDOW_D, "バーテン", "おや、お金が足りないようですね？"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "バーテン", "では、どなたがお飲みになりますか？"
+					LOCALS = 
+					FOR LOCAL, 1, 7
+						SIF POS(LOCAL) >= 0 && CFLAG:POS(LOCAL):ステート == 0
+							LOCALS += @"[{LOCAL}] %CALLNAME:POS(LOCAL)%/"
+					NEXT
+					LOCALS +=  "[9] やめておく"
+					CALL INPUT_SELECT_D, LOCALS, , , 2
+					IF RESULT < 7
+						LOCAL = POS(RESULT)
+						MONEY:1 -= 20
+						CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は出てきた酒を飲み干した"
+						SELECTCASE RAND:100
+							CASE IS < 10
+								CALL MESSAGE_WINDOW_D, "", @"＞痺れる味だった/＞%CALLNAME:LOCAL%はPALYZEを受けた"
+								PRINTW 
+								CFLAG:LOCAL:ステート = GET_STATE_NUM("PALYZE")
+								PRINTFORMW 
+							CASE IS < 20
+								CALL MESSAGE_WINDOW_D, "", @"＞危険な味だった/＞%CALLNAME:LOCAL%はPOISONを受けた"
+								CFLAG:LOCAL:ステート = GET_STATE_NUM("POISON")
+							CASE IS < 30
+								CALL MESSAGE_WINDOW_D, "", @"＞ま、まずい！/＞%CALLNAME:LOCAL%はダメージを受けた"
+								BASE:LOCAL:ＨＰ = BASE:LOCAL:ＨＰ/2+1
+							CASE IS < 60
+								CALL MESSAGE_WINDOW_D, "", @"＞うう、うまい！/＞%CALLNAME:LOCAL%は全回復した"
+								BASE:LOCAL:ＨＰ = MAXBASE:LOCAL:ＨＰ
+							CASEELSE
+								CALL MESSAGE_WINDOW_D, "", @"＞まずまずだ/＞%CALLNAME:LOCAL%は回復した"
+								CALL VAR_HP, LOCAL, MAXBASE:LOCAL:ＨＰ/2
+								BASE:LOCAL:ＨＰ = MIN(MAXBASE:LOCAL:ＨＰ, BASE:LOCAL:ＨＰ)
+						ENDSELECT
+						CALL SHOW_PICTURE, "NONFLOORD", "POIZON BAR"
+					ENDIF
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "バーテン", "そうですか"
+			ENDIF
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "ハゲの男", "メデューサを倒せる者がいるとは/…かつて魔王ロキにも刃向かった者がいる/それは大魔道師ロルだ/だが、彼はロキとの戦いで命を落としてしまったそうだ"
+		ELSEIF RESULT == 2
+			CALL MESSAGE_WINDOW_D, "女の子", "ガルはロルの友人だったのよ/ガルなら何か知ってるかもね"
+		ELSEIF RESULT == 3
+			CALL MESSAGE_WINDOW_D, "女", "メデューサには姉が二人いて/3人あわせてゴルゴン3姉妹と呼ばれているのよ/メデューサを倒したあなたならゴルゴンの力を借りて/メデューサを仲魔にすることもできるんじゃない？"
+		ELSEIF RESULT == 9
+			CALL MESSAGE_WINDOW_D, "バーテン", "また、どうぞ"
+			RETURN 0
+		ENDIF
+		GOTO START
+	CASE 97
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞カジノだ"
+		CALL CASINO, 2
+	CASE 98
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞辺境の店だ"
+		CALL MESSAGE_WINDOW_D, "店主", "＞何か、買っていってくれよ"
+		IF FLAG:現M == 0
+			CALL DUNGEON_SHOP(1, "Medicine", 1, "Life stone", 50, "Bead", 300, "RevivalBead", 50, "Dis-Poison", 20, "Dis-Paralyze", 20, "Dis-Charm", 20, "ScryingBall", 30, "KaihiNoJitsu", 500, "Attack Knife", 5, "Scorpion Whip", 5, "Pixie Knife", 500, "Tang Lion Happi", 200, "Parade Armor", 800, "Frog Helm", 20, "Star Gloves", 100)
+		ELSEIF FLAG:現M == 9
+			CALL DUNGEON_SHOP(1, "Medicine", 1, "Life stone", 50, "Bead", 300, "RevivalBead", 50, "Dis-Poison", 20, "Dis-Paralyze", 20, "Dis-Charm", 20, "Dis-Stone", 20, "KaihiNoJitsu", 500, "SealingBell", 300, "AttractPipe", 300)
+		ELSEIF FLAG:現M == 14
+			CALL DUNGEON_SHOP(1, "Medicine", 1, "Life stone", 50, "Bead", 300, "RevivalBead", 50, "Dis-Poison", 20, "Dis-Paralyze", 20, "Dis-Charm", 20, "Dis-Stone", 20, "KaihiNoJitsu", 500, "SealingBell", 300, "AttractPipe", 300, "Athame Knife",300, "Wild Spear", 500, )
+		ELSEIF FLAG:現M == 18
+			CALL DUNGEON_SHOP(1, "Medicine", 1, "Life stone", 50, "Bead", 300, "RevivalBead", 50, "Dis-Poison", 20, "Dis-Paralyze", 20, "Dis-Charm", 20, "Dis-Stone", 20, "NapalmBomb", 10, "NitrogenCylinder", 10, "RiotBomb", 10, "施餓鬼米", 10, "蠱毒皿", 10)
+		ELSEIF FLAG:現M == 27
+			CALL DUNGEON_SHOP(1, "Medicine", 1, "Life stone", 50, "Bead", 300, "RevivalBead", 50, "Dis-Poison", 20, "Dis-Paralyze", 20, "Dis-Charm", 20, "Dis-Stone", 20, "KaihiNoJitsu", 500, "SmokeBall", 50, "Blizzard Robe", 2000, "Feather Trim", 1000)
+		ENDIF
+		PRINTL 店主:
+		PRINTW 「また、よろしくな」
+	;出口
+	CASE 99
+		IF !STRFLAG_D(@"M{FLAG:現M}", 1)
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞現世へとつながる穴を見つけた/＞この穴を通じて現世と魔宮を出入りできる"
+		ENDIF
+		CALL DUNGEON_EXIT
+ENDSELECT
+@TILE_MARK_COMMON_5_4, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASE 901, 2700
+		RESULTS = 店
+	CASE 1000
+		RESULTS = \@STRFLAG_D("Y子") ? □ # ！\@
+	CASE 1002
+		RESULTS = \@ITEM:紫水晶 ? □ # 宝\@
+	CASE 3000
+		RESULTS = ■
+	CASEELSE
+		RESULTS = ！
+ENDSELECT
+@EVENT_5, ARG
+#LOCALSIZE 10
+#LOCALSSIZE 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 100
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞学生服を着た美貌の青年がいる"
+		CALL MESSAGE_WINDOW_D, "青年", "人間がどうしてこんなところに…？/……いや、そんなことより、力のあるサマナーのようですが…/僕は中島 朱実といいます/もし、よければあなたに頼みたいことが…"
+		CALL MESSAGE_WINDOW_D, "", "＞そう言うと朱実は、自分が悪魔召喚プログラムを自作して、ロキを召喚したこと/＞その力を借りた代償に、ロキに魂を要求されたこと、/＞そして彼とロキの戦いに巻き込まれ、/>白鷺 弓子が命を落としてしまったことを物語った/"
+		CALL MESSAGE_WINDOW_D, "朱実", "ロキは彼女の亡骸を持ち去りました/奴が何をしたいのかはわかりません/しかし、奴の手で彼女を弄ばれるのは我慢がならないんです/それに、僕はどうしても彼女の仇をうちたいのです"
+		CALL MESSAGE_WINDOW_D, "朱美", "そのためにあなたの力を貸して欲しいのです/もちろん、ただでとは言いません/僕に出来ることならなんでもするつもりです"
+		CALL INPUT_SELECT_D, "[0] 力を貸す/[1] 奴隷になることを要求する/[2] 断る"
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "朱実", "ありがとうございます/僕に出来ることは…/そんなにはありませんが…"
+			IF FLAG:ＣＯＭＰ容量 < 20
+				CALL MESSAGE_WINDOW_D, "朱美", "そうだ/そのＣＯＭＰを見せてください"
+				CALL MESSAGE_WINDOW_D, "", "＞朱実にＣＯＭＰを見せた"
+				CALL MESSAGE_WINDOW_D, "朱実", "ここをこうすれば…"
+				CALL MESSAGE_WINDOW_D, "", "＞朱実の改造により、ＣＯＭＰ容量が１増えた"
+				FLAG:ＣＯＭＰ容量 += 1
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "", "＞中島 朱実が仲間になった"
+			CALL ADD_NEW_COMPANION, 4562, 200
+			SIF RESULT == 1
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "朱実", "奴隷…そんな馬鹿なこと…！/いや…、それで力を貸してくれるというのなら…/これも償いか…"
+			CALL MESSAGE_WINDOW_D, "朱美", "わかりました/僕のことはどうしたって構いません"
+			PRINTW 「」
+			CALL ADD_NEW_COMPANION, 4562, 200
+			IF RESULT == 1
+				CFLAG:(RESULT:1):戦闘参加不可能 = 0
+				CFLAG:(RESULT:1):イベント加入 = 1
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "", "＞中島 朱実を手に入れた"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "朱実", "……そうですか/いえ、構いません/では、僕は先を急ぐので"
+			CALL MESSAGE_WINDOW_D, "", "＞朱実は魔宮の奥に行ってしまった"
+		ENDIF
+		CALLF STRFLAG_D("朱実会話", 1)
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+	CASE 600
+		IF STRFLAG_D("ガル依頼")
+			CALLF STRFLAG_D("ネコマタ会話", 1)
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+			CALL MESSAGE_WINDOW_D, "", "＞部屋の中には強力そうな悪魔がいた！"
+			CALL MESSAGE_WINDOW_D, "悪魔", "私はティアマトよ！/命が惜しけりゃ500魔貨置いていきなさい"
+			CALL INPUT_YN_D
+			IF RESULT == 0
+				IF MONEY:1 < 500
+					CALL MESSAGE_WINDOW_D, "ティアマト", "なによ。全然足りないじゃない/まぁいいわ/あるだけで勘弁してあげる"
+					CALL MESSAGE_WINDOW_D, "ティアマト", "さぁ、もう行っていいわよ/ん、どうしたの？/何か探してるみたいだけど"
+					MONEY:1 = 0
+				ELSE
+					MONEY:1 -= 500
+					CALL MESSAGE_WINDOW_D, "ティアマト", "うふふ、ありがとう/そういえば、あなた、何か探してるみたいね？"
+				ENDIF
+				CALL MESSAGE_WINDOW_D, "ティアマト", "ガルの盾を奪ったネコマタ？/ああ、あのゴミ…/あれなら、暗闇の中に捨ててあるはずよ/なにか照らすものを持っていけばすぐ見つかるんじゃない？"
+				CALL MESSAGE_WINDOW_D, "", "＞ティアマトは去っていった"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞龍王 ティアマトに戦いを挑んだ！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,[[キャラ:ネコマタ]],25,0,1
+				NAME:(CHARANUM-1) = ティアマト
+				CALLNAME:(CHARANUM-1) = ティアマト
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL SHOW_PICTURE, "D"
+				CALL MESSAGE_WINDOW_D, "ティアマト", "いたーい！"
+				CALL MESSAGE_WINDOW_D, "", "＞ティアマトの姿みるみる変わっていく/＞ティアマトは魔獣 ネコマタだった！"
+				CALL MESSAGE_WINDOW_D, "ネコマタ", "や、やめて、助けて/そうだ。あなた、ガルに頼まれてきたんでしょ？"
+				CALL MESSAGE_WINDOW_D, "ネコマタ", "盾は１階の暗がりに捨てたわ/ちょっと暗いうちは見つけられないかもだけど/ね、盾の場所はわかったし、/見逃してくれるでしょ？"
+				CALL INPUT_SELECT_D, "[0] 見逃す/[1] 殺す/[2] 犯す"
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "ネコマタ", "ふぅ、よかった…/あ、そうだ/これをもっていくといいわよ"
+					CALL MESSAGE_WINDOW_D, "", "＞ScryingBallをもらった"
+					CALL MESSAGE_WINDOW_D, "ネコマタ", "じゃーねー！/ばいばい"
+					CALL GET_ITEMS,"ScryingBall", 1
+				ELSEIF RESULT == 1
+					CALL MESSAGE_WINDOW_D, "ネコマタ", "や、やだ。やめてよ…きゃあ！"
+					CALL MESSAGE_WINDOW_D, "", "＞ネコマタを殺した/＞ネコマタは200魔貨持っていた/＞200魔貨を手に入れた"
+					CALL INCREASE_LD, 2
+					MONEY:1 += 200
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ネコマタ", "や、やだ。なにするの？　きゃあ！"
+					CALL MESSAGE_WINDOW_D, "", "＞ネコマタを押し倒した"
+					CALL ADD_NEW_COMPANION, [[キャラ:ネコマタ]], 200, 1
+					CALL INCREASE_LD, 2
+					;若干、旧1風に調整
+					;IF RESULT
+						TARGET = RESULT:1
+						FLAG:ダンジョン内調教 = 1
+						;会話タイプを女・若者に
+						ABL:会話タイプ = 304
+						CSTR:一人称 = あたし
+						CSTR:二人称 = あなた
+						CFLAG:全身服 = [[衣装:レオタード]]
+					;ENDIF
+					RETURN 0
+				ENDIF
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞足跡があり、獣の毛のようなものが散らばっている"
+		ENDIF
+	CASE 700
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞扉を開けると、筋骨隆々の巨獣が待ち構えていた"
+		CALL MESSAGE_WINDOW_D, "魔王 ミノタウロス", @"待っておったぞ、%\@TALENT:MASTER:オトコ?小童め#小娘め\@%！/我は魔王 ミノタウロス！/ここから先は大魔宮…、我ら魔族の禁断の地…"
+		IF FLAG:直哉ルート
+			CALL MESSAGE_WINDOW_D, "魔王 ミノタウロス", "汝が真にベルの力を継承し、/王となるに相応しい存在かどうか確かめさせてもらうぞ！"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔王 ミノタウロス", "汝に其処に踏み込む資格があるか、確かめさせていただく！/人間よ!我が雷に打たれよ！"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "＞魔王 ミノタウロスが１体出た！"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_MINOTAUR
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "魔王 ミノタウロス", "や…やるではないか…"
+		CALL MESSAGE_WINDOW_D, "", "＞ミノタウロスは息絶えた…"
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		FLAG:(10000+[[キャラ:ミノタウロス]]) = 1
+		CALLF STRFLAG_D("ミノタウロス撃破", 1)
+		CALLF STRFLAG_NUM_D("大魔宮進行", "+=", , 1)
+	CASE 900
+		CALL MESSAGE_WINDOW_D, "", "＞豪勢な作りの部屋に入ると、/＞一人の男が立派な椅子に腰掛けていたのが目に入った/＞新宿で出会った、遊び人風の男だ…"
+		CALL MESSAGE_WINDOW_D, "遊び人風の男", "いやぁ、確かにここに来るとは思ってたけど/ほんとにちゃんとやってくるなんてねぇ/さすがだよ"
+		CALL MESSAGE_WINDOW_D, "遊び人風の男", "もう、わかってると思うけど、僕はロキ/この【ヴァルハラの回廊】を治める魔王だ"
+		CALL MESSAGE_WINDOW_D, "", "＞遊び人風の男の姿がみるみるうちに変わっていき、/＞青い肌をした巨体の悪魔が現れた"
+		CALL MESSAGE_WINDOW_D, "魔王 ロキ", "これが僕の本来の姿だ/地上で遊ぶには人間の格好をしていたほうが便利なんで、/大体変身してるけどね"
+		IF FINDCHARA_B([[キャラ:朱実]]) == 2
+			CALL MESSAGE_WINDOW_D, "朱実", "魔王 ロキ、彼女の仇はとらせてもらうぞ！"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "おや、ナカジマ/君も来ていたなんてねぇ/それに、この人間に協力しているとは…/"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "ちょうどいい/僕は常々、君やナオヤくんが手を組めば、/世界を変えられると思っていたよ/"
+			CALL MESSAGE_WINDOW_D, "朱実", "何を企んでいるかは知らないが、もうお前の好きにはさせない"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "やれやれ……/元々、僕に力を貸してくれと言ってきたのは君じゃないか/まぁ、可愛い彼女のことで、怒るのはわからないでもないけど"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "僕が力を貸せば、/彼女を冥界から連れ帰ることもできるんだけどなぁ"
+			CALL MESSAGE_WINDOW_D, "朱実", "なんだって？/……いや、騙されはしないぞ！"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "騙すつもりなんかないんだけどねぇ/まぁ、とりあえず、僕を倒すことだ/それができないようなら、/そもそも僕は君たちに力を貸すつもりはないんだから"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "魔王 ロキ", "さて、それじゃあ……/君がこの【ヴァルハラの回廊】を受け継ぐのにふさわしいか/ベルの王となるのにふさわしいかどうか、試させてもらうよ？"
+		IF STRFLAG_D("魔除け完成")
+			CALL MESSAGE_WINDOW_D, "", "＞ロキが立ち上がったその時、/【ロルの魔除け】が光を放った"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "ぐ…それは…/ロルの力か……？/いや、それだけじゃない……"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "く、ふふ、面白いねぇ/こうして、便利な道具を作り出したり、悪魔の力を借りたり、/それでこそ、人間だよ"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "だけど、それだけで勝てるほど、/この魔王 ロキは甘くない/さぁ、君の知恵は見せてもらった/次は力を見せてもらうよ"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "＞魔王 ロキが一体出た！"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_LOKI
+		CALL BATTLE_START
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		CALLF STRFLAG_D("ロキ撃破", 1)
+		CALLF STRFLAG_NUM_D("大魔宮進行", "+=", , 1)
+		FLAG:(10000+[[キャラ:ロキ]]) = 1
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞ロキを倒した"
+		IF STRFLAG_D("魔除け完成")
+			CALL MESSAGE_WINDOW_D, "", "＞ロルの魔除けは砕け散った…"
+			ITEM:ロルの魔除け = -1
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "魔王 ロキ", "ふふ、さすがだねぇ…/今から、君がこの【ヴァルハラの回廊】の支配者だ/これからは僕も君の仲魔として、協力させてもらうとしよう"
+		CALL MESSAGE_WINDOW_D, "", "＞魔王 ロキが仲魔になった"
+		CALL ADD_NEW_COMPANION, [[キャラ:ロキ]], 1000, 1
+		IF RESULT
+			LOCAL = RESULT:1
+			BASE:LOCAL:LV = 40
+			BASE:LOCAL:ＥＸＰ = 5*(39)*(40)*(41)/3
+			FOR LOCAL:1, 1, 7
+				BASE:LOCAL:GET_BASESTATUS(LOCAL:1) -= 5
+			NEXT
+			FOR LOCAL:1, 1, 21
+				SIF ABL:LOCAL:("習得LV"+TOSTR(LOCAL:1)) > 0
+					ABL:LOCAL:("習得LV"+TOSTR(LOCAL:1)) -= 30
+			NEXT
+			ABL:LOCAL:受胎アイテム = [[スキル:ニブルヘイム]] + 10000
+		ENDIF
+		IF FINDCHARA_B([[キャラ:朱実]]) % 10 == 2
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", @"さて、ナカジマ/こういうわけだ/要するに%\@TALENT:MASTER:オトコ ? 彼 #彼女\@%と僕とはおともだちだったというわけさ"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", @"%\@TALENT:MASTER:オトコ?彼#彼女\@%に君の復讐を手伝ってもらうのは見当違いだったわけで/このまま続けるわけにはいかないだろう？"
+			CALL MESSAGE_WINDOW_D, "朱実", "く…"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "だけど、安心するといい/さっきちょっといったけど、彼女を助けることは可能なんだよ/彼女は特別な力を持っているのは知ってるだろう？"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "そう、冥府に通じるものの助けさえあれば、/冥界から連れ戻すこともできるんだよ/自慢じゃないけど、僕も娘のおかげでその道には詳しくてねぇ"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "この【ヴァルハラの回廊】には冥界に繋がる入り口があるから/そこまで僕を連れていけば、冥界にいけるようにしてあげよう/もちろん、僕と契約している彼が望むならだけど…"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "まぁ、ナカジマは優秀だから、/ここで恩をうっといても損はないんじゃないかなぁ？"
+			CALL MESSAGE_WINDOW_D, "", @"＞ロキはにやにやと笑っている…/＞朱実は悔しそうに顔を歪めると、%CALLNAME:MASTER%に頭を下げた"
+			CALL MESSAGE_WINDOW_D, "朱実", "すいませんが…あなたの力を貸してください……/なんでもしますから……"
+			CALL MESSAGE_WINDOW_D, "魔王 ロキ", "そうそう、素直が一番、/欲しいものがあったらちゃんと頭をさげないとねぇ"
+			CALLF STRFLAG_D("冥界フラグ", 1)
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%はロキのいた部屋を後にして、探索を再開した"
+	CASE 901, 2700
+		CALL SHOW_PICTURE, "D"
+		IF FLAG:月齢 == 0
+			CALL MESSAGE_WINDOW_D, "店主", "おいおい　今日は新月だぞ/仕事なんかやってられないよ/またおいで"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "店主", "ようこそ。ここはジュエリーショップだよ"
+			IF ITEM:紫水晶 == 1
+				CALL MESSAGE_WINDOW_D, "店主", "その【紫水晶】きれいだな　何かと取り替えるかい？"
+				$CHOICE_RAG
+				CALL INPUT_SELECT_D, "[0] 龍の髭/[1] 雷おこし/[2] アレスの首飾り/[3] 天の勾玉/[4] ロンドンブーツ/[9] 交換しない", , , 2, 4
+				SELECTCASE RESULT
+					CASE 0
+						CALL MESSAGE_WINDOW_D, "店主", "その髭には呪いがかかってる……/冗談だよ"
+						LOCALS = 
+						LOCAL:3 = 0
+						FOR LOCAL:1, 1, 7
+							LOCAL = POS(LOCAL:1)
+							SIF LOCAL == -1
+								CONTINUE
+							;回復量
+							LOCAL:2 = MAXBASE:LOCAL:ＨＰ
+							LOCALS += @"＞TARGET:[{LOCAL:1,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　"
+							IF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+								LOCALS += @"%CALLNAME:LOCAL% was revived!"
+							ELSE
+								LOCALS += @"{LOCAL:2}回復 %\@GET_STATE(CFLAG:LOCAL:ステート) == "GOOD"?# ＋ 状態回復\@%"
+							ENDIF
+							CFLAG:LOCAL:ステート = GET_STATE_NUM("GOOD")
+							CALL VAR_HP,LOCAL,LOCAL:2,3
+							IF ++LOCAL:3 == 4
+								CALL MESSAGE_WINDOW_D, "", LOCALS
+								LOCALS = 
+							ELSE
+								LOCALS += "/"
+							ENDIF
+						NEXT
+						CALL MESSAGE_WINDOW_D, "", LOCALS
+					CASE 1
+						CALL MESSAGE_WINDOW_D, "店主", "どうぞ……"
+						CALL MESSAGE_WINDOW_D, "", "＞突然頭上から激しい雷が！/＞激しいダメージを受けた"
+						LOCALS = 
+						LOCAL:3 = 0
+						FOR LOCAL:1, 1, 7
+							LOCAL = POS(LOCAL:1)
+							SIF LOCAL == -1
+								CONTINUE
+							SIF GET_STATE(CFLAG:LOCAL:ステート) == "DYING"
+								CONTINUE
+							;ダメージ量
+							LOCAL:2 = BASE:LOCAL:ＨＰ - 1
+							LOCALS += @"TARGET:[{LOCAL:1,2}] %CALLNAME:LOCAL,20,LEFT%　>>>>>>　{LOCAL:2} DAMAGE！"
+							CALL VAR_HP,LOCAL,-LOCAL:2,3
+							IF ++LOCAL:3 == 4
+								CALL MESSAGE_WINDOW_D, "", LOCALS
+								LOCALS = 
+							ELSE
+								LOCALS += "/"
+							ENDIF
+						NEXT
+						CALL MESSAGE_WINDOW_D, "", LOCALS
+					CASE 2, 3, 4
+						LOCALS = %AUTO_SPLIT("アレスの首飾り/天の勾玉/ロンドンブーツ", "/",RESULT-2)%
+						IF ITEM:LOCALS > 0
+							CALL MESSAGE_WINDOW_D, "店主", @"おや、%LOCALS%は持っているじゃないか/べつのものにしなよ"
+							PRINTFORML 「
+							PRINTFORMW 　」
+							GOTO CHOICE_RAG
+						ELSE
+							CALL MESSAGE_WINDOW_D, "店主", "ほら…どうぞ…"
+							CALL MESSAGE_WINDOW_D, "", @"＞【%LOCALS%】を手に入れた"
+							PRINTFORMW 
+							ITEM:LOCALS = 1
+						ENDIF
+					CASE 9
+						CALL MESSAGE_WINDOW_D, "店主", "そうかい。残念だね/気が変わったらよろしく頼むよ"
+						RETURN 0
+				ENDSELECT
+				ITEM:紫水晶 = 0
+			ELSE
+				CALL MESSAGE_WINDOW_D, "店主", "わしはお金には興味ないよ/興味あるのは美しい宝石だけだ/そして、今わしが探しているのは【紫水晶】だよ/【紫水晶】を手に入れたらまたおいで"
+				CALLF STRFLAG_D("宝石店初回",1)
+			ENDIF
+		ENDIF
+	CASE 1000
+		SIF STRFLAG_D("Y子")
+			RETURN 0
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞死臭がする…"
+		IF STRFLAG_D("冥界フラグ") && FINDCHARA_B([[キャラ:ロキ]], 1) > 0
+			IF !STRFLAG_D("初冥界",1)
+				CALL MESSAGE_WINDOW_D, "魔王 ロキ", "ここが冥府の入り口だよ/この先に愚かな恋人を庇って、/殺されてしまった悲劇のヒロインがいるというわけだ"
+				IF FINDCHARA_B([[キャラ:朱実]]) == 2
+					CALL MESSAGE_WINDOW_D, "朱実", "く……"
+					CALL MESSAGE_WINDOW_D, "魔王 ロキ", "クック、そんな怖い顔しないでくれよ/なにはともあれ、助けられるのだから/ねぇ？"
+					CALL MESSAGE_WINDOW_D, "朱美", "………"
+					CALL MESSAGE_WINDOW_D, "魔王 ロキ", "それはさておき……"
+				ENDIF
+				CALL MESSAGE_WINDOW_D, "魔王 ロキ", "この先は亡者の国だ/暗く冷たい闇に閉ざされている/一度足を踏み入れれば、/奴らは生者の国へと帰るのを許しはしないだろう"
+				CALL MESSAGE_WINDOW_D, "魔王 ロキ", "亡者の仲間入りをしたくなければ、闇から身を守るすべをみにつけ、/闇を退ける光を準備しなければならない/準備はできてるかな？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "魔王 ロキ", "クックック……じゃあ行こうか/君が亡者の仲間入りをするような/愚かものじゃあないことを信じてるよ"
+					FLAG:COMP使用不能 = 1
+					FLAG:脱出スキル禁止 = 1
+					CALL DUNGEON_WORP_ID, 60, -61, 1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "魔王 ロキ", "そうか、なら準備をすることだ/なに、相手はもう死んでるんだ/時間はいくらでもあるさ"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "魔王 ロキ", "亡者の国へ行くかい？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "魔王 ロキ", "クックック…じゃあ行こうか/君が亡者の仲間入りをするような/愚かものじゃあないことを信じてるよ"
+					FLAG:脱出スキル禁止 = 1
+					FLAG:COMP使用不能 = 1
+					CALL DUNGEON_WORP_ID, 60, -61, 1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "魔王 ロキ", "クックック……"
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE 1001
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞悪魔が鎖につながれている…"
+		CALL MESSAGE_WINDOW_D, "悪魔", @"おお、旅の人　私の名はリック%\@!STRFLAG_D("ロキ撃破") ?/魔王ロキにより、こんなところに繋がれてしまった! # \@%/この鎖をはずして　私を助けてくれないか？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			$CHAIN
+			CALL MESSAGE_WINDOW_D, "", "＞誰に鎖を外させるか選んでください？"
+			LOCALS = 
+			FOR LOCAL, 1, 7
+				SIF POS(LOCAL) >= 0 && CFLAG:POS(LOCAL):ステート == 0
+					LOCALS += @"[{LOCAL}] %CALLNAME:POS(LOCAL)%/"
+			NEXT
+			LOCALS += "[9] やめておく"
+			CALL INPUT_SELECT_D, LOCALS, , , 2
+			IF RESULT < 7
+				LOCAL = POS(RESULT)
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%は渾身の力を込めた/＞ガチャガチャ…"
+				IF MAXBASE:LOCAL:力 >= 50
+					CALL MESSAGE_WINDOW_D, "", "＞鎖がはずれた！"
+					CALL MESSAGE_WINDOW_D, "リック", "ありがとう、本当にありがとう/お礼にこの腕輪をあげよう/きっとお役に立ちますよ"
+					CALL MESSAGE_WINDOW_D, "", "＞【リックの腕輪】を手に入れた"
+					ITEM:リックの腕輪 = 1
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					VARSET RESULT, -1
+					LOCAL:1 = 0
+					FOR LOCAL, 0, CHARANUM
+						SIF ABL:LOCAL:種族 == 0
+							CONTINUE
+						SIF ABL:LOCAL:種族 == 13
+							CONTINUE
+						SIF ABL:LOCAL:種族 == 36
+							CONTINUE
+						SIF ABL:LOCAL:種族 == 45
+							CONTINUE
+						RESULT:(LOCAL:1) = MIN(BASE:LOCAL:LV, CSVBASE(NO:LOCAL, GETNUM(BASE, "LV"), 0)) * 1000 + TALENT:LOCAL:オトコ * 100 + ABL:LOCAL:種族
+						LOCAL:1++
+					NEXT
+					LOCAL:2 = -1
+					WHILE MAXARRAY(RESULT) >= 0
+						FOR LOCAL:1, 1, 6
+							FOR LOCAL, (MAXARRAY(RESULT) % 100 - 1) * 100, MAXARRAY(RESULT) % 100 * 100 + 1
+								SIF !EXISTCSV(LOCAL,0)
+									CONTINUE
+								SIF CSVBASE(LOCAL, GETNUM(BASE, "LV"), 0) != MAXARRAY(RESULT) / 1000 + LOCAL:1
+									CONTINUE
+								SIF GETCHARA(LOCAL) >= 0
+									CONTINUE
+								SIF CSVCFLAG(LOCAL,(GETNUM(CFLAG,"合体条件有り")),0) == 1
+									CONTINUE
+								SIF CSVTALENT(LOCAL,GETNUM(TALENT,"オトコ"),0) != (MAXARRAY(RESULT) % 1000) / 100
+									CONTINUE
+								SIF CSVCFLAG(LOCAL,(GETNUM(CFLAG,"特殊合体のみ")),0) == 1
+									CONTINUE
+								LOCAL:2 = LOCAL
+							NEXT
+							SIF LOCAL:2 >= 0
+								BREAK
+						NEXT
+						SIF LOCAL:2 >= 0
+							BREAK
+						LOCAL:1 = -1
+						WHILE 1
+							LOCAL:1++
+							SIF MAXARRAY(RESULT) > RESULT:(LOCAL:1)
+								CONTINUE
+							RESULT:(LOCAL:1) = -1
+							BREAK
+						WEND
+					WEND
+					IF LOCAL:2 >= 0
+						CALL MESSAGE_WINDOW_D, "リック", "これが私のほんとうの姿です"
+						CALL MESSAGE_WINDOW_D, "", @"＞ボンッ！/＞リックは突然%CSVCALLNAME(LOCAL:2,0)%に姿を変えた"
+						CALL MESSAGE_WINDOW_D, CSVCALLNAME(LOCAL:2,0), "ぜひお供させて下さい"
+						CALL INPUT_YN_D
+						IF RESULT == 0
+							CALL ADD_NEW_COMPANION, LOCAL:2, 1000
+							FLAG:(LOCAL:2+20000) = MAX(100, FLAG:(LOCAL:2+20000))
+							CALL MESSAGE_WINDOW_D, "", @"%CSVCALLNAME(LOCAL:2,0)%が仲魔になった！"
+						ELSE
+							CALL MESSAGE_WINDOW_D, CSVCALLNAME(LOCAL:2,0), "それは残念…"
+							CALL MESSAGE_WINDOW_D, "", @"%CSVCALLNAME(LOCAL:2,0)%は去っていった"
+						ENDIF
+					ELSE
+						CALL MESSAGE_WINDOW_D, "", "＞リックは礼を言うと去っていった"
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%の力では鎖は解けない！"
+					GOTO CHAIN
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞リックを放置して、その場を立ち去った…"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞リックを放置して、その場を立ち去った…"
+		ENDIF
+	CASE 1002
+		SIF !ITEM:紫水晶
+			CALL GET_TREASURE, GETNUM(ITEM, "紫水晶"), 1, FLAG:現ダンジョン, FLAG:現M + 25, 63
+	;------------------------------
+	;天空の街ビエン
+	;------------------------------
+	CASE 1400
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞部屋の中央に半人半獣の生物を象った像が安置してある/＞手に取ると、重みと共に不思議な力を感じる…/＞【タバサの像】を手に入れた！"
+		ITEM:タバサの像 = 1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+	CASE 1600
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞魔王 メデューサだ！"
+		CALL MESSAGE_WINDOW_D, "魔王 メデューサ", "ビエンの街の者たちは、あたしに従おうとしなかった/だから石にしてやったのさ/さあ、お前たちもそうしてやろう！"
+		CALL MESSAGE_WINDOW_D, "", "＞魔王メデューサが現れた！"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_MEDOUSA
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		FLAG:(10000+[[キャラ:メデューサ]]) = 1
+		CALLF STRFLAG_D("メデューサ撃破", 1)
+		CALLF STRFLAG_NUM_D("大魔宮進行", "+=", , 1)
+		CALL MESSAGE_WINDOW_D, "魔王 メデューサ", "ま、まさかこのあたしが…"
+		CALL MESSAGE_WINDOW_D, "", @"＞魔王メデューサを倒した！%\@ITEM:タバサの像 ? /＞【タバサの像】は砕け散った！ # \@%/＞牡牛のキーを手に入れた！"
+		ITEM:タバサの像 *= -1
+		ITEM:牡牛のキー = 1
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+	CASE 1601
+		CALL MESSAGE_WINDOW_D, "", "＞一振りの剣が岩に突き刺さっている"
+		;ステの判定はなしに
+		IF FINDCHARA_B([[キャラ:朱実]]) == 2
+			CALL MESSAGE_WINDOW_D, "朱実", "あれはHinokagutsuchi……/こんなところに呼び出されていたのか…/ちょっと待ってください"
+			CALL MESSAGE_WINDOW_D, "", "＞朱実は岩から剣を引き抜いた/＞【Hinokagutsuchi】を手にいれた"
+			CALL GET_ITEMS,"Hinokagutsuchi", 1
+			IF STRFLAG_D("ロキ撃破")
+				CALL MESSAGE_WINDOW_D, "朱実", "これがあれば、百人力だ"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "朱美", "これさえあれば、あのロキだってきっと…"
+			ENDIF
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+			CALLF STRFLAG_D("Hinokagutsuchi",1)
+		ELSE
+			;弓子が陥落している場合、主人公で引き抜ける
+			CALL INPUTABLE_CHARA(MASTER)
+			IF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "", "＞引き抜きますか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					IF GETCHARA([[キャラ:弓子]]) >= 0 && 陥落(GETCHARA([[キャラ:弓子]]))
+						CALL MESSAGE_WINDOW_D, "", "＞力をこめると、意外とあっさりと剣を引き抜くことができた/＞【Hinokagutsuchi】を手にいれた"
+						CALL GET_ITEMS,"Hinokagutsuchi", 1
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+						CALLF STRFLAG_D("Hinokagutsuchi",1)
+					ELSE
+						LOCALS = ＞剣は引き抜けない！/＞剣から炎が吹き出し、%CALLNAME:MASTER%の体を包んだ！/
+						LOCAL =  MAXBASE:MASTER:火炎==999 ? 0 # MAXBASE:MASTER:ＨＰ* 50 / 100 * MAXBASE:MASTER:火炎 / 100
+						CALL VAR_HP, MASTER, -LOCAL
+						IF LOCAL > 0
+							LOCALS += @"＞%CALLNAME:MASTER%はダメージを受けた" 
+						ELSEIF LOCAL == 0
+							LOCALS += @"＞しかし、%CALLNAME:MASTER%はダメージを受けなかった"
+						ELSE
+							LOCALS += "%CALLNAME:MASTER%は回復した"
+						ENDIF
+						CALL MESSAGE_WINDOW_D, "", LOCALS
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞剣の発する異様なオーラを感じ取り、触れるのを控えた…"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞仲間達は剣の発する異様なオーラを感じ取り、触れるのを控えた…"
+			ENDIF
+		ENDIF
+	;------------------------------
+	;マズルカの回廊
+	;------------------------------
+	;ラグショップ、901と一緒
+	;CASE 2700
+	;シャドウ
+	CASE 2600
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞部屋の奥から押し殺したような声が聞こえてくる"
+		CALL MESSAGE_WINDOW_D, "声", "…誰かいるの？/助けて…困ってるの"
+		CALL MESSAGE_WINDOW_D, "", "＞声を頼りに進むと、少女がいた…"
+		CALL MESSAGE_WINDOW_D, "少女", "ああ、助かった…/どうしようか途方に暮れていたの…/実は、このあたりを探索中に武器を失くしちゃって…"
+		CALL MESSAGE_WINDOW_D, "少女", "外には悪魔がウヨウヨしているから/ずっとここに隠れていたの"
+		CALL MESSAGE_WINDOW_D, "少女", "…ところで見たところ、/何か武器を持ってるみたいだけど…/何か１つでいいの/身を守るために、ひとつわたしにくれない？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			$SHADOW
+			CALL INCREASE_LD, 4
+			CALL MESSAGE_WINDOW_D, "少女", "ほんと？　嬉しい！/それじゃあ、お礼しないと……/ね、こっちにきて……"
+			SIF IS_LOOKSLIKE_MALE(MASTER)
+				CALL MESSAGE_WINDOW_D, "", "＞少女はそう言って、服に手をかけた……"
+			CALL INPUT_YN_D("少女に近づく", "遠慮しておく")
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "少女", "うふ、ひっかかったわね。これでもくらいなさい！"
+				CALL MESSAGE_WINDOW_D, "", @"＞少女はなにやら粉を撒いてきた…/＞＞%CALLNAME:MASTER%達は痺れてしまった！"
+				CALL MESSAGE_WINDOW_D, "少女", @"さて、それじゃあ、とどめを差してあげる%ハート()%"
+				LOCAL = 1
+			ELSE
+				CALL MESSAGE_WINDOW_D, "少女", "お礼をしようっていってるのに、生意気！/痛い目にあわせてやる！"
+			ENDIF
+		ELSE
+			LOCAL = 0
+			CALL MESSAGE_WINDOW_D, "少女", "もしかして武器をもってないの？/ううん、そんなことないでしょ？/お願い、ひとつだけでいいから！"
+			CALL INPUT_SELECT_D, "[0]武器を渡す/[1] 武器はないと答える/[2] 武器の代わりに体を要求する"
+			IF RESULT == 0
+				GOTO SHADOW
+			ELSEIF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "少女", "ほんとうにもってないの？/わかった。信じる/うふ…武器がないのね…/こりゃ、いいカモね！"
+			ELSE
+				CALL INCREASE_LC, -4
+				CALL INCREASE_LD, -4
+				CALL MESSAGE_WINDOW_D, "少女", "え……？/うん……わかった/私も命がかかってるんだもの、/これくらい安いくらいよ…"
+				CALL MESSAGE_WINDOW_D, "", @"＞少女はそういうと、顔を赤らめ、服に手をかけた…/＞%CALLNAME:MASTER%は少女の傍へと歩いて行った/＞すると、少女はにやりとわらい、なにやら粉を撒いてきた/＞%CALLNAME:MASTER%達は痺れてしまった！"
+				CALL MESSAGE_WINDOW_D, "少女", "ふふ、スケベ心をだすからこういう目にあうのよ/地獄で己の愚かさを呪うことね！"
+				LOCAL = 1
+			ENDIF
+		ENDIF
+		IF LOCAL
+			FOR LOCAL, 1, 7
+				SIF POS(LOCAL) < 0 || GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING" || GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "STONE"
+					CONTINUE
+				CFLAG:(POS(LOCAL)):ステート = GET_STATE_NUM("PALYZE")
+			NEXT
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "", "＞外道 シャドウが一体出た！"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,9,[[キャラ:シャドウ]],50,0,1
+		LOCAL = CHARANUM - 1
+		ABL:LOCAL:スキル1 = [[スキル:マハムドオン]]
+		ABL:LOCAL:スキル2 = [[スキル:誘惑の霧]]
+		ABL:LOCAL:スキル3 = [[スキル:ザンダイン]]
+		ABL:LOCAL:スキル4 = [[スキル:テンタラフー]]
+		ABL:LOCAL:アイテム1 = GETNUM(ITEM, "InIncense")
+		ABL:LOCAL:入手確率1 = 100
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞外道 シャドウは力尽きた"
+		CALLF STRFLAG_D("シャドウ撃破", 1)
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+	;ラトスの像
+	CASE 2800
+		$LATOS
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞禍々しい気を放つ呪物と思われる像が台座に安置されている……"
+		CALL INPUT_SELECT_D, "[0] 像をとる/[1] 像をよく調べる/[9] 部屋をでる"
+		REDRAW 0
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "", "＞像をとると、大きな音を立て部屋全体が揺れだした！"
+			$LATOS2
+			CALL SET_ALIGNMENT("CENTER")
+			CLEARLINE LINECOUNT - FLAG:コマンド表示行数
+			PRINTFORML ┌%"─"*36%┐
+			PRINT │
+			PRINTBUTTON @"%"[0] 像を台座に戻す",36,LEFT%", 0
+			PRINTBUTTON @"%"[1] 像の代わりになにかを台座におく",36,LEFT%", 1
+			PRINTL │
+			PRINT │
+			PRINTBUTTON @"%"[2] 台座を調べる",36,LEFT%", 2
+			PRINTBUTTON @"%"[3] 部屋を調べる",36,LEFT%", 3
+			PRINTL │
+			PRINT │
+			PRINTBUTTON @"%"[9] 部屋をでる",72,LEFT%", 9
+			PRINTL │
+			PRINTFORML └%"─"*36%┘
+			CALL SET_ALIGNMENT("LEFT")
+			CALL TINPUTINT(5000, -1, 1, 0, 1, 2 ,3, 9)
+			SELECTCASE RESULT
+				CASE 0
+					CALL SHOW_FORCEMOVE, "RR", "D", , , @"＞像を戻すと、部屋の揺れはおさまった…/＞像を手に入れることは出来なかった！"
+					RETURN 0
+				CASE 1
+					CALL SET_ALIGNMENT("CENTER")
+					CLEARLINE LINECOUNT - FLAG:コマンド表示行数
+					PRINTFORML ┌%"─"*36%┐
+					PRINTFORML │%"＞台座に置くアイテム名を入力してください",72,LEFT%│
+					PRINTFORML │%" ",72%│
+					PRINTFORML │%" ",72%│
+					PRINTFORML └%"─"*36%┘
+					CALL SET_ALIGNMENT("LEFT")
+					TINPUTS 10000, "時間切れ", 1
+					IF RESULTS != "時間切れ"
+						IF GETNUM(ITEM, RESULTS) == -1 || ITEM:RESULTS < 1
+							CALL MESSAGE_WINDOW_D, "", @"＞%RESULTS%を持っていない！"
+						ELSE
+							IF RESULTS == "アレスの首飾り"
+								CALL MESSAGE_WINDOW_D, "", "＞【アレスの首飾り】をおくと、部屋の揺れは収まった/＞【ラトスの像】を手に入れた！"
+								ITEM:ラトスの像 = 1
+								ITEM:アレスの首飾り = 0
+								DA:(FLAG:現X):(FLAG:現Y) = 1
+								RETURN 0
+							ELSE
+								CALL MESSAGE_WINDOW_D, "", @"＞%RESULTS%を置いたが、罠が解除される気配はない……"
+							ENDIF
+						ENDIF
+					ENDIF
+				CASE 2
+					CALL MESSAGE_WINDOW_D, "", "＞なにかをおけば、罠を解除できるようだ"
+				CASE 3
+					CALL MESSAGE_WINDOW_D, "", "＞台座のほかにあやしいところはない"
+				CASE 9
+					CALL MESSAGE_WINDOW_D, "", "＞扉があかない！"
+			ENDSELECT
+			CALL MESSAGE_WINDOW_D, "", @"＞周りの壁が崩れ、%CALLNAME:MASTER%たちにふりかかってきた！"
+			LOCALS = 
+			LOCAL:2 = 0
+			FOR LOCAL,1,7
+				SIF POS(LOCAL) < 0
+					CONTINUE
+				SIF GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING"
+					CONTINUE
+				LOCAL:3 = MAXBASE:POS(LOCAL):ＨＰ*RAND(5, 26)/100
+				LOCALS += @"＞TARGET:[{LOCAL,2}] %CALLNAME:POS(LOCAL),20,LEFT%　>>>>>>　{LOCAL:3} DAMAGE"
+				CALL VAR_HP,POS(LOCAL),-LOCAL:3
+				IF ++LOCAL:2 == 4
+					CALL MESSAGE_WINDOW_D, "", LOCALS
+					LOCALS = 
+				ELSE
+					LOCALS += "/"
+				ENDIF
+			NEXT
+			CALL MESSAGE_WINDOW_D, "", LOCALS
+			LOCAL:4 = 0
+			;生存キャラチェック
+			FOR LOCAL, 1, 7
+				SIF POS(LOCAL) < 0
+					CONTINUE
+				SIF GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "STONE"
+					CONTINUE
+				SIF GET_STATE(CFLAG:(POS(LOCAL)):ステート) == "DYING"
+					CONTINUE
+				SIF POS(LOCAL) != MASTER && !陥落(POS(LOCAL))
+					CONTINUE
+				LOCAL:4 = 1
+			NEXT
+			SIF LOCAL:4 == 1
+				GOTO LATOS2
+			;全滅していた場合はゲームオーバー
+			CALL DEADEND
+			QUIT
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "", "＞どうやら、台座に罠が仕掛けてあるようだ/＞像を動かすと罠が動くようだが、/＞罠の外し方はわからない"
+			GOTO LATOS
+		ELSE
+			REDRAW 1
+			CALL SHOW_FORCEMOVE, "RR", "D", , , @"＞%CALLNAME:MASTER%は像を残し、部屋をでた"
+		ENDIF
+		REDRAW 1
+	CASE 3001
+		CALL SHOW_PICTURE, "D"
+		IF !ITEM:銀のレリーフ
+			CALL MESSAGE_WINDOW_D, "", "＞……どこからか、妖精の声が聞こえる"
+			CALL MESSAGE_WINDOW_D, "妖精", "チッチッチッ/ここは怖い化け物だらけ/この扉には仕掛けがあって…"
+			RETURN 0
+		ELSEIF ITEM:銀のレリーフ == 1
+			CALL MESSAGE_WINDOW_D, "", "＞……どこからか、妖精の声が聞こえる"
+			CALL MESSAGE_WINDOW_D, "妖精", "チッチッチッ/ここは怖い化け物だらけ/この部屋には仕掛けがあって…"
+			CALL MESSAGE_WINDOW_D, "妖精", "銀のレリーフをお出しよ/怖い怖い化物達の女王様に会えるよ…"
+			CALL MESSAGE_WINDOW_D, "", "＞【銀のレリーフ】を出しますか？"
+			CALL INPUT_YN_D
+			IF RESULT == 0
+				IF STRFLAG_D("レリーフ破損") && FLAG:月齢 != 8
+					CALL MESSAGE_WINDOW_D, "妖精", "おやおや、レリーフが壊れてるよ/これじゃあ、扉は開けられない"
+					CALL MESSAGE_WINDOW_D, "妖精", "でも、大丈夫/壊れたレリーフでも魔力はあるから/満月になったら、また来なよ/それならそのレリーフでも大丈夫"
+				ELSE
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					DA:(FLAG:現X-2):(FLAG:現Y) = 1
+					CALL MESSAGE_WINDOW_D, "", "＞【銀のレリーフ】は壁に吸い込まれてしまった！/＞扉が現れた！/＞扉の向こうから声がする"
+					CALL SHOW_PICTURE, "D"
+					ITEM:銀のレリーフ = -1
+					CALL MESSAGE_WINDOW_D, "声", "このまやかしを打ち破るとはなかなかやるな/さぁ、中に来るがいい/褒美をやろう"
+					CALL SHOW_FORCEMOVE, "LL", "D", , "", @"＞%CALLNAME:MASTER%は扉を開け、部屋の中へと踏み込んだ"
+					CALL MESSAGE_WINDOW_D, "", "＞しかし、部屋の中にはだれもいない"
+					CALL MESSAGE_WINDOW_D, "ヘカーテ", "褒美はこの私の美しい姿だ/しっかりと目に焼きつけておくがいい/ただし、見ることができたらの話だがな…"
+					IF ITEM:ラトスの像
+						CALL MESSAGE_WINDOW_D, "", "＞【ラトスの像】をかざした！/光がヘカーテを包む！/＞ヘカーテの姿が見えるようになった！"
+						CALL MESSAGE_WINDOW_D, "ヘカーテ", "私の姿を暴くとは……/道具を使ったとはいえ、見事だ"
+						IF FLAG:月齢 == 8
+							CALL MESSAGE_WINDOW_D, "ヘカーテ", "だが、満月の力をうけた私は無敵だ/いくらお前らが知恵を振りしぼろうと、/ふれることすらかなわぬ！"
+						ELSEIF FLAG:月齢 == 0
+							CALL MESSAGE_WINDOW_D, "ヘカーテ", "そして、月の光がない時に私の元を訪れたか/この知恵こそ、あの方がお前らニンゲンに期待しているもの/あとは知恵だけじゃないところを見せてもらおうか"
+						ELSE
+							CALL MESSAGE_WINDOW_D, "ヘカーテ", "道具を使う知恵、これこそがあの御方がいう人間の力/しかし、道具があろうと、元々が非力ではしようがない/人間よ。お前の力がどれだけのものか、示してみせよ"
+						ENDIF
+						
+					ELSE
+						IF FLAG:月齢 == 8
+							CALL MESSAGE_WINDOW_D, "ヘカーテ", "さぁ、おまえらの力、試してやろう/とは、言っても、いくらおまえらが強くとも/満月の光におおわれた私に勝てるはずはないが"
+						ELSEIF FLAG:月齢 == 0
+							CALL MESSAGE_WINDOW_D, "ヘカーテ", "新月を選ぶくらいの知恵はあったか/しかし、おまえらごとき　月の光が無くとも十分だ/覚悟しろ！"
+						ELSE
+							CALL MESSAGE_WINDOW_D, "ヘカーテ", "お前らの力が、月の光におおわれた私に/通用するか試してやろう！"
+						ENDIF
+					ENDIF
+					CALL MESSAGE_WINDOW_D, "", "＞魔王 ヘカーテが一体出た！"
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_HECATE
+					CALL BATTLE_START
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					CALLF STRFLAG_D("ヘカーテ撃破", 1)
+					CALLF STRFLAG_NUM_D("大魔宮進行", "+=", , 1)
+					FLAG:(10000+[[キャラ:ヘカーテ]]) = 1
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					CALL SHOW_PICTURE, "D"
+					CALL MESSAGE_WINDOW_D, "", @"＞ヘカーテを倒した%\@ITEM:ラトスの像?/＞ラトスの像は砕け散った…#\@%"
+					ITEM:ラトスの像 *= -1
+					CALL MESSAGE_WINDOW_D, "ヘカーテ", "……たしかにあの御方のお気入りなだけはことはある/お前は本当に強い……"
+					IF ABL:MASTER:属性LD == 3 && ABL:MASTER:属性LC == 3
+						CALL MESSAGE_WINDOW_D, "ヘカーテ", "これで、今からお前がこの【マズルカの回廊】の支配者だ/これからは私もお前に力を貸そう"
+						CALL MESSAGE_WINDOW_D, "ヘカーテ", "さぁ、共に進むとしようぞ/あの御方はお前が自らの足で/自分のもとに辿りつくことを望んでおられる…/ならば私もその歩みを助けよう"
+						CALL ADD_NEW_COMPANION, [[キャラ:ヘカーテ]], 1000, 1
+						IF RESULT
+							BASE:(RESULT:1):LV += 3
+							BASE:(RESULT:1):魔力 += 3
+							BASE:(RESULT:1):知恵 += 2
+							ABL:(RESULT:1):スキル4 = [[スキル:ブフダイン]]
+							ABL:(RESULT:1):スキル5 = [[スキル:マグダイン]]
+							ABL:(RESULT:1):スキル6 = [[スキル:満月の女王]]
+							ABL:(RESULT:1):スキル7 = [[スキル:マリンカリン]]
+							ABL:(RESULT:1):スキル8 = [[スキル:シバブー]]
+						ENDIF
+					ELSE
+						CALL MESSAGE_WINDOW_D, "ヘカーテ", "これで、今からお前がこの【マズルカの回廊】の支配者だ/先へと進むがいい/あの御方はお前が自らの足で自分のもとに辿りつくことを望んでおられる…"
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	;イザナミ(セト)の封印
+	CASE 3600
+		IF !STRFLAG_D("セト封印解除")
+			CALL MESSAGE_WINDOW_D, "", "＞額と右目と左目の位置に大きな穴が開いた仮面をつけた像が立っている‥…"
+			IF ITEM:しず玉 && ITEM:あら玉 &&ITEM:ふる玉
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%が持っているしず玉、あら玉、ふる玉の３つの玉が/＞突然強く輝き始めた/＞どうやらこの玉を仮面の穴にはめればいいようだ……"
+				CALL MESSAGE_WINDOW_D, "", "＞右目にいれる玉を選んでください"
+				CALL INPUT_SELECT_D, "[0] しず玉/[1] あら玉/[2] ふる玉"
+				LOCAL:1 = RESULT
+				CALL MESSAGE_WINDOW_D, "", "＞左目にいれる玉を選んでください"
+				CALL INPUT_SELECT_D, @"%\@ LOCAL:1 == 0 ? # [0] しず玉/\@%%\@ LOCAL:1 == 1 ?  # [1] あら玉/\@%%\@ LOCAL:1 == 2 ? # [2] ふる玉/\@%"
+				LOCAL:2 = RESULT
+				FOR LOCAL, 0, 3
+					SIF LOCAL == LOCAL:1
+						CONTINUE
+					SIF LOCAL == LOCAL:2
+						CONTINUE
+					LOCAL:3 = LOCAL
+				NEXT
+				LOCALS = 
+				FOR LOCAL, 0, 3
+					IF LOCAL == 0
+						LOCALS += "＞右目に"
+					ELSEIF LOCAL == 1
+						LOCALS += "＞左目に"
+					ELSE
+						LOCALS += "＞額に"
+					ENDIF
+					IF LOCAL:(LOCAL+1) == 0
+						LOCALS += "しず玉を嵌める/"
+					ELSEIF LOCAL:(LOCAL+1) == 1
+						LOCALS += "あら玉を嵌める/"
+					ELSE
+						LOCALS += "ふる玉を嵌める/"
+					ENDIF
+				NEXT
+				LOCALS += "＞これでよろしいですか？"
+				CALL MESSAGE_WINDOW_D, "", LOCALS
+				CALL INPUT_SELECT_D, "[0] はい/[1] いいえ/[9] 玉を嵌めるのをやめて立ち去る"
+				;LOCAL:1 右　LOCAL:2　左 LOCAL;3 額　/ 0 しず玉 1 あら玉 2 ふる玉
+				;正解は右がふる玉、左がしず玉、額があら玉
+				IF RESULT == 9
+					CALL MESSAGE_WINDOW_D, "", "＞玉を取り出して、像から離れた……"
+				ELSEIF LOCAL:1 == 2 && LOCAL:2 == 0 && LOCAL:3 == 1
+					ITEM:しず玉 = -1
+					ITEM:あら玉 = -1
+					ITEM:ふる玉 = -1
+					CALL MESSAGE_WINDOW_D, "", "＞仮面に嵌められた玉が激しく輝く！/＞仮面は砕け散り、像の素顔が露わになった！"
+					CALL MESSAGE_WINDOW_D, "", "＞……どこからか物凄い咆哮が聞こえてきた/＞強大な悪魔が目を覚ましたようだ……"
+					CALLF STRFLAG_D("セト封印解除", 1)
+				ELSE
+					CALLF STRFLAG_D("封印解除失敗", 1)
+					CALL MESSAGE_WINDOW_D, "", "＞玄室に竜巻が起こった！"
+					CALL SHOW_FORCEMOVE, "DD", "D"
+				ENDIF
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞精悍な面構えをした像が立っている‥…"
+		ENDIF
+	CASE 3601
+		CALL MESSAGE_WINDOW_D, "", "＞壁に文字が刻まれている…/＞『新月ののち　扉は開かれん』"
+	CASE 3800
+		CALL MESSAGE_WINDOW_D, "", "＞小さなオニが入った瓶が落ちている/＞手にとって見ますか？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "子鬼", "僕はルース/一緒に連れていってヨ/きっと役に立つから…"
+			CALL MESSAGE_WINDOW_D, "", "＞ルースの小瓶を手に入れた"
+			ITEM:ルースの小瓶 = 1
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+		ENDIF
+	;ホーリーの壷
+	CASE 3900
+		CALL MESSAGE_WINDOW_D, "", "＞古びたつぼがある/＞中を覗いてみると　底の方で何かが青白く光っている…/＞手を伸ばしてみますか？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "", @"＞手応えは何もない/＞光っている何かを手にすることはできないようだ/＞%CALLNAME:MASTER%はその場を後にした…"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%はその場を後にした…"
+		ENDIF
+ENDSELECT
+;	IF ダンジョンフラグ:5:10 == 0 && FLAG:現M == 0
+;		CUSTOMDRAWLINE =
+;		PRINTW 巨大な外観の異様とは裏腹に、狭い廊下が続く。
+;		PRINTW そのアンバランスな光景に違和感を感じながらも
+;		PRINTW ひとまずは階段まで辿り着いた。
+;		PRINTL 
+;		PRINTW すると目の前に突然、あの初老の紳士が現れた。
+;		PRINTW 紳士は静かに話し始めた…。
+;		PRINTL 
+;		PRINTW 「…かつて、人の身でありながら、人ならざる頭脳を持った人間の男がいました。
+;		PRINTW そして、その人間をどうしようもなく愛してしまった人間の女がいました。
+;		PRINTW 彼らは幾多の戦いと輪廻の旅を経て、ついに禁断の地へと足を踏み入れました。
+;		PRINTL 
+;		PRINTW …それは大魔宮。人と悪魔の魂を、遥かな高みへと誘う修練の地です。
+;		PRINTL 
+;		PRINTW …なぜ私がそんなことを知っているか？
+;		PRINTW そんなことはどうでもいいでしょう。
+;		PRINTW 重要なのは…そう…あなたにもこの塔が見えるようになってしまったということ…。
+;		PRINTW …そう怖い顔をしなさんな。
+;		PRINTW 前も言ったでしょう？私はあなたのファンなのです。
+;		PRINTW より強く、より美しく、より凶暴に輝くあなたが視たいのですよ…」
+;		PRINTL 
+;		PRINTW …瞬きの間に、紳士は消え去っていた…。
+;		PRINTW 先を急ごう…。
+;		ダンジョンフラグ:5:10 = 1
+;		DA:(FLAG:現X):(FLAG:現Y) = 1
+;
+;	ELSEIF ダンジョンフラグ:5:11 == 0 && FLAG:現M == 7 && FLAG:現X == 14 && FLAG:現Y == 2
+;		CUSTOMDRAWLINE =
+;		PRINTW 天をも貫くかのような高さの、この塔の中にあっても、その光景は異様であった。
+;		PRINTL 
+;		PRINTW 部屋の中央に鎮座してるそれは…
+;		PRINTW 悪魔だった。悪魔の男。
+;		PRINTW 悪魔に対して言うのは変な話だが、歳は若そうに見える。
+;		PRINTL 
+;		PRINTW 燃えるような赤い髪に宝石のような緑色の肌…
+;		PRINTW 青地の絹でこしらえた服装に身を包み、自身の背丈をも越す
+;		PRINTW 巨大な槍を携え、今にも戦闘態勢を取れそうな気勢だ。
+;		PRINTL 
+;		PRINTW だが…それはかなわない。
+;		PRINTL 
+;		PRINTW まったく動く気配がないのだ。
+;		PRINTL 
+;		PRINTW 生きていた頃の面影をそのまま残しているのに、まったく微動だにしない！
+;		PRINTW まるで時間を止められているかのように…。
+;		PRINTL 
+;		PRINTFORMW 気味の悪い物を見た面持ちになった%CALLNAME:MASTER%達は
+;		PRINTW その悪魔の前から離れようとしたが…
+;		PRINTW 突然、その悪魔の瞳が妖しく輝いたかのように見えた後…
+;		PRINTFORMW %CALLNAME:MASTER%の身体に不思議と力が湧き上がった！
+;		PRINTL 
+;		PRINTFORMW %CALLNAME:MASTER%の全能力が上昇した！
+;			BASE:MASTER:力 += 1
+;			BASE:MASTER:知恵 += 1
+;			BASE:MASTER:魔力 += 1
+;			BASE:MASTER:耐力 += 1
+;			BASE:MASTER:速さ += 1
+;			BASE:MASTER:運 += 1
+;		PRINTL 
+;		PRINTFORMW それと同時に、言いようのない悪寒に%CALLNAME:MASTER%は取り付かれた。
+;		PRINTL 
+;		PRINTW 何か取り返しの付かないことをしてしまったのかもしれない…。
+;		PRINTW …先を急ごう…。
+;		ダンジョンフラグ:5:11 = 1
+;		DA:(FLAG:現X):(FLAG:現Y) = 1
+
+;	ELSEIF ダンジョンフラグ:5:12 == 0 && FLAG:現M == 7 && FLAG:現X == 9 && FLAG:現Y == 11
+;
+;	ENDIF
+;=======
+;宝箱
+;=======
+@TREASURE_5
+#LOCALSIZE 3
+#LOCALSSIZE 3
+LOCAL:2 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+;個数,-1のとき、魔貨・0の時、\となる
+LOCAL = 1
+;IDは現M*100＋X個目の宝箱の法則でふられている
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;------------------------------
+	;ダイダロスの塔
+	;------------------------------
+	;500魔貨
+	CASE 0
+		LOCALS = 魔貨
+		LOCAL = 500
+	CASE 100
+		LOCALS = Life stone
+		LOCAL = 2
+	CASE 101
+		LOCALS = Bead
+	CASE 200
+		LOCALS = NapalmBomb
+		LOCAL = 3
+	CASE 201
+		LOCALS = 観音神符
+		LOCAL = 2
+	CASE 300
+		LOCALS = 魔貨
+		LOCAL = 100
+	CASE 400
+		LOCALS = MAG
+		LOCAL = 5000
+	CASE 401
+		LOCALS = スキルカード【衝撃の壁】
+	CASE 500
+		LOCALS = 魔貨
+		LOCAL = 50
+	CASE 700
+		LOCALS = MAG
+		LOCAL = 12000
+	CASE 701
+		LOCALS = スキルカード【Berserk】
+	CASE 702
+		LOCALS = 魔貨
+		LOCAL = 42
+	CASE 703
+		LOCALS = YamataNoDrink
+	CASE 704
+		LOCALS = PhysicalMirror
+	CASE 705
+		LOCALS = StIncense
+	CASE 706
+		LOCALS = StIncense
+	CASE 707
+		LOCALS = スキルカード【マハ・ジオンガ】
+	CASE 708
+		LOCALS = スキルカード【ジオンガ】
+	CASE 709
+		LOCALS = 魔貨
+		LOCAL = 1500
+	;------------------------------
+	;ヴァルハラの回廊
+	;------------------------------
+	CASE 900
+		LOCALS = スキルカード【絶対零度】
+	CASE 901
+		LOCALS = スキルカード【マハ・ブフダイン】
+	CASE 902
+		LOCALS = 魔貨
+		LOCAL = 2000
+	CASE 903
+		LOCALS = ￥
+		LOCAL = 100000
+	CASE 904
+		LOCALS = MAG
+		LOCAL = 50000
+	CASE 905
+		LOCALS = MaIncense
+	CASE 906
+		LOCALS = StIncense
+	CASE 907
+		LOCALS = Bead
+		LOCAL = 3
+	CASE 908
+		LOCALS = Life stone
+		LOCAL = 3
+	CASE 909
+		LOCALS = 罠
+		LOCALS:1 = POISON
+		LOCAL = 30
+		LOCALS:2 = 神経
+	CASE 910
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 30
+	CASE 1000
+		LOCALS = RevivalBead
+	CASE 1001
+		LOCALS = 罠
+		LOCALS:1 = ＨＰ
+		LOCAL = 30
+	CASE 1002
+		LOCALS = Life stone
+		LOCAL = 3
+	CASE 1003
+		LOCALS = 罠
+		LOCALS:1 = POISON
+		LOCAL = 30
+		LOCALS:2 = 神経
+	CASE 1004
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 30
+	CASE 1005
+		LOCALS = SacredWater
+		LOCAL = 2
+	;------------------------------
+	;天空の街ビエン
+	;------------------------------
+	CASE 1200
+		LOCALS = Life stone
+		LOCAL = 3
+	CASE 1300
+		LOCALS = 魔貨
+		LOCAL = 720
+	CASE 1301
+		LOCALS = Perseus' Sword
+	CASE 1400
+		LOCALS = Dis-Stone
+		LOCAL = 3
+	CASE 1401
+		LOCALS = 魔貨
+		LOCAL = 372
+	CASE 1402
+		LOCALS = 罠
+		LOCALS:1 = ＨＰ
+		LOCAL = 25
+	CASE 1403
+		LOCALS = 罠
+		LOCALS:1 = STONE
+		LOCAL = 30
+		LOCALS:2 = 呪殺
+	CASE 1404
+		LOCALS = ＭＡＧ
+		LOCAL = 10000
+	CASE 1405
+		LOCALS = Hermes Sandals
+	CASE 1406
+		LOCALS = スキルカード【ペトラディ】
+	CASE 1407
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 20
+	CASE 1408
+		LOCALS = 魔貨
+		LOCAL = 2772
+	CASE 1409
+		LOCALS = MaIncense
+	CASE 1410
+		LOCALS = TetrajaStone
+		LOCAL = 3
+	CASE 1411
+		LOCALS = BeadChain
+		LOCAL = 3
+	CASE 1412
+		LOCALS = スキルカード【ペトラアイ】
+	CASE 1413
+		LOCALS = スキルカード【アムリタ】
+	CASE 1500
+		LOCALS = Evil-warding Helm
+	CASE 1501
+		LOCALS = Life stone
+		LOCAL = 3
+	CASE 1600
+		LOCALS = TetrajaStone
+	;------------------------------
+	;マズルカの回廊
+	;------------------------------
+	CASE 1900
+		LOCALS = 魔貨
+		LOCAL = 360
+	CASE 2100
+		LOCALS = TetrajaStone
+	CASE 2300
+		LOCALS = 明王神符
+		LOCAL = 2
+	CASE 2500
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 20
+	CASE 2501
+		LOCALS = Life stone
+		LOCAL = 3
+	CASE 2502
+		LOCALS = MagicalMirror
+		LOCAL = 1
+	CASE 2600
+		LOCALS = LuIncense
+	CASE 2601
+		LOCALS = スキルカード【グラダイン】
+	CASE 2602
+		LOCALS = Bead
+		LOCAL = 3
+	CASE 2900
+		LOCALS = YamataNoDrink
+		LOCAL = 2
+	CASE 3000
+		LOCALS = 魔貨
+		LOCAL = 5700
+	CASE 3001
+		LOCALS = MaIncense
+		LOCAL = 1
+	CASE 3002
+		LOCALS = スキルカード【煌天の会心】
+	CASE 3003
+		LOCALS = スキルカード【静天の会心】
+	CASE 3004
+		LOCALS = ChakraPot
+	;------------------------------
+	;炎の腐海
+	;------------------------------
+	CASE 3200
+		LOCALS = Bead
+	CASE 3201
+		LOCALS = MAG
+		LOCAL = 98000
+	CASE 3300
+		LOCALS = MagicalMirror
+	CASE 3400
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 20
+	CASE 3500
+		LOCALS = SolvingOrb
+	CASE 3700
+		LOCALS = 火炎の勾玉
+	CASE 3701
+		LOCALS = 罠
+		LOCALS:1 = ＭＰ
+		LOCAL = 20
+	CASE 3800
+		LOCALS = 烈火の勾玉
+	CASE 3900
+		LOCALS = 魔貨
+		LOCAL = 2200
+ENDSELECT
+IF LOCALS == "￥"
+	CALL GET_TREASURE_MONEY, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "魔貨"
+	CALL GET_TREASURE_MONEY, 1, LOCAL, FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "MAG" || LOCALS == "ＭＡＧ"
+	CALL GET_TREASURE_MAG, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "罠"
+	;LOCALS:1 種類 LOCAL ダメージ量or確率 LOCALS:2 相性
+	CALL GET_TREASURE_TRAP, LOCALS:1, LOCAL, GET_TYPE_NUM(LOCALS:2), FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSE
+	IF GETNUM(ITEM, LOCALS) == -1
+		PRINTL ＞アイテム名の指定が間違ってます
+		PRINTW ＞アイテムの取得処理を中断します
+	ELSE
+		CALL GET_TREASURE, GETNUM(ITEM, LOCALS), LOCAL , FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+	ENDIF
+ENDIF
+;=======
+;メッセンジャー(8)
+;ARGは進入時の時に真
+;IDは50未満が部屋の中、50以上外
+;ARGがの場合RETURNして打ち切る
+;=======
+@TILE_MARK_COMMON_5_8, ARG, ARG:1, ARG:2
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@MESSAGE_5, ARG
+#LOCALSIZE 10
+;移動時でイベントタイルである場合、表示更新する
+SIF DA:(FLAG:現X):(FLAG:現Y) > 10 && ARG
+	CALL SHOW_PICTURE, "D"
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0
+		IF STRFLAG_D("ミノタウロス撃破", 0)
+			IF FLAG:直哉ルート
+				CALL MESSAGE_WINDOW_D, "長老", "ミノタウロスを倒しましたか…/やはりあなた様は…"
+				CALL MESSAGE_WINDOW_D, "長老", "これであなた様はこのダイダロスの塔の支配者となりました/ミノタウロスもあなたに従うことでしょう/彼の魔王と同郷の地で生まれし、半身半獣の悪魔と/魔王の力を持つ悪魔を邪教の館で合体させるとよいでしょう"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "長老", "あのミノタウロスを倒すとは…/あなたは本当に人間なのですか…？"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "長老", "かつて、神々と悪魔の戦いがありました/悪魔達は敗れ、地に落とされましたが/その時、神から奪ったものをこの大魔宮に隠しているとか…"
+			IF FLAG:直哉ルート
+				CALL MESSAGE_WINDOW_D, "長老", "大魔宮の支配者ルシファー様は再び、/神々に決戦を挑もうとしています"
+				CALL MESSAGE_WINDOW_D, "長老", "そのために、神々から奪った力を継承できる者を待っているとか/あなた様は人間ですが、/もしやルシファー様が待たれているかたなのでは？"
+			ENDIF
+		ENDIF
+	CASE 1
+		CALL MESSAGE_WINDOW_D, "魔界人", "魔宮の中にはあなたの仲魔になる悪魔もたくさんいるでしょうね/はなしてみたら？"
+	CASE 2
+		CALL MESSAGE_WINDOW_D, "魔界人", "ここはミコンの街/ダイタロス塔の８階です"
+	CASE 3
+		CALL MESSAGE_WINDOW_D, "魔界人", "魔宮を進むには、力が必要だぜ！"
+	CASE 4
+		CALL MESSAGE_WINDOW_D, "", "邪教の館は利用してる？/魔宮の奥まで行くのなら強い悪魔を作ってから/行ったほうがいいわよ！"
+	CASE 100
+		CALL MESSAGE_WINDOW_D, "魔界人", "この魔宮は６つのエリアに分かれているわ/そして、１つ１つのエリアを１人ずつの魔王が支配しているわ/その最高の支配者がルシファー"
+		CALL MESSAGE_WINDOW_D, "魔界人", "ただし魔王同士、仲が良いというわけではないし/あのルシファーの地位だって/狙っている者がいるくらいよ/悪魔の世界も複雑よねぇ"
+	CASE 200
+		CALL MESSAGE_WINDOW_D, "魔界人", "悪魔は財宝を好みます/それは大魔宮の魔王も同じで、/みなそれぞれ、財宝を貯めこんでいます"
+	CASE 300
+		CALL MESSAGE_WINDOW_D, "魔界人", "このダイダロスの塔を支配するのはミノタウロスです/ミノタウロスは半身半獣の魔王で、魔力こそ高くはないものの、/その腕力から繰り出される攻撃は恐ろしい破壊力を秘めています"
+	CASE 400
+		CALL MESSAGE_WINDOW_D, "魔界人", "最近、人間界で悪魔召喚とかいうのが流行ってるせいで/この魔宮も、結構現世との境があやふやになってるんだ/おかげで、現世との壁が薄いところがあちこちにあるから/そういうところを見つければ、結構自由に現世と行き来できるんだ"
+	CASE 500
+		CALL MESSAGE_WINDOW_D, "魔界人", "ミノタウロスは本当は、/アステリオスという名前らしい/なんでも、その名はRaikouを意味しているとか"
+	CASE 501
+		CALL MESSAGE_WINDOW_D, "魔界人", "えん？/なにそれ？/ここじゃ、お金っていったら魔貨だよ"
+	CASE 600
+		CALL MESSAGE_WINDOW_D, "魔界人", "この間、南の方にネコマタがうろちょろしていたよ/いたずら好きな奴だから、/荷物を盗まれないように気をつけな"
+	CASE 601
+		CALL MESSAGE_WINDOW_D, "魔界人", "ビエンの街？/昔は美しい街だったと聞きますわ"
+	CASE 700
+		SIF ARG
+			RETURN 0
+		CALL MESSAGE_WINDOW_D, "魔界人", "むかし、ヘビが好物だっていう変な生物がいて/そいつだけはメデューサに恐れられていたらしい/その名前が「タバサ」だ"
+	CASE 701
+		CALL MESSAGE_WINDOW_D, "魔界人", "【タバサの像】無しで、メデューサの戦いに挑んでも/石にされるのがオチだろう"
+	CASE 702
+		PRINTL :
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ビエンの街に乗れば、/一気に大魔宮の奥までいけるでしょう/しかし、奥には強敵が潜んでいるはずですので気をつけてください"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "ビエンが動けば、大魔宮の様々なところにいけるのですが…"
+		ENDIF
+	CASE 703
+		SIF ARG
+			RETURN 0
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ビエンの街が動き出したんだってね"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "この先にあるのは　天空の街ビエン/名前の通り、空を飛んで移動出来たそうだ/でも今は…"
+		ENDIF
+	CASE 704
+		SIF ARG
+			RETURN 0
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "あんた、メデューサを倒したんだってね"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "あの街はもう飛べないのよ/だってメデューサに街ごと石にされたんだもの"
+		ENDIF
+	CASE 705
+		SIF ARG
+			RETURN 0
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "メデューサが倒されて、/街が復活したんですってね/せっかくだし、遊びに行ってみようかしら？"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "天空の街の住人たちはメデューサの支配を嫌がって/【タバサの像】をみんなで隠したの/壊されてしまわないためにね/でもそのせいで住民たちは…"
+		ENDIF
+	CASE 900
+		CALL MESSAGE_WINDOW_D, "魔界人", "ジュエリーショップの新作【アレスの首飾り】ってご存知？/デザインは素敵なんだけど、ちょっと重すぎて肩がこるのよね"
+	CASE 901
+		CALL MESSAGE_WINDOW_D, "魔界人", "地下牢に入れられたらおしまいだよ/逃げようったって、あの鎖、/よっぽどの力がなきゃ　外せないんだ"
+	CASE 902
+		CALL MESSAGE_WINDOW_D, "魔界人", "Heroペルセウスがメデューサを倒すのに使った３つの装備が/ビエンの街のどこかにあるらしい/全て揃えれば、メデューサの魔力にも対抗できるに違いない"
+	CASE 903
+		CALL MESSAGE_WINDOW_D, "魔界人", "メデューサはミノタウロスに/牡牛をかたどったカギを作ってもらったんだって/天空の街を封鎖しちゃうためにね"
+	CASE 904
+		CALL MESSAGE_WINDOW_D, "魔界人", "ロキは氷結の秘儀を持っているとか…/倒すのなら氷結対策は必須でしょう"
+	CASE 905
+		CALL MESSAGE_WINDOW_D, "魔界人", "【アレスの首飾り】って、シード牙３つ分と同じ重さなのよね"
+	CASE 906
+		IF !ITEM:ロルの魔除け
+			CALL MESSAGE_WINDOW_D, "魔界人", "今、考え事をしているんだ　話しがあるなら後にしてくれ"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "その魔除け、ただの飾りじゃなさそうだな/物知りの催眠術のじいさんにでも/話しを聞いてみな！"
+			CALLF STRFLAG_D("魔除け情報", 1)
+		ENDIF
+	CASE 907
+		CALL MESSAGE_WINDOW_D, "魔界人", "ロキの魔法は強力だそうです/魔法に対抗できるものでもなければ、/倒すことは不可能でしょう"
+	CASE 908
+		CALL MESSAGE_WINDOW_D, "魔界人", "得意な攻撃が効かない相手が出てきた事を考えると/万能相性の攻撃手段を用意しておくのはとても有効です/魔王 ロキもそんなふうに考えているとか…"
+	CASE 1000
+		;一般アイテムでアメジストがでるかもしれないのでとりあえず
+		IF ITEM:紫水晶 == 1
+			CALL MESSAGE_WINDOW_D, "魔界人", "それは【紫水晶】……ううむ、すごいなあんた"
+		ELSEIF STRFLAG_D("宝石店初回")
+			CALL MESSAGE_WINDOW_D, "魔界人", "おや、【紫水晶】をお探しかね？/ならもっと南を探すんだな/まぁ、あんたにゃ無理だろうが"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "【紫水晶】は美しいだけでなく、不思議な魔力をもっている/もし、手に入れたら大切にするといい/まぁ、あんたにゃ無理だろうが"
+		ENDIF
+	CASE 1001
+		CALL MESSAGE_WINDOW_D, "魔界人", "この１階で妙な店をやってるやつがいるぜ"
+	CASE 1002
+		IF FINDCHARA_B([[キャラ:朱実]]) == 2
+			CALL MESSAGE_WINDOW_D, "ヨモツシコメ", "おお、あなたさまこそ、イザナギの転生体！/あなたの助けとなるようビエンの街に/ヒノカグヅチが召喚されております！"
+			CALL MESSAGE_WINDOW_D, "ヨモツシコメ", "最も高いところの床をよく調べれば、道がひらけますぞ！/では、ご武運をお祈りしております"
+			CALL MESSAGE_WINDOW_D, "", "＞ヨモツシコメはそれだけ朱実につげるとどこかへ行ってしまった"
+			DA:(FLAG:現X):(FLAG:現Y) = 1
+			CALLF STRFLAG_D("ヨモツシコメ会話", 1)
+		ELSE
+			CALL MESSAGE_WINDOW_D, "ヨモツシコメ", "イザナギの転生体を探しております/もし会うことがあったら、/ここに来るように言ってくだされ"
+		ENDIF
+	CASE 1300
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "メデューサが倒されたらしいぜ/え、あんたが？/へー、すごいな。俺には関係ないけど"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "東の方に変なじいさんがいんだよ/メデューサを倒すのかって聞かれたけど/オレには関係ないじゃん？"
+			CALL MESSAGE_WINDOW_D, "魔界人", "何？会いたいの？/２階からじゃないと行けない所だぜ"
+		ENDIF
+	CASE 1301
+		IF !STRFLAG_D("メデューサ撃破")
+			IF ITEM:小さな鍵
+				CALL MESSAGE_WINDOW_D, "老人", "ビエンの街はメデューサの弱点を持っていた/そして、それをやつに渡さなかったために滅ぼされたのだ…/頼む。やつを倒し、皆を解放してくれ"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "老人", "お主　メデューサを倒すつもりか？"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "老人", "やはりそうか/それではこれをお主に託そう/このカギさえあれば、メデューサを封じるものが手に入るのだ/頼んだぞ"
+					CALL MESSAGE_WINDOW_D, "", "＞小さな鍵を手に入れた"
+					ITEM:小さな鍵 = 1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "老人", "そうか、違ったか"
+				ENDIF
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "老人", "メデューサを倒したか！/よくやった！"
+			PRINTW 「」
+		ENDIF
+	CASE 1302
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "船長", "私は天空の街の船長です/私たちと私たちの街を救ってくれて/本当にありがとう"
+			LOCAL = STRFLAG_NUM_D("ビエン位置")
+			IF STRFLAG_D("マズルカ可能") || STRFLAG_D("アンフィニ可能")
+				LOCALS = 
+				CALL MESSAGE_WINDOW_D, "船長", "街を動かしますか？"
+				SIF LOCAL != 0
+					LOCALS += "[0] ヴァルハラの回廊へ/"
+				SIF STRFLAG_D("マズルカ可能") && LOCAL != 1
+					LOCALS += "[1] マズルカの回廊へ/"
+				SIF STRFLAG_D("アンフィニ可能") && LOCAL != 2
+					LOCALS += "[2] アンフィニ宮殿へ/"
+				LOCALS += "[9] 動かさない"
+				CALL INPUT_SELECT_D, LOCALS
+				IF RESULT == 9
+					CALL MESSAGE_WINDOW_D, "船長", "そうですか/では、ゆっくりしていってください"
+					PRINTL :
+					PRINTW 「」
+					RETURN 0
+				ELSEIF RESULT == 0
+					CALLF STRFLAG_NUM_D("ビエン位置", "=", , 0)
+				ELSEIF RESULT == 1
+					CALLF STRFLAG_NUM_D("ビエン位置", "=", , 1)
+				ELSEIF RESULT == 2
+					CALLF STRFLAG_NUM_D("ビエン位置", "=", , 2)
+				ENDIF
+				CALL MESSAGE_WINDOW_D, "船長", "では、動かしましょう"
+				CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+				CALL MESSAGE_WINDOW_D, "船長", "つきました/そこの門からでてみてください"
+			ELSEIF ITEM:周遊券
+				CALL MESSAGE_WINDOW_D, "船長", "お礼に街を動かし、あなたの手助けをしたいのですが…/申し訳ありません"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞石になった人がいる"
+		ENDIF
+	CASE 1400
+		PRINTL :
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "あの恐ろしいメデューサが倒されるとは…"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "メデューサは石化の邪眼を持っています/その視線で射ぬかれたものは石と化してしまいます/そして、普通の石化と違い、/防ぐこともできないのです"
+		ENDIF
+	CASE 1401
+		IF STRFLAG_D("メデューサ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ああ、こうして街の復活するところを見られるなんて！"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "その開かずの扉の先で/石化した同胞たちが眠っているのです…"
+		ENDIF
+	CASE 1402
+		IF !ITEM:周遊券
+			CALL MESSAGE_WINDOW_D, "長老", "ありがとう、若者よ！/私はビエンの街の長老だ"
+			CALL MESSAGE_WINDOW_D, "長老", "あなた方がメデューサを倒してくれたおかげで/この街も昔のように動き始めた！/お礼として、この街を自由に利用できる【周遊券】をあげよう"
+			CALL MESSAGE_WINDOW_D, "", "＞周遊券を手に入れた"
+			PRINTW 
+			ITEM:周遊券 = 1
+			CALL MESSAGE_WINDOW_D, "長老", "これで、大魔宮のどこにでもいくことができるぞ/と、いいたいのだが……/なにぶんまだ動き出したばかりで……/好きなところにいけるのには時間がかかりそうだ"
+			CALL MESSAGE_WINDOW_D, "長老", "魔貨があれば、機能の回復もはやまるんだが…/そういうわけで、その券を使うのは少し待っておくれ"
+		ELSE
+			IF !STRFLAG_D("マズルカ可能")
+				CALL MESSAGE_WINDOW_D, "長老", "3000魔貨ほどあれば、/マズルカの回廊までいけるようになるのだが…"
+				CALL INPUT_YN_D("払う", "払わない")
+				IF RESULT == 0
+					IF MONEY:1 < 3000
+						CALL MESSAGE_WINDOW_D, "", "＞しかし、魔貨が足りなかった"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "長老", "おお、よろしいのですか？/これで、この街も助かります！"
+						CALLF STRFLAG_D("マズルカ可能",1)
+						MONEY:1 -= 3000
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "長老", "まぁ、しばらくお待ちください/そのうち復旧するでしょうから"
+				ENDIF
+			ELSEIF !STRFLAG_D("アンフィニ可能")
+				CALL MESSAGE_WINDOW_D, "長老", "10000魔貨ほどあれば、/アンフィニ回廊までいけるようになるのだが…"
+				CALL INPUT_YN_D("払う", "払わない")
+				IF RESULT == 0
+					IF MONEY:1 < 10000
+						CALL MESSAGE_WINDOW_D, "", "＞しかし、魔貨が足りなかった"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "長老", "おお、よろしいのですか？/これで、この街も助かります！"
+						CALLF STRFLAG_D("アンフィニ可能",1)
+						MONEY:1 -= 10000
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "長老", "まぁ、しばらくお待ちください/そのうち復旧するでしょうから"
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "魔界人", "天空の街ビエン、存分にお使いください"
+			ENDIF
+		ENDIF
+	CASE 1403
+		CALL MESSAGE_WINDOW_D, "催眠術師", "おや、お若いの。わしの力が必要なのかい？"
+		CALL INPUT_SELECT_D, @"[0] はい/[1] いいえ/%\@ STRFLAG_D("魔除け情報") && !STRFLAG_D("魔除け完成") ? [2] 魔除けについて尋ねる#\@%"
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "催眠術師", "あなたは　だんだん　眠くなる～/眠　く　な　～　る/眠　～　く　な　～　る"
+			CALL MESSAGE_WINDOW_D, "", "＞意識が遠のいていく……"
+			CALL SHOW_PICTURE, "EMPTY"
+			CALL DUNGEON_WORP_ID, 0, 999, 1
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "催眠術師", "そうか/わしはいつでもここにいる/力が必要ならばいつでも来るが良い"
+			PRINTW 「」
+		ELSEIF RESULT == 2
+			IF STRFLAG_D("催眠術師協力")
+				IF FINDCHARA_B([[キャラ:ヘル]]) > 0 || FINDCHARA_B([[キャラ:フェンリル]]) > 0
+					IF 陥落(RESULT:1)
+						IF NO:(RESULT:1) == [[キャラ:ヘル]]
+							CALL MESSAGE_WINDOW_D, "催眠術師", "ふむ、ヘルを連れてきたか/どうやら、ロキに倒すのに協力してくれるようじゃな？"
+							CALL MESSAGE_WINDOW_D, "ヘル", "まぁ…/あんな、親、ちょっとはひどい目にあったほうがいいのよ/あいつのせいで、私がどんなに苦労したことか…/ああ、本当に私って不幸…！"
+							CALL MESSAGE_WINDOW_D, "催眠術師", "ふむ、異存もないようじゃし、始めるぞ"
+							CALL MESSAGE_WINDOW_D, "催眠術師", "あなたは　だんだん　眠くなる～/眠　く　な　～　る/眠　～　く　な　～　る"
+							CALL MESSAGE_WINDOW_D, "", "＞ヘルが眠りにつくと同時に/＞ヘルからなにやら黒い靄がでてきた/＞靄は魔除けにすいてこまれていく…"
+							CALL MESSAGE_WINDOW_D, "催眠術師", "よし、できたぞい"
+							CALL MESSAGE_WINDOW_D, "ヘル", "ん、ふぁぁ。え、もう終わり？/なんだ…大変なことかと思ってたのに…/これじゃおねだりもできないじゃない"
+
+						ELSE
+							CALL MESSAGE_WINDOW_D, "催眠術師", "ふむ、フェンリルを連れてきたか/どうやら、ロキに倒すのに協力してくれるようじゃな？"
+							CALL MESSAGE_WINDOW_D, "フェンリル", "アオーン、アイツ、チチオヤダケドアイツヒドイヤツ/ゴシュジンサマガ オシオキ シテクレルナラチョウドイイ！"
+							CALL MESSAGE_WINDOW_D, "催眠術師", "ふむ、異存もないようじゃし、始めるぞ"
+							CALL MESSAGE_WINDOW_D, "催眠術師", "あなたは　だんだん　眠くなる～/眠　く　な　～　る/眠　～　く　な　～　る"
+							CALL MESSAGE_WINDOW_D, "", "＞フェンリルが眠りにつく…/＞そしてフェンリルからなにやら黒い靄がでてきた/＞靄は魔除けにすいてこまれていく…"
+							CALL MESSAGE_WINDOW_D, "催眠術師", "よし、できたぞい"
+							CALL MESSAGE_WINDOW_D, "フェンリル", "ナンダ。モウオワリカ/コノクライ オヤスイゴヨウ！/コンナコトデ ゴシュジンサマノ/オヤクニタテテ オレサマダイマンゾク"
+						ENDIF
+						CALL MESSAGE_WINDOW_D, "催眠術師", "まぁ、とにかくこれでロキの魔力を封じることができる/とはいっても、さすがに完全ではないが/かなり弱めることはできるじゃろうよ"
+						CALL MESSAGE_WINDOW_D, "", "＞完成した【ロルの魔除け】を手に入れた！"
+						CALLF STRFLAG_D("魔除け完成", 1)
+					ELSE
+						CALL MESSAGE_WINDOW_D, "催眠術師", @"ふむ…%\@NO:(RESULT:1) == [[キャラ:ヘル]]?ヘル#フェンリル\@%はいるようじゃが…/お主に心服しきってないようじゃな/これでは魔除けはつくれんぞ"
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "催眠術師", "よいか/ヘルかフェンリルじゃ/どちらかがいなければ、魔除けは完成せぬぞ"
+				ENDIF
+			ELSEIF !STRFLAG_D("催眠術師注文", 1)
+				CALL MESSAGE_WINDOW_D, "催眠術師", "ほう、【ロルの魔除け】を持っとるな！/それは、かつての大魔道師ロルが作ったモノ/ロキの魔法を封じるんじゃ"
+				CALL MESSAGE_WINDOW_D, "催眠術師", "しかし、見たところ…未完成のようじゃな/完成させる方法はわかるが……ふむ……/そうじゃな。お主は奴隷商人でもあるという話じゃし/奴隷と引換えに、魔除けの完成法を教えるとしよう"
+				LOCAL:2 = RAND:5 + 109
+				CALLF STRFLAG_NUM_D("催眠術師(胸)", "=", , LOCAL:2)
+				WHILE 1
+					LOCAL:3 = 10 + RAND:27
+					SIF LOCAL:3 == 18
+						CONTINUE
+					SIF LOCAL:3 == 19
+						CONTINUE
+					SIF LOCAL:3 == 29
+						CONTINUE
+					SIF LOCAL:3 == 32
+						CONTINUE
+					SIF LOCAL:3 == 34
+						CONTINUE
+					BREAK
+				WEND
+				CALLF STRFLAG_NUM_D("催眠術師(性格)", "=", , LOCAL:3)
+				LOCAL:4 = RAND:11 + 1
+				CALLF STRFLAG_NUM_D("催眠術師(種族)", "=", , LOCAL:4)
+				CALL MESSAGE_WINDOW_D, "催眠術師", @"わしは女の好みにはちとうるさいぞ/まず、胸は%\@LOCAL:2 == 113 ? ほどほど#%TALENTNAME:(LOCAL:2)%\@%で/%TALENTNAME:(LOCAL:3)%　って感じの娘で/種族は%STR:(LOCAL:4)%であることは絶対に譲れん"
+				CALL MESSAGE_WINDOW_D, "催眠術師", "よいな/奴隷を連れてきたら、魔除けの作り方を教えるぞ"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "催眠術師", @"さて、胸が%\@STRFLAG_NUM_D("催眠術師(胸)") == 113 ? ほどほど#%TALENTNAME:STRFLAG_NUM_D("催眠術師(胸)")%\@%で%TALENTNAME:STRFLAG_NUM_D("催眠術師(性格)")%で、%STR:STRFLAG_NUM_D("催眠術師(種族)")%じゃが…"
+				LOCALS = 
+				FOR LOCAL, 1, 7
+					LOCAL:LOCAL = 9
+					SIF POS(LOCAL) == -1
+						CONTINUE
+					SIF CFLAG:POS(LOCAL):売却可能 == 0
+						CONTINUE
+					SIF TALENT:POS(LOCAL):オトコ
+						CONTINUE
+					SIF POS(LOCAL) == MASTER
+						CONTINUE
+					SIF CFLAG:POS(LOCAL):売却不可フラグ
+						CONTINUE
+					IF STRFLAG_NUM_D("催眠術師(胸)") == 113
+						SIF TALENT:POS(LOCAL):絶壁 || TALENT:POS(LOCAL):巨乳 || TALENT:POS(LOCAL):爆乳
+							CONTINUE
+					ELSE
+						SIF TALENT:POS(LOCAL):STRFLAG_NUM_D("催眠術師(胸)") == 0
+							CONTINUE
+					ENDIF
+					SIF TALENT:POS(LOCAL):STRFLAG_NUM_D("催眠術師(性格)") == 0
+						CONTINUE
+					SIF ABL:POS(LOCAL):種族 != STRFLAG_NUM_D("催眠術師(種族)")
+						CONTINUE
+					LOCALS += @"[{LOCAL}] %CALLNAME:POS(LOCAL)%/"
+				NEXT
+				IF LOCALS != ""
+					$SAIMIN_CHOICE
+					CALL MESSAGE_WINDOW_D, "", "＞差し出す奴隷を選んでください"
+					LOCALS += "[9] やめる"
+					CALL INPUT_SELECT_D, LOCALS
+					IF RESULT == 9
+						CALL MESSAGE_WINDOW_D, "催眠術師", "なんじゃ/奴隷はくれんのか？/言っておくがわしは奴隷をくれるまで協力する気はないぞ"
+					ELSE
+						LOCAL = POS(RESULT)
+						CALL MESSAGE_WINDOW_D, "催眠術師", @"ふむ、%CALLNAME:LOCAL%でいいんじゃな？"
+						CALL INPUT_YN_D
+						SIF RESULT == 1
+							GOTO SAIMIN_CHOICE
+						CALL キャラ削除, LOCAL
+						CALL MESSAGE_WINDOW_D, "催眠術師", "それでは、確かに受け取ったぞ/では、協力しようかの/この魔除けにはずばり、ロキ本人の魔力が足りてないのじゃ/なので、ロキの力を借りられれば……"
+						CALL MESSAGE_WINDOW_D, "催眠術師", "おっと、そう怖い顔をするな/もちろん、ロキを倒すために、/ロキの力を借りられるわけがないからのぉ"
+						CALL MESSAGE_WINDOW_D, "催眠術師", "そこで、ロキの子供の力を借りるんじゃよ/お主に心服したヘルか、フェンリル、どちらかをここに連れてくるがよい/彼らが心からお主に協力する気になっていれば、護符を完成させてやろう"
+						CALLF STRFLAG_D("催眠術師協力", 1)
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "催眠術師", "いないようじゃな/これではお主の手伝いはしてやれんぞ"
+				ENDIF
+			ENDIF
+		ENDIF
+	;------------------------------
+	;マズルカの回廊
+	;------------------------------
+	CASE 1800
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "やや、あなたは新しいマズルカの回廊の支配者ですな"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "このマズルカの回廊を治めるのはヘカーテです/偉大なる魔術の使い手にして、月を司る悪魔です"
+		ENDIF
+	CASE 1801
+		CALL MESSAGE_WINDOW_D, "魔界人", "マズルカの回廊はヴァルハラの回廊と炎の腐海をつないでるんだ/ここは広く長いから、準備はしっかりとな！"
+	CASE 1900
+		CALL MESSAGE_WINDOW_D, "魔界人", @"世の中には月の満ち欠けにより、/威力や効果がかわる魔法や特技がある/そして、ヘカーテの秘儀は満月において、多大な威力を発揮する/ヘカーテと%\@STRFLAG_D("ヘカーテ撃破")?共に#\@%戦うなら、気をつけなよ"
+	CASE 2000
+		CALL MESSAGE_WINDOW_D, "魔界人", "【ラトスの像】はシード牙３つ分の重さがあるって聞いたけど"
+	CASE 2100
+		CALL MESSAGE_WINDOW_D, "魔界人", "このあいだ、妙な男を見かけたぞ/ヘカーテがどうこう言いながら/裸で走り回っておったわい"
+	CASE 2101
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "【銀のレリーフ】があれば、ヘカーテの部屋に自由にはいれるんだって！/え、いまさらだって？"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテの部屋にはヘカーテが許可しないとはいれないんだって/でも、噂によるとあるものがあれば、許可がなくても、いつでもはいれるとか"
+		ENDIF
+	CASE 2200
+		CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテは【ラトスの像】の前では姿をさらすそうな"
+	CASE 2300
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテの支配も終わった……/大切なレリーフを盗まれたのも/この前触れだったのかもしれないね"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "【銀のレリーフ】が盗まれたらしい/ヘカーテの大切なモノらしくて/そりゃあ、大怒りだそうだよ"
+		ENDIF
+	CASE 2400
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテが倒されて、レリーフを盗んだ馬鹿者は/今頃ほっとしてるんじゃないかねぇ"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "まさか、レリーフを盗んだのはガイアじゃないだろうね？/命は狙われるし、そんなもの買う奴はいないだろうし/いくらあいつでも、そんなバカな真似はしないかねぇ？"
+		ENDIF
+	CASE 2500
+		CALL MESSAGE_WINDOW_D, "魔界人", "ガイアって男は暗い所が好きだったわ"
+	CASE 2501
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ホーリーの壺とかいうのが、炎の中にあるとか聞いたぜ"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテは姿を隠すことができる/そして、姿が消えている限り/剣で傷つけられることはないらしい"
+		ENDIF
+	CASE 2600
+		CALL MESSAGE_WINDOW_D, "魔界人", "【ラトスの像】を台から取るとワナにかかってしまうそうな/どうやら像を載せてある台が、軽くなるとイカンらしい"
+	CASE 2700
+		CALL MESSAGE_WINDOW_D, "魔界人", "ジュエリーショップの捜し物はヴァルハラの回廊にあるらしいわよ"
+	CASE 2701
+		CALL MESSAGE_WINDOW_D, "魔界人", "炎の腐海でビンにいれられた、小さな鬼を見たぜ"
+	CASE 2702
+		CALL MESSAGE_WINDOW_D, "魔界人", "【ラトスの像】の重さ知ってる？"
+	CASE 2703
+		CALL MESSAGE_WINDOW_D, "魔界人", "なんと！若者よ　人間がここまで来れるとはのぉ/と思ったら、おぬしの後ろに　魔王の姿がみえるわい"
+	CASE 2704
+		CALL MESSAGE_WINDOW_D, "魔界人", "７階にいるおっさんが　ラトスの秘密を知ってるぜ"
+	CASE 2705
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテ、倒されちゃったみたいね/新しい支配者はどんな感じなのかなぁ"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "満月が近づくにつれて、ヘカーテはどんどん獰猛になるのよ/逆に新月が近づくと、どんどんおとなしくなっていくんだけど/新月がくると、ヘカーテは姿を隠しちゃうのよね"
+		ENDIF
+	CASE 2706
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテの力をものとはしないとは…/あなたのちからはいったいどこからやってくるのですか？"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテの魔力は満月の晩に最高潮に達します/満月の晩に戦うのだけは絶対に避けねばなりません"
+		ENDIF
+	CASE 2800
+		CALL MESSAGE_WINDOW_D, "魔界人", "炎の腐海って言葉通り、炎に包まれている所ですの/動くだけでも　体力を使ってしまいますのよ"
+	CASE 2900
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "無敵のヘカーテをやっつけるなんて、あなたはすごい無敵なのね！"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "ヘカーテは月からの光でパワーアップして無敵なのよ"
+		ENDIF
+	CASE 3000
+		IF STRFLAG_D("ヘカーテ撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "なんとヘカーテを倒すとは……/いつか、そうするものが訪れることを待ちつづけていたとはいえ……/まさか、本当に人間が……"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "ここがマズルカの回廊の終点/このさきにヘカーテがいる/ヘカーテを倒すことはできますまい/命が惜しければ引き返すことです"
+		ENDIF
+	;------------------------------
+	;炎の腐海
+	;------------------------------
+	CASE 3400
+		IF STRFLAG_D("セト撃破")
+			CALL MESSAGE_WINDOW_D, "魔界人", "まさかセトの封印を解いて倒してしまうなんて/信じられません……"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "この炎の腐海には支配者がいません/その代わりにセトが封印されているのです"
+		ENDIF
+	CASE 3600
+		IF STRFLAG_D("セト封印解除")
+			CALL MESSAGE_WINDOW_D, "魔界人", "封印を解いてしまうとは……/ううむ……お主こそこの大魔宮の真の支配者であると言えるのかもしれん……"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "魔界人", "東のはずれにセトの封印があるのじゃ…/とはいえ、この魔宮の支配者達が認めない限り封印はとけんがな…"
+		ENDIF
+	CASE 3700
+		IF !ARG
+			IF STRFLAG_D("セト撃破")
+				CALL MESSAGE_WINDOW_D, "悪魔", "……まさか、本当に人間が/アンフィニ宮殿にいくがいい/ルシファー様がお待ちだ"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "悪魔", "ルシファー様からの伝言だ/いいか？　よく聞けよ"
+				CALL MESSAGE_WINDOW_D, "悪魔", "「セトの封印を解くことを認める」/「もし、お前が自分の力を示すつもりがあるならセトを倒してみせよ」"
+				CALL MESSAGE_WINDOW_D, "悪魔", "確かに伝えたからな"
+			ENDIF
+		ENDIF
+	CASE 3701
+		CALL MESSAGE_WINDOW_D, "老人", "お主、何か大きなコトをしでかそうとしておるな/わしの古い知識が役に立つかもしれんぞ/何かの古文書の一節じゃ"
+		CALL MESSAGE_WINDOW_D, "老人", "「白き龍の魂、腐海の…」/ん？どこじゃったかな？/ほっほっほっ　やっぱり忘れてしまったわい"
+	CASE 3800
+		CALL MESSAGE_WINDOW_D, "魔界人", "セトは砂漠と異邦の神だ/しかし、それだけではない何かがあるらしい"
+	CASE 3900
+		CALL MESSAGE_WINDOW_D, "魔界人", "この地に封印されているセトも不完全な力しかもっていないらしい/なんでもセトが真の力を取り戻せば/ルシファー様にも匹敵するとか……"
+
+;４： 	プルシキを倒したならば　女神像の部屋に行くことだ
+;５： 	<プルシキ討伐後>
+;え！プルシキを倒しちゃったの？
+ENDSELECT
+;=======
+;罠
+;=======
+@TILE_MARK_COMMON_5_5, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	;落とし穴(P)
+	CASE 1
+		RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?　#□\@
+	CASEELSE
+		RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?罠#□\@
+ENDSELECT
+@TRAP_5
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;落とし穴
+	CASE 1
+		SELECTCASE FLAG:現M
+			CASE 13
+				CALL SHOW_FLOOR
+				TWAIT 1000, 1
+				CALL DUNGEON_WORP, FLAG:現M-1, FLAG:現X,  FLAG:現Y
+			CASE 14
+				CALL SHOW_FLOOR
+				TWAIT 1000, 1
+				CALL DUNGEON_WORP_ID, 13, 15, 0
+			CASE 15
+				CALL SHOW_FLOOR
+				TWAIT 1000, 1
+				CALL DUNGEON_WORP_ID, 14, 15, 0
+			CASEELSE
+				PRINTL ＞It's a pitfall!
+				TWAIT 1000, 1
+				CALL DUNGEON_WORP, FLAG:現M-1, FLAG:現X,  FLAG:現Y
+			ENDSELECT
+	;HPダメージ(H)
+	CASE 2
+		CALL DUNGEON_TRAP_HP, 10 + RAND:11
+	;MPダメージ(M)
+	CASE 3
+		CALL DUNGEON_TRAP_MP, 10 + RAND:11
+ENDSELECT
+RETURN 1
+@TILE_MARK_COMMON_5_6, ARG, ARG:1, ARG:2
+SELECTCASE ARG % 100
+	CASE 6
+		IF FLAG:現M == 25
+			RESULTS = 降
+		ELSE
+			RESULTS = 昇
+		ENDIF
+	CASE 16
+		RESULTS = →
+	CASE 26
+		RESULTS = ↓
+	CASE 96
+		RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?Ｗ#□\@
+ENDSELECT
+@TILE_MARK_COMMON_5_7, ARG, ARG:1, ARG:2
+SELECTCASE ARG % 100
+	CASE 7
+		RESULTS = 降
+	CASE 17
+		RESULTS = ←
+	CASE 27
+		RESULTS = ↑
+	CASE 97
+		RESULTS = □
+ENDSELECT
+;=======
+;ワープゾーン
+;=======
+@WORP_5
+#LOCALSIZE 1
+LOCAL = DA:(FLAG:現X):(FLAG:現Y)
+;w ワープゾーン
+IF LOCAL == 96
+	CALL MESSAGE_WINDOW_D, "", "＞ワープゾーンだ！"
+	CALL SHOW_PICTURE, "EMPTY"
+	;ビエン地下
+	IF FLAG:現M == 12
+		CALL DUNGEON_WORP_ID, 12, 12001, 1
+	;炎の腐海
+	ELSEIF FLAG:現M == 35
+		CALL DUNGEON_WORP_ID, 36, 96, 1
+	ELSEIF FLAG:現M == 36
+		CALL DUNGEON_WORP_ID, 35, 96, 1
+	ENDIF
+	RETURN 0
+ENDIF
+SELECTCASE LOCAL % 100
+	CASE 6
+		;ダイダロス &  ヴァルハラ & マズルカ腐海側 & 腐海マズルカ側
+		IF FLAG:現M < 11 || RANGE(FLAG:現M, 27, 35)
+			;マズルカ→腐海
+			IF FLAG:現M == 32
+				CALL DUNGEON_UPSTAIRS_ID, FLAG:現M - 2, LOCAL - 1999
+			ELSE
+				CALL DUNGEON_UPSTAIRS_ID, FLAG:現M - 1, LOCAL - 999
+			ENDIF
+		;マズルカ8F
+		ELSEIF FLAG:現M == 25
+			CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M + 1, LOCAL + 1000
+		;マズルカ7F
+		ELSEIF FLAG:現M == 26
+			CALL DUNGEON_UPSTAIRS_ID, FLAG:現M - 1, LOCAL - 1000
+		ELSE
+			CALL DUNGEON_UPSTAIRS_ID, FLAG:現M + 1, LOCAL + 1001
+		ENDIF
+	CASE 7
+		;ダイダロス & ヴァルハラ &マズルカ腐海側 & 腐海マズルカ側
+		IF FLAG:現M <11 || RANGE(FLAG:現M, 26, 35)
+			;腐海→マズルカ
+			IF FLAG:現M == 30
+				CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M + 2, LOCAL + 1999
+			ELSE
+				CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M + 1, LOCAL + 999
+			ENDIF
+		ELSE
+			CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M - 1, LOCAL - 1001
+		ENDIF
+	CASE 16
+		;ダイダロス→ヴァルハラ
+		IF FLAG:現M == 7
+			CALL DUNGEON_WORP_ID, FLAG:現M+2, LOCAL+2001, 1
+		;腐海→アンフィニ
+		ELSEIF FLAG:現M == 39
+			CALL DUNGEON_WORP_ID, FLAG:現M+3, LOCAL+3001, 1
+		;ヴァルハラ→マズルカ
+		ELSEIF FLAG:現M == 9
+			CALL DUNGEON_WORP_ID, 18, 18017, 1
+		ELSE
+			CALL DUNGEON_WORP_ID, FLAG:現M+1, LOCAL+1001, 1
+		ENDIF
+		FLAG:現X += 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現X += 1
+	CASE 17
+		;ヴァルハラ→ダイダロス　
+		IF FLAG:現M == 9
+			CALL DUNGEON_WORP_ID, FLAG:現M-2, LOCAL-2001, 1
+		;腐海→アンフィニ
+		ELSEIF FLAG:現M == 42
+			CALL DUNGEON_WORP_ID, FLAG:現M-3, LOCAL-3001, 1
+		;マズルカ→ヴァルハラ
+		ELSEIF FLAG:現M == 18
+			CALL DUNGEON_WORP_ID, 9, 9016, 1
+		ELSE
+			CALL DUNGEON_WORP_ID, FLAG:現M-1, LOCAL-1001, 1
+		ENDIF
+		FLAG:現X -= 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現X -= 1
+	CASE 26
+		CALL DUNGEON_WORP_ID, FLAG:現M+2, LOCAL+2001, 1
+		FLAG:現Y += 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現Y += 1
+	CASE 27
+		CALL DUNGEON_WORP_ID, FLAG:現M-2, LOCAL-2001, 1
+		FLAG:現Y -= 1
+		SIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 2
+			FLAG:現Y -= 1
+ENDSELECT
+CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+@GET_DUNGEON_LV_5
+RETURN 21, 19, 25, 30
+@TILE_MARK_COMMON_5_D, ARG, ARG:1, ARG:2
+IF FLAG:ライトマ || (EQUIP:MASTER:DarkScanner && NUM_SUMMONER())
+	SELECTCASE -ARG/10
+		CASE 700, 2501, 3800, 6000, 6001
+			RESULTS = ！
+		CASE 2500
+			RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?　#□\@
+		CASEELSE
+			RESULTS = □
+	ENDSELECT
+ELSE
+	SETCOLOR 0x202020
+	SELECTCASE -ARG/10
+		CASE 2500
+			RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?　#□\@
+		CASE 2501, 3800, 6000, 6001
+			RESULTS = ！
+		CASEELSE
+			RESULTS = □
+	ENDSELECT
+ENDIF
+@DARK_5, ARG
+#LOCALSIZE 2
+;冥界用ワープ
+IF FLAG:現M == 60
+	;処理を軽くするためにMAKE_FLOORを通さないようにして飛ばす
+	IF DA:(FLAG:現X):(FLAG:現Y) % 100 == -61
+		CALL MESSAGE_WINDOW_D, "", "＞ワープゾーンだ！"
+		CALL SHOW_PICTURE, "EMPTY"
+		LOCAL = ダンジョンフラグ:5:(99 + DA:(FLAG:現X):(FLAG:現Y) / 100)
+		FLAG:現X = LOCAL % 100
+		FLAG:現Y = LOCAL / 100
+		CALL AUTOMAP
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+	ENDIF
+ENDIF
+SELECTCASE -DA:(FLAG:現X):(FLAG:現Y)/10
+	CASE 700
+		SIF ARG || (!FLAG:ライトマ && (!EQUIP:MASTER:DarkScanner || !NUM_SUMMONER()))
+			RETURN 0
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞古びた武器や防具が転がっている"
+		IF STRFLAG_D("ガル依頼")
+			CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+			CALL MESSAGE_WINDOW_D, "", "＞ガルの盾を手に入れた！"
+			;CALLF STRFLAG_D("盾ゲット",1)
+			ITEM:ガルの盾 = 1
+			DA:(FLAG:現X):(FLAG:現Y) = -1
+		ENDIF
+		RETURN 1
+	;落とし穴
+	CASE 2500
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞It's a pitfall!", , "ボタンを利用する/NOWAIT"
+		TWAIT 1000, 1
+		CALL DUNGEON_WORP, FLAG:現M+1, 35, 26
+		RETURN 1
+	;ガイア
+	CASE 2501
+		CALL SHOW_PICTURE, "D"
+		IF !STRFLAG_D("ガイア初回", 1)
+			CALL MESSAGE_WINDOW_D, "声", "げ?!/ヘカー…テ、じゃ、ねえのか…/お、俺様はガイアだ！/お前は何者だ！？"
+			CALL INPUT_YN_D("名前を告げる", "黙って睨みつける")
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "ガイア", "そうか……お前が噂の……なるほど……/それなら、お前に買って欲しいもんがある"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "ガイア", "ひっ……/あ、ああそうか……/お前は最近騒がれてる人間だな/な、なら、ぜひとも買ってほしいもんがあってだな"
+			ENDIF
+			CALL MESSAGE_WINDOW_D, "ガイア", "お前はヘカーテを倒すつもりなんだろう？/それなら、きっとこの【銀のレリーフ】が役に立つはずだ/いや、これが目当てでここに来たんだろう！"
+			CALL MESSAGE_WINDOW_D, "ガイア", "これを手に入れるのには苦労したんだぜ/お前が俺にくれるものによっては譲らないこともないぜ？/ん？"
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "ガイア", "さぁ、なにをくれるんだ？"
+		LOCAL:1 = LINECOUNT
+		$GAIA
+		CLEARLINE LINECOUNT - LOCAL:1
+		CALL INPUT_SELECT_D("[0] ￥を払う/[1] 魔貨を払う/[2] 女を宛てがう/[3] 殺して奪う/[9] なにもやらない")
+		SELECTCASE RESULT
+			CASE 0
+				CALL MESSAGE_WINDOW_D, "ガイア", "￥？/なんだそりゃ？/……紙切れじゃねえか"
+				CALL MESSAGE_WINDOW_D, "ガイア", "そんなものもらっても仕方ない/別のものにしてくれ"
+				GOTO GAIA
+			CASE 1
+				CALL MESSAGE_WINDOW_D, "ガイア", "そうそう、やっぱ魔貨だよな…/なら、持ち金の半分を置いていきな"
+				CALL INPUT_YN_D
+				IF RESULT == 0
+					IF MONEY:1 < 10000
+						CALL MESSAGE_WINDOW_D, "ガイア", "……おっと、お前、その程度しか持ってないのか/それっぽっちじゃ、ゆずれねぇな！/もちっと魔貨稼いで出直しな！"
+					ELSE
+						CALL MESSAGE_WINDOW_D, "ガイア", "へえ、余裕だね/それならもうひと声！/持ち金全部でどうだい？"
+						CALL INPUT_YN_D
+						IF RESULT == 0
+							CALL MESSAGE_WINDOW_D, "ガイア", "それで売ってやらあ！/返品は受付ないからな"
+							CALL MESSAGE_WINDOW_D, "", "＞ガイアは【銀のレリーフ】を渡すと姿を消した/＞【銀のレリーフ】を手に入れた"
+							MONEY:1 = 0
+							ITEM:銀のレリーフ += 1
+							DA:(FLAG:現X):(FLAG:現Y) = 1
+						ELSE
+							CALL MESSAGE_WINDOW_D, "ガイア", "ま、まあ、しゃあねえな"
+						ENDIF
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア", "なんだと！/俺はこれを命懸けで手に入れたんだぜ！/もちっと魔貨稼いで出直しな！"
+				ENDIF
+			CASE 2
+				IF !STRFLAG_D("ガイア注文初回", 1)
+					CALL MESSAGE_WINDOW_D, "ガイア", "そうだな……/女でもいいが、誰でもってわけにはいかないぞ"
+					CALL MESSAGE_WINDOW_D, "ガイア", "【Quiet】【Docile】【Pain vulnerable】に、あとは【Devoted】もだな/もちろん、ちゃんと売り物になるように/仕込んどいてもらわないと困るが……/まぁ、これくらいで勘弁しといてやるよ"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア", "【Quiet】【Docile】【Pain vulnerable】【Devoted】の女だぞ/忘れちゃいないよな？"
+				ENDIF
+				VARSET A
+				FOR LOCAL, 0, CHARANUM
+					;主人はダメ
+					SIF LOCAL == MASTER
+						CONTINUE
+					SIF !CFLAG:LOCAL:PTフラグ
+						CONTINUE
+					SIF CFLAG:LOCAL:PTフラグ == 1 && ABL:LOCAL:種族 == 0
+						CONTINUE
+					SIF IS_MALE(LOCAL)
+						CONTINUE
+					SIF !CFLAG:LOCAL:売却可能
+						CONTINUE
+					SIF CFLAG:LOCAL:売却不可能
+						CONTINUE
+					SIF CFLAG:LOCAL:この場に居ないフラグ
+						CONTINUE
+					SIF !TALENT:LOCAL:大人しい
+						CONTINUE
+					SIF !TALENT:LOCAL:素直
+						CONTINUE
+					SIF !TALENT:LOCAL:献身的
+						CONTINUE
+					SIF !TALENT:LOCAL:痛みに弱い
+						CONTINUE
+					A:LOCAL = 1
+				NEXT
+				IF MATCH(A, 1)
+					CALL INPUT_CHARA_LIST("ガイアに譲る奴隷を選んでください", "DUNGEON5_GAIA")
+					IF RESULT == 1000
+						CALL MESSAGE_WINDOW_D, "ガイア", "なんだ。まだ、用意できてないのか？/無理なら無理で、金でもいいんだぜ？"
+					ELSE
+						LOCAL = RESULT
+						CALL MESSAGE_WINDOW_D, "ガイア", "ほほう…これは…なかなか、ぐふふ/よし、商談成立だ！/ほら、もってけよ！"
+						CALL MESSAGE_WINDOW_D, "ガイア", "＞【銀のレリーフ】を手に入れた"
+						CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:LOCAL%を失った"
+						CALL MESSAGE_WINDOW_D, "ガイア", "さて…それじゃあ、早速楽しませてもらうとするか/じゃあな！"
+						CALL MESSAGE_WINDOW_D, "", "＞そう言うと、ガイアは姿を消した…"
+						ITEM:銀のレリーフ += 1
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+						CALL キャラ削除(LOCAL)
+					ENDIF
+				ELSE
+					CALL MESSAGE_WINDOW_D, "ガイア", "ま、さすがに、すぐには用意できねーだろうけど/無理そうなら、魔貨でもいいんだが……、/一応楽しみにしておいてやるよ"
+				ENDIF
+			CASE 3
+				CALL MESSAGE_WINDOW_D, "ガイア", "な、なにをするつもりだ？/も、もしかして…やめろ/やめてくれ"
+				CALL MESSAGE_WINDOW_D, "", @"＞ガイアは%CALLNAME:MASTER%の意図に気づくと後ずさりした"
+				CALL MESSAGE_WINDOW_D, "ガイア", "わ、わかった。これがいるんだろ？/ほらっ！"
+				CALL MESSAGE_WINDOW_D, "", "＞ガイアは【銀のレリーフ】をあさっての方向にむかって投げた/＞%CALLNAME:MASTER%の【銀のレリーフ】に気をとられている隙に/ガイアは逃げていった……"
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は【銀のレリーフ】を手に入れた/＞が、しかし、【銀のレリーフ】はひしゃげ、歪んでしまっている…"
+				ITEM:銀のレリーフ += 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				CALLF STRFLAG_D("レリーフ破損", 1)
+			CASE 9
+				CALL MESSAGE_WINDOW_D, "ガイア", "なんだと……まぁいい/すぐにこれが必要だってわかるだろうさ/ま、急がないとほかのやつに売っちまうかもしれんがな"
+		ENDSELECT
+		RETURN 1
+	;セト
+	CASE 3800
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞玄室には巨大な黒い竜がいる……"
+		CALL MESSAGE_WINDOW_D, "死神 セト", "オ前ハ…/裁く者デハ…ナイナ…/ソノ真逆ヲ…歩ム者…/見過ゴセヌ…"
+		CALL MESSAGE_WINDOW_D, "", "＞死神 セトが一体出た！"
+		CALL SET_SET
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL BATTLE_START
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		DA:(FLAG:現X):(FLAG:現Y) = -1
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "死神 セト", "抗ウモノヨ…/何故茨ノ道ヲユク…"
+		CALL MESSAGE_WINDOW_D, "", "＞死神 セトは力尽きた"
+		CALLF STRFLAG_D("セト撃破", 1)
+		RETURN 1
+	CASE 6000
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞光が満ち溢れている…/＞ここから現世に戻れるようだ/＞戻りますか？"
+		CALL INPUT_YN_D
+		IF RESULT == 0
+			FLAG:脱出スキル禁止 = 0
+			FLAG:COMP使用不能 = 0
+			CALL DUNGEON_WORP_ID, 10, 10004, 1
+		ENDIF
+		RETURN 1
+	CASE 6001
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞少女が横たわっている……"
+		IF FINDCHARA_B([[キャラ:朱実]]) == 2
+			CALL MESSAGE_WINDOW_D, "朱実", "白鷺…！"
+			CALL MESSAGE_WINDOW_D, "", "＞朱実は少女に駆け寄り、抱き起こした……/＞朱実の目から涙がこぼれ、少女に振りかかる……/＞すると、少女はゆっくりと目をあけた……"
+			CALL MESSAGE_WINDOW_D, "少女", "中島くん…来てくれたのね…"
+			CALL MESSAGE_WINDOW_D, "", "＞朱実を見つめる少女の目にもみるみるうちに涙が溢れだす…/＞そして、二人は強く抱きしめあった…"
+			CALL MESSAGE_WINDOW_D, "", "＞白鷺 弓子を助けだした…"
+		ELSE
+			IF FINDCHARA_B([[キャラ:朱実]]) == 1
+				CALL MESSAGE_WINDOW_D, "", @"＞この少女が白鷺 弓子であるようだ/＞弓子は目を覚ます気配がない……/＞%CALLNAME:MASTER%はとりあえず、眠ったままの弓子を連れ、/＞探索を続けることにした…"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞少女から不思議な力を感じる/＞ただものではないではないようだが……"
+				CALL INPUT_YN_D("連れて帰る", "放っておく")
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "", "＞白鷺 弓子を手に入れた"
+					CALL ADD_NEW_COMPANION, [[キャラ:弓子]], 200, 1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞少女を放置し、先に進むことにした…"
+				ENDIF
+			ENDIF
+		ENDIF
+		CALLF STRFLAG_D("Y子", 1)
+		DA:(FLAG:現X):(FLAG:現Y) = -1
+		RETURN 1
+ENDSELECT
+;火炎床
+SIF RANGE(FLAG:現M, 32, 39)
+	CALL FIRE_TILE_5
+RETURN 0
+
+@EVENT_NEWMOON_DUNGEON5
+;新月時に封印解除失敗を解除
+CALLF STRFLAG_D("封印解除失敗", -1)
+
+;------------------
+;ガイアに譲る奴隷を選択
+;------------------
+@DUNGEON5_GAIA
+SIF A:COUNT
+	RETURN 1
+RETURN 0
+@TRAIN_DUNGEON_5
+BASE:ＨＰ = 1
+BASE:ＭＰ = 0
+CALL MESSAGE_WINDOW_D, "", @"＞ネコマタはぐったりしている/＞%CALLNAME:MASTER%は奴隷としてネコマタを持ち帰ることにした/＞魔獣 ネコマタを手に入れた"
+CFLAG:戦闘参加不可能 = 1
+@ONE_WAY(ARG, ARG:1, ARG:2, ARG:3, ARG:4, ARG:5, ARG:6, ARG:7)
+#LOCALSIZE 2
+FOR LOCAL:1, 0, FLAG:最大Y
+	FOR LOCAL, 0, FLAG:最大X
+		SELECTCASE DA:LOCAL:(LOCAL:1)
+			CASE 0
+				CONTINUE
+			CASE ARG, ARG:1
+				DA:LOCAL:(LOCAL:1) = FLAG:現Y > LOCAL:1 ? ARG # ARG:1
+			CASE ARG:2, ARG:3
+				DA:LOCAL:(LOCAL:1) = FLAG:現X < LOCAL ? ARG:2 # ARG:3
+			CASE ARG:4, ARG:5
+				DA:LOCAL:(LOCAL:1) = FLAG:現Y < LOCAL:1 ? ARG:4 # ARG:5
+			CASE ARG:6, ARG:7
+				DA:LOCAL:(LOCAL:1) = FLAG:現X > LOCAL ? ARG:6 # ARG:7
+		ENDSELECT
+	NEXT
+NEXT
+;炎の腐海の床ダメージ
+;仕様上、色変えでひっかかるので4歩の一回の頻度にしておく
+@FIRE_TILE_5
+#LOCALSIZE 2
+IF LOCAL:1 ++ == 3
+	CLEARLINE 1
+	SETBGCOLOR COLOR("red")
+	RESETBGCOLOR
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF GET_STATE(CFLAG:POS(LOCAL):ステート) == "DYING"
+			CONTINUE
+		BASE:POS(LOCAL):ＨＰ = MAX(BASE:POS(LOCAL):ＨＰ - RAND(1, 25), 1)
+	NEXT
+	LOCAL:1 = 0
+ENDIF
+

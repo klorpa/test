@@ -1,0 +1,298 @@
+;-------------------------------------------------
+;パンツ扱き
+;-------------------------------------------------
+@CHECK_COM_ABLE197
+#LOCALSSIZE 1
+;パンツ扱き実行判定
+;手が使えないとだめ
+SIF !USE_HAND(TARGET)
+	RETURN 0
+
+;調教者がペニス使えないとだめ
+SIF !USE_PENIS(PLAYER)
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+;お風呂場プレイ中はプレイマットが無いとダメ
+IF TEQUIP:31
+	SIF ITEM:20 == 0 && NOITEM == 0
+		RETURN 0
+ENDIF
+;三角木馬騎乗中はダメ
+SIF TEQUIP:41
+	RETURN 0
+	
+;パンツor下半身下着を設定していて、かつ脱いでる状態でないとダメ
+SIF !((CFLAG:下着（下）&& !TEQUIP:下着（下）) || (CFLAG:全身下着 && !TEQUIP:全身下着))
+	RETURN 0
+
+;一部の下着は不可
+LOCALS = \@ CFLAG:下着（下） ? 下着（下） # 全身下着 \@
+;下に感触が伝わるような柔らか素材じゃないとダメ
+TRYCCALLFORM CLOTHES_触覚_{CFLAG:LOCALS},0
+	SIF !(RESULT & 2)
+		RETURN 0
+CATCH
+	RETURN 0
+ENDCATCH
+ 
+SELECTCASE CFLAG:LOCALS
+	CASE [[衣装:荒縄]] , [[衣装:ラビアピアス]], [[衣装:尻尾プラグ]]
+		RETURN 0
+ENDSELECT
+RETURN 1
+
+@COMNAME197,ARG
+#LOCALSSIZE 1
+IF CFLAG:下着（下）
+	LOCALS = 下着（下）
+ELSEIF CFLAG:全身下着
+	LOCALS = 全身下着
+ELSE
+	RETURN 0
+ENDIF
+SELECTCASE CFLAG:LOCALS
+	CASE [[衣装:スクール水着]] , [[衣装:スクール水着（穴開き）]]
+		RESULTS = School Swimsuit Stroke
+	CASE [[衣装:Slingshot Bikini]], [[衣装:競泳水着]] , [[衣装:競泳水着（穴開き）]]
+		RESULTS = Swimsuit Stroking
+	CASE [[衣装:スパッツ]]
+		RESULTS = Pants Rubbing
+	CASEELSE
+		IF LOCALS == "全身下着"
+			RESULTS = Undiejob
+		ELSE
+			RESULTS = Pantyjob
+		ENDIF
+ENDSELECT
+
+@ACT_COM197
+#LOCALSSIZE 1
+CALL COMNAME197
+LOCALS = %RESULTS%
+PRINTFORML %LOCALS%
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+TSTR:0 = %LOCALS%
+;CALL KOJO_MESSAGE_COM
+
+;調教対象→調教者
+TFLAG:28 = 1
+
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 500
+
+;ABL:調教者の技巧をみる
+IF ABL:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:奉仕精神をみる
+IF ABL:7 == 0
+	TIMES B , 0.50
+ELSEIF ABL:7 == 1
+	TIMES B , 0.80
+ELSEIF ABL:7 == 2
+	TIMES B , 1.20
+ELSEIF ABL:7 == 3
+	TIMES B , 1.50
+ELSEIF ABL:7 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.40
+ENDIF
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:PLAYER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+IF CFLAG:下着（下）
+	LOCALS = 下着（下）
+ELSE
+	LOCALS = 全身下着
+ENDIF
+SELECTCASE CFLAG:LOCALS
+	;すく水、スパッツだと効果ＵＰ
+	CASE [[衣装:スクール水着]] , [[衣装:スクール水着（穴開き）]] , [[衣装:スパッツ]] , [[衣装:レオタード]] , [[衣装:レオタード（穴開き）]]
+		TIMES B , 1.20
+ENDSELECT
+
+;再装填処理中は射精ゲージは20分の1に
+SIF CFLAG:PLAYER:9 > 0
+	B /= 20
+
+
+SIF HAVE_PENIS(PLAYER)
+	BASE:PLAYER:2 += B
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 15
+DOWNBASE:TARGET:気力 += 150
+
+SOURCE:TARGET:情愛 = 80
+SOURCE:TARGET:性行動 = 225
+SOURCE:TARGET:達成 = 60
+SOURCE:TARGET:屈従 = 300
+SOURCE:TARGET:逸脱 = 150
+SOURCE:TARGET:反感 = 150
+
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*10 + 60
+
+;調教者にFEELＣ
+SOURCE:PLAYER:0 = 120
+SELECTCASE CFLAG:LOCALS
+	;すく水、スパッツだと効果ＵＰ
+	CASE [[衣装:スクール水着]] , [[衣装:スクール水着（穴開き）]] , [[衣装:スパッツ]] , [[衣装:レオタード]] , [[衣装:レオタード（穴開き）]]
+		TIMES SOURCE:PLAYER:0 , 1.20
+ENDSELECT
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 200
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 3
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;射精に関係なく行われる処理はここから
+;奴隷の指⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("手", TARGET, "ペニス", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:2+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:2+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;LesbianEXP
+A = 4
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 1
+
+;依存度補正値(主人かつ恋慕、淫乱、服従で1。親愛、娼婦、隷属で2）
+IF (TALENT:3 || TALENT:4 || TALENT:5) && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF (TALENT:6 || TALENT:7 || TALENT:8) && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+;奉仕快楽フラグ
+TFLAG:100 = 1
+
+
+RETURN 1
+
+@MESSAGE_COM197
+;前回と今回の調教者が同じで、前回の調教が正常位であり、抜かないフラグがある場合
+PRINTFORM %CALLNAME:TARGET%は脱いだ
+SELECTCASE TSTR:0
+	CASE "スク水扱き","水着扱き"
+		PRINT 水着
+	CASE "スパッツ扱き"
+		PRINT スパッツ
+	CASEELSE
+		PRINT 下着
+ENDSELECT
+IF TEQUIP:主導権 || 陥落()
+	PRINTFORM で%CALLNAME:PLAYER%のペニス
+	SIF (TALENT:3 || TALENT:6)
+		PRINTFORM を優しく
+	PRINTFORM 包み込むと、その柔らかな布で
+	SIF TALENT:サド
+		PRINTFORM 焦らすように
+	PRINTFORMW 擦りあげ始めた……
+ELSE
+	PRINTFORM を%CALLNAME:PLAYER%のペニスに被せると、
+	SIF TALENT:サド
+		PRINTFORM 焦らすように
+	PRINTFORMW 擦りあげ始めた……
+ENDIF
+;-------------------------------------------------
+;実行判定処理
+;手淫と同じ
+;-------------------------------------------------
+@COM_ORDER_197, ARG, ARG:1
+CALL COM_ORDER_80, ARG, ARG:1
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_197
+RETURN 14
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_197
+RETURN COMTYPE("奉仕系")
+

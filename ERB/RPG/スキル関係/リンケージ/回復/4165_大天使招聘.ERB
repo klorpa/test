@@ -1,0 +1,222 @@
+;通常攻撃
+;スキルのテンプレートになっています
+
+;スキル名
+@SKILL_NAME_4165,ARG
+RESULTS = Call Angel
+;大天使招聘
+
+
+;　命中
+@SKILL_HITRATE_4165, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_4165, ARG
+RETURN 75
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_4165,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_4165,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_4165, ARG
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_4165,ARG
+RETURN 50
+
+;　相性
+@SKILL_TYPE_4165,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_4165
+RETURN 2
+;魔法
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_4165
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_4165
+RETURN 2
+
+;　射程
+@SKILL_RANGE_4165,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_4165,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_4165
+RETURN 2
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_4165,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_4165
+RETURN 4
+;回復
+
+;速度補正
+@SKILL_SPEED_4165, ARG = -1
+RETURN 2
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_4165,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_4165
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_4165
+RETURN 23
+
+@SKILL_RANKUP_4165
+RETURN 0
+
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_4165,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_4165,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_4165,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_4165,ARG
+RETURN 0
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_4165,ARG,ARG:1
+;コスト支払い
+;CALL PAY_COST, ARG, 4165
+
+IF ARG:1 == 19
+	LOCAL:7 = 1
+	LOCAL:8 = 7
+ELSE
+	LOCAL:7 = 7
+	LOCAL:8 = 17
+ENDIF
+FOR LOCAL:9,LOCAL:7,LOCAL:8
+	LOCALS = ポジション{LOCAL:9}
+	SIF FLAG:LOCALS < 0
+		CONTINUE
+	SIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+		CONTINUE
+	PRINTFORM 　　TARGET:[{LOCAL:9,2}] %CALLNAME:(FLAG:LOCALS),20,LEFT%　>>>>>>　
+	IF CFLAG:(FLAG:LOCALS):回復不能フラグ
+		PRINTFORML 0 ＨＰ recovered
+	ELSE
+		;回復量
+		LOCAL = ((MAXBASE:(FLAG:LOCALS):ＨＰ) * 80 / 100)
+		PRINTFORML {LOCAL} recovered.
+		CALL VAR_HP,FLAG:LOCALS,LOCAL,3
+	ENDIF
+	CFLAG:(FLAG:LOCALS):防御強化 = MIN(32, CFLAG:(FLAG:LOCALS):防御強化 + 8)
+NEXT
+	PRINTFORML \@ ARG:1 == 19 ? Allies # Foes \@ Defense went up drastically!
+WAIT
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;====================================================
+;戦闘中以外での実行
+;====================================================
+@ACTION_FIELD_4165,ARG,ARG:1
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+
+;　 説明文の表示
+@SKILL_EXPLAIN_4165
+PRINTL Restores 80% of all allies HP and increases Defense dratically.
+
+;継承に必要な部位
+@継承部位_4165,ARG
+RETURN 1
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_4165,ARG
+RETURN 1
+;とくにない
+
+;=====================================================
+;リンケージ設定
+;=====================================================
+@LINKAGE_4165
+RETURN 1
+
+@参加人数_4165
+RETURN 1
+
+@参加条件表示_4165,ARG
+SELECTCASE ARG
+	CASE 1, 2
+		PRINTFORM Mediarahan
+ENDSELECT
+
+@発動者条件_4165 , ARG
+IF CHECK_SKILL(ARG, [[スキル:メ・ディアラハン]])
+	CALL CHECK_ACTIONABLE , ARG , [[スキル:メ・ディアラハン]]
+	SIF RESULT
+		RETURN 1
+ENDIF
+RETURN 0
+
+
+@参加者条件_4165, ARG , ARG:1
+SIF CPOS(ARG) < 1 || CPOS(ARG) > 6
+	RETURN 0
+CALL CHECK_COST_LINCAGE, ARG, 4165, ARG:1
+SIF RESULT == 0
+	RETURN 0
+SELECTCASE ARG:1
+	CASE 1, 2
+		IF CHECK_SKILL(ARG, [[スキル:メ・ディアラハン]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:メ・ディアラハン]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		RETURN 0
+ENDSELECT
+
+@リンケージコストタイプ_4165, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 3
+ENDSELECT
+@リンケージコスト_4165, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 40
+ENDSELECT

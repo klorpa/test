@@ -1,0 +1,226 @@
+;-------------------------------------------------
+;ダブルパイズリ
+;助手によるコマンド、及びレズプレイ、レベル3
+;-------------------------------------------------
+@ACT_COM125
+PRINTL Double Paizuri
+;ダブルパイズリ
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+TSTR:0 = ダブルパイズリ
+;CALL KOJO_MESSAGE_COM
+
+;実行者が奴隷であるフラグ
+TFLAG:28 = 1
+
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 2500
+
+;ABL:調教者の技巧をみる
+IF ABL:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:奉仕精神をみる
+IF ABL:7 == 0
+	TIMES B , 0.50
+ELSEIF ABL:7 == 1
+	TIMES B , 0.80
+ELSEIF ABL:7 == 2
+	TIMES B , 1.20
+ELSEIF ABL:7 == 3
+	TIMES B , 1.50
+ELSEIF ABL:7 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.40
+ENDIF
+
+;TALENT:舌使い、猫舌をみる
+SIF TALENT:52 || TALENT:54
+	TIMES B , 2.00
+
+;助手のABL:技巧をみる
+IF ABL:ASSI:2 >= 2
+	TIMES B , 1.00
+ELSEIF ABL:ASSI:2 == 3
+	TIMES B , 1.20
+ELSEIF ABL:ASSI:2 == 4
+	TIMES B , 1.50
+ELSE
+	TIMES B , 1.80
+ENDIF
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:MASTER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:MASTER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:MASTER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:MASTER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:MASTER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+
+SIF HAVE_PENIS(MASTER)
+	BASE:MASTER:2 += B
+
+;調教者→調教対象
+TFLAG:28 = 1
+;調教者にFEELＣ
+SOURCE:PLAYER:0 = 250
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 10
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:快Ｂ = 150
+SOURCE:TARGET:情愛 = 200
+SOURCE:TARGET:性行動 = 500
+SOURCE:TARGET:達成 = 250
+SOURCE:TARGET:屈従 = 900
+SOURCE:TARGET:逸脱 = 400
+SOURCE:TARGET:反感 = 400
+
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*40 + 100
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 600
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:MASTER:ペニス使用対象 = TARGET + (ASSI+1)*10000
+TCVAR:MASTER:射精箇所 = 4
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＢ⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("胸", TARGET, "ペニス", PLAYER)
+;助手のＢ⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("胸", ASSI, "ペニス", PLAYER)
+;奴隷の胸⇔助手の胸の汚れが移動
+CALL MOVE_STAIN("胸", TARGET, "胸", ASSI)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 7
+
+;マスターと奴隷のレズ
+IF IS_LESBIAN(TARGET,MASTER)
+;	PRINTFORML %EXPNAME_E(40)%+{A}
+;	PRINTFORML %EXPNAME_E(40)%(主人)+{A}
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, MASTER)
+ELSEIF IS_GAY(TARGET,MASTER)
+;	PRINTFORML %EXPNAME_E(41)%+{A}
+;	PRINTFORML %EXPNAME_E(41)%(主人)+{A}
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, MASTER)
+ENDIF
+
+
+;助手と奴隷のレズ
+IF IS_LESBIAN(TARGET,ASSI)
+;	PRINTFORML %EXPNAME_E(40)%+{A}
+;	PRINTFORML %EXPNAME_E(40)%(助手)+{A}
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, ASSI)
+ELSEIF IS_GAY(TARGET,ASSI)
+;	PRINTFORML %EXPNAME_E(41)%+{A}
+;	PRINTFORML %EXPNAME_E(41)%(助手)+{A}
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, ASSI)
+ENDIF
+
+;依存度ベクトル
+;P = PLAYER
+IF GET_RELATION(TARGET, PLAYER) > 100
+	TFLAG:33 = 2
+ELSEIF GET_RELATION(TARGET, PLAYER) < 100
+	TFLAG:33 = 3
+ELSE
+	TFLAG:33 = 1
+ENDIF
+
+;依存度補正値(相性100↑かつ淫乱で2、娼婦で4）
+;P = PLAYER
+IF TALENT:4 && GET_RELATION(TARGET, PLAYER) > 100
+	TFLAG:30 += 2
+ELSEIF TALENT:7 && GET_RELATION(TARGET, PLAYER) > 100
+	TFLAG:30 += 4
+ENDIF
+
+
+TFLAG:100 = 1
+
+
+
+RETURN 1
+;-------------------------------------------------
+;実行判定処理
+;ダブルフェラと同じ
+;-------------------------------------------------
+@COM_ORDER_125, ARG, ARG:1
+CALL COM_ORDER_124, ARG, ARG:1
+
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_125
+RETURN 38
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_125
+RETURN COMTYPE("助手・レズ系")
+
+
+

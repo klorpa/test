@@ -1,0 +1,1021 @@
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_39
+IF DAY >= 10 && イベントフラグ:39:0 >= 0 && イベントフラグ:39:0 != 2000
+	RESULTS = Search for the Unknown
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_39
+
+A = 0
+B = 0
+C = 0
+i = 0
+
+CUSTOMDRAWLINE =
+IF イベントフラグ:39:0 >= 1
+	PRINTFORML
+	PRINTW ＞You visited the base of the demonic researcher Eligor.
+	PRINTL
+	PRINTL Eligor：
+	PRINTL 「Welcome. Will you show me your demon compendium?」
+	PRINTW 「Of course I will reward you, based on the number of fully analyzed demons.」
+ELSE
+	イベントフラグ:39:0 = 1
+	; バランス調整案
+	; 二週目以降でかつ、戦闘難易度がノーマル以上のとき10～50の報酬をカット
+	;SIF FLAG:戦闘難易度 >= 2 && FLAG:周回回数 >= 1
+	;	DB:101:33 = 4
+	PRINTL
+	PRINTW ＞After you were told about this place by another devil summoner, you decide to visit there.
+	PRINTW ＞If you are confident in your demon compendium, this is the place to go.
+	PRINTL
+	PRINTL Eligor：
+	PRINTW 「Welcome, summoner. I am Eligor. Demon compendium, Devildex, demon record...
+	PRINTW 　The records of demons I study have many names.」
+	PRINTL
+	PRINTW ＞After the demon introduced itself as Eligor, you mentioned that you were introduced by an acquainance.
+	PRINTW ＞When he heard that, Eligor nodded in agreement.
+	PRINTL
+	PRINTL Eligor：
+	PRINTW 「If you show me your demon compendium, that would be good material.」
+	PRINTW 「Depending on the number of demons you have completely analyzed, I will give you various rewards.」
+	PRINTW 「This is a trail. For now, will you show me your demon compendium?」
+ENDIF
+
+PRINTL
+PRINTFORML [1]Show your demon compendium [2]End your business
+
+CALL INPUTINT,1,2
+
+IF RESULT == 1
+	PRINTL Eligor：
+	PRINTW 「Now, lets see how far has your analysis has advanced.」
+	PRINTL
+	PRINTW ＞The checking of your demon compendium has begun.
+
+	CALL EVENT_39_CHECK
+
+	; -1は完成後の景品となる悪魔を除外しているため。
+	PRINTL
+	PRINTL Eligor：
+	PRINTFORMW 「Out of {A - 1} kinds, {B} demons have been completely analyzed.」
+	WHILE C == 0
+		SELECTCASE イベントフラグ:39:0
+			;10種類
+			CASE 1
+				IF B >= 10
+					PRINTL 「More than 10 have been fully analyzed.」
+					PRINTW 「For this, I'll give you 300 macca as a reward.」
+					PRINTL
+					PRINTW ＞300 macca received.
+					PRINTL
+					MONEY:1 += 300
+					PRINTL Eligor：
+					PRINTL 「Completing just 10 may have been too easy for you.」
+					PRINTW 「When you finish analyzing 30, I will give you your next reward.」
+					イベントフラグ:39:0 ++
+					IF B >= 30
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTL 「Hm. You should start by analyzing at least 10 demons.」
+					PRINTW 「This should be well within your ability. Come back when you are done.」
+					C = 1
+				ENDIF
+				
+			;30種類
+			CASE 2
+				IF B >= 30
+					PRINTL 「30 have been fully analyzed.」
+					PRINTW 「As a reward....will this unsigned sword do?」
+					PRINTL
+					PRINTW ＞Unsigned sword obtained.
+					PRINTL
+					ITEM:"Nameless Sword" += 1
+					PRINTL Eligor：
+					PRINTL 「You could just use it as it is, but...」
+					PRINTL 「If you take it to Jakyou Manor, you can turn it into a magic weapon.」
+					PRINTL 「By you choosing a strong demon to infuse it with, you'll get good results.」
+					PRINTL 「You can also remove the enchantment, but you can't back the demon.」
+					PRINTW 「When you have analyzed 50 demons, I'll give you your next reward.」
+					イベントフラグ:39:0 ++
+					IF B >= 50
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「When you have finished analyzing 30 demons, I'll give you a reward.」
+					PRINTL 「It is important to analyzed the enemy during a fight,
+					PRINTL 　but you can also get analysis data by fighting alongside the demon.
+					PRINTW 　Try whichever method suits you best.」
+					C = 1
+				ENDIF
+				
+			;50種類
+			CASE 3
+				IF B >= 50
+					PRINTL 「50 demons have been analyzed.」
+					PRINTW 「I'll reward you with these 4 skill cards.」
+					PRINTL
+					PRINTL ＞Skill card【Tarukaja】obtained.
+					PRINTL ＞Skill card【Sukukaja】obtained.
+					PRINTL ＞Skill card【Makakaja】obtained.
+					PRINTW ＞Skill card【Rakukaja】obtained.
+					PRINTL
+					ITEM:スキルカード【タル・カジャ】 += 1
+					ITEM:スキルカード【スク・カジャ】 += 1
+					ITEM:スキルカード【マカ・カジャ】 += 1
+					ITEM:スキルカード【ラク・カジャ】 += 1
+					PRINTL Eligor：
+					PRINTL 「Have you found skill replacement useful?」
+					PRINTL 「Utilize them well.」
+					PRINTW 「Analyzing 100 demons...you might be able to do it.」
+					イベントフラグ:39:0 ++
+					IF B >= 100
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「When you've analyzed 50 demons, I'll give you the next reward.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;100種類
+			CASE 4
+				IF B >= 100
+					PRINTL 「Congratulations!　100 have been analyzed.」
+					PRINTW 「Your reward is this Seiryu Zombie data.」
+					IF BASE:MASTER:LV >= 40
+						PRINTL
+						PRINTW ＞Undead　Seiryu Zombie joined.
+						PRINTL
+						CALL ADD_NEW_COMPANION,757,1000,1
+						LOCAL = RESULT:1
+						NAME:LOCAL = Seiryu Zombie
+						CALLNAME:LOCAL = Seiryu Zombie
+						ABL:LOCAL:種族 = 11
+						; そのままだと完全劣化なのでスキルをデビチル仕様に
+						ABL:LOCAL:スキル1 = 802
+						ABL:LOCAL:スキル2 = 809
+						ABL:LOCAL:スキル3 = 820
+						CSTR:LOCAL:種族名 = Undead
+						TALENT:LOCAL:汚臭敏感 = 0
+						TALENT:LOCAL:ゾンビ = 1
+						BASE:LOCAL:剣撃 = 125
+						BASE:LOCAL:火炎 = 250
+						BASE:LOCAL:破魔 = 400
+						; プロフィール消去
+						FOR i,30,49
+							CSTR:LOCAL:i = 　
+						NEXT
+						CALL MESSAGE_COMP_OVER
+					ELSE
+						PRINTW 「However, the level requirement for it...You need to be at lvl 40 or higher.
+						PRINTW 　You can come back when your level is higher or do you want me to give you a weakened version?」
+						PRINTL
+						PRINTL [1]Come back later [2]Take the weakened version
+						CALL INPUTINT,1,2
+						IF RESULT == 1
+						PRINTL Eligor：
+						PRINTW 「Very well. I'll wait for your next visit then.」
+							RETURN 0
+						ELSE
+							PRINTL
+							PRINTW ＞Undead　Seiryu Zombie joined.
+							PRINTL
+							CALL ADD_NEW_COMPANION,757,1000,1
+							LOCAL = RESULT:1
+							NAME:LOCAL = Seiryu Zombie
+							CALLNAME:LOCAL = Seiryu Zombie
+							ABL:LOCAL:種族 = 11
+							; そのままだと完全劣化なのでスキルをデビチル仕様に
+							ABL:LOCAL:スキル1 = 802
+							ABL:LOCAL:スキル2 = 809
+							ABL:LOCAL:スキル3 = 820
+							CSTR:LOCAL:種族名 = Undead
+							TALENT:LOCAL:汚臭敏感 = 0
+							TALENT:LOCAL:ゾンビ = 1
+							BASE:LOCAL:剣撃 = 125
+							BASE:LOCAL:火炎 = 250
+							BASE:LOCAL:破魔 = 400
+							; プロフィール消去
+							FOR i,30,49
+								CSTR:LOCAL:i = 　
+							NEXT
+							CALL EVENT_39_ALL1,LOCAL
+							CALL SYNC_STATUS,LOCAL
+							CALL MESSAGE_COMP_OVER
+						ENDIF
+					ENDIF
+					PRINTL Eligor：
+					PRINTL 「I'll explain to you about a demons becoming a zombies.」
+					PRINTW 「They died earlier but were revived by fossil fusion.」
+					PRINTL 「Race, skills and resistances change but it is generally weaker than before.」
+					PRINTL 「In the compendium, it is treated the same as the non-fossil version.」
+					PRINTW 「Next is 200. What? This should be easy easy compared to completing the compendium.」
+					イベントフラグ:39:0 ++
+					IF B >= 200
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+				PRINTW 「Analyzing 100 demons...might not be impossible for you.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;200種類
+			CASE 5
+				IF B >= 200
+					PRINTL 「200 have been analyzed.」
+					PRINTW 「The reward this time is the software gender-free.」
+				IF ITEM:GenderFree == 0
+					ITEM:GenderFree = 1
+						PRINTL
+						PRINTW ＞Software Gender-free obtained.
+						PRINTL
+						PRINTL Eligor：
+						PRINTW 「Just remember to activate it.」
+						PRINTL 「Now you can fuse without regard to sex.」
+						PRINTW 「This should definitely help you complete the compendium.」
+					ELSE
+						PRINTL 「...or that was my intention, but it seems you already have it.」
+						PRINTW 「So I'll give you 20000 macca instead.」
+						PRINTL
+						PRINTW ＞20000 macca obtained.
+						PRINTL
+						MONEY:1 += 20000
+					ENDIF
+						PRINTL 「Next is 300. If you surpass this, it might be said you have full-fledged knowledge on demons.」
+						PRINTW 「This is no exaggeration.」
+					イベントフラグ:39:0 ++
+					IF B >= 300
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+				PRINTW 「Next is 200. What? This is easy compared to completing the compendium.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;300種類
+			CASE 6
+				IF B >= 300
+					PRINTL 「300...you have been working pretty hard.」
+					PRINTW 「The reward is Mirai Doppelganger.」
+					IF BASE:MASTER:LV >= 50
+						PRINTL
+						PRINTW ＞Mirai Doppelganger joined.
+						PRINTL
+						CALL ADD_NEW_COMPANION,1006,1000,1
+						LOCAL = RESULT:1
+						; 通称が短ければ、表示崩れはない？
+						NAME:LOCAL = Mirai Doppelganger
+						CALLNAME:LOCAL = Mirai
+						ABL:LOCAL:スキル3 = 4; 両腕落とし
+						TALENT:LOCAL:小柄体型 = 1
+						TALENT:LOCAL:回復早い = 1
+						TALENT:LOCAL:濡れにくい = 1
+						CFLAG:LOCAL:服 = 101
+						CFLAG:LOCAL:下衣 = 207
+						CFLAG:LOCAL:下着（上） = 502
+						CFLAG:LOCAL:下着（下） = 602
+						CFLAG:LOCAL:靴下 = 801
+						CFLAG:LOCAL:靴 = 908
+						CFLAG:LOCAL:初期服 = 101
+						CFLAG:LOCAL:初期下衣 = 207
+						CFLAG:LOCAL:初期下着（上） = 502
+						CFLAG:LOCAL:初期下着（下） = 602
+						CFLAG:LOCAL:初期靴下 = 801
+						CFLAG:LOCAL:初期靴 = 908
+						; プロフィール消去
+						FOR i,30,49
+							CSTR:LOCAL:i = 　
+						NEXT
+						CALL MESSAGE_COMP_OVER
+					ELSE
+						PRINTW 「However, your level is too low...50 or higher is required.
+						PRINTW 　You can come back after raising your level or would you like me to give you a weaker version?」
+						PRINTL
+						PRINTL [1]Come back later [2]Take the weaker version
+						CALL INPUTINT,1,2
+						IF RESULT == 1
+							PRINTL Eligor：
+							PRINTW 「That is fine. Then I'll wait for your next visit.」
+							RETURN 0
+						ELSE
+							PRINTL
+							PRINTW ＞Mirai Doppelganger joined.
+							PRINTL
+							CALL ADD_NEW_COMPANION,1006,1000,1
+							LOCAL = RESULT:1
+							NAME:LOCAL = Mirai Doppelganger
+							CALLNAME:LOCAL = Mirai
+							ABL:LOCAL:スキル3 = 4; 両腕落とし
+							TALENT:LOCAL:小柄体型 = 1
+							TALENT:LOCAL:回復早い = 1
+							TALENT:LOCAL:濡れにくい = 1
+							CFLAG:LOCAL:初期服 = 101
+							CFLAG:LOCAL:初期下衣 = 207
+							CFLAG:LOCAL:初期下着（上） = 502
+							CFLAG:LOCAL:初期下着（下） = 602
+							CFLAG:LOCAL:初期靴下 = 801
+							CFLAG:LOCAL:初期靴 = 908
+							CFLAG:LOCAL:服 = 101
+							CFLAG:LOCAL:下衣 = 207
+							CFLAG:LOCAL:下着（上） = 502
+							CFLAG:LOCAL:下着（下） = 602
+							CFLAG:LOCAL:靴下 = 801
+							CFLAG:LOCAL:靴 = 908
+							; プロフィール消去
+							FOR i,30,49
+								CSTR:LOCAL:i = 　
+							NEXT
+							CALL EVENT_39_ALL1,LOCAL
+							CALL SYNC_STATUS,LOCAL
+							CALL MESSAGE_COMP_OVER
+						ENDIF
+					ENDIF
+					PRINTL Eligor：
+					PRINTL 「This is a doppelganger that imitated a girl who wandered through Makai.」
+					PRINTL 「...By any chance, do you know where that girl came from?」
+					PRINTW 「Next is 400. If you surpass this, you could be called a professor on demons.」
+					イベントフラグ:39:0 ++
+					IF B >= 400
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+				PRINTW 「Next is 300. If you surpass this, it might be said you have full-fledged knowledge on demons.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;400種類
+			CASE 7
+				IF B >= 400
+					PRINTL 「400 have been analyzed...you might now be an expert.」
+					PRINTW 「I'll give this incense set as a reward.」
+					PRINTL
+					PRINTL ＞Strength incense obtained.
+					PRINTL ＞Wisdom incense obtained.
+					PRINTL ＞Magic power incense obtained.
+					PRINTL ＞Stamina incense obtained.
+					PRINTL ＞Speed incense obtained.
+					PRINTW ＞Luck incense obtained.
+					PRINTL
+					ITEM:StIncense += 1
+					ITEM:InIncense+= 1
+					ITEM:MaIncense += 1
+					ITEM:EnIncense += 1
+					ITEM:AgIncense += 1
+					ITEM:LuIncense += 1
+
+					PRINTL Eligor：
+					PRINTL 「These should be familiar to a summoner of your caliber, they raise the related stat.」
+					PRINTL 「With all this, you shouldn't have trouble.」
+					PRINTW 「Next is 500. If you do this, you might one day complete the compendium.」
+					イベントフラグ:39:0 ++
+					IF B >= 500
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+				PRINTW 「Next is 400. This is where the amateurs are separated from the professionals.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;500種類
+			CASE 8
+				IF B >= 500
+					PRINTL 「500 analyzed...That I would see such a full compendium.」
+					PRINTW 「The reward is data for a lvl 70 Pixie.」
+					IF BASE:MASTER:LV >= 35
+						PRINTL
+					PRINTW ＞Fairy　Pixie joined.
+						PRINTL
+						CALL ADD_NEW_COMPANION,501,1000,1
+						LOCAL = RESULT:1
+						BASE:LOCAL:LV = 70
+					BASE:LOCAL:力 = 1
+					BASE:LOCAL:知恵 = 23
+					BASE:LOCAL:魔力 = 50
+					BASE:LOCAL:耐力 = 11
+					BASE:LOCAL:速さ = 26
+					BASE:LOCAL:運 = 16
+						BASE:LOCAL:ＥＸＰ = 700000
+						ABL:LOCAL:変異 = 0
+						ABL:LOCAL:変異レベル = 0
+						CALL SYNC_STATUS,LOCAL
+						CALL MESSAGE_COMP_OVER
+					ELSE
+						PRINTW 「However, your level is too low...35 or higher is needed.
+						PRINTW 　　You can come back when your level is higher or do you want me to give you a weakened version?」
+						PRINTL
+						PRINTL [1]Come back later [2]Take the weaker version
+						CALL INPUTINT,1,2
+						IF RESULT == 1
+						PRINTL Eligor：
+							PRINTW 「That is fine. Then I'll wait for your next visit.」
+							RETURN 0
+						ELSE
+							PRINTL
+						PRINTW ＞Fairy　Pixie joined.
+						;ピクシーが仲魔になった。
+							PRINTL
+							CALL ADD_NEW_COMPANION,501,1000,1
+							ABL:LOCAL:変異 = 0
+							ABL:LOCAL:変異レベル = 0
+							CALL SYNC_STATUS,LOCAL
+							CALL MESSAGE_COMP_OVER
+						ENDIF
+					ENDIF
+					PRINTL Eligor：
+					PRINTL 「Although it's a lovely demon....you probably already have one of her kind.」
+					;「愛らしい悪魔だが……君とっては今さら、といった存在だろうね」
+					PRINTL 「However, it seems it will learn a strong skill at lvl 80.」
+					;「しかし、彼女は80レベルまで成長すると強力なスキルを覚えるらしい」
+					PRINTL 「Maybe you could aim for that?」
+					;「この機会に試してみてはどうかな？」
+					PRINTW 「Next is 600. If you achieve this, you may be called a demon expert.」
+					;「次は600種類。これを超えれば、悪魔の専門家を名乗っても良いだろう」
+					イベントフラグ:39:0 ++
+					IF B >= 600
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「Next is 500. Just stay patient and keep at it, good luck.」
+					;「次は500種類。焦ることはない、頑張るといい。」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;600種類
+			CASE 9
+				IF B >= 600
+					PRINTL 「You have finished analizing 600 kinds.」
+					;「600種類以上の解析を終えているね」
+					PRINTW 「Your reward is a Learning Device.」
+					;「今回の報酬は学習装置だ」
+					PRINTL
+					PRINTW ＞Learning Device acquired
+					PRINTL
+					ITEM:"Learning Device" += 1
+					PRINTL Eligor：
+					PRINTL 「If you equip this, you can acquire experience without fighting.」
+					PRINTW 「Great to level up anyone you don't want to actively take part in the fighting.」
+					PRINTW 「Next is 650. If you surpass this, I will give you your next reward.」
+					イベントフラグ:39:0 ++
+					IF B >= 650
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「Once you've finished analizing 600 or more kinds, I'll give you your next reward.」
+					;「次は600種類以上の解析を終えた時、報酬を渡させてもらうよ」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;650種類
+			CASE 10 
+				IF B >= 650
+					PRINTW 「650 kinds have been analized.」
+					;「650種類以上の解析を終えているね」
+					PRINTW 「For this, I'll reward you with Paracelsus.」
+					;「今回の報酬はParacelsusだ」
+				IF ITEM:Paracelsus == 0
+					ITEM:Paracelsus = 1
+					PRINTL
+					PRINTW ＞Software Paracelsus obtained.
+					;インストールソフト、Paracelsus受け取った。
+					PRINTL
+					PRINTL Eligor：
+					PRINTW 「With this software, the current demon level, instead of the base one will be used during fusion.」
+					;「現在のレベルを使用した悪魔合体を可能にするソフトだ」
+					PRINTW 「I hope it helps you in completing the records.」
+					;「全書完成に役立てて欲しい」
+				ELSE
+					PRINTW 「...or that was my intention, but it seems you already have it.」
+					PRINTW 「So I'll give you 5000 macca instead.」
+					PRINTL
+					PRINTW ＞5000 macca received.
+					PRINTL
+					MONEY:1 += 5000
+				ENDIF
+					PRINTW 「When you complete 700 or more kinds, I'll have your next reward.」
+					;「次は700種類以上の解析を終えた時、報酬を渡させてもらうよ」
+					イベントフラグ:39:0 ++
+					IF B >= 700
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTFORMW 「When you have analized 650 or more kinds, I'll give you your next reward.」
+					;「次は650種類以上の解析を終えた時、報酬を渡させてもらうよ」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;700種類
+			CASE 11
+				IF B >= 700
+					PRINTL 「700 have been analized.」
+					;「700種類以上の解析を終えているね」
+					PRINTW 「I'll reward you with a Headset.」
+					;「今回の報酬はHeadsetだ」
+					PRINTL
+					PRINTW ＞Headset obtained.
+					PRINTL
+					ITEM:Headset += 1
+					;really? as in, the item we can easily syntesize from salvaged parts?
+					;maybe headset was planned to give actual support, not just voice?
+					PRINTL Eligor：
+					PRINTL 「Try equipping it on a friendly person.」
+					;「親しい相手に装備させてみるといい」
+					PRINTW 「You'll be able to receive battle support from them that way.」
+					;「戦闘中、思いもよらぬ支援をうけることができるだろう。」
+					PRINTW 「Come back when you have finished 750. I'll give you your next reward then.」
+					;「次は750種類以上の解析を終えた時、報酬を渡させてもらうよ」
+					イベントフラグ:39:0 ++
+					IF B >= 750
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「When 700 are analized, I'll give you your next reward.」
+					;「次は700種類以上の解析を終えた時、報酬を渡させてもらうよ」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+			
+			;750種類
+			CASE 12
+				IF B >= 750
+					PRINTL 「750 kinds have been analized.」
+					;「750種類以上の解析を終えているね」
+					PRINTW 「For this, I'll give you Honeymoon.」
+					;「今回の報酬はだ」
+				IF ITEM:Honeymoon == 0
+					ITEM:Honeymoon = 1
+						PRINTL
+						PRINTW ＞Software Honeymoon obtained.
+						;インストールソフト、ハネムーンを受け取った。
+						PRINTL
+						PRINTL Eligor:
+						PRINTW 「This software raises the abilities of 'fallen' demons.」
+						;「親密な悪魔の能力を上昇させるソフトだ」
+						PRINTW 「I hope it helps with completing the records.」
+						;「全書完成に役立てて欲しい」
+					ELSE
+						PRINTW 「...or that was my intention, but it seems you already have it.」
+						PRINTW 「So I'll give you 3000 macca instead.」
+						PRINTL
+						PRINTW ＞3000 macca received.
+						PRINTL
+						MONEY:1 += 3000
+					ENDIF
+					PRINTW 「When 800 kinds have been analized, I'll give you your next reward.」
+					イベントフラグ:39:0 ++
+					IF B >= 800
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「When 750 kinds have been analized, I'll give you your next reward.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+				
+			;800種類
+			CASE 13
+				IF B >= 800
+					PRINTW 「800 kinds have been analized.」
+					PRINTW 「I'll reward you with EnemyWelcome.」
+					IF ITEM:EnemyWelcome == 0
+						ITEM:EnemyWelcome = 1
+						PRINTL
+					PRINTW ＞Software EnemyWelcome obtained.
+						PRINTL
+					PRINTL Eligor：
+					PRINTW 「This software raises the encounter rate」
+					PRINTW 「This could help you complete the compendium」
+					ELSE
+						PRINTW 「...or that was my intention, but it seems you already have it.」
+						PRINTW 「So I'll give you 5000 macca instead.」
+						PRINTL
+						PRINTW ＞5000 macca received.
+						PRINTL
+						MONEY:1 += 5000
+					ENDIF
+					PRINTW 「When 850 kinds have been analized, I'll give you your next reward.」
+					イベントフラグ:39:0 ++
+					IF B >= 850
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTW 「When 800 kinds have been analized, I'll give you your next reward.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			;850種類
+			CASE 14
+				IF B >= 850
+					PRINTL 「850 kinds have been analized.」
+					PRINTW 「I'll reward you with Friday.」
+					IF ITEM:Friday == 0
+						ITEM:Friday = 1
+						PRINTL
+						PRINTW ＞Software Friday obtained.
+						PRINTL
+						PRINTL Eligor：
+						PRINTW 「It's a software that increases the loyalty of freshly fused demons.」
+						;「合体した悪魔の忠誠度を上昇させるソフトだ」
+						PRINTW 「I hope it helps you with completing the records.」
+						;「全書完成に役立てて欲しい」
+					ELSE
+						PRINTW 「...or that was my intention, but it seems you already have it.」
+						PRINTW 「So I'll give you 40000 macca instead.」
+						PRINTL
+						PRINTW ＞40000 macca received.
+						PRINTL
+						MONEY:1 += 40000
+					ENDIF
+					PRINTW 「When 900 kinds have been analized, I'll give you your next reward.」
+					イベントフラグ:39:0 ++
+					IF B >= 900
+						PRINTW 「Oh?」
+					ELSE
+						C = 1
+					ENDIF
+				ELSE
+					PRINTL 「When 850 kinds have been analized, I'll give you your next reward.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+			;900種類
+			CASE 15
+				IF B >= 900
+					PRINTL 「900 kinds have been analized.」
+					PRINTW 「I'll reward you with Steven.」
+					IF ITEM:Steven == 0
+						ITEM:Steven = 1
+						PRINTL
+						PRINTW ＞Software Steven obtained.
+						PRINTL
+						PRINTL Eligor:
+						PRINTW 「This software removes level restrictions for fusing demons.」
+						;「合体可能な悪魔のレベル制限がなくなるソフトだ」
+						PRINTW 「This should help you complete your compendium.」
+						;「これほど悪魔に精通した君なら、使いこなせるだろう」
+					ELSE
+						PRINTW 「...or that was my intention, but it seems you already have it.」
+						PRINTW 「So I'll give you 80000 macca instead.」
+						PRINTL
+						PRINTW ＞80000 macca received.
+						PRINTL
+						MONEY:1 += 80000
+					ENDIF
+					PRINTW 「Well, I I'll give you your next reward when you completed the compendium.」
+					;「さて、次に報酬を渡すのは悪魔全書が完成した時だ」
+					PRINTW 「....Come to think of it, I don't think anyone else ever made it this far..」
+					;……実の所、君よりも厳しい条件でこれに挑んだ者は居ない
+					;PRINTW クロダンシャク「お、おう…」
+					PRINTW 「Well, I believe now that you can complete what I though impossible.」
+					;それでも、ここまで来た君に不可能はないと信じているよ
+					イベントフラグ:39:0 ++
+					IF B < (A - 1)
+						C = 1
+					ELSE
+
+					ENDIF
+				ELSE
+					PRINTL 「When 900 kinds have been analized, I'll give you your next reward.」
+					CALL EVENT_39_Advice
+					C = 1
+				ENDIF
+				
+			; ラスト。悪魔全書が完成
+			CASEELSE
+				IF B < (A - 1)
+					PRINTL 「Well, I'll give you your next reward when you've completed the compendium.」
+					PRINTW 「....Come to think of it, I don't think anyone else ever made it this far..」
+					PRINTW 「Well, I believe now that you can complete what I though impossible.」
+					PRINTL 
+					PRINTL Eligor：
+					CALL EVENT_39_Advice
+					C = 1
+				ELSE
+					PRINTW 「...Hm?」
+					;「……ん？」
+					PRINTL
+					PRINTW ＞As if he has trouble believing what he sees, Eligor checks the compendium multiple times.
+					;エリゴールは信じがたいものを見たかのように、何度も全書を確認している。
+					PRINTL
+					PRINTL Eligor：
+					PRINTW 「How surprising. For you to really be the one who completes the compendium...」
+					;「驚いたな。本当に悪魔全書を完成させる者が現れるとは……」
+					PRINTW 「In this chaotic world, I wasn't certain this was even possible...」
+					;「おそらく、この混沌とした世界では不可能に近かっただろう」
+					PRINTW 「I'll give you the last reward then.」
+					;「最後の報酬を渡さねばならないな」
+					IF BASE:MASTER:LV >= 60
+						PRINTW 「I want you to have the Lucifa Frost data.」
+						;「最も貴重な悪魔の一柱、ルシファフロストのデータを受け取ってほしい」
+						PRINTL
+						PRINTW ＞Lucifa Frost received.
+						;大魔王　ルシファフロストが仲魔になった。
+						PRINTL
+						CALL ADD_NEW_COMPANION,230,1000,1
+						CALL MESSAGE_COMP_OVER
+						C = 1
+					ELSE
+						PRINTW 「However, your level is too low to handle this demon. You need to be at least lvl 60.
+						PRINTW 　　You can come back when your level is higher or do you want me to give you a weakened version?」
+						PRINTL
+						PRINTL [1]Come back later [2]Take the weaker version
+						CALL INPUTINT,1,2
+						IF RESULT == 1
+						PRINTL Eligor：
+							PRINTW 「That is fine. Then I'll wait for your next visit.」
+							RETURN 0
+						ELSE
+							PRINTL
+							PRINTW ＞大魔王　Lucifroz joined you.
+							PRINTL
+							CALL ADD_NEW_COMPANION,230,1000,1
+							LOCAL = RESULT:1
+							CALL EVENT_39_ALL1,LOCAL
+							CALL SYNC_STATUS,LOCAL
+							CALL MESSAGE_COMP_OVER
+						C = 1
+						ENDIF
+					ENDIF
+					PRINTL Eligor：
+					PRINTL 「The savior of the Frost clan。かの大魔王ルシファーに比肩する存在である、らしい……」
+					PRINTL 「I say once more...Splendid!　You are indeed a supreme summoner!」
+					PRINTW 「あるいはこの偉業に相応しい報酬など、この世にはないのかもしれないな」
+					PRINTL
+					PRINTW ＞Eligor again marveled at the completed compendium
+					;エリゴールはあらためて、完成した悪魔全書を眺めた。
+					PRINTL
+					PRINTL Eligor：
+					PRINTW 「All the demons out there, marked in this collection.」
+					;「この悪魔全書には、この世の全てが記されているに等しい」
+					PRINTW 「That I get to see all this....」
+					;「君はこの全てを目にしてきたのだろうな……」
+					PRINTW 「Thank you so much. My research is now even closer to completion.」
+					;「本当にありがとう。これで私の研究も真理に一層近づくだろう」
+					イベントフラグ:39:0 = 2000
+				ENDIF
+		ENDSELECT
+	WEND
+ELSEIF RESULT == 2
+	PRINTL Eligor：
+	PRINTW 「That's too bad. If you change your mind, visit me anytime.」
+ENDIF
+
+
+PRINTL
+PRINTW ＞You left Eligor's base.
+
+IF イベントフラグ:39:0 == 2000
+	PRINTL
+	PRINTW ＞Commendium filling, cleared! You gained 1000 fame.
+	;悪魔全書の研究、完全クリア！　1000の名声を得た。
+	PRINTL
+	FLAG:名声 += 1000
+ENDIF
+
+CUSTOMDRAWLINE =
+RETURN 0
+
+@EVENT_39_CHECK
+; ここでチェックする悪魔のリストも定めている
+; 一応、女神転生シリーズに絞り、アナライズの対象外であるZomaも除外しておく
+
+FOR i,1,4390
+	SIF !EXISTCSV(i, 0)
+		CONTINUE
+
+	; 半魔、リンク専用、ペルソナ専用を除外
+	SIF i >= 3500 && i <= 3699
+		CONTINUE
+	SIF i >= 3800 && i <= 3999
+		CONTINUE
+	
+	;メリーさん除外
+	SIF i == 1082
+		CONTINUE
+
+	; 悪魔ほむら除外
+	SIF i == 298
+		CONTINUE
+	; まどマギ怪異除外
+	SIF i >= 3380 && i <= 3399
+		CONTINUE
+
+	;デバッグ用、悪魔全書をすべて100%に
+	;SIF EXISTCSV(i, 0)
+	;FLAG:(20000+i) = 1000
+
+	;2周目以降、悪魔全書をすべて1%に
+	;IF FLAG:周回回数 >= 1
+	;	SIF FLAG:(20000+i) <= 10
+	;		FLAG:(20000+i) = 10
+	;ENDIF
+	
+	A ++
+	SIF FLAG:(20000+i) >= 1000
+		B ++
+NEXT
+
+RETURN
+
+; 全能力弱体化
+@EVENT_39_ALL1,ARG
+
+BASE:ARG:LV = 1
+BASE:ARG:力 = 1
+BASE:ARG:知恵 = 1
+BASE:ARG:魔力 = 1
+BASE:ARG:耐力 = 1
+BASE:ARG:速さ = 1
+BASE:ARG:運 = 1
+BASE:ARG:ＥＸＰ = 0
+
+RETURN
+
+@EVENT_39_Advice
+
+IF B < 200 || RAND:4 == 0
+	SELECTCASE RAND:8
+
+	CASE 0
+	PRINTL 「Do you use compendium summoning?
+	PRINTW 　It is expensive but convenient for fusion.」
+
+	CASE 1
+	PRINTW 「On the topic of fusion software, do you know of the Book of Raziel?」
+	PRINTW 「If I am not mistaken, it is necessary to summon some demons.」
+
+	CASE 2
+	PRINTW 「Have you fought mutating demons?」
+	PRINTL 「Cool, Veil, and Che Fei are some....
+	PRINTW 　Getting them should greatly help with filling the compendium.」
+
+	CASE 3
+	PRINTL 「When using an Element demon in fusion, the result will always be one step up or down.
+	PRINTL 　In other words, using a large number of element demons can let you cover many demons of the same category.
+	PRINTW 　But there are exceptions for everything...」
+
+	CASE 4
+	PRINTL 「There are some demons that you need to satisfy a condition to summon.
+	PRINTW 　If you can survive in battle, opportunities to fulfill these conditions will come.」
+
+	CASE 5
+	PRINTL 「通常とは異なる法則が適用される合体がある。それを特殊合体と呼ぶ。
+	PRINTW 　多くの場合、対になる悪魔や共通点のある悪魔同士の合体がそうなるらしい」
+
+	CASE 6
+	PRINTL 「Some demons can't be met in normal encounters, so the opportunity to analyize them is limited.
+	;仲魔にする事が出来ず、出会う機会も限られる。
+	PRINTL 　For them, a more active analysis is nesseary.
+	;そういった悪魔を解析する場合には、能動的なアナライズを活用するといい。
+	PRINTW  You can use the software Ｈｉ‐ＤＡＳ to actively analyze.」
+	;インストールソフト、Ｈｉ‐ＤＡＳに備わった機能だ
+
+	CASE 7
+	PRINTL 「Unfortunately, there seem to be demons that can't be encountered in this world.
+	PRINTL 　While I'd like to go as far as possible...
+	PRINTW 　There are no definite ways of dealing with this. This can only be settled by time.」
+
+	ENDSELECT
+ELSE
+		SELECTCASE RAND:28
+			CASE 0
+			PRINTL 「If Faunus and a Tyrant are fused, Tyrant Minotaur is the result.
+			PRINTW 　Minotaur has to agree to this first though.」
+			CASE 1
+			PRINTW 「It seems Gorgon is necessary to obtain the power of Medusa.」
+			CASE 2
+			PRINTL 「If you fuse a high-level Lilim and Pixie...」
+			PRINTW 「Oops, I wonder about the next visitor. Sorry, I'll tell you at the next opportunity.」
+			; このロリコンどもめ！
+			CASE 3
+			PRINTL 「If you want to summon Loki, you need his children.」
+			PRINTW 「If he is interested, he will join you.」
+			CASE 4
+			PRINTL 「A hero named Setanta will later be a hero named Cu Chulainn.
+			PRINTW 　And this also applies to fusion. Cu means dog by the way.」
+			CASE 5
+			PRINTL 「Ananta and Garuda are both for being ridden by Vishnu.
+			PRINTW 　No...One of them was actually a bed.」
+			CASE 6
+			; ごめん、手抜き。
+			PRINTL 「There is a demon that can be made with a high-level Zoma.
+			PRINTW 　Ones you can fuse with this Zoma are Pallas Athena, Ame no Futotame, and Susano-o」
+			CASE 7
+			PRINTL 「Many Hero type demons appear by combining high-level Zomas with certain demons.
+			PRINTW 　Two examples are Amaterasu and Cerberus.」
+			CASE 8
+			PRINTL 「かの大淫婦を呼び出すには、その乗騎に高レベルの天使を捧げればいい。
+			PRINTW 　これは伝承の再現か、それとも……」
+			CASE 9
+			PRINTL 「オメテオトルはアステカ神話の創造神であり、その名は二面性の神を意味する……
+			PRINTW 　やはりアステカ神話における二つの神格を合体すれば現れるのだろうか」
+			CASE 10
+			PRINTW 「It seems that Barong and Rangda are paired as existences that are fated to fight forever.」
+			CASE 11
+			PRINTL 「Hari Hara is a combination of Shiva and Vishnu.
+			PRINTW 　Don't you think this could be applied to fusion?」
+			CASE 12
+			PRINTL 「Shiva and Parvati fuse to become Ardha.
+			PRINTW 　...I mean sexually.」
+			; デビチルじゃなくてeraだし、マイルドじゃなくていいや
+			CASE 13
+			PRINTL 「If you combine Arianrhod and a high-level Fallen、
+			PRINTW 　you can summon Thor」
+			CASE 14
+			PRINTL 「If you combine Thor and Maya,
+			PRINTW 　you can summon Chernobog.」
+			CASE 15
+			PRINTW 「It seems that Orthrus and Cerberus are brothers.」
+			CASE 16
+			PRINTW 「If you combine Asura and Valkyrie, you get Asherat.」
+			CASE 17
+			PRINTL 「Past, present, future. By fusing the goddesses that symbolize these
+			PRINTW 　you can call an existence that governs destiny.」
+			CASE 18
+			PRINTL 「Seems you need not just the parents to summon Ameno-Sagiri。
+			PRINTW 　It may be related to the fact that Kayanohime and Nozuchi are considered the same」
+			CASE 19
+			PRINTL 「藤原千方が従えたとされる四鬼。その内の一匹に出会う事は困難だが……
+			PRINTW 　残りの三匹の力を借りれば、決して不可能な事ではない」
+			CASE 20
+			PRINTW 「With the help of a Power and Tam Lin, Jack Frost can become a hero.」
+			;「能天使と妖精の騎士の力を借りて、ジャックフロストはHeroとなる」
+			CASE 21
+			PRINTL 「Jack Frost and Jack O lantern are a good combination...
+			PRINTW 　But, that combination is missing some lust. That is also necessary.」
+			CASE 22
+			PRINTL 「ピシャーチャとは悪鬼の総称としても使われる名であるらしい。
+			PRINTW 　そこにオリアスとカワンチャの要素を加えれば、特殊な合体が起きる」
+			CASE 23
+			PRINTL 「Lugh、Zhu Yin、Fuji Musume。
+			PRINTW 　They can create a Hero by fusing with a Zoma」
+			CASE 24
+			PRINTL 「三蔵法師の名でも知られるゲンジョウを召喚したければ、
+			PRINTW 　その三人の共の力を借りればいい。また、Zomaとの組み合わせも有効のようだ」
+			CASE 25
+			PRINTL 「ある種の狐は北斗七星の化身とされるらしいが……
+			PRINTW 　高レベルのZomaとダッキやチェフェイでは特殊な合体を行う事ができるようだ」
+			CASE 26
+			;一応、住み分けはしっかりしておく
+				IF GETBIT(FLAG:EXTRAイベント設定, 0) == 0
+					PRINTL 「我々の知る宇宙とは異質の世界と接触する……
+					PRINTL 　奇妙な事に、そんな選択肢も存在しているらしい。
+					PRINTW 　もちろん、強要するつもりはない。ただ有用かも知れない、という程度の噂だよ」
+				ELSE
+					PRINTL 「インストールソフトは揃っているかい？
+					PRINTL 　幻想郷、魔法少女…世界は無限の可能性で満ちている。
+					PRINTW 　恐れず試してみて欲しい」
+				ENDIF
+			CASE 27
+			PRINTL 「多くの妖精を調教したデビルサマナーは民俗学に精通すると聞く
+			PRINTW 　悪魔全書を完成させるのに有用なスキルだろう」
+		ENDSELECT
+ENDIF
+
+RETURN

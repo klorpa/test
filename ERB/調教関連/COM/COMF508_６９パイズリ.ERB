@@ -1,0 +1,259 @@
+;-------------------------------------------------
+;６９パイズリ
+;奉仕系派生コマンド
+;-------------------------------------------------
+@ACT_COM508
+PRINTL ６９ Titfuck
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+TSTR:0 = ６９パイズリ
+;SELECTCOM = 508
+;CALL KOJO_MESSAGE_COM
+
+;実行者が奴隷であるフラグ
+TFLAG:28 = 1
+
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 2500
+
+;ABL:調教者の技巧をみる
+IF ABL:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:奉仕精神をみる
+IF ABL:7 == 0
+	TIMES B , 0.50
+ELSEIF ABL:7 == 1
+	TIMES B , 0.80
+ELSEIF ABL:7 == 2
+	TIMES B , 1.20
+ELSEIF ABL:7 == 3
+	TIMES B , 1.50
+ELSEIF ABL:7 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.40
+ENDIF
+
+;TALENT:舌使い、猫舌をみる
+SIF TALENT:52 || TALENT:54
+	TIMES B , 2.00
+
+;プレイヤーのABL:Ｂ感覚をみる
+IF ABL:PLAYER:6 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:6 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:6 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:6 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:6 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+	LOCAL:99 = B
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:PLAYER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+;再装填処理中は射精ゲージは20分の1に
+IF CFLAG:PLAYER:9 > 0
+	B /= 20
+	LOCAL:99 /= 20
+ENDIF
+
+SIF HAVE_PENIS(PLAYER)
+	BASE:PLAYER:2 += B
+SIF TALENT:PLAYER:オトコ == 0
+	BASE:PLAYER:99 += LOCAL:99
+
+
+
+;調教者←→調教対象
+TFLAG:28 = 3
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 10
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:快Ｃ = 150
+SOURCE:TARGET:快Ｂ = 150
+SOURCE:TARGET:情愛 = 200
+SOURCE:TARGET:性行動 = 500
+SOURCE:TARGET:達成 = 300
+SOURCE:TARGET:液体 = 80
+SOURCE:TARGET:露出 = 100
+SOURCE:TARGET:屈従 = 1200
+SOURCE:TARGET:逸脱 = 700
+SOURCE:TARGET:反感 = 700
+
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*10 + 60
+
+;調教者にＣPleasure、ＢPleasure
+SOURCE:PLAYER:0 = 150
+SOURCE:PLAYER:3 = 150
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 1000
+
+;舌を使う調教では、調教者の舌使いによって、快感のソース増加
+SIF TALENT:PLAYER:52
+	TIMES SOURCE:TARGET:快Ｃ , 1.50
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 5
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＢ⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("胸", TARGET, "ペニス", PLAYER)
+;奴隷のＶ⇔調教者の口の汚れが移動
+CALL MOVE_STAIN("ヴァギナ", TARGET, "口", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:7+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:7+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 7
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+;	PRINTS EXPNAME:23
+;	PRINTL +1
+	CALL ADDS_EXP("愛情経験", 1, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+;奴隷が猫舌持ちの場合は、調教者にSadoEXPを追加
+IF TALENT:TARGET:54
+	CALL ADDS_EXP("嗜虐快楽経験", 1, TARGET)
+;	PRINTFORML %EXPNAME:32%＋１
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 2
+
+;依存度補正値(主人かつ恋慕、淫乱、服従で1。親愛、娼婦、隷属で2）
+IF (TALENT:3 || TALENT:4 || TALENT:5) && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF (TALENT:6 || TALENT:7 || TALENT:8) && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+;奉仕快楽フラグ
+TFLAG:100 = 1
+
+RETURN 1
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+@COM_ORDER_508, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "欲望", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "奉仕精神", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "精液中毒", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "MARK", "快楽刻印", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "PALAM", "欲情", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥じらい", -1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭鈍感", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭敏感", -3, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "献身的", 6, ARG, ARG:1
+SIF !TALENT:ARG:淫乱 && !TALENT:ARG:娼婦
+	CALL ADD_COM_ORDER, "TALENT", "快感の否定", -3, ARG, ARG:1
+;男嫌い（恋慕、親愛で無効）
+SIF HATE(ARG, ARG:1)
+	CALL ADD_COM_ORDER, "TALENT", \@IS_MALE(PLAYER) ? 男嫌い # 女嫌い \@, -12, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恋慕", 5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "親愛", 10, ARG, ARG:1
+;調教者がふたなり
+CALL ADD_COM_ORDER, "TALENT", "ふたなり", 8, ARG:1, ARG
+CALL ADD_COM_ORDER, "STAIN", "ペニス", 100, ARG, ARG:1
+CALL ADD_COM_ORDER, "RELATION", , , ARG, ARG:1
+
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_508
+RETURN 34
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_508
+RETURN COMTYPE("派生系")
+
+

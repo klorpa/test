@@ -1,0 +1,408 @@
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_12
+;レベル１０以上
+IF BASE:MASTER:LV >= 10 && イベントフラグ:12:0 == 0 || (ダンジョンフラグ:72:8 > 0 && イベントフラグ:12:0 == 1) || (ダンジョンフラグ:73:8 > 0 && イベントフラグ:12:0 == 2)
+	RESULTS = Studio of Deep Fog
+	RETURN 1
+;レベル４０以上、大浴場クリア済み
+ELSEIF BASE:MASTER:LV >= 40 && イベントフラグ:12:0 == 3
+	;P4主人公が戦闘参加可能＝調教陥落済み、P4主人公がパーティメンバーにいる
+	IF FINDCHARA_B([[キャラ:P4主人公]]) == 2 && CFLAG:GETCHARA([[キャラ:P4主人公]]):戦闘参加不可能 == 0
+		RESULTS = Studio of Deep Fog：Email from Teddie
+		RETURN 1
+	;P4主人公が協力者ポジション、調教すると戦闘参加不可に、P4主人公がパーティメンバーにいる
+	ELSEIF FINDCHARA_B([[キャラ:P4主人公]]) == 2 && CFLAG:GETCHARA([[キャラ:P4主人公]]):戦闘参加不可能 == -1
+		RESULTS = Studio of Deep Fog：Sudden Visit
+		RETURN 1
+	ELSE
+		RESULTS = Studio of Deep Fog：Email from Teddie
+		RETURN 1
+	ENDIF
+;天上楽土開始済み、かつ天上楽土進行状況突入済みで天上楽土の霧状況霧が出ていない、天上楽土クリアしてない
+ELSEIF イベントフラグ:12:0 == 4 && ダンジョンフラグ:74:5 >= 1 && ダンジョンフラグ:74:3 == 0 &&  ダンジョンフラグ:74:1 == 0
+	RESULTS = Studio of Deep Fog：Fog of Yasoinaba
+	RETURN 1
+;レベル５０以上、天上楽土開始、クリア済み、時間帯夜
+ELSEIF BASE:MASTER:LV >= 50 && イベントフラグ:12:0 == 4 && ダンジョンフラグ:74:1 >= 1 && TIME == 3
+	RESULTS = Studio of Deep Fog：Midnight Channel
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+;最近イカ娘とクマって性別違うだけで同類に思えてきた
+@SHOPCOM_EVENT_12
+	IF イベントフラグ:12:0 == 0
+		PRINTL
+		PRINTL ＞Paradigm Ｘ... The face of Phantom Society, the virtual city created by Algon Soft.
+		PRINTL 　But, it's true purpose was a place where various organizations and free summoners can deal in demons and information.
+		PRINTL 　Patrolling Paradigm Ｘ for various troubles is a job of the summoners of Phantom Society.
+		PRINTW 
+		PRINTFORML ＞Suddenly, a strange object fell before %CALLNAME:MASTER% during a patrol in a deserted alley.
+		PRINTL 　It appears to be a round plush object a person can enter... is it a costume?
+		PRINTW 　As people in Paradigm Ｘ can change appearance at will, costumes generally don't exist...
+		PRINTL 　When you observed the fallen object, it suddenly rolled onto its back.
+		PRINTW 
+		PRINTL 「Uhyo!!! After the shadows is a human!」
+		PRINTW 「It's beary dangerous here! Teddie has to flee quickly!!!」
+		PRINTL 「Ah, I have to wake up first」
+		PRINTW 
+		PRINTL ＞When you were about to lend it a hand, black objects jumped out of a manhole.
+		PRINTL 「Uaaaaaa, they're here!」
+		PRINTW 
+		PRINTL ＞A flock of shadows appeared
+		PRINTW 
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CUSTOMDRAWLINE =
+			WAIT
+			CALL SET_ENEMY, 8, 3203, 6, 0, 0
+			CALL SET_ENEMY, 9, 3204, 9, 0, 0
+			CALL SET_ENEMY, 10, 3207, 6, 0, 0
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			WAIT
+		PRINTL 
+		PRINTL ＞Defeated the flock of shadows
+		PRINTW 
+		IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+			PRINTL 「Big brother is beary strong huh.」
+		ELSE
+			PRINTL 「Big sister is beary strong huh.」
+		ENDIF
+		PRINTW 「Maybe they could help instead!」
+		PRINTL ＞It began to speak to you triumphantly
+		PRINTW 
+		PRINTL 「Nice to meet you, this bear is Teddie」
+		PRINTL 「There is a guy in the human world throwing people into this world so that shadows would kill them!」
+		PRINTW 「This cool bear was going around looking for someone to help...」
+		PRINTL 「I saw you looking at me suspiciously! This bear is beary popular!」
+		PRINTL 「I only slipped a short while ago...」
+		PRINTW 
+		PRINTL 「Aaaaaaaanyways! Because I'm annoyed by all the humans thrown into here.」
+		PRINTL 「I want you to do something!」
+		PRINTW 
+				$INPUT_LOOP_A1
+		PRINTL ＞Help the bear?
+		CALL INPUT_YN
+			IF RESULT == 0
+				PRINTW 「Thank you beary much！This bear has found two kind senseis！」
+			ELSE
+				PRINTL 「I can tell you want to help even if you say such things」
+				GOTO INPUT_LOOP_A1
+			ENDIF
+		PRINTW 
+		PRINTL 「Well now, a girl named Yukiko was thrown into this world and landed in a place called Princess Yukiko's Castle.」
+		PRINTL 「Another girl named Chie jumped into that place to help Yukiko...」
+		PRINTL 「Please go there first!」
+		PRINTW 
+		PRINTL ＞You can now go to Princess Yukiko's Castle
+		PRINTW 
+		PRINTL 「You don't have to worry about going back...」
+		PRINTL 「Teddie has the power to return everyone to their original world.」
+		PRINTL 「But, the world became strange and I can't use it now.」
+		PRINTW 
+		PRINTL 「Therefore, Teddies asks you to return her to her original world after saving her!」
+		PRINTL 「Good luck!」
+		PRINTW 
+		イベントフラグ:12:0 = 1
+	ELSEIF イベントフラグ:12:0 == 1
+		PRINTL ＞Like before, you went to the alley where you met the bear。
+		PRINTL 　It should be around here... 
+		PRINTW 
+		PRINTL :Teddie
+		PRINTL 「Here! Over here!」
+		PRINTW 
+		PRINTL ＞You saw the bear sticking out of a manhole
+		PRINTL   You were suddenly seized with the impulse to hit it and went to the manhole as invited.
+		PRINTW 
+		PRINTL :Teddie
+		PRINTL 「Don't, I just got out!」
+		PRINTL 「There are many scary people here, Teddie is very nervous.」
+		PRINTW 
+		PRINTL 「Thank you for helping the Yukiko girl! Things became quieter around here thanks to you.」
+		PRINTL 「I want to ask for your help in finding the criminal... there will be not problem because an other sensei is helping.」
+		PRINTL 「This other sensei, he is strong and reliable!」
+		PRINTL 「Because of sensei, it will be alright to entrust it to sensei!」
+		PRINTW 
+		PRINTL ＞You might be able to leave the search for the criminal to another...
+		PRINTW 
+		PRINTW 
+		PRINTL Male Voice
+		PRINTL 「Yo! Teddie! So this is where you've been.」
+		PRINTW 
+		PRINTL :Teddie
+		PRINTL 「Yo-Yosuke! W-what are you doing here!? I said you wouldn't be able to go back!」
+		PRINTW 
+		PRINTL Yosuke
+		PRINTL 「Ah, but didn't I hear there was another way out?」
+		PRINTL 「Hearing that I came to see how things were turning out.」
+		PRINTL 「That fellow is all talk, so I came to be a trump.」
+		PRINTW 
+		PRINTL :Teddie
+		PRINTL 「Well, the vanguard suits you Yosuke.」
+		PRINTW 
+		PRINTL Yosuke
+		PRINTL 「What do you mean by that?」
+		PRINTW 「Oh there's someone here, were you thrown in?」
+		PRINTL 「You were shown on the Midnight Channel. What was that?」
+		PRINTW 
+		PRINTL :Teddie
+		PRINTL 「Ah, so that's what it was! I was talking with this place's sensei and completely forgot.」
+		PRINTW 
+		PRINTL Yosuke
+		PRINTW 「Don't forget such an important thing!」
+		IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+			PRINTL 「You are the sensei of this place? You certainly feel like that guy.」
+		ELSE
+			PRINTL 「You are the sensei of this place? I didn't think you could possibly be a woman.」
+		ENDIF
+		PRINTL 「I am Yosuke Hanamura, take care when leaving, my best regards.」
+		PRINTL ＞Yosuke Hanamura joined
+			CALL ADD_NEW_COMPANION, 4564, 100
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			;REPEAT CHARANUM
+			;戦闘参加可能で加入するが、調教で戦闘参加不可能になる
+			;SIF NO:COUNT == 4564
+			;CFLAG:COUNT:戦闘参加不可能 = -1
+			;REND
+		PRINTW 
+		PRINTL 「Mmmmm, that area smells sweaty...well...」
+		PRINTW 
+		PRINTL ＞You can now go to the Steamy Bathhouse
+		PRINTW 
+		イベントフラグ:12:0 = 2
+	ELSEIF イベントフラグ:12:0 == 2
+		;大浴場クリア後
+		PRINTL 
+		PRINTW ＞You came to the studio to report your actions to the bear
+		PRINTL :Teddie
+		PRINTL 「Ah, thank you sensei.」
+		PRINTL 「You were able to help Kanji.」
+		PRINTW 「Eh? How did I know that? Don't underestimate a bear's sense of smell!」
+		PRINTL Yosuke
+		PRINTW 「How patronizing, the rags appeared again.」
+		PRINTL :Teddie
+		PRINTL 「I am a bear! Bears are always perfect! I am an always popular nice guy!」
+		PRINTW 「Is Yosuke similar at all, I wonder?」
+		;how rare
+		PRINTL Yosuke
+		PRINTW 「Argh, I have a small meeting to attend. I should go soon...I'm going I'm going」
+		PRINTL :Teddie
+		PRINTW 「Sensei has been gone a long time, did something happen?」
+		PRINTL Yosuke
+		PRINTW 「He came because I called him.」
+		PRINTL :Teddie
+		PRINTL 「With two senseis this crime will be solved in no time!」
+		PRINTL 「Let's do our best!」
+		PRINTW 
+		CALL ADD_NEW_COMPANION, 4573, 500
+		SIF RESULT
+			CFLAG:(RESULT:1):戦闘参加不可能 = -1
+		LOCAL = GETCHARA(4573)
+		$INPUT_LOOP_B2
+		PRINTL Please input a name for the P4 protag
+		INPUTS
+		NAME:LOCAL = %RESULTS%
+		PRINTL Please input a nickname for the P4 protag
+		INPUTS
+		CALLNAME:LOCAL = %RESULTS%
+		VARSET LOCALS
+		IF NAME:LOCAL == LOCALS && CALLNAME:LOCAL == LOCALS
+			IF RAND:2
+				NAME:LOCAL = Souji Seta
+				CALLNAME:LOCAL = Souji
+			ELSE
+				NAME:LOCAL = Yu Narukami
+				CALLNAME:LOCAL = Yu
+			ENDIF
+		ENDIF
+		PRINTFORML Name　%NAME:LOCAL%
+		PRINTFORML Nickname　%CALLNAME:LOCAL%
+		PRINTL Is this alright?
+		CALL INPUT_YN, "Yes", "No"
+		SIF RESULT == 1
+		GOTO INPUT_LOOP_B2
+
+		;REPEAT CHARANUM
+		;戦闘参加可能で加入するが、調教で戦闘参加不可能になる
+		;SIF NO:COUNT == 4573
+		;CFLAG:COUNT:戦闘参加不可能 = -1
+		;REND
+		PRINTFORMW ＞%NAME:LOCAL% has joined as a new team member.
+		イベントフラグ:12:0 = 3
+	;クマからの依頼
+	;大浴場クリア済み、禍津稲羽市・マガツマンダラ突入してない
+	ELSEIF イベントフラグ:12:0 == 3 && ダンジョンフラグ:75:9 == 0
+		;P4主人公がパーティメンバーにいる、P4主人公が戦闘参加可能＝調教陥落済み
+		IF FINDCHARA_B([[キャラ:P4主人公]]) == 2 && CFLAG:GETCHARA([[キャラ:P4主人公]]):戦闘参加不可能 == 0
+			PRINTW 『This Teddie would beary like to see you』
+			PRINTL ＞An email suddenly came from Teddie
+			PRINTFORMW %CALLNAME:MASTER% worriedly decided to visit that back alley.
+			PRINTL 
+			CUSTOMDRAWLINE - 
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「Sensei!　Teddie really wanted to met you!」
+			PRINTW ＞The costume bear rushed over as soon as he heard you.
+			PRINTL 
+			PRINTL 
+			PRINTL 「Teddie was...lonely...」
+			PRINTW 「Did you get my e-mail?I recently learned how to do this.」
+			PRINTW ＞His wiggling fingers are a bit creepy...
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「With these...Teddie sent an e-mail because Teddie was so lonely!」
+			PRINTL 
+			PRINTW .......
+			PRINTW .....
+			PRINTW ...
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「Ah!　Wait!　Wait up!」
+			PRINTW ＞Just for that?　Teddie grasped your hand as you tried to leave
+			PRINTL 
+			PRINTL :Teddie
+			PRINTL 「A little while ago...Teddie smelled something like sensei here.」
+			PRINTW 「Ah!　It definitely was not sensei either sensei.」
+			PRINTFORMW ＞Somehow, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% was seen here
+			PRINTL 
+			PRINTL :Teddie
+			PRINTL 「Well, when Teddie looked for the source of the scent, something was strange...It was a place like Heaven!」
+			PRINTW 「Surely, someone must have been thrown in again!」
+			PRINTL 
+			PRINTW ＞You could now go to Heaven
+			PRINTL 
+			PRINTL 
+			PRINTFORMW ＞After coming back to the office and check the news, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%'s cousin、Nanako Dojima, went missing.
+			PRINTW A man named Taro Namatame was wanted as her kidnapper...
+			PRINTL 
+			PRINTW ＞Will both Nanako and Namatame be there...?
+		;P4主人公がパーティメンバーにいる、P4主人公が協力者ポジション、調教すると戦闘参加不可に
+		ELSEIF FINDCHARA_B([[キャラ:P4主人公]]) == 2 && CFLAG:GETCHARA([[キャラ:P4主人公]]):戦闘参加不可能 == -1
+			PRINTFORMW ＞One day, %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% came to %CALLNAME:MASTER% wearing an unusual expression.
+			PRINTFORMW According to %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))%, his cousin Nanako Dojima went missing and has showed up on the Midnight Channel.
+			PRINTL 
+			PRINTFORMW ＞You and %CALLNAME:(FINDCHARA(NO, [[キャラ:P4主人公]]))% decided to visit Teddie, to get his help for the rescue...
+			PRINTL 
+			CUSTOMDRAWLINE - 
+			PRINTL 
+			PRINTW ＞You went back to the usual back alley
+			PRINTW The figure of Teddie...
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「Sensei!　I beary much wanted to meet with you!」
+			PRINTW ＞You rushed together in search of the bear
+			PRINTL 
+			PRINTL :Teddie
+			PRINTL 「Why have both of you come here?」
+			PRINTW 「If you want...you can visit me anytime♪」
+			PRINTW ＞You explaind the circumstances as the bear muttered incomprehsibly...
+			PRINTL 
+			PRINTL :Teddie
+			PRINTL 「Nanako!?　This is a beary serious affair!」
+			PRINTW 「Teddie will do his beary best to find the scent!」
+			PRINTL 
+			PRINTW 「Hmmmmm!　From that direction, there is something that smells like sensei!」
+			PRINTL 
+			PRINTW ＞Does he know Nanako, the more-excited-than-usual bear allow you to enter Heaven
+			PRINTL 
+			PRINTW .......
+			PRINTW .....
+			PRINTW ...
+			PRINTL 
+			PRINTW ＞After you returned to the office, you learned that the man suspected of kidnapping her was Taro Namatame and went missing as well.
+			PRINTL 
+			PRINTW ＞Will both Nanako and Namatame be there...?
+		;その他の導入
+		ELSE
+			PRINTW 『Teddie really wants to see you』
+			PRINTL ＞An email suddenly arrived from Teddie
+			PRINTFORMW %CALLNAME:MASTER% was worried and visited the back alley.
+			PRINTL 
+			CUSTOMDRAWLINE - 
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「Sensei!　Teddie really wanted to meet you!」
+			PRINTW ＞You lightly hurried when you heard the call.
+			PRINTL 
+			PRINTL 
+			PRINTL 「Teddie was...lonely...」
+			PRINTW 「Did my e-mail reach you? Teddie recenly learned how to do this.」
+			PRINTW ＞You felt a little uneasy when you saw his wiggling fingers...
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「With these...Teddie sent an e-mail because Teddie was so lonely!」
+			PRINTL 
+			PRINTW .......
+			PRINTW ....
+			PRINTW ...
+			PRINTL 
+			PRINTL :Teddie
+			PRINTW 「Ah!　Wait!　Wait up!」
+			PRINTW ＞You came just for this?　Teddies grasped your hand as you tried to go back
+			PRINTL 
+			PRINTL :Teddie
+			PRINTL 「A little while ago...Teddie smelled something like sensei here.」
+			PRINTW 「Ah!　It definitely was not sensei either sensei.」
+			PRINTW ＞Somehow, the scent was similar to that of the boy that joined you
+			PRINTL 
+			PRINTL :Teddie
+			PRINTL 「Well, when Teddie looked for the source of the scent, something was strange...It was a place like Heaven!」
+			PRINTW 「Surely, someone must have been thrown in again!」
+			PRINTL 
+			PRINTW ＞You could now go to Heaven
+			PRINTL 
+			PRINTL 
+			PRINTW ＞When you went back to the office, you learned that a girl named Nanako Dojima was missing
+			PRINTW Taro Namatame was named as her kidnapper and was also missing...
+			PRINTL 
+			PRINTW ＞Will both Nanako and Namatame be there...?
+		ENDIF
+		;天上楽土開始済みへ
+		イベントフラグ:12:0 = 4
+	;天上楽土開始済み、かつ天上楽土進行状況突入済みで天上楽土の霧状況霧が出ていない、天上楽土クリアしてない
+	ELSEIF イベントフラグ:12:0 == 4 && ダンジョンフラグ:74:5 >= 1 && ダンジョンフラグ:74:3 == 0 && ダンジョンフラグ:74:1 == 0
+		PRINTW The weather in Yasoinaba was changing according to the forecast, the fog seems to be flooding the place...
+		PRINTL 
+		PRINTL :Teddie
+		PRINTW 「When the fog appears over there, the fog clears over here, and the shadows become violent!」
+		PRINTW You remembered the words of the bear...
+		PRINTL 
+		PRINTW Perhaps, next time will be the last chance.
+		PRINTW You should rescue her then, Nanako...
+		
+		;天上楽土の霧状況：霧晴れたへ
+		ダンジョンフラグ:74:3 = 1
+	;レベル５０以上、天上楽土開始、クリア済み、時間帯夜
+	ELSEIF BASE:MASTER:LV >= 50 && イベントフラグ:12:0 == 4 && ダンジョンフラグ:74:1 >= 1 && TIME == 3
+		PRINTW On a certain rainy night...
+		PRINTW When you relaxed in your room, suddenly, the deactivated television turned on.
+		PRINTL 
+		PRINTW The time is exactly midnight.
+		PRINTW This, is it the rumored Midnight Channel?
+		PRINTW It is said to show your soul mate...When you watched, somebody appeared on the reflected screen...
+		PRINTL 
+		PRINTW You can't see very clearly, but it looks like a man in a destroyed town.
+		PRINTL 
+		PRINTW Whenever someone appears on the Midnight Channel, a related place appears in the other world.
+		PRINTL 
+		PRINTW Will this be the same?
+		PRINTW If the landscape is like that, it might be interesting to explore...
+		PRINTL 
+		PRINTW ＞You can now go to Magatsu Inaba
+		
+		;禍津稲羽市・マガツマンダラ開始済みへ
+		イベントフラグ:12:0 = 5
+	ENDIF

@@ -1,0 +1,239 @@
+;-------------------------------------------------
+;バイブ
+;道具使用コマンド、レベル2
+;-------------------------------------------------
+@COMNAME44
+IF TEQUIP:13
+	RESULTS = Remove Vibrator
+ELSE
+	RESULTS = Vibrator
+ENDIF
+@ACT_COM44
+;-------------------------------------------------
+;特殊派生処理
+;-------------------------------------------------
+IF TEQUIP:25
+	PRINTL Tentacle insertion
+	TSTR:0 = 触手挿入
+	SELECTCOM = 161
+ELSE
+	PRINTL Vibrator
+	TSTR:0 = バイブ
+ENDIF
+;CALL KOJO_MESSAGE_COM
+
+;V経験を伴うコマンドのフラグ(処女膜再生対応)
+TFLAG:19 = 1
+
+;着脱の処理
+IF TEQUIP:13 == 0
+	TEQUIP:13 = 1
+	;触手挿入は触手の汚れを追加
+	IF TEQUIP:25
+		CALL SET_STAIN("ヴァギナ", "粘液", TARGET)
+	ENDIF
+ELSE
+	TEQUIP:13 = 0
+ENDIF
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 30
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:道具快Ｖ = 250
+SOURCE:TARGET:痛み = 50
+SOURCE:TARGET:露出 = 20
+SOURCE:TARGET:逸脱 = 40
+SOURCE:TARGET:反感 = 40
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 40
+
+;処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:0 == 1
+	SOURCE:TARGET:痛み += 2000
+	SOURCE:TARGET:反感 += 3000
+ENDIF
+
+;再生処女だった場合は、苦痛のソースと反発のソースを追加する
+IF TALENT:1 == 1
+	SOURCE:TARGET:痛み += 500
+	SOURCE:TARGET:反感 += 1000
+ENDIF
+
+;Vへの苦痛は先に処理しておく
+;EXP:Ｖ経験をみる（処女の反感は別途処理済みなので省略）
+IF EXP:0 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 2.50
+ELSEIF EXP:0 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 0.80
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:0 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 0.40
+ELSEIF EXP:0 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 0.10
+ELSEIF EXP:0 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.00
+ELSEIF EXP:0 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.00
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 0.70
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 0.40
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.10
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.10
+ENDIF
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;触手挿入なら、触手体液が膣内に付く
+SIF TEQUIP:25
+	CALL SET_STAIN("膣内", "粘液", TARGET)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;V経験
+CALL ADDS_EXP("Ｖ経験", 1, TARGET)
+
+;AbnormalEXP
+IF TALENT:0 == 1 && TEQUIP:25 == 1
+;	EXP:50 += 2
+;	PRINTFORML %EXPNAME:50%＋２
+	CALL ADDS_ABNORMAL_EXP("Lost virginity（Tentacles）", TARGET)
+ELSEIF TALENT:0 == 1
+;	EXP:50 += 1
+;	PRINTFORML %EXPNAME:50%＋１
+	CALL ADDS_ABNORMAL_EXP("Lost virginity（Vibrator）", TARGET)
+ENDIF
+
+;LesbianEXP
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;触手召喚時、TentacleEXPのリセットをする
+;SIF TEQUIP:25 == 1
+;	T = 0
+
+;依存度ベクトル
+TFLAG:33 = 1
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM44
+;バイブ挿入中
+
+;V経験を伴うコマンドのフラグ(処女膜再生対応)
+TFLAG:19 = 1
+
+IF TEQUIP:25
+	PRINTL ＜触手挿入中＞
+ELSE
+	PRINTL ＜バイブ挿入中＞
+ENDIF
+
+DOWNBASE:TARGET:体力 += 10
+DOWNBASE:TARGET:気力 += 50
+
+SOURCE:TARGET:道具快Ｖ += 125
+SOURCE:TARGET:露出 += 10
+SOURCE:TARGET:逸脱 += 20
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 20
+
+;Vへの苦痛は先に処理しておく
+;EXP:Ｖ経験をみる（処女はありえない）
+A = 25
+B = 20
+IF EXP:0 < EXPLV:2
+	TIMES A , 0.80
+	TIMES B , 1.20
+ELSEIF EXP:0 < EXPLV:3
+	TIMES A , 0.40
+ELSEIF EXP:0 < EXPLV:4
+	TIMES A , 0.10
+ELSEIF EXP:0 < EXPLV:5
+	TIMES A , 0.00
+ELSEIF EXP:0 >= EXPLV:5
+	TIMES A , 0.00
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES A , 1.20
+	TIMES B , 1.50
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES A , 0.70
+	TIMES B , 1.20
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES A , 0.40
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES A , 0.10
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES A , 0.10
+ENDIF
+SOURCE:TARGET:痛み += A
+SOURCE:TARGET:反感 += B
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;自慰実行時は経験＋１
+IF SELECTCOM == 11
+	CALL ADDS_EXP("Ｖ経験", 2, TARGET)
+ELSE
+	CALL ADDS_EXP("Ｖ経験", 1, TARGET)
+ENDIF
+
+;TentacleEXP加算
+SIF TEQUIP:25 == 1
+	CALL ADDS_EXP("触手経験", 1, TARGET)
+;	T += 1
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_44
+RETURN COMTYPE("道具系")
+
+

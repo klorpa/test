@@ -1,0 +1,201 @@
+
+
+;スキル名
+@SKILL_NAME_4762,ARG
+RESULTS = Heat Rift
+;ヒートブレイク
+;　命中
+@SKILL_HITRATE_4762, ARG
+RETURN 90
+
+;　威力
+@SKILL_POWER_4762, ARG
+SIF ARG == -1 || CFLAG:ARG:単独リンケージ
+	RETURN 480
+;発動者と参加者の魔法威力の比率により、威力に補正がかかる
+RETURN 480 * (MAXBASE:ARG:魔法威力 * 2 + MAXBASE:(CFLAG:ARG:リンケージ参加者1):魔法威力 + MAXBASE:(CFLAG:ARG:リンケージ参加者2):魔法威力) / (MAXBASE:ARG:魔法威力 * 4)
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_4762,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_4762,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_4762, ARG, ARG:1
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_4762, ARG
+RETURN 16
+
+;　相性
+@SKILL_TYPE_4762,ARG
+RETURN GET_TYPE_NUM("核熱")
+;　1EXTRAか2MAGICか
+
+@SKILL_DECIDE_TYPE_4762
+RETURN 1
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_4762
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_4762
+RETURN 1
+
+;　射程
+@SKILL_RANGE_4762,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_4762,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_4762
+RETURN 1
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_4762,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_4762
+RETURN 23
+;Nuclr
+
+;速度補正
+@SKILL_SPEED_4762, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_4762,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_4762
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_4762
+RETURN 0
+
+@SKILL_RANKUP_4762
+RETURN 0
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_4762,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_4762,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_4762,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_4762,ARG
+RETURN 0
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_4762,ARG,ARG:1
+CALL ATTACK_FIELD, ARG, ARG:1, 4762
+
+
+
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_4762
+PRINTL Nuclear heat wave the disintegrate matter.
+PRINTL Deals severe Nuclear damage to all foes.
+
+;継承に必要な部位
+@継承部位_4762,ARG
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_4762,ARG
+CALL CHECK_COST,ARG,4762
+SIF RESULT == 0
+	RETURN 0
+RETURN 1
+;とくにない
+
+
+;=====================================================
+;リンケージ設定
+;=====================================================
+@LINKAGE_4762
+RETURN 1
+
+@参加人数_4762
+RETURN 2
+
+@参加条件表示_4762,ARG
+SELECTCASE ARG
+	CASE 1
+		PRINTFORM Nuclear skill
+	CASE 2
+		PRINTFORM Force skill
+	CASE 3
+		PRINTFORM Freidyne
+ENDSELECT
+
+@発動者条件_4762 , ARG
+;フレイダインを使えること
+SIF HAVE_SKILL(ARG, [[スキル:フレイダイン]]) == 0
+	RETURN 0
+CALL CHECK_ACTIONABLE , ARG , [[スキル:フレイダイン]]
+SIF RESULT
+	RETURN 1
+RETURN 0
+
+
+@参加者条件_4762, ARG , ARG:1
+SIF CPOS(ARG) < 1 || CPOS(ARG) > 6
+	RETURN 0
+CALL CHECK_COST_LINCAGE, ARG, 4762, ARG:1
+SIF RESULT == 0
+	RETURN 0
+SELECTCASE ARG:1
+	CASE 1
+		;核熱相性の攻撃魔法スキルを使用可能なこと
+		CALL HAVE_SKILL_SEARCH(ARG, "核熱", , "攻撃", "魔法", 4762)
+		RETURN RESULT
+	CASE 2
+		;衝撃相性の攻撃魔法スキルを使用可能なこと
+		CALL HAVE_SKILL_SEARCH(ARG, "衝撃", , "攻撃", "魔法", 4762)
+		RETURN RESULT
+ENDSELECT
+
+@リンケージコストタイプ_4762, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 3
+	CASE 2
+		RETURN 3
+ENDSELECT
+@リンケージコスト_4762, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 12
+	CASE 2
+		RETURN 12
+ENDSELECT

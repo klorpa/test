@@ -1,0 +1,50 @@
+;-------------------------------------------------
+;   素質のチェック
+;-------------------------------------------------
+; Input:
+;  ARG:0				チェック対象者
+;  ARG:1				素質、または相性番号
+;  ARG:2				ARG:1の番号を素質か相性でチェックする
+;						0‐素質番号チェック(剣撃 0	飛具 1	打撃 2	戦技 3	回復 4	支援 5	防御 6	火炎 7	氷結 8	電撃 9	衝撃 10	神経 11	精神 12	破魔 13	呪殺 14	地変 15	水撃 16	疾風 17	重力 18	核熱 19	万能 20	サイコ 21	自動効果 22)
+;						1‐相性番号チェック(剣撃 0	飛具 1	打撃 2	戦技 3	火炎 4	氷結 5	電撃 6	衝撃 7	神経 8	精神 9	破魔 10	呪殺 11	地変 12	水撃 13	疾風 14	重力 15	核熱 16	万能 17)
+;  ARG:3				設定を無視できるか	1でできる
+;						（基本的に無視できるのはスキルのみにしておく）
+;-------------------------------------------------
+@相性素質チェック,ARG,ARG:1,ARG:2,ARG:3 = -1
+#DIMS L_素質名
+;設定が無効なら何もしない
+SIF BATTLE_SETTING_IS_TALENT() == 0 && ARG:3 < 0
+	RETURN 0
+SIF ARG < 0
+	RETURN 0
+IF ARG:2 == 0
+	SIF ARG:1 > 22
+		RETURN 0
+	L_素質名	= %GET_SUCCESSION(ARG:1)%
+ELSEIF ARG:2 == 1
+	SIF ARG:1 > 19
+		RETURN 0
+	L_素質名	= %GET_TYPE(ARG:1)%
+ELSE
+	RETURN 0
+ENDIF
+;本人の素質チェック
+SIF TALENT:ARG:L_素質名
+	RETURN 1
+;初期ペルソナまたは初期リンク悪魔の素質チェック
+IF TALENT:ARG:ペルソナ使い && ABL:ARG:初期ペルソナ > 0
+	;SIF TALENT:(ABL:ARG:初期ペルソナ CFLAG:ARG:初期ペルソナナンバー):L_素質名;PRINTFORM {LOCAL};LOCAL = ABL:ARG:初期ペルソナ
+	IF  EXISTCSV((ABL:ARG:初期ペルソナ), 0)
+		SIF CSVTALENT((ABL:ARG:初期ペルソナ),GETNUM(TALENT,L_素質名),0)
+			RETURN 1
+	ENDIF
+ENDIF
+IF (TALENT:ARG:デビルシフター || TALENT:ARG:喰奴 || TALENT:ARG:悪魔憑き) && CFLAG:ARG:初期リンク悪魔 > 0
+		
+	IF  EXISTCSV((CFLAG:ARG:初期リンク悪魔), 0)
+		SIF CSVTALENT((CFLAG:ARG:初期リンク悪魔),GETNUM(TALENT,L_素質名),0)
+			RETURN 1
+	ENDIF
+ENDIF
+
+RETURN 0

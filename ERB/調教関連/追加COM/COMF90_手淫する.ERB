@@ -1,0 +1,112 @@
+
+@CHECK_COM_ABLE90
+
+;手淫する実行判定
+;性器が汚れているとMASTERの場合フェラするはできない（調教者が汚れ無視か愛液、Ｐ、母乳のよごれならＯＫ）
+;SIF STAIN:TARGET:2 >= 4 && (STAIN:TARGET:2 != 18 && STAIN:TARGET:2 != 19) && ASSIPLAY == 0 && TALENT:MASTER:64 == 0
+;	RETURN 0
+;性器が汚れており、汚臭敏感で従順3以下のASSIの場合フェラはできない（調教者が汚れ無視か愛液、Ｐ、母乳のよごれならＯＫ）
+;IF STAIN:TARGET:2 >= 4 && (STAIN:TARGET:2 != 18 && STAIN:TARGET:2 != 19) && ASSIPLAY
+;	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0
+;		RETURN 0
+;ENDIF
+;オトコかふたなりじゃないとダメ
+;SIF HAVE_CLITORIS(TARGET)
+;	RETURN 0
+
+;手淫実行判定
+;オナホ着けている時は出来る
+IF TEQUIP:12 > 0
+	RETURN 1
+ENDIF
+SIF !USE_PENIS(TARGET,3)
+	RETURN 0
+SIF !USE_HAND(PLAYER)
+	RETURN 0
+;下半身下着をつけている、スカート以外の下半身上着を履いている、下の空いてない全身上着を着ているとダメ
+SIF TEQUIP:陰唇露出 != -1
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+;三角木馬騎乗中はダメ
+SIF TEQUIP:41
+	RETURN 0
+RETURN 1
+
+@ACT_COM90
+;手淫する
+
+IF TEQUIP:12
+	PRINTL オナホコキ
+	TSTR:0 = オナホコキ
+ELSE
+	PRINTL Do Handjob
+	TSTR:0 = 手淫する
+ENDIF
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+
+;CALL KOJO_MESSAGE_COM
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+;消費体力、Willpower
+LOSEBASE:0 += 5
+LOSEBASE:1 += 50
+
+SOURCE:0 = 80
+SOURCE:13 = 15
+SOURCE:17 = 15
+SOURCE:18 = 20
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:16 += 20
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;調教者の指⇔奴隷のＰの汚れが移動
+IF HAVE_PENIS(TARGET)
+	CALL MOVE_STAIN("手", TARGET, "ペニス", PLAYER)
+;奴隷の指⇔調教者のＶの汚れが移動
+ELSE
+	CALL MOVE_STAIN("手", TARGET, "ヴァギナ", PLAYER)
+ENDIF
+
+;調教者がふたなり
+IF TALENT:PLAYER:ふたなり
+	SOURCE:14 /= 2
+ENDIF
+
+RETURN 1
+
+
+@MESSAGE_COM90
+IF TEQUIP:12
+	PRINTFORMW %CALLNAME:PLAYER%はオナホールごと%CALLNAME:TARGET%のペニスを扱いている…
+ELSE
+	IF TEQUIP:主導権
+		PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:PLAYER%の手を掴むと、自らのペニスを扱かせた…
+	ELSE
+		PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%のペニスを手で扱いている…
+	ENDIF
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_90
+RETURN COMTYPE("調教者奉仕系")
+
+

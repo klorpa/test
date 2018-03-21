@@ -1,0 +1,224 @@
+;======================================================================
+;ＮＴＲ関係の処理
+;======================================================================
+;@NTR_CHECK ARG番のキャラのNTR判定
+;----------------------------------------------------------------------
+@NTR_CHECK,ARG,ARG:1 = 0
+#DIM 好きな人,1
+#DIM 好きな人ID,1
+#LOCALSIZE 2
+#LOCALSSIZE 1
+LOCAL = 0
+IF CFLAG:ARG:陥落キャラ == -1
+	LOCAL = CFLAG:ARG:淫乱度 + 500
+ELSE
+	LOCAL = FAVORITE_ID(ARG,CFLAG:ARG:陥落キャラ) + 500
+ENDIF
+好きな人 = FAVORITE_1(ARG)
+IF 好きな人 > -1
+	好きな人ID = CFLAG:好きな人:キャラ固有の番号
+ELSE
+	好きな人ID = 好きな人
+ENDIF
+;以前陥落していたキャラが再び1位になった場合、その時点で陥落し直す
+IF (CFLAG:ARG:(2400+好きな人ID) && CFLAG:ARG:陥落キャラ != 好きな人ID) && CFLAG:ARG:淫乱度 <= ABS(FAVORITE(ARG,好きな人))
+	CALL 再陥落(ARG,好きな人ID)
+	RETURN 0
+ELSEIF (CFLAG:ARG:2399 == 2 && CFLAG:ARG:淫乱度 > ABS(FAVORITE(ARG,好きな人))) && ARG:1
+	CALL 再陥落(ARG,-1)
+	RETURN 0
+ENDIF
+
+;主人に対してはＮＴＲ返ししか発生しない
+SIF 好きな人 == 0 && (CFLAG:ARG:淫乱度 <= ABS(FAVORITE(ARG,好きな人)))
+	RETURN 0
+
+;===========================================================
+;淫系ＮＴＲ
+;===========================================================
+IF ARG:1 && TALENT:ARG:ＮＴＲ != 2 && (CFLAG:ARG:淫乱度 > ABS(FAVORITE(ARG,好きな人)) && CFLAG:ARG:淫乱度 >= 500) && MARK:ARG:快楽刻印 == 3 && !(TALENT:ARG:淫乱 || TALENT:ARG:娼婦)
+	;１日の終了時にしか発生しない
+	;淫乱度が好きな人への好感度を上回っていると淫ＮＴＲ状態に変更
+	;淫乱系陥落をしている場合、淫乱系ＮＴＲにはならない
+	;２度猶予がある
+	;進行度1に付き500ずつ必要淫乱度上昇
+	LOCAL += CFLAG:ARG:淫ＮＴＲ進行度*500
+	SIF CFLAG:ARG:淫乱度 < LOCAL +1000
+		RETURN 0
+	;口上呼び出し
+	DRAWLINE
+	SWAP TARGET,ARG
+	TFLAG:13 = 46
+	CALL KOJO_MESSAGE_EVENT
+	SWAP TARGET,ARG
+	CFLAG:ARG:淫ＮＴＲ進行度 ++
+	IF CFLAG:ARG:淫ＮＴＲ進行度 == 3
+		TALENT:ARG:ＮＴＲ = 2
+		CFLAG:ARG:陥落キャラ = -1
+		CFLAG:ARG:淫ＮＴＲ進行度 = 0
+		CFLAG:ARG:現ＮＴＲ進行度 = 1
+		CFLAG:ARG:(2301+CFLAG:ARG:陥落キャラ) = 2
+	ENDIF
+;===============================================
+;愛系ＮＴＲ
+;===============================================
+ELSEIF 好きな人ID != CFLAG:ARG:陥落キャラ && FAVORITE(ARG,好きな人) >= 1000 && CFLAG:ARG:淫乱度 <= FAVORITE(ARG,好きな人)
+	;主人以外のキャラへの好感度が高い場合かつ絶対値1000以上
+	;２度猶予がある
+	;進行度1に付き500ずつ必要淫乱度上昇
+	LOCAL += CFLAG:ARG:愛ＮＴＲ進行度*500
+	SIF ABS(FAVORITE(ARG,好きな人)) < LOCAL + 1000
+		RETURN 0
+	SIF 好きな人ID < 0 && ARG:1 == 0 && CFLAG:ARG:愛ＮＴＲ進行度 == 2
+		RETURN 0
+	;口上呼び出し
+	DRAWLINE
+	SWAP TARGET,ARG
+	TFLAG:13 = 45
+	CALL KOJO_MESSAGE_EVENT
+	SWAP TARGET,ARG
+	CFLAG:ARG:愛ＮＴＲ進行度 ++
+	IF CFLAG:ARG:愛ＮＴＲ進行度 == 3
+		;好きな人がＮＰＣであった場合、夜のチェックでなければスキップ
+		;ＮＰＣかつ夜だった場合、一夜を共にする
+		TALENT:ARG:ＮＴＲ = 1
+		CFLAG:ARG:陥落キャラ = 好きな人ID
+		CFLAG:ARG:愛ＮＴＲ進行度 = 0
+		CFLAG:ARG:現ＮＴＲ進行度 = 1
+		CFLAG:ARG:(2301+CFLAG:ARG:陥落キャラ) = 1
+		;仮地の文
+	ENDIF
+	
+;===============================================
+;隷系ＮＴＲ
+;===============================================
+ELSEIF 好きな人ID != CFLAG:ARG:陥落キャラ && FAVORITE(ARG,好きな人) <= -1000 && CFLAG:ARG:淫乱度 <= ABS(FAVORITE(ARG,好きな人))
+	;主人以外のキャラへの好感度が高い場合かつ絶対値1000以上
+	;２度猶予がある
+	;進行度1に付き500ずつ必要淫乱度上昇
+	LOCAL += CFLAG:ARG:隷ＮＴＲ進行度*500
+	SIF ABS(FAVORITE(ARG,好きな人)) < LOCAL + 1000
+		RETURN 0
+	SIF 好きな人ID < 0 && ARG:1 == 0 && CFLAG:ARG:隷ＮＴＲ進行度 == 2
+		RETURN 0
+	;口上呼び出し
+	DRAWLINE
+	SWAP TARGET,ARG
+	TFLAG:13 = 47
+	CALL KOJO_MESSAGE_EVENT
+	SWAP TARGET,ARG
+	CFLAG:ARG:隷ＮＴＲ進行度 ++
+	IF CFLAG:ARG:隷ＮＴＲ進行度 == 3
+		;好きな人がＮＰＣであった場合、夜のチェックでなければスキップ
+		;ＮＰＣかつ夜だった場合、一夜を共にする
+		TALENT:ARG:ＮＴＲ = 3
+		CFLAG:ARG:陥落キャラ = 好きな人ID
+		CFLAG:ARG:隷ＮＴＲ進行度 = 0
+		CFLAG:ARG:現ＮＴＲ進行度 = 1
+		CFLAG:ARG:(2301+CFLAG:ARG:陥落キャラ) = 3
+	ENDIF
+	
+
+ENDIF
+
+
+
+
+@再陥落,ARG,ARG:1
+;口上呼び出し
+DRAWLINE
+SWAP TARGET,ARG
+IF ARG:1 == CFLAG:MASTER:キャラ固有の番号
+	IF TALENT:恋慕 || TALENT:親愛
+		TFLAG:13 = 48
+	ELSEIF TALENT:淫乱 || TALENT:娼婦
+		TFLAG:13 = 49
+	ELSE
+		TFLAG:13 = 50
+	ENDIF
+ELSE
+	TFLAG:13 = (48 + (CFLAG:ARG:(2400 + ARG:1) - 1)% 3)
+ENDIF
+CALL KOJO_MESSAGE_EVENT
+SWAP TARGET,ARG
+IF ARG:1 == CFLAG:MASTER:キャラ固有の番号
+	;主人の下に戻る
+	TALENT:ARG:ＮＴＲ = 0
+	CFLAG:ARG:陥落キャラ =0
+	CFLAG:ARG:現ＮＴＲ進行度 = 0
+	IF TALENT:ARG:73 == 1
+		TALENT:ARG:73 = 0
+		PRINTFORMW %CALLNAME:ARG%は【即落ち】を失った
+	ENDIF
+	;上司イベント
+	IF CFLAG:ARG:上司イベント進行度 >= 9
+		PRINTFORML %CALLNAME:ARG%は幹部の男との契約を破棄した
+		;戦闘員だった場合は非戦闘員が外れる
+		IF CFLAG:ARG:上司イベント進行度 == 10
+			TALENT:ARG:非戦闘員 = 0
+			PRINTFORML %CALLNAME:ARG%をパーティーに編入できるようになりました
+		ENDIF
+		CFLAG:ARG:労役フラグ = 0
+		CFLAG:ARG:売却可能 = 1
+		PRINTFORML %CALLNAME:ARG%は労役に付けるようになりました
+		PRINTFORML %CALLNAME:ARG%を売却できるようになりました
+		CFLAG:ARG:上司イベント進行度 = 0
+	ENDIF
+ELSE
+	TALENT:ARG:ＮＴＲ = CFLAG:ARG:(2400+ARG:1)
+	CFLAG:ARG:陥落キャラ =ARG:1
+	CFLAG:ARG:現ＮＴＲ進行度 = -1
+ENDIF
+
+
+@主人陥落
+
+@NTRNAME,ARG
+#FUNCTIONS
+SELECTCASE ARG
+	CASE -1
+		RETURNF "不特定多数"
+	CASE -2,-3
+		RETURNF "食堂の常連客"
+	CASE -4,-5
+		RETURNF "娼館の常連客"
+	CASE -6,-7
+		RETURNF "便所の常連客"
+	CASE -8,-9
+		RETURNF "奴隷レンタルの常連客"
+	CASE -11,-12
+		RETURNF "劇場の常連客"
+	CASE -14
+		RETURNF "スカウト"
+	CASE -15
+		RETURNF "チンピラ"
+	CASE -16
+		RETURNF "訪問販売員"
+	CASE -20
+		RETURNF "幹部の男"
+	CASEELSE
+		SIF FINDCHARA_ID(ARG) > -1
+			RETURNF CALLNAME:(FINDCHARA_ID(ARG))
+ENDSELECT
+
+;対象以外への好感度を減らし、対象への好感度を上げる（中出しなど用処理）
+@NTR_SHOOT,ARG,ARG:1,ARG:2
+#LOCALSIZE 1
+FOR LOCAL, -99 , 200
+	SIF LOCAL == ARG:1
+		CONTINUE
+	IF CFLAG:ARG:(2100+LOCAL) > 0
+		CFLAG:ARG:(2100+LOCAL) -= ARG:2
+		SIF CFLAG:ARG:(2100+LOCAL) < 0
+			CFLAG:ARG:(2100+LOCAL) = 0
+	ELSEIF CFLAG:ARG:(2100+LOCAL) < 0
+		CFLAG:ARG:(2100+LOCAL) += ARG:2
+		SIF CFLAG:ARG:(2100+LOCAL) > 0
+			CFLAG:ARG:(2100+LOCAL) = 0
+	ENDIF
+NEXT
+IF CFLAG:ARG:(2100+ARG:1) >= 0
+	CFLAG:ARG:(2100+ARG:1) += ARG:2
+ELSE
+	CFLAG:ARG:(2100+ARG:1) -= ARG:2
+ENDIF

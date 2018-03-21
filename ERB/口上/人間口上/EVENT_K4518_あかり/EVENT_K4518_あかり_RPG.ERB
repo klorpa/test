@@ -1,0 +1,310 @@
+@BATTLE_MESSAGE_K4518, ARG,ARG:1 = 0
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = EMPTY
+;タイプ取得
+CALLFORM SKILL_EFECT_{LOCAL}
+IF LOCAL == 0
+	IF RAND:3 == 0
+		LOCALS = やぁっ！
+	ELSEIF !RAND:2
+		LOCALS = てぇぃっ！
+	ELSE
+		IF RESULT == 0
+			LOCALS = 天真爛漫斬りっ！
+		ELSEIF RESULT == 1
+			LOCALS = あたれー！
+		ELSEIF RESULT == 2
+			LOCALS = いしゅきっくぱーんちっ！
+		ELSEIF RESULT == 3
+			LOCALS = うりゃーっ！
+		ENDIF
+	ENDIF
+ELSEIF LOCAL == [[スキル:ＧＵＮ]]
+	LOCALS = えっと…ここをこうして…撃つよっ！
+;攻撃
+ELSEIF RESULT == 1 && RAND:3 == 0
+	CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+	SELECTCASE RESULT
+		;Slash
+		CASE 0
+			IF RAND:2
+				LOCALS = 食らえっ！　必殺剣天真爛漫斬りっ！
+			ELSE
+				LOCALS = 正義の刃を食らえー
+			ENDIF
+		;Gun
+		CASE 1
+			LOCALS = %GET_PERSONA_NAME(ARG)%！　うちおとしちゃって！
+		;Strke
+		CASE 2
+			LOCALS = 正義の鉄拳をくらえーっ！！
+		;Skill
+		CASE 3
+			LOCALS = ぼっこぼこのめっためたにしてやるー
+		;Fire
+		CASE 4
+			IF RAND:2
+				LOCALS = 燃え尽きちゃえっ！
+			ELSE
+				LOCALS = 炎よ！　燃やし尽くせー！
+			ENDIF
+		;Ice
+		CASE 5
+			IF RAND:2
+				LOCALS = 凍えちゃえー！
+			ELSE
+				LOCALS = とらんすまいぐれーしょんぶりざーどっ！
+			ENDIF
+		;Elect
+		CASE 6
+			LOCALS = イシュキックサンダー！
+		;Force
+		CASE 7
+			LOCALS = 吹き飛ばしてやるー
+		;Nerve
+		;CASE 8	
+		;Mind
+		;CASE 9
+		;Light
+		CASE 10
+			LOCALS = 邪悪な悪魔めー！　このイシュキックが浄化してやるー
+		;Dark
+		CASE 11
+			LOCALS = このイシュキックが、えーと…そうだ！　のろころしてやるー
+		;Earth
+		CASE 12
+			LOCALS = 大地よ！　震えろー！
+		;Water
+		CASE 13
+			LOCALS = イシュキックアクアスプラーッシュ！
+		;Wind
+		CASE 14
+			LOCALS = 風の刃よ！ 切り刻め！
+		;Grav
+		CASE 15
+			LOCALS = ぐらびーしょんあたっく！
+		;Nuclr
+		CASE 16
+			LOCALS = 跡形もなく、吹き飛ばしてやるー！
+		;Almig
+		CASE 17
+			IF RAND:2
+				LOCALS = %GET_PERSONA_NAME(ARG)%！　みんなやっつけちゃって！
+			ELSE
+				CALLFORM SKILL_NAME_{LOCAL}
+				LOCALS = こうなったら最終手段だ！ %RESULTS%!
+			ENDIF
+		;Psych
+		;CASE 18
+		CASEELSE
+			LOCALS = これでもくらえー
+	ENDSELECT
+;回復
+ELSEIF RESULT == 2 && RAND:3 == 0
+	IF CFLAG:ARG:ターゲット > 6
+		IF RAND:2
+			LOCALS = みんな！　だいじょうぶ！？
+		ELSE
+			LOCALS = %GET_PERSONA_NAME(ARG)%！　みんなをお願いっ！
+		ENDIF
+	ELSE
+		IF FLAG:(CFLAG:ARG:ターゲット) == 0 && 陥落(ARG)
+			IF RAND:2
+				LOCALS = %CSTR:ARG:二人称%はあかりが守るんだから
+			ELSE
+				LOCALS = %CSTR:ARG:二人称%！　だいじょうぶ！？
+			ENDIF
+		ELSE
+			IF RAND:2
+				LOCALS = いやしの力よー
+			ELSE
+				LOCALS = だいじょうぶ！？
+			ENDIF
+		ENDIF
+	ENDIF
+;状態変化
+;ELSEIF RESULT == 3
+;特殊
+;ELSEIF RESULT == 4
+;状態回復
+;ELSEIF RESULT == 5
+ELSE
+	IF RAND:3 == 0
+		LOCALS = いっくぞー！
+	ELSEIF RAND:2
+		LOCALS = ペルソナー！
+	ELSE
+		LOCALS = 任せたよ！　%GET_PERSONA_NAME(ARG)%！
+	ENDIF
+ENDIF
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+@BATTLE_EVENT_K4518, ARG, ARG:1, ARG:2
+SIF ARG < 0 && NO:ARG != 4518
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:3 == 0
+			LOCALS = チョメチョメターイム！
+		ELSEIF !RAND:2
+			LOCALS = みんな！　あかりにつづけー！
+		ELSE
+			LOCALS = 悪は必ず滅びる定めにあるのだー！
+		ENDIF
+	CASE 2
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+			IF 陥落(ARG) && RAND:2
+				LOCALS = %CSTR:ARG:二人称%っ、やったよ！　みててくれたっ！？
+			ELSE
+				IF RAND:2
+					LOCALS = ふっふっふ、正義は必ずの勝つのだ！
+				ELSE
+					LOCALS = 転生戦士イシュキックの力、思い知ったかー！
+				ENDIF
+			ENDIF
+		;弱点をついた。つまりCOOP
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+				IF RAND:2
+					LOCALS = よーし！　いまだ！　でびるくーっ…あれ？
+				ELSE
+					LOCALS = あー、せっかくのチョメチョメタイムなのに防御なんかしてずるいぞー！
+				ENDIF
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+			IF RAND:2
+				LOCALS = どーだ！　これが転生戦士の力だ！
+			ELSE
+				LOCALS = ふっふっふ、すぐにチョメチョメしてあげるんだから
+			ENDIF
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 20
+			IF RAND:2
+				LOCALS = まだまだ、こんなもんじゃないからね！
+			ELSE
+				LOCALS = どーだ！
+			ENDIF
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 0
+			IF RAND:2
+				LOCALS = あれ？　あんま効いてない？
+			ELSE
+				LOCALS = うー、手応えがいまいちだー
+			ENDIF
+		ELSEIF ARG:2 == 0
+			IF 陥落(ARG) && RAND:2
+				LOCALS = %CSTR:ARG:二人称%、効いてないよ。どうしよう！？
+			ELSE
+				LOCALS = あぅぅ、全然効いてないー
+			ENDIF
+		ELSEIF ARG:2 < 0
+			IF 陥落(ARG) && RAND:2
+				LOCALS = あぅぅ、ミスっちゃった…ごめんなさい、%CSTR:ARG:二人称%
+			ELSE
+				LOCALS = こらー！　あかりの攻撃なのに回復するなんてずるいぞー
+			ENDIF
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			IF 陥落(ARG) && RAND:2
+				LOCALS = %CSTR:ARG:二人称%…ごめんね…あかり、もうダメみたい…
+			ELSE
+				IF RAND:2
+					LOCALS = うう…正義が負けるなんて…
+				ELSE
+					LOCALS = ま…、まだあかりは…うぐぅ…
+				ENDIF
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			IF 陥落(ARG) && RAND:2
+				LOCALS = 助けて…、%CSTR:ARG:二人称%
+			ELSE
+				LOCALS = やだぁ…あかり、こんなところで死にたくないよぉ…
+			ENDIF
+		ELSEIF ダメージ割合(ARG, ARG:2) > 20
+			IF RAND:2
+				LOCALS = いたーい
+			ELSE
+				LOCALS = きゃあー
+			ENDIF
+		ELSEIF ダメージ割合(ARG, ARG:2) > 0
+			IF RAND:2
+				LOCALS = いたっ……？、ん、あんま痛くないや
+			ELSE
+				LOCALS = ふふ、全然効いてないよー
+			ENDIF
+		;無効
+		ELSEIF ARG:2 == 0
+			IF RAND:2
+				LOCALS = へへーん、こんな攻撃無駄だぞー
+			ELSE
+				LOCALS = このイシュキックにそんな攻撃は無駄だー
+			ENDIF
+		;吸収
+		ELSEIF ARG:2 < 0
+			IF RAND:2
+				LOCALS = 回復してくれるなんてありがとー
+			ELSE
+				LOCALS = 回復してくれても、悪には容赦はしないからなー
+			ENDIF
+		ENDIF
+	CASE 15
+		PRINTFORMW ARG:2 = {ARG:2}
+		IF RAND:2
+			LOCALS = うわ、はねかえしてくるなんてっ
+		ELSE
+			LOCALS = やるなー！　でもはねかしたって無駄なんだから！
+		ENDIF
+	CASE 16
+		IF RAND:2
+			LOCALS = そんな攻撃をこのイシュキックにするのがまちがいだー
+		ELSE
+			LOCALS = カキーン！　なんちゃって
+		ENDIF
+	CASE 17
+		IF RAND:2
+			LOCALS = くー、生意気なやつめー！
+		ELSE
+			LOCALS = ちくしょー！　次ははずさないぞー！
+		ENDIF
+	CASE 18
+		IF RAND:2
+			LOCALS = このイシュキックに攻撃を当てるなんて百億光年はやい！
+		ELSE
+			LOCALS = そんな攻撃になんかあたらないぞー
+		ENDIF
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_B(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+@EVOLUTE_PERSONA_K4518, ARG
+IF CFLAG:ARG:ペルソナ強化フラグ == 1
+	PRINTFORMW 「星あかり、彼女のあなたの力になりたいという想いに」
+	PRINTFORMW 「常に彼女の傍に寄り添ってきたペルソナが応えようとしているようですぞ」
+	PRINTFORMW 「我が手助けし、ペルソナの新たな力を引き出してみせましょう」
+	PRINTL
+	PRINTW
+	PRINTW ペルソナ「パリカー」が強化された
+ELSE
+	PRINTFORMW 「星あかり、以前彼女の想いに応えたペルソナですが」
+	PRINTFORMW 「彼女のさらなる成長と想いに、またペルソナも新たな力を得ようとしているようです」
+	PRINTFORMW 「いままた我が手助けし、ペルソナの更なる力を引き出してみせましょう」
+	PRINTL
+	PRINTW
+	PRINTW ペルソナ「パリカー」がさらに強化された
+ENDIF

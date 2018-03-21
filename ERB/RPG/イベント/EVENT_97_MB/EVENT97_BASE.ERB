@@ -1,0 +1,1361 @@
+;イベントフラグ:97:0 リスト
+;0:開始前				1:
+
+
+
+;=================================================
+;   sub EVENT_97_FLAG_RESET
+;=================================================
+;   依頼:フラグリセット
+;-------------------------------------------------
+;   MENU画面で「依頼出現」が出る様、
+;   依頼登録フラグをリセットする
+;-------------------------------------------------
+@EVENT_97_FLAG_RESET
+
+;- フラグがONの場合、クリアしてOFFに変更
+SIF GETBIT(FLAG:イベント出現2,97 - 64)
+	CLEARBIT FLAG:イベント出現2, 97 - 64
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_97
+;メガテン系イベント以外不許可の場合
+;SIF GETBIT(FLAG:EXTRAイベント設定, 0) == 0
+;	RETURN 0
+
+IF イベントフラグ:97:0 == 0 && TIME == 3
+	RESULTS = （MB ＭＯＤ-1）Shadow painting town
+	;Town in the Shadow Picture
+	RETURN 1
+ELSEIF イベントフラグ:97:0 == 1 || イベントフラグ:97:0 == 2
+	RESULTS = （MB ＭＯＤ-2）Artifact search
+	RETURN 1
+ELSEIF イベントフラグ:97:0 == 3
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		RESULTS = （MB ＭＯＤ-3）At an abandoned house
+		RETURN 1
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 4
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		RESULTS = （MB ＭＯＤ-4）Massacre of the 魔獣
+		RETURN 1
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 5
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		RESULTS = （MB ＭＯＤ-5）The Night of Wallachia
+		RETURN 1
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 6 && TIME == 3
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		RESULTS = （MB ＭＯＤ-6）Mahoutsukai no Yoru
+		RETURN 1
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 7 && TIME == 3
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		RESULTS = （MB ＭＯＤ-7）Pricess of the True Ancestors
+		RETURN 1
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 8
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		RESULTS = （MB ＭＯＤ-8）Dust of Osiris
+		RETURN 1
+	ENDIF
+ENDIF
+
+
+RETURN 0
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_97
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+IF イベントフラグ:97:0 == 0
+	CUSTOMDRAWLINE =
+	PRINTW You visited the city at night.
+	PRINTW In the light of the streetlamps, your footsteps echo loudly.
+	PRINTW It's hot and humid.　Does the temperature exceed 30 degrees Celsius?
+	PRINTW That would be too hot even for a tropical night.
+	PRINTW Despite it being night, there is no one on the streets、and it is as quiet as the grave.
+	PRINTW Despite it being midnight, shouldn't there be more people in this urban region?
+	PRINTW Gradually, the night's atmosphere is changing.
+	PRINTW The city warped and started to lose the impression of a 3-dimensional space.　The moon in the sky is abnormally big.
+	PRINTW The place looks like a shadow image.
+	PRINTW You got lost.
+	PRINTW .........
+	PRINTW ......
+	PRINTW ....
+	PRINTL 
+	PRINTW How long have you walked? While you felt you had walked quite far, you haven't passed anyone.
+	PRINTW Is this a pocket dimension?
+	PRINTW 『Well, we haven't met before.　Everyone else is afraid.』
+	PRINTW Before you, there was a boy in a school uniform.　He walked towards you slowly...
+	PRINTW However, is he strangely intimidating?
+	PRINTW 『Oi oi, have you heard the rumor about the murderous killer?　The rumor of the vampire?』
+	PRINTW Rumor?　No, you hadn't heard any such rumors about this area.　However, such a rumor...
+	PRINTW The boy saw this reaction and laughed.
+	PRINTW 『You seem to be knowledgeable about these kinds of things.　No, it was saved.』
+	PRINTW As he slowly approached, he put a hand in his pocket.
+	PRINTW 『I don't know what called me here in this incomplete form.　This body can't even move properly.』
+	PRINTW While that is happening...the hand pulled from his pocket flashed.　There was a knife in that hand.
+	PRINTW As you barely dodged the slash, the boy gave an exaggerated sigh.
+	PRINTW 『How clumsy.　There is nothing left to say.　It would be best to dispose of you quickly.』
+	PRINTW 『How to finish before the division limit.』
+	PRINTW While you have no idea what he is talking about, the boy does have a noticible urge to kill.
+	PRINTW There is no choice but to fight...
+	
+	CUSTOMDRAWLINE =
+	WAIT
+		
+	CALL SET_ENEMY,8,5055,10,0,1
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALLNAME:(CHARANUM-1) = Mysterious Boy
+	;謎の少年
+	LOCAL = CHARANUM-1
+	CALL HEALTH_CHARA,(CHARANUM-1)
+		
+	CALL BATTLE_START
+	CUSTOMDRAWLINE =
+	PRINTL 『Well well, is it finally over.　Then, I'd like to come out with a better form next time.』
+	PRINTL The boy collapsed and vanished like a heat haze.
+	PRINTW  Soon, the world regained its' original atmosphere.
+	CUSTOMDRAWLINE =
+	WAIT
+	PRINTW .......
+	PRINTW .....
+	PRINTW ...
+	PRINTW This was reported to Phantom Sociey as a different world incident, the magician that the boy with a knife killed was found by a later investigation.
+	PRINTW This magician seems to have been studying different worlds and was killed by a summoned experiment.
+	PRINTW And...
+	PRINTW 『This is the artifact made from the research data the magician left, advanced equipment can be made from it.』
+	PRINTFORMW %CALLNAME:MASTER% received a visit from a researcher in %HIS_HER(MASTER)% safe house.
+	PRINTW 『We can access the parallel world that the magician discovered, so it should be possible to summon existences from that side.』
+	PRINTW 『Because reproducing the relic has been impossible, this is a unique artifact.』
+	PRINTW The researcher emphasized the possibilities and preciousness of the trial product, it seems you are the designated tester...
+	PRINTFORMW Software 「Kaleidoscope」 obtained.
+	ITEM:Kaleidoscope = 1
+
+	イベントフラグ:97:0 = 1
+
+	FOR LOCAL,0,CHARANUM
+		CALL HEALTH_CHARA,LOCAL
+	NEXT
+ELSEIF イベントフラグ:97:0 == 1
+	CUSTOMDRAWLINE =
+	PRINTFORMW %CALLNAME:MASTER%のCOMPから、連絡が入っていた。　以前「Kaleidoscope」を寄越してきた研究者だ。
+	PRINTW 『以前、お送りいたしました「Kaleidoscope」はご利用いただいていますか？』
+	PRINTW 『実は以前の騒動の原因になった遺物はあれ一つではなかったようなのです。　というより、大きな塊の砕けた一部に過ぎない、というべきですかね』
+	PRINTW 『宜しければ見つけて持ってきていただけないかと。　高値で……とは申しかねますが買い取りましょう』
+	PRINTW 『何分、当方の研究費も限られていましてね。　即座に価値を見いだせない物となると特に厳しくて……』
+	$INPUT_LOOP1
+	PRINTFORML [0] 引き受ける
+	PRINTFORML [1] 断る
+	PRINTFORML [2] その遺物とは？
+	INPUT
+	IF RESULT == 0
+		PRINTW 『大変結構！　これでこちらの研究も進むという物です』
+		PRINTW 男は嬉々としてそう言った。　未知の遺物には危険もあるだろうに、好奇心の前には気にもしていないようだ。
+		PRINTW 『遺物は、赤い石の破片に見えるはずです。　とりあえず、遺物が存在するのは概ね、この辺りなのですが……』
+		PRINTW 男は端末を操作し、地図を表示させた。　……大きい。　市が丸々一つというところか。　ここから石ころひとつ探し出せと言うのか？
+		PRINTW 『以前、提供したアプリで召喚できる来訪者を連れて行ってください。　元は同じ世界の出であり、同じ遺物から呼び出された者です。　きっと役に立つ』
+		イベントフラグ:97:0 = 2
+	ELSEIF RESULT == 1
+		PRINTW 『……そうですか。　それは残念です』
+		PRINTW 男は残念そうにそういうと、通信を切った。
+		イベントフラグ:97:0 = 99
+	ELSEIF RESULT == 2
+		PRINTW 『見た目は石の破片に見えます。　内実はある種の記録媒体ですよ。　それも極めて高効率の』
+		PRINTW 『破損した状態でも部分的には情報を引き出す事が可能です。　実際、これの複製が作れればそれだけでどれほどの価値があるか分からないのですがね』
+		PRINTW 男は得々と遺物の特異性と有用性について語ってくれた。　きっと話したかったのだろう。
+		GOTO INPUT_LOOP1
+	ELSE
+		GOTO INPUT_LOOP1
+	ENDIF
+ENDIF
+IF イベントフラグ:97:0 == 2
+	CALL CHECK_MELTY_BLOOD
+	IF RESULT > 0
+		PRINTFORML  （ 注意：捜索に向かうと、時間が経過します ）
+		CALL INPUT_YN("捜索する", "やめておく")
+		IF RESULT != 0
+			PRINTFORMW ＞気が乗らない。　今はやめておこう。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			RETURN
+		ENDIF
+		PRINTW さて、それでは件の遺物の探索に向かうとしようか……
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW およそ、当てのない捜索が始まった。　頼りは来訪者達だが、それにしても何を当てにして良いのか分からないようでは埒が明かない。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『ここで、遺物を探すのですね。　赤い石の破片ですか……』
+			PRINTW 何か思うところでもあるのか、考え込むシオンを促して探索を開始した。
+			PRINTW シオン『……確かに違和感のような物はあるのですが、ここが私の知る世界でないことを考えれば、違和感は有って当然ですし』
+			PRINTW シオン『一度、その石の現物を見てみたかったところですね』
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『うーん、ここ異世界なんだよね？　案外変わらない物なんだね』
+			PRINTW 何を期待していたのか、拍子抜けした様子のさつきを促して探索を開始した。
+			PRINTW さつき『……うーん、私なら見つけられるって言われても、よく分からないなぁ』
+;秋葉がいる
+		ELSEIF FINDCHARA_B(5052)== 2
+			PRINTW 秋葉『その石を探すのなら、早くしましょう。　……全くどうして私が……』
+			PRINTW 秋葉からすれば、こんな雑用を自分で行うのは気が進まないようだ。
+			PRINTW 秋葉(もう少し探す範囲が狭ければ、髪を使う事も出来るかも知れないのに……)
+		ELSEIF FINDCHARA_B(5053)== 2
+;アルクがいる
+			PRINTW アルクェイド『異世界って言っても、案外変わらない物ね。　あ、あの店とか行ってみない？』
+			PRINTW ……どうも、遊びに来たくらいに勘違いをしているようだ。
+			PRINTW アルクェイド『うーん、微かに……何か感じる、かな。　まぁ、行ってみれば分かるかな』
+		ELSEIF FINDCHARA_B(5054)== 2
+;シエルがいる
+			PRINTW シエル『さて、何を探せば良いのかも分からず、ただ探せと言われても困るのですが』
+			PRINTW と、シエルは困ったように溜息をつく。
+			PRINTW シエル『おいしいカレー屋さんを探せというなら自信があるのですが……』
+		ENDIF
+		PRINTW しばらく、足の赴くままに街をうろうろと彷徨う。　やがて、周囲がやや薄暗くなってきた……。
+		PRINTW 気が付けば、周囲の道はかなり狭くなって、ごみごみしている。　こんな裏路地に入ってきただろうか？
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『ここはまさか……。　もし、そうなら、こちらへ行けば……』
+			PRINTW シオンは何かに気付いたようで、迷路のような裏路地を先導するように進んでいく。
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『あれ、何か懐かしい光景……？　そんな筈ないよね？』
+			PRINTW さつきは何かに気付いたようで、迷路のような裏路地を先導するように進んでいく。
+		ENDIF
+		PRINTW 迷路のような裏路地を歩き続ける。　随分歩いた気もするが、書き割りのような裏路地が続くだけだ。
+		PRINTW これは明らかにおかしい……。　どうやらここが「当たり」のようだ。
+		PRINTW やがて、何かが見えてきた。
+		PRINTW そこは血に染まっていた。　周囲にごみの様に散らばっているのは、死体の一部だろうか。
+		PRINTW 惨劇の真ん中にうずくまる一人の少女と、それを辟易したように見下ろす一人の男。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『あれは、さつき……！？　馬鹿な、さつきはこんな事は……』
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『あれ、私！？　なんで！　私こんな事してない！』
+		ENDIF
+		PRINTW 男『なぁ、おい。　俺はいい加減こんなところからは離れてぇんだけどな。　何を待ってるか知らねぇが、こんな異界の中に誰か来るわけないっての』
+		PRINTW 少女『……と……の……く、ん……』
+		PRINTW 男『壊れたラジオだぜ、こりゃぁ……。　こいつが異界化の発生原因っぽいんだけどな。　とりあえず、こいつを確保してお仕事完了って事にするか？』
+		PRINTW それは困る。　こちらにとっても手がかりなのかも知れないのだから。
+		PRINTW 男『おいおい、こんな仕事で邪魔が入るとか聞いてないぞ！？』
+		PRINTW そう言いながらも、男の方も引く気はないらしい。　COMPを取り出して悪魔を召喚した。		
+		
+		CUSTOMDRAWLINE =
+		WAIT
+			
+		CALL SET_ENEMY,7,5051,20,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		CALL SET_ENEMY,13,804,23,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		CALL SET_ENEMY,12,4212,20,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		CALL SET_ENEMY,8,403,18,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		PRINTW 男『くそっ、こんな邪魔が入るとか割に合わねぇっ!』
+		PRINTW 男は捨て台詞をはいて逃げていく。
+		PRINTW 少女は声もなく倒れ、徐々に画像が崩れるようにして消えていく。
+		PRINTW 後には、血の様に赤い小さな石の破片が残った。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『……まさか、と思っていましたが。　これは賢者の石の破片……』
+			PRINTW シオンが言うには、賢者の石とは人間自身を材料として構築される記録媒体、あるいは演算装置であるらしい。
+			PRINTW 本来シオンたちが属するであろう並行世界の記録を蓄えた記録媒体。　それが遺物の正体らしい。
+			PRINTW シオン『今のは、この石の記録が何らかの形で再演されていた物でしょう。　もしかしたら、他にもこういう物があるのかも……』
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『……なんとなく分かったよ。　あれも、私なんだね。　ちょっとの切っ掛けでああなっていたかも知れないんだ』
+			PRINTW さつきは少し落ち込んでいるようだ。
+			PRINTW しかし、あれがさつきの可能性だとするならば、あの石にはそれを再現しうるだけの情報が含まれていることになる。
+		ENDIF
+		PRINTW とりあえず、これを持ち帰れば今回の頼み事は解決だ。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 研究者『やぁ、助かりました。　これが例の遺物ですね』
+		PRINTFORMW 研究者は%CALLNAME:MASTER%が手渡した遺物を、何やら厳重な容器に丁寧に収めた。
+		PRINTW 研究者『それでは今回はこれで。　礼金は後で振り込んでおきます。　また機会がありましたら是非』
+		PRINTFORMW 研究者から報酬￥5000を入手しました。
+		PRINTL 
+		PRINTL 
+		MONEY += 5000
+		イベントフラグ:97:0 = 3
+		;- 依頼:ターンの終了
+		CALL EVENT_97_TURN_END
+	ELSE
+		PRINTW この範囲内から石ころひとつ見つけ出すのは極めて困難だ。
+		PRINTW 発見に来訪者が役に立つというのなら連れて来た方が良いだろう。
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 3
+	CUSTOMDRAWLINE =
+	PRINTFORMW %CALLNAME:MASTER%のCOMPに、連絡が入っていた。　以前「Kaleidoscope」を寄越してきた研究者だ。
+	PRINTW 『例の遺物について、新しい欠片が発見できました。　既に問題を起こしているようですので、早急な回収をお願いしたいのですが』
+	PRINTW よく見ると、男の眼はひどく充血している。　よほど研究に興が乗っているのか？
+	PRINTW 『この遺物の存在を知り、回収を試みている人間は私以外にもいるようです。　騒ぎになっていればそちらも動く筈……』
+	PRINTW 男は少々焦っているようにも思える
+	$INPUT_LOOP2
+	PRINTFORML [0] 引き受ける(時間が経過します)
+	PRINTFORML [1] 断る
+	INPUT
+	IF RESULT == 0
+		PRINTW 『ありがとうございます。　では、急いでいただけますか？　遺物を奪われないように。　場所はここ。　この廃屋を中心とした地域ですね』
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 
+		PRINTW さて、それでは件の遺物の探索に向かうとしようか……
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 件の廃屋が見えてきた。　……廃屋？
+		PRINTW とてもではないが廃屋には見えない。　と、言うよりも周囲と比較して浮きまくるほどに立派な洋館だ
+		PRINTW 庭も以上に広いのだが、地図アプリを見るに、この辺にこんな広さの建物はない。
+		PRINTW 見た所、監視などがある訳でなし、忍び込んでみてもいいし、正面から訪ねても良いだろう。
+		$INPUT_LOOP3
+		PRINTFORML [0] 正面から出向く
+		PRINTFORML [1] 忍び込む(注：高難度)
+		INPUT
+		IF RESULT == 0
+			PRINTW こそこそする理由もない。　正面から出向けばいいだろう。
+			PRINTW 正門に回り、呼び鈴を鳴らす。　しばらく待つと、メイド服の少女が姿を現した。
+;翡翠か琥珀がいる
+			IF FINDCHARA_B(5056)== 2 || FINDCHARA_B(5057)== 2
+				PRINTFORMW 少女は、%CALLNAME:MASTER%の連れに自分とそっくりの姿がいるのを見て、微かに表情を動かした。
+				PRINTW しかし、自分と同じ顔を見たにしては、動揺の幅が小さいような……？
+				PRINTW 少女(……また、姉さんの悪戯でしょう。　お客様に迷惑をおかけしたのでなければ良いのですが)
+			ELSEIF FINDCHARA_B(5052)== 2
+;秋葉
+				PRINTW 少女を見た秋葉は、懐かしい物を見たように少し笑みを浮かべた。
+				PRINTW 少女(……秋葉様にそっくり……。　ですが、秋葉様は今日は外出されてはいないはず？)
+			ENDIF
+			PRINTW 少女『どちら様でしょうか？　本日、来客があるとは伺っておりませんでしたが』
+			PRINTW 愛想笑いの一つも浮かべることなく淡々と告げられて、少し詰まる。
+			PRINTW 何とかそれらしい建前を探していると、少女の方が先に口を開いた。
+			PRINTW 少女『……少々お待ちいただけますでしょうか？　主人に話を通してまいります』
+			PRINTW 頷くと、少女は一礼して屋敷の奥へと消えて行った。　しばらく待とうか。
+			PRINTW ………………
+			PRINTW …………
+			PRINTW ……
+			PRINTW 
+			PRINTW 少女『……お客様へご案内いたします』
+			PRINTW 数分後、再び顔を出した少女の案内で洋館に入る。　……言葉使いが何かおかしいがどうでもいい事だろう。
+			PRINTFORMW 応接間に通された%CALLNAME:MASTER%を待っていたのは、屋敷の主らしき長い黒髪の少女だった。
+			PRINTW 見た所まだ10代後半に見えるが、既に威厳のような物を感じさせる。
+			PRINTW 人を従わせる事に慣れているのだろう。
+			PRINTW その背後には、先ほどのメイド服の少女と、顔立ちがそっくりなもう一人の少女が影のように従っている。
+			PRINTW 長髪の少女『さて、本日はどのようなご用件でしょうか？　お客様？』
+			PRINTW 少女の口振りは丁寧だが、表情には一片の愛想さえない。
+			PRINTW この少女に、館を探索させてくれなどと言って通るはずがないし、安易な嘘も見抜かれそうだ。
+			PRINTW せっかく正面から出向いたのだ。　真っ向から話を振ってみるか。
+			PRINTW ………………
+			PRINTW …………
+			PRINTW ……
+			PRINTW 長髪の少女『……つまり、あなたは私達そのものが仮初の物でしかないと仰りたい訳ですね？　そして、あなたはその幻を消しに来たのだと』
+			PRINTW 遺物を回収して、ここがそのままである見込みはないのだから、そういう事になるだろう。
+			PRINTW 長髪の少女『ならば、幻を消し去ってから、思うように探されてはいかが？　尤も、私はここで好き勝手をさせる気は有りませんが』
+			PRINTW 少女は髪を靡かせて立ち上がった。
+			PRINTW 長髪の少女『私は遠野家の当主、遠野　秋葉。　たとえ幻であろうとも、ここが遠野家である以上、私が譲る訳にはいきません』
+			CUSTOMDRAWLINE =
+			WAIT
+				
+			CALL SET_ENEMY,7,5056,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,8,5052,35,0,1
+			CALL SYNC_STATUS,(CHARANUM-1)
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL SET_ENEMY,9,5057,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL BATTLE_START
+			CUSTOMDRAWLINE =
+			PRINTW 秋葉『……に……さ、ん……』
+			PRINTW 最後に何を呟いたのだろう？　聞き取れないままに、少女たちは徐々に画像が崩れるようにして消えていく。
+			PRINTW 後には、先ほどまでの洋館ではなく、古びた廃屋だけが残った。
+			PRINTW ……さぁ、遺物を探して見ようか。
+		ELSEIF RESULT == 1
+			PRINTW 幸いにして、この辺りには全くと言っていいほど人影が見えない。
+			PRINTW この光景自体遺物が映し出す異界の写し絵なのだとしたら、この館の周囲はもともと人が近付くことが少なかったのだろうか？
+			PRINTW それはさておき、壁の向こう側の音に耳を澄ませ、気配のない時に柵を乗り越えた。
+			PRINTW 柵の中は立派な洋館のイメージに合った広い庭であった。　大きな木も生えており、隠れる場所は一応ある。
+			PRINTW とりあえずは、それらの陰に身を隠しながら周囲を観察する。
+			PRINTW 調査を進めるなら館の中だろう。　人目を気にしながら館に近づいていく。
+			PRINTW ……屋敷の広さの割にここに住んでいる人間は少ないようで、屋敷に近づくのに、それ程の苦労はしなかった。
+			PRINTW 暫く身を隠して様子を見ているうちに、メイド服の少女が勝手口を開けて出てくるのを目にする。
+			PRINTW 使用人だろうか？　彼女が勝手口から離れたのを確認して、館の中へ……
+			PRINTW 侵入した直後に誰かと出くわした。　気配も何もなかったはずなのだが。
+			PRINTW 出くわした相手は、メイド服を纏った……先ほどの少女？　彼女は館の外にいるはずなのだが？
+			PRINTW 少女『……ピピ、侵入者発見。　直ちにまっさ……拘束イタシマス』
+			PRINTW ……こいつ、今何と言った？
+	
+			CUSTOMDRAWLINE =
+			WAIT
+				
+			CALL SET_ENEMY,8,1108,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALLNAME:(CHARANUM-1) = メカ翡翠
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+				
+			CALL BATTLE_START
+			CUSTOMDRAWLINE =
+			PRINTW ……どうやらこれは先の少女を模した人型ロボットだったようだ。　騒ぎになる前に一度出直すべきだろうか？
+			PRINTW 少女『侵入者ノ排除二失敗。　自爆イタシマス』
+			PRINTW こちらが対応するより早く、先ほど倒したロボットが爆発。　同時に地面の感覚がなくなり、視界が暗転した。
+			PRINTW ………………
+			PRINTW …………
+			PRINTW ……
+			PRINTW 気が付けば底深い洞窟?にいた。
+			PRINTW 夢幻でない証拠に、遥か上の方に見える穴の先に館の天井が見える。
+			PRINTW 悪い冗談としか思えないが、館の地下に洞窟がある構造らしい。
+;翡翠か琥珀がいる
+			IF FINDCHARA_B(5056)== 2
+				PRINTW 翡翠『……姉さんの悪ふざけです。　きっとこの先には……』
+			ELSEIF FINDCHARA_B(5057)== 2
+				PRINTW 琥珀『あぁ、ここは……。　いえ、秋葉様の目を盗んでこれを作るのは大変でした。　えぇ……』
+				PRINTW 琥珀はさも苦労を思い出したと言わんばかりに嘘泣きをしている。
+			ELSEIF FINDCHARA_B(5052)== 2
+;秋葉
+				PRINTW 秋葉『……えぇ、思い出しました。　琥珀……っ』
+				PRINTW 秋葉はこの光景から、何かを思い出して怒りを燃やしているようだ。
+			ENDIF
+			PRINTW ……一応、先に進める道はあるようだ。　そちらへ向かってみよう。
+			PRINTW ………………
+			PRINTW …………
+			PRINTW ……
+			PRINTW やがて見えてきたのは、大きな金属の扉。　……いわゆる、悪の秘密基地然とした姿であった。
+			PRINTW そこでは先ほどのロボットが大挙して何やら働いている。
+			PRINTW その中心では、割烹着を着た少女が、ロボットたちに指示を出していた。
+			PRINTW 割烹着の少女『崩れた所の修復には……5人ほど回ってください。　手が空いた子は侵入者を探しに行ってくださ～い。』
+			PRINTW 割烹着の少女『メカ翡翠ちゃんが一人破壊されてしまってますから絶対どこかにいるはずです！　捕まえてほしいので殺さない程度にしてくださいね』
+			PRINTW メカ翡翠『……承リマシタ。　見敵必殺、侵入者ハ抹殺イタシマス』
+			PRINTW ……もはや何も言うまい。　異世界というのは想像以上の魔境のようだ。
+			PRINTW メカ翡翠『……侵入者、発見』
+			CUSTOMDRAWLINE =
+			WAIT
+				
+			CALL SET_ENEMY,7,1108,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALLNAME:(CHARANUM-1) = メカ翡翠
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,8,1108,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALLNAME:(CHARANUM-1) = メカ翡翠
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,9,1108,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALLNAME:(CHARANUM-1) = メカ翡翠
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,12,5057,30,0,0
+			CALL SYNC_STATUS,(CHARANUM-1)
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL BATTLE_START
+			CUSTOMDRAWLINE =
+			CUSTOMDRAWLINE =
+			PRINTW 割烹着の少女『そ、そんな、メカ翡翠ちゃん軍団が……。　遠野家の財産を横流しして作ったのに……』
+			PRINTW 割烹着の少女『こうなったら、もう最後の手段！　出番です！　G秋葉様！！』
+			PRINTW その言葉とともに、奥の扉が轟音と共に開いていく。　……そこから姿を現したのは……
+			PRINTW 巨人『こ　は　く～！！　あ　な　た　の　し　わ　ざ　ねっ！！』
+			PRINTW 大きすぎて、この地下ではまともに立つことも出来そうにない巨人の女だった。
+			PRINTW 長い髪の美人ではあるのだが……
+			PRINTW 割烹着の少女『はい、秋葉様。　お休みの間に、存在拡大薬まききゅーXの実験をさせていただきました！』
+			PRINTW 割烹着の少女『あ、ご心配なく！　ちゃんと元に戻す薬、となみんXもご用意しておりますよ。　化学のサーヴァント、ケミカルアンバーに隙はありません！』
+			PRINTW 割烹着の少女『……ですので、まずは不法侵入者への対処を！』
+			PRINTW 割烹着の少女『でないと、この方が私の研究室を荒らしたりして、大事なとなみんXに何かありましたら……』
+			PRINTW わざとらしい嘘泣きをする割烹着の少女に、巨人は
+			PRINTW 巨人『……良いでしょう。　どのみち不法侵入者にそのままお帰りいただく気はないのだし。　ええ、背に腹は代えられませんしね』
+			CALL SET_ENEMY,8,5052,50,0,1
+;能力値修正
+			BASE:(CHARANUM-1):力 += 40
+			BASE:(CHARANUM-1):魔力 += 10
+			BASE:(CHARANUM-1):耐力 = 30
+			ABL:(CHARANUM-1):スキル1 = [[スキル:暴れまくり]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:押し潰し]]
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALLNAME:(CHARANUM-1) = G秋葉
+			LOCAL = CHARANUM-1
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			CALL BATTLE_START
+			CUSTOMDRAWLINE =
+			PRINTW G秋葉の巨体が崩れ落ちた。
+			PRINTW それと同時に、周囲全てが画像が崩れるようにして消えていく。
+			PRINTW 後には、先ほどまでの洋館ではなく、古びた廃屋だけが残った。
+			PRINTW ……さぁ、遺物を探して見ようか。
+		ELSE
+			GOTO INPUT_LOOP3
+		ENDIF
+		PRINTW 埃まみれになって廃屋を捜索し、1時間ほどかけて遺物を発見した。
+		PRINTW とりあえず、これを持ち帰れば今回の頼み事は解決だ。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 研究者『お世話になります。　それでは遺物を』
+		PRINTFORMW 研究者は%CALLNAME:MASTER%が手渡した遺物を、何やら厳重な容器に丁寧に収めた。
+		PRINTW 研究者『礼金は後で振り込んでおきます。　そういえば、今回は邪魔は入らなかったのですか？』
+		PRINTW 入らなかったと答えると、研究者は少し首をかしげた。
+		PRINTW 研究者『他の遺物を確保に回ったのかも知れませんね。　まぁ、手に入ったのだから良しとしましょう』
+		PRINTFORMW 研究者から報酬￥5000を入手しました。
+		MONEY += 5000
+;合体解禁
+		PRINTW -遠野 秋葉の合体制限が解除されました-
+		FLAG:15052 = 1
+		イベントフラグ:97:0 = 4
+		CALL EVENT_97_TURN_END
+	ELSEIF RESULT == 1
+		PRINTW 『……そうですか。　それは残念です』
+		PRINTW 男は残念そうにそういうと、通信を切った。
+	ELSE
+		GOTO INPUT_LOOP2
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 4
+	CUSTOMDRAWLINE =
+	PRINTFORMW %CALLNAME:MASTER%のCOMPに、連絡が入っていた。　いつもの「Kaleidoscope」を寄越してきた研究者だ。
+	PRINTW 『申し訳ありませんが、手を貸していただけませんか？　いえ、最近私を付け回している輩がいるようでして』
+	PRINTW 『心当たりと言えば、遺物の件くらいしかないのですよ。　私が持っている遺物が狙われているのではないかと』
+	PRINTW 『しばらくはファントムの研究施設にこもっていればどうにかなるでしょうが、ずっと籠城という訳にも行きません』
+	PRINTW 男は不安そうに溜息をついた
+	$INPUT_LOOP4
+	PRINTFORML [0] 引き受ける(時間が経過します)
+	PRINTFORML [1] 断る
+	INPUT
+	IF RESULT == 0
+		PRINTW 『助かります。　では、施設の場所をお送りします。　予算の範囲で一番マシな端末が使える場所でしてね』
+		PRINTW 『全く、あの遺物にはどれだけの情報が記録されているのか。　端末の処理能力が全く足りませんよ』
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 教えられた建物にやってきた。　一見して普通のオフィスビルにしか見えず、階ごとに別の会社が入っている形になっている。
+		PRINTW ……実態は、どの会社もファントムの息がかかっているか、そもそもファントムのカバー企業なのだが。
+		PRINTW とはいえ、他の企業と比較して違和感がない程度には活動している筈なのだが……妙に人の出入りが少ないような……？
+		IF TIME == 0
+			PRINTW この時間なら出勤中の人間が少なからずいる筈なのだが。
+		ELSEIF TIME == 1
+			PRINTW 昼日中とは言え、一定の人の出入りはあるはずだ。
+		ELSEIF TIME == 2
+			PRINTW 帰りの早い者なら、この時間にはビルから出てきてもおかしくないのだが……。
+		ELSE
+			PRINTW この時間に、帰宅する者がいないというのはおかしいだろう。
+		ENDIF
+		PRINTW 少し覗いてみる必要がありそうだ。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 扉をくぐった途端、空気が変わった。
+		PRINTFORMW %CALLNAME:MASTER%の良く知る空気、異界の空気だ。
+		PRINTW 誰かがここを異界化させているのか。　人の気配は感じない。
+		PRINTW 慎重にビルの中を調べ始める……。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『……微かに、ですが。　血の匂いが……』
+			PRINTFORMW 半ば吸血鬼であるがゆえに敏感なのか。　シオンは%CALLNAME:MASTER%が気付かなかった血臭に気が付いたようだ。
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『あ、この匂い……。　急いだ方が良いかも』
+			PRINTFORMW さつきは何かに気が付いたようで、顔をしかめて%CALLNAME:MASTER%をせかした。
+		ENDIF
+		CUSTOMDRAWLINE =
+		WAIT
+				
+		CALL SET_ENEMY,7,1007,30,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		LOCAL = CHARANUM-1
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,8,1042,30,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		LOCAL = CHARANUM-1
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,9,805,30,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		LOCAL = CHARANUM-1
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		
+		PRINTW 異界化したビル内に出現する悪魔を蹴散らしながら、奥へと進む。
+		PRINTW まずは、研究者を探さなくては。
+		PRINTW 確か、2階だったろうか。　エレベータは止まっているので、非常階段を使って2階を目指す。
+		PRINTW 2階の扉を開けた途端、鉄の臭いが鼻を突いた。
+		PRINTW 襲撃があったのは間違いなさそうだ。　
+		PRINTW しかし、ファントムの方からサマナーが送り込まれていないあたり、襲撃が始まってからまだ間もないと言う事だろう。
+		PRINTW まだ、あの研究者は生きている可能性があるだろう。
+		PRINTW 血の水たまりに足を踏み入れる。　水音がピチャリと響いた。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 多くの亡骸を乗り越えて奥へと向かう。
+		PRINTW 一応、ビルの警備にはサマナーが配備されていたようだが、力量に劣っていたのか侵入者を食い止めることは出来ていないようだ。
+		PRINTW その亡骸の多くには獣の牙のような傷痕が刻まれていた。
+		PRINTW 亡骸を追うようにして2階に上がってすぐに、一人のコートの男が立っていた。
+		PRINTW その周囲には多くの獣が群れており、警備員の屍を喰らっている。
+		PRINTW コートの男『む、少々食事に時間をかけすぎたか。　まぁ……餌が増えるだけの事ではあるが』
+		PRINTW 男の言葉に合わせて周囲の獣たちが、血に飢えた目をこちらに向ける。
+;シエルがいる
+		IF FINDCHARA_B(5054)== 2
+			PRINTW シエル『……つくづく縁がある事ですね、ネロ・カオス』
+			PRINTW コートの男『貴様の方こそ、最早教会のない異世界に来てまで、死徒狩りに精を出すとはご苦労な事だ。　いずれにせよ、私のやる事は変わらぬが』
+		ELSE
+			PRINTW コートの男『使い魔の身の上とは、この身も落ちたものではあるが。　落ちたりとは言え、私のやるべきことは変わらぬ』
+		ENDIF
+		PRINTW コートの男『混沌の名に相応しい秩序を振り撒くのみだ』
+		
+		CUSTOMDRAWLINE =
+		WAIT
+				
+		CALL SET_ENEMY,7,851,35,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALLNAME:(CHARANUM-1) = 混沌の獣
+		LOCAL = CHARANUM-1
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,8,5060,40,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		LOCAL = CHARANUM-1
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,9,965,35,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALLNAME:(CHARANUM-1) = 混沌の鳥
+		LOCAL = CHARANUM-1
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+;合体解禁
+		PRINTW -ネロ　カオスの合体制限が解除されました-
+		FLAG:15060 = 1
+
+		PRINTW コートの男『ハ―――ハハハハハ！　あぁ、そうだ。　吸血鬼の最期とは……このようなもの―――』
+		PRINTW 最後まで語る事も出来ず、コートの男は消え去った。
+		PRINTFORMW どうも、%CALLNAME:MASTER%以外に来訪者を召喚している者がいるようだ。
+		PRINTW しかし、まずは研究者を探そう。この階の奥の方はまだコートの男は侵入していなかった。　生きている見込みは十分にある。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 研究者『やれやれ、酷い目にあった物です。　襲撃者が来訪者だったのは間違いないのでしょうか？』
+		PRINTW どうもこの男、危険を感じたら遺物だけ確保して速やかに逃げていたらしく、平然とした顔をしていた。　急ぐ必要もなかったろうか。
+		PRINTW 研究者『いえ、そんな事はありませんよ。　遅れられたら、いずれ追い詰められたでしょうしね。　それに、遺物の調査に使っている端末に何かあったら研究が進まなくなったでしょうし』
+		PRINTW 研究者『……尤も、今の端末ではまるで不足ですがね。　処理速度も記憶容量も。　これは先に端末の方を何とかする必要がありますかね……』
+		PRINTW 研究者『ともあれ、まずは襲撃者ですね。　仮にもファントムの施設に攻撃をかけたのですから、上は面子にかけても犯人を見つけ出してくれるでしょう』
+		PRINTW 研究者『その時はお伝えしますので、始末をお願いしますよ。　私の出せる礼金は知れていますが、その時はファントムの方で賞金を懸けてくれるでしょうしね』
+		PRINTW そして、ついでに犯人が持っているはずの遺物を入手して欲しいという訳か。
+		PRINTW 研究者『ええ、まぁ。　研究対象はいくらあっても困りませんしね。　いや、余裕があれば遺物自体を端末の一部として……そうすれば記憶容量は何とか……』
+		PRINTW 研究者は自分の世界に入り込んでしまったようだ。　そっとしておこう。
+		PRINTFORMW ファントムソサエティから報酬￥10000を入手しました。
+		MONEY += 10000
+		イベントフラグ:97:0 = 5
+		CALL EVENT_97_TURN_END
+	ELSEIF RESULT == 1
+		PRINTW 『……そうですか。　では、別の心当たりを当たってみます』
+		PRINTW 男は残念そうにそういうと、通信を切った。
+		PRINTW 以後、男からの連絡が入る事はなかった……。
+		イベントフラグ:97:0 = 99
+	ELSE
+		GOTO INPUT_LOOP4
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 5
+	CUSTOMDRAWLINE =
+	PRINTFORMW %CALLNAME:MASTER%のCOMPに、連絡が入っていた。　いつもの「Kaleidoscope」を寄越してきた研究者だ。
+	PRINTW 『前回、研究施設に襲撃を掛けてきた相手が分かりました。　一応、本人はガイア教徒を名乗っていますが、あそこもいい加減ですからね』
+	PRINTW 『今回はファントムから賞金がかかります。　そろそろサマナーネットにも上がるのではないかと』
+	PRINTW 『奴の居場所をご連絡いたしますので、始末をお願いできますか？　ファントムからの賞金も出ますし、遺物をお持ちいただければ些少ですが礼金も……』
+	PRINTW 
+	$INPUT_LOOP5
+	PRINTFORML [0] 引き受ける(時間が経過します)
+	PRINTFORML [1] 断る
+	INPUT
+	IF RESULT == 0
+		PRINTW 『助かります。　では、相手の居場所をお送りします。　おっつけ他のサマナーも動き出すでしょうし、速やかにお願いできれば』
+		PRINTW 研究者は%CALLNAME:MASTER%が持ち帰ってくるであろう遺物を期待してか、上機嫌の様子だ。
+		PRINTW ……そういえば、研究の方はどうなのだろう？　随分と遺物を譲ったとは思うのだが。
+		PRINTW 『順調……とまでは言いかねますがね。　前も言ったかもしれませんが、遺物の含む情報量が多すぎて普通のコンピュータでは解析が追い付かない』
+		PRINTW 『ですから、遺物その物を計算機器として使えないかとね。　そして、そちらの方は案外何とかなりそうなのですよ』
+		PRINTW 『研究者の間では、この機器をOsirisと呼んでいますがね。　これのお蔭で幾らかの情報が形になってきました』
+		PRINTW 『異世界の魔術理論とかですね。　こちらとはかなり異質ですので、そのまま持って来ることは出来ないのですが……』
+		PRINTW ……随分と楽しそうに話しているが、順調ならそれでいい。　真にこの研究が有用なものならば、協力者としての自分の評価も上がろうという物だ。
+		PRINTW 『ええ、期待してください。　実際、Osirisだけでも画期的な成果だと思いますよ。　では、遺物回収の方よろしくお願いします』
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 教えられた建物にやってきた。　郊外に建てられた大きめの一戸建てで、一応宗教団体の看板は立てているようだ。
+		PRINTW 聞いた事のない名前だだし、宗教法人として成立しているかどうかは怪しい物ではあるが。
+		PRINTW 怪しげな新興宗教と言う事で、周辺の人間の出入りもないようだ。　人目に付かなくて都合がいい……
+		PRINTW 建物の中に入ると、儀式魔術などで使う香や薬物の匂いが微かに漂っている。　少なくとも悪魔と関わりのない組織である可能性は低いと見てよさそうだ。
+		PRINTW 人の気配はほとんど感じないが、建物の奥の方は異界化しており見た目通りの広さではないようだ。　慎重に進んでいく。
+
+		CUSTOMDRAWLINE =
+		WAIT
+				
+		CALL SET_ENEMY,7,606,40,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,8,755,42,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,9,827,40,0,0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+	
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+		PRINTW 建物の異界化した区域はそれほどの広さではないはずだが、それでもちょっとした迷路を思わせる複雑な構造と化していた。
+		PRINTW 当然のように出現する悪魔を蹴散らしながら押しとおる。
+		PRINTW やがて、奥の方に人影が見えた。　そのさらに奥にある扉を守るように立ちはだかっている。
+		PRINTW ？『止まりなさい。　この奥に進んではいけない。　引き上げるならば見逃しましょう』
+		PRINTW 目の前の人物は銀髪で長身だった。　性別は男とも女ともつかない。
+		PRINTW 最大の特徴は、杭打機の取り付けられた盾などという凶悪な武装を携えている事だろう。
+		PRINTW それを片手で構えている当たり、悪い冗談のようだ。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『リーズ！　あなたがどうして……！？』
+			PRINTW 目の前の人物はシオンの知り合いのようだ。　と、いう事は来訪者か。
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『リーズさん！　どうして……！？』
+			PRINTW 目の前の人物はさつきの知り合いのようだ。　と、いう事は来訪者か。
+;シエルがいる
+		ELSEIF FINDCHARA_B(5054)== 2
+			PRINTW シエル『……この世界でも門番ですか？　聖なる盾の騎士？』
+			PRINTW 目の前の人物はシエルの知り合いのようだ。　と、いう事は来訪者か。
+		ENDIF
+		PRINTW しかし、いずれにせよここで退く選択肢はない。　来訪者がいると言う事は遺物がある事も確定しているのだ。
+		PRINTW ？『やれやれ、退いてくれれば楽だったのに。　私もこんな仕事は本意じゃないんだ』
+		PRINTW ？『守護者であることに否やはないが、守る相手は選びたいものだよ』
+		PRINTW 愚痴をこぼしつつも彼か彼女か分からない相手は、武器を構えた。
+		CUSTOMDRAWLINE =
+		WAIT
+
+		CALL SET_ENEMY,7,5061,45,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+
+
+		PRINTW リーズバイフェ『……もし、次があるのなら……』
+		PRINTW 守る事に疑問を持たなくて良いように。　そう無念を残して騎士は消えた。
+		PRINTW つまり、この中にある物は守るに値しない物だと言う事になる。
+		PRINTFORMW %CALLNAME:MASTER%は扉を押しあけた……
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 扉を開けると、まず目に入ったのは豪奢な貴族風の服を纏った青年だった。
+		PRINTW その足元には、この館の主であろう、法服を纏った男が倒れている。
+		PRINTW 倒れた男は傷だらけだと言うのに、血は全く流れていないのが不気味だった。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW 青年を見た瞬間、シオンは即座にGunを抜いた。　そして発砲。
+			PRINTW 青年は、軽く手を動かすと、目前に突如人影が表れて弾丸を防いだ。　人影はそのまま解れるように消えていく。
+			PRINTW 青年『挨拶もなしとは優雅ではないな、我が娘よ。　私の後継であるなら、洒脱さは忘れてはならない所だと思うが』
+			PRINTW シオン『誰がお前の後継ですか！』
+			PRINTW シオンの怒りから見て、彼女の血を吸ったのはこいつと言う事か？
+		ENDIF
+		PRINTW 青年『客か。　招いた覚えはないが、挨拶はしておこう。　私が、つい最近この館の主となったズェピア・エルトナム・オベローンという者だ』
+		PRINTW 青年は優雅に、芝居がかった動作で一礼をした。
+		PRINTW ズェピア『タタリと名乗りたい所ではあるが、再現されている役者に過ぎない今の私には相応しからざる名乗りではある』
+		PRINTW ズェピア『いずれその名を返してもらうまで、名乗りは控えておこう』
+		PRINTW つまり、この男も黒幕ではないと言う事か。　しかし、タタリとはなんだ？
+		PRINTW 疑問の答えを得るより早く、青年は大仰なマントを翻した。
+		CUSTOMDRAWLINE =
+		WAIT
+				
+		CALL SET_ENEMY,7,5062,50,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL BATTLE_START
+		CUSTOMDRAWLINE =
+
+		PRINTW ズェピア『キキ、キ、キ……』
+		PRINTW ズェピアは獣めいた呻きを残して消え去った。
+;合体解禁
+		PRINTW -ワラキアの夜の合体制限が解除されました-
+		FLAG:15062 = 1
+
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『どこに行っても、私はあなたと出会うのですね。　この縁を絶つことは出来ないのでしょうか』
+			PRINTW シオンは消えていくズェピアの影を見ながら溜息をついた。
+		ENDIF
+		PRINTFORMW ……この足元に倒れている男が、%CALLNAME:MASTER%の依頼者以外で遺物を集めていた人物(少なくともその一人)なのだろう。
+		PRINTW 彼の持っている遺物や、研究内容について資料を探してみよう。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW この男は、既にいくつもの遺物を入手して、研究を行っていたようだ。　いや、そもそも遺物に最初に着目し、研究し始めたのはこの男だったのかも知れない。
+		PRINTW この男自身魔術師だったためか、主な研究方針は異界の魔術に関する物だったようだ。
+		PRINTW 研究記録を適当に斜め読みする。　全部は到底理解できるものではないが、最近の内容に絞って目を通すと、彼は異世界で起こったとされる一つの現象に着目している事が分かった。
+		PRINTW 該当するキーワードとしては、「オシリス」「賢者の石」「固有結界」などの言葉が頻発している。
+		PRINTW 大半は理解できないが、遺物とは賢者の石の事であり、これは生きた人間を材料に生成する物である事だけは理解できた。
+		PRINTW この魔術師は、これをマグネタイトを固体化した上で、これを情報媒体として利用する技術と解釈して研究していたようだ。
+;シオンがいる
+		IF FINDCHARA_B(5050)== 2
+			PRINTW シオン『オシリス？　オシリスの砂？　む……』
+			PRINTW キーワードを耳にしたシオンは眉を顰めた。
+			PRINTW あまり話したがらないシオンをせっついて聞き出した所によれば、彼女は人類すべてを賢者の石と化し、それを持って人類種の記念碑とするという計画を行った人物と戦った事があるのだという。
+			PRINTW オシリスの砂とは、それを行った人物の名であり、シオンと何らかの関係があるようだ。
+			PRINTW シオン『リーズやズェピアを召喚したのがこの男であるならば、この男はオシリスも召喚したかも知れません』
+			PRINTW 研究内容から言って、その可能性は高いはずだ。　……しかし、オシリスは姿を現さなかった。
+			PRINTW シオン『何とか見つけなければ。　彼女は、また同じことをするかも知れない』
+		ELSEIF FINDCHARA_B(5051)== 2
+;さっちん
+			PRINTW さつき『オシリス……オシリスの砂？　あ、そういえば聞いた気がする』
+			PRINTW 要領を得ないさつきの言い分を信じるならば、さつきたちの世界を滅ぼしそうになった人物なのだとか。
+			PRINTW 魔王か何かだろうか？
+;秋葉がいる
+		ELSEIF FINDCHARA_B(5052)== 2
+			PRINTW 秋葉『オシリス？　オシリスの砂？　あぁ、あの……』
+			PRINTW その名前に心当たりがあるらしい秋葉から話を聞いてみた。　彼女は人類すべてを賢者の石と化し、それを持って人類種の記念碑とするという計画を行った人物と戦った事があるのだという。
+			PRINTW オシリスの砂とは、それを行った人物の名であるらしい。
+			PRINTW 秋葉『この男は、恐らくオシリスも召喚したのでしょうね』
+			PRINTW 研究内容から言って、その可能性は高いはずだ。　……しかし、オシリスは姿を現さなかった。
+			PRINTW 秋葉『なら、この男の元を離れて、また同じ事をしようとしているのかも知れないわね。　何とか探して止めないと』
+		ELSEIF FINDCHARA_B(5053)== 2
+;アルクがいる
+			PRINTW アルクェイド『オシリスの砂？　あぁ、あの本末転倒……』
+			PRINTW その名前に心当たりがあるらしいアルクェイドから話を聞いてみた。　彼女は人類すべてを賢者の石と化し、それを持って人類種の記念碑とするという計画を行った人物と戦った事があるのだという。
+			PRINTW オシリスの砂とは、それを行った人物の名であるらしい。
+			PRINTW アルクェイド『人類破滅寸前、回避不能って所までいった上でやるんなら悪いとは思わないけど。　どのみち滅ぶから今やっちゃえとか言われてもね。　大体二番煎じだし』
+			PRINTW 言いながら呆れたように肩をすくめるアルクェイド。　研究内容から言って、この男がオシリスを召喚した可能性は高いはずだ。　……しかし、オシリスは姿を現さなかった。
+			PRINTW アルクェイド『なら、この男の元を離れて、また同じ事をしようとしているんでしょうね。　変に拗らせてるし、気が変わるとか諦めるとか無いと思うわ』
+		ELSEIF FINDCHARA_B(5054)== 2
+;シエルがいる
+			PRINTW シエル『賢者の石？　オシリスの砂の事件の事ですね。　本当に魔術師という輩は……
+			PRINTW その名前に心当たりがあるらしいシエルから話を聞いてみた。　彼女は人類すべてを賢者の石と化し、それを持って人類種の記念碑とするという計画を行った人物と戦った事があるのだという。
+			PRINTW オシリスの砂とは、それを行った人物の名であるらしい。
+			PRINTW シエル『人類史の記念碑を作るだけなら、好きにして頂いて良いのでしょうが、材料に今を生きている人を使うと言うのは正気の沙汰ではありませんよ』
+			PRINTW と、シエルは溜息をつく。　研究内容から言って、この男がオシリスを召喚した可能性は高いはずだ。　……しかし、オシリスは姿を現さなかった。
+			PRINTW シエル『魔術師は自分の理念を曲げたりはしない物ですからね。　諦めてくれているなどという期待は捨てたほうがいいでしょう』
+		ENDIF
+		PRINTW どうも、放置するのは拙い話ではあるようだ。　しかし、まずは遺物……賢者の石や研究資料を持ち帰らなくては。
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 研究者『お待ちしていましたよ、サマナー。　遺物は手に入りましたか？』
+		PRINTW 遺物に加えて、研究資料まで持ってきたと言うと、研究者は嬉しそうにそれを受け取った。
+		PRINTW 研究者『期待以上ですね。　これは素晴らしい……』
+		PRINTW 研究者は、持ち帰った資料と遺物に半ば恍惚としているが、ちょっと声をかけて正気に戻ってもらった。
+		PRINTW 研究者『はっ！　これは失礼。　ええ、ファントムの方からの報酬は私の方から申請しておきましょう。　あとは、遺物と資料の対価として……』
+		PRINTW 研究者『え？　研究内容の危険性、ですか……？　ふむ……』
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTW 研究者『なるほど。お話は分かりました。　ですが、危険だからというだけでは研究は止められませんよ。　ファントムから予算が出ていますしね』
+		PRINTW ファントムはこれ以上に危険な研究であっても、リターンが見込めるならばGoサインを出すだろう。
+		PRINTW 研究者『しかし、そのオシリスの砂というのは気になりますので、調査はしてみましょう。　それでは、今回のところはこれで』
+		PRINTFORMW ファントムソサエティと研究者から報酬￥30000を入手しました。
+		MONEY += 30000
+
+		イベントフラグ:97:0 = 6
+		CALL EVENT_97_TURN_END
+	ELSEIF RESULT == 1
+		PRINTW 『……そうですか。　では、別の心当たりを当たってみます』
+		イベントフラグ:97:0 = 99
+	ELSE
+		GOTO INPUT_LOOP5
+	ENDIF
+ELSEIF イベントフラグ:97:0 == 6
+	CUSTOMDRAWLINE =
+	PRINTW 夜、都市部を訪れた。
+	PRINTW 街灯に照らしだされた街に、自分の足音がやけに高く響く。
+	PRINTW それにしても蒸し暑い。　気温は30度を超えているのではないだろうか？
+	PRINTW 熱帯夜としても度が過ぎているようにも思う。
+	PRINTW 夜とは言え、表通りだというのに人影は全くなく、廃墟のように静かだ。
+	PRINTW 夜中とは言え、都市部ならもう少し人影がある物ではないだろうか？
+	PRINTW 徐々に、周囲の雰囲気が変わっていく。
+	PRINTW 都市の形が歪み立体感を失う。　空には異常に大きな丸い月
+	PRINTW その様はまるで影絵のようだ。
+	PRINTW どこを歩いているのかも分からなくなってきた。
+	PRINTW この感覚に覚えがあるのは気のせいだろうか？
+	PRINTW ………………
+	PRINTW …………
+	PRINTW ……
+	PRINTL 
+	PRINTW ふいに影絵のような街から男女の二人組が姿を現した。
+	PRINTW 『それで、お目当てはあの人でいいのかしら？　まぁ、こんな中平気で歩いているあたり只者ではなさそうだけど』
+	PRINTW 口を開いたのは女の方。　白いTシャツにジーンズとラフな格好だが、グラマラスな体つきをしているのは明らかだ。
+	PRINTW 『ええ、先生。　お世話になりました。　……久しぶりだよな、あの時は名乗ることも出来なくて失礼したが』
+	PRINTFORMW 男、というより少年だろう。　手にナイフを持った学生服の少年は、酷薄な笑みをを%CALLNAME:MASTER%に向けた。
+	PRINTW こいつは、この一連の事件の最初に出会った殺人鬼……？
+	PRINTW 『七夜　志貴だ。　いつぞやは世話になったね。　あんなみっともない姿で現れたのでは、七夜の名は到底名乗れなかったが』
+	PRINTW 『今度は前より大分ましだと思うんでね。　少し試させてもらおうか！』
+	PRINTW 七夜と名乗った少年の背後から、真っ白な少女が顔を出す。
+	PRINTW 『ちょっと七夜！　あんたがどうしてもって言うから、この女に頼んでまでこの場をセッティングしてあげた有能な使い魔に何かいう事は……』
+	PRINTW 『あ……コホン。　あなたが、うちのマスターご執心のこの世界の魔術師ね？　あ、召喚士っていうんだっけ。　今回は、使い魔のあたしもサポートするんだから、前みたいにはいかないわよ！』
+	PRINTW 七夜という少年は、騒々しい連れに軽くため息をついて、こちらに振り返った。
+	CUSTOMDRAWLINE =
+	WAIT
+			
+	CALL SET_ENEMY,7,5064,50,0,1
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+		
+	CALL SET_ENEMY,8,5059,50,0,1
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL BATTLE_START
+
+	CUSTOMDRAWLINE =
+;合体解禁
+	PRINTW -七夜 志貴、遠野　志貴の合体制限が解除されました-
+	FLAG:15064 = 1
+	FLAG:15055 = 1
+	PRINTW 白い少女『……だから、やめとけって言ったじゃない。　ほんと、馬鹿なマスター……』
+	PRINTW 七夜『ついて来るなと言ったのに、ついてきた奴の言う事じゃないよな。　……あぁ、だが今度は幾らか満足いったかな。　先生、我侭に付き合っていただいてありがとうございます』
+	PRINTW 学生服の少年と、白い少女は消え去った。
+	PRINTW 残った女の方を振り返る。　
+	PRINTW 女『幻想種の召喚、使役かぁ。　異世界でもないと見られない光景よね。　これ見られただけでも爺さんの無茶振りに乗っかった甲斐があったかな』
+	PRINTW 女はしきりに何やら感心している。　彼女らの世界では召喚術はメジャーではないのだろうか。
+	PRINTW 女『ん～。　そもそも幻想種そのものが既に……。　あぁ、その前に名乗って無かったわね。　私は蒼崎　青子』
+	PRINTW 青子『この世界とは違う世界から来た人間よ。　……いや、これ分身みたいなものなのかな？　うーん気持ち悪い」
+	PRINTW Zomaを素体とした合体で呼び出された来訪者である事には違いないようだ。　しかし、召喚者は？
+	PRINTW 青子『もういないわよ。　あ、私が殺したわけじゃないからね。　なんかまずい奴でも呼んだんでしょう。　余計な事するから……』
+	PRINTW どうも青子を呼んだのは、以前ワラキアに殺されていた召喚士だったようだ。　しかし、青子はいったい何をしているのだろう？
+	PRINTW 青子『私を呼んだ召喚士って、自分の手に負えない化け物を何人か召喚しちゃってるのよね。　知ってしまったら放っとくのも寝覚めが悪いかなって』
+	PRINTW ……この青子もまた、その化け物の一人ではないのだろうか？
+	PRINTW 青子『……今、失礼な事考えたでしょう？　何かイラッとしたわ。　ちょっと話しをと思ってたけど、予定変更！』
+	PRINTW 青子『私の拳でテストしてからにしましょう！　力が無い人に余計な事を教えても良い事ないしね！』
+	
+	CUSTOMDRAWLINE =
+	WAIT
+			
+	CALL SET_ENEMY,7,5063,55,0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 2000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL BATTLE_START
+	PRINTW 青子『や～ら～れ～た～』
+	PRINTW 青子は緊張感の欠片もない台詞を吐きながら引っくり返った。
+	PRINTW その姿は徐々にぼやけ始める。
+	PRINTW 青子『あらら、長話するほど時間無いか。　んじゃ、一つだけ……』
+	PRINTW 青子『あなたたち、もしかしてオシリスを探してる？　うん、オシリスの砂……彼女は私より先に召喚された錬金術師』
+	PRINTW その名は先に確認した召喚士の資料に出てきていた……
+	PRINTW 青子『彼女、私たちの世界では人類すべてを賢者の石と化し、それを持って人類種の記念碑を作るってのをやらかそうとした危険人物なんだけど』
+	PRINTW 青子『こっちでも同じことをしようとしてるのね。　本当に呼ぶ相手は選べばいいのに』
+	PRINTW 青子は軽く溜息をついた。　その間も消滅は進んでいる。
+	PRINTW 青子『私も探してはいたんだけど、なかなか見つからないのよね。　多分普通の隠れ方はしていないんじゃないかな』
+	PRINTW 青子『もし、探すんだったら……そうね。　夜に○○って名前のマンションに行ってみなさい。　そこにアルクェイドって人がいると思うわ』
+	PRINTW 青子『彼女に聞いてみたらいいんじゃないかな？　どうも彼女、自分で動くかどうか迷ってるみたいだし』
+	PRINTW 青子『じゃぁ、そういう事で。　会いに行くなら、彼女によろしく伝えてちょうだい』
+	PRINTW 青子は言いたいことだけ言って消えて行った。　彼女も来訪者として召喚可能なのだろうか？
+	PRINTW いずれにせよ、今日のところは引き上げるとしよう。
+	PRINTW -蒼崎　青子の合体制限が解除されました-
+	イベントフラグ:97:0 = 7
+	FLAG:15063 = 1
+	CALL EVENT_97_TURN_END
+ELSEIF イベントフラグ:97:0 == 7
+	CUSTOMDRAWLINE =
+	PRINTW 青子から聞いたマンションへと訪れた。
+	PRINTW 見た限りは普通のマンションのように見える。　教えられた部屋の明かりは点いているようだ。
+	PRINTW 一応セキュリティ機器は付いているようだが、そんな物は有ってもなくても大差ない。
+	PRINTFORMW %CALLNAME:MASTER%は件の部屋を訪れた。　表札は『アルクェイド・ブリュンシュタッド』とある。
+	PRINTW 青子が名前を出すあたり、来訪者には違いない筈なのだが、まともに部屋を借りているのだろうか？
+	PRINTW まぁ、とりあえずチャイムを鳴らしてみよう……
+	PRINTW 『鍵、開いてるから入っていいわよ～』
+	PRINTW 室内から明るい女性の声が聞こえた。　……しかし少し不用心なような？
+	PRINTW ………………
+	PRINTW …………
+	PRINTW ……
+	PRINTL 
+	PRINTW 部屋で待っていたのは、金髪の美女だった。　
+	PRINTW 白い服に長い紺のスカートは飾り気がなく、それだけなら野暮ったい程なのだが、それが全く気にならなかった。
+	PRINTW 『私はアルクェイド・ブリュンシュタッド。　あなたたちが言う所の来訪者ね。　あなたは、ミスブルーが言ってたこっちの世界で来訪者関係のトラブルを追ってる人ね？』
+	PRINTW 肯定すると、アルクェイドはうんうんと頷いた。
+	PRINTW 『まぁ、こちらの問題はこちらの人間が解決すべきよね。　こっちの世界では私の出せる力も限度があるみたいだし。　神霊が現存している世界だからかなぁ？』
+	PRINTW アルクェイドは、首をかしげながらも語り始めた。
+	PRINTW 『オシリスの砂が何をしようとしてるかは聞いてる？　うん、よしよし。　そうね、人間が星を食い尽くして自滅するのは仕方がないけど、何も自分で自分の墓を用意してから首絞めないでも良いよね』
+	PRINTW 『うーん、じゃあ何か聞きたい事あるかな？』
+	$INPUT_LOOP6
+	PRINTFORML [0] オシリスの居場所
+	PRINTFORML [1] あなたは何者？
+	PRINTFORML [2] オシリスはなぜそんな事を？
+	PRINTFORML [9] もう他にはない
+	INPUT
+	IF RESULT == 0
+		PRINTW 『あいつ、今は情報体になって隠れてるのよね』
+		PRINTW 問われたアルクェイドは軽く溜息をついた。
+		PRINTW 『私たちの世界ではそんな能力なかったけど、こちらでは割と普通の事みたいね』
+		PRINTW 悪魔をCOMPに収納する事を指して言っているのだろうか？　
+		PRINTW 彼女たち来訪者は特殊な合体で作られた悪魔として扱われ、通常の悪魔召喚の対象になるのだ。
+		PRINTW 『情報体のままで隠れていられて、散逸した賢者の石がそこそこ集まってるところ……見当は付くわよね？』
+		PRINTFORMW ……そこはつまり……、%CALLNAME:MASTER%の脳裏には、あの研究者の元にある大型コンピュータ「Osiris」の事が浮かんだ。
+		PRINTW ……しかし、そこに攻撃を掛けると言うのはファントムの立場として拙くはないだろうか？
+		PRINTW かと言って正規の方法で訴え出て何とかなるだろうか？　なるとしても時間はかかるだろう。
+		$INPUT_LOOP7
+		PRINTFORML [0] それでも自分で決着をつける
+		PRINTFORML [1] 報告を出して終わりにしよう
+		INPUT
+		IF RESULT == 0
+			PRINTW 『うん、そうでないとね。　話をした甲斐がないわ』
+			PRINTW アルクェイドは嬉しそうに頷いた。
+			PRINTW 『オシリスの隠れ家は、あなたの考えている通りで間違いないと思うよ。　後はあなた次第だけど……』
+			PRINTW アルクェイドは少し考えた。
+			PRINTW 『本当はこちらで起きた問題にあまりくちばしを挟むのもどうかなって思ってたんだけど……』
+			PRINTW 『見物もさすがに飽きて来たし、やる気がある人がいるっていうならそれに越したことはないしね』
+			PRINTW 『私を呼べれば、手伝ってあげる。　もしそうなったらよろしくね』
+			PRINTW アルクェイドの部屋で、お茶を貰ってから部屋を立ち去った。			
+			PRINTW -アルクェイドの合体制限が解除されました-
+			イベントフラグ:97:0 = 8
+			FLAG:15053 = 1
+		ELSEIF RESULT == 1
+			PRINTW 『ふーん、そう？　まぁ、自分で解決しないっていうのなら、話はここまでかな』
+			PRINTW 『そのファントムっていう組織が何とかしてくれると言うのであれば、それはそれで構わないしね』
+			PRINTW 『うん、あなたの知っている事を伝えてあげればいいと思うよ。　じゃあ、これで』
+			PRINTFORMW アルクェイドは関心を失ったように話を終わらせ、%CALLNAME:MASTER%に別れを告げた。
+			PRINTW 確かにそうと決まった以上やるべきことはここまでだ。　早速報告を出そう
+			PRINTW ………………
+			PRINTW …………
+			PRINTW ……
+			PRINTL 
+			PRINTFORMW %CALLNAME:MASTER%は、ファントムにこの件について知る限りの事を報告し、遺物の研究とOsirisの危険性について訴えた。
+			PRINTFORMW ファントムが、その報告を受けてどう動いたのかは分からない。
+			PRINTFORMW 少なくとも、%CALLNAME:MASTER%が、件の研究者から連絡を受ける事もなければ、彼の噂を耳にする事もなかった事だけは確かな事である。
+			イベントフラグ:97:0 = 99
+		ELSE
+			GOTO INPUT_LOOP7
+		ENDIF
+	ELSEIF RESULT == 1
+		PRINTW 『ん?　あたし？　こっちの人に真祖って言っても通じないでしょうし。　まぁ、地球の精霊って所かな』
+		PRINTW アルクェイドはあっけらかんと言ってのけた。
+		PRINTW 『吸血鬼の大本みたいにも言われているけどね。　本当ならもっと力を出せても良い筈なんだけど』
+		PRINTW 『こっちでは神格が現存してるからかな？　出せる力には限りがあるみたい。　向こうでも色々制限は付いてたけどね』
+		PRINTW どうやら本来の彼女はもっと高位の存在であるようだ。
+		GOTO INPUT_LOOP6
+	ELSEIF RESULT == 2
+		PRINTW 『あぁ、彼女たちはアトラスっていう組織に属してるんだけど……』
+		PRINTW アルクェイドが言うには、アトラスとは本来来たるべき人類の滅亡を防ぐために存在する組織なのだとか。
+		PRINTW 『もっとも、どんなに研究してもうまく行かなくってとんでもない方向に行っちゃう事もあるの。　オシリスがその口ね』
+		PRINTW 『そりゃ、「いつかは滅ぶ」のは避けられないのが道理なんだから、どう足掻いてもうまく行くわけないんだけどね』
+		PRINTW そうは言いつつも、アルクェイドはその足掻きそのものは否定してはいない様子だった。
+		GOTO INPUT_LOOP6
+	ELSE
+		GOTO INPUT_LOOP6
+	ENDIF
+	CALL EVENT_97_TURN_END
+ELSEIF イベントフラグ:97:0 == 8
+	PRINTW 一度訪れたファントムの研究施設を訪れた。
+	PRINTW かつて襲撃事件が起こって以来、看板は付け替えて表面上違う会社となってはいるが、内実は相変わらずの筈だ。
+	PRINTW ここに、遺物をふんだんに用いた大型コンピュータ「Osiris」が存在する。
+	PRINTW アルクェイドの言葉が正しければ、ここに「オシリスの砂」が潜んでいるはずだ。
+	PRINTW 受付に身分証を示すと、疑われる様子もなく奥に通された。
+	PRINTFORMW %CALLNAME:MASTER%がファントムの一員であると言う点はあるが、それ以上に遺物収集で件の研究者に気に入られている点が大きいのだろう。
+	PRINTW また何か取りに行かされたのだろう程度に思われているようだ。
+	PRINTW 邪魔が入らないに越したことはない。　このまま「Osiris」を目指す事にしよう。
+	PRINTW ………………
+	PRINTW …………
+	PRINTW ……
+	PRINTL 
+	PRINTW 『……は？　何を馬鹿な事を。　いくらあなたの言い分でもそれは……』
+	PRINTW 予想通りと言うか、当然と言うか。　研究者は「Osiris」の破棄に難色を示した。
+	PRINTW ……と、言うより何を言っているのか分からないと言う感じか。
+	PRINTW まぁ、無理もないのだが、こちらもそうですかと帰る訳にはいかない。
+	PRINTW ここは……
+	$INPUT_LOOP8
+	PRINTFORML [0] 力尽くで破壊
+	PRINTFORML [1] 何とか説得を試みる
+	INPUT
+	IF RESULT == 0
+		PRINTW 『な、狂ったのですか！？　誰か！！』
+		PRINTW 研究者はあわてて警備を呼ぶが、邪魔が入るまで待つ理由などない。
+		PRINTFORMW %CALLNAME:MASTER%は召喚した悪魔に、「Osiris」の破壊を命じ……
+		PRINTFORMW その攻撃は、突然割り込んできた作業機械を打ち砕いて終わった。
+		PRINTW 次いで、部屋に飛び込んできた警備が、こちらに武器を向けて警告の声を上げるが、
+		PRINTFORML それに、%CALLNAME:MASTER%が答えるよりも早く、彼らのCOMPが唸りを上げた。
+		PRINTW 『何だ？　まだ何もしていないぞ！？』『乗っ取られてる！？　いつの間に！』『こんな悪魔持っていないぞ！　MAGが根こそぎに……』
+		PRINTW ここで長期間働いている内に、彼らのCOMPにはいつの間にかバックドアでも仕込まれていたのだろう。
+		PRINTW 警備の面々では召喚できないであろう高位の悪魔が実体化した。
+		CUSTOMDRAWLINE =
+		WAIT
+		CUSTOMDRAWLINE =
+		WAIT
+				
+		CALL SET_ENEMY,12,1759,60,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+			
+		CALL SET_ENEMY,8,268,65,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+
+		CALL SET_ENEMY,9,852,60,0,1
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		CALL BATTLE_START
+
+		CUSTOMDRAWLINE =
+		PRINTW ……悪魔たちを倒し終えたころには、周囲は惨憺たる状態になっていた。
+		PRINTW 警備をはじめとする人たちはすでにこの場から避難を始めている。
+		PRINTW 唯一研究者だけはこの場に留まろうとして、警備に引きずられて行ってしまった。
+		PRINTW とりあえず、これで「Osiris」の破壊を妨害する者は居なくなった筈だ。
+	ELSEIF RESULT == 1
+;知力が一定以上で説得OK？
+		PRINTW この男ともそれなりに付き合いは出来ている。　強硬に出るよりは話し合いで何とかできないだろうか？
+		PRINTW ………………
+		PRINTW …………
+		PRINTW ……
+		PRINTL 
+		IF BASE:MASTER:知恵 >= 25
+;説得OK
+			PRINTW 『納得しがたい所は有りますが。　他ならぬ貴方の意見だ。　いきなり破壊と言う意見は飲めませんが……』
+			PRINTW 『一旦Osirisを停止して、徹底したチェックとOSの再構成を掛けると言うあたりで如何でしょう？　記憶容量が大きすぎるので、時間が架かりはしますが』
+			PRINTW ……手ぬるい気もするが、向こうが一歩譲っているのは確かだ。　ここはこの条件を呑んで、代わりに作業をすぐ始めるように要求してみる。
+			PRINTW 『やるとなればさっさと始めますよ。　では……』
+			PRINTW やれやれと首を振りながら研究者が振り向いたその時……。
+		ELSE
+;説得NG
+			PRINTW 『いくらあなたの言葉とは言え、いきなり破壊と言われて同意は出来ません。　せめて上から話を通す位はして頂きたい』
+			PRINTW ……研究者の意見を弁舌で変える事は出来なかった。　なら、やはり実力行使しかないだろう。
+			PRINTFORMW %CALLNAME:MASTER%は召喚した悪魔に、「Osiris」の破壊を命じ……
+			PRINTFORMW その攻撃は、突然割り込んできた作業機械を打ち砕いて終わった。
+			PRINTW 次いで、部屋に飛び込んできた警備が、こちらに武器を向けて警告の声を上げるが、
+			PRINTFORML それに、%CALLNAME:MASTER%が答えるよりも早く、彼らのCOMPが唸りを上げた。
+			PRINTW 『何だ？　まだ何もしていないぞ！？』『乗っ取られてる！？　いつの間に！』『こんな悪魔持っていないぞ！　MAGが根こそぎに……』
+			PRINTW ここで長期間働いている内に、彼らのCOMPにはいつの間にかバックドアでも仕込まれていたのだろう。
+			PRINTW 警備の面々では召喚できないであろう高位の悪魔が実体化した。
+			CUSTOMDRAWLINE =
+			WAIT
+					
+			CALL SET_ENEMY,12,1759,60,0,1
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+				
+			CALL SET_ENEMY,8,268,65,0,1
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL SET_ENEMY,9,852,60,0,1
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL BATTLE_START
+
+			CUSTOMDRAWLINE =
+			PRINTW ……悪魔たちを倒し終えたころには、周囲は惨憺たる状態になっていた。
+			PRINTW 警備をはじめとする人たちはすでにこの場から避難を始めている。
+			PRINTW 唯一研究者だけはこの場に留まろうとして、警備に引きずられて行ってしまった。
+			PRINTW とりあえず、これで「Osiris」の破壊を妨害する者は居なくなった筈だ。
+		ENDIF
+	ELSE
+		GOTO INPUT_LOOP8
+	ENDIF
+	
+	PRINTW 突如「Osiris」が排気音を上げ始めた。　
+	PRINTFORMW %CALLNAME:MASTER%の前に褐色の肌を持つ、エジプト風の装束を纏った女が実体化する。
+	PRINTFORMW 『端末投影……。　私はオシリスの砂』
+	PRINTFORMW こいつがオシリス。　全人類を賢者の石に還元し、人類種の記念碑を作ろうとしている錬金術師なのか？
+	PRINTFORMW 『然り。　人類種の滅亡は避けがたい。　……特にこの世界線においては。　こうしている時すら惜しいと言うのに』
+	PRINTFORMW 『故に我が赤き砂体を以て、万物を救罪しよう。　固有結界展開開始』
+	PRINTW 視界が歪み、古いテレビのように視界を砂嵐が覆う。　思わず手で目を覆い……
+	PRINTW 砂嵐が晴れた時、周囲は「書き換わって」いた。　コンクリート造りの建物の壁も床もなく、ただ暗くだだっ広い空間があるだけ。
+	PRINTW 周囲のあちこちには、赤い液体とも砂の流れともつかない物が流れ、滴っていた。
+	PRINTW あれは賢者の石なのか？　では、一体どれだけの人間が賢者の石に変換されたと言うのだろう。
+;シオンがいる
+	IF FINDCHARA_B(5050)== 2
+		PRINTW シオン『……かつての私の姿とは言え、見るに堪えませんね。　私たちの世界での敗北は記録に残っていないのですか？』
+		PRINTW オシリスの砂『あの敗戦は私が思考リソースを、ほんの2%程割り振り損なったが為の誤りだ。　根本的な演算に誤りがない以上、私が選択肢を変える理由はない』
+		PRINTW シオン『挙句の果てには負け惜しみですか。　良いでしょう、その敗戦は失策によるものではなく、あなたの選択に対する必然だと証明しましょう』
+;秋葉がいる
+	ELSEIF FINDCHARA_B(5052)== 2
+		PRINTW 秋葉『……やはり、あなたはシオンとは違いますわね。　私の知るシオンはもう少し諦めが悪かった筈ですし』
+		PRINTW オシリスの砂『私たちの世界でも、あなたは同じ事を口にした。　そして、私の返答も変わりはしない』
+		PRINTW 秋葉『そうでしょうね。　では、もう一度決着を付けるとしましょう』
+	ENDIF
+	PRINTW オシリスの砂が腕を軽く打ちふるうと、赤い砂の海を割るようにして、巨大な金属の人型が姿を現す。
+	PRINTFORMW 人型はオシリスをその掌の上に乗せて、%CALLNAME:MASTER%達を見下ろした。
+	CUSTOMDRAWLINE =
+	WAIT
+
+	
+;レベルは自軍最大値+10（最低値70）
+	LOCAL:1 = 0
+	FOR LOCAL , 0 , CHARANUM
+		SIF CFLAG:LOCAL:PTフラグ == 0 || TALENT:LOCAL:非戦闘員
+			CONTINUE
+		LOCAL:1 = MAX(LOCAL:1 , BASE:LOCAL:LV)
+	NEXT
+	$LVUP_LOOP_3
+	LOCAL:1 += 10
+	SIF LOCAL:1 < 70
+		GOTO LVUP_LOOP_3
+		
+	CALL SET_ENEMY,14,5065,LOCAL:1, 0,1
+	CFLAG:(CHARANUM-1):ＨＰ補正 += 10000
+	CFLAG:(CHARANUM-1):ＭＰ補正 += 10000
+	CFLAG:(CHARANUM-1):行動回数 = 3
+	CSTR:(CHARANUM-1):思考パターン = 5065
+	CALL SYNC_STATUS,(CHARANUM-1)
+	CALL HEALTH_CHARA,(CHARANUM-1)
+	CALL BATTLE_START
+
+	CUSTOMDRAWLINE =
+	PRINTW オシリスの砂の姿が乱れる。　血のように赤い世界は現れた時と同じように視界を覆う砂嵐の中に消えていく……。
+	PRINTW 視界が元に戻った時には、周囲は元通りの研究室だった。
+	PRINTW 「Osiris」の筐体からは、赤い煙のような物が立ち上っている。
+	PRINTW 流石に壊れたのだろうか？
+	PRINTW 部屋の外からは武装したサマナーたちが、警戒しながら部屋に入ってこようとしている。
+	PRINTW ……とりあえず、これで終わったのだろうか……
+	PRINTW ………………
+	PRINTW …………
+	PRINTW ……
+	PRINTL 
+	PRINTFORMW ファントムの施設で騒ぎを起こしたことについて、%CALLNAME:MASTER%には、注意は行われたがそれ以上の咎めはなかった。
+	PRINTW 尤も、それとは別に今回の件についての詳細な報告を提出するように要求され、慣れない書類仕事に四苦八苦する羽目にはなっているのだが。
+	PRINTW ……研究者からは後日メールで連絡が届いた。
+	PRINTW どうも危険物の研究に関して、安全管理が不十分だったと言う事で責任を問われていたらしい。
+	PRINTW 固定化したマグネタイトを記憶媒体として用いる技術についての調査報告を上げる事で、一応研究者を続ける事は出来ているそうだ。
+	PRINTW メールには一つの添付ファイルが付いていた。　何でも、壊れた「Osiris」からサルベージされたデータの断片から組み上げたプラグインらしい。
+	PRINTW プラグイン【MeltyBlood】を手に入れた。
+	ITEM:8480 += 1
+	イベントフラグ:97:0 = 99
+	PRINTW 「Osiris」が機能を停止し、集めた遺物……賢者の石も殆どは霧散してしまったらしい。
+	PRINTW 故にこれ以上、来訪者が召喚される事も、それにまつわる事件が起こる事もない筈だ。
+	PRINTFORMW ……『Kaleidoscope』を持つ%CALLNAME:MASTER%を除いては、の話だが。
+	PRINTFORMW %CALLNAME:MASTER%の元に召喚された来訪者達との契約は、今も続いている。
+	PRINTW 良くも悪くも、特異な悪魔として契約は持続していくようだ。
+	PRINTW こうして、来訪者と賢者の石に係る一連の事件は終わりを迎えた。
+	PRINTFORMW %CALLNAME:MASTER%は手元に残した新たな仲魔たちと共に、この世界なりの騒々しい日常へと帰っていく。
+	
+	SETCOLOR 0xff0033
+	PRINTFORMW 　　　　　　　　―― Ending No.065 (メルティブラッド　END　“Melty　Blood”)
+	RESETCOLOR
+	PRINTFORML 
+
+	FLAG:5 = 9
+	SETBIT FLAG:キャンセル済みED2,0
+	SETBIT FLAG:発見ED2,0
+	PRINTFORML [0]End [1]Continue [2]Start new-game plus
+	CALL INPUTINT,0, 1, 2
+	IF RESULT == 0
+		QUIT
+	ELSEIF RESULT == 1
+		CALL EVENT_97_TURN_END
+	ELSEIF RESULT == 2
+		CALL START_NEWGAME
+		RETURN 1
+	ENDIF
+	
+ENDIF
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+	
+	
+@CHECK_MELTY_BLOOD
+;MB来訪者参戦を判定
+LOCAL:1 = -1
+FOR LOCAL, 5050, 5062
+	IF	FINDCHARA_B(LOCAL) == 2
+		LOCAL:1 = LOCAL
+		BREAK
+	ENDIF
+NEXT
+RETURN LOCAL:1
+
+@EVENT_97_TURN_END
+
+;- 1ターン経過
+FLAG:休憩フラグ = 1
+BEGIN TURNEND
+RETURN
+
+
+;オシリス思考パターン
+@SET_ACTION_5065,ARG
+#LOCALSIZE 3
+IF FLAG:経過ターン数 == 0
+	LOCAL = 0
+ELSEIF FLAG:経過ターン数 % 5 == 0
+	LOCAL = 1
+ELSE
+	LOCAL = 0
+ENDIF
+LOCAL:2 = 0
+FOR LOCAL:1, 1, 6
+	SIF POS(LOCAL:1) == -1 || CFLAG:POS(LOCAL:1):ステート == GET_STATE_NUM("DYING")
+		CONTINUE
+	SIF CFLAG:POS(LOCAL:1):物理反射フラグ == 1
+		LOCAL:2 = 1
+	SIF CFLAG:POS(LOCAL:1):打撃無効化回数 > 0
+		LOCAL:2 = 1
+	SIF MAXBASE:(LOCAL:1):2 <= 0 || MAXBASE:(LOCAL:1):2 == 999
+		LOCAL:2 = 1
+NEXT
+
+IF CFLAG:ARG:行動した回数 == 0
+	IF LOCAL:2 == 1
+		CFLAG:ARG:入力行動 = [[スキル:打撃ガードキル]]
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+	ELSEIF CFLAG:ARG:攻撃強化 < -8 || CFLAG:ARG:命中強化 < -8 || CFLAG:ARG:回避強化 < -8 || CFLAG:ARG:魔法威力強化 < -8
+		CFLAG:ARG:入力行動 = [[スキル:デ・クンダ]]
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+	ELSEIF CFLAG:MASTER:攻撃強化 > 13 || CFLAG:MASTER:防御強化 > 13 || CFLAG:MASTER:命中強化 > 13 || CFLAG:MASTER:魔法威力強化 > 13
+		CFLAG:ARG:入力行動 = [[スキル:デ・カジャ]]
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = [[スキル:アカシャアーツ]]
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+	ENDIF
+ELSEIF CFLAG:ARG:行動した回数 == 1
+	CFLAG:ARG:入力行動 = [[スキル:アカシャアーツ]]
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ELSE
+	IF LOCAL == 1
+		CFLAG:ARG:入力行動 = 2984
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+	ELSE
+		CFLAG:ARG:入力行動 = 2067
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+	ENDIF
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1

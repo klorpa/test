@@ -1,0 +1,616 @@
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_65
+IF イベントフラグ:11:0 == 1 
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_65
+RESULTS = Schwarzwelt
+;シュバルツバース
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_65
+PRINT Schwarzwelt
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINT   Research Ship（
+		SELECTCASE STRFLAG_NUM_D("調査船位置")
+			CASE 0
+				PRINT Above Ground
+			CASE 1
+				PRINT Sector Antlia
+			CASE 2
+				PRINT Sector Bootes
+			CASE 3
+				PRINT Sector Carina
+			CASE 4
+				PRINT Sector Delphinus
+			CASE 5
+				PRINT Sector Eridanus
+		ENDSELECT
+		PRINTL ）
+	CASE IS < 4
+		PRINTL Sector Antlia
+	CASE IS < 12
+		PRINTL Sector Bootes
+	CASE 12
+		PRINTL Sector Carina Ｂ１Ｆ
+	CASE 13
+		PRINTL Sector Carina １Ｆ
+	CASE 14 TO 17
+		PRINT Sector Carina ２Ｆ
+		SELECTCASE STRFLAG_NUM_D("カリーナ隠し場")
+			CASE 0
+				PRINTL 
+			CASE 1
+				PRINTL （隠し場Ａ）
+			CASE 2
+				PRINTL （隠し場Ｂ）
+		ENDSELECT
+	CASE 18 TO 21
+		PRINT Sector Carina ３Ｆ
+		SELECTCASE STRFLAG_NUM_D("カリーナ隠し場")
+			CASE 0
+				PRINTL 
+			CASE 1
+				PRINTL （隠し場Ａ）
+			CASE 2
+				PRINTL （隠し場Ｂ）
+		ENDSELECT
+	CASE 22
+		PRINTL Sector Carina ４Ｆ
+	CASE IS < 32
+		PRINTL Sector Delphinus
+ENDSELECT
+
+
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_65,ARG
+FLAG:現M = 0
+FLAG:現X = 11
+FLAG:現Y = 7
+
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_65,ARG,ARG:1
+SELECTCASE DA:ARG:(ARG:1)
+	CASE 1001
+		SIF STRFLAG_NUM_D("調査船位置") == 0
+			RETURN 0
+	;∧
+	CASE 902, 912
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		SIF FLAG:現Y < ARG:1
+			RETURN 0
+		FLAG:現Y -= 2
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		FLAG:現Y += 2
+	;＞
+	CASE 922, 932
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		SIF FLAG:現X > ARG
+			RETURN 0
+		FLAG:現X += 2
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		FLAG:現X -= 2
+	;∨
+	CASE 942, 952
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		SIF FLAG:現Y > ARG:1
+			RETURN 0
+		FLAG:現Y += 2
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		FLAG:現Y -= 2
+	;＜
+	CASE 962, 972
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		SIF FLAG:現X < ARG
+			RETURN 0
+		FLAG:現X -= 2
+		CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+		FLAG:現X += 2
+	CASE 992
+		PRINTW ＞扉は開かない
+		RETURN 0
+	CASEELSE
+		;2以外の扉はドアイベントへ
+		IF DA:ARG:(ARG:1) % 10 == 2 && DA:ARG:(ARG:1) > 2
+			CALL DOOR_65, DA:ARG:(ARG:1) / 10
+			RETURN RESULT
+		ENDIF
+ENDSELECT
+
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;ターミナル名前
+;=======================================================================
+@GET_FLOORNAME_65
+SELECTCASE FLAG:現M
+	CASE 0
+		RESULTS = Research Ship
+	CASE IS < 4
+		RESULTS = Sector Antlia
+	CASE IS < 12
+		RESULTS = Sector Bootes
+	CASE IS < 23
+		RESULTS = Sector Carina
+	CASE IS < 32
+		RESULTS = Sector Delphinus
+
+ENDSELECT
+
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_65
+SELECTCASE FLAG:現M
+
+	CASE 0
+	;船
+		FLAG:最大X = 40
+		FLAG:最大Y = 15
+;								 0000000000111111111122222222223333333333
+;								 0123456789012345678901234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                                        "
+		CALL MAKE_FLOOR_LINE, 1,"                                        "
+		CALL MAKE_FLOOR_LINE, 2,"           1111 111 111 111 111 111     "
+		CALL MAKE_FLOOR_LINE, 3,"         111111 1112181 111 1I1 1111    "
+		CALL MAKE_FLOOR_LINE, 4,"       11111111 111 111 111 111 11111   "
+		CALL MAKE_FLOOR_LINE, 5,"     1111 11111      2   2   2  111811  "
+		CALL MAKE_FLOOR_LINE, 6,"   111111 81111 111111111111111 111111  "
+		CALL MAKE_FLOOR_LINE, 7,"   11 81111111121111111111111112111111F "
+		CALL MAKE_FLOOR_LINE, 8,"   111111 11111 111111111111111 111111  "
+		CALL MAKE_FLOOR_LINE, 9,"     1111 11111  2   2       2  111111  "
+		CALL MAKE_FLOOR_LINE,10,"       11111111 111 111 111 111 11111   "
+		CALL MAKE_FLOOR_LINE,11,"         111111 1112111 1112181 1111    "
+		CALL MAKE_FLOOR_LINE,12,"           1111 111 111 111 111 111     "
+		CALL MAKE_FLOOR_LINE,13,"                                        "
+		CALL MAKE_FLOOR_LINE,14,"                                        "
+
+	CASE 12
+	;カリーナ Ｂ１Ｆ
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 00000000001111111111222222222233
+;								 01234567890123456789012345678901
+		CALL MAKE_FLOOR_LINE, 0,"                                "
+		CALL MAKE_FLOOR_LINE, 1,"                                "
+		CALL MAKE_FLOOR_LINE, 2,"                                "
+		CALL MAKE_FLOOR_LINE, 3,"                 113 DDD2111    "
+		CALL MAKE_FLOOR_LINE, 4,"                 1   D       I  "
+		CALL MAKE_FLOOR_LINE, 5,"                 1   D       2  "
+		CALL MAKE_FLOOR_LINE, 6,"                 1 DDDDD211111  "
+		CALL MAKE_FLOOR_LINE, 7,"                 1 D         1  "
+		CALL MAKE_FLOOR_LINE, 8,"                 1 D         2  "
+		CALL MAKE_FLOOR_LINE, 9,"                 1 DDDDD DDDDD  "
+		CALL MAKE_FLOOR_LINE,10,"                 1     D D  DD  "
+		CALL MAKE_FLOOR_LINE,11,"                 1     D D  D   "
+		CALL MAKE_FLOOR_LINE,12,"                 12DDDDD 2  2   "
+		CALL MAKE_FLOOR_LINE,13,"                 1     D 1  1   "
+		CALL MAKE_FLOOR_LINE,14,"                 1     D 1  11  "
+		CALL MAKE_FLOOR_LINE,15,"                 1 DDDDD 1  1   "
+		CALL MAKE_FLOOR_LINE,16,"                 1 D     1  2   "
+		CALL MAKE_FLOOR_LINE,17,"                 1 D 811 1 111  "
+		CALL MAKE_FLOOR_LINE,18,"                   2   1 1 141  "
+		CALL MAKE_FLOOR_LINE,19,"                 618 11111 111  "
+		CALL MAKE_FLOOR_LINE,20,"                                "
+
+	CASE 13
+	;カリーナ １Ｆ
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                 1111I           "
+		CALL MAKE_FLOOR_LINE, 2,"                   1             "
+		CALL MAKE_FLOOR_LINE, 3,"  11111111111111 111     11111   "
+		CALL MAKE_FLOOR_LINE, 4,"  1  11      1    11 111 1 1 1   "
+		CALL MAKE_FLOOR_LINE, 5,"  1  11111 111 11G112111 1 1 16  "
+		CALL MAKE_FLOOR_LINE, 6,"  11111    1    1 11 111 1 1 1   "
+		CALL MAKE_FLOOR_LINE, 7,"     11111 111111 11     1 1 1   "
+		CALL MAKE_FLOOR_LINE, 8,"  11 11           11 111111111   "
+		CALL MAKE_FLOOR_LINE, 9,"  11G111111111111G11 1       1   "
+		CALL MAKE_FLOOR_LINE,10,"  41 11           11 1111111 1   "
+		CALL MAKE_FLOOR_LINE,11,"  11G111116 111 1111       1 2   "
+		CALL MAKE_FLOOR_LINE,12,"  11 11     1 1   11 1111111 1   "
+		CALL MAKE_FLOOR_LINE,13,"     11111111 113 11 3111311 1   "
+		CALL MAKE_FLOOR_LINE,14,"  11111           11         1   "
+		CALL MAKE_FLOOR_LINE,15,"  1  11112I 3111111121111111112I "
+		CALL MAKE_FLOOR_LINE,16,"  1  11           11    1    1   "
+		CALL MAKE_FLOOR_LINE,17,"  111111X111111X1111 111111111   "
+		CALL MAKE_FLOOR_LINE,18,"                   G             "
+		CALL MAKE_FLOOR_LINE,19,"                 71116           "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+	CASE 14
+	;カリーナ ２Ｆ
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"  61111211111111 1111111111113   "
+		CALL MAKE_FLOOR_LINE, 4,"      1      1   1 1 1           "
+		CALL MAKE_FLOOR_LINE, 5,"  111111211  111111111 11111117  "
+		CALL MAKE_FLOOR_LINE, 6,"  1   1   1            2         "
+		CALL MAKE_FLOOR_LINE, 7,"  1   1   112F         111111    "
+		CALL MAKE_FLOOR_LINE, 8,"  1  11                1    1    "
+		CALL MAKE_FLOOR_LINE, 9,"  1111  11112F         111111    "
+		CALL MAKE_FLOOR_LINE,10,"        1                X  1    "
+		CALL MAKE_FLOOR_LINE,11,"  111 111 712F           1  1    "
+		CALL MAKE_FLOOR_LINE,12,"  1   1                 11  1    "
+		CALL MAKE_FLOOR_LINE,13,"  11111121112F          1   1    "
+		CALL MAKE_FLOOR_LINE,14,"  1   1                 2   2    "
+		CALL MAKE_FLOOR_LINE,15,"  1   1  1111          111 111   "
+		CALL MAKE_FLOOR_LINE,16,"  11  1     1          111 141   "
+		CALL MAKE_FLOOR_LINE,17,"   1111121111      F   111 111   "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                 61117           "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+
+	CASE 15
+	;カリーナ ２ＦN
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"                                 "
+		CALL MAKE_FLOOR_LINE, 4,"                                 "
+		CALL MAKE_FLOOR_LINE, 5,"                                 "
+		CALL MAKE_FLOOR_LINE, 6,"                                 "
+		CALL MAKE_FLOOR_LINE, 7,"           F2111111111           "
+		CALL MAKE_FLOOR_LINE, 8,"              1    111           "
+		CALL MAKE_FLOOR_LINE, 9,"           F211     11           "
+		CALL MAKE_FLOOR_LINE,10,"                111  1           "
+		CALL MAKE_FLOOR_LINE,11,"           F21111I1 11           "
+		CALL MAKE_FLOOR_LINE,12,"                111  1           "
+		CALL MAKE_FLOOR_LINE,13,"           F211     11           "
+		CALL MAKE_FLOOR_LINE,14,"              1 I  111           "
+		CALL MAKE_FLOOR_LINE,15,"              1 111111           "
+		CALL MAKE_FLOOR_LINE,16,"              1                  "
+		CALL MAKE_FLOOR_LINE,17,"              1 111111           "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                   F             "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+
+	CASE 16
+	;カリーナ ２ＦA
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"                                 "
+		CALL MAKE_FLOOR_LINE, 4,"                                 "
+		CALL MAKE_FLOOR_LINE, 5,"                                 "
+		CALL MAKE_FLOOR_LINE, 6,"                                 "
+		CALL MAKE_FLOOR_LINE, 7,"           F2111111111           "
+		CALL MAKE_FLOOR_LINE, 8,"                     1           "
+		CALL MAKE_FLOOR_LINE, 9,"           F211111   1           "
+		CALL MAKE_FLOOR_LINE,10,"                   111           "
+		CALL MAKE_FLOOR_LINE,11,"           F21111I11             "
+		CALL MAKE_FLOOR_LINE,12,"                   111           "
+		CALL MAKE_FLOOR_LINE,13,"           F2111     1           "
+		CALL MAKE_FLOOR_LINE,14,"              11I    1           "
+		CALL MAKE_FLOOR_LINE,15,"              11  1111           "
+		CALL MAKE_FLOOR_LINE,16,"              1                  "
+		CALL MAKE_FLOOR_LINE,17,"              11111111           "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                   F             "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+
+	CASE 17
+	;カリーナ ２ＦB
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"                                 "
+		CALL MAKE_FLOOR_LINE, 4,"                                 "
+		CALL MAKE_FLOOR_LINE, 5,"                                 "
+		CALL MAKE_FLOOR_LINE, 6,"                                 "
+		CALL MAKE_FLOOR_LINE, 7,"           F211211112I           "
+		CALL MAKE_FLOOR_LINE, 8,"             1  1111             "
+		CALL MAKE_FLOOR_LINE, 9,"           F21 1111111           "
+		CALL MAKE_FLOOR_LINE,10,"                    1            "
+		CALL MAKE_FLOOR_LINE,11,"           F21111I1 1            "
+		CALL MAKE_FLOOR_LINE,12,"                    2            "
+		CALL MAKE_FLOOR_LINE,13,"           F2111 1 111           "
+		CALL MAKE_FLOOR_LINE,14,"               1I1 111           "
+		CALL MAKE_FLOOR_LINE,15,"                 1 111           "
+		CALL MAKE_FLOOR_LINE,16,"              1  1               "
+		CALL MAKE_FLOOR_LINE,17,"              11111111           "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                   F             "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+	CASE 18
+	;カリーナ ３Ｆ
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"  711111112F         F21111111   "
+		CALL MAKE_FLOOR_LINE, 4,"                                 "
+		CALL MAKE_FLOOR_LINE, 5,"  111111112F         F211111116  "
+		CALL MAKE_FLOOR_LINE, 6,"  2 2 2                     2    "
+		CALL MAKE_FLOOR_LINE, 7,"  D D D              F2D DDDD    "
+		CALL MAKE_FLOOR_LINE, 8,"  D D DDD              D D  DD   "
+		CALL MAKE_FLOOR_LINE, 9,"  D D D D              D DD  D   "
+		CALL MAKE_FLOOR_LINE,10,"    D D D              D     2   "
+		CALL MAKE_FLOOR_LINE,11,"  DDDDD D              DDDDDDD   "
+		CALL MAKE_FLOOR_LINE,12,"  2 D   2                D       "
+		CALL MAKE_FLOOR_LINE,13,"  1 D   1              DDDD211   "
+		CALL MAKE_FLOOR_LINE,14,"  1 DD21112F           D         "
+		CALL MAKE_FLOOR_LINE,15,"  1 D                  D 111116  "
+		CALL MAKE_FLOOR_LINE,16,"  1 D                    1   1   "
+		CALL MAKE_FLOOR_LINE,17,"  1 D211112F       F F2111 111   "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                 71116           "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+	CASE 19
+	;カリーナ ３ＦN
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"         F211111 111112F         "
+		CALL MAKE_FLOOR_LINE, 4,"            1       1            "
+		CALL MAKE_FLOOR_LINE, 5,"         F211 11111 112F         "
+		CALL MAKE_FLOOR_LINE, 6,"              1   1 1            "
+		CALL MAKE_FLOOR_LINE, 7,"           11 1 I 2 112F         "
+		CALL MAKE_FLOOR_LINE, 8,"           14 1 1 1 1            "
+		CALL MAKE_FLOOR_LINE, 9,"           11 1 1 1 1            "
+		CALL MAKE_FLOOR_LINE,10,"           11 1 1 1 1            "
+		CALL MAKE_FLOOR_LINE,11,"            1 1 2 1 1            "
+		CALL MAKE_FLOOR_LINE,12,"            1 1 111 1            "
+		CALL MAKE_FLOOR_LINE,13,"            1 1   1 11           "
+		CALL MAKE_FLOOR_LINE,14,"         F211 1 111  1           "
+		CALL MAKE_FLOOR_LINE,15,"              1 1    1           "
+		CALL MAKE_FLOOR_LINE,16,"              1    121           "
+		CALL MAKE_FLOOR_LINE,17,"         F211112I  1 12F         "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                   F             "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+	CASE 20
+	;カリーナ ３ＦA
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                  "
+		CALL MAKE_FLOOR_LINE, 1,"                                  "
+		CALL MAKE_FLOOR_LINE, 2,"                                  "
+		CALL MAKE_FLOOR_LINE, 3,"         F211111 111112F          "
+		CALL MAKE_FLOOR_LINE, 4,"            1  1 1  1             "
+		CALL MAKE_FLOOR_LINE, 5,"         F211 11111 112F          "
+		CALL MAKE_FLOOR_LINE, 6,"              1 1 1               "
+		CALL MAKE_FLOOR_LINE, 7,"            1 1 I 1 112F          "
+		CALL MAKE_FLOOR_LINE, 8,"            1 1 1 1 1             "
+		CALL MAKE_FLOOR_LINE, 9,"            1 1 A 1 1             "
+		CALL MAKE_FLOOR_LINE,10,"            1 1 1 1 1             "
+		CALL MAKE_FLOOR_LINE,11,"            111 1 1 1             "
+		CALL MAKE_FLOOR_LINE,12,"                1 1 1             "
+		CALL MAKE_FLOOR_LINE,13,"              111 1 11            "
+		CALL MAKE_FLOOR_LINE,14,"         F21111      1            "
+		CALL MAKE_FLOOR_LINE,15,"              11111111            "
+		CALL MAKE_FLOOR_LINE,16,"            1 1    1 1            "
+		CALL MAKE_FLOOR_LINE,17,"         F211 12I  1 12F          "
+		CALL MAKE_FLOOR_LINE,18,"                   2              "
+		CALL MAKE_FLOOR_LINE,19,"                   F              "
+		CALL MAKE_FLOOR_LINE,20,"                                  "
+
+	CASE 21
+	;カリーナ ３ＦB
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                                 "
+		CALL MAKE_FLOOR_LINE, 2,"                                 "
+		CALL MAKE_FLOOR_LINE, 3,"         F2111211121112F         "
+		CALL MAKE_FLOOR_LINE, 4,"               111 111           "
+		CALL MAKE_FLOOR_LINE, 5,"         F2111  2  1112F         "
+		CALL MAKE_FLOOR_LINE, 6,"           111 111  2            "
+		CALL MAKE_FLOOR_LINE, 7,"           111 1I1 1112F         "
+		CALL MAKE_FLOOR_LINE, 8,"            2  111 111           "
+		CALL MAKE_FLOOR_LINE, 9,"           111  2  111           "
+		CALL MAKE_FLOOR_LINE,10,"           111 111  2            "
+		CALL MAKE_FLOOR_LINE,11,"           111 111 111           "
+		CALL MAKE_FLOOR_LINE,12,"            2  111 111           "
+		CALL MAKE_FLOOR_LINE,13,"           111  2  111           "
+		CALL MAKE_FLOOR_LINE,14,"         F2111 111  2            "
+		CALL MAKE_FLOOR_LINE,15,"           111 1 11111           "
+		CALL MAKE_FLOOR_LINE,16,"            2  1   1 1           "
+		CALL MAKE_FLOOR_LINE,17,"         F2111112I 1 12F         "
+		CALL MAKE_FLOOR_LINE,18,"                   2             "
+		CALL MAKE_FLOOR_LINE,19,"                   F             "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+
+	CASE 22
+	;カリーナ ４Ｆ
+		FLAG:最大X = 33
+		FLAG:最大Y = 21
+;								 000000000011111111112222222222333
+;								 012345678901234567890123456789012
+		CALL MAKE_FLOOR_LINE, 0,"                                 "
+		CALL MAKE_FLOOR_LINE, 1,"                 1111I           "
+		CALL MAKE_FLOOR_LINE, 2,"                 1               "
+		CALL MAKE_FLOOR_LINE, 3,"  111       111  1 111>1111111   "
+		CALL MAKE_FLOOR_LINE, 4," 11111     11111 1 111       1   "
+		CALL MAKE_FLOOR_LINE, 5," 31 112111211 11 1 111 11111117  "
+		CALL MAKE_FLOOR_LINE, 6," 11111     11111 1 111 1     1   "
+		CALL MAKE_FLOOR_LINE, 7,"  111       111  1 111 1111111   "
+		CALL MAKE_FLOOR_LINE, 8,"      11     2   1   2           "
+		CALL MAKE_FLOOR_LINE, 9,"     1111   111  1   1     111   "
+		CALL MAKE_FLOOR_LINE,10,"    111111 11111 1 111 1112141   "
+		CALL MAKE_FLOOR_LINE,11,"  F1F11111211 1121 1   1   111   "
+		CALL MAKE_FLOOR_LINE,12,"    111111 11111 2 1   1         "
+		CALL MAKE_FLOOR_LINE,13,"     1111   111  I 1 I21111111   "
+		CALL MAKE_FLOOR_LINE,14,"      11     2     1   1     1   "
+		CALL MAKE_FLOOR_LINE,15,"  111       111    111111111117  "
+		CALL MAKE_FLOOR_LINE,16," 11111     11111                 "
+		CALL MAKE_FLOOR_LINE,17," 11 412111211 11   11111111111   "
+		CALL MAKE_FLOOR_LINE,18," 11111     11111   11        1   "
+		CALL MAKE_FLOOR_LINE,19,"  111       111    117 1111111   "
+		CALL MAKE_FLOOR_LINE,20,"                                 "
+ENDSELECT
+
+
+
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_65, ARGS, ARG, ARG:1
+;-----------------------------------------------------------------------
+;階層固有
+;-----------------------------------------------------------------------
+#LOCALSIZE 1
+
+;-----------------------------------------------------------------------
+;共通
+;-----------------------------------------------------------------------
+;F イベント床
+SIF ARGS == "F"
+	RETURN 11
+;G イベント扉
+SIF ARGS == "G"
+	RETURN 12
+;I イベント扉
+SIF ARGS == "I"
+	RETURN 19
+;H イベントダークゾーン
+SIF ARGS == "d"
+	RETURN -11
+;一方通行
+SIF ARGS == "A"
+	RETURN 902
+SIF ARGS == ">"
+	RETURN 922
+SIF ARGS == "V"
+	RETURN 942
+SIF ARGS == "<"
+	RETURN 962
+;落とし穴
+SIF ARGS == "P"
+	RETURN 15
+;HP罠
+SIF ARGS == "H"
+	RETURN 25
+RETURN 0
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_65, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:75~99
+;LOCAL:4 イベント
+;LOCAL:8 メッセンジャー
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+	
+IF ARG == 1
+
+ENDIF
+;イベントダークゾーン
+IF ARG == -11
+	DA:(ARG:1):(ARG:2) = -(FLAG:現M * 1000 + LOCAL:29 * 10 + 1)
+	LOCAL:29++
+	SELECTCASE -DA:(ARG:1):(ARG:2) / 10
+		
+	ENDSELECT
+ENDIF
+;イベント床
+IF ARG == 11
+	DA:(ARG:1):(ARG:2) = (FLAG:現M+1)*1000 + LOCAL:1 * 10 + 1
+	LOCAL:1++
+ENDIF
+;イベント扉
+IF ARG == 12
+	DA:(ARG:1):(ARG:2) = (FLAG:現M+1)*1000 + LOCAL:2 * 10 + 2
+	LOCAL:2++
+ENDIF
+IF ARG == 3
+	IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+25), LOCAL:3)
+		DA:(ARG:1):(ARG:2) = 1
+	ELSE
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+	ENDIF
+	LOCAL:3++
+
+ENDIF
+IF ARG == 4
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+	LOCAL:4++
+	SELECTCASE DA:(ARG:1):(ARG:2) / 10
+
+	ENDSELECT
+ENDIF
+IF ARG == 6
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:6 * 10 + 6
+	LOCAL:6++
+ENDIF
+IF ARG == 7
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:7 * 10 + 7
+	LOCAL:7++
+ENDIF
+IF ARG == 8
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:8 * 10 + 8
+	LOCAL:8++
+	SELECTCASE DA:(ARG:1):(ARG:2) / 10
+
+	ENDSELECT
+ENDIF
+
+IF ARG == 19
+	DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+	LOCAL:9++
+ENDIF
+
+
+
+
+

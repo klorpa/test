@@ -1,0 +1,1528 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:WORK.ERB
+;	Facility	:労役の指定・解除などを行う処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/19		P						労役のシフト処理を追加
+;	003		2011/02/17		黒天					シフト設定の一括処理を追加
+;	004		2011/03/03		迷走中の人				母乳の価格判定変更
+;	005		2011/04/02		迷走中の人				追加コマンドのビデオ価格追加
+;	006		2011/04/13		黒天					対象が一人もいない場合「全員を対象にする」選択肢が使用できないよう修正
+;													労役解除に「全員を対象にする」選択肢を追加
+;													労役解除後のキャラ一覧で解除前のページを表示するよう変更
+;	007		2011/06/30		ななし					ビデオ内容の取り出しをFLAGからTCVARに変更
+;	008		2013/11/30		ひみつ					リスト表示数設定追加。シフト設定画面を改造して○×を直接触れるように。
+;													第何日目でなく曜日で表示するように変更
+;	009		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+@SHOPCOMABLE_112
+RESULTS = Labor/Sale/Manage
+RETURN CHARANUM > 1
+
+;労役指示
+@SHOP_COM_112
+CUSTOMDRAWLINE =
+;A = 0
+;B = 0
+;D = 0
+;E = 0
+;F = 0
+;G = 0
+;REPEAT CHARANUM
+;	SIF COUNT == MASTER
+;		CONTINUE
+;	SIF CFLAG:COUNT:1 != 2
+;		CONTINUE
+;	SIF CFLAG:COUNT:12 > 0
+;		CONTINUE
+;	;育児部屋に移動しているキャラは除外
+;	C = COUNT
+;	CALL CHECK_CHILD_CARE
+;	SIF RESULT == 1
+;		CONTINUE
+;	SIF (TALENT:COUNT:恋慕 || TALENT:COUNT:親愛)
+;		A += 1
+;	SIF (TALENT:COUNT:淫乱 || TALENT:COUNT:娼婦) && TIME == 0
+;		B += 1
+;	SIF (TALENT:COUNT:服従 || TALENT:COUNT:隷属) && TIME == 0
+;		D += 1
+;	SIF (TALENT:COUNT:恋慕 || TALENT:COUNT:親愛) && ABL:COUNT:歌唱技能 >= 2
+;		E += 1
+;	SIF TALENT:COUNT:淫乱 || TALENT:COUNT:娼婦
+;		F += 1
+;	SIF TALENT:COUNT:5 || TALENT:COUNT:8
+;		G += 1
+;REND
+PRINTFORML Current Money：￥%TOSTR(MONEY, "#,##0")% / %TOSTR(MONEY:1, "#,##0")%Macca
+PRINTL [0]  - Sell
+	IF ITEM:食堂
+		PRINTL [1]  - Work at the Restaurant
+	ELSEIF ITEM:屋台
+		PRINTL [1]  - Work at the food cart
+	ELSE
+		PRINTL [1]  - Work part-time at a Restaurant
+	ENDIF
+	IF ITEM:娼館
+		PRINTL [2]  - Work as a prostitute
+	ELSEIF ITEM:安宿
+		PRINTL [2]  - Rent out a character to the hotel
+	ELSE
+		PRINTL [2]  - Work part-time in a brothel
+	ENDIF
+SIF TIME == 0
+	PRINTL [3]  - Rent out a slave
+SIF イベントフラグ:32:0 == 0 && TIME == 3
+	PRINTL [4]  - Sing at a concert
+;SIF F
+	PRINTL [5]  - Participate in a live orgy
+;SIF G
+;	PRINTL [6]  - Place a character into a public toilet
+
+PRINTL [7]  - Cancel assignment
+PRINTL [8]  - Purchase facility
+;---- EDIT 002 ADD START -------------------------
+;新規作成
+PRINTL [9]  - Manage work shift
+;---- EDIT 002 ADD END  ---------------------------
+PRINTL [10] - Manage store
+PRINTL [11] - Delete character registration
+
+DRAWLINE
+PRINTL [100]- Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 0
+	CALL CHARA_SELL_SELECT
+ELSEIF RESULT == 1
+	CALL RESTRANT
+ELSEIF RESULT == 2
+	CALL PROSTITUTION
+ELSEIF RESULT == 3 && TIME == 0
+	CALL RENTAL_SLAVE
+ELSEIF RESULT == 4 && イベントフラグ:32:0 == 0 && TIME == 3
+	CALL CONCERT
+;ELSEIF RESULT == 5 && F
+ELSEIF RESULT == 5
+	CALL PROMISCUOUS_SEX_LIVE
+;ELSEIF RESULT == 6 && G
+;	CALL PUBLIC_TOILET
+ELSEIF RESULT == 7
+	CALL CANCEL_WORK
+ELSEIF RESULT == 8
+	CALL EXTEND_WORK
+;---- EDIT 002 ADD START -------------------------
+;新規作成
+ELSEIF RESULT == 9
+	CALL SIFT_WORK
+;---- EDIT 002 ADD END  ---------------------------
+ELSEIF RESULT == 10
+	CALL MANAGEMENT
+ELSEIF RESULT == 11
+	CALL DEAL_CHARA
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+RESTART
+
+@CANCEL_WORK
+CALL INPUT_CHARA_LIST("Please select a character to cancel their work assignment", "CASTING_CANCEL_WORK", "", "", "MODECHANGE_CANCEL_WORK")
+IF RESULT == 1000
+	RETURN 0
+ENDIF
+
+IF RESULT != 999
+	VARSET Q, -1
+	Q:0 = RESULT
+	LOCAL:2 = 1
+ELSE
+	;間違い対策として念押し確認
+	PRINTL All characters work assignments will be canceled.
+	PRINTL Are you sure you want to do this?
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		;キャラ一覧に戻る。
+		RESTART
+	LOCAL:2 = A
+ENDIF
+
+FOR COUNT, 0, LOCAL:2
+	PRINTFORMW The work assignment of %CALLNAME:(Q:COUNT)% has been canceled.
+	;の労役を解除しました
+	CFLAG:(Q:COUNT):労役フラグ = 0
+	;CFLAG:(Q:COUNT):労役店舗 = 0
+	IF CFLAG:(Q:COUNT):劇場出演順番 != 0
+		DE:(49+(CFLAG:(Q:COUNT):劇場出演順番)):(CFLAG:(Q:COUNT):労役店舗-1) = -1
+		DE:(59+(CFLAG:(Q:COUNT):劇場出演順番)):(CFLAG:(Q:COUNT):労役店舗-1) = -1
+		CFLAG:(Q:COUNT):劇場出演順番 = 0
+		CFLAG:(Q:COUNT):労役店舗 = 0
+	ENDIF
+NEXT
+
+RESTART
+
+@CASTING_CANCEL_WORK
+SIF CFLAG:COUNT:労役フラグ == 0
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3 && TIME > 0
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+@MODECHANGE_CANCEL_WORK , ARG
+;対象が二人未満の場合、999(全員の労役解除)は無効
+IF ARG == -1 && A >= 2
+	DRAWLINE
+	PRINTL [999] Cancel all characters assignment.
+ELSEIF ARG == 999
+	RETURN ARG, 0
+ENDIF
+RETURN ARG, 1
+
+@EXTEND_WORK
+DRAWLINE
+
+SIF ITEM:屋台 == 0
+	PRINTL [1]  - Purchase a foodcart.(￥50000)
+SIF ITEM:食堂 == 0 && FLAG:料理人気 >= 150
+	PRINTL [1]  - Purchase a Restaurant.(￥300000)
+SIF ITEM:安宿 == 0
+	PRINTL [2]  - Purchase a hotel.(￥50000)
+SIF ITEM:娼館 == 0 && FLAG:売春人気 >= 150
+	PRINTL [2]  - Remodel hotel into a brothel.(￥500000)
+
+DRAWLINE
+PRINTL [100]  - Return
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 1 && ITEM:食堂 == 0
+	IF ITEM:屋台 == 0 && MONEY < 50000
+		PRINTW Insufficent capital to run a food cart.
+		CLEARLINE 2
+		GOTO INPUT_LOOP
+	ELSEIF ITEM:屋台 == 0
+		PRINTW Food cart has been purchased.
+		MONEY -= 50000
+		FLAG:料理人気 = 1
+		ITEM:屋台 = 1
+		RESTART
+	ELSEIF ITEM:食堂 == 0 && FLAG:料理人気 >= 150 && MONEY < 300000
+		PRINTW Insufficent capital to purchase a Restaurant.
+		CLEARLINE 2
+		GOTO INPUT_LOOP
+	ELSEIF  ITEM:食堂 == 0 && FLAG:料理人気 >= 150
+		PRINTFORMW %NAME:MASTER% has opened a Restaurant.
+		MONEY -= 300000
+		ITEM:食堂 = 1
+		RESTART
+	ELSE
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+ELSEIF RESULT == 2 && ITEM:娼館 == 0
+	IF ITEM:安宿 == 0 && MONEY < 50000
+		PRINTW Insufficent capital to run a hotel.
+		CLEARLINE 2
+		GOTO INPUT_LOOP
+	ELSEIF ITEM:安宿 == 0
+		PRINTW Hotel has been purchased.
+		MONEY -= 50000
+		FLAG:売春人気 = 1
+		ITEM:安宿 = 1
+		RESTART
+	ELSEIF ITEM:娼館 == 0 && FLAG:売春人気 >= 150 && MONEY < 500000
+		PRINTW Insufficient capital to remodel hotel.
+		CLEARLINE 2
+		GOTO INPUT_LOOP
+	ELSEIF  ITEM:娼館 == 0 && FLAG:売春人気 >= 150
+		PRINTW The hotel has been remodeled to be more accomodating to prostitution.
+		MONEY -= 500000
+		ITEM:娼館 = 1
+		RESTART
+	ELSE
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+ELSE
+	CLEARLINE 1
+	GOTO INPUT_LOOP
+ENDIF
+
+
+;---- EDIT 002 ADD START -------------------------
+;新規作成
+;==================================================
+;
+;==================================================
+@SIFT_WORK
+{
+#DIMS CONST 労役 = "――", "Restaurant", "Brothel", "貸出", "　04", "　05", "　06", "　07", "　08", "　09",
+	               "????", "喫茶", "FAMI", "Restaurant", "REST", "居酒", "バー", "キャ", "風俗", "デリ", "便器", "  21", "乱交"
+}
+#DIM LCHARA
+#DIM LCNT, 2
+#DIM LCNUM
+#DIM LCOLOR
+#DIM LLINE, 2
+#DIM LTMP
+#DIM LPAGE
+#DIM LREDRAW
+#DIM LRESULT
+LCNUM   = 0					;表示させるキャラの総数
+LCOLOR  = GETCOLOR()		;現時点の色値
+LPAGE   = 0					;ページ番号
+LREDRAW = CURRENTREDRAW()	;現時点のREDRAW値。RETURN前に戻す
+LRESULT = RESULT			;RESULT保護。RETURNで返す
+VARSET LOCAL, -1			;表示させるキャラのリスト
+FOR LCNT, 0, CHARANUM		;表示させるキャラを抽出(LOCAL:*に表示するキャラの登録番号、LCNUMに人数)
+	IF !CFLAG:LCNT:この場に居ないフラグ && CFLAG:LCNT:労役フラグ && (CFLAG:LCNT:労役フラグ == 3 !& TIME)
+		LOCAL:LCNUM = LCNT
+		LCNUM++
+	ENDIF
+NEXT
+REDRAW 2
+LLINE = LINECOUNT
+
+$PRINT_LIST
+CLEARLINE LINECOUNT - LLINE
+DRAWLINE
+PRINTFORML Please select a character to change their assignment.　＜page.{LPAGE + 1}＞
+PRINTFORML You can also click ○ or × to change their assignment. (%WEEKDAY(DAY % 7)%)
+;PRINTFORML ○×をクリックしてもシフトの変更ができます　(今日は%WEEKDAY(DAY % 7)%曜日)
+;---- EDIT 003 ADD START --------------- (Today is: %WEEKDAY(DAY % 7))
+IF LCNUM >= 2	;設定可能なキャラが二人以上いる場合、まとめて設定できる選択肢を表示
+	DRAWLINE
+	PRINTL [999] Modify all work assigments
+	;All work assignments have been modified.
+ENDIF
+;---- EDIT 003 ADD END -----------------
+DRAWLINE
+PRINTFORM %" "*56%
+FOR LCNT, 0, 7
+	SETCOLOR LCNT == (DAY % 7) ? COLOR("水色") # LCOLOR
+	PRINTS WEEKDAY_SHORT(LCNT)
+	SETCOLOR LCOLOR
+NEXT
+PRINTL 
+FOR LCNT:0, 0, リスト表示数()
+	LCHARA = LOCAL:(LCNT:0 + LPAGE * リスト表示数())
+	SIF LCHARA < 0 || CFLAG:LCHARA:この場に居ないフラグ
+		CONTINUE
+	CALL ARRANGE_CHARALIST, LCHARA
+	PRINTFORM Stamina({BASE:LCHARA:0, 5}/{MAXBASE:LCHARA:0, 5}) Stress:{CFLAG:LCHARA:ストレス値, 3}%" "*1% 
+	FOR LCNT:1, 0, 7
+		SETCOLOR LCNT:1 == (DAY % 7) ? COLOR("水色") # LCOLOR
+		PRINTBUTTON \@ GETBIT(CFLAG:LCHARA:シフト設定, LCNT:1)? × # ○ \@, (LCNT:1 + 1) * 10000 + LCHARA
+
+		SETCOLOR LCOLOR
+	NEXT
+	PRINTFORM %" "*1% 
+	SELECTCASE CFLAG:LCHARA:労役フラグ	;労役
+		CASE 1 TO 3
+			PRINTFORM %労役:(CFLAG:LCHARA:労役フラグ)% 
+		CASE IS >= 10
+			LTMP = [[店舗:種類]]:(CFLAG:LCHARA:労役フラグ - 10)
+			PRINTFORM %労役:(INRANGE(LTMP, 1, 12) ? LTMP + 10 # 10)% 
+		CASEELSE
+			PRINTFORM %労役:0% 
+	ENDSELECT
+	PRINTL 
+NEXT
+SIF LPAGE && (LPAGE == (LCNUM - 1) / リスト表示数())
+	PRINTFORM %"\n" * (リスト表示数() + 7 + LLINE - LINECOUNT)%
+DRAWLINE
+PRINTFORMLC \@ LPAGE <= 0 ? %" " * 16% # [1007]Previous page \@
+PRINTLC [1000]Return
+PRINTFORMLC \@ LPAGE >= (LCNUM - 1) / リスト表示数() ? %" " * 16% # [1009]Next page \@
+
+$INPUT_LOOP_1
+INPUT
+IF RESULT == 1000
+	;終端まで飛んで後始末
+	GOTO END_FUNC
+ELSEIF RESULT == 1007 && LPAGE > 0
+	LPAGE--
+	GOTO PRINT_LIST
+ELSEIF RESULT == 1009 && LPAGE < (LCNUM - 1) / リスト表示数()
+	LPAGE++
+	GOTO PRINT_LIST
+{
+ELSEIF INRANGE(RESULT, 10000, 79999) && INRANGE(RESULT % 10000, 0, CHARANUM - 1) &&
+	MATCH(LOCAL, RESULT % 10000, 0, LCNUM) && !CFLAG:(RESULT % 10000):この場に居ないフラグ
+}
+	INVERTBIT CFLAG:(RESULT % 10000):シフト設定, RESULT / 10000 - 1
+	GOTO PRINT_LIST
+;---- EDIT 003 MOD START ---------------
+;シフト設定可能なキャラが二人未満の場合、999(全員を対象)は無効に
+{
+ELSEIF (!INRANGE(RESULT, 0, CHARANUM - 1) || CFLAG:RESULT:この場に居ないフラグ || !MATCH(LOCAL, RESULT, 0, LCNUM)) &&
+	(RESULT == 999 !& LCNUM > 1)
+}
+;---- EDIT 003 MOD END -----------------
+	CLEARLINE 1
+	GOTO INPUT_LOOP_1
+ENDIF
+
+LCHARA = RESULT
+;---- EDIT 003 MOD START ---------------
+;全員の設定を行う場合、各人のシフト設定が違うかもしれないので、一旦全員のシフト設定を初期化(毎日勤務)にする。
+IF LCHARA == 999
+	;間違い選択対策として一応確認処理追加
+	PRINTFORML This shift setting will be used by all characters.\nIs this ok?
+	;全員のシフト設定を行います。\n本当によろしいですか？
+	CALL INPUT_YN, "Yes", "No"
+	REDRAW 2	;INPUT_YNはREDRAWを勝手に書き換えてくれる
+	SIF RESULT	;キャラ一覧に戻る。
+		GOTO PRINT_LIST
+	DRAWLINE
+	PRINTL The shift setting has been applied to all characters.
+	;一旦全員のシフト設定を初期化します。
+	FOR LCNT, 0, LCNUM
+		CFLAG:(LOCAL:LCNT):シフト設定 = 0
+	NEXT
+ENDIF
+;---- EDIT 003 MOD END -----------------
+
+LLINE:1 = LINECOUNT
+DO
+	CLEARLINE LINECOUNT - LLINE:1
+	DRAWLINE
+	;---- EDIT 003 MOD START ---------------
+	IF LCHARA == 999	;全員のシフト設定なのでとりあえず代表として対象者で一番若い番号のキャラのシフト設定を表示
+		PRINTFORML Shift for all(Today :%WEEKDAY(DAY % 7)%)
+		FOR LCNT, 0, 7
+			SETCOLOR LCNT == (DAY % 7) ? COLOR("水色") # LCOLOR
+			PRINTFORML [{LCNT}] %WEEKDAY(LCNT)% \@ GETBIT(CFLAG:LOCAL:シフト設定, LCNT) ? ＯＦＦ # ＯＮ \@
+			SETCOLOR LCOLOR
+		NEXT
+	ELSE				;個人の現在のシフトを表示
+		PRINTFORML %CALLNAME:LCHARA%s shift(Today: %WEEKDAY(DAY % 7)%)
+		FOR LCNT, 0, 7
+			SETCOLOR LCNT == (DAY % 7) ? COLOR("水色") # LCOLOR
+			PRINTFORML [{LCNT}] %WEEKDAY(LCNT)% \@ GETBIT(CFLAG:LCHARA:シフト設定, LCNT)? ＯＦＦ # ＯＮ \@
+			SETCOLOR LCOLOR
+		NEXT
+	ENDIF
+	;---- EDIT 003 MOD END -----------------
+	PRINTL [8] Change a different characters' assignment
+	PRINTL [9] Return
+	CALL INPUTINT(0, 1, 2, 3, 4, 5, 6, 8, 9)
+	;---- EDIT 003 MOD START ---------------
+	IF INRANGE(RESULT, 0, 6)
+		IF LCHARA == 999	;全員のシフト設定を変更
+			FOR LCNT, 0, LCNUM
+				INVERTBIT CFLAG:(LOCAL:LCNT):シフト設定, RESULT
+			NEXT
+		ELSE				;個人のシフト設定を変更
+			INVERTBIT CFLAG:LCHARA:シフト設定, RESULT
+		ENDIF
+	ELSEIF RESULT == 8
+	;---- EDIT 003 MOD END -----------------
+		GOTO PRINT_LIST
+	ENDIF
+LOOP RESULT != 9
+
+$END_FUNC
+;後処理
+CLEARLINE LINECOUNT - LLINE:0
+REDRAW LREDRAW
+RETURN LRESULT
+;---- EDIT 002 ADD END  ---------------------------
+
+;ビデオの重複使用を処理するために、予め値段の加算を行っておく
+@PRICE_VIDEO
+#DIM ビデオ価格
+#DIM ビデオ奉仕
+#DIM ビデオ被虐
+#DIM ビデオ肛虐
+#DIM ビデオ倍率
+
+ビデオ価格 = 0
+;タイトル作成にTFLAG:48使用
+ビデオ奉仕 = 0
+ビデオ被虐 = 0
+ビデオ肛虐 = 0
+TFLAG:48 = 0
+;---- EDIT 007 MOD START -----------------
+REPEAT TFLAG:70
+	A = COUNT + 110
+	
+	;COM:愛撫を見る
+	IF TCVAR:A == 0
+		ビデオ価格 += 50
+	;COM:クンニを見る
+	ELSEIF TCVAR:A == 1
+		ビデオ価格 += 50
+	;COM:フェラするを見る
+	ELSEIF TCVAR:A == 2
+		ビデオ価格 += 200
+	;COM:指挿入れを見る
+	ELSEIF TCVAR:A == 3
+		ビデオ価格 += 150
+	;COM:アナル舐めを見る
+	ELSEIF TCVAR:A == 4
+		ビデオ価格 += 100
+		ビデオ肛虐 += 1
+	;COM:アナル愛撫を見る
+	ELSEIF TCVAR:A == 5
+		ビデオ価格 += 100
+		ビデオ肛虐 += 1
+	;COM:胸揉みを見る
+	ELSEIF TCVAR:A == 6
+		ビデオ価格 += 120
+	;COM:乳首責めを見る
+	ELSEIF TCVAR:A == 7
+		ビデオ価格 += 250
+	;COM:胸愛撫を見る
+	ELSEIF TCVAR:A == 8
+		ビデオ価格 += 100
+	;COM:秘貝開帳を見る
+	ELSEIF TCVAR:A == 9
+		ビデオ価格 += 300
+	;COM:胸自慰を見る
+	ELSEIF TCVAR:A == 10
+		ビデオ価格 += 400
+	;COM:自慰を見る
+	;自動的に公開オナニーになる
+	ELSEIF TCVAR:A == 11
+		ビデオ価格 += 500
+		SIF TEQUIP:32
+			ビデオ価格 += 50
+		IF TEQUIP:13 && TEQUIP:14
+			ビデオ価格 += 200
+		ELSEIF TEQUIP:13
+			ビデオ価格 += 100
+		ELSEIF TEQUIP:14
+			ビデオ価格 += 100
+		ENDIF
+	;COM:羽愛撫を見る
+	ELSEIF TCVAR:A == 12
+		ビデオ価格 += 100
+	;COM:尻尾撫でを見る
+	ELSEIF TCVAR:A == 13
+		ビデオ価格 += 100
+	;COM:キスするを見る
+	ELSEIF TCVAR:A == 20
+		ビデオ価格 += 100
+	;COM:何もしないを見る
+	ELSEIF TCVAR:A == 21
+		ビデオ価格 += 10
+	;COM:会話を見る
+	ELSEIF TCVAR:A == 22
+		ビデオ価格 += 50
+	;COM:プレゼントを見る
+	ELSEIF TCVAR:A == 23
+		ビデオ価格 += 10
+	;COM:スキンシップを見る
+	ELSEIF TCVAR:A == 24
+		ビデオ価格 += 30
+	;COM:まったりするを見る
+	ELSEIF TCVAR:A == 25
+		ビデオ価格 += 10
+	;COM:家事を見る
+	ELSEIF TCVAR:A == 26
+		ビデオ価格 += 10
+	;COM:歌の練習を見る
+	ELSEIF TCVAR:A == 27
+		ビデオ価格 += 50
+	;COM:罵倒を見る
+	ELSEIF TCVAR:A == 28
+		ビデオ価格 += 20
+	;COM:ビデオ鑑賞を見る
+	ELSEIF TCVAR:A == 29
+		ビデオ価格 += 20
+	;COM:ローターを見る
+	ELSEIF TCVAR:A == 40
+		ビデオ価格 += 150
+	;COM:Eマッサージャを見る
+	ELSEIF TCVAR:A == 41
+		ビデオ価格 += 200
+	;COM:クリキャップを見る
+	ELSEIF TCVAR:A == 42
+		ビデオ価格 += 150
+	;COM:オナホールを見る
+	ELSEIF TCVAR:A == 43
+		ビデオ価格 += 100
+	;COM:バイブを見る
+	ELSEIF TCVAR:A == 44
+		ビデオ価格 += 200
+	;COM:アナルバイブを見る
+	ELSEIF TCVAR:A == 45
+		ビデオ価格 += 250
+		ビデオ肛虐 += 1
+	;COM:アナルビーズを見る
+	ELSEIF TCVAR:A == 46
+		ビデオ価格 += 150
+	;COM:二プルキャップを見る
+	ELSEIF TCVAR:A == 47
+		ビデオ価格 += 150
+	;COM:乳首ローターを見る
+	ELSEIF TCVAR:A == 48
+		ビデオ価格 += 150
+	;COM:搾乳器を見る
+	ELSEIF TCVAR:A == 49
+		ビデオ価格 += 250
+	;COM:正常位を見る
+	ELSEIF TCVAR:A == 60
+		ビデオ価格 += 300
+	;COM:背後位を見る
+	ELSEIF TCVAR:A == 61
+		ビデオ価格 += 450
+	;COM:正常位アナルを見る
+	ELSEIF TCVAR:A == 62
+		ビデオ価格 += 250
+		ビデオ肛虐 += 1
+	;COM:後背位アナルを見る
+	ELSEIF TCVAR:A == 63
+		ビデオ価格 += 400
+		ビデオ肛虐 += 1
+	;COM:逆レイプを見る
+	ELSEIF TCVAR:A == 64
+		ビデオ価格 += 500
+	;COM:乳ファックを見る
+	ELSEIF TCVAR:A == 65
+		ビデオ価格 += 400
+	;COM:騎乗位を見る
+	ELSEIF TCVAR:A == 66
+		ビデオ価格 += 500
+	;COM:騎乗位アナルを見る
+	ELSEIF TCVAR:A == 67
+		ビデオ価格 += 500
+		ビデオ肛虐 += 1
+	;COM:対面座位を見る
+	ELSEIF TCVAR:A == 68
+		ビデオ価格 += 450
+	;COM:背面座位を見る
+	ELSEIF TCVAR:A == 69
+		ビデオ価格 += 500
+	;COM:対面座位アナルを見る
+	ELSEIF TCVAR:A == 70
+		ビデオ価格 += 450
+		ビデオ肛虐 += 1
+	;COM:下着ずらし挿入を見る
+	ELSEIF TCVAR:A == 71
+		ビデオ価格 += 300
+	;COM:下着ずらし挿入アナルを見る
+	ELSEIF TCVAR:A == 72
+		ビデオ価格 += 350
+	;COM:手淫を見る
+	ELSEIF TCVAR:A == 80
+		ビデオ価格 += 300
+		ビデオ奉仕 += 1
+	;COM:フェラチオを見る
+	ELSEIF TCVAR:A == 81
+		ビデオ価格 += 400
+		ビデオ奉仕 += 1
+	;COM:パイズリを見る
+	ELSEIF TCVAR:A == 82
+		ビデオ価格 += 500
+		ビデオ奉仕 += 1
+	;COM:素股を見る
+	ELSEIF TCVAR:A == 83
+		ビデオ価格 += 350
+		ビデオ奉仕 += 1
+	;COM:泡踊りを見る
+	ELSEIF TCVAR:A == 84
+		ビデオ価格 += 500
+		ビデオ奉仕 += 1
+	;COM:足扱きを見る
+	ELSEIF TCVAR:A == 85
+		ビデオ価格 += 350
+		ビデオ奉仕 += 1
+	;COM:足舐め強制を見る
+	ELSEIF TCVAR:A == 86
+		ビデオ価格 += 350
+		ビデオ奉仕 += 1
+	;COM:縦パイズリを見る
+	ELSEIF TCVAR:A == 87
+		ビデオ価格 += 500
+		ビデオ奉仕 += 1
+	;COM:パイズリフェラを見る
+	ELSEIF TCVAR:A == 88
+		ビデオ価格 += 500
+		ビデオ奉仕 += 1
+	;COM:母乳飲みを見る
+	ELSEIF TCVAR:A == 89
+		ビデオ価格 += 250
+	;COM:手淫を見る
+	ELSEIF TCVAR:A == 90
+		ビデオ価格 += 300
+	;COM:パイズリを見る
+	ELSEIF TCVAR:A == 91
+		ビデオ価格 += 500
+	;COM:正常位を見る
+	ELSEIF TCVAR:A == 92
+		ビデオ価格 += 300
+	;COM:背後位を見る
+	ELSEIF TCVAR:A == 93
+		ビデオ価格 += 450
+	;COM:騎乗位を見る
+	ELSEIF TCVAR:A == 94
+		ビデオ価格 += 500
+	;COM:正常位アナルを見る
+	ELSEIF TCVAR:A == 95
+		ビデオ価格 += 250
+	;COM:後背位アナルを見る
+	ELSEIF TCVAR:A == 96
+		ビデオ価格 += 400
+	;COM:騎乗位アナルを見る
+	ELSEIF TCVAR:A == 97
+		ビデオ価格 += 500
+	;COM:スパンキングを見る
+	ELSEIF TCVAR:A == 100
+		ビデオ価格 += 250
+		ビデオ被虐 += 1
+	;COM:乳スパンキングを見る
+	ELSEIF TCVAR:A == 101
+		ビデオ価格 += 300
+		ビデオ被虐 += 1
+	;COM:鞭を見る
+	ELSEIF TCVAR:A == 102
+		ビデオ価格 += 350
+		ビデオ被虐 += 1
+	;COM:蝋燭を見る
+	ELSEIF TCVAR:A == 103
+		ビデオ価格 += 400
+		ビデオ被虐 += 1
+	;COM:針を見る
+	ELSEIF TCVAR:A == 104
+		ビデオ価格 += 500
+		ビデオ被虐 += 1
+	;COM:アイマスクを見る
+	ELSEIF TCVAR:A == 105
+		ビデオ価格 += 150
+		ビデオ被虐 += 1
+	;COM:縄を見る
+	ELSEIF TCVAR:A == 106
+		ビデオ価格 += 200
+		TFLAG:48 = 4
+	;COM:ボールギャグを見る
+	ELSEIF TCVAR:A == 107
+		ビデオ価格 += 250
+		ビデオ被虐 += 1
+	;COM:三角木馬を見る
+	ELSEIF TCVAR:A == 108
+		ビデオ価格 += 450
+		ビデオ被虐 += 1
+	;COM:クンニ強制を見る
+	ELSEIF TCVAR:A == 120
+		ビデオ価格 += 250
+	;COM:貝あわせを見る
+	ELSEIF TCVAR:A == 121
+		ビデオ価格 += 350
+	;COM:助手を犯させるを見る
+	ELSEIF TCVAR:A == 122
+		ビデオ価格 += 500
+	;COM:足コキを見る
+	ELSEIF TCVAR:A == 123
+		ビデオ価格 += 350
+	;COM:ダブルフェラを見る
+	ELSEIF TCVAR:A == 124
+		ビデオ価格 += 450
+	;COM:ダブルパイズリを見る
+	ELSEIF TCVAR:A == 125
+		ビデオ価格 += 500
+	;COM:乳の揉み合いを見る
+	ELSEIF TCVAR:A == 126
+		ビデオ価格 += 200
+	;COM:自慰見せつけ
+	ELSEIF TCVAR:A == 127
+		ビデオ価格 += 50
+	;COM:秘貝開帳見せつけ
+	ELSEIF TCVAR:A == 127
+		ビデオ価格 += 40
+	;COM:イマラチオを見る
+	ELSEIF TCVAR:A == 140
+		ビデオ価格 += 450
+	;COM:フィストファックを見る
+	ELSEIF TCVAR:A == 141
+		ビデオ価格 += 500
+	;COM:アナルフィストを見る
+	ELSEIF TCVAR:A == 142
+		ビデオ価格 += 500
+	;COM:両穴フィストを見る
+	ELSEIF TCVAR:A == 143
+		ビデオ価格 += 500
+	;COM:放尿を見る
+	ELSEIF TCVAR:A == 144
+		ビデオ価格 += 200
+	;COM:アナル奉仕強制を見る
+	ELSEIF TCVAR:A == 145
+		ビデオ価格 += 250
+	;COM:浣腸器＋プラグを見る
+	ELSEIF TCVAR:A == 146
+		ビデオ価格 += 350
+	;COM:空気浣腸を見る
+	ELSEIF TCVAR:A == 147
+		ビデオ価格 += 150
+	;COM:拡張バルーンを見る
+	ELSEIF TCVAR:A == 148
+		ビデオ価格 += 150
+	;COM:アナル電極を見る
+	ELSEIF TCVAR:A == 149
+		ビデオ価格 += 250
+	;COM:乳房電極を見る
+	ELSEIF TCVAR:A == 150
+		ビデオ価格 += 250
+	;COM:鰻風呂を見る
+	ELSEIF TCVAR:A == 151
+		ビデオ価格 += 250
+	;COM:蟲風呂を見る
+	ELSEIF TCVAR:A == 152
+		ビデオ価格 += 250
+	;COM:妖精オナホ
+	ELSEIF TCVAR:A == 154
+		ビデオ価格 += 500
+	;COM:触手召喚を見る
+	ELSEIF TCVAR:A == 160
+		ビデオ価格 += 150
+		TFLAG:48 = 2
+	;COM:触手挿入を見る
+	ELSEIF TCVAR:A == 161
+		ビデオ価格 += 250
+	;COM:アナル触手を見る
+	ELSEIF TCVAR:A == 162
+		ビデオ価格 += 300
+	;COM:触手クリ責めを見る
+	ELSEIF TCVAR:A == 163
+		ビデオ価格 += 100
+	;COM:触手乳首責めを見る
+	ELSEIF TCVAR:A == 164
+		ビデオ価格 += 150
+	;COM:触手搾乳を見る
+	ELSEIF TCVAR:A == 165
+		ビデオ価格 += 200
+	;COM:触手緊縛を見る
+	ELSEIF TCVAR:A == 166
+		ビデオ価格 += 300
+	;COM:触手浣腸を見る
+	ELSEIF TCVAR:A == 167
+		ビデオ価格 += 300
+	;COM:触手口辱を見る
+	ELSEIF TCVAR:A == 168
+		ビデオ価格 += 400
+	;COM:触手ペニス責めを見る
+	ELSEIF TCVAR:A == 169
+		ビデオ価格 += 100
+	;COM:触手挿入させるを見る
+	ELSEIF TCVAR:A == 170
+		ビデオ価格 += 200
+	;COM:アナル触手させるを見る
+	ELSEIF TCVAR:A == 171
+		ビデオ価格 += 250
+	;COM:触手クリ責めさせるを見る
+	ELSEIF TCVAR:A == 172
+		ビデオ価格 += 50
+	;COM:触手乳首責めさせるを見る
+	ELSEIF TCVAR:A == 173
+		ビデオ価格 += 100
+	;COM:触手搾乳させるを見る
+	ELSEIF TCVAR:A == 174
+		ビデオ価格 += 150
+	;COM:触手ペニス責めさせるを見る
+	ELSEIF TCVAR:A == 175
+		ビデオ価格 += 50
+	;COM:ローションを見る
+	ELSEIF TCVAR:A == 180
+		ビデオ価格 += 10
+	;COM:媚薬を見る
+	ELSEIF TCVAR:A == 181
+		ビデオ価格 += 100
+		TFLAG:48 = 5
+	;COM:利尿剤を見る
+	ELSEIF TCVAR:A == 182
+		ビデオ価格 += 100
+	;COM:ビデオカメラを見る
+	ELSEIF TCVAR:A == 183
+		ビデオ価格 += 0
+	;COM:野外プレイを見る
+	ELSEIF TCVAR:A == 184
+		ビデオ価格 += 250
+		TFLAG:48 = 3
+	;COM:助手を犯すを見る
+	ELSEIF TCVAR:A == 185
+		ビデオ価格 += 300
+	;COM:羞恥プレイを見る
+	ELSEIF TCVAR:A == 186
+		ビデオ価格 += 250
+	;COM:お風呂場プレイを見る
+	ELSEIF TCVAR:A == 187
+		ビデオ価格 += 200
+	;COM:シャワーを見る
+	ELSEIF TCVAR:A == 188
+		ビデオ価格 += 100
+	;COM:新妻プレイを見る
+	ELSEIF TCVAR:A == 189
+		ビデオ価格 += 200
+	;COM:写真撮影を見る
+	ELSEIF TCVAR:A == 190
+		ビデオ価格 += 100
+	;COM:強精神薬を見る
+	ELSEIF TCVAR:A == 191
+		ビデオ価格 += 50
+	;COM:コンドーム精飲（奴隷）を見る
+	ELSEIF TCVAR:A == 192
+		ビデオ価格 += 200
+	;COM:コンドーム精飲（助手）を見る
+	ELSEIF TCVAR:A == 193
+		ビデオ価格 += 200
+	;COM:ザーメンキスを見る
+	ELSEIF TCVAR:A == 194
+		ビデオ価格 += 300
+	;COM:乳腺開発を見る
+	ELSEIF TCVAR:A == 195
+		ビデオ価格 += 300
+	;COM:媚薬使うを見る
+	ELSEIF TCVAR:A == 196
+		ビデオ価格 += 50
+
+	;COM:人を呼ぶを見る
+	ELSEIF TCVAR:A == 200
+		ビデオ価格 += 50
+	;COM:輪姦を見る
+	ELSEIF TCVAR:A == 201
+		ビデオ価格 += 1500
+
+	;COM:二本刺し(3P)を見る
+	ELSEIF TCVAR:A == 500
+		ビデオ価格 += 500
+	;COM:シックスナインを見る
+	ELSEIF TCVAR:A == 501
+		ビデオ価格 += 400
+	;COM:岩清水を見る
+	ELSEIF TCVAR:A == 502
+		ビデオ価格 += 500
+	;COM:Ｇスポット刺激を見る
+	ELSEIF TCVAR:A == 503
+		ビデオ価格 += 200
+	;COM:乱れ牡丹を見る
+	ELSEIF TCVAR:A == 504
+		ビデオ価格 += 500
+	;COM:騎乗乳房自慰を見る
+	ELSEIF TCVAR:A == 505
+		ビデオ価格 += 450
+	;COM:挿入Ｇスポ責めを見る
+	ELSEIF TCVAR:A == 506
+		ビデオ価格 += 500
+	;COM:挿入子宮口責めを見る
+	ELSEIF TCVAR:A == 507
+		ビデオ価格 += 500
+	;COM:６９パイズリを見る
+	ELSEIF TCVAR:A == 508
+		ビデオ価格 += 500
+	;COM:搾乳を見る
+	ELSEIF TCVAR:A == 509
+		ビデオ価格 += 500
+	;COM:ダブル素股を見る
+	ELSEIF TCVAR:A == 510
+		ビデオ価格 += 500
+	;COM:二本フェラを見る
+	ELSEIF TCVAR:A == 511
+		ビデオ価格 += 450
+	;COM:バイブオナニーを見る
+	ELSEIF TCVAR:A == 991
+		ビデオ価格 += 600
+	;COM:アナルバイブオナニーを見る
+	ELSEIF TCVAR:A == 992
+		ビデオ価格 += 600
+	;COM:二穴バイブオナニーを見る
+	ELSEIF TCVAR:A == 993
+		ビデオ価格 += 700
+	;COM:シャワーオナニーを見る
+	ELSEIF TCVAR:A == 994
+		ビデオ価格 += 550
+	ENDIF
+REND
+
+;処女喪失シーンがあれば加算
+IF TFLAG:39
+	ビデオ価格 += 5000
+	TFLAG:48 = 1
+	TFLAG:39 = 0
+ENDIF
+;---- EDIT 007 MOD END -----------------
+
+
+
+
+
+ビデオ倍率 = 100
+;素質:処女を見る
+SIF TALENT:0
+	ビデオ倍率 += 20
+;素質:Apatheicを見る
+SIF TALENT:21
+	ビデオ倍率 += 30
+;素質:感情乏しいを見る
+SIF TALENT:22
+	ビデオ倍率 += 30
+;素質:恥じらいを見る
+SIF TALENT:35
+	ビデオ倍率 += 10
+;素質:小柄体系を見る
+SIF TALENT:100
+	ビデオ倍率 += 20
+;素質:絶壁を見る
+SIF TALENT:110
+	ビデオ倍率 += 10
+;素質:巨乳を見る
+SIF TALENT:111
+	ビデオ倍率 += 20
+;素質:爆乳を見る
+SIF TALENT:112
+	ビデオ倍率 += 10
+;素質:動物耳を見る
+SIF TALENT:143
+	ビデオ倍率 += 10
+;素質:人気を見る
+SIF TALENT:145
+	ビデオ倍率 += 20
+;素質:MysteriousCharmを見る
+SIF TALENT:94
+	ビデオ倍率 += 30
+;素質:魅力を見る
+SIF TALENT:92
+	ビデオ倍率 += 20
+;-----------------------------------------------------------
+
+;奴隷のFilmedEXPを見る
+IF EXP:TARGET:63 >= EXPLV:5
+	ビデオ倍率 += 30
+ELSEIF EXP:TARGET:63 >= EXPLV:3
+	ビデオ倍率 += 20
+ELSEIF EXP:TARGET:63 >= EXPLV:1
+	ビデオ倍率 += 10
+ENDIF
+
+;撮影者を見る
+;主人
+IF FLAG:22 == 1
+	;撮影技能を見る
+	IF ABL:MASTER:撮影技能 >= 5
+		ビデオ倍率 += (50 + ABL:MASTER:撮影技能 * 10)
+	ELSEIF ABL:MASTER:撮影技能 == 4
+		ビデオ倍率 += 50
+	ELSEIF ABL:MASTER:撮影技能 == 3
+		ビデオ倍率 += 20
+	ELSEIF ABL:MASTER:撮影技能 <= 1
+		ビデオ倍率 += 20
+	ENDIF
+;助手
+ELSEIF FLAG:22 == 2
+	;撮影技能を見る
+	IF ABL:ASSI:撮影技能 >= 5
+		ビデオ倍率 += (50 + ABL:ASSI:撮影技能 * 10)
+	ELSEIF ABL:ASSI:撮影技能 == 4
+		ビデオ倍率 += 50
+	ELSEIF ABL:ASSI:撮影技能 == 3
+		ビデオ倍率 += 20
+	ELSEIF ABL:ASSI:撮影技能 <= 1
+		ビデオ倍率 += 20
+	ENDIF
+ENDIF
+
+;倍率処理
+SIF ビデオ倍率 < 0
+	ビデオ倍率 = 0
+
+ビデオ価格 *= ビデオ倍率
+ビデオ価格 /= 100
+
+;難易度処理
+;EASY
+IF FLAG:4 == 1
+	TIMES ビデオ価格 , 0.24
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES ビデオ価格 , 0.20
+;HARD
+ELSEIF FLAG:4 == 3
+	TIMES ビデオ価格 , 0.16
+ENDIF
+
+TFLAG:36 += ビデオ価格
+TFLAG:70 = 0
+;ビデオタイトル用内容単語
+IF TFLAG:48 == 0
+	IF (ビデオ奉仕 > ビデオ被虐) && (ビデオ奉仕 > ビデオ肛虐) && (ビデオ奉仕 > 2)
+		TFLAG:48 = 6
+	ELSEIF (ビデオ被虐 > ビデオ奉仕) && (ビデオ被虐 > ビデオ肛虐) && (R > 2)
+		TFLAG:48 = 7
+	ELSEIF (ビデオ肛虐 > ビデオ奉仕) && (ビデオ肛虐 > ビデオ被虐) && (ビデオ肛虐 > 2)
+		TFLAG:48 = 8
+	ELSE
+		TFLAG:48 = 9
+	ENDIF
+ENDIF
+
+@SELL_VIDEO
+;調教時に録画したビデオの売却
+;TODO 価格設定再考・状況による価格をプラスできるか(処女開通時など)
+
+;撮影中のまま売却まで来た場合はテープの数を減らす
+;テープの減数は撮影後処理のため、さらにビデオの値段および経験もここで処理をする
+IF TEQUIP:28
+	ITEM:43 -= 1
+	CALL PRICE_VIDEO
+ENDIF
+
+;録画してなければ終了
+SIF TFLAG:36 == 0
+	RETURN 0
+
+
+;PRINTFORML The video has an estimated value of ￥{TFLAG:36}
+DRAWLINE
+PRINT Recorded the Video ' 
+SELECTCASE RAND:10
+	CASE 0
+		;朝
+		IF TIME == 0
+			PRINT Morning 
+		;昼
+		ELSEIF TIME == 1
+			PRINT High Noon 
+		;夕
+		ELSEIF TIME == 2
+			PRINT Sunset 
+		;夜
+		ELSE
+			PRINT Midnight 
+		ENDIF
+	CASE 1
+		IF TALENT:TARGET:恋慕 || TALENT:TARGET:親愛
+			PRINT Lovely 
+		ELSEIF TALENT:TARGET:淫乱 || TALENT:TARGET:娼婦
+			PRINT Lewd 
+		ELSEIF TALENT:TARGET:服従 || TALENT:TARGET:隷属
+			PRINT Slave 
+		ELSE
+			PRINT Slave 
+		ENDIF
+	CASE 2
+		PRINT Captivity 
+	CASE 3
+		PRINT Perverted Prison 
+	CASE 4
+		PRINT Defiled 
+	CASE 5
+		PRINT Sorrow 
+	CASE 6
+		PRINT Violated 
+	CASE 7
+		PRINT Deceived 
+	CASE 8
+		PRINT Trapped 
+	CASE 9
+		PRINT Pervert 
+ENDSELECT
+;タイトルが無ければ種族名
+IF CSTR:タイトル == ""
+	PRINTFORM %STR:(ABL:種族)% 
+ELSE
+	PRINTFORM %CSTR:タイトル% 
+ENDIF
+IF RAND:10 == 0
+		PRINT ＶＳ 
+		IF TALENT:MASTER:サマナー == 5
+			PRINT Dark Summoner 
+		ELSEIF TALENT:MASTER:ペルソナ使い
+			PRINT Dark Persona User 
+		ELSEIF TALENT:MASTER:異能者
+			PRINT Adept
+		ELSEIF TALENT:MASTER:喰奴
+			PRINT Avatar Tuner
+		ELSEIF TALENT:MASTER:達人
+			PRINT Master
+		ELSEIF ABL:MASTER:種族 == 36
+			PRINT Devil Hunter 
+		ELSEIF TALENT:MASTER:デビルシフター
+			PRINT Devil Shifter
+		ELSEIF ABL:MASTER:種族 == 73
+			PRINT 悪魔人
+		ELSEIF ABL:MASTER:種族 == 10
+			PRINT Fool 
+		ELSE
+			PRINT Person 
+		ENDIF
+ENDIF
+IF TFLAG:48 == 1
+	PRINT Virgin 
+ELSEIF TFLAG:48 == 2
+	PRINT Tentacles 
+ELSEIF TFLAG:48 == 3
+	PRINT Exposure 
+ELSEIF TFLAG:48 == 4
+	PRINT Bondage 
+ELSEIF TFLAG:48 == 5
+	PRINT Aphrodisiac 
+ELSEIF TFLAG:48 == 6
+	PRINT Service 
+ELSEIF TFLAG:48 == 7
+	PRINT Abuse 
+ELSEIF TFLAG:48 == 8
+	PRINT Cruelty 
+ELSEIF TFLAG:48 == 9
+	PRINT Rape 
+ENDIF
+
+TFLAG:48 = 0
+
+SELECTCASE RAND:6
+	CASE 0
+		PRINT Animal Training 
+	CASE 1
+		PRINT Hidden Secret 
+	CASE 2
+		PRINT Trap 
+	CASE 3
+		PRINT Auction 
+	CASE 4
+		PRINT Sex Life 
+	CASEELSE
+		PRINT Everyday
+ENDSELECT
+PRINTL '.
+
+PRINTFORML The video has an estimated value of ￥{TFLAG:36}.
+PRINTL Please decide what to do with the video recording.
+PRINTL [0] - Sell
+PRINTL [1] - Leave to assistant
+DRAWLINE
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	PRINTFORML The video was sold for ￥{TFLAG:36}.
+	MONEY += TFLAG:36
+	CFLAG:TARGET:ビデオ売却数 += 1
+	CFLAG:TARGET:ビデオ売却合計金額 += TFLAG:36
+	TFLAG:36 = 0
+	;イベント口上呼び出し(ビデオ売却時）
+	TFLAG:13 = 19
+	CALL KOJO_MESSAGE_EVENT
+ELSEIF RESULT == 1
+	PRINTFORML The recorded video has been left to the assistant.
+	CFLAG:20 += 1
+	
+;---- EDIT 007 ADD START -----------------
+	;TCVARの内容をCFLAGに移動する
+	REPEAT 10
+		CFLAG:(1500 + COUNT) = TCVAR:(110 + COUNT)
+	REND
+;---- EDIT 007 ADD END -----------------
+	
+	;イベント口上呼び出し(ビデオ保有時）
+	TFLAG:13 = 23
+	CALL KOJO_MESSAGE_EVENT
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+DRAWLINE
+
+
+
+@PRICE_PICTURE
+A = 100
+B = 0
+C = 0
+
+;調教者のABL:撮影技能をみる
+IF ABL:PLAYER:撮影技能 == 0
+	B = 10
+ELSEIF ABL:PLAYER:撮影技能 == 1
+	B = 100
+ELSEIF ABL:PLAYER:撮影技能 == 2
+	B = 150
+ELSEIF ABL:PLAYER:撮影技能 == 3
+	B = 250
+ELSEIF ABL:PLAYER:撮影技能 == 4
+	B = 300
+ELSE
+	B = 500
+ENDIF
+
+;口系
+;ボールギャグ装着、触手口辱
+IF TEQUIP:45 || TEQUIP:98
+	A += 20
+	C += 1
+ENDIF
+;Ａ系
+;アナルバイブ装着、アナルビーズ装着、浣腸＋アナルプラグ装着、空気浣腸、バルーン装着、アナル電極装着
+IF TEQUIP:13 || TEQUIP:19 || TEQUIP:46 || TEQUIP:47 || TEQUIP:48 || TEQUIP:49 || TEQUIP:70 || TEQUIP:79
+	A += 10
+	C += 1
+ENDIF
+;Ｃ系
+;クリキャップ装着、オナホール装着
+IF TEQUIP:14 || TEQUIP:17
+	A += 10
+	C += 1
+ENDIF
+;Ｂ系
+;二プルキャップ装着、Milker、乳房電極装着
+IF TEQUIP:15 || TEQUIP:16 || TEQUIP:50
+	A += 15
+	C += 1
+ENDIF
+;Ｖ系
+;バイブ装着
+IF TEQUIP:11
+	A += 15
+	C += 1
+ENDIF
+;緊縛系
+;アイマスク装着
+IF TEQUIP:43
+	A += 20
+	C += 1
+ENDIF
+;縄で緊縛
+IF TEQUIP:44
+	A += 25
+	C += 1
+ENDIF
+;薬剤系
+;媚薬、利尿剤
+IF TEQUIP:21 || TEQUIP:22
+	A += 5
+	C += 1
+ENDIF
+;場所系
+;野外プレイ、羞恥プレイ中、お風呂場プレイ
+IF TEQUIP:54 || TEQUIP:57 || TEQUIP:58
+	A += 20
+	C += 1
+ENDIF
+;状況系
+;シャワー、ビデオ撮影
+IF TEQUIP:18 || TEQUIP:28
+	A += 10
+	C += 1
+ENDIF
+;触手調教
+IF TEQUIP:25
+	A += 5
+	C += 1
+ENDIF
+;着衣系他
+;新妻プレイ中
+IF TEQUIP:59
+	A += 10
+	C += 1
+ENDIF
+;何も装着していない場合のボーナス
+SIF C == 0
+	A += 50
+
+;精液の補正を設定するためCをリセット
+C = 0
+;精液の汚れ(Mouth、手、ペニス、ヴァギナ、アナルの順)
+SIF GET_STAIN("口", "精液", PLAYER)
+	C += 1
+SIF GET_STAIN("手", "精液", PLAYER)
+	C += 1
+SIF GET_STAIN("ペニス", "精液", PLAYER)
+	C += 1
+SIF GET_STAIN("ヴァギナ", "精液", PLAYER)
+	C += 1
+SIF GET_STAIN("アナル", "精液", PLAYER)
+	C += 1
+;精液の汚れがない場合のボーナス
+SIF C == 0
+	A += 30
+
+
+;素質:Apatheicを見る
+SIF TALENT:21
+	A -= 30
+;素質:感情乏しいを見る
+SIF TALENT:22
+	A -= 30
+;素質:恥じらいを見る
+SIF TALENT:35
+	A += 10
+;素質:小柄体系を見る
+SIF TALENT:100
+	A += 20
+;素質:絶壁を見る
+SIF TALENT:110
+	A -= 10
+;素質:巨乳を見る
+SIF TALENT:111
+	A += 20
+;素質:爆乳を見る
+SIF TALENT:112
+	A += 10
+;素質:動物耳を見る
+SIF TALENT:143
+	A += 10
+;素質:人気を見る
+SIF TALENT:145
+	A += 20
+;素質:MysteriousCharmを見る
+SIF TALENT:94
+	A += 30
+;素質:魅力を見る
+SIF TALENT:92
+	A += 20
+
+SIF A < 0
+	A = 0
+
+B *= A
+B /= 100
+
+;難易度処理
+;EASY
+IF FLAG:4 == 1
+	TIMES B , 0.24
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES B , 0.20
+;HARD
+ELSEIF FLAG:4 == 3
+	TIMES B , 0.16
+ENDIF
+
+TFLAG:37 += B
+
+
+@SELL_PICTURE
+SIF TFLAG:37 <= 0
+	RETURN 0
+
+PRINTFORML The photo of %NAME:TARGET% was sold for ￥{TFLAG:37}.
+;%NAME:TARGET%の写真には{TFLAG:37}の買値が付いた
+MONEY += TFLAG:37
+;フラグリセット。これで調教メニュー以外でも再利用できるように
+TFLAG:37 = 0
+WAIT
+
+
+
+@SELL_MILK
+TFLAG:奴隷母乳買値 = TFLAG:35 * 100
+IF EXP:54 <= EXPLV:0
+	TFLAG:奴隷母乳買値 *= 1
+ELSEIF EXP:54 <= EXPLV:1
+	TFLAG:奴隷母乳買値 *= 2
+ELSEIF EXP:54 <= EXPLV:2
+	TFLAG:奴隷母乳買値 *= 3
+ELSEIF EXP:54 <= EXPLV:3
+	TFLAG:奴隷母乳買値 *= 4
+ELSEIF EXP:54 <= EXPLV:4
+	TFLAG:奴隷母乳買値 *= 5
+ELSE
+	TFLAG:奴隷母乳買値 *= 6
+ENDIF
+;難易度処理
+;EASY
+IF FLAG:4 == 1
+	TIMES TFLAG:奴隷母乳買値 , 0.24
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES TFLAG:奴隷母乳買値 , 0.20
+;HARD
+ELSEIF FLAG:4 == 3
+	TIMES TFLAG:奴隷母乳買値 , 0.16
+ENDIF
+O = TFLAG:奴隷母乳買値
+
+TFLAG:主人母乳買値 = TFLAG:主人が搾乳中 * 100
+IF EXP:MASTER:54 <= EXPLV:0
+	TFLAG:主人母乳買値 *= 1
+ELSEIF EXP:MASTER:54 <= EXPLV:1
+	TFLAG:主人母乳買値 *= 2
+ELSEIF EXP:MASTER:54 <= EXPLV:2
+	TFLAG:主人母乳買値 *= 3
+ELSEIF EXP:MASTER:54 <= EXPLV:3
+	TFLAG:主人母乳買値 *= 4
+ELSEIF EXP:MASTER:54 <= EXPLV:4
+	TFLAG:主人母乳買値 *= 5
+ELSE
+	TFLAG:主人母乳買値 *= 6
+ENDIF
+;難易度処理
+;EASY
+IF FLAG:4 == 1
+	TIMES TFLAG:主人母乳買値 , 0.24
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES TFLAG:主人母乳買値 , 0.20
+;HARD
+ELSEIF FLAG:4 == 3
+	TIMES TFLAG:主人母乳買値 , 0.16
+ENDIF
+O += TFLAG:主人母乳買値
+
+IF ASSI >= 0
+TFLAG:助手母乳買値 = TFLAG:助手が搾乳中 * 100
+IF EXP:ASSI:54 <= EXPLV:0
+	TFLAG:助手母乳買値 *= 1
+ELSEIF EXP:ASSI:54 <= EXPLV:1
+	TFLAG:助手母乳買値 *= 2
+ELSEIF EXP:ASSI:54 <= EXPLV:2
+	TFLAG:助手母乳買値 *= 3
+ELSEIF EXP:ASSI:54 <= EXPLV:3
+	TFLAG:助手母乳買値 *= 4
+ELSEIF EXP:ASSI:54 <= EXPLV:4
+	TFLAG:助手母乳買値 *= 5
+ELSE
+	TFLAG:助手母乳買値 *= 6
+ENDIF
+;難易度処理
+;EASY
+IF FLAG:4 == 1
+	TIMES TFLAG:助手母乳買値 , 0.24
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES TFLAG:助手母乳買値 , 0.20
+;HARD
+ELSEIF FLAG:4 == 3
+	TIMES TFLAG:助手母乳買値 , 0.16
+ENDIF
+O += TFLAG:助手母乳買値
+ENDIF
+IF O > 0
+	DRAWLINE
+	IF TFLAG:主人母乳買値 > 0
+		PRINTL
+		PRINTFORML %CALLNAME:MASTER%'s breasts were milked using a breast pump.
+		PRINTFORML %CALLNAME:MASTER%'s milk was fold for the price of ￥{TFLAG:主人母乳買値}.
+		;%CALLNAME:MASTER%の母乳には{TFLAG:主人母乳買値}の買値が付いた
+	ENDIF
+	IF TFLAG:助手母乳買値 > 0
+		PRINTL
+		PRINTFORML %CALLNAME:ASSI%'s breasts were milked using a breast pump.
+		;搾乳器を使って%CALLNAME:ASSI%から母乳を搾り出した
+		PRINTFORML %CALLNAME:ASSI%'s milk was sold for the price of ￥{TFLAG:助手母乳買値}.
+		;%CALLNAME:ASSI%の母乳には{TFLAG:助手母乳買値}の買値が付いた
+	ENDIF
+	IF TFLAG:奴隷母乳買値 > 0
+		PRINTL
+		PRINTFORML %CALLNAME:TARGET%'s breasts were milked using a breast pump.
+		;搾乳器を使って%CALLNAME:TARGET%から母乳を搾り出した
+		PRINTFORML %CALLNAME:TARGET%'s milk was sold for the price of ￥{TFLAG:奴隷母乳買値}.
+		;%CALLNAME:TARGET%の母乳には{TFLAG:奴隷母乳買値}の買値が付いた
+	ENDIF
+	MONEY += O
+	TFLAG:主人母乳買値 = 0
+	TFLAG:助手母乳買値 = 0
+	TFLAG:奴隷母乳買値 = 0
+	PRINTFORML Earned {O} funds.
+	;所持金 {O}増加
+	WAIT
+ENDIF

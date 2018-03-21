@@ -1,0 +1,1716 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:ITEM.ERB
+;	Facility	:調教アイテム購入に関する処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/19		P						元気になる薬の処理変更及びストレスによる崩壊防止措置の追加
+;	003		2011/02/11		P						受胎の仕様変更
+;	004		2011/03/07		P						受胎の仕様変更
+;	005		2011/05/05		望崎					抑プロラクチン薬をマスターに使えるように
+;	006		2012/03/01		ネトリス				オルキスの軟膏を追加
+;	007		2012/12/10		gata					Reincarnation drug（異形）追加
+;	008		2014/06/08		Ｊ( 'ー`)し				幼生固定／解除薬追加
+;	008		2014/12/30		ネトリス				浮気癖消去用の夜菊の涙を追加
+;	010		2016/10/09		Ｊ( 'ー`)し				シャセトマを追加
+;	011		2016/12/25		トートの人				変色薬をCFLAG管理に　ついでに緑肌を追加
+;	012		2017/06/29		ああああ				虹色のキャンディ等によるTSを汎用関数に変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+
+@SHOPCOMABLE_113
+RESULTS = Buy Training Items
+RETURN 1
+
+
+@SHOP_COM_113
+#DIM LINE, 2
+LINE = LINECOUNT
+REDRAW 0
+DRAWLINE
+PRINTL Which item to buy?
+PRINTFORML Money:￥{MONEY}
+LOCAL:1 = 0
+DRAWLINE
+FOR LOCAL, 0, 113
+	IF GROUPMATCH(LOCAL, 40, 60, 70)
+		SIF LOCAL:1 % 2
+			PRINTL 
+		DRAWLINE
+		LOCAL:1 = 0
+	ENDIF
+	SELECTCASE LOCAL
+		CASE 0
+			PRINTFORM  [Training tool]  
+			;【調教道具】　　　
+			PRINTBUTTON "[100]Show/Hide", 100
+			PRINTL 
+		CASE 40
+			PRINTFORM  [Consumables]    
+			;【消耗品】　　　　
+			PRINTBUTTON "[101]Show/Hide", 101
+			PRINTL 
+		CASE 60
+			PRINTFORM 【Special items】　
+			PRINTBUTTON "[102]Show/Hide", 102
+			PRINTL 
+		CASE 70
+			PRINTFORM 【Drugs】　　　　
+			PRINTBUTTON "[103]Show/Hide", 103
+			PRINTL 
+	ENDSELECT
+	SIF LOCAL < 40 && !GETBIT(FLAG:調教道具購入画面設定,0)
+		CONTINUE
+	SIF LOCAL >= 40 && LOCAL < 60 && !GETBIT(FLAG:調教道具購入画面設定,1)
+		CONTINUE
+	SIF LOCAL >= 60 && LOCAL < 70 && !GETBIT(FLAG:調教道具購入画面設定,2)
+		CONTINUE
+	SIF LOCAL >= 70 && !GETBIT(FLAG:調教道具購入画面設定,3)
+		CONTINUE
+	SIF LOCAL >= 100 && LOCAL <= 110
+		CONTINUE
+	SELECTCASE TRAINITEM_SALEABLE(LOCAL)
+		CASE -1
+			CONTINUE
+		CASE 0
+			SETCOLOR COLOR("gray")
+			SELECTCASE LOCAL
+				CASE IS < 40
+					PRINTFORM [{LOCAL,2}] %ITEMNAME_E(LOCAL),25,LEFT%%"(Owned)",10,RIGHT%　
+				CASE IS < 60
+					PRINTFORM [{LOCAL,2}] %ITEMNAME_E(LOCAL)+"(Owned:"+@"{ITEM:LOCAL}"+")",25,LEFT%%"(所持限界)",10, RIGHT%　
+				CASE IS < 70
+					PRINTFORM [{LOCAL,2}] %ITEMNAME_E(LOCAL),25,LEFT%%"(Acquired)",10,RIGHT%　
+				CASEELSE
+					PRINTFORM [{LOCAL,2}] %ITEMNAME_E(LOCAL),25,LEFT%%"(NoTarget)",10,RIGHT%　
+			ENDSELECT
+		CASE 1
+			SIF MONEY < ITEMPRICE:LOCAL
+				SETCOLOR COLOR("gray")
+			IF LOCAL >= 40 && LOCAL < 60
+				PRINTFORM [{LOCAL,2}] %ITEMNAME_E(LOCAL)+"(Owned:"+@"{ITEM:LOCAL}"+")",25,LEFT%%"￥"+@"{ITEMPRICE:LOCAL}",10, RIGHT%　
+			ELSE
+				PRINTFORM [{LOCAL,2}] %ITEMNAME_E(LOCAL),25,LEFT%%"￥"+@"{ITEMPRICE:LOCAL}",10, RIGHT%　
+			ENDIF
+	ENDSELECT
+	RESETCOLOR
+	SIF LOCAL:1 % 2 == 1
+		PRINTL 
+	LOCAL:1++
+NEXT
+SIF LOCAL:1 % 2
+	PRINTL 
+DRAWLINE
+PRINTL [999] Return
+$INPUT_LOOP
+INPUT
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 999
+		REDRAW 1
+		RETURN 0
+	CASE 100, 101, 102, 103
+		INVERTBIT FLAG:調教道具購入画面設定, LOCAL - 100
+	CASE IS < 0, IS > 112, 104 TO 109
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	CASEELSE
+		IF TRAINITEM_SALEABLE(LOCAL) < 1
+		ELSEIF MONEY < ITEMPRICE:LOCAL
+			PRINTW Not enough money
+			CLEARLINE 2
+			GOTO INPUT_LOOP
+		ELSE
+			SIF LOCAL < 70
+				DRAWLINE
+			SELECTCASE LOCAL
+				;通常アイテム
+				CASE IS < 40
+					PRINTFORML Do you want to buy %ITEMNAME_E(LOCAL)%?
+					CALL INPUT_YN,"Buy","Don't buy"
+					IF RESULT == 0
+						PRINTFORMW ＜%ITEMNAME_E(LOCAL)% Bought＞
+						ITEM:LOCAL += 1
+						MONEY -= ITEMPRICE:LOCAL
+					ELSE
+						PRINTW ＜Purchase Cancelled＞
+					ENDIF
+				;消耗品
+				CASE IS < 60
+					PRINTFORML How many %ITEMNAME_E(LOCAL)% do you want to buy? (Owned: {ITEM:LOCAL})
+					CALL INPUT_MANY(0,MIN(MONEY/ITEMPRICE:LOCAL,999 - ITEM:LOCAL))
+					IF RESULT == 0
+						PRINTW ＜Purchase Cancelled＞
+					ELSEIF RESULT == 1
+						PRINTFORMW ＜%ITEMNAME_E(LOCAL)% Bought＞
+					ELSE
+						PRINTFORMW ＜Bought {RESULT} %ITEMNAME_E(LOCAL)%＞
+					ENDIF
+					ITEM:LOCAL += RESULT
+					MONEY -= ITEMPRICE:LOCAL*RESULT
+				CASE IS < 70
+					PRINTFORML Do you want to learn %ITEMNAME_E(LOCAL)%?
+					CALL INPUT_YN,"Learn","Quit"
+					IF RESULT == 0
+						PRINTFORMW ＜%ITEMNAME_E(LOCAL)% Learned＞
+						SELECTCASE LOCAL
+							CASE 60
+								TALENT:MASTER:汚れ無視 = 1
+							CASE 61
+								TALENT:MASTER:調合知識 = 1
+							CASE 62
+								TALENT:MASTER:禁断の知識 = 1
+							CASE 63
+								TALENT:MASTER:覚 = 1
+							CASE 64
+								TALENT:MASTER:触手使役術 = 1
+						ENDSELECT
+						MONEY -= ITEMPRICE:LOCAL
+					ENDIF
+				CASEELSE
+					LINE:1 = LINECOUNT
+					$USE_DRUG
+					CLEARLINE LINECOUNT - LINE:1
+					SELECTCASE ITEMNAME:LOCAL
+						CASE "薬の材料(双)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Turns a female into a Futa
+						CASE "薬の材料(消)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Turn a Futa back into a female
+						CASE "Blue candy(lactate)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Triggers Lactating
+						CASE "Red candy(regen hymen)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:The hymen will regenerate
+						CASE "Breast augmentation pill"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Breast size increases
+						CASE "Breast reduction pill"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Breast size decreases
+						CASE "抑プロラクチン薬"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Stops lactaction
+						CASE "Antidepressants"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Cures Peeing habbit
+						CASE "Yellow candy(lay egg)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:衝撃s egg-laying. Depending on the demon, may produce items.
+						CASE "Reincarnation drug"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Shifts non-humanoids into a humanoid form
+						CASE "Rainbow candy(switch sex)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Reverses gender
+						CASE "Trap candy"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Turns males into traps and traps into males
+						CASE "Reincarnation drug(weird)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Shifts humanoids into a more bestial form
+						CASE "Body change drug(small)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Reduces the body size
+						CASE "Body change drug(big)"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Increases the body size
+						CASE "記憶消去薬"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:調教の記憶を消去します
+						CASE "Fertility drug"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:Increases pregnancy chance for a day
+						CASE "Contraceptive barrier"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Stops gain of CreampieEXP for a day(=prevents pregnancy)
+						CASE "Wild candy"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Starts being 'in heat' on 'danger day's
+						CASE "Candy of self-control"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Stops being 'in heat' on 'danger day's
+						CASE "Candy of the month"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Shifts the 'danger day' by 1 day(direct random)
+						CASE "浮気草の露"
+							LOCALS = %ITEMNAME_E(LOCAL)%:中出し時に自分以外への好感度を大幅に下げます
+						CASE "百合と蓬の秘薬"
+							LOCALS =  %ITEMNAME_E(LOCAL)%:The user will regain their maidenhood.(May have side effects)
+							;服用者の一部分を乙女であった頃に戻します（副作用有り）
+						CASE "元気になる薬"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Recovers Stamina but increases Stress
+						CASE "オルキスの軟膏"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Removes insensitivity or grants sensitivity for the body part it is applied to.(Requires 300000 of the corresponding Orbs)
+							;塗った部分が敏感になります（要：対応『快の珠』30万個）
+						CASE "ZoeaLock／ReleaseDrug"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Stops a Child from growing into an adult, or resumes stopped growth.
+							;の身体的成長を固定する。または固定済を解除する
+						CASE "Skin colorant(White)"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Changes skin coloration
+						CASE "Skin colorant(Brown)"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Changes skin coloration
+						CASE "Skin colorant(Red)"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Changes skin coloration
+						CASE "Skin colorant(Blue)"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Changes skin coloration
+						CASE "Skin colorant(Green)"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Changes skin coloration
+						CASE "夜菊の涙"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Removes cheating habit
+							;浮気癖を消去する
+						CASE "シャセトマ"
+							LOCALS = %ITEMNAME_E(LOCAL)%:Allows infinite ejaclation and removes recovery time. Lasts a day.
+					ENDSELECT
+					;リストに使えるのがグローバルな変数だけなのでZを送る
+					Z = LOCAL
+					CALL INPUT_CHARA_LIST, @"%LOCALS%　Price:{ITEMPRICE:LOCAL}　Current Funds:￥{MONEY}", "USE_DRUG_LIST"
+					IF RESULT == 1000
+						CLEARLINE LINECOUNT - LINE
+						RESTART
+					ENDIF
+					SELECTCASE ITEMNAME:LOCAL
+						CASE "元気になる薬"
+							;RESULT退避
+							LOCAL:1 = RESULT
+							PRINTL Please decide how many you wish to use.
+							PRINTFORML %NAME:(LOCAL:1)%
+							PRINTFORML Stamina:{BASE:(LOCAL:1):体力}／{MAXBASE:(LOCAL:1):体力}
+							PRINTFORML Price:￥{ITEMPRICE:LOCAL}(Current funds:￥{MONEY})
+							CALL INPUT_MANY(0, MIN((MAXBASE:(LOCAL:1):体力-BASE:(LOCAL:1):体力)/100+1, MONEY/ITEMPRICE:LOCAL))
+							IF RESULT == 0
+								PRINTFORMW Decided to not use %ITEMNAME_E(LOCAL)% after all.
+								RESTART
+							ELSE
+								PRINTFORML ＜%NAME:(LOCAL:1)%s Stamina has recovered＞
+								PRINTFORMW ＜%NAME:(LOCAL:1)%s Stress has increased＞
+								BASE:(LOCAL:1):体力 = MIN(MAXBASE:(LOCAL:1):体力, BASE:(LOCAL:1):体力 + 100 * RESULT)
+								;BASE:LOCAL:気力 += MIN(MAXBASE:LOCAL:気力, BASE:LOCAL:気力+300 * RESULT)
+								MONEY -= ITEMPRICE:LOCAL * (RESULT - 1)
+								CFLAG:(LOCAL:1):ストレス値 += 5 + RESULT / 5
+							ENDIF
+							;RESULTを戻しておく
+							RESULT = LOCAL:1
+						CASE "薬の材料(双)"
+							PRINTFORMW ＜%CALLNAME:RESULT% became a futanari＞
+							TALENT:RESULT:不思議な根 = 0
+							TALENT:RESULT:具現 = 0
+							TALENT:RESULT:ふたなり = 1
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "薬の材料(消)"
+							PRINTFORMW ＜%CALLNAME:RESULT% is no longer a futanari＞
+							TALENT:RESULT:ふたなり = 0
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "Blue candy(lactate)"
+							PRINTFORMW ＜%CALLNAME:RESULT% started lactating＞
+							TALENT:RESULT:149 = 1
+							CFLAG:RESULT:10 += 2
+						CASE "Red candy(regen hymen)"
+							PRINTFORMW ＜%CALLNAME:RESULT%s hymen has regrown＞
+							TALENT:RESULT:再生処女 = 1
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "Breast augmentation pill"
+							;絶壁→貧乳
+							IF TALENT:RESULT:絶壁
+								PRINTFORMW ＜%CALLNAME:RESULT%s chest grew slightly＞
+								TALENT:RESULT:絶壁 = 0
+								TALENT:RESULT:貧乳 = 1
+							;貧乳→普乳
+							ELSEIF TALENT:RESULT:貧乳
+								PRINTFORMW ＜%CALLNAME:RESULT%s breasts have grow to a normal size＞
+								TALENT:RESULT:貧乳 = 0
+							;普乳→巨乳
+							ELSEIF TALENT:RESULT:巨乳 == 0
+								PRINTFORMW ＜%CALLNAME:RESULT%s breasts became plump＞
+								TALENT:RESULT:巨乳 = 1
+							;巨乳→爆乳
+							ELSE
+								;小柄体型、小人体型
+								IF TALENT:RESULT:小柄体型 || TALENT:RESULT:小人体型
+									PRINTFORMW ＜%CALLNAME:RESULT%s breasts became very large＞
+								;それ以外
+								ELSE
+									PRINTFORMW ＜%CALLNAME:RESULT%s breast are overflowing in size＞
+								ENDIF
+								TALENT:RESULT:巨乳 = 0
+								TALENT:RESULT:爆乳 = 1
+							ENDIF
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "Breast reduction pill"
+							;爆乳→爆乳
+							IF TALENT:RESULT:爆乳 && MARK:RESULT:5 == 1
+								PRINTFORMW ＜%CALLNAME:RESULT%s enourmous breasts didn't get smaller＞
+							;爆乳→巨乳
+							ELSEIF TALENT:RESULT:爆乳
+								PRINTFORMW ＜%CALLNAME:RESULT%s enourmous breasts have gotten smaller＞
+								TALENT:RESULT:爆乳 = 0
+								TALENT:RESULT:巨乳 = 1
+							;巨乳→普乳
+							ELSEIF TALENT:RESULT:巨乳
+								PRINTFORMW ＜%CALLNAME:RESULT%s breasts have shrunk to an average size＞
+								TALENT:RESULT:巨乳 = 0
+							;普乳→貧乳
+							ELSEIF TALENT:RESULT:貧乳 == 0
+								PRINTFORMW ＜%CALLNAME:RESULT%s breasts have gotten smaller＞
+								TALENT:RESULT:貧乳 = 1
+							;貧乳→絶壁
+							ELSE
+								PRINTFORMW ＜%CALLNAME:RESULT%s chest has gotten quite small＞
+								TALENT:RESULT:貧乳 = 0
+								TALENT:RESULT:絶壁 = 1
+								IF TALENT:RESULT:母乳体質
+									PRINTFORMW ＜%CALLNAME:RESULT% is no longer lactating＞
+									TALENT:RESULT:母乳体質 = 0
+									CFLAG:RESULT:ストレス値 += 1
+								ENDIF
+							ENDIF
+							MARK:RESULT:5 = 0
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "抑プロラクチン薬"
+							PRINTFORMW ＜%CALLNAME:RESULT%s breasts have stopped lactating＞
+							TALENT:RESULT:母乳体質 = 0
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "Antidepressants"
+							PRINTFORMW ＜%CALLNAME:RESULT%s Peeing Habit has been cured＞
+							TALENT:RESULT:おもらし癖 = 0
+							EXP:RESULT:31 = 0
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "Yellow candy(lay egg)"
+							CALL LAY_EGG, RESULT
+						CASE "Reincarnation drug"
+							CFLAG:RESULT:ストレス値 += 2
+							CALL USE_DRUG_80,RESULT
+						CASE "Rainbow candy(switch sex)"
+							CFLAG:RESULT:ストレス値 += 2
+							CALL USE_DRUG_81,RESULT
+						CASE "Trap candy"
+							IF TALENT:RESULT:男の娘 == 0
+								PRINTFORMW ＜%CALLNAME:RESULT% has become a crossdresser/trap＞
+								TALENT:RESULT:男の娘 = 1
+							ELSE
+								PRINTFORMW ＜%CALLNAME:RESULT% is no longer a crossdresser/trap＞
+								TALENT:RESULT:男の娘 = 0
+							ENDIF
+						CASE "Reincarnation drug(weird)"
+							CFLAG:RESULT:ストレス値 += 4
+							CALL USE_DRUG_82,RESULT
+						CASE "Body change drug(small)"
+							;巨体→大柄
+							IF TALENT:RESULT:巨体
+								PRINTFORMW ＜%CALLNAME:RESULT%s body bulky body got somewhat smaller＞
+								TALENT:RESULT:巨体 = 0
+								TALENT:RESULT:大柄 = 1
+							;大柄→普通
+							ELSEIF TALENT:RESULT:大柄
+								PRINTFORMW ＜%CALLNAME:RESULT%s body has shrunk to an average size＞
+								TALENT:RESULT:大柄 = 0
+							;普通→小柄
+							ELSEIF TALENT:RESULT:小柄体型 == 0
+								PRINTFORMW ＜%CALLNAME:RESULT%s body has become the size of a child＞
+								TALENT:RESULT:小柄体型 = 1
+							ENDIF
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "Body change drug(big)"
+							;小柄→普通
+							IF TALENT:RESULT:小柄体型
+								PRINTFORMW ＜%CALLNAME:RESULT%s body has grown to be more sizeable＞
+								TALENT:RESULT:小柄体型 = 0
+							;普通→大柄
+							ELSEIF TALENT:RESULT:大柄 == 0
+								PRINTFORMW ＜%CALLNAME:RESULT% got a bit bigger＞
+								TALENT:RESULT:大柄 = 1
+							;大柄→巨体
+							ELSEIF TALENT:RESULT:巨体 
+								PRINTFORMW ＜%CALLNAME:RESULT%s body became like that of a giant. A small giant＞
+								TALENT:RESULT:巨体 = 0
+								TALENT:RESULT:巨体 = 1
+							ENDIF
+							CFLAG:RESULT:ストレス値 += 2
+						CASE "記憶消去薬"
+							;処理及び効果に難点が色々あるので封印措置
+							;	ADDCHARA NO:RESULT
+							;	TARGET = CHARANUM-1
+							;	SIF TALENT:RESULT:0
+							;		TALENT:TARGET:0 = 1
+							;	SIF TALENT:RESULT:1
+							;		TALENT:TARGET:1 = 1
+							;	SIF TALENT:RESULT:139
+							;		TALENT:TARGET:139 = 1
+							;	SIF TALENT:RESULT:149
+							;		TALENT:TARGET:149 = 1
+							;	EXP:TARGET:0 = EXP:RESULT:0
+							;	EXP:TARGET:1 = EXP:RESULT:1
+							;	EXP:TARGET:2 = EXP:RESULT:2
+							;	EXP:TARGET:3 = EXP:RESULT:3
+							;	EXP:TARGET:4 = EXP:RESULT:4
+							;	EXP:TARGET:5 = EXP:RESULT:5
+							;	EXP:TARGET:10 = EXP:RESULT:10
+							;	EXP:TARGET:11 = EXP:RESULT:11
+							;	EXP:TARGET:20 = EXP:RESULT:20
+							;	EXP:TARGET:21 = EXP:RESULT:21
+							;	EXP:TARGET:22 = EXP:RESULT:22
+							;	EXP:TARGET:23 = EXP:RESULT:23
+							;	EXP:TARGET:30 = EXP:RESULT:30
+							;	EXP:TARGET:31 = EXP:RESULT:31
+							;	EXP:TARGET:32 = EXP:RESULT:32
+							;	EXP:TARGET:40 = EXP:RESULT:40
+							;	EXP:TARGET:50 = EXP:RESULT:50
+							;	EXP:TARGET:51 = EXP:RESULT:51
+							;	EXP:TARGET:52 = EXP:RESULT:52
+							;	EXP:TARGET:53 = EXP:RESULT:53
+							;	EXP:TARGET:54 = EXP:RESULT:54
+							;	EXP:TARGET:55 = EXP:RESULT:55
+							;	EXP:TARGET:56 = EXP:RESULT:56
+							;	EXP:TARGET:60 = EXP:RESULT:60
+							;	EXP:TARGET:61 = EXP:RESULT:61
+							;	EXP:TARGET:62 = EXP:RESULT:62
+							;	EXP:TARGET:63 = EXP:RESULT:63
+							;	EXP:TARGET:64 = EXP:RESULT:64
+							;	EXP:TARGET:70 = EXP:RESULT:70
+							;	ABL:TARGET:3 = ABL:RESULT:3
+							;	ABL:TARGET:4 = ABL:RESULT:4
+							;	ABL:TARGET:5 = ABL:RESULT:5
+							;	ABL:TARGET:6 = ABL:RESULT:6
+							;	PRINTFORMW ＜%CALLNAME:RESULT%は調教の記憶を失った＞
+							;	DELCHARA RESULT
+							;	TARGET = CHARANUM-1
+							;	CALL CLOTHES_INITIALIZE
+						CASE "Fertility drug"
+							PRINTFORMW ＜%CALLNAME:RESULT% used an ovulation inducing agent＞
+							CFLAG:RESULT:"Fertility drug" = 1
+						CASE "Contraceptive barrier"
+							PRINTFORMW ＜%CALLNAME:RESULT% used an intrauterine contraceptive barrier＞
+							CFLAG:RESULT:"Contraceptive barrier" = 1
+						CASE "Wild candy"
+							PRINTFORMW ＜%CALLNAME:RESULT% will now be 'in heat' on 'danger day's＞
+							TALENT:RESULT:発情可 = 1
+						CASE "Candy of self-control"
+							PRINTFORMW ＜%CALLNAME:RESULT% will no longer be 'in heat' on 'danger day's＞
+							TALENT:RESULT:発情可 = 0
+						CASE "Candy of the month"
+							PRINTFORMW ＜%CALLNAME:RESULT%s menstrual cycle has shifted by one day＞
+							IF FLAG:月齢ベクトル == 1
+								CFLAG:RESULT:危険日 --
+								SIF CFLAG:RESULT:危険日 < 0
+									CFLAG:RESULT:危険日 = 15
+							ELSE
+								CFLAG:RESULT:危険日 ++
+								SIF CFLAG:RESULT:危険日 > 15
+									CFLAG:RESULT:危険日 = 0
+							ENDIF
+						CASE "浮気草の露"
+							PRINTFORMW ＜%CALLNAME:RESULT%に浮気草の露を使った＞
+							CFLAG:RESULT:浮気草の露 = 1
+						CASE "百合と蓬の秘薬"
+							PRINTFORMW ＜%CALLNAME:RESULT% became a maiden again＞
+							TALENT:RESULT:処女 = 1
+							ABL:RESULT:Ｖ感覚 = 0
+							JUEL:RESULT:快Ｖ = 0
+							IF RAND:2 == 0
+								PRINTFORMW ＜%CALLNAME:RESULT% became a 『Men hater』 as a side effect＞
+								TALENT:RESULT:男嫌い = 1
+							ENDIF
+						CASE "Skin colorant(White)"
+							PRINTFORMW ＜%CALLNAME:RESULT%s skin has turned white＞
+							;TALENT:RESULT:白肌 = 1
+							CFLAG:RESULT:肌の色 = 1
+						CASE "Skin colorant(Brown)"
+							PRINTFORMW ＜%CALLNAME:RESULT%s skin has turned brown＞
+							;TALENT:RESULT:褐色肌 = 1
+							CFLAG:RESULT:肌の色 = 2
+						CASE "Skin colorant(Red)"
+							PRINTFORMW ＜%CALLNAME:RESULT%s skin has turned red＞
+							;TALENT:RESULT:赤肌 = 1
+							CFLAG:RESULT:肌の色 = 3
+						CASE "Skin colorant(Blue)"
+							PRINTFORMW ＜%CALLNAME:RESULT%s skin has turned blue＞
+							;TALENT:RESULT:青肌 = 1
+							CFLAG:RESULT:肌の色 = 4
+						CASE "Skin colorant(Green)"
+							PRINTFORMW ＜%CALLNAME:RESULT%s skin has turned green＞
+							;TALENT:RESULT:青肌 = 1
+							CFLAG:RESULT:肌の色 = 5
+						CASE "オルキスの軟膏"
+							LOCAL:1 = RESULT
+							SIF JUEL:(LOCAL:1):快Ｃ >= 300000 && !TALENT:(LOCAL:1):Ｃ敏感 && TALENT:(LOCAL:1):オトコ == 0 && !TALENT:(LOCAL:1):ふたなり
+								PRINTFORML [1]Apply to clitoris
+							SIF JUEL:(LOCAL:1):快Ｃ >= 300000 && !TALENT:(LOCAL:1):Ｃ敏感 && (TALENT:(LOCAL:1):オトコ || TALENT:(LOCAL:1):ふたなり)
+								PRINTFORML [1]Apply to the penis
+							SIF JUEL:(LOCAL:1):快Ｖ >= 300000 && !TALENT:(LOCAL:1):Ｖ敏感 && TALENT:(LOCAL:1):オトコ == 0
+								PRINTFORML [2]Apply to the vagina
+							SIF JUEL:(LOCAL:1):快Ａ >= 300000 && !TALENT:(LOCAL:1):Ａ敏感
+								PRINTFORML [3]Apply to the anus
+							SIF JUEL:(LOCAL:1):快Ｂ >= 300000 && !TALENT:(LOCAL:1):Ｂ敏感
+								PRINTFORML [4]Apply to the breasts
+							PRINTFORML [100]Quit
+							$INPUT_NURUBASYO
+							INPUT
+							PRINTFORML
+							IF RESULT == 1
+								;ＣInsensitive→普通
+								IF TALENT:(LOCAL:1):Ｃ鈍感
+									SIF TALENT:(LOCAL:1):オトコ == 0 && !TALENT:(LOCAL:1):ふたなり
+										PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s clitoris is no longer insensitive＞
+									SIF TALENT:(LOCAL:1):オトコ || TALENT:(LOCAL:1):ふたなり
+										PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s penis is no longer insensitive＞
+									TALENT:(LOCAL:1):Ｃ鈍感 = 0
+									JUEL:(LOCAL:1):快Ｃ -= 300000
+								;普通→ＣSensitive
+								ELSE
+									SIF TALENT:(LOCAL:1):オトコ == 0 && !TALENT:(LOCAL:1):ふたなり
+										PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s clitoris is now sensitive＞
+									SIF TALENT:(LOCAL:1):オトコ || TALENT:(LOCAL:1):ふたなり
+										PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s penis is now sensitive＞
+									TALENT:(LOCAL:1):Ｃ敏感 = 1
+									JUEL:(LOCAL:1):快Ｃ -= 300000
+								ENDIF
+							ELSEIF RESULT == 2
+								;ＶInsensitive→普通
+								IF TALENT:(LOCAL:1):Ｖ鈍感
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s vagina is no longer insensitive＞
+									TALENT:(LOCAL:1):Ｖ鈍感 = 0
+									JUEL:(LOCAL:1):快Ｖ -= 300000
+								;普通→ＶSensitive
+								ELSE
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s vagina is now sensitive＞
+									TALENT:(LOCAL:1):Ｖ敏感 =1
+									JUEL:(LOCAL:1):快Ｖ -= 300000
+								ENDIF
+							ELSEIF RESULT == 3
+								;ＡInsensitive→普通
+								IF TALENT:(LOCAL:1):Ａ鈍感
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s anus is no longer insensitive＞
+									TALENT:(LOCAL:1):Ａ鈍感 = 0
+									JUEL:(LOCAL:1):快Ａ -= 300000
+								;普通→ＡSensitive
+								ELSE
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s anus is now sensitive＞
+									TALENT:(LOCAL:1):Ａ敏感 = 1
+									JUEL:(LOCAL:1):快Ａ -= 300000
+								ENDIF
+							ELSEIF RESULT == 4
+								;ＢInsensitive→普通
+								IF TALENT:(LOCAL:1):Ｂ鈍感
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s breasts are no longer insensitive＞
+									TALENT:(LOCAL:1):Ｂ鈍感 = 0
+									JUEL:(LOCAL:1):快Ｂ -= 300000
+								;普通→ＢSensitive
+								ELSE
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s breasts are now sensitive＞
+									TALENT:(LOCAL:1):Ｂ敏感 = 1
+									JUEL:(LOCAL:1):快Ｂ -= 300000
+								ENDIF
+							ELSEIF RESULT == 100
+								RESTART
+							ELSE
+								GOTO INPUT_NURUBASYO
+							ENDIF
+							RESULT = LOCAL:1
+						CASE "ZoeaLock／ReleaseDrug"
+							LOCAL:1 = RESULT
+							IF TALENT:(LOCAL:1):幼生固定
+								PRINTFORML [1]Resume normal child growth
+							ELSEIF TALENT:(LOCAL:1):幼児／幼児退行
+								PRINTFORML [1]Lock to [Infant] growth stage
+							ELSEIF TALENT:(LOCAL:1):少年／少女
+								PRINTFORML [1]Lock to [Boy/Girl] growth stage
+							ENDIF
+							PRINTFORML [100]Quit
+							$INPUT_YOSEI_CHECK
+							INPUT
+							PRINTFORML
+							IF RESULT == 1
+								IF TALENT:(LOCAL:1):幼生固定
+									TALENT:(LOCAL:1):幼生固定 = 0
+									PRINTFORMW ＜%CALLNAME:(LOCAL:1)% will now age normally again＞
+								ELSE
+									 TALENT:(LOCAL:1):幼生固定 = 1
+									IF TALENT:(LOCAL:1):幼児／幼児退行
+										PRINTFORMW ＜%CALLNAME:(LOCAL:1)%'s won't grow out of being an [Infant] now＞
+									ELSEIF TALENT:(LOCAL:1):少年／少女
+										IF HAVE_PENIS(LOCAL:1)
+											PRINTFORMW ＜%CALLNAME:(LOCAL:1)% won't grow out of being a [Boy] now＞
+										ELSE
+											PRINTFORMW ＜%CALLNAME:(LOCAL:1)% won't grow out of being a [Girl] now＞
+										ENDIF
+									ENDIF 
+								ENDIF
+							ELSEIF RESULT == 100
+								RESTART
+							ELSE
+								GOTO INPUT_NURUBASYO
+							ENDIF
+							RESULT = LOCAL:1
+						CASE "シャセトマ"
+							PRINTFORMW ＜%CALLNAME:RESULT%にシャセトマを使った＞
+							CFLAG:RESULT:無限射精薬フラグ = 1
+						CASE "夜菊の涙"
+							PRINTFORMW ＜%CALLNAME:RESULT%に夜菊の涙を使った＞
+							IF TALENT:RESULT:浮気癖 == 1
+								TALENT:RESULT:浮気癖 = 0
+							ELSE
+								RESTART
+							ENDIF
+						CASE ""
+					ENDSELECT
+					;忠誠度による崩壊防止措置を追加
+					;崩壊防止措置
+					IF CFLAG:RESULT:ストレス値 >= 100 && TALENT:RESULT:崩壊 == 0 && RESULT != MASTER
+						IF 陥落(RESULT)
+							IF (CFLAG:RESULT:ストレス値 -99) * 100 <= BASE:RESULT:忠誠度
+								PRINTFORMW %CALLNAME:RESULT% seems to be very stressed...
+								PRINTFORMW %CALLNAME:RESULT%s loyalty has dimished by {(CFLAG:RESULT:ストレス値 -99) * 100}.
+								BASE:RESULT:忠誠度 -= (CFLAG:RESULT:ストレス値 -99) * 100
+								CFLAG:RESULT:ストレス値 = 99
+							ENDIF
+						ELSE
+							IF (CFLAG:RESULT:ストレス値 -99) * 500 <= BASE:RESULT:忠誠度
+								PRINTFORMW %CALLNAME:RESULT% seems to be very stressed...
+								PRINTFORMW %CALLNAME:RESULT%s loyalty has dimished by {(CFLAG:RESULT:ストレス値 -99) * 500}
+								BASE:RESULT:忠誠度 -= (CFLAG:RESULT:ストレス値 -99) * 500
+								CFLAG:RESULT:ストレス値 = 99
+							ENDIF
+						ENDIF
+					ENDIF
+					SIF CFLAG:RESULT:10 >= 100 && TALENT:RESULT:9 == 0 && RESULT != MASTER
+						CALL COLLAPSE_MIND_ITEM, RESULT
+					MONEY -= ITEMPRICE:LOCAL
+					SIF MONEY >= ITEMPRICE:LOCAL
+						GOTO USE_DRUG
+					PRINTW ＜You don't have enough money＞
+				ENDSELECT
+		ENDIF
+ENDSELECT
+CLEARLINE LINECOUNT - LINE
+RESTART
+@USE_DRUG_LIST
+SIF USE_DRUGABLE(Z, COUNT)
+	RETURN 1
+RETURN 0
+@TRAINITEM_SALEABLE, ARG
+#FUNCTION
+;販売条件のチェック
+;戻り値は1が販売、0が購入済みなどの理由で購入不能、-1が販売リストにのらない
+SIF ITEMPRICE:ARG <= 0
+	RETURNF -1
+SELECTCASE ITEMNAME:ARG
+	CASE "ビデオテープ"
+		SIF !ITEM:ビデオカメラ
+			RETURNF -1
+	CASE "Film"
+		SIF !ITEM:Camera
+			RETURNF -1
+	CASE "【調合知識】"
+		;主人禁断の知識を持っていて、技巧が4以上かつ陥落済みの助手が調合知識を持っている場合、調合知識が買えるようになる
+		SIF !TALENT:MASTER:禁断の知識
+			RETURNF -1
+		LOCAL:1 = 0
+		FOR LOCAL, 1, CHARANUM
+			SIF !TALENT:LOCAL:調合知識
+				CONTINUE
+			SIF ABL:LOCAL:技巧 < 4
+				CONTINUE
+			SIF !陥落(LOCAL)
+				CONTINUE
+			SIF !ISASSI:LOCAL
+				CONTINUE
+			LOCAL:1 = 1
+			BREAK
+		NEXT
+		SIF !LOCAL:1
+			RETURNF -1
+	CASE "元気になる薬"
+		LOCAL:1 = 0
+		FOR LOCAL, 0, CHARANUM
+			SIF !TALENT:LOCAL:調合知識
+				CONTINUE
+			SIF LOCAL != MASTER && !ISASSI:LOCAL
+				CONTINUE
+			LOCAL:1 = 1
+			BREAK
+		NEXT
+		SIF !LOCAL:1
+			RETURNF -1
+	;CASE "【触手使役術】", "【サード・アイ】", "青いキャンディ", "赤いキャンディ", "豊胸剤", "縮胸剤", "抑プロラクチン薬", "３環系抗鬱薬", "黄色のキャンディ", "転生の秘薬", "虹色のキャンディ", "男の娘キャンディ", "転生の秘薬(異形)", "体型変化薬(ﾛﾘ)", "体型変化薬(ｱﾀﾞﾙﾄ)", "野生のキャンディ", "月のキャンディ", "自制のキャンディ", "シャセトマ"
+	CASE "【Tentacle summoning】", "【Third eye】", "Blue candy(lactate)", "Red candy(regen hymen)", "Breast augmentation pill", "Breast reduction pill", "抑プロラクチン薬", "Antidepressants", "Yellow candy(lay egg)", "Reincarnation drug", "Rainbow candy(switch sex)", "Trap candy", "Reincarnation drug(weird)", "Body change drug(small)", "Body change drug(big)", "Wild candy", "Candy of the month", "Candy of self-control","シャセトマ"
+		LOCAL:1 = 0
+		FOR LOCAL, 0, CHARANUM
+			SIF !TALENT:LOCAL:禁断の知識
+				CONTINUE
+			SIF LOCAL != MASTER && !ISASSI:LOCAL
+				CONTINUE
+			LOCAL:1 = 1
+			BREAK
+		NEXT
+		SIF !LOCAL:1
+			RETURNF -1
+	;外見・スリーサイズ関連アイテムの場合(主に変色薬)
+	CASE "Skin colorant(White)","Skin colorant(Brown)","Skin colorant(Red)","Skin colorant(Blue)", "Skin colorant(Green)"
+	;"変色薬(白肌)", "変色薬(褐色肌)", "変色薬(赤肌)", "変色薬(青肌)", "変色薬(緑肌)"
+		;外見・スリーサイズ設定が無効なら利用不可
+		SIF !SETTING_IS_3SIZE()
+			RETURNF -1
+		LOCAL:1 = 0
+		FOR LOCAL, 0, CHARANUM
+			SIF !TALENT:LOCAL:禁断の知識
+				CONTINUE
+			SIF LOCAL != MASTER && !ISASSI:LOCAL
+				CONTINUE
+			LOCAL:1 = 1
+			BREAK
+		NEXT
+		SIF !LOCAL:1
+			RETURNF -1
+	CASE "薬の材料(双)", "薬の材料(消)"
+		LOCAL:1 = 0
+		FOR LOCAL, 0, CHARANUM
+			SIF LOCAL != MASTER && !ISASSI:LOCAL
+				CONTINUE
+			SIF !TALENT:LOCAL:禁断の知識 && !TALENT:LOCAL:調合知識
+				CONTINUE
+			LOCAL:1 = 1	
+			BREAK
+		NEXT
+		SIF !LOCAL:1
+			RETURNF -1
+	CASE "百合と蓬の秘薬"
+		LOCAL:1 = 0
+		FOR LOCAL, 0, CHARANUM
+			SIF LOCAL != MASTER && !ISASSI:LOCAL
+				CONTINUE
+			SIF !TALENT:LOCAL:禁断の知識 && !TALENT:LOCAL:調合知識
+				CONTINUE
+			SIF FLAG:恋慕人数 < 100
+				CONTINUE
+			LOCAL:1 = 1	
+			BREAK
+		NEXT
+		SIF !LOCAL:1
+			RETURNF -1
+	CASE "記憶消去薬"
+		RETURNF -1
+ENDSELECT
+SELECTCASE ARG
+	CASE IS < 40
+		SIF ITEM:ARG
+			RETURNF 0
+	CASE IS < 60
+		SIF ITEM:ARG >= 999
+			RETURNF 0
+	CASE 60
+		SIF TALENT:MASTER:汚れ無視
+			RETURNF 0
+	CASE 61
+		SIF TALENT:MASTER:調合知識
+			RETURNF 0
+	CASE 62
+		SIF TALENT:MASTER:禁断の知識
+			RETURNF 0
+	CASE 63
+		SIF TALENT:MASTER:覚
+			RETURNF 0
+	CASE 64
+		SIF TALENT:MASTER:触手使役術
+			RETURNF 0
+	CASEELSE
+		FOR LOCAL, 0, CHARANUM
+			SIF !USE_DRUGABLE(ARG, LOCAL)
+				CONTINUE
+			RETURNF 1
+		NEXT
+		RETURNF 0
+ENDSELECT
+RETURNF 1
+
+@USE_DRUGABLE, ARG, ARG:1
+#FUNCTION
+#LOCALSIZE 2
+;ARGがアイテム、ARG:1がキャラ
+;労役中はダメ
+SIF CFLAG:(ARG:1):労役フラグ == 3
+	RETURNF 0
+;不在キャラは弾く
+SIF CFLAG:(ARG:1):この場に居ないフラグ
+	RETURNF 0
+;フィルターかかってるキャラも排除
+SIF CFLAG:(ARG:1):フィルタリングフラグ
+	RETURNF 0
+SELECTCASE ITEMNAME:ARG
+	CASE "元気になる薬"
+		SIF ARG:1 == MASTER
+			RETURNF 0
+		SIF BASE:(ARG:1):体力 == MAXBASE:(ARG:1):体力
+			RETURNF 0
+	CASE "薬の材料(双)"
+		SIF TALENT:(ARG:1):ふたなり
+			RETURNF 0
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+		;禁断の知識がない場合、対象に調合知識か不思議な根か具現が必要
+		LOCAL:1 = 0
+		FOR LOCAL, 0, CHARANUM
+			SIF TALENT:LOCAL:禁断の知識
+				CONTINUE
+			SIF LOCAL != MASTER && !ISASSI:LOCAL
+				CONTINUE
+			LOCAL:1 = 1
+			BREAK
+		NEXT
+		SIF !LOCAL:1 && !TALENT:(ARG:1):調合知識 && !TALENT:(ARG:1):具現 && !TALENT:(ARG:1):不思議な根 && !TALENT:MASTER:禁断の知識
+			RETURNF 0
+	CASE "薬の材料(消)"
+		SIF !TALENT:(ARG:1):ふたなり
+			RETURNF 0
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+	CASE "Blue candy(lactate)"
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+		SIF TALENT:(ARG:1):母乳体質
+			RETURNF 0
+	;止める方は男もとおすようにしておく
+	CASE "抑プロラクチン薬"
+		SIF !TALENT:(ARG:1):母乳体質
+			RETURNF 0
+	CASE "Red candy(regen hymen)"
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+		SIF TALENT:(ARG:1):処女
+			RETURNF 0
+		SIF TALENT:(ARG:1):再生処女
+			RETURNF 0
+	CASE "Breast augmentation pill"
+		SIF TALENT:(ARG:1):爆乳
+			RETURNF 0
+		SIF TALENT:(ARG:1):獣
+			RETURNF 0
+		SIF TALENT:(ARG:1):鳥
+			RETURNF 0
+		SIF TALENT:(ARG:1):爬虫類
+			RETURNF 0
+		SIF TALENT:(ARG:1):魚
+			RETURNF 0
+		SIF TALENT:(ARG:1):不定形
+			RETURNF 0
+;		SIF IS_MALE(ARG:1)
+;			RETURNF 0
+	CASE "Breast reduction pill"
+		SIF TALENT:(ARG:1):絶壁
+			RETURNF 0
+		SIF TALENT:(ARG:1):獣
+			RETURNF 0
+		SIF TALENT:(ARG:1):鳥
+			RETURNF 0
+		SIF TALENT:(ARG:1):爬虫類
+			RETURNF 0
+		SIF TALENT:(ARG:1):魚
+			RETURNF 0
+		SIF TALENT:(ARG:1):不定形
+			RETURNF 0
+;		SIF IS_MALE(ARG:1)
+;			RETURNF 0
+	CASE "Antidepressants"
+		SIF !TALENT:(ARG:1):おもらし癖
+			RETURNF 0
+		SIF ARG:1 == MASTER
+			RETURNF 0
+	CASE "Yellow candy(lay egg)"
+		SIF !TALENT:(ARG:1):妊娠
+			RETURNF 0
+		SIF BASE:(ARG:1):体力 < 1000
+			RETURNF 0
+	CASE "Reincarnation drug"
+		SIF ARG:1 == MASTER
+			RETURNF 0
+		SIF TALENT:(ARG:1):獣 || TALENT:(ARG:1):鳥 || TALENT:(ARG:1):爬虫類 || TALENT:(ARG:1):魚 || TALENT:(ARG:1):不定形 || TALENT:(ARG:1):異形
+			RETURNF 1
+		RETURNF 0
+	CASE "Rainbow candy(switch sex)"
+		RETURNF 1
+	CASE "Trap candy"
+		SIF TALENT:(ARG:1):獣
+			RETURNF 0
+		SIF TALENT:(ARG:1):鳥
+			RETURNF 0
+		SIF TALENT:(ARG:1):爬虫類
+			RETURNF 0
+		SIF TALENT:(ARG:1):魚
+			RETURNF 0
+		SIF TALENT:(ARG:1):不定形
+			RETURNF 0
+		SIF TALENT:(ARG:1):オトコ == 0
+			RETURNF 0
+	CASE "Reincarnation drug(weird)"
+		SIF TALENT:(ARG:1):獣 || TALENT:(ARG:1):鳥 || TALENT:(ARG:1):爬虫類 || TALENT:(ARG:1):魚 || TALENT:(ARG:1):不定形
+			RETURNF 0
+	CASE "Body change drug(small)"
+		SIF TALENT:(ARG:1):小柄体型
+			RETURNF 0
+		SIF TALENT:(ARG:1):小人体型
+			RETURNF 0
+	CASE "Body change drug(big)"
+		SIF TALENT:(ARG:1):巨体
+			RETURNF 0
+		SIF TALENT:(ARG:1):小人体型
+			RETURNF 0
+	CASE "Fertility drug", "Contraceptive barrier"
+		SIF IS_LOOKSLIKE_MALE(ARG:1)
+			RETURNF 0
+		SIF CFLAG:(ARG:1):"Fertility drug"
+			RETURNF 0
+		SIF CFLAG:(ARG:1):"Contraceptive barrier"
+			RETURNF 0
+		SIF TALENT:(ARG:1):妊娠
+			RETURNF 0
+		SIF TALENT:(ARG:1):育児中
+			RETURNF 0
+	CASE "Wild candy"
+		SIF TALENT:(ARG:1):オトコ
+			RETURNF 0
+		SIF TALENT:(ARG:1):発情可
+			RETURNF 0
+		RETURNF 1
+	CASE "Candy of self-control"
+		SIF !TALENT:(ARG:1):発情可
+			RETURNF 0
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+	CASE "Candy of the month"
+		SIF TALENT:(ARG:1):オトコ
+			RETURNF 0
+		RETURNF 1
+	CASE "浮気草の露"
+		SIF CFLAG:(ARG:1):浮気草の露
+			RETURNF 0
+		RETURNF 1
+	CASE "百合と蓬の秘薬"
+		SIF GET_DEVIL(ARG:1)
+			RETURNF 0
+		SIF IS_MALE(ARG:1)
+			RETURNF 0
+		SIF TALENT:(ARG:1):処女
+			RETURNF 0
+		SIF TALENT:(ARG:1):再生処女
+			RETURNF 0
+	CASE "オルキスの軟膏"
+		SIF ABL:(ARG:1):種族 > 0
+			RETURNF 0
+		SIF 契約(ARG:1) == 0
+			RETURNF 0
+		SIF TALENT:(ARG:1):Ｃ敏感 && TALENT:(ARG:1):Ｖ敏感 && TALENT:(ARG:1):Ａ敏感 && TALENT:(ARG:1):Ｂ敏感
+			RETURNF 0
+		SIF JUEL:(ARG:1):快Ｃ >= 300000 && !TALENT:(ARG:1):Ｃ敏感
+			RETURNF 1
+		SIF JUEL:(ARG:1):快Ｖ >= 300000 && !TALENT:(ARG:1):Ｖ敏感
+			RETURNF 1
+		SIF JUEL:(ARG:1):快Ａ >= 300000 && !TALENT:(ARG:1):Ａ敏感
+			RETURNF 1
+		SIF JUEL:(ARG:1):快Ｂ >= 300000 && !TALENT:(ARG:1):Ｂ敏感
+			RETURNF 1
+		RETURNF 0
+	CASE "ZoeaLock／ReleaseDrug"
+		SIF MARK:(ARG:1):6 >= 1 && TALENT:(ARG:1):子供 && TALENT:(ARG:1):幼児／幼児退行
+			RETURNF 1
+		SIF MARK:(ARG:1):6 >= 1 && TALENT:(ARG:1):子供 && TALENT:(ARG:1):少年／少女
+			RETURNF 1
+		RETURNF 0
+	CASE "Skin colorant(White)"
+	    SIF TALENT:(ARG:1):白肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):褐色肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):赤肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):青肌
+	        RETURNF 0
+	    SIF CFLAG:(ARG:1):肌の色 > 0
+	        RETURNF 0
+	CASE "Skin colorant(Brown)"
+	    SIF TALENT:(ARG:1):白肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):褐色肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):赤肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):青肌
+	        RETURNF 0
+	    SIF CFLAG:(ARG:1):肌の色 > 0
+	        RETURNF 0
+	CASE "Skin colorant(Red)"
+	    SIF TALENT:(ARG:1):白肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):褐色肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):赤肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):青肌
+	        RETURNF 0
+	    SIF CFLAG:(ARG:1):肌の色 > 0
+	        RETURNF 0
+	CASE "Skin colorant(Blue)"
+	    SIF TALENT:(ARG:1):白肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):褐色肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):赤肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):青肌
+	        RETURNF 0
+	    SIF CFLAG:(ARG:1):肌の色 > 0
+	        RETURNF 0
+	CASE "Skin colorant(Green)"
+	    SIF TALENT:(ARG:1):白肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):褐色肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):赤肌
+	        RETURNF 0
+	    SIF TALENT:(ARG:1):青肌
+	        RETURNF 0
+	    SIF CFLAG:(ARG:1):肌の色 > 0
+	        RETURNF 0
+	CASE "夜菊の涙"
+		SIF TALENT:(ARG:1):浮気癖 == 0
+			RETURNF 0
+		RETURNF 1
+	CASE "シャセトマ"
+		SIF HAVE_PENIS(ARG:1) == 0
+			RETURNF 0
+		SIF CFLAG:(ARG:1):無限射精薬フラグ == 1
+			RETURNF 0
+	CASEELSE
+		RETURNF 0
+ENDSELECT
+RETURNF 1
+
+
+;産卵イベント　イメージとしては、非常にリスキーだが上手くやれば妊娠を無効にできるイベント
+@LAY_EGG, ARG
+#DIM FATHER, 1
+;イベント口上
+U = 0
+IF ASSI >= 0
+	SIF ASSI == ARG
+		U = 1
+ENDIF
+T = TARGET
+TARGET = ARG
+TFLAG:13 = 10
+CALL KOJO_MESSAGE_EVENT
+LOCAL = TARGET
+TARGET = T
+SIF U
+	ASSI = RESULT
+PRINTFORMW As soon as %HE_SHE(LOCAL)% stopped laying eggs, the stomach of %NAME:LOCAL% returned to its normal size.
+;受胎アイテムの入手
+PRINTFORMW %NAME:LOCAL% is no longer [%TALENTNAME_E(153)%].
+TALENT:LOCAL:153 = 0
+CFLAG:LOCAL:発情妊娠 = 0
+;妊娠イベントで減った体力の最大値が回復（少なめ）
+;MAXBASE:LOCAL:0 += 300
+;胸の縮小処理を実行
+PRINTW In addition, the breasts have grown smaller again.
+C = LOCAL:0
+CALL REVERSE_B_SIZE
+
+RESULT = A
+LOCAL:1 = 0
+LOCAL:2 = 0
+;----------------------------------
+;受胎アイテム獲得処理
+;----------------------------------
+IF TALENT:LOCAL:崩壊 == 0
+	IF ABL:LOCAL:受胎アイテム >= 0 && LOCAL != MASTER && 陥落(LOCAL) >= 1
+		LOCAL:1 = ABL:LOCAL:受胎アイテム > 0 ? ABL:LOCAL:受胎アイテム # CSVABL(NO:LOCAL, GETNUM(ABL, "受胎アイテム"), 0)
+		SIF LOCAL:1 > 0
+			ABL:LOCAL:受胎アイテム = -1
+	ENDIF
+	;母親からのアイテムがない場合、父親の判定にうつる
+	IF LOCAL:1 <= 0
+		FATHER = FINDCHARA_ID(CFLAG:LOCAL:父親の固有番号親)
+		IF FATHER >= 0 && ABL:FATHER:受胎アイテム >= 0 && TALENT:FATHER:崩壊 == 0 && 陥落(FATHER) >= 1 && FATHER != MASTER
+			LOCAL:1 = ABL:FATHER:受胎アイテム > 0 ? ABL:FATHER:受胎アイテム # CSVABL(NO:FATHER, GETNUM(ABL, "受胎アイテム"), 0)
+			SIF LOCAL:1 > 0
+				ABL:FATHER:受胎アイテム = -1
+		ENDIF
+	ENDIF
+	IF LOCAL:1 > 0
+		SETCOLOR COLOR("aqua")
+		PRINTFORML A %ITEMNAME_E(LOCAL:1)% was found within the eggs.
+		CALL GET_ITEM,LOCAL:1,1
+		RESETCOLOR
+	ENDIF
+	;親を見る処置は撤廃
+	;	ELSEIF CFLAG:LOCAL:111 > -1 && CSVABL(CFLAG:LOCAL:111,GETNUM(ABL,"受胎アイテム"),0) > 0
+	;		PRINTFORML 卵から、%ITEMNAME:(CSVABL(CFLAG:LOCAL:111,GETNUM(ABL,"受胎アイテム"),0))%を入手した
+	;		CALL GET_ITEM,CSVABL(CFLAG:LOCAL:111,GETNUM(ABL,"受胎アイテム"),0),1
+	;未設定の場合は香を出す
+	;ELSE
+	;	LOCAL:2 = 1
+	;	FOR LOCAL:1, 2, 7
+	;		SIF MAXBASE:LOCAL:GET_BASESTATUS(LOCAL:2) < MAXBASE:LOCAL:GET_BASESTATUS(LOCAL:1)
+	;			LOCAL:2 = LOCAL:1
+	;	NEXT
+	;	CALL GET_ITEM, GETNUM(ITEM, GET_BASESTATUS(LOCAL:2) + "の香"), 1
+	;	PRINTFORML 卵から、%GET_BASESTATUS_E(LOCAL:2)%の香を入手した
+ENDIF
+
+;ストレス値の補正の決定
+;ABL:従順をみる
+IF ABL:LOCAL:0 == 0
+	A = 0
+ELSEIF ABL:LOCAL:0 == 1
+	A = 2
+ELSEIF ABL:LOCAL:0 == 2
+	A = 4
+ELSEIF ABL:LOCAL:0 == 3
+	A = 6
+ELSEIF ABL:LOCAL:0 == 4
+	A = 8
+ELSE
+	A = 10
+ENDIF
+IF TALENT:LOCAL:オトコ == 0
+	;ABL:Ｖ感覚をみる
+	IF ABL:LOCAL:4 == 0
+		B = 0
+	ELSEIF ABL:LOCAL:4 == 1
+		B = 2
+	ELSEIF ABL:LOCAL:4 == 2
+		B = 4
+	ELSEIF ABL:LOCAL:4 == 3
+		B = 6
+	ELSEIF ABL:LOCAL:4 == 4
+		B = 8
+	ELSE
+		B = 10
+	ENDIF
+
+	;EXP:Ｖ経験をみる
+	IF EXP:LOCAL:0 < EXPLV:1
+		C = 0
+	ELSEIF EXP:LOCAL:0 < EXPLV:2
+		C = 2
+	ELSEIF EXP:LOCAL:0 < EXPLV:3
+		C = 4
+	ELSEIF EXP:LOCAL:0 < EXPLV:4
+		C = 6
+	ELSEIF EXP:LOCAL:0 < EXPLV:5
+		C = 8
+	ELSE
+		C = 10
+	ENDIF
+ELSE
+	;ABL:Ａ感覚をみる
+	IF ABL:LOCAL:5 == 0
+		B = 0
+	ELSEIF ABL:LOCAL:5 == 1
+		B = 2
+	ELSEIF ABL:LOCAL:5 == 2
+		B = 4
+	ELSEIF ABL:LOCAL:5 == 3
+		B = 6
+	ELSEIF ABL:LOCAL:5 == 4
+		B = 8
+	ELSE
+		B = 10
+	ENDIF
+
+	;EXP:Ａ経験をみる
+	IF EXP:LOCAL:1 < EXPLV:1
+		C = 0
+	ELSEIF EXP:LOCAL:1 < EXPLV:2
+		C = 2
+	ELSEIF EXP:LOCAL:1 < EXPLV:3
+		C = 4
+	ELSEIF EXP:LOCAL:1 < EXPLV:4
+		C = 6
+	ELSEIF EXP:LOCAL:1 < EXPLV:5
+		C = 8
+	ELSE
+		C = 10
+	ENDIF
+ENDIF
+
+;EXP:出産経験をみる
+IF EXP:LOCAL:60 < EXPLV:2
+	D = 100
+ELSEIF EXP:LOCAL:60 < EXPLV:4
+	D = 60
+ELSEIF EXP:LOCAL:60 < EXPLV:5
+	D = 40
+ELSE
+	D = 20
+ENDIF
+
+E = 100
+;陥落素質を見る
+SIF TALENT:LOCAL:恋慕
+	E = 90
+SIF TALENT:LOCAL:3 && CFLAG:LOCAL:111 == MASTER
+	E = 120
+SIF TALENT:LOCAL:4
+	E = 80
+SIF TALENT:LOCAL:5
+	E = 60
+SIF TALENT:LOCAL:親愛
+	E = 85
+SIF TALENT:LOCAL:6 && CFLAG:LOCAL:111 == MASTER
+	E = 135
+SIF TALENT:LOCAL:7
+	E = 60
+SIF TALENT:LOCAL:8
+	E = 40
+SIF TALENT:LOCAL:9
+	E = 0
+
+F = D*(100- A - B - C)*E/10000
+EXP:LOCAL:60 += 1
+IF TALENT:LOCAL:オトコ == 0
+	PRINTL ＶEXP ＋５
+	PRINTL ＶExpandEXP ＋１
+	
+	EXP:LOCAL:0 += 5
+	EXP:LOCAL:52 += 1
+ELSE
+	PRINTL ＡEXP ＋５
+	PRINTL ＡExpandEXP ＋１
+	
+	EXP:LOCAL:Ａ経験 += 5
+	EXP:LOCAL:Ａ拡張経験 += 1
+ENDIF
+PRINTL BirthEXP ＋１
+IF EXP:LOCAL:60 == 1 && EXP:LOCAL:52 == 1
+	EXP:LOCAL:50 += 3
+	PRINTFORML AbnormalEXP ＋3
+ELSEIF EXP:LOCAL:60 == 1
+	EXP:LOCAL:50 += 2
+	PRINTFORML AbnormalEXP ＋2
+ELSEIF EXP:LOCAL:52 == 1
+	EXP:LOCAL:50 += 1
+	PRINTFORML AbnormalEXP ＋1
+ENDIF
+CFLAG:LOCAL:10 += F
+BASE:LOCAL:0 = 10
+RESULT = LOCAL
+C = LOCAL
+CALL CLEAR_FLAG
+TWAIT 1, 1
+PRINTFORMW %NAME:(LOCAL)%s Stamina has been greatly exhausted.
+RETURN ARG
+;PRINTFORMW 少し休ませたほうがよさそうだ
+;休憩フラグを立てる
+;FLAG:0 = 1
+;BEGIN TURNEND
+
+
+;アイテムで【崩壊】を得た場合のイベント
+@COLLAPSE_MIND_ITEM, ARG
+PRINTFORMW Something is wrong with %CALLNAME:ARG%.
+PRINTFORMW It seems that because of the drugs, %CALLNAME:ARG%s spirt has become abnormal.
+PRINTFORMW %NAME:ARG% has 【Collapsed】.
+TALENT:ARG:9 = 1
+IF TALENT:ARG:3 || TALENT:ARG:4 || TALENT:ARG:5 || TALENT:ARG:6 || TALENT:ARG:7 || TALENT:ARG:8
+	PRINTFORM %CALLNAME:ARG%'s [
+	SIF TALENT:ARG:3
+		PRINTS TALENTNAME_E(3)
+	SIF TALENT:ARG:4
+		PRINTS TALENTNAME_E(4)
+	SIF TALENT:ARG:5
+		PRINTS TALENTNAME_E(5)
+	SIF TALENT:ARG:6
+		PRINTS TALENTNAME_E(6)
+	SIF TALENT:ARG:7
+		PRINTS TALENTNAME_E(7)
+	SIF TALENT:ARG:8
+		PRINTS TALENTNAME_E(8)
+	PRINTW ] was lost.
+	SIF TALENT:ARG:3
+		TALENT:ARG:3 = 0
+	SIF TALENT:ARG:4
+		TALENT:ARG:4 = 0
+	SIF TALENT:ARG:5
+		TALENT:ARG:5 = 0
+	SIF TALENT:ARG:6
+		TALENT:ARG:6 = 0
+	SIF TALENT:ARG:7
+		TALENT:ARG:7 = 0
+	SIF TALENT:ARG:8
+		TALENT:ARG:8 = 0
+ENDIF
+
+;-------------------------------------------------
+;Reincarnation drug(人化)
+;-------------------------------------------------
+@USE_DRUG_80, ARG
+IF ARG == MASTER
+	PRINTFORML %CALLNAME:MASTER% took the 〔Reincarnation drug〕...
+ELSE
+	PRINTFORML The 〔Reincarnation drug〕 was \@(ABL:ARG:従順 < 3) ? forcibly # \@ administered to %CALLNAME:ARG%...
+ENDIF
+WAIT
+SIF TALENT:ARG:獣
+	TALENT:ARG:動物耳 = 1
+TALENT:ARG:獣 = 0
+TALENT:ARG:鳥 = 0
+TALENT:ARG:爬虫類 = 0
+TALENT:ARG:魚 = 0
+TALENT:ARG:不定形 = 0
+TALENT:ARG:異形 = 0
+TALENT:ARG:人化 = 1
+TALENT:ARG:頭 = 1
+TALENT:ARG:目 = 1
+TALENT:ARG:口 = 1
+TALENT:ARG:腕 = 1
+TALENT:ARG:足 = 1
+
+TALENT:ARG:鉤足 = 0
+TALENT:ARG:鉤爪 = 0
+
+;会話タイプ諸々の処理
+SIF CFLAG:ARG:人化時会話タイプ == 0
+	CFLAG:ARG:人化時会話タイプ = ABL:ARG:会話タイプ
+SIF CFLAG:ARG:ＴＳ人化時会話タイプ == 0
+	CFLAG:ARG:ＴＳ人化時会話タイプ = CFLAG:ARG:ＴＳ時会話タイプ
+SWAP ABL:ARG:会話タイプ,CFLAG:ARG:人化時会話タイプ
+SWAP CFLAG:ARG:ＴＳ時会話タイプ,CFLAG:ARG:ＴＳ人化時会話タイプ
+
+;人化時ＴＳフラグが立っているキャラは性転換処理
+IF CFLAG:ARG:人化時ＴＳ && TALENT:ARG:オトコ == CSVTALENT(NO:ARG,GETNUM(TALENT,"オトコ"),0)
+	PRINTW uuu
+	CALL ＴＳ処理,ARG
+
+	CALL ADDS_ABNORMAL_EXP , "ＴＳ" , ARG
+	CALL SHOW_ABNORMAL_EXP , ARG
+
+	PRINTL ＴＳEXP + 1
+	EXP:ARG:ＴＳ経験 += 1
+ENDIF
+PRINTFORMW %CALLNAME:ARG%s appearance has shifted into a \@ TALENT:ARG:オトコ ? male # female\@ humanoid.
+RETURN ARG
+;-------------------------------------------------
+;虹のキャンディ(性転換)
+;-------------------------------------------------
+@USE_DRUG_81, ARG
+;性別再反転時（元に戻る時）に必要な情報の保存
+;ここらへんはYM用性別反転コマンドから借用
+;初回時に元の性別をCFLAG:1995に保存
+;処女の情報をCFLAG:1996に保存
+;胸の大きさをCFLAG:1997に保存
+;0:設定なし,1絶壁2貧乳3普通4巨乳5爆乳
+
+;ふたなりの情報をCFLAG:1998に保存
+;母乳体質の情報をCFLAG:1999に保存
+
+TRYCCALLFORM SPECIAL_TRANCE_SEXIAL_{NO:ARG}
+CATCH
+	IF ARG == MASTER
+		PRINTFORML %CALLNAME:MASTER% took a 〔Rainbow candy〕...
+	ELSE
+		PRINTFORML A 〔Rainbow candy〕 was \@(ABL:ARG:従順 < 3) ? forcibly # \@ administed to %CALLNAME:ARG%...
+	ENDIF
+	PRINTW  
+	PRINTW  
+	IF TALENT:ARG:オトコ
+		IF ARG != MASTER
+			PRINTFORML %CALLNAME:ARG%s manly, solid body starts shrinking and becoming more fragile.
+			PRINTL At the same time, the chest and buttocks are growing in size.
+			PRINTFORML Soon, %CALLNAME:ARG%s body has reshaped into a feminie form...
+		ELSE
+			PRINTFORML %CALLNAME:MASTER% suddenly felt like %HIS_HER(MASTER)% entire body was surrounded by light.
+			;は突然体全体が光に包まれるような感覚を感じた
+			PRINTW The conciousness went dim and the feeling was like floating in a sea of light...
+			;すると、意識がぼんやりとし、まるで光の海を漂うような浮遊感に包まれた……
+			PRINTL Slowly, the sensation fades and you return to your senses to inspect your new body.
+			;少しして、体を包む光が消失したところで、体を確認すると、
+			PRINTFORML %CALLNAME:MASTER%s body has become that of a woman...
+			;の体はすっかり女性になっていた……
+		ENDIF
+		PRINTW  
+		PRINTFORMW ＜%CALLNAME:ARG% has turned into a female＞
+	ELSE
+		IF ARG != MASTER
+			PRINTFORML %CALLNAME:ARG%s chest and posterior start to shrink.
+			PRINTL At the same time, the neck and skin went firm.
+			PRINTFORML Soon, %CALLNAME:ARG%s body has reshaped into a masculine form...
+		ELSE
+			PRINTFORML %CALLNAME:MASTER% suddenly felt like %HIS_HER(MASTER)% entire body was surrounded by light.
+			PRINTW The conciousness went dim and the feeling was like floating in a sea of light...
+			PRINTL Slowly, the sensation fades and you return to your senses to inspect your new body.
+			PRINTFORML %CALLNAME:MASTER%ss body has become that of a man...
+		ENDIF
+		PRINTW  
+		PRINTFORMW ＜%CALLNAME:ARG% has turned into a male＞
+	ENDIF
+ENDCATCH
+	CALL UPDATE_RELATIVE_REFERENCES(ARG,CALLNAME:ARG,CALLNAME:ARG,1)
+	CALL ＴＳ処理,ARG
+	CALL ADDS_ABNORMAL_EXP , "ＴＳ" , ARG
+	CALL SHOW_ABNORMAL_EXP , ARG
+
+	PRINTL ＴＳEXP + 1
+	EXP:ARG:ＴＳ経験 += 1
+RETURN ARG
+;-------------------------------------------------
+;Reincarnation drug(weird)
+;-------------------------------------------------
+@USE_DRUG_82, ARG
+;0:獣、１：鳥、2:爬虫類、３：魚、4：不定形、5：ランダムになる
+$INPUT_LOOP_IGYO
+PRINTL You can also add an additional medicine to further augment the effects. What will you do?
+PRINTL [0]Carthy Namin C  ￥25000
+;カーシーナミンＣ
+PRINTL [1]Hippolin α    ￥20000
+;ヒッポウリンα
+PRINTL [2]Wormnamine 7    ￥5000
+;ワームナミン７
+PRINTL [3]Isoravitan D    ￥5000
+;イソラビタンＤ
+PRINTL [4]Slime Terin    ￥15000
+;スライムテリン
+PRINTL [5]Use only the base medicine
+CALL INPUTINT,0,1,2,3,4,5
+SELECTCASE RESULT
+	CASE 0
+		LOCAL:0 = 0 ;基本形状
+		LOCAL:1 = 1 - RAND:3 ;動物耳
+		LOCAL:2 = 1 ;Headgear
+		LOCAL:3 = 1 ;Eyes
+		LOCAL:4 = 1 ;Mouth
+		LOCAL:5 = 0 ;Bracer
+		LOCAL:6 = 0 ;Claws
+		LOCAL:7 = 0 ;Wings
+		LOCAL:8 = 1 ;Feet
+		LOCAL:9 = 0;Talons
+		LOCAL:10 = 1 ;Tail
+		LOCAL:11 = 1 ;Fur
+		LOCAL:12 = 0 ;Tentacles
+		LOCAL:13 = 0 ;Beak
+		LOCAL:14 = 25000 ;料金
+	CASE 1
+		LOCAL:0 = 1 ;基本形状
+		LOCAL:1 = 0 ;動物耳
+		LOCAL:2 = 1 ;Headgear
+		LOCAL:3 = 1 ;Eyes
+		LOCAL:4 = 1 ;Mouth
+		LOCAL:5 = 0 ;Bracer
+		LOCAL:6 = 0 ;Claws
+		LOCAL:7 = 1 ;Wings
+		LOCAL:8 = 0 ;Feet
+		LOCAL:9 = 1 ;Talons
+		LOCAL:10 = 1 ;Tail
+		LOCAL:11 = 0 ;Fur
+		LOCAL:12 = 0 ;Tentacles
+		LOCAL:13 = 1 ;Beak
+		LOCAL:14 = 20000 ;料金
+	CASE 2
+		LOCAL:0 = 2 ;基本形状
+		LOCAL:1 = 0 ;動物耳
+		LOCAL:2 = 1 ;Headgear
+		LOCAL:3 = 1 ;Eyes
+		LOCAL:4 = 1 ;Mouth
+		LOCAL:5 = 0 ;Bracer
+		LOCAL:6 = 1 ;Claws
+		LOCAL:7 = 0 ;Wings
+		LOCAL:8 = 1 ;Feet
+		LOCAL:9 = 0 ;Talons
+		LOCAL:10 = 1 ;Tail
+		LOCAL:11 = 0 ;Fur
+		LOCAL:12 = 0 ;Tentacles
+		LOCAL:13 = 0 ;Beak
+		LOCAL:14 = 5000 ;料金
+	CASE 3
+		LOCAL:0 = 3 ;基本形状
+		LOCAL:1 = 0 ;動物耳
+		LOCAL:2 = 1 ;Headgear
+		LOCAL:3 = 1 ;Eyes
+		LOCAL:4 = 1 ;Mouth
+		LOCAL:5 = 0 ;Bracer
+		LOCAL:6 = 0 ;Claws
+		LOCAL:7 = 0 ;Wings
+		LOCAL:8 = 0 ;Feet
+		LOCAL:9 = 0 ;Talons
+		LOCAL:10 = 1 ;Tail
+		LOCAL:11 = 0 ;Fur
+		LOCAL:12 = 0 ;Tentacles
+		LOCAL:13 = 0 ;Beak
+		LOCAL:14 = 5000 ;料金
+	CASE 4
+		LOCAL:0 = 4 ;基本形状
+		LOCAL:1 = 1 - RAND:6 ;動物耳
+		LOCAL:2 = 1 - RAND:3 ;Headgear
+		LOCAL:3 = 1 - RAND:3 ;Eyes
+		LOCAL:4 = 1 - RAND:3 ;Mouth
+		LOCAL:5 = 1 - RAND:3 ;Bracer
+		LOCAL:6 = 1 - RAND:3 ;Claws
+		LOCAL:7 = 1 - RAND:3 ;Wings
+		LOCAL:8 = 1 - RAND:3 ;Feet
+		LOCAL:9 = 1 - RAND:3 ;Talons
+		LOCAL:10 = 1 - RAND:3 ;Tail
+		LOCAL:11 = 1 - RAND:3 ;Fur
+		LOCAL:12 = RAND:2 ;Tentacles
+		LOCAL:13 = 1 - RAND:3 ;Beak
+		LOCAL:14 = 15000 ;料金
+	CASE 5
+		LOCAL:0 = RAND:4 ;基本形状
+		LOCAL:1 = 1 - RAND:6 ;動物耳
+		LOCAL:2 = RAND:2 ;Headgear
+		LOCAL:3 = RAND:2 ;Eyes
+		LOCAL:4 = RAND:2 ;Mouth
+		LOCAL:5 = RAND:2 ;Bracer
+		LOCAL:6 = RAND:2 ;Claws
+		LOCAL:7 = RAND:2 ;Wings
+		LOCAL:8 = RAND:2 ;Feet
+		LOCAL:9 = RAND:2 ;Talons
+		LOCAL:10 = RAND:2 ;Tail
+		LOCAL:11 = RAND:2 ;Fur
+		LOCAL:12 = 1 - RAND:3 ;Tentacles
+		LOCAL:13 = RAND:2 ;Beak
+		LOCAL:14 = 0 ;料金
+ENDSELECT
+IF MONEY < 25000 + LOCAL:14
+	PRINTW Not enough money.
+	CLEARLINE 2
+	GOTO INPUT_LOOP_IGYO
+ENDIF
+SIF ARG == MASTER
+	PRINTFORM %CALLNAME:MASTER% took the 
+PRINTFORM 〔Reincarnation drug(weird)〕
+SELECTCASE RESULT
+	CASE 0
+		PRINT and 〔Carthy Namin C〕
+	CASE 1
+		PRINT and〔Hippolin α〕
+	CASE 2
+		PRINT and 〔Wormnamine 7〕
+	CASE 3
+		PRINT and 〔Isoravitan D〕
+	CASE 4
+		PRINT and 〔Slime Terin〕
+ENDSELECT
+IF ARG == MASTER
+	PRINTL ...
+ELSE
+	PRINTFORM and administered \@(RESULT == 5) ? it # them \@ \@(ABL:ARG:従順 < 3) ? forcibly  #  \@to %CALLNAME:ARG%...
+ENDIF
+WAIT
+
+TALENT:ARG:頭 = 0
+TALENT:ARG:目 = 0
+TALENT:ARG:口 = 0
+TALENT:ARG:腕 = 0
+TALENT:ARG:足 = 0
+TALENT:ARG:人化 = 0
+
+SELECTCASE LOCAL:0
+	CASE 0
+		TALENT:ARG:獣 = 1
+	CASE 1
+		TALENT:ARG:鳥 = 1
+	CASE 2
+		TALENT:ARG:爬虫類 = 1
+	CASE 3
+		TALENT:ARG:魚 = 1
+	CASEELSE
+		TALENT:ARG:不定形 = 1
+ENDSELECT
+SIF LOCAL:1 > 0
+	TALENT:ARG:動物耳 = 1
+SIF LOCAL:2 > 0
+	TALENT:ARG:頭 = 1
+SIF LOCAL:3 > 0
+	TALENT:ARG:目 = 1
+IF LOCAL:4 > 0
+	TALENT:ARG:口 = 1
+	SIF LOCAL:13 > 0
+		TALENT:ARG:嘴 = 1
+ENDIF
+IF LOCAL:5 > 0
+	TALENT:ARG:腕 = 1
+	SIF LOCAL:6 > 0
+		TALENT:ARG:鉤爪 = 1
+ENDIF
+SIF LOCAL:7 > 0
+	TALENT:ARG:羽 = 1
+IF LOCAL:8 > 0
+	TALENT:ARG:足 = 1
+	SIF LOCAL:6 > 0
+		TALENT:ARG:鉤爪 = 1
+ENDIF
+SIF LOCAL:9 > 0
+	TALENT:ARG:鉤足 = 1
+SIF LOCAL:10 > 0
+	TALENT:ARG:尾 = 1
+SIF LOCAL:11 > 0
+	TALENT:ARG:毛皮 = 1
+SIF LOCAL:12 > 0
+	TALENT:ARG:触手 = 1
+MONEY -= LOCAL:14
+
+;獣の場合、まれに狐か、猫か、犬になる
+IF TALENT:ARG:獣 == 1
+	LOCAL:15 = RAND:45
+	SELECTCASE LOCAL:15
+		CASE 0
+			TALENT:ARG:狐 = 1
+		CASE 1
+			TALENT:ARG:猫舌 = 1
+			CSTR:ARG:相性グループ = 猫
+		CASE 2
+			CSTR:ARG:相性グループ = 犬
+	ENDSELECT
+ENDIF
+
+PRINTFORM %CALLNAME:ARG% transformed and now has: 
+SIF TALENT:ARG:頭 == 1
+	PRINT 「Head」
+SIF TALENT:ARG:目 == 1
+	PRINT 「Eyes」
+IF TALENT:ARG:嘴 == 1
+	PRINT 「Beak」
+ELSEIF TALENT:ARG:口 == 1
+	PRINT 「Mouth」
+ENDIF
+SIF TALENT:ARG:動物耳 == 1
+	PRINT 「Animal ears」
+SIF TALENT:ARG:腕 == 1
+	PRINT 「Arms」
+SIF TALENT:ARG:鉤爪 == 1
+	PRINT 「Claws」
+SIF TALENT:ARG:羽 == 1
+	PRINT 「Wings」
+SIF TALENT:ARG:足 == 1
+	PRINT 「Feet」
+SIF TALENT:ARG:鉤足 == 1
+	PRINT 「Talons」
+SIF TALENT:ARG:尾 == 1
+	PRINT 「Tail」
+SIF TALENT:ARG:毛皮 == 1
+	PRINT 「Fur」
+SIF TALENT:ARG:触手 == 1
+	PRINT 「Tentacles」
+SIF TALENT:ARG:猫舌 == 1
+	PRINT 「Cat tongue」
+
+IF TALENT:ARG:頭 == 1||TALENT:ARG:目 == 1||TALENT:ARG:嘴 == 1||TALENT:ARG:口 == 1||TALENT:ARG:腕 == 1||TALENT:ARG:鉤爪 == 1||TALENT:ARG:羽 == 1||TALENT:ARG:足 == 1||TALENT:ARG:鉤足 == 1||TALENT:ARG:尾 == 1||TALENT:ARG:毛皮 == 1||TALENT:ARG:触手 == 1
+	PRINTFORML on %HIS_HER(ARG)% body.
+	PRINT The general body shape is that of a 
+	;を備えた
+ELSE
+	PRINTL and is missing some important body parts...how in the...
+	PRINT Anyway, the body shape looks somewhat like a 
+	;頭や腕といった器官を一つも備えていない
+ENDIF
+IF TALENT:ARG:狐 == 1
+	PRINT fox
+	;キツネの身体を持つ
+ELSEIF CSTR:ARG:相性グループ == "猫"
+	PRINT cat
+	;猫の身体を持つ
+ELSEIF CSTR:ARG:相性グループ == "犬"
+	PRINT dog
+	;犬の身体を持つ
+ELSEIF TALENT:ARG:獣 == 1
+	PRINT beast
+	;獣の身体を持つ
+ELSEIF TALENT:ARG:鳥 == 1
+	PRINT bird
+	;鳥の身体を持つ
+ELSEIF TALENT:ARG:爬虫類 == 1
+	PRINT reptile
+	;爬虫類の身体を持つ
+ELSEIF TALENT:ARG:魚 == 1
+	PRINT fish
+	;魚の身体を持つ
+ELSEIF TALENT:ARG:不定形 == 1
+	PRINT ....a....well, something
+	;不定形の身体を持つ
+ENDIF
+PRINTFORMW , with \@ TALENT:ARG:オトコ ? male # female \@ features.
+RETURN ARG

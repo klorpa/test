@@ -1,0 +1,1936 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20xx/xx/xx		----					新規作成
+;	002		2011/01/27		旅人					Murakumoを手に入れつつ、アマテラスをgetするルートを追加(フラグ等の操作は無し)
+;	003		2011/02/11		Ｐ						アマテラスをレイプする際に、アマテラスの番号指定に問題があったのを修正
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;=======================================================================
+;皇居
+;ボス
+;  [スサノオ]
+;  [ツクヨミ]
+;  [アマテラス]
+;  (組み合わせ有り)
+;
+;ダンジョンナンバー6　ＭＡＰ0~2
+;ダンジョンフラグ:(FLAG:現ダンジョン):0 イベント進行状況 1 スサノオ謁見 2 説得した 3 撃破 4 協力した 5 アマちゃんレイプ後 6 ヤらせてあげた 7 その後帰った
+;ダンジョンフラグ:(FLAG:現ダンジョン):1 イベント進行状況 1 ツクヨミ謁見 2 説得した 3 撃破 4 協力した 5 6 
+;ダンジョンフラグ:(FLAG:現ダンジョン):2 イベント進行状況 1 開通イベント見た 2 アマテラス謁見 3 レイプ 4 助けた 5 壊れてから入手 6食べた
+;ダンジョンフラグ:(FLAG:現ダンジョン):3 戦闘管理用
+;ダンジョンフラグ:(FLAG:現ダンジョン):11～　宝箱
+;=======================================================================
+
+
+
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+;衛生病院クリア済み
+@PREREQUISITE_DUNGEON_26
+SIF ダンジョンフラグ:3:1 == 0
+	RETURN 0
+RETURN 1
+
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_26
+RESULTS = Tokyo Government Office
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_26
+PRINT Tokyo Government Office　
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINT ３０Ｆ
+	CASE 1
+		PRINT ４５Ｆ-west
+	CASE 2
+		PRINT ４６Ｆ-west
+	CASE 3
+		PRINT ４７Ｆ-west
+	CASE 4
+		PRINT ４８Ｆ-west
+	CASE 5
+		PRINT ４５Ｆ-east
+	CASE 6
+		PRINT ４６Ｆ-east
+	CASE 7
+		PRINT ４７Ｆ-east
+	CASE 8
+		PRINT ４８Ｆ-east
+	CASE 9
+		PRINT Rooftop
+		;屋上
+ENDSELECT
+
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_26_0_9_1
+RESULTS = Ｅ
+@TILE_MARK_26_0_1_1
+RESULTS = Ｅ
+@TILE_MARK_26_1_13_1
+RESULTS = Ｅ
+@TILE_MARK_26_0_17_1
+RESULTS = Ｅ
+@TILE_MARK_26_5_3_1
+RESULTS = Ｅ
+@TILE_MARK_26_9_4_6
+RESULTS = Ｅ
+
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_26,ARG
+FLAG:現M = 0
+FLAG:現X = 9
+FLAG:現Y = 7
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_26
+CALL SHOW_PICTURE, "D"
+CALL MESSAGE_WINDOW_D, "", "＞You entered the Tokyo Goverment Office."
+;異界化した都庁に足を踏み入れた
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_26,ARG,ARG:1
+IF FLAG:現M == 0 && ARG == 9 && ARG:1 == 2
+	IF ダンジョンフラグ:(FLAG:現ダンジョン):2 >= 1
+		RETURN 1
+	ENDIF
+	IF (ダンジョンフラグ:(FLAG:現ダンジョン):0 >= 2 && ダンジョンフラグ:(FLAG:現ダンジョン):1 >= 2) || ダンジョンフラグ:(FLAG:現ダンジョン):0 == 4 || ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞The barrier preventing access to the rooftop elevator has been released."
+			;屋上へと続くエレベーターの結界が解かれた
+			ダンジョンフラグ:(FLAG:現ダンジョン):2 = 1
+		ENDIF
+		RETURN 1
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞There is a barrier preventing you from moving on."
+		;結界が張られていてこの先に進めない
+		RETURN 0
+	ENDIF
+	
+ELSE
+	CALL CAN_ENTER,ARG,ARG:1
+	RETURN RESULT
+ENDIF
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_26
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:最大X = 19
+		FLAG:最大Y = 9
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"09 11111 9 11111 90"
+		CALL MAKE_FLOOR_LINE, 2,"01 2 2 2 2 2 2 2 20"
+		CALL MAKE_FLOOR_LINE, 3,"01 1 1 11111 1 1110"
+		CALL MAKE_FLOOR_LINE, 4,"01   1   2       10"
+		CALL MAKE_FLOOR_LINE, 5,"011111 111111111110"
+		CALL MAKE_FLOOR_LINE, 6,"0 1  1 1 2 1 1  1 0"
+		CALL MAKE_FLOOR_LINE, 7,"0111 111 8 111 1110"
+		CALL MAKE_FLOOR_LINE, 8,"0000000000000000000"
+		
+		;箱設置
+		CALL SET_TILE,3,2,ダンジョンフラグ:(FLAG:現ダンジョン):11,0,3
+		CALL SET_TILE,13,2,ダンジョンフラグ:(FLAG:現ダンジョン):12,0,3
+		CALL SET_TILE,1,7,ダンジョンフラグ:(FLAG:現ダンジョン):13,0,3
+		CALL SET_TILE,3,7,ダンジョンフラグ:(FLAG:現ダンジョン):14,0,3
+		CALL SET_TILE,15,7,ダンジョンフラグ:(FLAG:現ダンジョン):15,0,3
+		CALL SET_TILE,17,7,ダンジョンフラグ:(FLAG:現ダンジョン):16,0,3
+		
+
+	;45Ｆ西
+	CASE 1
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0111 11111 1 9 10"
+		CALL MAKE_FLOOR_LINE, 2,"02 1 1     1 2 10"
+		CALL MAKE_FLOOR_LINE, 3,"01 1 1 1111111110"
+		CALL MAKE_FLOOR_LINE, 4,"01 1 2 1     1  0"
+		CALL MAKE_FLOOR_LINE, 5,"01 11111 111 1 10"
+		CALL MAKE_FLOOR_LINE, 6,"0  1   1 2   1 10"
+		CALL MAKE_FLOOR_LINE, 7,"0111 1 1111111210"
+		CALL MAKE_FLOOR_LINE, 8,"01   1 1        0"
+		CALL MAKE_FLOOR_LINE, 9,"01 11121        0"
+		CALL MAKE_FLOOR_LINE,10,"0      1        0"
+		CALL MAKE_FLOOR_LINE,11,"01111111        0"
+		CALL MAKE_FLOOR_LINE,12,"01 2 1          0"
+		CALL MAKE_FLOOR_LINE,13,"01 6 1 1        0"
+		CALL MAKE_FLOOR_LINE,14,"01     1        0"
+		CALL MAKE_FLOOR_LINE,15,"01111121        0"
+		CALL MAKE_FLOOR_LINE,16,"00000000000000000"
+		
+		
+		;箱設置
+		CALL SET_TILE,1,5,ダンジョンフラグ:(FLAG:現ダンジョン):17,0,3
+		CALL SET_TILE,11,5,ダンジョンフラグ:(FLAG:現ダンジョン):18,0,3
+		CALL SET_TILE,15,5,ダンジョンフラグ:(FLAG:現ダンジョン):19,0,3
+		CALL SET_TILE,7,13,ダンジョンフラグ:(FLAG:現ダンジョン):20,0,3
+		CALL SET_TILE,3,9,ダンジョンフラグ:(FLAG:現ダンジョン):21,0,3
+		CALL SET_TILE,5,7,ダンジョンフラグ:(FLAG:現ダンジョン):22,0,3
+	
+	;46Ｆ西
+	CASE 2
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0        1 111110"
+		CALL MAKE_FLOOR_LINE, 2,"0        2 1   10"
+		CALL MAKE_FLOOR_LINE, 3,"0        1 1 6 10"
+		CALL MAKE_FLOOR_LINE, 4,"0        1 1 2 10"
+		CALL MAKE_FLOOR_LINE, 5,"0        1 111 10"
+		CALL MAKE_FLOOR_LINE, 6,"0        1     10"
+		CALL MAKE_FLOOR_LINE, 7,"0        11111 10"
+		CALL MAKE_FLOOR_LINE, 8,"0        111   10"
+		CALL MAKE_FLOOR_LINE, 9,"01 111211111 1210"
+		CALL MAKE_FLOOR_LINE,10,"01     1   1   10"
+		CALL MAKE_FLOOR_LINE,11,"01111111 1 1 1 10"
+		CALL MAKE_FLOOR_LINE,12,"01   1   1 2 1 10"
+		CALL MAKE_FLOOR_LINE,13,"01 7 12111 1 1 10"
+		CALL MAKE_FLOOR_LINE,14,"01 2 1     1 2 10"
+		CALL MAKE_FLOOR_LINE,15,"01111111111111110"
+		CALL MAKE_FLOOR_LINE,16,"00000000000000000"
+		
+		;箱設置
+		CALL SET_TILE,9,1,ダンジョンフラグ:(FLAG:現ダンジョン):23,0,3
+		CALL SET_TILE,13,9,ダンジョンフラグ:(FLAG:現ダンジョン):24,0,3
+	
+	CASE 3
+	;47Ｆ西
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01111111211111110"
+		CALL MAKE_FLOOR_LINE, 2,"01         1 2 10"
+		CALL MAKE_FLOOR_LINE, 3,"01 1111121 1 7 10"
+		CALL MAKE_FLOOR_LINE, 4,"01 1 2 1 1     10"
+		CALL MAKE_FLOOR_LINE, 5,"01 1 1 1 11111 10"
+		CALL MAKE_FLOOR_LINE, 6,"01 1 1         10"
+		CALL MAKE_FLOOR_LINE, 7,"01 1 111211111210"
+		CALL MAKE_FLOOR_LINE, 8,"02 2            0"
+		CALL MAKE_FLOOR_LINE, 9,"01 11111        0"
+		CALL MAKE_FLOOR_LINE,10,"01   2          0"
+		CALL MAKE_FLOOR_LINE,11,"01 111 6        0"
+		CALL MAKE_FLOOR_LINE,12,"01 1   2        0"
+		CALL MAKE_FLOOR_LINE,13,"01 121 1        0"
+		CALL MAKE_FLOOR_LINE,14,"01   1 1        0"
+		CALL MAKE_FLOOR_LINE,15,"0115 121        0"
+		CALL MAKE_FLOOR_LINE,16,"00000000000000000"
+	
+	
+	CASE 4
+	;48Ｆ西
+		FLAG:最大X = 9
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0121 4 10"
+		CALL MAKE_FLOOR_LINE, 2,"01 1 2 10"
+		CALL MAKE_FLOOR_LINE, 3,"01 1 1 10"
+		CALL MAKE_FLOOR_LINE, 4,"01   1 20"
+		CALL MAKE_FLOOR_LINE, 5,"011111110"
+		CALL MAKE_FLOOR_LINE, 6,"01      0"
+		CALL MAKE_FLOOR_LINE, 7,"01 111110"
+		CALL MAKE_FLOOR_LINE, 8,"02 1   10"
+		CALL MAKE_FLOOR_LINE, 9,"01 1 1210"
+		CALL MAKE_FLOOR_LINE,10,"01 2 1 10"
+		CALL MAKE_FLOOR_LINE,11,"01 7 1 10"
+		CALL MAKE_FLOOR_LINE,12,"01     10"
+		CALL MAKE_FLOOR_LINE,13,"011121 10"
+		CALL MAKE_FLOOR_LINE,14,"01     10"
+		CALL MAKE_FLOOR_LINE,15,"011111110"
+		CALL MAKE_FLOOR_LINE,16,"000000000"
+		
+		
+		;イベントの設置
+		CALL SET_TILES,5,1,ダンジョンフラグ:(FLAG:現ダンジョン):0,3,4,"＜"
+		
+	;45Ｆ東
+	CASE 5
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01 9 1 11111 1110"
+		CALL MAKE_FLOOR_LINE, 2,"01 2 1     1 1 20"
+		CALL MAKE_FLOOR_LINE, 3,"0111111111 1 1 10"
+		CALL MAKE_FLOOR_LINE, 4,"0  1     1 2 1 10"
+		CALL MAKE_FLOOR_LINE, 5,"01 1 111 11111 10"
+		CALL MAKE_FLOOR_LINE, 6,"01 1   2 1   1  0"
+		CALL MAKE_FLOOR_LINE, 7,"0121111111 1 1110"
+		CALL MAKE_FLOOR_LINE, 8,"0        1 1   10"
+		CALL MAKE_FLOOR_LINE, 9,"0        12111 10"
+		CALL MAKE_FLOOR_LINE,10,"0        1      0"
+		CALL MAKE_FLOOR_LINE,11,"0        11111110"
+		CALL MAKE_FLOOR_LINE,12,"0          1 2 10"
+		CALL MAKE_FLOOR_LINE,13,"0        1 1 6 10"
+		CALL MAKE_FLOOR_LINE,14,"0        1     10"
+		CALL MAKE_FLOOR_LINE,15,"0        12111110"
+		CALL MAKE_FLOOR_LINE,16,"00000000000000000"
+		
+		
+		;箱設置
+		CALL SET_TILE,15,5,ダンジョンフラグ:(FLAG:現ダンジョン):25,0,3
+		CALL SET_TILE,5,5,ダンジョンフラグ:(FLAG:現ダンジョン):26,0,3
+		CALL SET_TILE,1,5,ダンジョンフラグ:(FLAG:現ダンジョン):27,0,3
+		CALL SET_TILE,9,13,ダンジョンフラグ:(FLAG:現ダンジョン):28,0,3
+		CALL SET_TILE,13,9,ダンジョンフラグ:(FLAG:現ダンジョン):29,0,3
+		CALL SET_TILE,11,7,ダンジョンフラグ:(FLAG:現ダンジョン):30,0,3
+	
+	;46Ｆ東
+	CASE 6
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"011111 1        0"
+		CALL MAKE_FLOOR_LINE, 2,"01   1 2        0"
+		CALL MAKE_FLOOR_LINE, 3,"01 6 1 1        0"
+		CALL MAKE_FLOOR_LINE, 4,"01 2 1 1        0"
+		CALL MAKE_FLOOR_LINE, 5,"01 111 1        0"
+		CALL MAKE_FLOOR_LINE, 6,"01     1        0"
+		CALL MAKE_FLOOR_LINE, 7,"01 11111        0"
+		CALL MAKE_FLOOR_LINE, 8,"01   111        0"
+		CALL MAKE_FLOOR_LINE, 9,"0121 111112111 10"
+		CALL MAKE_FLOOR_LINE,10,"01   1   1     10"
+		CALL MAKE_FLOOR_LINE,11,"01 1 1 1 11111110"
+		CALL MAKE_FLOOR_LINE,12,"01 1 2 1   1   10"
+		CALL MAKE_FLOOR_LINE,13,"01 1 1 11121 7 10"
+		CALL MAKE_FLOOR_LINE,14,"01 2 1     1 2 10"
+		CALL MAKE_FLOOR_LINE,15,"01111111111111110"
+		CALL MAKE_FLOOR_LINE,16,"00000000000000000"
+		
+		;箱設置
+		CALL SET_TILE,7,1,ダンジョンフラグ:(FLAG:現ダンジョン):31,0,3
+		CALL SET_TILE,3,9,ダンジョンフラグ:(FLAG:現ダンジョン):32,0,3
+	
+	CASE 7
+	;47Ｆ東
+		FLAG:最大X = 17
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"00000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01111111211111110"
+		CALL MAKE_FLOOR_LINE, 2,"01 2 1         10"
+		CALL MAKE_FLOOR_LINE, 3,"01 7 1 1211111 10"
+		CALL MAKE_FLOOR_LINE, 4,"01     1 1 2 1 10"
+		CALL MAKE_FLOOR_LINE, 5,"01 11111 1 1 1 10"
+		CALL MAKE_FLOOR_LINE, 6,"01         1 1 10"
+		CALL MAKE_FLOOR_LINE, 7,"012111112111 1 10"
+		CALL MAKE_FLOOR_LINE, 8,"0            2 20"
+		CALL MAKE_FLOOR_LINE, 9,"0        11111 10"
+		CALL MAKE_FLOOR_LINE,10,"0          2   10"
+		CALL MAKE_FLOOR_LINE,11,"0        6 111 10"
+		CALL MAKE_FLOOR_LINE,12,"0        2   1 10"
+		CALL MAKE_FLOOR_LINE,13,"0        1 121 10"
+		CALL MAKE_FLOOR_LINE,14,"0        1 1   10"
+		CALL MAKE_FLOOR_LINE,15,"0        121 5110"
+		CALL MAKE_FLOOR_LINE,16,"00000000000000000"
+	
+	
+	CASE 8
+	;48Ｆ東
+		FLAG:最大X = 9
+		FLAG:最大Y = 17
+		CALL MAKE_FLOOR_LINE, 0,"000000000"
+		CALL MAKE_FLOOR_LINE, 1,"01 4 1210"
+		CALL MAKE_FLOOR_LINE, 2,"01 2 1 10"
+		CALL MAKE_FLOOR_LINE, 3,"01 1 1 10"
+		CALL MAKE_FLOOR_LINE, 4,"02 1   10"
+		CALL MAKE_FLOOR_LINE, 5,"011111110"
+		CALL MAKE_FLOOR_LINE, 6,"01     10"
+		CALL MAKE_FLOOR_LINE, 7,"011111 10"
+		CALL MAKE_FLOOR_LINE, 8,"02   1 10"
+		CALL MAKE_FLOOR_LINE, 9,"0121 1 10"
+		CALL MAKE_FLOOR_LINE,10,"01 1 2 10"
+		CALL MAKE_FLOOR_LINE,11,"01 1 7 10"
+		CALL MAKE_FLOOR_LINE,12,"01     10"
+		CALL MAKE_FLOOR_LINE,13,"01 121110"
+		CALL MAKE_FLOOR_LINE,14,"01     10"
+		CALL MAKE_FLOOR_LINE,15,"011111110"
+		CALL MAKE_FLOOR_LINE,16,"000000000"
+		
+		
+	CASE 9
+	;屋上
+		FLAG:最大X = 9
+		FLAG:最大Y = 9
+		CALL MAKE_FLOOR_LINE, 0,"000000000"
+		CALL MAKE_FLOOR_LINE, 1,"011101110"
+		CALL MAKE_FLOOR_LINE, 2,"011141110"
+		CALL MAKE_FLOOR_LINE, 3,"011111110"
+		CALL MAKE_FLOOR_LINE, 4,"011111110"
+		CALL MAKE_FLOOR_LINE, 5,"011 1 110"
+		CALL MAKE_FLOOR_LINE, 6,"01  9  10"
+		CALL MAKE_FLOOR_LINE, 7,"01     10"
+		CALL MAKE_FLOOR_LINE, 8,"000000000"
+
+
+
+
+	CASEELSE
+
+
+
+
+
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_26
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_26
+	RETURN RESULT
+	
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_26
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_26
+	RETURN RESULT
+
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_26,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_26
+	RETURN RESULT
+
+;========
+;罠の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 5
+	CALL TRAP_26
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_26
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_26
+	RETURN RESULT
+
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+
+
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	SELECTCASE FLAG:現M
+		CASE 4
+			CALL SHOW_PICTURE, "D"
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 2 || (ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2 && ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2)
+				CALL MESSAGE_WINDOW_D, "", "＞Nodody is here..."
+				;誰もいない……
+				SIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2 || ダンジョンフラグ:(FLAG:現ダンジョン):0 == 4
+					CALL MESSAGE_WINDOW_D, "", "＞Susano-o seems to have gone to the rooftop."
+					;スサノオは屋上に向かったようだ
+				RETURN 1
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 0
+				CALL MESSAGE_WINDOW_D, "", "＞A rough but good-looking man is standing here."
+				;体格の良い、乱暴そうな男が立っている
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 0
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Ah, you where sent by my brother!/...hm, no you weren't./I am Susano-o, the strongest of the Tianjin!"
+					;むう、兄者の手先か！/……何だ、違うのか/俺はスサノオ、天津神最強の男よ！
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "姉者とどうしても一発やりたくてよォ、/兄者と協力してこのびるぢんぐに/封印したまではよかったんだが/あの野郎、最初に姉者とヤるのは自分だとか抜かしやがった！"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "イイオンナってなぁつえー男のモンになるべきだ、そうだろ！？/つまり天津神最強の こ の 俺 様 に/姉者と最初に一発ヤる権利があるってのに、/あの野郎はそれが分かってねえ"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "とはいえいつまでもこうやって睨み合ってちゃ/ヤれるもんもヤれねーんだよな…"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "...oh, that's right./I will give you a quest./Will you go and defeat my brother to the east of here?"
+					;……おっし、そうだ/それなりの駄賃くらいはくれてやるからよ、/ここの東にいる兄者をとっちめて来てくんねーか？
+					CALL INPUT_SELECT_D, "[0] Yes/[1] 知るか/[2] I don't care/[3] Don't be silly /[4] I'll just take you down instead/[5] Why not let your older sister decide?", , , 2
+					;はい/[1] 知るか/[2] どうでもいい/[3] ふざけるな /[4] とりあえず倒す/[5] 姉に選ばせたら？
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Yes, thats a good answer./Well, I'll make you my brother-in-law if you defeat him./I'm counting on you!"
+						;おーし、いい返事だ/そうだな、上手くいったら俺の舎弟にしてやるよ/それじゃ任せたぜ！
+						ダンジョンフラグ:(FLAG:現ダンジョン):0 = 1					
+						CALL MESSAGE_WINDOW_D, "", "＞You left the room."
+						;＞部屋を出た
+						FLAG:現Y += 2
+						RETURN 1
+					ELSEIF RESULT == 5
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "…おお/成る程なァ、同じオンナとヤるにしても/気分の乗ってるほうが男だってイイに決まってるわな"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "何より姉者が俺を選べばあの兄者だって文句もねえだろ/おめぇ、人間にしちゃ頭イイじゃねえか/そんじゃあついでに兄者にハナシつけて来てくれよ/俺がいったんじゃァ喧嘩にしかならねえしよ"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Go ask him!"
+						;頼んだぜ！
+						CALL MESSAGE_WINDOW_D, "", "＞You left the room."
+						ダンジョンフラグ:(FLAG:現ダンジョン):0 = 2
+						FLAG:現Y += 2
+						RETURN 1
+					ELSEIF RESULT == 1 || RESULT == 2 || RESULT == 3
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "What this?/For a human to talk to me like that.../Do you think talking like this was smart?"
+						;んーだとぉ？/オイオイ、人間ごときがこの俺様に/んな口利いていいと思ってんのか？
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "...ohh, I'll just kill you then./Warm myself up for when I face my brother!"
+						;……おめぇ、死んだぜ/今すぐ兄者んとこに送ってやんぜー！
+						GOTO BATTLE_SUSANOO
+					ELSEIF RESULT == 4
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Ah, wait a minute!/Hey are you listening...woah!?"
+						;ちょ、おまちょっと待て！/神の話くらい聞けこの……うぉっ！？
+						FLAG:先制攻撃フラグ = 1
+						GOTO BATTLE_SUSANOO
+					ENDIF
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 1
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "何だァ、なんで人間がこんなとこに居んだよ/俺をぶっ殺すだと？/ハハーン、さてはあのち…ちきん？野郎、俺にビビってやがんな"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "人間なんぞに頼むなんざ、/俺に勝つ自信が無い証拠だ/チッ、警戒して損しちまった"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "うーし、そうと決まりゃもう迷わねえ/お前らぶっ殺して、さっさと兄者とハナシつけねーとな"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "冥土の土産だ/大蛇もぶった切った俺様の剛剣、とくと見やがれ！"
+					$BATTLE_SUSANOO
+					CALL MESSAGE_WINDOW_D, "", "＞Fury Susano-o appeared!"
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+						CALL SET_ENEMY,9,1405,50,1,1
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+						CFLAG:(CHARANUM-1):速度補正 = 5
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						CALL BATTLE_START
+						CALL SHOW_PICTURE, "D"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "ぐぐ…姉者……せめて一発……"
+						CALL MESSAGE_WINDOW_D, "", "＞Susano-o was defeated"
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						ダンジョンフラグ:(FLAG:現ダンジョン):0 = 3
+					
+					
+					
+					
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Ah, why, why are humans like this.../You, you where sent by my brother!/For him to ask a human to...what? Thats not it?"
+					;何だァ、なんで人間がこんなとこに居んだよ/ハハーン、さては兄者の手先だな！/人間なんぞに頼むなんざ……何？違う？
+					CALL MESSAGE_WINDOW_D, "", "＞You proposed to the man to let the older sister decide."
+					;姉に聞いてみてはどうかという提案を男に伝えた
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Hm, well./If older sister decides, we won't be able to complain."
+					;ほぉーう、成る程/いいぜ、姉者が俺らのどっちかを選ぶってんなら文句はねえ
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "なぁに、オンナってなあつえー男に/ブチ込まれたくてたまんねえに決まってる/つまり姉者が俺以外を選ぶなんてありえねーって事だ！"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "With this strategy, my brother dug his own hole. Hahaha!/Well, it's decided./I'll be waiting in front of the elevator!"
+					;兄者め、策士策におぼれるって奴だ。ガッハッハ！/よーし、そうと決まりゃぁ善は急げだ/先に下のえれべーたーの前で待ってるぜ！
+					ダンジョンフラグ:(FLAG:現ダンジョン):0 = 2
+					RETURN 1
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "むう、兄者の手先か！/……何だ、違うのか/俺はスサノオ、天津神最強の男よ！"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "姉者とどうしても一発やりたくてよォ、/兄者と協力してこのびるぢんぐに/封印したまではよかったんだが/あの野郎、最初に姉者とヤるのは自分だとか抜かしやがった！"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "イイオンナってなぁつえー男のモンになるべきだ、そうだろ！？/つまり天津神最強の こ の 俺 様 に/姉者と最初に一発ヤる権利があるってのに、/あの野郎はそれが分かってねえ"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "とはいえいつまでもこうやって睨み合ってちゃ/ヤれるもんもヤれねーんだよな…"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "……おっし、そうだ/それなりの駄賃くらいはくれてやるからよ、/ここの東にいる兄者をとっちめて来てくんねーか？"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "…んん？/もうぶっ殺してきただぁ？/成る程、結界が緩んだ気がしたがそれか……"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "ありがとよ/一応礼をいっとくぜ/けどよぉ、誰かに頼まれたわけでもねえのに/うちの兄者殺しちまったなぁ、良くねえな"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そんなヤツが中つ国をうろちょろしてるってんじゃあ、/オチオチ姉者と一発ヤってもられねえ/そんなワケでわりいけどよ…/死んどいてもらうぜ、人間"
+
+					GOTO BATTLE_SUSANOO
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞Susano-o is here"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Oh, what's wrong?/My brother is at the top of the east wing of this building./Go over there and defeat him!"
+					;おう、どうした？/兄者はこのびるぢんぐの東のてっぺんにいるぞ/さっさと倒して一杯やろうぜ、兄弟！
+					FLAG:現Y += 2
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞Susano-o looks pleased"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "よくやったぜ兄弟！/これで姉者とヤるのを邪魔する奴はだーれもいねえ！/兄弟、駄賃だ。I'll give you this!"
+					;よくやったぜ兄弟！/これで姉者とヤるのを邪魔する奴はだーれもいねえ！/兄弟、駄賃だ。こいつをくれてやるぜ！
+
+					CALL MESSAGE_WINDOW_D, "", "＞You received 1000 Macca and Murakumo."
+					MONEY:1 += 1000
+					ITEM:Murakumo += 1
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", @"From today on, you are my \@ IS_MALE(MASTER) ? brother # sister \@./If you want my help, you can call me anytime."
+					;今日から俺はお前の兄貴分だ/俺の助けが欲しけりゃいつでも呼べ
+					FLAG:11405 = 1
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Allright, I'm going./If you want, you can watch."
+					;よし、ついでだ/お前にも俺が姉者とヤってるところ見せてやるよ
+					ダンジョンフラグ:(FLAG:現ダンジョン):0 = 4
+					FLAG:現Y += 2
+				ENDIF
+				RETURN 1
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2
+				CALL MESSAGE_WINDOW_D, "", "＞Susano-o is here"
+				CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Oh, what's wrong?/My brother is at the top of the east wing of this building./Go there and ask him, human!"
+				;おう、どうした？/兄者はこのびるぢんぐの東のてっぺんにいるぞ/頼んだぜ、人間！
+				CALL MESSAGE_WINDOW_D, "Fury Susano-o", ""
+				FLAG:現Y += 2
+				RETURN 1
+			ELSE
+			ENDIF
+			
+		CASE 8
+			
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):1 > 2 || (ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2 && ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2)
+				CALL MESSAGE_WINDOW_D, "", "＞No-one is here..."
+				SIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2 || ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+					CALL MESSAGE_WINDOW_D, "", "＞It seems Tsukuyomi went to the roof."
+				RETURN 1
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 0
+				
+				CALL MESSAGE_WINDOW_D, "", "＞布切れをまとった、不気味な男が立っている"
+				
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 0
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "You!/You are surely a henchman sent by Susano-o aren't you?!"
+					;"何奴！/もしやスサノオの手先か！？"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "...it seems I was wrong, forgive my rudeness./I am Tsukuyomi./I am the keeper of the land of Yomi."
+					;……違うのですか、これは失礼/私の名はツクヨミ/この地において黄泉の国を預かる者です
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Actually, I've been cooperating with my brother until recently./Together, we sealed our sister to the roof of this building./But after that we had a disagreement that resulted in conflict,/and thats why I am here now."
+					;実はさる事情があり、我が弟スサノオと協力し/姉上をこの建物の屋上に封印しているのですが/その後にスサノオと意見の相違から対立してしまい、/ここで睨み合う羽目になってしまったのです
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "...?/You want to know what that conflict was about?"
+					;"……？/ああ、何故そうなったかが知りたいのですか"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "貴方もこの列島で初日の出を見たことはあるでしょう/Once a year, my older sister is reborn with the sunrise./I had a chance to see it once, that purity./It is a heavenly beauty."
+					;貴方もこの列島で初日の出を見たことはあるでしょう/一年に一度、我が愛しの姉上は日の出と共に新たに生まれ変わるのですが/その時の姿と言ったら、それはそれは清らかで/まさに天上の美という言葉に相応しい美しさなのです
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "初めてあの姿を見てから、ええそれこそ神代の頃から/姉上の柔肌を思う存分蹂躙しつくし我が欲望のままに汚し/己の物としたいと常々思っていたのですよ/"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "So I cooperated with Susano-o who shared my desires,/which worked well until after we had sealed my sister to prevent her escape./In the end, we couldn't reach an agreement on who would go to her first."
+					;そこで同じように考えていたスサノオと協力し、/姉上を封印して動けないようにしたまでは良かったのですが/あのうつけめ、先に姉上を戴くのは自分だと抜かしまして
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "We both stood by our opinions,/which soon lead to conflict./Well, since I'm the older brother,/don't you think the younger brother should accept my decision?"
+					;そんなことが許せるはずも無く、/こうして対立と相成ったわけです/私が兄なのですから、/弟なら当然私に譲るべきだとは思いませんか？"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "大体あの野蛮な男に姉上を好きにさせて御覧なさい/どうせ姉上が壊れるまで好き放題にして、/私が楽しむどころではなくなるのが関の山です"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "さて人の子よ、矮小な身に過ぎぬ貴方に/こうして事情を話したのには理由があります/スサノオは我ら三貴子、いや天津神の中でも最も凶暴凶悪な男/いかに私といえども正面から戦えば無傷ではすみません"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "So now that you heard my story,/I'd like you to defeat him, over in the west wing./Of course I'll give you a pleasant reward for your service./What do you say?"
+					;そこで人の子よ、/貴方に西にいる彼を倒していただきたいのですよ/当然貴方が喜びそうな報酬も与えましょう/如何です？
+					
+					CALL INPUT_SELECT_D, "[0] Yes/[1] 知るか/[2] I don't care/[3] Don't be silly /[4] I'll just take you down instead/[5] Why not let your older sister decide?", , , 2
+					;はい/[1] 知るか/[2] どうでもいい/[3] ふざけるな /[4] とりあえず倒す/[5] 姉に選ばせたら？
+					
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Ahh, a good answer./I'll leave this to you then."
+						;フフフ、良いお返事をありがとう/それでは任せましたよ
+						CALL MESSAGE_WINDOW_D, "", "＞You left the room."
+						ダンジョンフラグ:(FLAG:現ダンジョン):1 = 1
+						PRINTW 
+						FLAG:現Y += 2
+						RETURN 1
+					ELSEIF RESULT == 5
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "…ほう/考えましたね人間/確かに姉上の口から私が良いと言えば、/あのうつけも従うでしょう"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "意外と素直な所もありますからね/それに姉上もあんな野蛮な男に犯されたくはないでしょうから、/まずは私を選ぶでしょう"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "では人の子よ、スサノオに話を通して来ていただけませんか/今私が行けば、彼は問答無用で襲い掛かってくるでしょうから/頼みましたよ"
+						CALL MESSAGE_WINDOW_D, "", "＞You left the room."
+						ダンジョンフラグ:(FLAG:現ダンジョン):1 = 2
+						FLAG:現Y += 2
+						RETURN 1
+					ELSEIF RESULT == 1 || RESULT == 2 || RESULT == 3
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ほぅ/たかだか人間如きが、この私にそのような口を利くとは/どうやら、貴方もスサノオに劣らぬ大うつけのようです/そんな貴方に相応しい地へ、今招いて差し上げましょう"
+						GOTO BATTLE_TUKUYOMI
+					ELSEIF RESULT == 4
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Ah, what!?/You can't really mean to...!?"
+						;な、なんと！？/神に対して何を……くっ！？
+						FLAG:先制攻撃フラグ = 1
+						GOTO BATTLE_TUKUYOMI
+					ENDIF
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 1
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "む？/何故人間がこのような場所に……/ほほう、私を殺しに、ですか/どうやらスサノオの手の者のようですね"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "しかし貴様達のような虫けら共を遣わせるとは/スサノオともあろうものがとんだお笑い種ですね/しかしこれは好都合/貴様らを我が国の住人に迎え、手駒とさせていただきましょう"
+					$BATTLE_TUKUYOMI
+						PRINTW Amatsu Tsukuyomi appeared!
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+						CALL SET_ENEMY,9,1501,50,1,1
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+						CFLAG:(CHARANUM-1):速度補正 = 5
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						
+
+						CALL BATTLE_START
+						CALL SHOW_PICTURE, "D"
+						
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ば、ばかな……"
+						CALL MESSAGE_WINDOW_D, "", "＞Tsukuyomi was defeated"
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						ダンジョンフラグ:(FLAG:現ダンジョン):1 = 3
+					
+					
+					
+					
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "む？/何故人間がこのような場所に……/さてはスサノオに命じられ私の抹殺を……/何？違う？"
+					CALL MESSAGE_WINDOW_D, "", "＞姉に聞いてみてはどうかという提案を男に伝えた"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ふむ、成る程/確かにこうなった以上姉上の意見を聞いてみるのもまた一興ですか/まあ、姉上があの乱暴者を選ぶとはとても思えませんから、/私に最初を譲ったも同然ですね"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ハーッハッハ、あのうつけ者も/たまには兄の役に立つではありませんか！/では、先に下の昇降機の前で待っていますよ"
+					ダンジョンフラグ:(FLAG:現ダンジョン):1 = 2
+					RETURN 1
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 3
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "何奴！/もしやスサノオの手先か！？"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "……違うのですか、これは失礼/私の名はツクヨミ/この地において黄泉の国を預かる者です"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "実はさる事情があり、我が弟スサノオと協力し/姉上をこの建物の屋上に封印しているのですが/その後にスサノオと意見の相違から対立してしまい、/ここで睨み合う羽目になってしまったのです"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "……？/ああ、何故そうなったかが知りたいのですか"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "貴方もこの列島で初日の出を見たことはあるでしょう/一年に一度、我が愛しの姉上は日の出と共に新たに生まれ変わるのですが/その時の姿と言ったら、それはそれは清らかで/まさに天上の美という言葉に相応しい美しさなのです"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "初めてあの姿を見てから、ええそれこそ神代の頃から/姉上の柔肌を思う存分蹂躙しつくし我が欲望のままに汚し/己の物としたいと常々思っていたのですよ/"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "そこで同じように考えていたスサノオと協力し、/姉上を封印して動けないようにしたまでは良かったのですが/あのうつけめ、先に姉上を戴くのは自分だと抜かしまして"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "そんなことが許せるはずも無く、/こうして対立と相成ったわけです/私が兄なのですから、/弟なら当然私に譲るべきだとは思いませんか？"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "大体あの野蛮な男に姉上を好きにさせて御覧なさい/どうせ姉上が壊れるまで好き放題にして、/私が楽しむどころではなくなるのが関の山です"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "さて人の子よ、矮小な身に過ぎぬ貴方に/こうして事情を話したのには理由があります/スサノオは我ら三貴子、いや天津神の中でも最も凶暴凶悪な男/いかに私といえども正面から戦えば無傷ではすみません"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "そこで人の子よ、/貴方に西にいる彼を倒していただきたいのですよ/当然貴方が喜びそうな報酬も与えましょう/如何です？"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "…ほう？/既に屠った後だと？/成る程、先ほど下の結界が緩んだ気がしましたがそれですか……"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "しかしあんなうつけでも、/仲違いしていたとはいえ私の可愛い弟ではありましてね/私自身の頼みであればいざ知らず、/成り行きで殺されたとあっては腹も立とうというものです"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "何より人の子よ、神を屠り得る者に中つ国を闊歩してもらっては、/安心して姉上の体を楽しむこともできません/黄泉の国で黙っていてもらいましょうか"
+
+					GOTO BATTLE_TUKUYOMI
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 1
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 0
+					CALL MESSAGE_WINDOW_D, "", "＞Tsukuyomi is here"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Is something wrong?/You'll find my brother on the ４８F of the west wing of this building./Go there human, and show me your strength."
+					;どうしました？/スサノオはこの建物の西の４８階にいます/人の子よ、貴方の力を見せてください
+					FLAG:現Y += 2
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", "＞Tsukyomi seemed pleased"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "You did a good job./これで姉上を私の好きなだけ汚し、犯し、蹂躙する事が出来ます/礼を言いますよ、人間。Let me give this to you."
+					;よくやってくれました/これで姉上を私の好きなだけ汚し、犯し、蹂躙する事が出来ます/礼を言いますよ、人間。これを授けましょう
+					CALL MESSAGE_WINDOW_D, "", "＞You received 1000 Maca and Murakumo."
+					MONEY:1 += 1000
+					ITEM:Murakumo += 1
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Well....with this you'll be able to call me with the right procedure./And if you do, I'll lend you my aid."
+					;それから……これからは然るべき手順で私を呼べば、/貴方に力を貸してあげましょう
+					FLAG:11501 = 1
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "I'll go to my sister right away./Oh, if you want, you can come watch./陽の光が月に呑まれ、いやらしく啼いてよがる様をね"
+					;では姉上の所へ参りましょうかね/ああ、良ければ貴方もご覧になって行きなさい/陽の光が月に呑まれ、いやらしく啼いてよがる様をね
+					ダンジョンフラグ:(FLAG:現ダンジョン):1 = 4
+					FLAG:現Y += 2
+				ENDIF
+				RETURN 1
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+				CALL MESSAGE_WINDOW_D, "", "＞Tsukuyomi is here"
+				CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Is something wrong?/You'll find my brother on the ４８F of the west wing of this building./Go there and ask him, human."
+				FLAG:現Y += 2
+				RETURN 1
+			ELSE
+			ENDIF
+		
+		CASE 9
+			IF ダンジョンフラグ:(FLAG:現ダンジョン):2 <= 1
+			;初謁見時
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 3 && ダンジョンフラグ:(FLAG:現ダンジョン):1 == 3
+					;両方倒した
+					;まだ謁見してない場合
+					CALL MESSAGE_WINDOW_D, "", "＞A beautiful woman is tied to the floor here, with something that looks like a chain of light."
+					;＞美しい女性が、光る鎖の様な物で床に縛り付けられている
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Human..../Please hep me./My name is Amaterasu./I was deceived by my brothers and they deprived my of my power."
+					;人間よ……/どうか助けてください/我が名はアマテラス/愚かな弟達に陥れられ、力を奪われてしまいました
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Now that you are here, if you destroy this chain, my body will regain it's power./Since evil is about to take hold of this land,/we must quickly reagin my power to protect this land...!/Please human, please help...!"
+					;二人が居ない今、この鎖を破壊すれば我が身に再び力が宿るはず……/この地に災いが降りかかろうとしている今、/一刻も早くこの国を守護するための力を取り戻さねばならないのです…！/人間よ、どうか、お願い……！
+					$PRINT_ACT_AMA
+					CALL INPUT_SELECT_D, @"%\@ABL:MASTER:属性LD < 3 ? [0] Help/ #\@%[1] Watch /[2] Defile"
+					;助ける/ #\@%[1] 眺める/[2] 食べる"
+					IF RESULT == 1
+						CALL INCREASE_LD,-2
+						CALL MESSAGE_WINDOW_D, "", "＞鎖は、アマテラスの体の局部を/＞ドレスから露出させながら亀甲縛りにしている/＞縛られて強調されている乳房や/＞鎖の食い込んだ陰部はとても美味しそうだ"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "あまり……見ないで下さいまし"
+						CALL MESSAGE_WINDOW_D, "", "＞アマテラスはいやらしい格好のまま、/＞赤面して目を伏せた"
+						GOTO PRINT_ACT_AMA
+					ELSEIF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞The cains binding Amaterasu where easily broken./＞The released Amaterasu shyling corrected her clotes and began to speak with a gentle voice."
+						;アマテラスを縛る鎖は簡単に引きちぎられた/＞解放されたアマテラスは恥ずかしそうに衣服を正すと、神妙に話し始めた
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "この地には今、様々な勢力が集結しています/その中でも特に強い力を持ち、巨大な組織を率いているのが、/『神』の教えの下人々を正しき姿に統一しようとしている天使達"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "そして己の望むままに生きようとする混沌の勢力でありながら、/『神』への反旗という一つの目的でまとまる地獄の住人達"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "彼らは直接争うだけでは飽き足らず、この国に住まう者達…/いえ、世界中、あらゆる宇宙中の人々をより多く自分達の勢力に取りこみ、/自分達の戦争に巻き込もうとしています"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "このままでは、この国の住人同士が/彼らの為にこの国の上で争うことになってしまいます"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "しかし此処は我が父母が産み、/我らと仏法の守護者達の加護の下、/人々や妖怪たちが暮らしを営み、/代々受け継いで来た大地"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "かような者達の代理戦争の場になどして良い道理はありません/Human who lives in this land,/will you protect this country with me?"
+						;かような者達の代理戦争の場になどして良い道理はありません/汝、この地に住まう人の子よ/どうか、私と共にこの地を守るため戦ってはくださいませんか？
+						CALL INPUT_SELECT_D, "[0] Yes/[1] No/[2] とりあえず襲う"
+						IF RESULT == 0
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Ah....I thank you, human./Let's protect this land and it's residents together."
+							;ああ…感謝します、人の子よ/共にこの地と、住人達を守りましょう
+							;属性＋20
+							;Light/Neutralルート入り口
+							;試しに属性を固定
+							FLAG:属性固定LD = 1
+							FLAG:属性固定LC = 2
+							CALL INCREASE_LD,20
+							ダンジョンフラグ:(FLAG:現ダンジョン):2 = 4
+							CALL ADD_NEW_COMPANION,107,200,1
+							FLAG:10107 = 1
+							SIF FLAG:20107 < 100
+								FLAG:20107 = 100
+							IF RESULT
+								CSTR:(RESULT:1):11 = I
+								CSTR:(RESULT:1):12 = ANATANAME("you" , "様")
+							ENDIF
+							;引継ぎアマテラスも含めてここでコーディングを得る
+							ABL:(RESULT:1):コーディング = [[アイテム:プラグイン／Yatanokagami]]
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "では、先ずカテドラルという建造物に向かいましょう/地上の層には天使やそれに同調する勢力が、/地下の層には彼らに異を唱える者達がそれぞれ拠点を構えているそうです"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "最上層には高潔な正義の天使が、/最下層には大日如来様がいらっしゃると聞き及んでいます/教える道は違えども、人に救いをもたらさんとする目的に違いはないはず/うまく仲裁できれば、現世での代理戦争を止める事が出来るかもしれません"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "旧皇居の奥に安置されている鏡と勾玉を使えば、/カテドラルに侵入出来るでしょう"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "それから…"
+							CALL MESSAGE_WINDOW_D, "", "＞アマテラスは急に顔を伏せ、赤く染まった顔を両手で覆った/＞……湯気すら見えそうなほど真っ赤だ"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "先ほどの、私の姿は……その…忘れてくださいまし……"
+							CALL MESSAGE_WINDOW_D, "", "＞Amatsu Amaterasu became an intermediary"
+							FLAG:脱出 = 1
+							RETURN 1
+						ELSEIF RESULT == 1
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…そうですか"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "気になさらないで/人々を彼らの戦争に巻き込ませたくないと言いながら、/人間である貴方を神々の戦いに引きこもうとしたのです"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "その矛盾に疑念を抱いたとしても仕方の無い事/……ですが、もしも、彼らと戦う気になることがあれば、/再びこの場所へ来てください"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "私はいつまでも貴方をお待ちしています/…できれば、私が貴方の前に立ちはだからなければならない事がないよう、願っています……"
+							ダンジョンフラグ:(FLAG:現ダンジョン):2 = 2
+							RETURN 1
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "な、何をなさるのですか！？/お止めになって！"
+							CALL MESSAGE_WINDOW_D, "", "＞恩人に対して力を振るう事をためらったのか、/＞棒立ちになった隙を見逃さず強引に押し倒した"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "ああっ……"
+							GOTO AMA_RAPE
+						ENDIF
+					ELSEIF RESULT == 2
+						CALL MESSAGE_WINDOW_D, "", @"＞とりあえず、調教して十分従順になってから/＞鎖を解いてやっても問題ないだろう/＞そう思った%CALLNAME:MASTER%は身動きが取れず、/＞局部を露出したままのアマテラスに覆いかぶさった"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "な、何をなさるのですか！/お止めになって！/い……イヤぁーっ！"
+						$AMA_RAPE
+						CALL INCREASE_LD,-40
+						;LOCAL = CHARANUM
+						ダンジョンフラグ:(FLAG:現ダンジョン):2 = 6
+						CALL ADD_NEW_COMPANION,107,500,1
+						IF RESULT
+							FLAG:10107 = 1
+							SIF FLAG:20107 < 100
+								FLAG:20107 = 100
+							CFLAG:(RESULT:1):戦闘参加不可能 = 1
+							TARGET = RESULT:1
+							FLAG:ダンジョン内調教 = 1
+						ENDIF
+					ENDIF
+				
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 4
+				;スサノオがレイプ
+					CALL MESSAGE_WINDOW_D, "", "＞美しい女性が、光る鎖の様な物で床に縛り付けられている/＞ドレスから胸や陰部を露出させるような格好で/＞亀甲縛りにされているようだ"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "へへ、兄者の趣味はわかりかねるが、/女にこういう格好させるのは確かにクるってもんだ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "スサノオ……今すぐこの鎖を解くのです/このような下らない事をしている暇はありません"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "おう、姉者も忙しいだろうしな/すぐに自由にしてやるよ/俺様が満足するまでヤらせてもらうのが先だけどな"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "お、お待ちなさいスサノオ！/そのような狼藉を……"
+					CALL MESSAGE_WINDOW_D, "", "＞スサノオは陰部に食い込む鎖をずらすと、/＞大した前戯もせずに極太のペニスを突き入れた/＞アマテラスは目を見開き、/＞口をパクつかせている"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "ガッハッハ！/流石一年に一度生まれ変わるだけはある！/姉者の処女マンコの締りは最高だぜ！"
+					CALL MESSAGE_WINDOW_D, "", "＞明らかに破瓜のものだけではない血を潤滑油代わりに、/＞スサノオは乱暴に抽送を続けている/＞……しばらくは止まりそうに無い"
+					CALL MESSAGE_WINDOW_D, "", "＞レイプに夢中になっているスサノオを残し、都庁を後にした"
+					ダンジョンフラグ:(FLAG:現ダンジョン):2 = 3
+					FLAG:脱出 = 1
+					RETURN 1
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+				;ツクヨミがレイプ
+					CALL MESSAGE_WINDOW_D, "", "＞美しい女性が、光る鎖の様な物で床に縛り付けられている/＞ドレスから胸や陰部を露出させるような格好で/＞亀甲縛りにされているようだ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ククク、いやらしい格好ですね姉上/そのような姿を見せ付けられては、/この私もそそられてしまいそうです"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "……私をこのような格好にしたのは貴方自身でしょう、ツクヨミよ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ええ、その通りですとも/そしてやはり私の思った通りでした/高潔であれば高潔であるほど……清楚であれば清楚であるほど、/堕とされた姿はより美しくなる"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…ツクヨミ、貴方にも分かっているはずでしょう/この地が戦火に包まれようとしていることが"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "勿論/しかし、そう、そのようなことは些細な事です/姉上の極上の肢体の前には、/天変地異すら霞んでみるというもの"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ああ、もはや辛抱たまりません"
+					CALL MESSAGE_WINDOW_D, "", "＞そう言ったツクヨミの衣服の下から、無数の触手が現れた/＞一本一本がペニスのような形状をしており、/＞先走りを滴らせながらドクン、ドクンと脈打っている"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "ヒッ……"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "恥ずかしながら、我が愚息達は姉上のいやらしい姿に高ぶっております/可愛い弟の情欲、どうか鎮めてはいただけませんか、姉上/…貴方の体、ありとあらゆる場所を使ってね"
+					CALL MESSAGE_WINDOW_D, "", "＞触手が身動きできないアマテラスへと群がった/＞……しばらくは止まりそうに無い/＞アマテラスの悲鳴と嬌声を背に、都庁を後にした"
+					ダンジョンフラグ:(FLAG:現ダンジョン):2 = 3
+					FLAG:脱出 = 1
+					RETURN 1
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2 && ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+					LOCAL = 0
+				;兄弟はアホの子
+					CALL MESSAGE_WINDOW_D, "", "＞A beautiful woman is tied to the floor here, with something that looks like a chain of light./＞ドレスから胸や陰部を露出させるような格好で/＞亀甲縛りにされているようだ"
+					;美しい女性が、光る鎖の様な物で床に縛り付けられている/＞ドレスから胸や陰部を露出させるような格好で/＞亀甲縛りにされているようだ"
+					;仏教用語だけどいい表現が思いつかない
+					;PRINTW ＞ツクヨミが話しかけた
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "姉上、息災でしたか？"
+					CALL MESSAGE_WINDOW_D, "", "＞女性は返事をすることもなく、息も絶え絶えに横たわっている"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "...that she can't even talk./Maybe we where overzealous in sealing her power."
+					;…むう、喋る事さえできないとは/力を強く封じすぎてしまったのかもしれません
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Troublesome.../If she can't speak how can we ask her?"
+					;困ったな…/これじゃあどっちとヤるか聞くこともできないんじゃねえか？
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "It seems we'll have to unlock the seal before we can ask./Susano-o, would you?"
+					;聞く前に封印を解く必要があるようですね/スサノオ、頼みます
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Yes, leave it to me."
+					;おう、任せとけ
+					CALL MESSAGE_WINDOW_D, "", "＞When Susano-o broke the chains,/＞the woman rose and floated in the air."
+					;スサノオが鎖を引き千切ると、/＞ややあって女性がフラつきながら立ち上がった
+					;---- EDIT 002 ADD START -------------------------
+					CALL MESSAGE_WINDOW_D, "", "＞しかし、見れば見るほど美しい女性である/＞確かにこの女ならば、神ともあろう者でも浅ましく取り合い、/＞言い争うのも無理は無いが……"
+					;CALL MESSAGE_WINDOW_D, "", "＞このままこの二人の言い成りとなり、/＞目の前の極上の女をくれてやるのは惜しい気もする"
+					CALL INPUT_YN_D, "Watch", "Stop the two"
+					;見守る", "二人を止める
+					IF RESULT == 1
+						;CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は二人に「その女は自分の物だから退け」と言った"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "...huh?"
+						;…んーだとぉ？
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "...what is it?"
+						;…なんですと？
+						CALL MESSAGE_WINDOW_D, "", "＞The two brothers turned back to face you."
+						;兄弟がジロリとこちらに振り向く
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Hey, wasn't it your idea to get sisters opinion?"
+						;おいおい、お前が姉者の意見を聞けっていったんじゃねえか？
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "That's right./What made you change your mind now?..."
+						;その通りです/それをどうしていまさら……
+						CALL INPUT_YN_D, "I want to help Amaterasu", "I want Amaterasu for myself"
+						;アマテラスを助けるため", "アマテラスを自分が戴くため
+						IF RESULT == 0
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Help?/What are you saying?/...ah I get it. You don't want sister to be fucked by a guy like older brother."
+							;助ける？/何言ってんだ？/……ああそうか/姉者が兄者みたいなやつに犯されるのを見たくないってのか
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "You don't have to worry about that./Sister will pick me!"
+							;なら大丈夫だ/姉者は俺を選ぶに決まってんだからよ！
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "You got it all wrong.../This person just can't bear the though of/older sister getting fucked by someone like you."
+							;まったくひどい勘違いですね……/この者はお前のような者に/美しい姉上が犯されるのが耐えられないのですよ
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Hey!/Since she won't pick my brother,/you don't have to worry about that!"
+							;"んだとぉ！/兄者が選ばれるわけないのに/なんでそんな心配するってんだよ！
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "はぁ……まったくこれだから……/……まぁいずれにしろ選ばれた方だけが姉者と交わる/これでこの者も文句はないでしょう/スサノオもそれでいいですね？"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "ガッハッハ！/馬鹿な兄者だぜ！/せっかくヤれるチャンスだったのに/俺に独り占めさせてくれるってのか！"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "人間、お前のおかげだぜ！/やっぱり気が利くな！/これが終わったら舎弟にしてやるぜ！"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "人の子よ、貴方に感謝しましょう/もし貴方がいなければ姉者をこのような男に好きにさせていたところでした/あとでちゃんと報いてさしあげましょう/さて、話もまとまった所で……"
+							LOCAL = 1
+							GOTO AMA_TALK1
+						ELSE
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Ohoh, the human lusts after our sister?"
+							;オイオイ、人間ごときが姉者を戴くだと？
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Just a lowly human, but our sister..."
+							CALL MESSAGE_WINDOW_D, "", "＞The atmosphere turned foul..."
+							;不穏な空気が辺りを包む…
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "...well, kill?"
+							;……おめぇ、死んだぜ？
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "...we seem to the have the same thought Susano-o."
+							;……どうやら、貴方もスサノオに劣らぬ大うつけのようですね？
+							CALL MESSAGE_WINDOW_D, "", @"＞They turned on %CALLNAME:MASTER%!"
+							;＞二人は%CALLNAME:MASTER%に襲いかかった！
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "今すぐ兄者んとこに送ってやんぜー！"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Let me invite you to a place suitable for the likes of you!"
+							;そんな貴方に相応しい地へ、今招いて差し上げましょう！
+							CALL MESSAGE_WINDOW_D, "", "＞Fury Susano-o appeared!/＞Amatsu Tsukuyomi appeared!"
+						ENDIF
+
+						;SET:スサノオ
+						CALL SET_ENEMY,8,1405,50,1,1
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+						CFLAG:(CHARANUM-1):速度補正 = 5
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+
+						;SET:ツクヨミ
+						CALL SET_ENEMY,10,1501,50,1,1
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 4000
+						CFLAG:(CHARANUM-1):速度補正 = 5
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						
+						;戦闘前処理
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+
+						;戦闘開始
+						CALL BATTLE_START
+
+						;戦闘終了
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "うおーっ、参ったーーー！！"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "お、お助けぇーーーー！！"
+						;PRINTW ＞尻もちを付いて倒れている兄弟にジロリと振り向く
+						MONEY:1 += 3000
+						ITEM:Murakumo += 1
+						CALL INPUT_YN_D, "Finish them off", "Show them mercy"
+						;止めを刺す", "見逃す
+						LOCAL = RESULT
+						IF RESULT == 0
+							CALL INCREASE_LD, -4
+							CALL INCREASE_LC, -4
+							CALL MESSAGE_WINDOW_D, "", "＞You retrain Tsukuyomi and reach for your weapon."
+							;＞ツクヨミは腰が引けながらも片手であなたを制した
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Wait a moment./Let me barther my freedom with this sword./I'll give it to you."
+							;ま、待つのです/この剣で手打ちにしましょう/これを差し上げます
+							CALL MESSAGE_WINDOW_D, "", "＞You received 3000 Macca and Murakumo."
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "あ、あーー！/兄者！！/それは俺の剣！！！/無いと思ってたらぱくってたのか！！"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "う、五月蠅いですよ！/元はと言えば貴方が姉上に手を出そうとするからでしょう！！"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そ、それを言い出したら兄者もだろう！！"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "That's enough."
+							CALL MESSAGE_WINDOW_D, "", @"＞The woman who had been sealed came before %CALLNAME:MASTER%."
+							;先程まで倒れていた女が、%CALLNAME:MASTER%の前まで歩み寄った"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "O-older sister!"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Sister!"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Theese are my brothers, even after all of this./Please, release them to me..."
+							;この者達はこんな者でも私の弟です/どうか手に掛けるのはお許し下さいまし…
+							CALL INPUT_SELECT_D, "[0] Forgive the two/[1] Don't forgive them/[2] Request her body"
+							;[0] 二人を許す/[1] 二人を許さない/[2] 体を要求する"
+							IF RESULT == 0
+								$APOLOGY
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "ありがとうございます……"
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "弟達がこのような姿を見せてお恥ずかしい限りです……/私に代わって懲らしめてくださったことにお礼を言わせてください……/ほら、お前達も頭を下げなさい"
+								CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "姉上、いくらなんでも神が人に頭を下げるなど……"
+								CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そうだぜ。さすがに格好がつかねぇよ……"
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "このような醜態を晒して今更そのようなことを言うのですか/どうやらお前達は反省してないようですね…/ならば……"
+								CALL MESSAGE_WINDOW_D, "Fury Susano-o", "い、いやいや、姉者そんなことはないない/ほら人間、この通りだ！/済まなかった！　許せ！"
+								CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ええと…ならば私も頭を下げるとしましょう/人の子よ、神がここまでしているのです/快く許すことです"
+								CALL MESSAGE_WINDOW_D, "", "＞二人は渋々頭を下げた"
+								GOTO AMA_TALK2
+							ELSEIF RESULT == 1
+								CALL INCREASE_LC, -4
+								CALL INCREASE_LD, -4
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "このような振る舞いをみせられては/放置できないお気持ちはわかります/しかし、どうかこの二人にも機会を与えてくださいまし…"
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", @"でなければ、私も貴方を止めるために戦わねばなりません"
+								CALL INPUT_SELECT_D, "[0] Forgive the two/[1] Fight/[2] Request her body"
+								;[0] 二人を許す/[1] 戦う/[2] 体を要求する"
+								IF RESULT == 0
+									GOTO APOLOGY
+								ELSEIF RESULT == 1
+									CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "人の子よ、どうしてそこまで血を求めるのです……/貴方は私達を滅ぼすためにやってきたのですか？/ならば私は民のためにも貴方を倒しましょう"
+									CALL MESSAGE_WINDOW_D, "Fury Susano-o", "流石姉者！"
+									CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "姉上どこまでも付いていきます！"
+									CALL MESSAGE_WINDOW_D, "", "＞二人が女に縋りつく/＞しかし女は冷たく二人を睨んだ/＞女の厳しい視線に二人は悲鳴をあげて部屋の隅まで逃げて行った……"
+									CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "それでは……/神罰が下ると知りなさい、人間よ！"
+									GOTO AMA_BATTLE
+								ENDIF
+							ENDIF
+						ELSE
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Fu....guess you caught me on my bad foot./Well then..."
+							;"ふぅ……散々な目に会った/それじゃあな"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Hah....that was a good fight.../Well then human,/so long..."
+							;はぁ……よかった……/それでは人の子よ/私はこれで
+							CALL MESSAGE_WINDOW_D, "", "＞The two turned to leave.../＞But where stopped the the woman,/who seemed that regained most of her power after being sealed."
+							;二人は去ろうとした……/＞が、そんな二人の前に先ほどまで倒れていた女が立ちはだかった
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Please wait./Do you two really think this is enough?"
+							;御待ちなさい/二人ともこれで済むと思っているのですか？
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Sister."
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "That is..."
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "弟達がこのような姿を見せてお恥ずかしい限りです……/私に代わって懲らしめてくださったことにお礼を言わせてください……/ほら、お前達も頭を下げなさい"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "姉上、いくらなんでも神が人に頭を下げるなど……"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そうだぜ。さすがに格好がつかねぇよ……"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "このような醜態を晒して今更そのようなことを言うのですか/Apparently you are not refecting on your actions.../Then..."
+							;このような醜態を晒して今更そのようなことを言うのですか/どうやらお前達は反省してないようですね…/ならば……
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Ah, no no, older sister that is not the case./Look here, I give up my sword,/my precious sword,/surely that should make it clear I reflect on this!"
+							;い、いやいや、姉者そんなことはないない/ほら人間、この剣をやる/俺の大切な剣だぞ/反省の気持ちも伝わるってもんだろう！
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Uhh...in that case I'll give you this./You surely have a use for this money,/I'll give it to you./Human, you surely agree I'm reflecting on my actions by doing so."
+							;ええと…ならば私はこれをさしあげましょう/人の子らにとって金はなくてはならぬもの/それを与えるのです/人の子よ、貴方からも我々がちゃんと反省してると姉上に……
+							CALL MESSAGE_WINDOW_D, "", "＞You received 3000 Macca and Murakumo."
+							CALL INCREASE_LD, 8
+							GOTO AMA_TALK2
+						ENDIF
+						;覚りチェック
+						;IF TALENT:MASTER:覚
+						;	PRINTW 
+						;	PRINTW ＞----------------------------------------
+						;	PRINTW ＞覚の力がアマテラスの心を映し出す
+						;	PRINTW （あなたに殺されては私がいたぶる事が出来ません）
+						;	PRINTFORMW （あ、お前ら二人は後で無限フレイダインね%UNICODE(0x2661)%）
+						;	PRINTW ＞流石姉者クオリティ。弟が弟なら姉も姉か。おそろしあまてらす
+						;	PRINTW ＞----------------------------------------
+						;	PRINTW 
+						;ENDIF
+						;PRINTW ＞天津神の長たる者に懇願されたが、さてどうするか・・・
+						;PRINTW ＞………
+						;PRINTW ＞……
+						;PRINTW ＞…
+						;PRINTW ＞・・・一先ず目的は達成している為、その件については了解しておいた
+						;PRINTW 
+						CALL MESSAGE_WINDOW_D, "", "＞女の横顔は見れば見るほど美しい/＞くびれが見える抜群のプロポーションは/＞人間のモデルなど霞んでしまうだろう"
+						CALL MESSAGE_WINDOW_D, "", @"＞そうした女の姿を見ているうちに/＞%CALLNAME:MASTER%はつい体を要求してしまっていた……"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "な！ 何言ってやがる！？/そんなのダメだぞ姉者！"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "な、なんと、厚かましい/姉上、人間などにこのような事を言わせていては……"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "うるさいです！/お前達は黙ってなさい！！"
+						CALL MESSAGE_WINDOW_D, "", "＞女はすがりついてこようとした二人を怒鳴りつけた/＞女の剣幕に二人は悲鳴をあげて部屋の隅まで逃げて行った……"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "はぁまったく…誰のせいでこんなことになってると……/それに貴方も貴方です……"
+						CALL MESSAGE_WINDOW_D, "", @"＞気がつくと女は湯気すら見えそうなほど顔を真っ赤にして、%CALLNAME:MASTER%を見つめている"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "わ、私にそのような要求をするとは……/あなたは神をも全く恐れぬ人間の様ですね……/しかしこのような要求は愛があって初めてするものですよ"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "いえ、愛があっても今の私にはやるべき事があります/こたえることはできません/人の子よ、聞かなかったこ……きゃっ"
+						CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は無理矢理にでも連れて行くことにして/女の手を掴んだ"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "な、何をなさるのですか！？/お止めになって！/止めないと言うのなら……/神罰が下ると知りなさい、人間よ！"
+						$AMA_BATTLE
+						CALL MESSAGE_WINDOW_D, "", "＞Amatsu Amaterasu appeared!"
+						;SET:アマテラス
+						CALL SET_ENEMY,9,[[キャラ:アマテラス]],55,1,1
+						CFLAG:(CHARANUM-1):ＨＰ補正 = MAXBASE:(CHARANUM-1):ＨＰ*4
+						CFLAG:(CHARANUM-1):ＭＰ補正 = MAXBASE:(CHARANUM-1):ＭＰ*4
+						CFLAG:(CHARANUM-1):速度補正 = 5
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						ABL:(CHARANUM-1):スキル1 = [[スキル:ディアラマ]]
+						ABL:(CHARANUM-1):スキル2 = [[スキル:フレイダイン]]
+						ABL:(CHARANUM-1):スキル3 = [[スキル:七色煉獄波]]
+						ABL:(CHARANUM-1):スキル4 = [[スキル:メギドラ]]
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+
+						;戦闘前処理
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+
+						;戦闘開始
+						CALL BATTLE_START
+
+						;戦闘終了
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						CALL SHOW_PICTURE, "D"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "ああっ……"
+						CALL MESSAGE_WINDOW_D, "", "＞Defeated, Amaterasu collapsed on the spot."
+						PRINTW 
+						;参考：話が分かる
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "い、いや……近寄らないで…/触らないで…お願い、やめて……"
+						CALL MESSAGE_WINDOW_D, "", "＞神の威厳も尊厳もなく、/＞ただ一人の人間の女のようにすすり泣くアマテラスを強引に連れて帰る事にした"
+						CALL MESSAGE_WINDOW_D, "", "…………………/…………/……"
+						CALL MESSAGE_WINDOW_D, "", "＞室内には二人が取り残されている"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "なぁ兄者…"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "なんです…"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "恐ろしい人間が居るもんだなぁ…/姉者まで倒しちまうなんて"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "もう私は家に帰ります…/こんな恐ろしい所には居たくない"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "...."
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "...."
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "......."
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "......."
+						CALL MESSAGE_WINDOW_D, "Both", "......."
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "…あなたも来ますか？"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "流石兄者！話が分かる！！/俺も連れて行ってくれ！！"
+						CALL MESSAGE_WINDOW_D, "", "＞二人は仲良く帰って行った"
+
+						;兄弟は見逃して仲直りさせたので、ここでは加算
+						CALL INCREASE_LD,20
+						GOTO AMA_RAPE
+					ELSE
+						;---- EDIT 002 ADD END ---------------------------
+						$AMA_TALK1
+						;ELSE側にはGOTOでしか入れないようにしておく
+						IF 1
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "Well, lets hear from older sister who should lie with her."
+							;さあ姉上、元気になられたところでお聞きしましょう
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "俺様と"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "私と"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "どっちに"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "純潔を捧げたいかを"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "...brothers, haven't you forgotten about something?"
+							;…弟達よ、何か忘れていませんか
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "うん？何かあったか、兄者？"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "む……はて、特に思い当たる事はありませんが"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "I wonder how that chain is supposed to seal my power now..."
+							;私の力を封じていたあの鎖が今どうなっているか、です
+							CALL MESSAGE_WINDOW_D, "", "......./...../..."
+							CALL MESSAGE_WINDOW_D, "", "＞Tsukuyomi has left"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "Hey, older brother!/How mean of you to sneak away!/Don't leave me alone!"
+							;あ、兄者！/黙って逃げるなんてひどいぞ！/俺を一人にしないでくれ！
+							CALL MESSAGE_WINDOW_D, "", "＞Susano-o ran away"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "...i'm sorry, things are complicated./I'd be so nice if those to would think about things more seriously."
+							;……助かりはしましたが、複雑な気分ですね/二人とも、もう少し物事を深く考えるようになってくれると良いのですが
+							CALL MESSAGE_WINDOW_D, "", "＞The woman noticed her disorderly appearance and hastily corrected her clothes./＞Then she turned to you and began to speak while blushing."
+							;そう呟いた女性は自分の乱れた格好に気付き、慌てて衣服を正した/＞そして赤面したまま咳払いを一つして、神妙に話し始めた
+							;助けるを選んでここに入った場合
+							IF LOCAL
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…さ、さて人間よ/まずは私を助けようとしてくれたことに感謝します/おかげで本当に助かりました"
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "そして……貴方を見込んで、是非とも聞いて欲しいことがあるのです/この地には今、様々な勢力が集結しています/"
+							ELSE
+								CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…さ、さて人間よ/貴方はあの二人に巻き込まれただけでしょうし、/貴方に罰を与える事はしません"
+							ENDIF
+							LOCAL = 0
+						ELSE
+							$AMA_TALK2
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "はぁ……仕方ありません……/申し訳ありませんが、これで勘弁してやってください"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "You two should leave./I'll speak with this person now./I don't have time to lecture you."
+							;二人共もう行きなさい/今はこの方と話すことがあります/説教をしている暇はありません
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そ、そうか！/それじゃあごゆっくり"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "そうですね/姉上の邪魔をするわけにはいきません/それでは……"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "二人共、わかってますね/人々を守るのですよ/それが私達の役目です/……それと今日のことは落ち着いたらゆっくりと"
+							CALL MESSAGE_WINDOW_D, "", "＞ツクヨミとスサノオはアマテラスがしゃべるおわる前に/＞慌てて去っていった"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "……おかげで助かりましたが、複雑な気分ですね/二人とも、自分の立場というものも考えるようになってくれると良いのですが"
+							CALL MESSAGE_WINDOW_D, "", "＞そう呟いた女性は自分の乱れた格好に気付き、慌てて衣服を正した/＞そして赤面したまま咳払いを一つして、神妙に話し始めた"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…さ、さて人間よ/貴方の力、しかと見せてもらいました/そこで貴方に聞いて欲しい事があるのです/この地には今、様々な勢力が集結しています/"
+							LOCAL = 1
+						ENDIF
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "この地には今、様々な勢力が集結しています/その中でも特に強い力を持ち、巨大な組織を率いているのが、/『神』の教えの下人々を正しき姿に統一しようとしている天使達"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "そして己の望むままに生きようとする混沌の勢力でありながら、/『神』への反旗という一つの目的でまとまる地獄の住人達"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "彼らは直接争うだけでは飽き足らず、この国に住まう者達…/いえ、世界中、あらゆる宇宙中の人々をより多く自分達の勢力に取りこみ、/自分達の戦争に巻き込もうとしています"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "このままでは、この国の住人同士が/彼らの為にこの国の上で争うことになってしまいます"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "しかし此処は我が父母が産み、/我らと仏法の守護者達の加護の下、/人々や妖怪たちが暮らしを営み、/代々受け継いで来た大地"
+						CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "かような者達の代理戦争の場になどして良い道理はありません/Human who lives in this land,/will you protect this country with me?"
+						CALL INPUT_SELECT_D, "[0] Yes/[1] No/[2] とりあえず襲う"
+						IF RESULT == 0
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Ah....I thank you, human./Let's protect this land and it's residents together."
+							;属性＋20
+							;Light/Neutralルート入り口
+								;試しに属性を固定
+								FLAG:属性固定LD = 1
+								FLAG:属性固定LC = 2
+							CALL INCREASE_LD,20
+							ダンジョンフラグ:(FLAG:現ダンジョン):2 = 4
+							CALL ADD_NEW_COMPANION,107,200,1
+							FLAG:10107 = 1
+							SIF FLAG:20107 < 100
+								FLAG:20107 = 100
+							IF RESULT
+								CSTR:(RESULT:1):11 = I
+								CSTR:(RESULT:1):12 = %ANATANAME("you", "様")%
+							ENDIF
+							;引継ぎアマテラスも含めてここでコーディングを得る
+							ABL:GETCHARA([[キャラ:アマテラス]]):コーディング = [[アイテム:プラグイン／Yatanokagami]]
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "では、先ずカテドラルという建造物に向かいましょう/地上の層には天使やそれに同調する勢力が、/地下の層には彼らに異を唱える者達がそれぞれ拠点を構えているそうです"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "最上層には高潔な正義の天使が、/最下層には大日如来様がいらっしゃると聞き及んでいます/教える道は違えども、人に救いをもたらさんとする目的に違いはないはず/うまく仲裁できれば、現世での代理戦争を止める事が出来るかもしれません"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "旧皇居の奥に安置されている鏡と勾玉を使えば、/カテドラルに侵入出来るでしょう"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "それから…"
+							CALL MESSAGE_WINDOW_D, "", "＞アマテラスは急に顔を伏せ、赤く染まった顔を両手で覆った/＞……湯気すら見えそうなほど真っ赤だ"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "先ほどの、私の姿は……その…忘れてくださいまし……"
+							CALL MESSAGE_WINDOW_D, "", "＞Amatsu Amaterasu became an intermediary"
+							FLAG:脱出 = 1
+							RETURN 1
+						ELSEIF RESULT == 1
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…そうですか"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "気になさらないで/人々を彼らの戦争に巻き込ませたくないと言いながら、/人間である貴方を神々の戦いに引きこもうとしたのです"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "その矛盾に疑念を抱いたとしても仕方の無い事/……ですが、もしも、彼らと戦う気になることがあれば、/再びこの場所へ来てください"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "私はいつまでも貴方をお待ちしています/…できれば、私が貴方の前に立ちはだからなければならない事がないよう、願っています……"
+							ダンジョンフラグ:(FLAG:現ダンジョン):2 = 2
+							RETURN 1
+						ELSEIF RESULT == 2
+							$BATTLE_AMA
+							CALL INCREASE_LD,-40
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "な、何をなさるのですか！？/お止めになって！/止めないと言うのなら……/神罰が下ると知りなさい、人間よ！"
+							CALL MESSAGE_WINDOW_D, "", "＞Amatsu Amaterasu appeared!"
+							FLAG:逃走不可フラグ = 1
+							FLAG:会話不能フラグ = 1
+							FLAG:先制不意打ちキャンセル = 1
+							CALL SET_ENEMY,9,[[キャラ:アマテラス]],55,1,1
+							CFLAG:(CHARANUM-1):ＨＰ補正 = MAXBASE:ARG:ＨＰ*4
+							CFLAG:(CHARANUM-1):ＭＰ補正 = MAXBASE:ARG:ＭＰ*4
+							CFLAG:(CHARANUM-1):速度補正 = 5
+							CFLAG:(CHARANUM-1):行動回数 = 2
+							ABL:(CHARANUM-1):スキル1 = [[スキル:ディアラマ]]
+							ABL:(CHARANUM-1):スキル2 = [[スキル:フレイダイン]]
+							ABL:(CHARANUM-1):スキル3 = [[スキル:七色煉獄波]]
+							ABL:(CHARANUM-1):スキル4 = [[スキル:メギドラ]]
+							CALL SYNC_STATUS,(CHARANUM-1)
+							CALL HEALTH_CHARA,(CHARANUM-1)
+							
+							CALL BATTLE_START
+							CALL SHOW_PICTURE, "D"
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "ああっ……"
+							CALL MESSAGE_WINDOW_D, "", "＞Defeated, Amaterasu collapsed on the spot."
+							;参考：話が分かる
+							CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "い、いや……近寄らないで…/触らないで…お願い、やめて……"
+							CALL MESSAGE_WINDOW_D, "", "＞神の威厳も尊厳もなく、/＞ただ一人の人間の女のようにすすり泣くアマテラスを強引に押し倒した"
+							FLAG:逃走不可フラグ = 0
+							FLAG:会話不能フラグ = 0
+							FLAG:先制不意打ちキャンセル = 0
+							GOTO AMA_RAPE
+						ENDIF
+					ENDIF
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 2
+				CALL MESSAGE_WINDOW_D, "", "＞Amaterasu is here"
+				CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "...will you protect this country with me?"
+				CALL INPUT_SELECT_D, "[0] Yes/[1] No/[2] とりあえず襲う"
+				IF RESULT == 0
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "Ah....I thank you, human./Let's protect this land and it's residents together."
+					;属性＋20
+					;Light/Neutralルート入り口
+					;試しに属性を固定
+					FLAG:属性固定LD = 1
+					FLAG:属性固定LC = 2
+					CALL INCREASE_LD,20
+					ダンジョンフラグ:(FLAG:現ダンジョン):2 = 4
+					CALL ADD_NEW_COMPANION,107,200,1
+					FLAG:10107 = 1
+					SIF FLAG:20107 < 100
+						FLAG:20107 = 100
+					IF RESULT
+						CSTR:(RESULT:1):11 = I
+						CSTR:(RESULT:1):12 = %ANATANAME("貴方", "様")%
+					ENDIF
+					;引継ぎアマテラスも含めてここでコーディングを得る
+					ABL:GETCHARA([[キャラ:アマテラス]]):コーディング = [[アイテム:プラグイン／Yatanokagami]]
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "では、先ずカテドラルという建造物に向かいましょう/地上の層には天使やそれに同調する勢力が、/地下の層には彼らに異を唱える者達がそれぞれ拠点を構えているそうです"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "最上層には高潔な正義の天使が、/最下層には大日如来様がいらっしゃると聞き及んでいます/教える道は違えども、人に救いをもたらさんとする目的に違いはないはず/うまく仲裁できれば、現世での代理戦争を止める事が出来るかもしれません"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "旧皇居の奥に安置されている鏡と勾玉を使えば、/カテドラルに侵入出来るでしょう"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "それから…"
+					CALL MESSAGE_WINDOW_D, "", "＞アマテラスは急に顔を伏せ、赤く染まった顔を両手で覆った/＞……湯気すら見えそうなほど真っ赤だ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "先ほどの、私の姿は……その…忘れてくださいまし……"
+					CALL MESSAGE_WINDOW_D, "", "＞天津神 アマテラスが仲魔になった"
+					FLAG:脱出 = 1
+					RETURN 1
+				ELSEIF RESULT == 1
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "…そうですか"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "気になさらないで/人々を彼らの戦争に巻き込ませたくないと言いながら、/人間である貴方を神々の戦いに引きこもうとしたのです"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "その矛盾に疑念を抱いたとしても仕方の無い事/……ですが、もしも、彼らと戦う気になることがあれば、/再びこの場所へ来てください"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "私はいつまでも貴方をお待ちしています/…できれば、私が貴方の前に立ちはだからなければならない事がないよう、願っています……"
+					ダンジョンフラグ:(FLAG:現ダンジョン):2 = 2
+					RETURN 1
+				ELSEIF RESULT == 2
+					SIF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 2 && ダンジョンフラグ:(FLAG:現ダンジョン):1 == 2
+						GOTO BATTLE_AMA
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "な、何をなさるのですか！？/お止めになって！"
+					CALL MESSAGE_WINDOW_D, "", "＞恩人に対して力を振るう事をためらったのか、/＞棒立ちになった隙を見逃さず強引に押し倒した"
+					CALL MESSAGE_WINDOW_D, "Amatsu Amaterasu", "ああっ……"
+					GOTO AMA_RAPE
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):2 == 3
+				;アマテラスレイプ後
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 4
+				;スサノオに協力した
+					ダンジョンフラグ:(FLAG:現ダンジョン):0 = 5
+					CALL MESSAGE_WINDOW_D, "", "＞スサノオが居る/＞つい先ほどまでそこに転がっているアマテラスと励んでいたのか、/＞巨大なペニスは愛液と精液に塗れている"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "よう兄弟、いい所に来たな/見りゃわかると思うが、姉者が壊れちまってよ/ケツもマンコもユルくなっちまった"
+					CALL MESSAGE_WINDOW_D, "Fury Susano-o", "もう流石に飽きちまったし、/中古な上に俺のガキまで孕んでて悪いが、/舎弟のオマエにくれてやるよ/さて、これからどうするかね"
+					IF !IS_LOOKSLIKE_MALE(MASTER)
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "…よく見りゃ、オマエも中々イイオンナだよな"
+						CALL MESSAGE_WINDOW_D, "", @"＞スサノオは%CALLNAME:MASTER%を抱き寄せると、無遠慮に尻や胸を撫で回した"
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "なんなら、オマエも俺様のオンナにしてやろうか？"
+						CALL INPUT_SELECT_D, "[0] お願いする/[1] 考えておく/[2] 断る"
+						IF RESULT == 0
+							ダンジョンフラグ:(FLAG:現ダンジョン):0 = 6
+							CALL MESSAGE_WINDOW_D, "", "＞甘い声でそうねだると、スサノオはニヤリと笑った"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "へへ、素直だな。そんなにこいつが欲しいか？"
+							CALL MESSAGE_WINDOW_D, "", "＞スサノオのペニスがムクムクと持ち上がり、/＞並の人間では考えられないサイズまで勃起する"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "お望み通り、コイツでヒィヒィよがらせてやる/もう他の人間なんぞの短小チンポじゃ満足できない体になっちまうぜ/俺の子を孕むまで、たーっぷりと子種を注いで、/姉者とお揃いの竿姉妹にしてやる"
+							CALL MESSAGE_WINDOW_D, "", "＞スサノオは巨大なペニスを%CALLNAME:MASTER%の秘裂にあてがった……"
+							CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+							CALL SHOW_PICTURE, "EMPTY"
+							CALL MESSAGE_WINDOW_D, "", "＞スサノオと長い時間愉しんだ"
+							;処女保存
+							RESULT:1 = TALENT:MASTER:処女
+							IF TALENT:MASTER:再生処女 || TALENT:MASTER:処女
+								PRINTFORML \@ TALENT:MASTER:処女 ? Virginity # Restored Virginity \@ Lost
+								TALENT:MASTER:処女 = 0
+								TALENT:MASTER:再生処女 = 0
+							ENDIF
+							IF TALENT:MASTER:オトコ == 0
+								PRINTL ＶEXP + 40
+								EXP:MASTER:Ｖ経験 += 40
+							ENDIF
+							PRINTL ＡEXP + 10
+							EXP:MASTER:Ａ経験 += 10
+							PRINTL ClimaxEXP + 70
+							EXP:MASTER:絶頂経験 += 70
+							PRINTL SexEXP + 50
+							EXP:MASTER:性交経験 += 50
+							IF TALENT:MASTER:オトコ == 0 && CFLAG:MASTER:108 == 0 
+								PRINTL CreampieEXP + 50
+								EXP:MASTER:膣射経験 += 50
+							ENDIF
+							PRINTL SemenEXP + 55
+							EXP:MASTER:精液経験 += 55
+							PRINTL ServicPlsEXP + 15
+							EXP:MASTER:奉仕快楽経験 += 15
+							PRINTL BlowjobEXP + 15
+							EXP:MASTER:フェラ経験 += 15
+							PRINTL MasoEXP + 10
+							EXP:MASTER:苦痛快楽経験 += 10
+							IF EXP:MASTER:Ｖ拡張経験 == 0 || EXP:MASTER:Ａ拡張経験 == 0
+								PRINTL AbnormalEXP + 1
+								EXP:MASTER:異常経験 += 1
+							ENDIF
+							IF TALENT:MASTER:オトコ == 0
+								PRINTL ＶExpandEXP + 30
+								EXP:MASTER:Ｖ拡張経験 += 30
+							ENDIF
+							PRINTL ＡExpandEXP + 15
+							EXP:MASTER:Ａ拡張経験 += 15
+							PRINTL
+							WAIT
+							IF ABL:MASTER:Ｖ感覚 < 10 && ABL:MASTER:Ａ感覚 < 10 && TALENT:MASTER:オトコ == 0
+								PRINTFORMW %CALLNAME:MASTER%のＶ感覚とＡ感覚がそれぞれ{ABL:MASTER:Ｖ感覚 + 1}と{ABL:MASTER:Ａ感覚 + 1}に上昇した
+							ELSEIF ABL:MASTER:Ｖ感覚 < 10 && TALENT:MASTER:オトコ == 0
+								PRINTFORMW %CALLNAME:MASTER%のＶ感覚が{ABL:MASTER:Ｖ感覚 + 1}に上昇した
+							ELSEIF ABL:MASTER:Ａ感覚 < 10
+								PRINTFORMW %CALLNAME:MASTER%のＡ感覚が{ABL:MASTER:Ａ感覚 + 1}に上昇した
+							ENDIF
+							SIF ABL:MASTER:Ｖ感覚 < 10 && TALENT:MASTER:オトコ == 0
+								ABL:MASTER:Ｖ感覚 += 1
+							SIF ABL:MASTER:Ａ感覚 < 10
+								ABL:MASTER:Ａ感覚 += 1
+							CALL SHOW_PICTURE, "EMPTY"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "……ふう、こんだけ出しゃあオマエも孕むだろ"
+							
+							;ファンタジー
+							CALL MESSAGE_WINDOW_D, "", @"＞許容量を越えるような量の精子を受け、/＞%CALLNAME:MASTER%の下腹部はぽっこりと膨らんで見える"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", @"オマエの%\@ RESULT:1 == 1 ? 処女 # \@%%\@!TALENT:MASTER:オトコ?マンコの#\@%具合、最高だったぜ/またヤらせてくれよ、代わりにおめぇを守ってやっから/自分のオンナは自分で守らねーとなぁ？ガッハッハ/代わりに、活躍したらたぁーっぷりサービス頼むぜ！"
+							CALL MESSAGE_WINDOW_D, "", "＞Fury Susano-o became an intermediary"
+							CALL ADD_NEW_COMPANION,1405,1000,1
+							SIF FLAG:21405 < 100
+								FLAG:21405 = 100
+							LOCAL = 0
+							IF RESULT == 1
+								LOCAL = RESULT:1
+								BASE:LOCAL:LV += 2
+								BASE:LOCAL:力 += 3
+								BASE:LOCAL:運 += 3
+								ABL:LOCAL:従順 = 3
+							ENDIF
+							LOCAL = LOCAL ? LOCAL # GETCHARA(1405)
+							CALL MESSAGE_WINDOW_D, "", "＞スサノオは帰っていった"
+							IF PREGNANCY_ABLE(MASTER)
+								CALL MESSAGE_WINDOW_D, "", @"＞子宮の奥が熱く疼く……/＞スサノオに何度も中に出されたことで、/＞孕まされてしまったようだ/＞%CALLNAME:MASTER%はスサノオの精子で【妊娠】した"
+								CALL PREGNANCY_CHECK, MASTER, 4
+								CALL SET_FATHERINFO, MASTER, 1405, CFLAG:LOCAL:キャラ固有の番号, CALLNAME:LOCAL
+								TALENT:MASTER:妊娠 = 1
+								CALL CHANGE_N_STATUS, MASTER
+							ENDIF
+							GOTO AFTER_AMA_RAPE
+						ELSEIF RESULT == 1
+							CALL MESSAGE_WINDOW_D, "", "＞やんわりとそう告げてスサノオから離れると、スサノオは唸った"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "考えた結果断られるのも悔しいな…そうだ/オマエの仲魔になってやるよ"
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "バッタバッタと敵を薙ぎ倒す俺の姿を見せ付けて、/惚れさせてやろうじゃねえか/よろしくたのむぜ、兄弟"
+							CALL MESSAGE_WINDOW_D, "", "＞鬼神 スサノオが仲魔になった"
+							CALL ADD_NEW_COMPANION,1405,200,1
+							SIF FLAG:21405 < 100
+								FLAG:21405 = 100
+							GOTO AFTER_AMA_RAPE
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そうか、そりゃ残念だ/オマエの体も具合がよさそうだったのにな/まあ今は満足してるし、今度会うときまでに考え直しといてくれよ"
+							CALL MESSAGE_WINDOW_D, "", "さて、そうすっとこれから…"
+							GOTO BYE_SUSANOO
+						ENDIF
+					ELSE
+						$BYE_SUSANOO
+						CALL MESSAGE_WINDOW_D, "Fury Susano-o", "そうだ、高天原中のオンナ共をいただいちまうのも良いな/前は姉者に邪魔されたが、来年までは姉者も大人しいだろうし/そんじゃ、アバヨ！"
+						CALL MESSAGE_WINDOW_D, "", "＞スサノオは去っていった"
+						GOTO AFTER_AMA_RAPE
+					ENDIF
+				
+				
+				ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 4
+				;ツクヨミに協力した
+					ダンジョンフラグ:(FLAG:現ダンジョン):1 = 5
+					CALL MESSAGE_WINDOW_D, "", "＞ツクヨミが居る/＞アマテラスに群がっていた無数の触手達も、/＞今は一本が虚ろな目のアマテラスにちゅ、ちゅと吸われているだけだ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ああ、良い所にきましたね/如何に姉上とはいえ、少々無理をさせすぎたようで/私の子を孕んだと分かったあたりで壊れてしまったのですよ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "こうなってはもはや興味も失せましてね/私のお下がりでよければ、これをお譲りしますよ"
+					CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "さて……"
+					IF !IS_LOOKSLIKE_MALE(MASTER)
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "…貴方も人間にしては中々の美しさを持っていますね/……神の審美眼に適うほどに"
+						CALL MESSAGE_WINDOW_D, "", @"＞いつの間にか%CALLNAME:MASTER%の周りに集まっていたペニス型の触手が、/＞胸や秘部を優しく撫で上げた"
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "よければ、貴方にも神の寵愛と悦楽を授けて差し上げましょうか？"
+						CALL INPUT_SELECT_D, "[0] お願いする/[1] 考えておく/[2] 断る"
+						IF RESULT == 0
+							ダンジョンフラグ:(FLAG:現ダンジョン):1 = 6
+							CALL MESSAGE_WINDOW_D, "", "＞甘い声でそうねだると、ツクヨミは不気味に笑った"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "ククク…それでよろしいのですよ/人間が神の寵愛を受けるなど、極めて稀な幸運と言えますからね"
+							CALL MESSAGE_WINDOW_D, "", @"＞触手達の先端が固く膨れ上がり、/＞%CALLNAME:MASTER%の肢体にシュルシュルと絡みついた"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "一本の肉棒などでは味わえない快楽を楽しむといいでしょう"
+							;下着あるなら追加
+							CALL MESSAGE_WINDOW_D, "", @"%\@CFLAG:MASTER:23 & 32 || CFLAG:MASTER:23 & 64 ?＞触手達は%CALLNAME:MASTER%の下着を器用に脱がすと/＞#＞触手達は\@%むき出しになった秘唇や菊門を擦り始め、/＞それが痺れる様な快感となって%CALLNAME:MASTER%に伝わった"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "では貴方の美しさに高められたこの情欲、/貴方に鎮めていただきましょう/姉上と同じように、私の子種で貴方を孕ませて差し上げます"
+							CALL MESSAGE_WINDOW_D, "", @"＞ツクヨミの触手が、%CALLNAME:MASTER%の穴という穴を犯し始めた……"
+							CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+							CALL SHOW_PICTURE, "EMPTY"
+							CALL MESSAGE_WINDOW_D, "", "＞ツクヨミと長い時間愉しんだ"
+							;処女保存
+							RESULT:1 = TALENT:MASTER:処女
+							IF TALENT:MASTER:再生処女 || TALENT:MASTER:処女
+								PRINTFORML \@ TALENT:MASTER:処女 ? Virginity # Restored Virginity \@ Lost
+								IF TALENT:MASTER:処女
+									PRINTL AbnormalEXP + 2
+									EXP:MASTER:異常経験 += 2
+								ENDIF
+								TALENT:MASTER:処女 = 0
+								TALENT:MASTER:再生処女 = 0
+							ENDIF
+							IF TALENT:MASTER:オトコ == 0
+								PRINTL ＶEXP + 20
+								EXP:MASTER:Ｖ経験 += 20
+							ENDIF
+							PRINTL ＡEXP + 10
+							EXP:MASTER:Ａ経験 += 10
+							PRINTL ClimaxEXP + 50
+							EXP:MASTER:絶頂経験 += 50
+							PRINTL SexEXP + 40
+							EXP:MASTER:性交経験 += 40
+							IF TALENT:MASTER:オトコ == 0 && CFLAG:MASTER:108 == 0 
+								PRINTL CreampieEXP + 30
+								EXP:MASTER:膣射経験 += 30
+							ENDIF
+							PRINTL SemenEXP + 80
+							EXP:MASTER:精液経験 += 80
+							PRINTL ServicPlsEXP + 30
+							EXP:MASTER:奉仕快楽経験 += 30
+							PRINTL BlowjobEXP + 40
+							EXP:MASTER:フェラ経験 += 40
+							IF EXP:MASTER:触手経験 == 0
+								PRINTL AbnormalEXP + 1
+								EXP:MASTER:異常経験 += 1
+							ENDIF
+							PRINTL TentacleEXP + 30
+							EXP:MASTER:触手経験 += 30
+							PRINTL
+							WAIT
+							IF ABL:MASTER:Ｖ感覚 < 10 && ABL:MASTER:Ａ感覚 < 10 && TALENT:MASTER:オトコ == 0
+								PRINTFORMW %CALLNAME:MASTER%のＶ感覚とＡ感覚がそれぞれ{ABL:MASTER:Ｖ感覚 + 1}と{ABL:MASTER:Ａ感覚 + 1}に上昇した
+							ELSEIF ABL:MASTER:Ｖ感覚 < 10 && TALENT:MASTER:オトコ == 0
+								PRINTFORMW %CALLNAME:MASTER%のＶ感覚が{ABL:MASTER:Ｖ感覚 + 1}に上昇した
+							ELSEIF ABL:MASTER:Ａ感覚 < 10
+								PRINTFORMW %CALLNAME:MASTER%のＡ感覚が{ABL:MASTER:Ａ感覚 + 1}に上昇した
+							ENDIF
+							SIF ABL:MASTER:Ｖ感覚 < 10 && TALENT:MASTER:オトコ == 0
+								ABL:MASTER:Ｖ感覚 += 1
+							SIF ABL:MASTER:Ａ感覚 < 10
+								ABL:MASTER:Ａ感覚 += 1
+							CALL SHOW_PICTURE, "EMPTY"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "……ふぅ、これで貴方も我が神族の一員……私の巫女です"
+							;ファンタジー
+							CALL MESSAGE_WINDOW_D, "", @"＞許容量を越えるような量の精子を受け、/＞%CALLNAME:MASTER%の下腹部はぽっこりと膨らんで見える"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "貴方の肢体、人間にしておくには惜しい具合でしたよ/貴方が望むのなら、これからもお相手をして差し上げましょう/"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "そうだ、これからはいつでも私をお呼びなさい/寵愛を授けた人間を守らなければ、/神としての立つ瀬はありませんからね"
+							CALL MESSAGE_WINDOW_D, "", "＞天津神 ツクヨミが仲魔になった"
+							CALL ADD_NEW_COMPANION,1501,1000,1
+							SIF FLAG:21501 < 100
+								FLAG:21501 = 100
+							LOCAL = 0
+							IF RESULT == 1
+								LOCAL = RESULT:1
+								BASE:LOCAL:LV += 2
+								BASE:LOCAL:魔力 += 3
+								BASE:LOCAL:運 += 3
+								ABL:LOCAL:従順 = 3
+							ENDIF
+							LOCAL = LOCAL ? LOCAL # GETCHARA(1501)
+							CALL MESSAGE_WINDOW_D, "", "＞ツクヨミは帰っていった"
+							IF PREGNANCY_ABLE(MASTER)
+								CALL MESSAGE_WINDOW_D, "", @"＞/子宮の奥が熱く疼く……＞ツクヨミに何度も子宮に種付けされたことで、孕まされてしまったようだ/＞%CALLNAME:MASTER%はツクヨミの精子で【妊娠】した"
+								CALL PREGNANCY_CHECK, MASTER, 4
+								CALL SET_FATHERINFO, MASTER, 1501, CFLAG:LOCAL:キャラ固有の番号, CALLNAME:LOCAL
+								TALENT:MASTER:妊娠 = 1
+								CALL CHANGE_N_STATUS, MASTER
+							ENDIF
+							GOTO AFTER_AMA_RAPE
+						ELSEIF RESULT == 1
+							CALL MESSAGE_WINDOW_D, "", "＞やんわりとそう告げてツクヨミから離れると、ツクヨミは唸った"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "神が寵愛を授けると言っているのに、それを退けるとは…/気に入りましたよ人間/"
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "貴方が自分から私に犯して欲しいと懇願するまで、/貴方に力を貸しましょう/フフフ、いつまで私につれなくできますかね？"
+							CALL MESSAGE_WINDOW_D, "", "＞天津神 ツクヨミが仲魔になった"
+							CALL ADD_NEW_COMPANION,1501,200,1
+							SIF FLAG:21501 < 100
+								FLAG:21501 = 100
+							GOTO AFTER_AMA_RAPE
+						ELSEIF RESULT == 2
+							CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "そうですか、それは残念です/貴方の顔を悦楽と屈辱に塗りつぶしてみたかったのですが/まあ今日の所は引き下がりましょう"
+							CALL MESSAGE_WINDOW_D, "", @"＞触手の何本かが%CALLNAME:MASTER%の顔に愛しげにキスをすると、ツクヨミの体へ戻っていった"
+							GOTO BYE_TUKUYOMI
+						ENDIF
+					ELSE
+						$BYE_TUKUYOMI
+						CALL MESSAGE_WINDOW_D, "Amatsu Tsukuyomi", "では、私は国へ帰るとしましょう/貴方が来るようなことがあるならば、歓迎しますよ"
+						CALL MESSAGE_WINDOW_D, "", "＞ツクヨミは去っていった"
+						GOTO AFTER_AMA_RAPE
+					ENDIF
+				
+				ELSE
+					$AFTER_AMA_RAPE
+					CALL MESSAGE_WINDOW_D, "", @"＞裸に剥かれ、体液塗れになったアマテラスが転がっている/＞パックリと口を開けたままの秘裂とアヌスからは%\@ ダンジョンフラグ:(FLAG:現ダンジョン):0 > 3 ? スサノオ # ツクヨミ \@%の精子がドロリと零れ出ている"
+					IF  FLAG:Pregnant機能
+						CALL MESSAGE_WINDOW_D, "", "＞虚ろな目のまま、口元に薄ら笑いを浮かべ、ぼってりと膨らんだ腹を優しく撫でている"
+						LOCALS =  ＞どうやら、
+						SIF (ダンジョンフラグ:(FLAG:現ダンジョン):0 > 3 && CFLAG:MASTER:111 == 1405) || (ダンジョンフラグ:(FLAG:現ダンジョン):1 > 3 && CFLAG:MASTER:111 == 1501)
+							LOCALS = @"%CALLNAME:MASTER%と同じように"
+						LOCALS += @"%\@ダンジョンフラグ:(FLAG:現ダンジョン):0 > 3 ? スサノオ # ツクヨミ \@%の子種で孕まされたようだ"
+						CALL MESSAGE_WINDOW_D, "", LOCALS
+					ENDIF
+					CALL MESSAGE_WINDOW_D, "", "＞Will you take the broken Amaterasu with you?"
+					;壊れたアマテラスを持ち帰りますか？
+					CALL INPUT_YN_D
+					IF RESULT == 0
+						CALL MESSAGE_WINDOW_D, "", "＞You got Amatsu Amaterasu."
+						ダンジョンフラグ:(FLAG:現ダンジョン):2 = 5
+						CALL ADD_NEW_COMPANION,107,1000,1
+						SIF FLAG:20107 < 100
+							FLAG:20107 = 100
+						IF RESULT == 1
+							LOCAL = RESULT:1
+							TALENT:LOCAL:崩壊 = 1
+							TALENT:LOCAL:淫乱 = 1
+							TALENT:LOCAL:処女 = 0
+							TALENT:LOCAL:幼児／幼児退行 = 1
+							ABL:LOCAL:会話タイプ = 301
+							IF ダンジョンフラグ:(FLAG:現ダンジョン):0 > 3
+							;スサノオが壊した
+								EXP:LOCAL:Ｖ経験 += 40
+								EXP:LOCAL:Ａ経験 += 10
+								EXP:LOCAL:絶頂経験 += 70
+								EXP:LOCAL:性交経験 += 50
+								EXP:LOCAL:膣射経験 += 50
+								EXP:LOCAL:精液経験 += 55
+								EXP:LOCAL:奉仕快楽経験 += 15
+								EXP:LOCAL:フェラ経験 += 15
+								EXP:LOCAL:苦痛快楽経験 += 10
+								EXP:LOCAL:異常経験 += 3
+								EXP:LOCAL:Ｖ拡張経験 += 30
+								EXP:LOCAL:Ａ拡張経験 += 15
+								IF PREGNANCY_ABLE(LOCAL)
+									CALL PREGNANCY_CHECK, LOCAL, 4
+									CALL SET_FATHERINFO, LOCAL, 1405, -1, "スサノオ"
+									TALENT:LOCAL:妊娠 = 1
+								ENDIF
+								PRINTL
+							ELSE
+							;ツクヨミが壊した
+								EXP:LOCAL:Ｖ経験 += 20
+								EXP:LOCAL:Ａ経験 += 10
+								EXP:LOCAL:絶頂経験 += 50
+								EXP:LOCAL:性交経験 += 40
+								EXP:LOCAL:膣射経験 += 30
+								EXP:LOCAL:精液経験 += 80
+								EXP:LOCAL:奉仕快楽経験 += 30
+								EXP:LOCAL:フェラ経験 += 4
+								EXP:LOCAL:触手経験 += 30
+								EXP:LOCAL:異常経験 += 3
+								IF PREGNANCY_ABLE(LOCAL)
+									CALL PREGNANCY_CHECK, LOCAL, 4
+									CALL SET_FATHERINFO, LOCAL, 1501, -1, "ツクヨミ"
+									TALENT:LOCAL:妊娠 = 1
+								ENDIF
+							ENDIF
+							;妊娠機能がONでアマテラスが妊娠した場合
+							IF TALENT:LOCAL:妊娠
+								;妊娠によるの乳サイズ増大
+								;メッセージを出さないために直接編集
+								TALENT:LOCAL:巨乳 = 1
+								TALENT:LOCAL:母乳体質 = 1
+								;妊娠させたキャラ(スサノオ or ツクヨミ)が仲魔にいる場合は
+								;父親の固有番号にそのキャラの固有の番号を設定する。
+								REPEAT CHARANUM
+									IF NO:COUNT == CFLAG:LOCAL:妊娠確定後の父親の判定
+										CALL SET_FATHERINFO, LOCAL, NO:COUNT, CFLAG:COUNT:キャラ固有の番号, CALLNAME:COUNT
+										BREAK
+									ENDIF
+								REND
+							ENDIF
+						ENDIF
+					ELSEIF RESULT == 1
+						CALL MESSAGE_WINDOW_D, "", "＞You decided to leave Amaterasu here and left."
+					ENDIF
+					IF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 6 
+						ダンジョンフラグ:(FLAG:現ダンジョン):0 = 7
+						CALL MESSAGE_WINDOW_D, "", "＞長い時間スサノオと交わっていたせいか、疲労が激しい……/＞今日はもう探索を切り上げた方が良さそうだ/＞……歩くたびに、秘裂やアヌスからスサノオの精子がドロリ、と垂れてくる"
+						CALL MESSAGE_WINDOW_D, "", @"＞%\@(TALENT:MASTER:オトコ == 0 && TEQUIP:MASTER:陰唇露出 != -1) || TEQUIP:MASTER:臀部露出 != -1?下穿きがすぐに精液まみれになってしまうため、/＞#\@%%CALLNAME:MASTER%は精子の垂れる股間を曝け出したまま家路に着いた"
+						;下着の状況で分岐
+						FLAG:脱出 = 1
+						
+					ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):1 == 6 
+						ダンジョンフラグ:(FLAG:現ダンジョン):1 = 7
+						CALL MESSAGE_WINDOW_D, "", "＞長い時間ツクヨミに犯されていたせいか、疲労が激しい……/＞今日はもう探索を切り上げた方が良さそうだ/＞……歩くたびに、秘裂やアヌスからツクヨミの精子がドロリ、と垂れてくる"
+						;下着の状況で分岐
+						CALL MESSAGE_WINDOW_D, "", @"＞%\@(TALENT:MASTER:オトコ == 0 && TEQUIP:MASTER:陰唇露出 != -1) || TEQUIP:MASTER:臀部露出 != -1?下穿きがすぐに精液まみれになってしまうため、/＞#\@%%CALLNAME:MASTER%は精子の垂れる股間を曝け出したまま家路に着いた"
+						FLAG:脱出 = 1
+					ENDIF
+					
+					RETURN 1
+					
+				ENDIF
+			ELSEIF ダンジョンフラグ:(FLAG:現ダンジョン):2 >= 4
+				CALL MESSAGE_WINDOW_D, "", "＞No-one seems to be here..."
+				;＞誰もいない……
+			ENDIF
+			
+		CASEELSE
+			RETURN 1
+				
+				
+	
+	ENDSELECT
+	
+;========================
+;エレベーター
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 1
+				CALL MESSAGE_WINDOW_D, "","＞There is an elevator./＞Do you want to use it to get to ４５Ｆ?"
+				;エレベータがある/＞４５Ｆまで行きますか？
+				CALL INPUT_YN_D,"Yes","No"
+				IF RESULT == 0
+					FLAG:現M = 1
+					FLAG:現X = 13
+					FLAG:現Y = 1
+					CALL MAKE_FLOOR, FLAG:現ダンジョン
+					CALL AUTOMAP
+				ENDIF
+				RETURN 1
+			ELSEIF FLAG:現X == 9
+				CALL MESSAGE_WINDOW_D, "","＞There is an elevator./＞Do you want to go to the rooftop?"
+				;屋上まで行きますか？
+				CALL INPUT_YN_D,"Yes","No"
+				IF RESULT == 0
+					FLAG:現M = 9
+					FLAG:現X = 4
+					FLAG:現Y = 6
+					CALL MAKE_FLOOR, FLAG:現ダンジョン
+					CALL AUTOMAP
+				ENDIF
+				RETURN 1
+			
+			ELSEIF FLAG:現X == 17
+				CALL MESSAGE_WINDOW_D, "","＞There is an elevator./＞Do you want to use it to get to ４５Ｆ?"
+				CALL INPUT_YN_D,"Yes","No"
+				IF RESULT == 0
+					FLAG:現M = 5
+					FLAG:現X = 3
+					FLAG:現Y = 1
+					CALL MAKE_FLOOR, FLAG:現ダンジョン
+					CALL AUTOMAP
+				ENDIF
+				RETURN 1
+			ENDIF
+		CASE 1
+			CALL MESSAGE_WINDOW_D, "","＞There is an elevator./＞Do you want to use it to get to ３０Ｆ?"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				FLAG:現M = 0
+				FLAG:現X = 1
+				FLAG:現Y = 1
+				CALL MAKE_FLOOR, FLAG:現ダンジョン
+				CALL AUTOMAP
+			ENDIF
+			RETURN 1
+		CASE 5
+			CALL MESSAGE_WINDOW_D, "","＞There is an elevator./＞Do you want to use it to get to ３０Ｆ?"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				FLAG:現M = 0
+				FLAG:現X = 17
+				FLAG:現Y = 1
+				CALL MAKE_FLOOR, FLAG:現ダンジョン
+				CALL AUTOMAP
+			ENDIF
+			RETURN 1
+		CASE 9
+			CALL MESSAGE_WINDOW_D, "","＞There is an elevator./＞Do you want to use it to get to ３０Ｆ?"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				FLAG:現M = 0
+				FLAG:現X = 9
+				FLAG:現Y = 1
+				CALL MAKE_FLOOR, FLAG:現ダンジョン
+				CALL AUTOMAP
+			ENDIF
+			RETURN 1
+			
+	ENDSELECT
+ENDIF
+RETURN 0
+
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_26
+SELECTCASE FLAG:現M
+	CASE 0
+		IF FLAG:現X == 3 && FLAG:現Y == 2
+			CALL GET_TREASURE_MONEY,1,150,FLAG:現ダンジョン,11
+		ELSEIF FLAG:現X == 13 && FLAG:現Y == 2
+			CALL GET_TREASURE,1017,2,FLAG:現ダンジョン,12
+		ELSEIF FLAG:現X == 1 && FLAG:現Y == 7
+			CALL GET_TREASURE,1006,1,FLAG:現ダンジョン,13
+		ELSEIF FLAG:現X == 3 && FLAG:現Y == 7
+			CALL GET_TREASURE,1003,1,FLAG:現ダンジョン,14
+		ELSEIF FLAG:現X == 15 && FLAG:現Y == 7
+			CALL GET_TREASURE,1030,1,FLAG:現ダンジョン,15
+		ELSEIF FLAG:現X == 17 && FLAG:現Y == 7
+			CALL GET_TREASURE,1011,1,FLAG:現ダンジョン,16
+		ENDIF
+	CASE 1
+		IF FLAG:現X == 1 && FLAG:現Y == 5
+			CALL GET_TREASURE,1031,1,FLAG:現ダンジョン,17
+		ELSEIF FLAG:現X == 11 && FLAG:現Y == 5
+			CALL GET_TREASURE,1040,2,FLAG:現ダンジョン,18
+		ELSEIF FLAG:現X == 15 && FLAG:現Y == 5
+			CALL GET_TREASURE,1103,1,FLAG:現ダンジョン,19
+		ELSEIF FLAG:現X == 7 && FLAG:現Y == 13
+			CALL GET_TREASURE,1003,1,FLAG:現ダンジョン,20
+		ELSEIF FLAG:現X == 3 && FLAG:現Y == 9
+			CALL GET_TREASURE,1118,1,FLAG:現ダンジョン,21
+		ELSEIF FLAG:現X == 5 && FLAG:現Y == 7
+			CALL GET_TREASURE,1117,1,FLAG:現ダンジョン,22
+		ENDIF
+	CASE 2
+		IF FLAG:現X == 9 && FLAG:現Y == 1
+			CALL GET_TREASURE,1119,1,FLAG:現ダンジョン,23
+		ELSEIF FLAG:現X == 13 && FLAG:現Y == 9
+			CALL GET_TREASURE,1035,1,FLAG:現ダンジョン,24
+		ENDIF
+	CASE 5
+		IF FLAG:現X == 15 && FLAG:現Y == 5
+			CALL GET_TREASURE,1031,1,FLAG:現ダンジョン,25
+		ELSEIF FLAG:現X == 5 && FLAG:現Y == 5
+			CALL GET_TREASURE,1032,1,FLAG:現ダンジョン,26
+		ELSEIF FLAG:現X == 1 && FLAG:現Y == 5
+			CALL GET_TREASURE_MONEY,0,20000,FLAG:現ダンジョン,27
+		ELSEIF FLAG:現X == 9 && FLAG:現Y == 13
+			CALL GET_TREASURE_MAG,0,30000,FLAG:現ダンジョン,28
+		ELSEIF FLAG:現X == 13 && FLAG:現Y == 9
+			CALL GET_TREASURE,2449,1,FLAG:現ダンジョン,29
+		ELSEIF FLAG:現X == 11 && FLAG:現Y == 7
+			CALL GET_TREASURE,1110,1,FLAG:現ダンジョン,30
+		ENDIF
+	CASE 6
+		IF FLAG:現X == 7 && FLAG:現Y == 1
+			CALL GET_TREASURE,1119,1,FLAG:現ダンジョン,31
+		ELSEIF FLAG:現X == 3 && FLAG:現Y == 9
+			CALL GET_TREASURE,1036,1,FLAG:現ダンジョン,32
+		ENDIF
+ENDSELECT
+RETURN 1
+
+;========
+;罠置き場
+;========
+@TRAP_26
+SELECTCASE FLAG:現M
+	CASE 3
+		CALL DUNGEON_TRAP_MP,40
+	CASE 7
+		CALL DUNGEON_TRAP_HP,50
+ENDSELECT
+RETURN 0
+
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_26
+SELECTCASE FLAG:現M
+	CASE 1,2,5,6
+		CALL DUNGEON_UPSTAIRS,FLAG:現M + 1,FLAG:現X,FLAG:現Y
+	CASE 3
+		CALL DUNGEON_UPSTAIRS,4,3,11
+	CASE 7
+		CALL DUNGEON_UPSTAIRS,8,5,11
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_26
+SELECTCASE FLAG:現M
+	CASE 2,3,6,7
+			CALL DUNGEON_DOWNSTAIRS,FLAG:現M - 1,FLAG:現X,FLAG:現Y
+	CASE 4
+			CALL DUNGEON_DOWNSTAIRS,3,7,11
+	CASE 8 
+			CALL DUNGEON_DOWNSTAIRS,7,9,11
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_26
+
+SELECTCASE FLAG:現M
+	CASE IS < 9
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5 - 15
+	CASEELSE
+		FLAG:エンカウント率 = 0
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_26
+RETURN 33, 30, 41, 50
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_26
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_26
+RETURN CLASS_NUM_COMMON("上級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_26, ARG
+RETURN ENEMY_NUM_COMMON("上級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_26, ARG
+SELECTCASE FLAG:現M
+	CASE IS < 9
+		SELECTCASE RAND:100
+			CASE IS < 30
+				;30%でサラシナヒメ
+				RETURN 605,30+RAND:(1+MAX((FLAG:現M-1) % 4,0)*3)
+			CASE IS < 55
+				;25%でフジムスメ
+				RETURN 507,31+RAND:(1+MAX((FLAG:現M-1) % 4,0)*3)
+				ABL:(CHARANUM-1):スキル4 = 106
+			CASE IS < 70
+				;15%でセンリ
+				RETURN 806,33+RAND:(1+MAX((FLAG:現M-1) % 4,0)*3)
+			CASE IS < 85
+				;15%でハクジョウシ
+				RETURN 705,34+RAND:(1+MAX((FLAG:現M-1) % 4,0)*3)
+			CASE IS < 100
+				;10%でおしち
+				RETURN 1008,35+RAND:(1+MAX((FLAG:現M-1) % 4,0)*3)
+		ENDSELECT
+ENDSELECT

@@ -1,0 +1,2028 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:RESTRANT.ERB
+;	Facility	:Restaurant(屋台)での労役に関する関数群です。
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/03/21		黒天					労役可能なキャラを一括で労役に従事させる選択肢を追加
+;	003		2011/04/11		Ｐ						非戦闘員の獲得EXPにおけるレベル補正が主人のレベルを参照していたのを修正
+;	004		2011/04/13		黒天					二人未満(一括選択肢非表示)状態でも直接入力することで
+;													一括選択処理が実行できていた問題を修正
+;	005		2011/09/08		黒天					ＮＴＲイベント時の処女(再生処女)喪失処理を関数を呼ぶように修正
+;													ＮＴＲイベント時の妊娠用処理の判定に使用していたCFLAG:ARG:18を他のERBの処理から判断してCFLAG:ARG:"Contraceptive barrier"(108)に変更
+;	006		2012/05/17		osoji					文章加筆、配色変更
+;	007		2013/11/24		ひみつ					リスト表示数設定
+;	008		2015/11/22		ななし					未調教かつ非戦闘員の労役基準緩和。主人と一緒に働く事で忠誠度を得られるように変更
+;	009		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;屋台(Restaurant)で働かせる
+;奴隷を屋台(Restaurant)で働かせます。客の数だけ収益が上がる
+;==========================================================
+;@RESTRANT
+; 屋台(Restaurant)で働かせる奴隷を選択する。
+;<引数>
+;	なし
+;<戻り値>
+;	なし
+;==========================================================
+@RESTRANT
+#LOCALSIZE 5
+$RESTRANT_TOP
+;使用する変数の初期化
+A = 0
+B = 0
+C = 0
+D = 0
+;LOCAL   = 労役させたいキャラ
+;LOCAL:1 = 労役可能キャラ数
+;LOCAL:2 = 単価
+;LOCAL:3 = 労役確認用
+;LOCAL:4 = 一括労役用カウンタ
+VARSET LOCAL,0
+$PRINT_LIST
+CALL INPUT_CHARA_LIST("Please pick a character to work here", "CASTING_RESTRANT", "", "", "MODECHANGE_RESTRANT")
+IF RESULT == 1000
+	RETURN 0
+ENDIF
+
+IF RESULT == 999
+	;一括選択できない状態のためINPUT_LOOP_1に戻る
+	SIF FLAG:労役実行確認省略設定 == 0 || A < 2
+		GOTO PRINT_LIST
+	;一応実行してOKか確認
+	PRINTL All available characters will work here.
+	PRINTL Is this ok?
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		;キャラ一覧に戻る。
+		GOTO PRINT_LIST
+	;一括労役フラグON
+	LOCAL:4 = 1
+	LOCAL:1 = A
+	LOCAL = Q:(LOCAL:4-1)
+ELSE
+	LOCAL = RESULT
+ENDIF
+
+$SELECT_LOOP
+
+;単価を計算。
+DRAWLINE
+
+CALL SALARY_RESTRANT, LOCAL, 1
+LOCAL:2 = RESULT
+
+PRINTFORML Basic work cost per unit：{LOCAL:2}
+;基本労役単価
+
+;単価が0魔貨を下回ることがないので一応コメントアウト
+;IF LOCAL:2 > 0
+	;労役実行確認省略設定が有効な場合、表示後WAITしないようにする。
+	IF FLAG:労役実行確認省略設定 == 0
+		PRINTFORMW {LOCAL:2} will be earned per day.
+	ELSE
+		PRINTFORML {LOCAL:2} will be earned per day.
+	ENDIF
+;ELSE
+;	PRINTFORMW 労役単価が0魔貨を下回ったので、中止します
+;	IF FLAG:労役実行確認省略設定 == 1
+;		IF LOCAL:4 > 0 && LOCAL:4 < LOCAL:1
+;			;LOCAL:4が0より大きく(一括選択)、LOCAL:4がLOCAL:1未満(まだ全員の労役従事が終わってない)場合
+;			;次のキャラの労役従事
+;			LOCAL:4 += 1
+;			LOCAL = Q:(LOCAL:4-1)
+;
+;			GOTO SELECT_LOOP
+;		ELSE
+;			;労役実行確認省略設定が有効な場合、関数の頭に戻る
+;			GOTO RESTRANT_TOP
+;		ENDIF
+;	ENDIF
+;	RETURN 0
+;ENDIF
+
+;食堂コマンドを実行するか？
+IF FLAG:労役実行確認省略設定 == 0
+	PRINTFORML Will %CALLNAME:LOCAL% work here today?
+	CALL INPUT_YN, "Work", "Quit"
+	LOCAL:3 = RESULT
+ELSE
+	;労役実行確認省略設定が有効な場合、実行確認は無条件で実行する(0)を設定
+	LOCAL:3 = 0
+ENDIF
+
+IF LOCAL:3 == 0
+	IF ITEM:食堂
+		PRINTFORML %CALLNAME:LOCAL% will work at your restaurant.
+		;に食堂に出てもらうことになりました。
+	ELSEIF ITEM:屋台
+		PRINTFORML %CALLNAME:LOCAL% will work at your food chart.
+		;に屋台に出てもらうことになりました。
+	ELSE
+		PRINTFORML %CALLNAME:LOCAL% will work part-time at the restaurant.
+	ENDIF
+	;イベント口上
+	T = TARGET
+	TARGET = LOCAL
+	TFLAG:13 = 15
+	CALL KOJO_MESSAGE_EVENT
+	TARGET = T
+	;SIF LOCAL == TARGET
+	;	TARGET = -1
+	;SIF LOCAL == ASSI
+	;	ASSI = -1
+	;SIF CPOS(LOCAL) > 0
+	;	CALL REMOVE_POSITION,CPOS(LOCAL)
+	CFLAG:LOCAL:労役フラグ = 1
+	CFLAG:LOCAL:労役単価 = LOCAL:2
+	PRINTL 　
+	IF FLAG:労役実行確認省略設定 == 1
+		IF LOCAL:4 > 0 && LOCAL:4 < LOCAL:1
+			;LOCAL:4が0より大きく(一括選択)、LOCAL:4がLOCAL:1未満(まだ全員の労役従事が終わってない)場合
+			;次のキャラの労役従事
+			LOCAL:4 += 1
+			LOCAL = Q:(LOCAL:4-1)
+
+			GOTO SELECT_LOOP
+		ELSE
+			;労役実行確認省略設定が有効な場合、一覧表示キャラ抽出に飛ぶ
+			GOTO RESTRANT_TOP
+		ENDIF
+	ENDIF
+ELSE
+	RESTART
+ENDIF
+
+@CASTING_RESTRANT
+SIF CFLAG:COUNT:労役フラグ > 0
+	RETURN 0
+SIF COUNT != MASTER && (ABL:COUNT:従順 + ABL:COUNT:奉仕精神 + ABL:COUNT:料理技能 + TALENT:COUNT:恋慕*3 + TALENT:COUNT:親愛*6) < 6 && !TALENT:COUNT:非戦闘員
+	RETURN 0
+;非戦闘員は未調教に限り、屋台・食堂でなら労役できる
+SIF COUNT != MASTER && TALENT:COUNT:非戦闘員 && (ABL:COUNT:従順 + ABL:COUNT:奉仕精神 + ABL:COUNT:料理技能 + TALENT:COUNT:恋慕*3 + TALENT:COUNT:親愛*6) < 6 && (CFLAG:COUNT:被調教回数 || !(ITEM:屋台 || ITEM:食堂))
+	RETURN 0
+SIF BASE:COUNT:0 <= 500
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1
+
+@MODECHANGE_RESTRANT, ARG
+SELECTCASE ARG
+	CASE -1
+		;労役実行確認省略オプションが有効な場合にのみ選択肢を表示する。
+		SIF FLAG:労役実行確認省略設定 == 1 && A >= 2
+			PRINTL [999] Make all available characters work here
+	CASE 999
+		RETURN ARG , 0
+ENDSELECT
+RETURN ARG , 1
+
+;==========================================================
+;@END_RESTRANT
+; 屋台(Restaurant)での労役日報処理
+;<引数>
+;	ARG = 労役を行うキャラの登録番号
+;<戻り値>
+;	なし
+;==========================================================
+@END_RESTRANT,ARG
+#LOCALSIZE 5
+;LOCAL   = 計算用1
+;LOCAL:1 = 計算用2
+;LOCAL:2 = 客入り
+;LOCAL:3 = 顧客満足度
+;LOCAL:4 = 合計プレイ回数(未使用?)
+
+VARSET LOCAL,0
+;最初に労役単価を再計算
+CALL SALARY_RESTRANT,ARG,0
+CFLAG:ARG:労役単価 = RESULT
+
+CUSTOMDRAWLINE ･
+PRINTFORML %CALLNAME:ARG%'s daily report：
+
+;従業員の人気に応じて客が来ます
+;初めての場合は店の人気に依存
+WHILE CFLAG:ARG:料理人気 > 100 * (POWER(2 , LOCAL)-1) / 3
+	LOCAL:1 += (MIN(CFLAG:ARG:料理人気 , 100 * (POWER(2 , LOCAL+1) - 1) / 3) - 100 * (POWER(2 , LOCAL) -1) / 3) / (10 * (POWER(2,LOCAL)))
+	LOCAL ++
+WEND
+IF LOCAL:1
+	REPEAT LOCAL:1
+		LOCAL:2 += RAND:2
+	REND
+ENDIF
+;店に人気に応じて客が来ます
+
+LOCAL:3 = FLAG:料理人気
+;自分の店が無い時は人気は200固定
+SIF ITEM:屋台 == 0
+	LOCAL:3 = 200
+LOCAL:3 += 50
+LOCAL = 0
+LOCAL:1 = 0
+WHILE LOCAL:3 > 100 * (POWER(4 , LOCAL)-1) / 3
+	LOCAL:1 += (MIN(LOCAL:3 , 100 * (POWER(4 , LOCAL+1) - 1) / 3) - 100 * (POWER(4 , LOCAL) -1) / 3) / (10 * (POWER(4,LOCAL)))
+	LOCAL ++
+WEND
+IF LOCAL:1
+	REPEAT LOCAL:1
+		LOCAL:2 += RAND:2
+	REND
+ENDIF
+
+;最低一人は来る
+SIF LOCAL:2 < 1
+	LOCAL:2 = 1
+
+;満足度判定
+;ランダムで40を追加します。WaiterEXPに応じて期待値は上昇します。
+IF EXP:ARG:外食労役経験 > 30000
+	LOCAL:3 = 60
+ELSEIF EXP:ARG:外食労役経験 > 10000
+	LOCAL:3 = RAND:31 + 30
+ELSEIF EXP:ARG:外食労役経験 > 5000
+	LOCAL:3 = RAND:36 + 25
+ELSEIF EXP:ARG:外食労役経験 > 3000
+	LOCAL:3 = RAND:41 + 20
+ELSEIF EXP:ARG:外食労役経験 > 1000
+	LOCAL:3 = RAND:46 + 15
+ELSEIF EXP:ARG:外食労役経験 > 500
+	LOCAL:3 = RAND:51 + 10
+ELSEIF EXP:ARG:外食労役経験 > 100
+	LOCAL:3 = RAND:56 + 5
+ELSE
+	LOCAL:3 = RAND:61
+ENDIF
+
+;料理技能をチェックする。料理技能が相手の欲望を上回るかどうか。成功なら料理技能レベルの２倍、失敗なら１倍入ります。
+
+LOCAL:1 = RAND:9
+IF LOCAL:1 <= ABL:ARG:料理技能
+	LOCAL:3 += ABL:ARG:料理技能
+	LOCAL:3 += ABL:ARG:料理技能
+ELSE
+	LOCAL:3 += ABL:ARG:料理技能
+ENDIF
+
+;相手からの行動が発生します。相手の技巧がこちらの欲望以下の場合、不満そうな表情が出る可能性があります。
+;相手の技巧＋こちらの従順の２倍＞こちらの欲望＋２なら、問題なく行為を露出癖と奉仕精神を加える事が出来ます。
+;足りない場合は加えられません。
+LOCAL:1 = RAND:5
+LOCAL:1 += ABL:ARG:従順
+LOCAL:1 += ABL:ARG:従順
+LOCAL:1 -= 2
+
+IF LOCAL:1 >= ABL:ARG:欲望
+	LOCAL:3 += ABL:ARG:奉仕精神
+	LOCAL:3 += ABL:ARG:露出癖
+ENDIF
+
+;ここまでで最大100％
+
+;従順が3LVないと、著しく微妙になります
+IF ABL:ARG:従順 < 3 && ARG != MASTER
+	LOCAL:3 /= 2
+ENDIF
+
+
+
+
+;この時点でのLOCAL:3が満足度
+
+LOSEBASE:体力 = LOCAL:2*15
+
+;こっそりと妊娠中は体力消費1.5倍
+IF TALENT:ARG:妊娠
+	TIMES LOSEBASE:体力 , 1.50
+ENDIF
+
+;朝の時点で体力が最大体力の半分以上 かつ
+;労役による疲労で体力が切れてしまう場合特別処理をする
+;LOCAL:2 客入り
+;LOCAL:1 計算用
+IF BASE:ARG:体力 <= LOSEBASE:体力 && BASE:ARG:体力 > MAXBASE:ARG:体力/2
+	;PRINTL 労役変更パッチ
+	;体力分だけ頑張ったということにして客入りを制限
+	LOCAL:1 = BASE:ARG:体力*LOCAL:2
+	;PRINTFORML LOCAL:1：{LOCAL:1}
+	LOCAL:1 /= LOSEBASE:体力
+	LOCAL:2 = LOCAL:1
+	;体力を1だけ残すようにLOSEBASE:体力を変更
+	;LOSEBASE:体力 = BASE:ARG:体力-1
+	;制限した接客人数と現在の体力によっては体力が1にならない場合もあるので
+	;制限した接客人数次第の体力消費になるように再計算してみる。(2011/02/16)
+	LOSEBASE:体力 = LOCAL:2*15
+	IF TALENT:ARG:妊娠
+		TIMES LOSEBASE:体力 , 1.50
+	ENDIF
+	;更に満足度を半減
+	LOCAL:3 /= 2
+	;制限した接客人数でも体力が切れてしまう場合は
+	;いままでどおり体力を1だけ残すようにLOSEBASE:体力を変更
+	SIF BASE:ARG:体力 <= LOSEBASE:体力
+		LOSEBASE:体力 = BASE:ARG:体力-1
+ENDIF
+
+PRINTL
+
+PRINTFORML Visitors:{LOCAL:2}
+;満足度による人気増減処理
+PRINTFORML Satisfication:{LOCAL:3}％
+PRINTL
+
+PRINTFORML Learning Orbs ＋{LOCAL:2*LOCAL:3}
+JUEL:ARG:8 += LOCAL:2*LOCAL:3
+PRINTFORML HouseworkEXP ＋{MAX(1,LOCAL:2*(LOCAL:3/10 - 4)/5)}
+EXP:ARG:家事経験 += MAX(1,LOCAL:2*(LOCAL:3/10 - 4)/5)
+PRINTFORML WaiterEXP ＋{LOCAL:2}
+EXP:ARG:外食労役経験 += LOCAL:2
+
+PRINTFORML Stamina ‐ {LOSEBASE:体力}
+BASE:ARG:体力 -= LOSEBASE:体力
+
+;非戦闘員は経験値獲得
+IF TALENT:ARG:非戦闘員
+	;PRINTFORML EXP： +{CFLAG:ARG:労役単価+LOCAL:2*2*CFLAG:ARG:労役単価/100*(1+BASE:LOCAL:LV/5)}
+	;BASE:ARG:ＥＸＰ += CFLAG:ARG:労役単価+LOCAL:2*2*CFLAG:ARG:労役単価/100*(1+BASE:LOCAL:LV/5)
+	PRINTFORML EXP： +{CFLAG:ARG:労役単価+LOCAL:2*LOCAL:3/100*CFLAG:ARG:労役単価/100*(1+BASE:ARG:LV/5)}
+	BASE:ARG:ＥＸＰ += CFLAG:ARG:労役単価+LOCAL:2*LOCAL:3/100*CFLAG:ARG:労役単価/100*(1+BASE:ARG:LV/5)
+	;レベルアップ判定
+	CALL CHECK_LEVEL_UP,ARG
+	;IF TALENT:ARG:非戦闘員 && BASE:ARG:ＥＸＰ >= MAXBASE:ARG:ＥＸＰ
+	;	PRINTFORML LEVEL UP!
+	;	BASE:ARG:LV += 1
+	;	CALL SYNC_STATUS,ARG
+	;ENDIF
+	;未調教で主人がシフトに入っていれば忠誠度もアップ
+	IF CFLAG:ARG:被調教回数 == 0 && ARG != MASTER && CFLAG:MASTER:労役フラグ == 1
+		IF GETBIT(CFLAG:ARG:シフト設定, (DAY % 7)) == GETBIT(CFLAG:MASTER:シフト設定, (DAY % 7))
+			;上昇量は【奴隷】による顧客満足度と【主人】の労役単価が大きく影響する。
+			;未調教陥落させるのは結構大変なので値は変えてもいいかも
+			PRINTFORML Loyalty： +{(CFLAG:ARG:労役単価+(CFLAG:MASTER:労役単価)*9)*(LOCAL:3)*(1+BASE:ARG:LV)/30}
+			BASE:ARG:忠誠度 += (CFLAG:ARG:労役単価+(CFLAG:MASTER:労役単価)*9)*(LOCAL:3)*(1+BASE:ARG:LV)/30
+		ENDIF
+	ENDIF
+ENDIF
+;ペルソナ使いは装着中のペルソナの経験値獲得
+IF TALENT:ARG:ペルソナ使い
+	CALL INCREASE_PERSONA_EXP, ARG, CFLAG:ARG:労役単価*(100+LOCAL:4) / 50, -1 ,1
+	SIF RESULT > 0
+		PRINTFORML Persona 【\@EQUIP:ARG:装備ペルソナ ? %CSVNAME(DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("NO"), 0)% # %CSVNAME(ABL:ARG:初期ペルソナ, 0)%\@】　EXP：+{RESULT}
+ENDIF
+;基本の人気上昇値
+;個人人気
+LOCAL = 2 * (LOCAL:3/5-5)
+PRINTFORM %CALLNAME:ARG%'s cooking rep {CFLAG:ARG:料理人気} 
+SIF LOCAL >= 0
+	PRINT +
+PRINTFORML {LOCAL}
+CFLAG:ARG:料理人気 += LOCAL
+
+;屋台(Restaurant)人気
+IF ITEM:屋台 || ITEM:食堂
+	LOCAL = (LOCAL:3/5-5)
+	IF ITEM:食堂
+		PRINT Restaurant 
+	ELSE
+		PRINT Foodstall 
+		;屋台
+	ENDIF
+	PRINTFORM Popularity {FLAG:料理人気} 
+	SIF LOCAL >= 0
+		PRINT +
+	PRINTFORML {LOCAL}
+	FLAG:料理人気 += LOCAL
+ELSEIF LOCAL:3 < 40
+	PRINTL Some mistakes where made during work and the payout has been cut in half as a result.
+	CFLAG:ARG:労役単価 /= 2
+	SIF CFLAG:ARG:労役単価 < 1
+		CFLAG:ARG:労役単価 = 1
+ENDIF
+
+;ＮＴＲ進行
+CALL NTR_RESTRANT, ARG, LOCAL:2, LOCAL:3
+
+;お金を得る
+PRINTFORML %CALLNAME:ARG% served {LOCAL:2} customers today and earned {CFLAG:ARG:労役単価+LOCAL:2*LOCAL:3/100*CFLAG:ARG:労役単価/100} Macca.
+;variants for workplace(but it's earned anyway, so we just leave it at that for now)
+;IF ITEM:屋台 || ITEM:食堂
+;	PRINTW 稼ぎました。
+;ELSE
+;	PRINTW のバイト代を得ました。
+;ENDIF
+MONEY:1 += CFLAG:ARG:労役単価+LOCAL:2*LOCAL:3/100*CFLAG:ARG:労役単価/100
+CALL 帳簿閲覧_労役, ARG, CFLAG:ARG:労役単価+LOCAL:2*LOCAL:3/100*CFLAG:ARG:労役単価/100, LOCAL:2, 1
+
+;主人の属性値変動
+;真っ当に稼ぐと善に傾く
+CALL INCREASE_LD,+2
+CALL SYNC_STATUS,MASTER
+
+SIF LOCAL == MASTER
+	CALL EVENTCHECK_M
+			
+CALL 気絶処理,ARG
+
+			;試験用
+			;レベルアップ判定
+			PRINTL
+			CALL CHECK_LEVEL_UP,ARG
+;==========================================================
+;@SALARY_RESTRANT
+; レストランの労役単価を計算する。
+;<引数>
+;	ARG   = 労役対象キャラ
+;	ARG:1 = 単価計算情報の表示有無(0:非表示 / 0以外:表示)
+;<戻り値>
+;	労役単価
+;==========================================================
+@SALARY_RESTRANT, ARG, ARG:1 = 0
+#LOCALSIZE 3
+;LOCAL   = 労役単価
+;LOCAL:1 = 単価補正倍率
+;LOCAL:2 = 作業用値一時格納領域
+;念のため変数の初期化
+VARSET LOCAL,0
+
+;労役基本単価の算出
+;ABL:料理技能をみる
+SELECTCASE ABL:ARG:料理技能
+	CASE 0
+		LOCAL:2 = 1
+	CASE 1
+		LOCAL:2 = 2
+	CASE 2
+		LOCAL:2 = 2
+	CASE 3
+		LOCAL:2 = 3
+	CASE 4
+		LOCAL:2 = 3
+	CASE 5
+		LOCAL:2 = 4
+	CASE 6
+		LOCAL:2 = 5
+	CASE 7
+		LOCAL:2 = 6
+	CASE 8
+		LOCAL:2 = 7
+	CASE 9
+		LOCAL:2 = 8
+	CASEELSE
+		LOCAL:2 = 10
+ENDSELECT
+SIF ARG:1
+	PRINTFORML Cooking LV{ABL:ARG:料理技能} +{LOCAL:2}P
+LOCAL += LOCAL:2
+
+;EXP:家事経験をみる
+SELECTCASE EXP:ARG:家事経験
+	CASE IS < EXPLV:1
+		LOCAL:2 = 0
+	CASE IS < EXPLV:2
+		LOCAL:2 = 2
+	CASE IS < EXPLV:3
+		LOCAL:2 = 4
+	CASE IS < EXPLV:4
+		LOCAL:2 = 6
+	CASE IS < EXPLV:5
+		LOCAL:2 = 8
+	CASEELSE
+		LOCAL:2 = 10
+ENDSELECT
+SIF ARG:1
+	PRINTFORML HouseworkEXP {EXP:ARG:家事経験} +{LOCAL:2}P
+LOCAL += LOCAL:2
+
+
+LOCAL:2 = 0
+LOCAL:1 = 100
+
+;単価補正率の算出
+;能力による倍率
+;ABL:従順をみる
+SELECTCASE ABL:ARG:従順
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 10
+	CASE 2
+		LOCAL:2 = 20
+	CASE 3
+		LOCAL:2 = 30
+	CASE 4
+		LOCAL:2 = 40
+	CASE 5
+		LOCAL:2 = 50
+	CASE 6
+		LOCAL:2 = 60
+	CASE 7
+		LOCAL:2 = 70
+	CASE 8
+		LOCAL:2 = 80
+	CASE 9
+		LOCAL:2 = 90
+	CASEELSE
+		LOCAL:2 = 100
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Obedience LV{ABL:ARG:従順} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:欲望をみる
+SELECTCASE ABL:ARG:欲望
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 5
+	CASE 2
+		LOCAL:2 = 10
+	CASE 3
+		LOCAL:2 = 15
+	CASE 4
+		LOCAL:2 = 20
+	CASE 5
+		LOCAL:2 = 25
+	CASE 6
+		LOCAL:2 = 30
+	CASE 7
+		LOCAL:2 = 35
+	CASE 8
+		LOCAL:2 = 40
+	CASE 9
+		LOCAL:2 = 45
+	CASEELSE
+		LOCAL:2 = 50
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Desire LV{ABL:ARG:欲望} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:技巧をみる
+SELECTCASE ABL:ARG:技巧
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 10
+	CASE 2
+		LOCAL:2 = 20
+	CASE 3
+		LOCAL:2 = 30
+	CASE 4
+		LOCAL:2 = 40
+	CASE 5
+		LOCAL:2 = 50
+	CASE 6
+		LOCAL:2 = 60
+	CASE 7
+		LOCAL:2 = 70
+	CASE 8
+		LOCAL:2 = 80
+	CASE 9
+		LOCAL:2 = 90
+	CASEELSE
+		LOCAL:2 = 100
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Technique LV{ABL:ARG:技巧} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+
+
+;ABL:Ｖ感覚をみる
+SELECTCASE ABL:ARG:Ｖ感覚
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 5
+	CASE 2
+		LOCAL:2 = 10
+	CASE 3
+		LOCAL:2 = 15
+	CASE 4
+		LOCAL:2 = 20
+	CASE 5
+		LOCAL:2 = 25
+	CASE 6
+		LOCAL:2 = 30
+	CASE 7
+		LOCAL:2 = 35
+	CASE 8
+		LOCAL:2 = 40
+	CASE 9
+		LOCAL:2 = 45
+	CASEELSE
+		LOCAL:2 = 50
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML ＶSensitivity LV{ABL:ARG:Ｖ感覚} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+
+;ABL:奉仕精神をみる
+SELECTCASE ABL:ARG:奉仕精神
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 10
+	CASE 2
+		LOCAL:2 = 20
+	CASE 3
+		LOCAL:2 = 30
+	CASE 4
+		LOCAL:2 = 40
+	CASE 5
+		LOCAL:2 = 50
+	CASE 6
+		LOCAL:2 = 60
+	CASE 7
+		LOCAL:2 = 70
+	CASE 8
+		LOCAL:2 = 80
+	CASE 9
+		LOCAL:2 = 90
+	CASEELSE
+		LOCAL:2 = 100
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Servicing LV{ABL:ARG:奉仕精神} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:露出癖をみる
+SELECTCASE ABL:ARG:露出癖
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 5
+	CASE 2
+		LOCAL:2 = 10
+	CASE 3
+		LOCAL:2 = 15
+	CASE 4
+		LOCAL:2 = 20
+	CASE 5
+		LOCAL:2 = 25
+	CASE 6
+		LOCAL:2 = 30
+	CASE 7
+		LOCAL:2 = 35
+	CASE 8
+		LOCAL:2 = 40
+	CASE 9
+		LOCAL:2 = 45
+	CASEELSE
+		LOCAL:2 = 50
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Exhibitionism LV{ABL:ARG:露出癖} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:マゾっ気をみる
+SELECTCASE ABL:ARG:マゾっ気
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 5
+	CASE 2
+		LOCAL:2 = 10
+	CASE 3
+		LOCAL:2 = 15
+	CASE 4
+		LOCAL:2 = 20
+	CASE 5
+		LOCAL:2 = 25
+	CASE 6
+		LOCAL:2 = 30
+	CASE 7
+		LOCAL:2 = 35
+	CASE 8
+		LOCAL:2 = 40
+	CASE 9
+		LOCAL:2 = 45
+	CASEELSE
+		LOCAL:2 = 50
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Masochism LV{ABL:ARG:マゾっ気} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:サドっ気をみる
+SELECTCASE ABL:ARG:サドっ気
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 5
+	CASE 2
+		LOCAL:2 = 10
+	CASE 3
+		LOCAL:2 = 15
+	CASE 4
+		LOCAL:2 = 20
+	CASE 5
+		LOCAL:2 = 25
+	CASE 6
+		LOCAL:2 = 30
+	CASE 7
+		LOCAL:2 = 35
+	CASE 8
+		LOCAL:2 = 40
+	CASE 9
+		LOCAL:2 = 45
+	CASEELSE
+		LOCAL:2 = 50
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Sadism LV{ABL:ARG:サドっ気} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:歌唱技能をみる
+SELECTCASE ABL:ARG:歌唱技能
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 5
+	CASE 2
+		LOCAL:2 = 10
+	CASE 3
+		LOCAL:2 = 15
+	CASE 4
+		LOCAL:2 = 20
+	CASE 5
+		LOCAL:2 = 25
+	CASE 6
+		LOCAL:2 = 30
+	CASE 7
+		LOCAL:2 = 35
+	CASE 8
+		LOCAL:2 = 40
+	CASE 9
+		LOCAL:2 = 45
+	CASEELSE
+		LOCAL:2 = 50
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML Singing LV{ABL:ARG:歌唱技能} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+;ABL:セックス中毒
+SELECTCASE ABL:ARG:セックス中毒
+	CASE 0
+		LOCAL:2 = 0
+	CASE 1
+		LOCAL:2 = 10
+	CASE 2
+		LOCAL:2 = 20
+	CASE 3
+		LOCAL:2 = 30
+	CASE 4
+		LOCAL:2 = 40
+	CASE 5
+		LOCAL:2 = 50
+	CASE 6
+		LOCAL:2 = 60
+	CASE 7
+		LOCAL:2 = 70
+	CASE 8
+		LOCAL:2 = 80
+	CASE 9
+		LOCAL:2 = 90
+	CASEELSE
+		LOCAL:2 = 100
+ENDSELECT
+TIMES LOCAL:2 , 0.50
+SIF LOCAL:2 > 0 && ARG:1
+	PRINTFORML SexAddict LV{ABL:ARG:セックス中毒} +{LOCAL:2}％
+LOCAL:1 += LOCAL:2
+
+
+;素質による補正
+
+
+;陥落素質
+;恋慕
+IF TALENT:ARG:3
+	LOCAL:2 = 100
+	LOCAL:1 += 100
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(3)% ＋{LOCAL:2}％
+ENDIF
+;淫乱
+IF TALENT:ARG:4
+	LOCAL:2 = 30
+	LOCAL:1 -= 30
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(4)% ‐{LOCAL:2}％
+ENDIF
+;服従
+IF TALENT:ARG:5
+	LOCAL:2 = 50
+	LOCAL:1 -= 50
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(5)% ＋{LOCAL:2}％
+ENDIF
+;親愛
+IF TALENT:ARG:6
+	LOCAL:2 = 200
+	LOCAL:1 += 200
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(6)% ＋{LOCAL:2}％
+ENDIF
+;娼婦
+IF TALENT:ARG:7
+	LOCAL:2 = 60
+	LOCAL:1 -= 60
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(7)% ‐{LOCAL:2}％
+ENDIF
+;隷属
+IF TALENT:ARG:8
+	LOCAL:2 = 100
+	LOCAL:1 -= 100
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(8)% ＋{LOCAL:2}％
+ENDIF
+
+
+
+;その他素質
+;臆病
+IF TALENT:ARG:10
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(10)% ＋{LOCAL:2}％
+ENDIF
+;反抗的
+IF TALENT:ARG:11
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(11)% ‐{LOCAL:2}％
+ENDIF
+;気丈
+IF TALENT:ARG:12
+	LOCAL:2 = 20
+	LOCAL:1 += 20
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(12)% ＋{LOCAL:2}％
+ENDIF
+;素直
+IF TALENT:ARG:13
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(13)% ＋{LOCAL:2}％
+ENDIF
+;大人しい
+IF TALENT:ARG:14
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(14)% ＋{LOCAL:2}％
+ENDIF
+;プライド高い
+IF TALENT:ARG:15
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(15)% ‐{LOCAL:2}％
+ENDIF
+;生意気
+IF TALENT:ARG:16
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(16)% ‐{LOCAL:2}％
+ENDIF
+;プライド低い
+IF TALENT:ARG:17
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(17)% ＋{LOCAL:2}％
+ENDIF
+;ツンデレ
+IF TALENT:ARG:18
+	LOCAL:2 = 20
+	LOCAL:1 += 20
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(18)% ＋{LOCAL:2}％
+ENDIF
+;自制心
+IF TALENT:ARG:20
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(20)% ＋{LOCAL:2}％
+ENDIF
+;無関心
+IF TALENT:ARG:21
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(21)% ‐{LOCAL:2}％
+ENDIF
+;感情乏しい
+IF TALENT:ARG:22
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(22)% ‐{LOCAL:2}％
+ENDIF
+;一線越えない
+IF TALENT:ARG:27
+	LOCAL:2 = 15
+	LOCAL:1 += 15
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(27)% ＋{LOCAL:2}％
+ENDIF
+;目立ちたがり
+IF TALENT:ARG:28
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(28)% ＋{LOCAL:2}％
+ENDIF
+;貞操観念
+IF TALENT:ARG:30
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(30)% ＋{LOCAL:2}％
+ENDIF
+;貞操無頓着
+IF TALENT:ARG:31
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(31)% ‐{LOCAL:2}％
+ENDIF
+;習得早い
+IF TALENT:ARG:50
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(50)% ＋{LOCAL:2}％
+ENDIF
+;習得遅い
+IF TALENT:ARG:51
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(51)% ‐{LOCAL:2}％
+ENDIF
+;献身的
+IF TALENT:ARG:63
+	LOCAL:2 = 15
+	LOCAL:1 += 15
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(63)% ＋{LOCAL:2}％
+ENDIF
+;男嫌い
+IF TALENT:ARG:82
+	LOCAL:2 = 20
+	LOCAL:1 -= 20
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(82)% ‐{LOCAL:2}％
+ENDIF
+;妄信
+IF TALENT:ARG:86
+	LOCAL:2 = 15
+	LOCAL:1 += 15
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(86)% ＋{LOCAL:2}％
+ENDIF
+;小悪魔
+IF TALENT:ARG:87
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(87)% ＋{LOCAL:2}％
+ENDIF
+;女嫌い
+IF TALENT:ARG:88
+	LOCAL:2 = 20
+	LOCAL:1 -= 20
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(88)% ‐{LOCAL:2}％
+ENDIF
+;妖狐
+IF TALENT:ARG:91
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(91)% ＋{LOCAL:2}％
+ENDIF
+;魅力
+IF TALENT:ARG:92
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(92)% ＋{LOCAL:2}％
+ENDIF
+;謎の魅力
+IF TALENT:ARG:94
+	LOCAL:2 = 50
+	LOCAL:1 += 50
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(94)% ＋{LOCAL:2}％
+ENDIF
+;貧乳
+IF TALENT:ARG:109
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(109)% ‐{LOCAL:2}％
+ENDIF
+;絶壁
+IF TALENT:ARG:110
+	LOCAL:2 = 20
+	LOCAL:1 -= 20
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(110)% ‐{LOCAL:2}％
+ENDIF
+;巨乳
+IF TALENT:ARG:111
+	LOCAL:2 = 20
+	LOCAL:1 += 20
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(111)% ＋{LOCAL:2}％
+ENDIF
+;爆乳
+IF TALENT:ARG:112
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(112)% ＋{LOCAL:2}％
+ENDIF
+;吸血鬼
+IF TALENT:ARG:132
+	LOCAL:2 = 10
+	LOCAL:1 -= 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(132)% ‐{LOCAL:2}％
+ENDIF
+;動物耳
+IF TALENT:ARG:143
+	LOCAL:2 = 10
+	LOCAL:1 += 10
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(143)% ＋{LOCAL:2}％
+ENDIF
+;人気
+IF TALENT:ARG:145
+	LOCAL:2 = 25
+	LOCAL:1 += 25
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(145)% ＋{LOCAL:2}％
+ENDIF
+;妊娠
+IF TALENT:ARG:153
+	LOCAL:2 = 30
+	LOCAL:1 += 30
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(153)% ＋{LOCAL:2}％
+ENDIF
+;母性
+IF TALENT:ARG:155
+	LOCAL:2 = 60
+	LOCAL:1 += 60
+	SIF ARG:1
+		PRINTFORML %TALENTNAME_E(155)% ＋{LOCAL:2}％
+ENDIF
+
+SIF ARG:1
+	PRINTFORML Total Bonus {LOCAL:1}％
+
+;補正値が0以下の場合は1にする
+SIF LOCAL:1 <= 0
+	LOCAL:1 = 1
+
+;補正値の適用
+LOCAL *= LOCAL:1
+LOCAL /= 100
+
+;崩壊,狂気は報酬をかなり低くする（従順によって、80％まで回復）
+IF TALENT:ARG:9 || TALENT:ARG:141
+	LOCAL *= MIN(10,ABL:ARG:従順)
+	TIMES LOCAL , 0.08
+	LOCAL:2 = MIN(10,ABL:ARG:従順)
+	LOCAL:2 *= 8
+	IF ARG:1
+		PRINTL 
+		IF TALENT:ARG:9
+			PRINTFORML %TALENTNAME_E(9)% ×{LOCAL:2}％
+		ELSEIF TALENT:ARG:141
+			PRINTFORML %TALENTNAME_E(141)% ×{LOCAL:2}％
+		ENDIF
+		PRINTL 
+	ENDIF
+ENDIF
+
+;施設による補正
+IF ITEM:食堂
+	TIMES LOCAL , 1.25
+	SIF ARG:1
+		PRINTFORML Correction for canteen possession ×125％
+ELSEIF ITEM:屋台 == 0
+	TIMES LOCAL , 0.5
+	SIF ARG:1
+		PRINTFORML Margin ×50％
+ENDIF
+
+;難易度補正
+CALL CORRECT_DIFFICULTY, LOCAL, ARG:1
+LOCAL = RESULT
+
+;引継ぎキャラ補正(現状どちらでも表示する)
+CALL CORRECT_PROCESSION_CHARA, ARG, LOCAL, ARG:1
+LOCAL = RESULT
+
+;最終的な労役単価が5以下の場合
+;最低保証労役単価として5にする。
+SIF LOCAL < 5
+	LOCAL = 5
+
+RETURN LOCAL
+
+;==========================================================
+;@NTR_RESTRANT
+; 食堂労役でのNTR処理
+;<引数>
+;	ARG   = 労役キャラの登録番号
+;	ARG:1 = 接客数
+;	ARG:2 = 顧客満足度
+;<戻り値>
+;	なし
+;==========================================================
+@NTR_RESTRANT, ARG, ARG:1, ARG:2
+#LOCALSIZE 7
+;LOCAL:1 = NTR好き客からの声掛けられ確率
+;LOCAL:2 = NTR引っかかり確率補正
+;LOCAL:3 = ナンパかクレームか判定
+;LOCAL:4 = クレーム輪姦への抵抗補正
+;LOCAL:5 = 輪姦人数
+;LOCAL:6 = 妖しい薬フラグ
+VARSET LOCAL, 0
+
+;食堂ＮＴＲイベントがOFFの場合は何もせず戻る
+SIF !GETBIT(FLAG:ＮＴＲ機能 , 1)
+	RETURN
+;専有奴隷の首輪を装備している場合は何もせず戻る
+SIF (CFLAG:ARG:その他 == 1116 || CFLAG:ARG:その他2 == 1116 || CFLAG:ARG:その他3 == 1116)
+	RETURN
+;オトコは弾く
+SIF TALENT:ARG:オトコ == 1
+	RETURN
+
+SIF ARG:2 == 0
+	ARG:2 = 1
+	
+LOCAL:1 = LIMIT(CFLAG:ARG:放置日数 * 2, 0, 30) + TALENT:ARG:人気 * 10
+LOCAL:2 = CFLAG:ARG:放置日数 * 2 + TALENT:ARG:即落ち * 50
+
+IF BASE:ARG:体力 >= 2000
+	LOCAL:4 = 100
+ELSEIF BASE:ARG:体力 < 2000
+	LOCAL:4 = 80
+ELSEIF BASE:ARG:体力 < 1000
+	LOCAL:4 = 50
+ELSEIF BASE:ARG:体力 < 500
+	LOCAL:4 = 0
+ENDIF
+
+;ＮＴＲ客の設定処理
+SELECTCASE FLAG:ＮＴＲ客の設定
+	CASE  0
+		TIMES LOCAL:1 , 1.00
+		TIMES LOCAL:2 , 1.00
+		TIMES LOCAL:4 , 1.00
+		TIMES ARG:2 , 1.00
+	CASE  1
+		TIMES LOCAL:1 , 1.50
+		TIMES LOCAL:2 , 1.50
+		TIMES LOCAL:4 , 0.80
+		TIMES ARG:2 , 0.80
+	CASE  2
+		TIMES LOCAL:1 , 3.00
+		TIMES LOCAL:2 , 3.00
+		TIMES LOCAL:4 , 0.50
+		TIMES ARG:2 , 0.50
+ENDSELECT
+
+LOCAL:4 += (TALENT:ARG:反抗的 + TALENT:ARG:プライド高い + TALENT:ARG:生意気 + TALENT:ARG:ツンデレ) * 5 - (TALENT:ARG:臆病 + TALENT:ARG:大人しい + TALENT:ARG:プライド低い) * 10
+
+SIF (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+	PRINTFORMW %CALLNAME:ARG%は何とも云えない甘い匂いを纏っている……
+
+
+;ＮＴＲ好きフラグ
+;放置日数*2（上限30％）の確率で声をかけられる（人気持ちはさらに+10％）
+;ＮＴＲ状態の場合は50％
+IF RAND:100 < LOCAL:1 || TALENT:ARG:ＮＴＲ > 0 && RAND:100 < 50 || (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+	PRINTL 
+	
+	;愛ＮＴＲ
+	IF TALENT:ARG:ＮＴＲ == 1
+		;危険日
+		IF 危険日(ARG) == 1
+			PRINTFORMW %CALLNAME:ARG%は頬を赤らめ微笑みながら%NTRNAME(CFLAG:ARG:陥落キャラ)%に何かを囁いている……
+		;発情
+		ELSEIF 危険日(ARG) == 2
+			PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%に縋りつく様にしながら何かを囁いている……
+		;満月発情
+		ELSEIF 危険日(ARG) == 3
+			PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%に縋りつく様にしながら何かを囁いている……
+		;通常
+		ELSE
+			IF RAND:14 == 0
+				PRINTFORMW %CALLNAME:ARG%が%NTRNAME(CFLAG:ARG:陥落キャラ)%とキスをしている……
+			ELSEIF RAND:13 == 0
+				PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%の隣で%CALLNAME:ARG%は顔を真っ赤にしている。テーブルの下でなにやら悪戯されているようだ……
+			ELSEIF RAND:12 == 0
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%の横に座ると、身体を擦り付けるように密着している……
+			ELSEIF RAND:11 == 0
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%にスカートの中を弄られてうっとりしている……
+			ELSEIF RAND:10 == 0
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%に肩を抱かれて耳元で何か囁かれている
+			ELSEIF RAND:9 == 0
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%と物陰で抱き合っている……
+			ELSEIF RAND:8 == 0
+				PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%は%CALLNAME:ARG%を横に座らせると腰に手を回し、抱き寄せて密着している…
+			ELSEIF RAND:7 == 0
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%にお尻を揉まれて赤い顔をしている……
+			ELSEIF RAND:6 == 0
+				PRINTFORMW %CALLNAME:ARG%と%NTRNAME(CFLAG:ARG:陥落キャラ)%は指を絡めて見つめ合いながら小声で話し込んでいる
+			ELSEIF RAND:5 == 0
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%と指を絡ませながら親しげに話している
+			ELSEIF RAND:4 == 0
+				PRINTFORMW %CALLNAME:ARG%が%NTRNAME(CFLAG:ARG:陥落キャラ)%にキスをしている……
+			ELSEIF RAND:3 == 0
+				PRINTFORMW 太ももを撫で回す%NTRNAME(CFLAG:ARG:陥落キャラ)%を%CALLNAME:ARG%は顔を赤らめて受け入れている
+			ELSEIF RAND:2 == 0
+				PRINTFORMW 抱き寄せてキスを迫る%NTRNAME(CFLAG:ARG:陥落キャラ)%に、%CALLNAME:ARG%は照れながらも舌を絡ませて応えている
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%に肩を抱かれてその気になっている……！
+			ENDIF
+		ENDIF
+	;淫ＮＴＲ
+	ELSEIF TALENT:ARG:ＮＴＲ == 2
+		;危険日
+		IF 危険日(ARG) == 1
+			PRINTFORMW %CALLNAME:ARG%は客に身体を密着させながら何かを囁いている……
+		;発情
+		ELSEIF 危険日(ARG) == 2
+			PRINTFORMW %CALLNAME:ARG%は客の手を自らのスカートの中に入れると妖しく微笑んだ……
+		;満月発情
+		ELSEIF 危険日(ARG) == 3
+			PRINTFORMW %CALLNAME:ARG%は客の手を自らのスカートの中に入れると妖しく微笑んだ……
+		;通常
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%が客を誘惑している……
+		ENDIF
+	;通常
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%に寝取り趣味の客が声をかけている……
+	ENDIF
+	;誘いに乗るか判定
+	;基本値0％+放置日数*2（上限なし）さらに即落ち持ちは+50
+	;これに陥落度*10のマイナス補正を入れる
+	;ＮＴＲ状態の場合は無条件でついていく
+	IF RAND:100 > 100 + 陥落(ARG) * 10 - LOCAL:2 || TALENT:ARG:ＮＴＲ > 0 || (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+		;愛ＮＴＲ
+		IF TALENT:ARG:ＮＴＲ == 1
+			;危険日
+			IF 危険日(ARG) == 1
+				PRINTFORMW %CALLNAME:ARG%は瞳を潤ませながら%NTRNAME(CFLAG:ARG:陥落キャラ)%と共に店外に出かけていった……
+			;発情
+			ELSEIF 危険日(ARG) == 2
+				PRINTFORMW %CALLNAME:ARG%は息を乱しながら%NTRNAME(CFLAG:ARG:陥落キャラ)%と共に店外に出かけていった……
+			;満月発情
+			ELSEIF 危険日(ARG) == 3
+				PRINTFORMW %CALLNAME:ARG%は息を乱しながら%NTRNAME(CFLAG:ARG:陥落キャラ)%と共に店外に出かけていった……
+			;通常
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%が%NTRNAME(CFLAG:ARG:陥落キャラ)%と共にトイレへと入っていった……
+			ENDIF
+		;淫ＮＴＲ
+		ELSEIF TALENT:ARG:ＮＴＲ == 2
+			;危険日
+			IF 危険日(ARG) == 1
+				PRINTFORMW %CALLNAME:ARG%は客に身体を密着させたまま店外へ出て行った……
+			;発情
+			ELSEIF 危険日(ARG) == 2
+				PRINTFORMW %CALLNAME:ARG%は熱に浮かされた様な表情のまま客と共に店外へ出て行った……
+			;満月発情
+			ELSEIF 危険日(ARG) == 3
+				PRINTFORMW %CALLNAME:ARG%は熱に浮かされた様な表情のまま客と共に店外へ出て行った……
+			;通常
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は客と共に店外へ出て行った……
+			ENDIF
+		;通常
+		ELSE
+			PRINTFORML %CALLNAME:ARG%が寝取り趣味の客に誘われ、店外に出かけていった……
+		ENDIF
+		PRINTFORML ・
+		PRINTFORML ・・
+		PRINTFORML ・・・
+		;本番判定
+		;基本値50％+放置日数*2（上限なし）さらに即落ち持ちは+50
+		;これに陥落度*50のマイナス補正を入れる
+		;ＮＴＲ状態の場合は無条件でパコパコされる
+		IF RAND:100 > 50 + 陥落(ARG) * 50 - LOCAL:2 || TALENT:ARG:ＮＴＲ > 0 || (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+			LOCAL:3 = 1
+			IF TALENT:ARG:オトコ == 0 
+				IF CFLAG:ARG:現ＮＴＲ進行度 > 10
+					IF CFLAG:ARG:108 == 1
+						CFLAG:ARG:108 = 0
+						PRINTFORML %CALLNAME:ARG%の子宮内避妊結界が解除されてしまったようだ……
+					ENDIF
+					IF RAND:100 < 30 && CFLAG:ARG:109 == 0
+						CFLAG:ARG:109 = 1
+						PRINTFORML %CALLNAME:ARG%は排卵誘発剤を口移しで飲まされた……
+					ENDIF
+				ENDIF
+				CALL NTR_RESTRANT_SEX, ARG, LOCAL:3
+				PRINTFORML 
+
+				SETCOLOR COLOR("pink")
+				;愛ＮＴＲ
+				IF TALENT:ARG:ＮＴＲ == 1
+					;危険日
+					IF 危険日(ARG) == 1
+						IF RAND:7 == 0
+							PRINTFORML 部屋の中にベットの軋む音が響く……
+							PRINTFORMW ベットで仰向けに寝そべる%CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%に身を任せ、押し寄せる快楽に喘いでいる……
+							PRINTFORML %NTRNAME(CFLAG:ARG:陥落キャラ)%が射精しそうだ、と%CALLNAME:ARG%に伝えると%CALLNAME:ARG%は笑顔で『中に出して』と囁いた……
+							PRINTFORML 
+							PRINTFORMW その瞬間、膣内でペニスが跳ね、%NTRNAME(CFLAG:ARG:陥落キャラ)%の精液が排卵日の子宮内を埋め尽くしていく……
+							PRINTFORMW 二人は射精が終わった後も繋がったままでキスを交わしながら、思いを確かめ合っている……
+							PRINTFORML 
+							SIF TALENT:ARG:妻
+								PRINTFORMW テーブルの上には外された指輪が置かれていた……
+						ELSEIF RAND:6 == 0
+							PRINTFORML %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%の精液で子宮内を満たされながら嬉しそうに微笑んでいる……
+							PRINTFORMW %CALLNAME:ARG%は下腹部に手を当て幸せそうな表情で店内に戻ってきた……
+						ELSEIF RAND:5 == 0
+							PRINTFORML %CALLNAME:ARG%はホテルに着くなり%NTRNAME(CFLAG:ARG:陥落キャラ)%に抱き付き、耳元で危険日である事を告げた……
+							PRINTFORML %CALLNAME:ARG%が求めているものを察した%NTRNAME(CFLAG:ARG:陥落キャラ)%は、たまらず%CALLNAME:ARG%の下着に手を掛けた……
+							PRINTFORMW 
+							PRINTFORML 時間を忘れ没頭していた子作りの為のセックスを終えた%CALLNAME:ARG%は、
+							PRINTFORMW 注ぎ込まれた子種に満足し、優しく%NTRNAME(CFLAG:ARG:陥落キャラ)%に微笑んだ……
+						ELSEIF RAND:4 == 0
+							PRINTFORML 仰向けで%NTRNAME(CFLAG:ARG:陥落キャラ)%を受け入れている%CALLNAME:ARG%は、足を絡ませ潤んだ瞳で%NTRNAME(CFLAG:ARG:陥落キャラ)%を見つめている……
+							PRINTFORMW 裸の身体を密着させより深い挿入をねだる%CALLNAME:ARG%の身体は、子宮まで届く射精を待ち望んでいる……
+							PRINTFORML そして、熱い射精を一番奥で感じると、%CALLNAME:ARG%は仰け反りながらも%NTRNAME(CFLAG:ARG:陥落キャラ)%にしがみつき、
+							PRINTFORML なおもペニスを離すまいと身体を絡ませていく……
+							PRINTFORMW 
+							PRINTFORML 激しく何度も交わりやっとペニスを解放した%CALLNAME:ARG%は、
+							PRINTFORMW 膣口から溢れる精液を%NTRNAME(CFLAG:ARG:陥落キャラ)%に見せながら今日が危険日だと知らせ、にっこり微笑んだ……
+						ELSEIF RAND:3 == 0
+							PRINTFORML 膣奥に突き立てた時の%CALLNAME:ARG%の反応に、普段とは違う熱気を感じ取った%NTRNAME(CFLAG:ARG:陥落キャラ)%は、
+							PRINTFORMW %CALLNAME:ARG%が危険日である事を悟り、対面座位で%CALLNAME:ARG%の腰をしっかりと抱き寄せ最奥への刺激に集中し始めた……
+							PRINTFORML 密着した腰使いから%NTRNAME(CFLAG:ARG:陥落キャラ)%が本気で自分を孕ませるつもりなのだと知ると、
+							PRINTFORMW %CALLNAME:ARG%の期待と興奮は更に高まっていく……
+							PRINTFORML %CALLNAME:ARG%はゴリゴリと奥を弄られ続けて何度もイかされていたが、
+							PRINTFORMW 更なる強烈な絶頂と共に膣が一気にペニスを締め付け、待望の膣内射精が訪れた……！
+							PRINTFORMW 激しい快感と女としての喜びに震え、%CALLNAME:ARG%は涙を流しながら膣内に広がる%NTRNAME(CFLAG:ARG:陥落キャラ)%の精液を味わった……
+						ELSEIF RAND:2 == 0
+							PRINTFORML 危険日だから今日はダメだと心に決めていたはずの%CALLNAME:ARG%だったが、
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%に抱き締められその体温を身体で感じると、決意よりも本能が打ち勝った……
+							PRINTFORML %NTRNAME(CFLAG:ARG:陥落キャラ)%の精子を子宮に迎えたい、%NTRNAME(CFLAG:ARG:陥落キャラ)%に孕ませられたいと願う気持ちに、
+							PRINTFORMW %CALLNAME:ARG%は逆らう事は出来なかった……
+						ELSE
+							PRINTFORML %NTRNAME(CFLAG:ARG:陥落キャラ)%は%CALLNAME:ARG%が危険日だと知ると、普段よりも激しく%CALLNAME:ARG%を求めていった…
+							PRINTFORMW 
+							PRINTFORML 何度も大量に注がれた精液が垂れるのをそのままにして、限界を迎えてぐったりベッドに横たわる%CALLNAME:ARG%に
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%は再びペニスを突き立て、体を揺すりだした……
+							PRINTFORML %CALLNAME:ARG%の子宮を%NTRNAME(CFLAG:ARG:陥落キャラ)%の精液で満たし、しっかり種付けを完了させるまで
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%の雄の本能が行為を終わらせようとはしなかった……
+						ENDIF
+					;発情
+					ELSEIF 危険日(ARG) == 2
+							PRINTFORML %CALLNAME:ARG%は危険日であるにも関らず、湧き上がる欲望のまま%NTRNAME(CFLAG:ARG:陥落キャラ)%の上で腰を振っている……
+							PRINTFORMW %CALLNAME:ARG%は終業時間まで%NTRNAME(CFLAG:ARG:陥落キャラ)%と交わり、膣内を精液で満たし続けた
+					;満月発情
+					ELSEIF 危険日(ARG) == 3
+							PRINTFORMW %CALLNAME:ARG%は湧き上がる欲望のまま%NTRNAME(CFLAG:ARG:陥落キャラ)%の上で腰を振っている……
+							PRINTFORMW %CALLNAME:ARG%は終業時間まで%NTRNAME(CFLAG:ARG:陥落キャラ)%と交わり、膣内を精液で満たし続けた……
+					;通常
+					ELSE
+						IF RAND:16 == 0
+							PRINTFORMW 声を抑える%CALLNAME:ARG%の膣内を、%NTRNAME(CFLAG:ARG:陥落キャラ)%の子種が隙間無く埋め尽くした……
+							PRINTFORMW %CALLNAME:ARG%は上気した顔のまま、フラフラと接客を再開した……
+						ELSEIF RAND:15 == 0
+							PRINTFORML %CALLNAME:ARG%は両腕を後ろ手に掴まれ、胸を突き出す格好で%NTRNAME(CFLAG:ARG:陥落キャラ)%と交わっている……
+							PRINTFORM %NTRNAME(CFLAG:ARG:陥落キャラ)%が腰を振るたびに、突き出された
+							IF TALENT:ARG:巨乳 || TALENT:ARG:爆乳 || TALENT:ARG:魔乳
+								PRINTFORMW たわわに実った乳房がいやらしく揺れている……
+							ELSEIF TALENT:ARG:貧乳 || TALENT:ARG:絶壁
+								PRINTFORMW わずかな膨らみが、つぼみを尖らせながらプルプルと揺れている……
+							ELSE
+								PRINTFORMW 柔らかな乳房が自己主張するように揺れている……
+							ENDIF
+							PRINTFORML 
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%はあられもない声を上げる%CALLNAME:ARG%の中にしっかりと自分の遺伝子を刻み込んだ……
+						ELSEIF RAND:14 == 0
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%に後ろから突かれながら%CALLNAME:ARG%は甘い嬌声をあげている……
+							PRINTFORMW %CALLNAME:ARG%のほぐれた膣は、少しでも多くの精子を受けとめようと%NTRNAME(CFLAG:ARG:陥落キャラ)%のペニスをぎゅっと掴んで離さない……
+							PRINTFORML 
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%に何度も本気の種付けされた後、%CALLNAME:ARG%はキスを交わし接客に戻っていった……
+						ELSEIF RAND:13 == 0
+							PRINTFORMW 狭い個室で二人の空間を確保すると、%CALLNAME:ARG%と%NTRNAME(CFLAG:ARG:陥落キャラ)%は強く抱き合い、お互いの唇を貪った……
+							PRINTFORMW すっかり準備の出来ている%CALLNAME:ARG%は、貫かれることを求めて%NTRNAME(CFLAG:ARG:陥落キャラ)%に無意識に腰を擦り付けている……
+							PRINTFORMW そして%CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%のペニスを受け入れると、%NTRNAME(CFLAG:ARG:陥落キャラ)%の耳元で甘い声をあげ始めた……
+						ELSEIF RAND:12 == 0
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%から優しく甘いキスを何度も受けているうちに、%CALLNAME:ARG%の秘所はすっかりとろとろになっていた……
+							PRINTFORMW 下着の中で溢れる愛液に気付かれた%CALLNAME:ARG%は、恥じらいながらも熱っぽく挿入をねだるのだった……
+						ELSEIF RAND:11 == 0
+							PRINTFORMW %CALLNAME:ARG%はウェイトレスのコスチュームの上から%NTRNAME(CFLAG:ARG:陥落キャラ)%の愛撫を受けて蕩けている……
+						ELSEIF RAND:10 == 0
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%と激しい行為を何度も繰り返した後、%CALLNAME:ARG%は接客に戻った……が、少し周りの視線がおかしい……
+							PRINTFORMW どうやら%CALLNAME:ARG%の甘い声が外に漏れていたようだ……
+						ELSEIF RAND:9 == 0
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%は%CALLNAME:ARG%を後ろから激しく突きながら、胸や局部への愛撫を刺激を欠かさない……
+							PRINTFORMW %CALLNAME:ARG%の弱い所を知りぬいた指が、%CALLNAME:ARG%を今日何度目かの絶頂に簡単に追い詰める……
+							PRINTFORMW そして、頭の中が真っ白になった中で更に責められ続け、%CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%に身も心も任せていった……
+						ELSEIF RAND:8 == 0
+							PRINTFORMW お客様困りますなどと言いながら、ウェイトレス姿でのプレイを満喫するバカップルがそこに居た。
+							PRINTFORMW %CALLNAME:ARG%と%NTRNAME(CFLAG:ARG:陥落キャラ)%はノリノリで役になりきり、楽しくがっつりセックスをした……
+						ELSEIF RAND:7 == 0
+							PRINTFORMW %CALLNAME:ARG%と%NTRNAME(CFLAG:ARG:陥落キャラ)%は両手を握り合い、視線を絡ませ見つめ合いながら何度も熱い口付けをしている……
+							PRINTFORMW %CALLNAME:ARG%はとろんとした眼差しで、%NTRNAME(CFLAG:ARG:陥落キャラ)%とのキスに夢中になり、唾液の交換を続けている……
+							PRINTFORMW 長くて熱い口付けですっかり開ききった%CALLNAME:ARG%の体は、%NTRNAME(CFLAG:ARG:陥落キャラ)%のペニスを受け入れるだけで絶頂した……
+						ELSEIF RAND:6 == 0
+							PRINTFORMW %CALLNAME:ARG%は長い休憩の後、すっきり充実した顔で店内に戻ってきた……
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%から何度も愛されたばかりのせいか、妙に仕草が色っぽい……
+						ELSEIF RAND:5 == 0
+							PRINTFORMW %CALLNAME:ARG%は%NTRNAME(CFLAG:ARG:陥落キャラ)%の男根を、愛おしげに舌でねぶっている……
+							PRINTFORMW %NTRNAME(CFLAG:ARG:陥落キャラ)%から荒々しく突き上げられる事を想像しながらの口淫で、%CALLNAME:ARG%下着の中はもうぐしょぐしょだ……
+						ELSEIF RAND:4 == 0
+							PRINTFORMW %CALLNAME:ARG%は便座に座る%NTRNAME(CFLAG:ARG:陥落キャラ)%に、対面座位で突き上げられている……
+							PRINTFORMW 二人は愛を確かめ合うように唇を重ね合いながら、絶頂の余韻に浸っている……
+						ELSEIF RAND:3 == 0
+							PRINTFORMW %CALLNAME:ARG%は洗面台に手を着きながら、%NTRNAME(CFLAG:ARG:陥落キャラ)%の責めに喘いでいる……
+							PRINTFORMW 鏡に映る自分の蕩けきった顔を見ながら、%NTRNAME(CFLAG:ARG:陥落キャラ)%に精液を流し込まれている……
+						ELSEIF RAND:2 == 0
+							PRINTFORML %CALLNAME:ARG%は便座に座る%NTRNAME(CFLAG:ARG:陥落キャラ)%のペニスを上目遣いをしながらで咥えている……
+							PRINTFORMW ペニスに付いた精液を舐め取っていると、%NTRNAME(CFLAG:ARG:陥落キャラ)%が優しく頭を撫でた……
+							PRINTFORMW %CALLNAME:ARG%は嬉しそうに頬を染めると、よりいっそう丁寧に舌を這わせ始めた……
+							PRINTFORML 
+							PRINTFORMW 奉仕を続ける%CALLNAME:ARG%の膣口からは先程放たれた%NTRNAME(CFLAG:ARG:陥落キャラ)%の精液が零れ落ちている……
+						ELSE
+							PRINTFORMW %CALLNAME:ARG%は壁に手をついた格好で%NTRNAME(CFLAG:ARG:陥落キャラ)%に後ろから犯されている……
+							PRINTFORMW %CALLNAME:ARG%は尻肉を掴まれながら、ゆっくりと確実に%NTRNAME(CFLAG:ARG:陥落キャラ)%の子種を種付けされた……
+						ENDIF
+					ENDIF
+				;淫ＮＴＲ
+				ELSEIF TALENT:ARG:ＮＴＲ == 2
+					;危険日
+					IF 危険日(ARG) == 1
+							PRINTFORMW %CALLNAME:ARG%は客の子種が危険日の膣内に放たれるたび、悦びの声を上げている……
+					;発情
+					ELSEIF 危険日(ARG) == 2
+							PRINTFORMW %CALLNAME:ARG%はまるでケモノのように客と交わりあっている……
+							PRINTFORMW %CALLNAME:ARG%は生殖本能のままに見ず知らずのオトコの子種を子宮内へ受け入れている……
+					;満月発情
+					ELSEIF 危険日(ARG) == 3
+							PRINTFORMW %CALLNAME:ARG%はまるでケモノのように客と交わりあっている……
+							PRINTFORMW 月の光に当てられた%CALLNAME:ARG%はオトコの上で踊るように腰をくねらせている……
+					;通常
+					ELSE
+						IF RAND:6 == 0
+							PRINTFORML %CALLNAME:ARG%は路地裏に入ると壁に手をつき、突き出した臀部を覆うスカートをそっと捲り上げた……
+							PRINTFORMW 下着を纏っていない密壷はすでに水気を帯び、男を誘うメスの香りが客の獣欲を刺激した……
+							PRINTFORML 
+							PRINTFORMW %CALLNAME:ARG%は乱暴に尻肉を掴まれながら、ケモノのように犯され、何度も客の種を胎内に流し込まれた……
+						ELSEIF RAND:5 == 0
+							PRINTFORMW %CALLNAME:ARG%は終業時間まで客とまぐわっていたようだ……
+						ELSEIF RAND:4 == 0
+							PRINTFORML ベッドに腰掛けた%CALLNAME:ARG%は足を大きく広げ、聞こえるようににちゃりと水音を立てながら
+							PRINTFORMW ピンク色の陰唇を、客に見えるように指でゆっくりと開いていく。
+							PRINTFORML 妖しく強烈な雌の匂いを放ちながら、てらてらと濡れた恥部は蠢き、男を誘っている……
+							PRINTFORMW その刺激的な光景に客は魅入られ、慌しく挿入すると、そのまま一心不乱に腰を振るった……
+						ELSEIF RAND:3 == 0
+							PRINTFORMW 普段の整った顔立ちからは全く想像できない表情で、%CALLNAME:ARG%は快楽を貪っていた。
+							PRINTFORML 客の野生的で強引な責めに、背中に爪を立て大きく喘ぎ声をあげながら、
+							PRINTFORMW 子宮にまで届きそうな射精を膣内で受けて、何度も激しい絶頂を味わっている……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW %CALLNAME:ARG%はすっかり蕩けた顔で、激しく突き入れられるペニスに酔っていた……
+							PRINTFORML ゴリゴリと深く侵入される度に、%CALLNAME:ARG%はのけぞり甘い声をあげている……
+							PRINTFORMW 押し寄せる快感を、長い間貪り続けていた……
+						ELSE
+							PRINTFORMW 客のペニスを味わうように、%CALLNAME:ARG%は自らの腰を打ちつけてその感触を愉しんでいる……
+						ENDIF
+					ENDIF
+				;通常
+				ELSE
+					;危険日
+					IF 危険日(ARG) == 1
+							IF RAND:8 == 0
+								PRINTFORMW %CALLNAME:ARG%は寝取り趣味の客の巧みな言葉遣いに流され、危険日の膣内に精液を流し込まれてしまった……
+								PRINTFORMW 戻ってきた%CALLNAME:ARG%は口元に手を当てながら、早足でシャワー室に入っていった……
+							ELSEIF RAND:7 == 0
+								PRINTFORMW %CALLNAME:ARG%は危険日だと知りながらも寝取り趣味の客を受け入れ、膣への中出しを許してしまった……
+								PRINTFORMW 軽率な行為に後悔しながらも、下腹部に覚える充足感に%CALLNAME:ARG%は戸惑っている……
+							ELSEIF RAND:6 == 0
+								PRINTFORMW %CALLNAME:ARG%が店に戻る途中、寝取り趣味の男の精液が膣から太ももへ零れてきた……
+								PRINTFORMW 先程激しい膣内射精に嬌声をあげたのを思い出しながら、自らが危険日である事にやっと思い当たった……
+							ELSEIF RAND:5 == 0
+								PRINTFORMW %CALLNAME:ARG%は危険日の膣内で、寝取り趣味の男に種付けを許してしまった……
+								PRINTFORMW いけない事だと知りながらも、数刻前に自分の身体が味わった悦びを忘れられるとは思えなかった……
+							ELSEIF RAND:4 == 0
+								PRINTFORMW %CALLNAME:ARG%の危険日の膣は、寝取り趣味の男の精液を何度も浴びてぐちょぐちょになっている……
+								PRINTFORMW 踏み止まるべき線をすっかり越えている事に、%CALLNAME:ARG%はやっと気がついた……
+							ELSEIF RAND:3 == 0
+								PRINTFORMW 今日は危ない日だからとかわしていた%CALLNAME:ARG%だったが、
+								PRINTFORMW 寝取り趣味の男に力強く抱き締められると、簡単に陥落してたっぷり子種を注ぎ込まれた……
+							ELSEIF RAND:2 == 0
+								PRINTFORMW 危険日の膣に繰り返し種付けされ、それを自然に受け入れている事に%CALLNAME:ARG%は動揺した……
+								PRINTFORMW 心も身体も内側から寝取り趣味の男に塗り替えられて、%CALLNAME:ARG%はもう戻れない気がした……
+							ELSE
+								PRINTFORMW 危険日だからと言い聞かせていたが、優しい言葉と甘いムードに%CALLNAME:ARG%は簡単に流されてしまった……
+								PRINTFORMW 甘美な時間をしばし過ごした後に、我に帰った%CALLNAME:ARG%は股間の感触と自分の弱さに頭を抱えている……
+							ENDIF
+					;発情
+					ELSEIF 危険日(ARG) == 2
+							PRINTFORMW %CALLNAME:ARG%は火照る身体を押さえきれず、危ない日だと分かっていながら寝取り趣味の客の精液を膣内に受け入れてしまった……
+							PRINTFORMW 火照りから覚めた%CALLNAME:ARG%は自らのしてしまった事を震えながら後悔している……
+					;満月発情
+					ELSEIF 危険日(ARG) == 3
+							PRINTFORMW %CALLNAME:ARG%は火照る身体を押さえきれず、寝取り趣味の客の精液を膣内に受け入れてしまった……
+							PRINTFORMW 火照りから覚めた%CALLNAME:ARG%は自らのしてしまった事を後悔している……
+					;通常
+					ELSE
+						IF RAND:7 == 0
+							PRINTFORMW 休憩時間を大幅に過ぎて戻ってきた%CALLNAME:ARG%は、あやふやな言い訳をしながら遅れた事を詫びている……
+						ELSEIF RAND:6 == 0
+							PRINTFORMW %CALLNAME:ARG%は店に戻るなり化粧室に飛び込んだ……
+							PRINTFORMW やっと出てきた%CALLNAME:ARG%だったが、服のシミを気にしているようだ……
+						ELSEIF RAND:5 == 0
+							PRINTFORMW 店に戻った%CALLNAME:ARG%は、濃厚な雄の匂いを漂わせたまま接客についた……
+						ELSEIF RAND:4 == 0
+							PRINTFORMW %CALLNAME:ARG%は外していた事を詫びると澄ました顔で接客に戻っていった……
+						ELSEIF RAND:3 == 0
+							PRINTFORMW 汗ばんだ姿で店に戻ってきた%CALLNAME:ARG%は、気だるい様子で接客をはじめた……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW しばらくすると、%CALLNAME:ARG%は火照った顔で店に戻ってきた……
+						ELSE
+							PRINTFORMW 戻ってきた%CALLNAME:ARG%は太ももに白い粘液を伝わせたまま接客を再開した……
+						ENDIF
+					ENDIF
+				ENDIF
+				RESETCOLOR
+			ENDIF
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%は口元を押さえ、衣服を直しながら戻ってきた……	
+			PRINTFORML 
+			LOCAL:3 = 3
+			CALL NTR_RESTRANT_SEX, ARG, LOCAL:3
+		ENDIF
+	;回避
+	ELSE
+		;放置日数によって変化
+		IF 陥落(ARG) * 50 - LOCAL:2 > 80
+			IF RAND:3 == 0
+				PRINTFORMW %CALLNAME:ARG%は笑顔でかわしている
+			ELSEIF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%は事務的に対処した
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%はうまくあしらった
+			ENDIF
+		ELSEIF 陥落(ARG) * 50 - LOCAL:2 > 60
+			IF RAND:5 == 0
+				PRINTFORMW %CALLNAME:ARG%は楽しそうに会話している
+			ELSEIF RAND:4 == 0
+				PRINTFORMW %CALLNAME:ARG%は笑顔で受け答えしている
+			ELSEIF RAND:3 == 0
+				PRINTFORMW %CALLNAME:ARG%はエッチな冗談に困った顔をしている
+			ELSEIF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%は照れた顔で質問に答えている
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は軽い世間話をしているようだ
+			ENDIF
+			CFLAG:ARG:放置日数 += 1 + RAND:3
+		ELSEIF 陥落(ARG) * 50 - LOCAL:2 <= 60
+			IF RAND:7 == 0
+				PRINTFORMW %CALLNAME:ARG%は身体を寄せ合うようにしながら会話している…
+			ELSEIF RAND:6 == 0
+				PRINTFORMW %CALLNAME:ARG%は手を握られて満更でもなさそうだ…
+			ELSEIF RAND:5 == 0
+				PRINTFORMW %CALLNAME:ARG%はお尻を触られて文句を言っているが、どう見ても嬉しそうだ…
+			ELSEIF RAND:4 == 0
+				PRINTFORMW %CALLNAME:ARG%は話に夢中になっている
+			ELSEIF RAND:3 == 0
+				PRINTFORMW %CALLNAME:ARG%はセクハラな質問に、モジモジしながら律儀に答えている…
+			ELSEIF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%は太ももを撫でられ、恥ずかしそうにしている
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は小声で話し込んでいる
+			ENDIF
+			CFLAG:ARG:放置日数 += 1 + RAND:3
+		ENDIF
+		IF CFLAG:ARG:構ったフラグ == 1
+			CFLAG:ARG:(2098) += 10
+		ELSE
+			CFLAG:ARG:(2098) += 10 + CFLAG:ARG:放置日数
+		ENDIF
+			
+	ENDIF
+	PRINTFORML 
+ENDIF
+;顧客満足度が低いほどクレームフラグ
+IF RAND:100 > ARG:2 || (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+	PRINTFORML 
+	PRINTFORML %CALLNAME:ARG%に人相の悪い男がクレームをつけている……
+	PRINTFORML ・
+	PRINTFORML ・・
+	PRINTFORMW ・・・
+	;クレーム対応可否判定
+	;淫ＮＴＲの場合は納める気なし
+	IF RAND:100 > ARG:2 + RAND:(11 + ABL:ARG:技巧 + ABL:ARG:奉仕精神) || TALENT:ARG:ＮＴＲ == 2 || (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+		PRINTFORML 
+		PRINTFORML %CALLNAME:ARG%はうまく収める事が出来なかった……
+		;身体でクレーム処理判定
+		;淫ＮＴＲの場合はすぐにパコパコ
+		IF RAND:100 > LOCAL:4 || TALENT:ARG:ＮＴＲ == 2 || (CFLAG:ARG:その他 == 1117 || CFLAG:ARG:その他2 == 1117 || CFLAG:ARG:その他3 == 1117)
+			;輪姦人数
+			LOCAL:5 = 3 + RAND:4
+			;女の場合
+			IF TALENT:ARG:オトコ == 0 
+
+				IF  TALENT:ARG:ＮＴＲ == 2
+					PRINTFORMW %CALLNAME:ARG%は男の事務所で室内にいた{LOCAL:5}人の男たちに身体を使ってクレーム処理をした……
+				ELSE
+					PRINTFORMW %CALLNAME:ARG%は男の事務所に無理やり連れて行かれ、室内にいた{LOCAL:5}人の男たちに輪姦された……
+				ENDIF
+				PRINTFORML 
+				SIF CFLAG:ARG:"Fertility drug" == 1
+					GOTO OKUSURI
+				IF CFLAG:ARG:現ＮＴＲ進行度 > 10
+					IF CFLAG:ARG:"Contraceptive barrier" == 1
+						CFLAG:ARG:"Contraceptive barrier" = 0
+						PRINTFORML %CALLNAME:ARG%の子宮内避妊結界が解除されてしまった……
+					ENDIF
+					IF RAND:100 < 30 && CFLAG:ARG:"Contraceptive barrier" == 0
+						CFLAG:ARG:"Fertility drug" = 1
+						IF RAND:2 == 0
+							PRINTFORML %CALLNAME:ARG%は排卵誘発剤を飲まされた……
+						ELSE
+							$OKUSURI
+							PRINTFORMW %CALLNAME:ARG%は妖しげな薬を注射された……
+							CFLAG:ARG:淫乱度+= 100 - ARG:2 + CFLAG:ARG:現ＮＴＲ進行度*10
+							LOCAL:6 = 1
+						ENDIF
+					ENDIF
+				ENDIF
+
+				PRINTFORMW %CALLNAME:ARG%は白濁にまみれた姿で、一部始終を記録したテープと共に店の前に放置されていた……	
+				PRINTFORML 
+				LOCAL:3 = 2
+				CALL NTR_RESTRANT_SEX, ARG, LOCAL:3, LOCAL:5
+
+				SETCOLOR 204,51,255
+
+				PRINTFORML 
+				IF 危険日(ARG)
+					PRINTFORMW テープの中には危険日であるはずの%CALLNAME:ARG%が次々と膣内に種付けされている映像が納められていた……
+				ELSEIF TALENT:ARG:ＮＴＲ == 2
+					PRINTFORMW テープの中には%CALLNAME:ARG%が中出しされながら『ピースサイン』をしている映像が納められていた……	
+				;Fertility drug
+				ELSEIF CFLAG:ARG:"Fertility drug" == 1
+					;妖しい薬
+					IF LOCAL:6 == 1
+						IF RAND:4 == 0
+							PRINTFORMW テープの中には%CALLNAME:ARG%が涎を垂らしながら、オトコの上で腰を振り続ける映像が納められていた……
+							PRINTFORMW 突きつけられたペニスを美味しそうに咥えながら、何人もの男達に中出しされ続けている……
+						ELSEIF RAND:3 == 0
+							PRINTFORML テープの中には男に背面座位で犯されている%CALLNAME:ARG%の映像が納められていた……
+							PRINTFORMW %CALLNAME:ARG%の脚は大きく広げられ、結合部が丸見えになっている……
+							PRINTFORMW 男は淫らな言葉を叫ぶ%CALLNAME:ARG%の中で射精を終えると、ペニスを引き抜いた……
+							PRINTFORML 
+							PRINTFORMW %CALLNAME:ARG%は快楽に蕩けた顔で『極太チンポに種付けされちゃいましたぁ%UNICODE(0x2661)%』とピースサインをしている……
+							PRINTFORMW 膣口からは%CALLNAME:ARG%の背後でニヤけている男の精液が溢れ出していた……
+						ELSEIF RAND:2 == 0
+							PRINTFORMW テープの中にはベットに仰向けで寝そべる%CALLNAME:ARG%が、男に両脚を抱えられるようにして腰を打ち付けられている映像が納められていた……
+							PRINTFORMW %CALLNAME:ARG%はだらしなく口をあけ、蕩けた目で快楽の渦に身を任せている……
+							PRINTFORML 
+							PRINTFORMW 男が子種を膣内にぶちまけると、%CALLNAME:ARG%は舌を突き出しながら種付けされる悦びに身を振るわせた……
+						ELSE
+							PRINTFORMW テープの中には自らの秘唇を広げながら、種付けをおねだりする%CALLNAME:ARG%の映像が納められていた……
+							PRINTFORMW 快楽に蕩けきった顔をした%CALLNAME:ARG%に、次々と男達が膣内射精している様子が生々しく映し出されている……
+						ENDIF
+					;Fertility drug
+					ELSE
+						IF RAND:2 == 0
+							PRINTFORMW テープを再生すると排卵剤を飲まされた事に気付いた%CALLNAME:ARG%が、顔を青ざめながら必死に抵抗している様子が映し出された……
+							PRINTFORMW しかし、抵抗空しく%CALLNAME:ARG%は、大柄な男に太股を抱え込むように引き寄せられ、しっかりと膣内に子種を注ぎ込まれた……
+							PRINTFORML 
+							PRINTFORMW %CALLNAME:ARG%はショックのあまりに両腕を投げ出したまま、放心状態になってしまった……
+						ELSE
+							PRINTFORMW テープの中には排卵剤を飲まされた%CALLNAME:ARG%が刺青の男に何度も中出しされている映像が納められていた……	
+						ENDIF
+					ENDIF
+				;通常
+				ELSE
+					IF RAND:6 == 0
+						PRINTFORMW テープの中には%CALLNAME:ARG%が泣き叫びながら犯されている映像が納められていた……
+					ELSEIF RAND:5 == 0
+						PRINTFORML テープを再生すると不安そうな顔でしゃがみ込む%CALLNAME:ARG%の映像が映し出された……
+						PRINTFORMW 画面から『やれ』という男の声が聞こえると、ペニスを勃起させた男達がいっせいに襲い掛かった
+						PRINTFORMW 画面からは%CALLNAME:ARG%の悲鳴と男達の笑い声が聞こえ、群がる男達の隙間から伸びる足首には引き裂かれた下着がひらひらと揺れている
+						PRINTFORML 
+						PRINTFORMW 最後に映し出されたのは、ボロボロの衣服で精液に塗れ、呆然と座り込む%CALLNAME:ARG%の姿だった……
+					ELSEIF RAND:4 == 0
+						PRINTFORML テープの中には床に押し倒された%CALLNAME:ARG%が、必死に抵抗している映像が納められている……
+						PRINTFORMW 両手必死に押し退けようとしていたが、抵抗空しく頭を床に押し付けられながらチンピラの肉棒を挿入されてしまった……
+						PRINTFORML 
+						PRINTFORMW チンピラが口の端を吊り上げながら膣内で射精を始めると、%CALLNAME:ARG%は瞳を絶望の色に染めながら涙を流した……
+						PRINTFORMW 抵抗する気力を失った%CALLNAME:ARG%は次々と男達の慰み者になっている……
+					ELSEIF RAND:3 == 0
+						PRINTFORMW テープの中には男たちに押さえつけられながら、中出しされている%CALLNAME:ARG%の結合部がアップで納められていた……
+					ELSEIF RAND:2 == 0
+						PRINTFORMW テープの中には両腕を後ろ手に縛られ、目隠しをされた%CALLNAME:ARG%が背後から犯されている映像が納められていた……
+						PRINTFORMW 膣内を見知らぬ男の精で汚されるたびに、悲痛な叫び声を上げている……
+					ELSE
+						PRINTFORMW テープの中には両手を縛られた%CALLNAME:ARG%がベットの上で脂ぎったオヤジに犯されている映像が納められていた……
+						PRINTFORMW 脂ぎったオヤジは弛んだ腹肉を揺らしながら、涙を流す%CALLNAME:ARG%に腰を打ち付けている……
+					ENDIF
+				ENDIF
+				RESETCOLOR
+			ENDIF
+		;お口でクレーム処理
+		ELSE
+			IF TALENT:ARG:オトコ == 0 
+				IF RAND:2 == 0
+					PRINTFORML %CALLNAME:ARG%は男にトイレに連れこまれ、口での奉仕を強制された……
+				ELSE
+					PRINTFORML %CALLNAME:ARG%はテーブルの下で口での奉仕を強制された……
+				ENDIF
+			ENDIF
+			LOCAL:3 = 4
+			CALL NTR_RESTRANT_SEX, ARG, LOCAL:3
+
+		ENDIF
+	;クレーム処理成功
+	ELSE
+		IF RAND:7 == 0
+			PRINTFORML %CALLNAME:ARG%の素早い応対に、客の怒りはすぐ収まった
+		ELSEIF RAND:6 == 0
+			PRINTFORML %CALLNAME:ARG%は上手に受け流し、その場をおさめた
+		ELSEIF RAND:5 == 0
+			PRINTFORML %CALLNAME:ARG%はぺこぺこ頭を下げ、何とか客に引いてもらった
+		ELSEIF RAND:4 == 0
+			PRINTFORML %CALLNAME:ARG%は客が帰るまでの間、慰謝料代わりだと胸を揉まれ続けた……
+		ELSEIF RAND:3 == 0
+			PRINTFORML %CALLNAME:ARG%は客に同席を強要され、たっぷりとセクハラを受けてしまった
+		ELSEIF RAND:2 == 0
+			PRINTFORML 誠意を見せれば許すと言われ、命じられるままスカートをたくし上げ、涙目で下着を晒した……
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%はうまく取り成すことができたようだ
+		ENDIF
+	ENDIF
+ENDIF
+PRINTFORML 
+
+;==========================================================
+;@CORRECT_DIFFICULTY
+; 労役単価／売却価格に難易度補正を掛ける
+;<引数>
+;	ARG   = 労役単価／売却価格
+;	ARG:1 = 補正情報表示有無(0:非表示／1:表示)
+;<戻り値>
+;	補正後価格
+;==========================================================
+@CORRECT_DIFFICULTY, ARG, ARG:1 = 0
+#LOCALSIZE 1
+LOCAL = ARG
+;EASY
+IF FLAG:4 == 1
+	SIF ARG:1
+		PRINTFORML Difficulty:EASY ×120％
+	TIMES LOCAL , 1.20
+;NORMAL
+ELSEIF FLAG:4 == 2
+	TIMES LOCAL , 1.00
+;HARD
+ELSEIF FLAG:4 == 3
+	SIF ARG:1
+		PRINTFORML Difficulty:HARD ×80％
+	TIMES LOCAL , 0.80
+ENDIF
+SIF ARG:1
+	PRINTL
+
+RETURN LOCAL
+
+;==========================================================
+;@CORRECT_PROCESSION_CHARA
+; 労役単価／売却価格に引継ぎキャラ補正を掛ける
+;<引数>
+;	ARG   = 対象キャラ
+;	ARG:1 = 労役単価／売却価格
+;	ARG:2 = 補正情報表示有無(0:非表示／1:表示)
+;<戻り値>
+;	補正後価格
+;==========================================================
+@CORRECT_PROCESSION_CHARA, ARG, ARG:1, ARG:2 = 0
+#LOCALSIZE 1
+LOCAL = ARG:1
+IF CFLAG:ARG:引継ぎ回数 > 0 && FLAG:5 < 9 && CHECK_TIMELIMIT(0,DAY < 51,1)
+	SIF ARG:2
+		PRINTFORML Carried-over character： × 0.01
+	LOCAL /= 100
+	SIF LOCAL < 1
+		LOCAL = 1
+ENDIF
+
+RETURN LOCAL
+
+
+;==========================================================
+;@NTR_RESTRANT_SEX
+; ＮＴＲセックス計算
+;<引数>
+;	ARG   = 労役キャラの登録番号
+;	ARG:1 = ＮＴＲ相手番号
+;LOCAL:1 = 相手の射精回数
+;LOCAL:2 = 相手の性交回数
+;LOCAL:3 = プレイ内容
+;LOCAL:4 = 輪姦人数
+;LOCAL:5 = 好感度
+;LOCAL:6 = 淫乱度
+;LOCAL:7 = 好感度減少処理用
+;==========================================================
+@NTR_RESTRANT_SEX, ARG, ARG:3, ARG:4
+#LOCALSIZE 8
+CFLAG:ARG:フェラ回数 = 0
+CFLAG:ARG:本番回数 = 0
+CFLAG:ARG:アナル回数 = 0
+CFLAG:ARG:中出し回数 = 0
+CFLAG:ARG:手コキ回数 = 0
+TCVAR:ARG:獲得キス経験 = 0
+LOCAL:3 = ARG:3 , ARG:4
+;ＮＴＲ好きの客（本番）
+IF LOCAL:3 == 1
+	ARG:1 = -2
+	CFLAG:ARG:中出し回数 = 1
+	CFLAG:ARG:本番回数 = 1
+	LOCAL:1 = 2 + RAND:4
+	LOCAL:2 = LOCAL:1 + RAND:(LOCAL:1)
+	TCVAR:ARG:獲得浮気経験 = 1
+
+;クレーム客（本番）
+ELSEIF LOCAL:3 == 2
+	ARG:1 = -3
+	CFLAG:ARG:中出し回数 = LOCAL:4
+	CFLAG:ARG:本番回数 = LOCAL:4
+	LOCAL:1 = LOCAL:4 + RAND:(LOCAL:4)
+	LOCAL:2 = LOCAL:1 + RAND:(LOCAL:4)
+	TCVAR:ARG:獲得輪姦経験 = 1
+	
+;ＮＴＲ好きの客（フェラ）
+ELSEIF LOCAL:3 == 3
+	ARG:1 = -2
+	CFLAG:ARG:フェラ回数 = 1 + RAND:3
+	TCVAR:ARG:獲得浮気経験 = 1
+
+;クレーム客（フェラ）
+ELSEIF LOCAL:3 == 4
+	ARG:1 = -3
+	CFLAG:ARG:フェラ回数 = 3 + RAND:3
+
+ENDIF
+
+IF LOCAL:3 < 3
+	FOR COUNT , 0 , LOCAL:2
+		IF RAND:100 < 60
+			IF HAVE_PENIS(ARG) && HAVE_VAGINA(ARG)
+				CFLAG:ARG:本番回数 += 1
+				CFLAG:ARG:手コキ回数 += 1
+			ELSEIF HAVE_PENIS(ARG)
+				CFLAG:ARG:アナル回数 += 1
+				CFLAG:ARG:手コキ回数 += 1
+			ELSE
+				CFLAG:ARG:本番回数 += 1
+			ENDIF
+		ELSEIF RAND:100 < 50
+			IF HAVE_PENIS(ARG)
+				CFLAG:ARG:手コキ回数 += 1
+			ELSE
+				CFLAG:ARG:フェラ回数 += 1
+			ENDIF
+		ELSE
+			IF HAVE_PENIS(ARG) && HAVE_VAGINA(ARG)
+				CFLAG:ARG:アナル回数 += 1
+				CFLAG:ARG:手コキ回数 += 1
+			ELSEIF HAVE_PENIS(ARG)
+				CFLAG:ARG:アナル回数 += 1
+				CFLAG:ARG:手コキ回数 += 1
+			ELSE
+				CFLAG:ARG:アナル回数 += 1
+			ENDIF
+		ENDIF
+	NEXT
+	CFLAG:ARG:中出し回数 += LIMIT(RAND:(1+CFLAG:ARG:本番回数) , 0, LOCAL:1)
+	
+	;KissEXP処理：適当にランダムで
+	SIF RAND:2 == 0
+		TCVAR:ARG:獲得キス経験 += 1
+ENDIF
+
+;獲得経験
+TCVAR:ARG:獲得フェラ経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得奉仕快楽経験 = CFLAG:ARG:フェラ回数
+TCVAR:ARG:獲得Ｖ経験 = CFLAG:ARG:本番回数
+TCVAR:ARG:獲得Ａ経験 = CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得性交経験 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数
+TCVAR:ARG:獲得膣射経験 = CFLAG:ARG:中出し回数
+TCVAR:ARG:獲得精液経験 = LOCAL:1
+SIF CFLAG:ARG:手コキ回数 > 0
+	TCVAR:ARG:獲得射精経験 = RAND:(CFLAG:ARG:手コキ回数)
+SIF TCVAR:ARG:獲得性交経験 + TCVAR:ARG:獲得射精経験 > 0
+	TCVAR:ARG:獲得絶頂経験 = RAND:(TCVAR:ARG:獲得性交経験 + TCVAR:ARG:獲得射精経験)
+;妊娠用
+SIF CFLAG:ARG:"Contraceptive barrier" == 0
+	CFLAG:ARG:顧客の中出氏による妊娠判定 = TCVAR:ARG:獲得膣射経験*2
+;処女喪失処理
+IF TALENT:ARG:処女 && CFLAG:ARG:本番回数
+	CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+	SETCOLOR COLOR("red")
+	IF LOCAL:3 == 2
+		PRINTFORML 【＋２】   Lost virginity（Gang rape）
+	ELSEIF LOCAL:3 == 1
+		PRINTFORML 【＋２】   処女喪失(ＮＴＲ)
+	ENDIF
+	RESETCOLOR
+	TALENT:ARG:処女 = 0
+ELSEIF TALENT:ARG:再生処女
+	PRINTFORML Restored Virginity Lost
+	TALENT:ARG:再生処女 = 0
+ENDIF
+
+LOCAL:5 = TCVAR:ARG:獲得精液経験 * 5 + (TCVAR:ARG:獲得絶頂経験 + TCVAR:ARG:獲得膣射経験) * 10 + CFLAG:ARG:放置日数
+LOCAL:6 = CFLAG:ARG:本番回数 + CFLAG:ARG:アナル回数 + TCVAR:ARG:獲得絶頂経験 * 10
+LOCAL:7 = CFLAG:ARG:中出し回数 * 3 + TCVAR:ARG:獲得絶頂経験 * 5
+
+
+;ＮＴＲ客の設定処理
+SELECTCASE FLAG:ＮＴＲ客の設定
+	CASE  0
+		TIMES LOCAL:5 , 1.00
+		TIMES LOCAL:6 , 1.00
+		TIMES LOCAL:7 , 1.00
+	CASE  1
+		TIMES LOCAL:5 , 2.00
+		TIMES LOCAL:6 , 2.00
+		TIMES LOCAL:7 , 2.00
+	CASE  2
+		TIMES LOCAL:5 , 5.00
+		TIMES LOCAL:6 , 5.00
+		TIMES LOCAL:7 , 5.00
+ENDSELECT
+
+
+
+
+
+
+
+
+;好感度
+IF ARG:1 == -2
+	CFLAG:ARG:(2098) += LOCAL:5
+ELSEIF ARG:1 == -3
+	CFLAG:ARG:(2097) -= LOCAL:5
+ENDIF
+
+;淫乱度上昇
+;浮気癖がある場合は淫乱度倍化
+IF TALENT:ARG:浮気癖
+	CFLAG:ARG:淫乱度 += LOCAL:6*2
+ELSE
+	CFLAG:ARG:淫乱度 += LOCAL:6
+ENDIF
+
+;好感度減少処理
+CALL NTR_SHOOT , ARG, ARG:1, LOCAL:7
+
+CALL SHOW_ADD_EXP, ARG
+
+

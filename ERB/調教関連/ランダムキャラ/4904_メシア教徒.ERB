@@ -1,0 +1,281 @@
+;ARGは生成キャラの登録番号
+@RANDOMCHARA_4904, ARGS, ARG, ARG:1
+#LOCALSSIZE 1
+SELECTCASE ARGS
+	CASE "一人称"
+		RESULTS = \@IS_MALE(ARG) ? 私#私\@
+	CASE "二人称"
+		RESULTS = %CALLNAME:MASTER%
+	CASE "体力"
+		RETURN RAND(800, 1800)
+	CASE "気力"
+		RETURN RAND(1200, 2500)
+	CASE "属性"
+		RETURN RAND(100, 180), RAND(150, 255)
+	CASE "種族"
+		RETURN 0
+	CASE "戦闘素質"
+;メシア教徒はほとんどが異能者 2割がテンプルナイト 1%がアデプト 1割が非戦闘員
+		SELECTCASE RAND:100
+			CASE IS < 1
+				RESULTS = 霊媒体質
+				RESULTS:1 = 異能者
+				RETURN 1, 1,
+			CASE IS < 10
+				RESULTS = 非戦闘員
+				RETURN 1
+			CASE IS < 30
+				RESULTS = 異能者
+				RESULTS:1 = サクセサー
+				RETURN 1, 1
+			CASEELSE
+				RESULTS = 異能者
+				RESULTS:1 = 道具知識
+				RETURN 1, 1
+		ENDSELECT
+	CASE "リンク悪魔"
+		RETURN 0
+	CASE "初期ステータス比率"
+		RETURN 7, 12, 10, 7, 7, 5
+	CASE "スキル"
+		SIF TALENT:ARG:異能者 == 0
+			RETURN 0
+		RESULT = [[スキル:ハンマ]]
+		RESULT:1 = [[スキル:マハンマ]]
+		RESULT:2 = [[スキル:破魔の雷光]]
+		SELECTCASE RAND:4
+			CASE 0
+				RESULT:3 = [[スキル:ザン]]
+				RESULT:4 = [[スキル:ザンマ]]
+				RESULT:5 = [[スキル:マハ・ザン]]
+				RESULT:6 = [[スキル:リムドーラ]]
+			CASE 1
+				RESULT:3 = [[スキル:デ・カジャ]]
+				RESULT:4 = [[スキル:マカジャマ]]
+				RESULT:5 = [[スキル:スク・ンダ]]
+				RESULT:6 = [[スキル:タル・ンダ]]
+			CASE 2
+				RESULT:3 = [[スキル:暴れまくり]]
+				RESULT:4 = [[スキル:回転斬り]]
+				RESULT:5 = [[スキル:回し蹴り]]
+				RESULT:6 = [[スキル:自爆]]
+			CASE 3
+				RESULT:3 = [[スキル:一分の魔脈]]
+				RESULT:4 = [[スキル:リカーム]]
+				RESULT:5 = [[スキル:サマリカーム]]
+				RESULT:6 = [[スキル:リカームドラ]]
+		ENDSELECT
+		RETURN RESULT
+	CASE "相性"
+		SELECTCASE GET_TYPE(ARG:1)
+			CASE "破魔"
+				RETURN 0
+			CASEELSE
+				RETURN 100
+		ENDSELECT
+	CASE "素質"
+		RETURN GETNUM(TALENT, "抵抗"), GETNUM(TALENT, "抑圧"), GETNUM(TALENT, "献身的"), GETNUM(TALENT, "自制心"), GETNUM(TALENT, "快感の否定"), GETNUM(TALENT, "一線越えない"), GETNUM(TALENT, "貞操観念"),GETNUM(TALENT, "汚臭敏感")
+	CASE "除外素質"
+		RETURN GETNUM(TALENT, "素直"), GETNUM(TALENT, "プライド低い"), GETNUM(TALENT, "貞操無頓着"), GETNUM(TALENT, "楽観的"), GETNUM(TALENT, "小悪魔")
+	;処女は特別 0はランダム(20%), 1なら処女, 2なら非処女
+	CASE "処女"
+		IF RAND:10 == 0
+			RETURN 2
+		ELSE 
+			RETURN 1
+		ENDIF
+	;戻り値は0:ランダム 1:小人体型 2:小柄体型 4:大柄 5:巨体
+	CASE "体型"
+		RETURN 0
+	;戻り値は0:ランダム 1:絶壁　2:貧乳　3:並　4:巨乳　5:爆乳
+	CASE "胸"
+		RETURN 0
+	;通常の人間と肉体部位が違う場合はここで直接代入してください
+	CASE "肉体部位"
+		RETURN 0
+	CASE "ABL"
+		SELECTCASE ABLNAME:(ARG:1)
+			CASE "従順", "欲望", "技巧"
+				RETURN !RAND:5+!RAND:10
+			CASE "Ｃ感覚", "Ｖ感覚", "Ｂ感覚"
+				RETURN !RAND:4
+			CASE "マゾっ気", "露出癖", "奉仕精神"
+				RETURN !RAND:10
+			CASE "サドっ気"
+				RETURN !RAND:10 * !ABL:ARG:マゾっ気
+			CASE "Ａ感覚", "自慰中毒", "精液中毒", "レズっ気", "ＢＬっ気", "セックス中毒"
+				RETURN !RAND:20
+		ENDSELECT
+	;EXPはABLが1以上ある場合、ある程度調整される(ただし、ABL0の時は調整が動かないので適当に初期値をきめてください)
+	CASE "EXP"
+		;全く手付かずの場合
+		SIF !GROUPMATCH(1, !TALENT:ARG:処女, ABL:ARG:Ｃ感覚, ABL:ARG:Ｖ感覚, ABL:ARG:Ａ感覚, ABL:ARG:Ｂ感覚, ABL:ARG:技巧)
+			RETURN 0
+		SELECTCASE EXPNAME:(ARG:1)
+			CASE "Ｖ経験"
+				RETURN RAND(0, 20) * !RAND:3
+			CASE "Ａ経験"
+				RETURN RAND(0, 20) * !RAND:10
+			CASE "絶頂経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "射精経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "性交経験"
+				RETURN 0
+			CASE "膣射経験"
+				RETURN EXP:ARG:射精経験/2*EXP:ARG:性交経験 > 0
+			CASE "自慰経験"
+				RETURN RAND(0, 20)
+			CASE "調教自慰経験"
+				RETURN 0
+			CASE "精液経験"
+				RETURN RAND(0, 20) * RAND:2
+			CASE "奉仕快楽経験"
+				RETURN 0
+			CASE "フェラ経験"
+				RETURN RAND(0, 10) * !RAND:4
+			CASE "愛情経験"
+				RETURN 0
+			CASE "苦痛快楽経験"
+				RETURN RAND(0, 20) * !RAND:8
+			CASE "放尿経験"
+				RETURN 0
+			CASE "嗜虐快楽経験"
+				RETURN RAND(0, 10) * !RAND:8
+			CASE "野外露出経験"
+				RETURN 0
+			CASE "レズ経験"
+				RETURN RAND(0, 20) * !RAND:8
+			CASE "ＢＬ経験"
+				RETURN RAND(0, 20) * !RAND:8
+			CASE "異常経験"
+				RETURN 0
+			CASE "緊縛経験"
+				RETURN RAND(0, 10) * EXP:ARG:苦痛快楽経験 > 0
+		ENDSELECT
+	CASE "帽子"
+		IF RAND:2
+			RETURN 0
+		ELSE
+			RETURN [[衣装:帽子]]
+		ENDIF
+	CASE "服"
+		RETURN 0
+	CASE "下衣"
+		IF TALENT:ARG:サクセサー
+			RETURN [[衣装:ズボン]]
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE "全身服"
+		IF TALENT:ARG:サクセサー
+			RETURN [[衣装:全身鎧]]
+		ELSE
+			RETURN [[衣装:法衣]]
+		ENDIF
+	CASE "手"
+		RETURN 0
+	CASE "下着（上）"
+		IF IS_MALE(ARG)
+			RETURN 0
+		ELSE
+			RETURN [[衣装:ブラジャー]]
+		ENDIF
+	CASE "下着（下）"
+		IF IS_MALE(ARG)
+			IF RAND:5
+				RETURN [[衣装:褌]]
+			ELSE
+				RETURN [[衣装:トランクス]]
+			ENDIF
+		ELSE
+			RETURN [[衣装:パンティ]]
+		ENDIF
+	CASE "全身下着"
+		RETURN 0
+	CASE "靴下"
+		RETURN [[衣装:ハイソックス]]
+	CASE "靴"
+		RETURN [[衣装:ブーツ]]
+	CASE "上着"
+		IF TALENT:ARG:異能者
+			RETURN [[衣装:マント]]
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE "その他"
+		RETURN [[衣装:ベルト]]
+	;悪魔汎用使用しています0:ランダム 1:女_子供　2:女_少女　3:女_若者　4:女_大人　5:女_淑女　6:女_古風　7:男_若者　8:男_大人　9:獣_ケダモノ
+	CASE "会話タイプ"
+		IF TALENT:ARG:オトコ == 0
+			SIF RAND:5 > 2
+				RETURN 5
+		ELSE
+			RETURN 0
+		ENDIF
+	CASE "名前"
+		IF TALENT:ARG:爆乳 == 1 && TALENT:ARG:処女 == 1
+			RESULTS = 聖乳
+		ELSEIF ABL:ARG:Ｖ感覚 >= 1 && EXP:ARG:精液経験 > 10
+			RESULTS = 背徳
+		ELSEIF ABL:ARG:Ａ感覚 >= 1 && EXP:ARG:Ａ経験 >= 15
+			RESULTS = 肛虐
+		ELSE
+			RESULTS = 元
+		ENDIF
+		IF TALENT:ARG:狂気 == 1
+			RESULTS += "狂信者"
+		ELSEIF TALENT:ARG:霊媒体質 == 1
+			RESULTS += "アデプト"
+		ELSEIF TALENT:ARG:サクセサー
+			RESULTS += "テンプルナイト"
+		ELSEIF TALENT:ARG:異能者
+			RESULTS += "メシア教徒"
+		ELSE
+			RESULTS += "メシア教信者"
+		ENDIF
+	CASE "愛称"
+		IF TALENT:ARG:爆乳 == 1 && TALENT:ARG:処女 == 1
+			RESULTS = 聖乳
+		ELSEIF ABL:ARG:Ｖ感覚 >= 1 && EXP:ARG:精液経験 > 10
+			RESULTS = 背徳
+		ELSEIF ABL:ARG:Ａ感覚 >= 1 && EXP:ARG:Ａ経験 >= 15
+			RESULTS = 肛虐
+		ELSE
+			RESULTS = 元
+		ENDIF
+		IF TALENT:ARG:狂気 == 1
+			RESULTS += "狂信者"
+		ELSEIF TALENT:ARG:霊媒体質 == 1
+			RESULTS += "アデプト"
+		ELSEIF TALENT:ARG:サクセサー
+			RESULTS += "テンプルナイト"
+		ELSEIF TALENT:ARG:異能者
+			RESULTS += "メシア教徒"
+		ELSE
+			RESULTS += "メシア教信者"
+		ENDIF
+	CASE "解説"
+		RESULTS = TOKYOを中心に急速に力を拡げつつある新興宗教メシア卿の信者。「信じるもの 皆 救われる」
+		IF TALENT:ARG:霊媒体質
+			RESULTS:1 = 信者の中でも特にメシアに近いとされる上層階級、「アデプト」に属していた
+		ELSEIF TALENT:ARG:サクセサー
+			RESULTS:1 = 教団内のエリート集団「テンプルナイト」の元構成員。特殊な武具の扱いが許可されている
+		ELSEIF TALENT:ARG:異能者
+			RESULTS:1 = 神の奇跡のごとき力を持つ救世主に近づくため、異能の力を身につけた信者も多い
+		ELSE 
+			RESULTS:1 = メシア教内には厳格な格差が存在し、底辺に属する一般信者の生活は極めて厳しい
+		ENDIF
+		RESULTS:2 = 　
+		RESULTS:3 = (以下Wikipediaより抜粋)
+		RESULTS:4 = メシア教会は救世主（メシア）の出現を信じ、その力によって世界が救われると謳っている
+		RESULTS:5 = 秩序を重んじ、すべては法の下に管理されるべきであるとしている
+		RESULTS:6 = 基本的には物静かな態度で慈悲深く人々に教えを説いていくような口調で他人と接するが
+		RESULTS:7 = 法に従わない者や救世主の出現を否定する者に対しては非常に厳しい態度を取る
+		RESULTS:8 = 完全なヒエラルキー階級の下に成り立っており、秩序と平和はあるが個人の自由はないに等しい
+		RESULTS:9 = 統制された世を乱す悪魔は彼らにとって邪悪な存在となるため悪魔との共生を考えるガイア教とは対立している
+		RESULTS:10 = 教徒は白地に青いラインの入った服装で統一されており、階級や身分によって服飾が違う
+	;最後に呼び出すので何らかの調整が必要な場合はここで
+	CASE "最終調整"
+		RETURN 0
+ENDSELECT

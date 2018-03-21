@@ -1,0 +1,1608 @@
+
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx_yyy.ERB
+;	Facility	:依頼:030(デビルサバイバー２) ６日目ENEMY。
+;				 REQUEST_30のサブファイル。
+;				 ６日目の戦闘に関する処理を管理する。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001	2014/12/20		セーロGUN				新規作成
+;	002	2014/01/15		セーロGUN				ダンテAIを元にヤマト簡易AI搭載
+;										分岐処理をFLAG参照して敵PTを構成するように変更
+;										通天閣ヤマト、魔神イオちゃん、輔星、ポラリス天を追加し、その他の敵のバランスを変更しました
+;	003	2015/01/28		セーロGUN				各戦闘を調整。魔神イオの処理削除
+;	004	2015/03/01		セーロGUN				憂う者ルートの戦闘をこちらに移し替え。ベネトナシュ戦の処理も変更してこちらに移し替え
+;										ダイチルートの戦闘追加。各戦闘を調整してみる
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【フラグついて】
+; フラグは下記のみ使用。
+;
+; ・デビサバ２進行度
+; [1000～1999]ヤマトルート
+; [2000～2999]ロナウドルート
+; [3000～3999]ダイチルート
+; [4000～4999]サダクルート
+;
+;
+;------------------------------------------------------------------------------
+; 【メモ】
+; ・特になし
+;
+;-------------------------------------------------------------------------------
+
+;=================================================
+;   sub REQUEST_30_6BATTLE_SUB
+;=================================================
+;   依頼:デビサバ２ ６日目共通戦闘処理
+;-------------------------------------------------
+; Input:
+;  ARG:0			敵のレベル
+;-------------------------------------------------
+@REQUEST_30_6BATTLE_SUB(ARG = 40)
+#DIM L_ENEMY_LV
+#DIM L_CNT
+#DIM L_TMP
+L_ENEMY_LV = ARG
+
+
+;- 戦闘前処理
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+
+SELECTCASE FLAG:デビサバ２進行度
+	;対東京戦
+	CASE 1005 , 2005 , 4005
+		SETCOLOR 0xDD0000
+		PRINTL シヴァ：
+		PRINTFORMW 『フ…絶望するがいい。我と貴様の差を身をもって知るのだ…！』
+		RESETCOLOR
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 破壊神　シヴァが一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;SETしヴぁ
+		CALL SET_ENEMY,9,[[キャラ:シヴァ]],95,1,1
+		CFLAG:(CHARANUM-1):行動回数 = 3
+		;物理反射
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 999
+		NEXT
+		ABL:(CHARANUM-1):スキル1 = [[スキル:千烈突き]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:万魔の一撃]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:サマーソルト]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		SETCOLOR 0xDD0000
+		PRINTL シヴァ：
+		PRINTW 『ほぉ…やるな。我を凌駕するその実力、見事である…！』
+		RESETCOLOR
+		PRINTW シヴァが火柱となって消滅した…。
+		CUSTOMDRAWLINE =
+	;ダイチ戦
+	CASE 1006 , 2006 , 4006
+		PRINTL ダイチ：
+		PRINTFORMW 「何でだよ…何でこんな風に、仲間同士で、戦わなきゃいけねーんだっ！」
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 人間　ヒーローが一体出た！
+		PRINTL 人間　志島大地が一体出た！
+		PRINTL 人間　九条緋那子が一体出た！
+		PRINTL 人間　鳥居純吾が一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;SETジュンゴ
+		CALL SET_ENEMY,8,[[キャラ:ジュンゴ]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):速度補正 = 15
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		;物理無効
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 0
+		NEXT
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:メテオフィスト]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:秘孔突き]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:万魔の一撃]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:ダイチ
+		CALL SET_ENEMY,9,[[キャラ:ダイチ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;全門耐性
+		FOR LOCAL,GETNUM(MAXBASE,"火炎"),GETNUM(MAXBASE,"万能")
+			BASE:(CHARANUM-1):LOCAL = MAXBASE:(CHARANUM-1):LOCAL
+		NEXT
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:食いしばり]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:気合]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:千烈突き]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:ヘルストライク]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:雄叫び]]
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		
+		;SET主人公
+		CALL SET_ENEMY,10,[[キャラ:デビサバ２主人公]],L_ENEMY_LV,1,1
+		NAME:(CHARANUM-1) = ヒーロー
+		CALLNAME:(CHARANUM-1) = ヒーロー
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:マカ・カジャ]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:メギド]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:氷の乱舞]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:雷の乱舞]]
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		
+		;- SET:ヒナコ
+		CALL SET_ENEMY,11,[[キャラ:ヒナコ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;全門耐性
+		FOR LOCAL,GETNUM(MAXBASE,"火炎"),GETNUM(MAXBASE,"万能")
+			SIF BASE:(CHARANUM-1):LOCAL == 100
+				BASE:(CHARANUM-1):LOCAL = 50
+		NEXT
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:食いしばり]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:メギド]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:セクシーダンス]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:スク・カジャ]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:タル・カジャ]]
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		
+		FOR LOCAL , 7 , 17
+			SIF POS(LOCAL) <= 0
+				CONTINUE
+			ABL:POS(LOCAL):種族 = 43
+			CALL SYNC_STATUS,POS(LOCAL)
+			CALL HEALTH_CHARA,POS(LOCAL)
+		NEXT
+
+		;SET雑魚
+		CALL SET_ENEMY,7,[[キャラ:ヌエ]],L_ENEMY_LV
+		CALL SET_ENEMY,12,[[キャラ:ハトホル]],L_ENEMY_LV
+		CALL SET_ENEMY,13,[[キャラ:パイモン]],L_ENEMY_LV
+		CALL SET_ENEMY,14,[[キャラ:ピュートーン]],L_ENEMY_LV
+		CALL SET_ENEMY,15,[[キャラ:フジムスメ]],L_ENEMY_LV
+		CALL SET_ENEMY,16,[[キャラ:サキュバス]],L_ENEMY_LV
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+
+		PRINTL ジュンゴ：
+		PRINTL 「グッ…嫌だ…。こんなの…！」
+		PRINTL ヒナコ：
+		PRINTL 「クッ…アカンか。ウチじゃ止められへん…！」
+		PRINTL ダイチ：
+		PRINTL 「ぎゃっ…！クソ…やっぱ、俺じゃ勝てないよ」
+		CUSTOMDRAWLINE =
+	;マコトフミケイタ戦
+	CASE 2015 , 3005 
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 人間　フミが一体出た！
+		PRINTL 人間　マコトが一体出た！
+		PRINTL 人間　ケイタが一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- SET:マコト
+		CALL SET_ENEMY,8,[[キャラ:マコト]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;氷結衝撃無効
+		BASE:(CHARANUM-1):氷結 = 0
+		BASE:(CHARANUM-1):衝撃 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:八相発破]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:マハ・ザンダイン]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:メ・ディアラマ]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:三分の活泉]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:スク・カジャ]]
+		ABL:(CHARANUM - 1):スキル6 = [[スキル:スク・ンダ]]
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:フミ
+		CALL SET_ENEMY,9,[[キャラ:フミ]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;物理反射
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 999
+		NEXT
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:メギドラ]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:タル・ンダ]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:マカ・カジャ]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:テトラカーン]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:マカラカーン]]
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:ケイタ
+		CALL SET_ENEMY,10,[[キャラ:ケイタ]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;火炎核熱無効
+		BASE:(CHARANUM-1):火炎 = 0
+		BASE:(CHARANUM-1):核熱 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:なぎ払い]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:メテオフィスト]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:ヘルストライク]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:ラク・ンダ]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:タル・カジャ]]
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:雑魚
+		CALL SET_ENEMY,13,[[キャラ:アルテミス]],L_ENEMY_LV
+		CALL SET_ENEMY,14,[[キャラ:アタバク]],L_ENEMY_LV
+		CALL SET_ENEMY,15,[[キャラ:パチャカマク]],L_ENEMY_LV
+		CALL SET_ENEMY,7,[[キャラ:スキュラ]],L_ENEMY_LV
+		CALL SET_ENEMY,11,[[キャラ:トリグラフ]],L_ENEMY_LV
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		PRINTL マコト：
+		PRINTL 「クッ…ダメか。君達は強い…私などでは」
+		PRINTL フミ：
+		PRINTL 「ハハ…マズった、こんなに強いとはね…仕方ない、ここは撤退～」
+		PRINTL ケイタ：
+		PRINTL 「…強いのぉ、お前。勝てる気せぇへんわ…」
+		CUSTOMDRAWLINE =
+	;マコトフミ戦
+	CASE 4015
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 人間　マコトが一体出た！
+		PRINTL 人間　フミが一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- SET:マコト
+		CALL SET_ENEMY,9,[[キャラ:マコト]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;氷結衝撃無効
+		BASE:(CHARANUM-1):氷結 = 0
+		BASE:(CHARANUM-1):衝撃 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:八相発破]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:マハ・ザンダイン]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:メ・ディアラマ]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:三分の活泉]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:スク・カジャ]]
+		ABL:(CHARANUM - 1):スキル6 = [[スキル:タル・ンダ]]
+		ABL:(CHARANUM - 1):スキル7 = [[スキル:貫通]]
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:フミ
+		CALL SET_ENEMY,14,[[キャラ:フミ]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 2000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;物理反射
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 999
+		NEXT
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:メギドラ]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:裁きの雷火]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:護りの盾]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:治癒促進(小)]]
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:雑魚
+		CALL SET_ENEMY,7,[[キャラ:ベルセルク]],L_ENEMY_LV
+		CALL SET_ENEMY,8,[[キャラ:アタバク]],L_ENEMY_LV
+		CALL SET_ENEMY,10,[[キャラ:バステト]],L_ENEMY_LV
+		CALL SET_ENEMY,11,[[キャラ:オトヒメ]],L_ENEMY_LV
+		CALL SET_ENEMY,12,[[キャラ:パズス]],L_ENEMY_LV
+		CALL SET_ENEMY,13,[[キャラ:キンマモン]],L_ENEMY_LV
+		CALL SET_ENEMY,15,[[キャラ:スプリガン]],L_ENEMY_LV
+		CALL SET_ENEMY,16,[[キャラ:ニュクス]],L_ENEMY_LV
+				
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		PRINTL マコト：
+		PRINTL 「クッ…ダメか。君達は強い…私などでは」
+		PRINTL フミ：
+		PRINTL 「はは…マズった。強すぎだよ、全く」
+		CUSTOMDRAWLINE =
+	;ケイタ戦
+	CASE 4025
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 人間　ケイタが一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- SET:ケイタ
+		CALL SET_ENEMY,9,[[キャラ:ケイタ]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 2000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;男なら拳一つで勝負せんかい耐性
+		BASE:(CHARANUM-1):剣撃 = 0
+		BASE:(CHARANUM-1):飛具 = 0
+		BASE:(CHARANUM-1):火炎 = 0
+		BASE:(CHARANUM-1):核熱 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:デスバウンド]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:暴れまくり]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:ヘルストライク]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:治癒促進(大)]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:タル・カジャ]]
+		ABL:(CHARANUM - 1):スキル6 = [[スキル:スク・ンダ]]
+		ABL:(CHARANUM - 1):スキル7 = [[スキル:貫通]]
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:雑魚
+		CALL SET_ENEMY,8,[[キャラ:フツヌシ]],L_ENEMY_LV
+		CALL SET_ENEMY,10,[[キャラ:ペリ]],L_ENEMY_LV
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+	;ロナウドジョー戦
+	CASE 1025 , 3015 , 4035
+		CUSTOMDRAWLINE =
+		PRINTL 人間　栗木ロナウドが一体出た！
+		PRINTL 人間　秋江譲が一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;SETロナウド
+		CALL SET_ENEMY,9,[[キャラ:ロナウド]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;物理反射火炎無効
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技")+1
+			BASE:(CHARANUM-1):LOCAL = 999
+		NEXT
+		BASE:(CHARANUM-1):火炎 = 0
+		
+		;原作のスキル構成を参考。デスバウンド(デビサバ２版)吸魔(魔依存対単体万能攻撃)アギダイン貫通
+		ABL:(CHARANUM-1):スキル1 = [[スキル:メテオフィスト]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:万魔の一撃]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ラギダイン]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:貫通]]
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;SETジョー
+		CALL SET_ENEMY,14,[[キャラ:ジョー]],L_ENEMY_LV,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;衝撃反射
+		BASE:(CHARANUM-1):衝撃 = 999
+		BASE:(CHARANUM-1):疾風 = 999
+		
+		;原作は邪神で後方から嫌がらせする編成だったので、支援型に
+		ABL:(CHARANUM-1):スキル1 = [[スキル:万魔の乱舞]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:雄叫び]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:フォッグブレス]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:メ・ディアラマ]]
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;SET雑魚
+		CALL SET_ENEMY,7,[[キャラ:アメノフトタマ]],L_ENEMY_LV
+		CALL SET_ENEMY,8,[[キャラ:トリグラフ]],L_ENEMY_LV
+		CALL SET_ENEMY,10,[[キャラ:アタバク]],L_ENEMY_LV
+		CALL SET_ENEMY,11,[[キャラ:ランダ]],L_ENEMY_LV
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		PRINTL ロナウド：
+		PRINTL 「馬鹿なっ…！俺が…俺の想いを乗せた拳が！敗れるというのかっ…！？」
+		PRINTL ジョー：
+		PRINTL 「ぐへぇ…こりゃダメだね。はは、強いねぇ…勝てないや」
+		CUSTOMDRAWLINE =
+	;HIGHヤマト戦
+	CASE 2025 , 3025
+		PRINTL
+		PRINTFORMW ＞ヤマトの体が空中に浮き上がり、通天閣のてっぺんまで上っていく。
+		PRINTFORMW ＞通天閣が黄金に光り輝いた…。
+		PRINTL
+		PRINTFORMW 『フフフフ…』
+		PRINTFORMW 『%CALLNAME:MASTER%よ…私が何の意味もなく、この場を決戦場に選ぶと思ったか！』
+		PRINTFORMW 『この通天閣は、元より龍脈を結界として利用するために、龍脈を活性化させる設備を備えている…！』
+		PRINTFORMW 『その機能を人に対して使えば、人体を巡る力を活性化させ、能力を強化することができるのだよ！』
+		PRINTFORMW ヤマトが再び、地に降り立つと、こちらに向かって駆けてきた――――。
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 人間　峰津院大和が一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;SETヤマト
+		CALL SET_ENEMY,9,[[キャラ:ヤマト]],60,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 2000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 3
+		CSTR:(CHARANUM-1):思考パターン = HIGHヤマト
+		;常世、メギド、裁きの雷火
+		ABL:(CHARANUM-1):スキル1 = [[スキル:メ・ディアラハン]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:メギドラ]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:裁きの雷火]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:デ・クンダ]]
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;SET雑魚
+		CALL SET_ENEMY,7,[[キャラ:デュラハン]],L_ENEMY_LV
+		CALL SET_ENEMY,8,[[キャラ:くちさけ]],L_ENEMY_LV
+		CALL SET_ENEMY,10,[[キャラ:アマゾーン]],L_ENEMY_LV
+		CALL SET_ENEMY,11,[[キャラ:トウコツ]],L_ENEMY_LV
+		CALL SET_ENEMY,12,[[キャラ:バルバトス]],L_ENEMY_LV
+		CALL SET_ENEMY,13,[[キャラ:ヤム]],L_ENEMY_LV
+		CALL SET_ENEMY,15,[[キャラ:ルフ]],L_ENEMY_LV
+		CALL SET_ENEMY,16,[[キャラ:パチャカマク]],L_ENEMY_LV
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+	;ベネトナシュ戦１
+	CASE 1035 , 2035 , 3045 , 4045
+		;COMPに入ってる悪魔の所属COMPをサーバーにする処理
+		VARSET LOCAL, -1
+		L_CNT = 0
+		REPEAT CHARANUM
+			SIF ARG == MASTER
+				CONTINUE
+			SIF ABL:COUNT:種族 == 0 || ABL:COUNT:種族 > 45
+				CONTINUE
+			SIF TALENT:COUNT:人修羅 && CFLAG:COUNT:所属ＣＯＭＰ == -1
+				CONTINUE
+			SIF CFLAG:COUNT:この場に居ないフラグ == 1 
+				CONTINUE
+			SIF CFLAG:COUNT:所属ＣＯＭＰ < 0 || CFLAG:COUNT:容量未使用
+				CONTINUE
+			
+			CFLAG:COUNT:所属ＣＯＭＰ = -1
+			LOCAL:L_CNT = COUNT
+			
+			L_CNT ++
+		REND
+		PRINTL 
+		CUSTOMDRAWLINE =
+		PRINTFORML セプテントリオン　破軍星ベネトナシュが一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- 悪魔解析度増加処理(1000でMAX)
+		CALL INCREASE_ANALYZE([[キャラ:ベネトナシュ]],1000)
+		
+		CALL SET_ENEMY,9,[[キャラ:ベネトナシュ]],60,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:連星の炎]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:周極の巨砲]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:主星の圧撃]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:破壊の星風]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:人間不可侵]]
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		PRINTW ベネトナシュの体に線が走り、４つに分かれる…。
+		PRINTW 断面からはこれまでに戦ったセプテントリオンの体の一部が覗いている…。
+		PRINTW どうやらベネトナシュは分裂したようだ…。
+		PRINTW この全てを倒さなければ、決着は着かないだろう…。
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL セプテントリオン　破軍の娘ベネトナシュが四体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;SET本体
+		CALL SET_ENEMY,8,[[キャラ:ベネトナシュ]],60,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;火炎耐性追加
+		BASE:(CHARANUM-1):火炎 = 50
+		
+		;メギドラオンをアルカイドの代用として習得
+		ABL:(CHARANUM-1):スキル1 = [[スキル:メギドラオン]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:届かない祈り]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:人間不可侵]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		
+		;SETドゥベメグレズ
+		CALL SET_ENEMY,9,[[キャラ:ベネトナシュ]],60
+		NAME:(CHARANUM-1) = 破軍の娘
+		CALLNAME:(CHARANUM-1) = 破軍の娘
+		CFLAG:(CHARANUM-1):速度補正 = 15
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;ドゥベメグレズ＋α耐性
+		FOR L_TMP , GETNUM(MAXBASE,"剣撃") , GETNUM(MAXBASE,"万能")
+			MAXBASE:(CHARANUM-1):L_TMP = 0
+		NEXT
+		BASE:(CHARANUM-1):剣撃 = 50
+		BASE:(CHARANUM-1):打撃 = 50
+		BASE:(CHARANUM-1):戦技 = 50
+		BASE:(CHARANUM-1):氷結 = 100
+		BASE:(CHARANUM-1):衝撃 = 100
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:連星の炎]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:破壊の星風]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:治癒促進(大)]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		
+		;SETメラクフェクダ
+		CALL SET_ENEMY,10,[[キャラ:ベネトナシュ]],60
+		NAME:(CHARANUM-1) = 破軍の娘
+		CALLNAME:(CHARANUM-1) = 破軍の娘
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;物理弱点 他無効
+		FOR L_TMP , GETNUM(MAXBASE,"剣撃") , GETNUM(MAXBASE,"万能")
+			BASE:(CHARANUM-1):L_TMP = 0
+		NEXT
+		BASE:(CHARANUM-1):剣撃 = 150
+		BASE:(CHARANUM-1):打撃 = 150
+		BASE:(CHARANUM-1):戦技 = 150
+		BASE:(CHARANUM-1):疾風 = 150
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:周極の巨砲]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:暗黒の雷光]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:なぎ払い]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		
+		;SETミザールアリオト
+		CALL SET_ENEMY,11,[[キャラ:ベネトナシュ]],60
+		NAME:(CHARANUM-1) = 破軍の娘
+		CALLNAME:(CHARANUM-1) = 破軍の娘
+		CFLAG:(CHARANUM-1):速度補正 = 20
+		CFLAG:(CHARANUM-1):行動回数 = 2
+
+		;ミザールアリオト＋α耐性
+		BASE:(CHARANUM-1):剣撃 = 50
+		BASE:(CHARANUM-1):飛具 = 0
+		BASE:(CHARANUM-1):打撃 = 50
+		BASE:(CHARANUM-1):戦技 = 50
+		BASE:(CHARANUM-1):火炎 = 100
+		BASE:(CHARANUM-1):氷結 = 100
+		BASE:(CHARANUM-1):電撃 = 0
+		BASE:(CHARANUM-1):衝撃 = -100
+		BASE:(CHARANUM-1):神経 = 100
+		BASE:(CHARANUM-1):精神 = 100
+		BASE:(CHARANUM-1):破魔 = 100
+		BASE:(CHARANUM-1):呪殺 = 100
+		BASE:(CHARANUM-1):水撃 = 0
+		
+		ABL:(CHARANUM-1):スキル1 = [[スキル:主星の圧撃]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:刻印の翼]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:ジオダイン]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		;所属COMPを戻す処理
+		REPEAT L_CNT + 1
+			SIF LOCAL:COUNT > 0
+				CFLAG:(LOCAL:COUNT):所属ＣＯＭＰ = 0
+		REND
+	;アルコル
+	CASE 1045 , 2045 , 3125
+		PRINTL
+		PRINTL アルコル
+		PRINTFORMW 『君は本当に強くなったね…』
+		PRINTFORMW 『私の想像も及ばないくらい、強い光を放つ存在になった』
+		PRINTFORMW 『さぁ私を倒してみせろ』
+		PRINTFORMW 『そして君の望む世界を創るんだ』
+		PRINTFORMW 『輝く者…%NAME:MASTER%よ！』
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL セプテントリオン　輔星アルコルが一体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- 悪魔解析度増加処理(1000でMAX)
+		CALL INCREASE_ANALYZE(3008,1000)
+		
+		;SET本体
+		CALL SET_ENEMY,9,3008,65,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		CFLAG:(CHARANUM-1):行動回数 = 3
+		
+		;伴星の凶兆(混濁の瘴気で代用)、裁きの雷火、勝利の美酒
+		ABL:(CHARANUM-1):スキル1 = [[スキル:混濁の瘴気]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:裁きの雷火]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ザンダイン]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:治癒促進(大)]]
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;SETボティス
+		CALL SET_ENEMY,8,[[キャラ:ボティス]],60,1,1
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;SETビフロンス
+		CALL SET_ENEMY,10,[[キャラ:ビフロンス]],60,1,1
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		PRINTL アルコル：
+		PRINTL 『グッ…！これが…可能性の力…』
+		CUSTOMDRAWLINE =
+		
+	;前座ヤマト戦
+	CASE 4055
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 人間　峰津院大和が一体出た！
+		CUSTOMDRAWLINE =
+		
+		;- SET:ヤマト
+		CALL SET_ENEMY,9,[[キャラ:ヤマト]],65,1,1
+		ABL:(CHARANUM-1):種族 = 43
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 3
+		CSTR:(CHARANUM-1):思考パターン = 前座ヤマト
+		
+		;デビサバ２真・全門耐性＋魔力無効
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"万能")
+			BASE:(CHARANUM-1):LOCAL = 50
+		NEXT
+		BASE:(CHARANUM-1):呪殺 = 0
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		
+		;メギドラオン、S魔道結界・陽(マカカジャとコンセントレイトで代用)、常世の祈り(ディアラハン代用)
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:メギドラオン]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:デ・クンダ]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:マカ・カジャ]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:ディアラハン]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:コンセントレイト]]
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+	;- ニセモノ戦１
+	CASE 3135
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 外道　ポラリスの虚影が９体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- SET:オトメ
+		CALL SET_ENEMY,7,[[キャラ:オトメ]],L_ENEMY_LV,1,1
+
+		;電撃神経精神呪殺無効物理弱点
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 200
+		NEXT
+		BASE:(CHARANUM-1):電撃 = 0
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:マハ・ザンダイン]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:サマリカーム]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:メ・ディアラハン]]
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+			
+		;- SET:ダイチ
+		CALL SET_ENEMY,8,[[キャラ:ダイチ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		
+		;火炎吸収氷結弱点
+		BASE:(CHARANUM-1):火炎 = -200
+		BASE:(CHARANUM-1):氷結 = 150
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:千烈突き]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:なぎ払い]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:アドバイス]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:ハイパーカウンタ]]
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:マコト
+		CALL SET_ENEMY,9,[[キャラ:マコト]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 5
+
+		;物理無効火炎弱点氷結反射
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 0
+		NEXT
+		BASE:(CHARANUM-1):火炎 = 200
+		BASE:(CHARANUM-1):氷結 = 999
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:マハ・アクダイン]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:テトラカーン]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:リカーム]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:ハイパーカウンタ]]
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:ジュンゴ
+		CALL SET_ENEMY,10,[[キャラ:ジュンゴ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		
+		;衝撃反射電撃精神神経破魔呪殺弱点
+		BASE:(CHARANUM-1):電撃 = 150
+		BASE:(CHARANUM-1):衝撃 = 999
+		BASE:(CHARANUM-1):神経 = 150
+		BASE:(CHARANUM-1):精神 = 150
+		BASE:(CHARANUM-1):破魔 = 150
+		BASE:(CHARANUM-1):呪殺 = 150
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:気合]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:貫通]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:アドバイス]]
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:ロナウド
+		CALL SET_ENEMY,11,[[キャラ:ロナウド]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 5
+		
+		;物理吸収火炎無効
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = -150
+		NEXT
+		BASE:(CHARANUM-1):火炎 = 0
+		BASE:(CHARANUM-1):電撃 = 150
+		BASE:(CHARANUM-1):衝撃 = 150
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:八相発破]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:マハ・ラギダイン]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:万魔の乱舞]]
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:ヒナコ
+		CALL SET_ENEMY,12,[[キャラ:ヒナコ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		
+		;火炎弱点氷結吸収神経精神呪殺無効
+		BASE:(CHARANUM-1):火炎 = 200
+		BASE:(CHARANUM-1):氷結 = -150
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:ファイナルヌード]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:ディアラハン]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:スク・カジャ]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:タル・カジャ]]
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:ジョー
+		CALL SET_ENEMY,13,[[キャラ:ジョー]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		
+		;電撃弱点衝撃吸収神経精神呪殺無効
+		BASE:(CHARANUM-1):電撃 = 150
+		BASE:(CHARANUM-1):衝撃 = -150
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:毒ガスブレス]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:淀んだ吐息]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:溶解ブレス]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:雄叫び]]
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:フミ
+		CALL SET_ENEMY,15,[[キャラ:フミ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		
+		;火炎弱点氷結吸収神経精神呪殺無効
+		BASE:(CHARANUM-1):火炎 = 200
+		BASE:(CHARANUM-1):氷結 = 999
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:マハ・ブフダイン]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:魔界の調べ]]
+		ABL:(CHARANUM - 1):スキル3 = 0
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		;- SET:アイリ
+		CALL SET_ENEMY,16,[[キャラ:アイリ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 15
+		
+		;火炎氷結弱点電撃衝撃無効
+		BASE:(CHARANUM-1):火炎 = 150
+		BASE:(CHARANUM-1):氷結 = 150
+		BASE:(CHARANUM-1):電撃 = 0
+		BASE:(CHARANUM-1):衝撃 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:スク・ンダ]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:ラク・カジャ]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:マカ・カジャ]]
+		ABL:(CHARANUM - 1):スキル4 = [[スキル:キャンディボイス]]
+		ABL:(CHARANUM - 1):スキル5 = [[スキル:マカラカーン]]
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		
+		FOR LOCAL , 7 , 17
+			SIF POS(LOCAL) <= 0
+				CONTINUE
+			ABL:POS(LOCAL):種族 = 10
+			CALL SYNC_STATUS,POS(LOCAL)
+			CALL HEALTH_CHARA,POS(LOCAL)
+		NEXT
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+		
+	;- ニセモノ戦２
+	CASE 3136
+		PRINTL
+		CUSTOMDRAWLINE =
+		PRINTL 外道　ポラリスの虚影が３体出た！
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- SET:イオ
+		CALL SET_ENEMY,8,[[キャラ:イオ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):種族 = 10
+		
+		BASE:(CHARANUM-1):電撃 = 999
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:マハ・ジオダイン]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:ディアラハン]]
+		ABL:(CHARANUM - 1):スキル3 = [[スキル:メギドラ]]
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:ヤマト
+		CALL SET_ENEMY,9,[[キャラ:ヤマト]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):種族 = 10
+		
+		FOR LOCAL,GETNUM(MAXBASE,"剣撃"),GETNUM(MAXBASE,"戦技") + 1
+			BASE:(CHARANUM-1):LOCAL = 999
+		NEXT
+		BASE:(CHARANUM-1):神経 = 0
+		BASE:(CHARANUM-1):精神 = 0
+		BASE:(CHARANUM-1):呪殺 = 0
+			
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:万魔の一撃]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:ランダマイザ]]
+		ABL:(CHARANUM - 1):スキル3 = 0
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- SET:ケイタ
+		CALL SET_ENEMY,10,[[キャラ:ケイタ]],L_ENEMY_LV,1,1
+		CFLAG:(CHARANUM-1):速度補正 = 15
+		CFLAG:(CHARANUM-1):行動回数 = 2
+		ABL:(CHARANUM-1):種族 = 10
+		
+		BASE:(CHARANUM-1):火炎 = 999
+		
+		;スキル構成は原作戦闘時を参考
+		ABL:(CHARANUM - 1):スキル1 = [[スキル:メテオフィスト]]
+		ABL:(CHARANUM - 1):スキル2 = [[スキル:ソニックパンチ]]
+		ABL:(CHARANUM - 1):スキル3 = 0
+		ABL:(CHARANUM - 1):スキル4 = 0
+		ABL:(CHARANUM - 1):スキル5 = 0
+		ABL:(CHARANUM - 1):スキル6 = 0
+		ABL:(CHARANUM - 1):スキル7 = 0
+		ABL:(CHARANUM - 1):スキル8 = 0
+		CALL SYNC_STATUS,(CHARANUM-1)
+		CALL HEALTH_CHARA,(CHARANUM-1)
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+	;ポラリス
+	CASE 1047, 2047, 3127, 3137,4057
+		PRINTL
+		CUSTOMDRAWLINE =
+		;- 悪魔解析度増加処理(1000でMAX)
+		CALL INCREASE_ANALYZE([[キャラ:ポラリス]],1000)
+		PRINTL 管理者　北極星ポラリスAが一体出た！
+		
+		;SET本体
+		CALL SET_ENEMY,9,[[キャラ:ポラリス]],75,1,1
+		CFLAG:(CHARANUM-1):ＨＰ補正 = 2000
+		CFLAG:(CHARANUM-1):ＭＰ補正 = 2000
+		CFLAG:(CHARANUM-1):速度補正 = 10
+		CFLAG:(CHARANUM-1):行動回数 = 4
+		ABL:(CHARANUM-1):攻撃範囲 = 1
+		
+		;ケフェイド、スーパーノヴァ、メギドラオン、封技追加。現在はスーパーノヴァ未実装
+		ABL:(CHARANUM-1):スキル1 = [[スキル:黙示録]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:メギドラオン]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:貫通]]
+		ABL:(CHARANUM-1):スキル4 = 0
+		ABL:(CHARANUM-1):スキル5 = 0
+		ABL:(CHARANUM-1):スキル6 = 0
+		ABL:(CHARANUM-1):スキル7 = 0
+		ABL:(CHARANUM-1):スキル8 = 0
+		
+		;SETオトモ
+		
+		;摂理
+		IF FLAG:デビサバ２進行度 == 3127 || FLAG:デビサバ２進行度 ==  3137 || FLAG:デビサバ２進行度 ==  4057
+			PRINTL 摂理の矛　ポラリスBが一体出た！
+			PRINTL 摂理の盾　ポラリスAbが一体出た！
+			
+			CALL SET_ENEMY,8,[[キャラ:ポラリス]],70,1,0
+			NAME:(CHARANUM-1) = ポラリスB
+			CALLNAME:(CHARANUM-1) = ポラリスB
+			CSTR:(CHARANUM-1):種族名 =  摂理の矛
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 500
+			CFLAG:(CHARANUM-1):速度補正 = 10
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			
+			;攻撃全体化、デスバウンド(デビサバ版)、千烈突き、クリティカル＋、反撃
+			ABL:(CHARANUM-1):スキル1 = [[スキル:メテオフィスト]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:千烈突き]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:アドバイス]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:ハイパーカウンタ]]
+			ABL:(CHARANUM-1):スキル5 = 0
+			ABL:(CHARANUM-1):スキル6 = 0
+			ABL:(CHARANUM-1):スキル7 = 0
+			ABL:(CHARANUM-1):スキル8 = 0
+			
+			;物理吸収氷結電撃水撃反射
+			BASE:(CHARANUM-1):剣撃 = -100
+			BASE:(CHARANUM-1):飛具 = -100
+			BASE:(CHARANUM-1):打撃 = -100
+			BASE:(CHARANUM-1):戦技 = -100
+			BASE:(CHARANUM-1):氷結 = 999
+			BASE:(CHARANUM-1):電撃 = 999
+			BASE:(CHARANUM-1):水撃 = 0
+			BASE:(CHARANUM-1):疾風 = 0
+			
+			CALL SET_ENEMY,10,[[キャラ:ポラリス]],70,1,0
+			NAME:(CHARANUM-1) = ポラリスAb
+			CALLNAME:(CHARANUM-1) = ポラリスAb
+			CSTR:(CHARANUM-1):種族名 =  摂理の盾
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 500
+			CFLAG:(CHARANUM-1):速度補正 = 10
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			ABL:(CHARANUM-1):攻撃範囲 = 1
+			
+			;火炎無効電撃耐性衝撃吸収
+			BASE:(CHARANUM-1):火炎 = 0
+			BASE:(CHARANUM-1):電撃 = 50
+			BASE:(CHARANUM-1):衝撃 = -100
+			
+			;摂理ポラリスは殺しに来てるポラリスなので殺意に塗れたスキル構成に
+			ABL:(CHARANUM-1):スキル1 = [[スキル:穢れ無き威光]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:千年の呪怨]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:ランダマイザ]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:ヒートライザ]]
+			ABL:(CHARANUM-1):スキル5 = 0
+			ABL:(CHARANUM-1):スキル6 = 0
+			ABL:(CHARANUM-1):スキル7 = 0
+			ABL:(CHARANUM-1):スキル8 = 0
+		;天
+		ELSE
+			PRINTL 天の矛　ポラリスBが一体出た！
+			PRINTL 天の盾　ポラリスAbが一体出た！
+			
+			CALL SET_ENEMY,8,[[キャラ:ポラリス]],70,1,0
+			NAME:(CHARANUM-1) = ポラリスB
+			CALLNAME:(CHARANUM-1) = ポラリスB
+			CSTR:(CHARANUM-1):種族名 =  天の矛
+			CFLAG:(CHARANUM-1):行動回数 = 2
+		
+			;攻撃全体化、デスバウンド(デビサバ版)、千烈突き、クリティカル＋、反撃
+			ABL:(CHARANUM-1):スキル1 = [[スキル:メテオフィスト]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:千烈突き]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:アドバイス]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:ハイパーカウンタ]]
+			ABL:(CHARANUM-1):スキル5 = 0
+			ABL:(CHARANUM-1):スキル6 = 0
+			ABL:(CHARANUM-1):スキル7 = 0
+			ABL:(CHARANUM-1):スキル8 = 0
+			
+			;物理吸収氷結電撃水撃反射
+			BASE:(CHARANUM-1):剣撃 = -100
+			BASE:(CHARANUM-1):飛具 = -100
+			BASE:(CHARANUM-1):打撃 = -100
+			BASE:(CHARANUM-1):戦技 = -100
+			BASE:(CHARANUM-1):氷結 = 999
+			BASE:(CHARANUM-1):電撃 = 999
+			BASE:(CHARANUM-1):水撃 = 0
+			BASE:(CHARANUM-1):疾風 = 0
+			
+			CALL SET_ENEMY,10,[[キャラ:ポラリス]],70,1,0
+			NAME:(CHARANUM-1) = ポラリスAb
+			CALLNAME:(CHARANUM-1) = ポラリスAb
+			CSTR:(CHARANUM-1):種族名 =  天の盾
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			ABL:(CHARANUM-1):攻撃範囲 = 1
+			
+			;火炎無効電撃耐性衝撃吸収
+			BASE:(CHARANUM-1):火炎 = 0
+			BASE:(CHARANUM-1):電撃 = 50
+			BASE:(CHARANUM-1):衝撃 = -100
+			
+			;種族スキルも含めて戦闘支援を行う敵なので、支援系で
+			ABL:(CHARANUM-1):スキル1 = [[スキル:闇の審判]]
+			ABL:(CHARANUM-1):スキル2 = [[スキル:光の裁き]]
+			ABL:(CHARANUM-1):スキル3 = [[スキル:デ・クンダ]]
+			ABL:(CHARANUM-1):スキル4 = [[スキル:テトラカーン]]
+			ABL:(CHARANUM-1):スキル5 = [[スキル:マカラカーン]]
+			ABL:(CHARANUM-1):スキル6 = 0
+			ABL:(CHARANUM-1):スキル7 = 0
+			ABL:(CHARANUM-1):スキル8 = 0
+			
+		ENDIF
+		
+		
+		FOR LOCAL , 7 , 17
+			SIF POS(LOCAL) <= 0
+				CONTINUE
+			CALL SYNC_STATUS,POS(LOCAL)
+			CALL HEALTH_CHARA,POS(LOCAL)
+		NEXT
+		
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- 戦闘開始
+		CALL BATTLE_START
+		
+ENDSELECT
+	
+;- 戦闘終了
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+;=================================================
+;   sub EVENT_BATTLE_TURN_END_REQUEST30_6
+;=================================================
+;   依頼:戦闘中処理(ターン終了時)
+;-------------------------------------------------
+;   6日目、7日目用の戦闘中処理(ターン終了時)
+;-------------------------------------------------
+;   FLAG:勝利フラグに1をセットすると、戦闘を強制終了出来る
+;   FLAG:敗北フラグに1をセットすると、ゲームオーバーに出来る
+;-------------------------------------------------
+@EVENT_BATTLE_TURNEND_REQUEST30_6
+#DIM L_POSITION
+#DIM L_NO
+#DIM L_CNT
+L_CNT = 0
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+SELECTCASE FLAG:デビサバ２進行度
+		
+	;-----------------------------
+	;- 2025:戦闘中(対HIGHヤマト)
+	;-----------------------------
+	CASE 2025 , 3025
+		
+		FOR LOCAL, 7 , 17
+			L_POSITION = POS(LOCAL)
+			
+			;該当位置に誰もいない
+			IF L_POSITION < 0
+				CONTINUE
+			;該当位置がヤマト
+			ELSEIF NO:L_POSITION == [[キャラ:ヤマト]]
+				L_NO = L_POSITION
+			;該当する位置のキャラが死んでない
+			ELSEIF CFLAG:L_POSITION:ステート != GET_STATE_NUM("DYING")
+				L_CNT ++
+			ENDIF
+		NEXT
+		;ヤマトが死んでたら
+		SIF CFLAG:L_NO:ステート == GET_STATE_NUM("DYING")
+			RETURN
+		
+		;ヤマトの行動回数調整
+		IF (L_CNT == 0 || 現HP割合(L_NO) < 30) && CFLAG:L_NO:行動回数 <= 4
+			CUSTOMDRAWLINE =
+			SETCOLOR 0xDD0000
+			CALL MESSAGE_BL(1,"ヤマト：フハハハッ…！そぉら、まだ行くぞ！貴様らには追いつけまい！")
+			RESETCOLOR
+			CUSTOMDRAWLINE =
+			CALL MESSAGE_B(3,,"ヤマトの動きが早くなった！",)
+			
+			CFLAG:L_NO:行動回数 = 5
+			CFLAG:L_NO:速度補正 = 25
+			CALL SYNC_STATUS,L_NO
+		ELSEIF (L_CNT <= 4 || 現HP割合(L_NO) < 60) && CFLAG:L_NO:行動回数 == 3
+			CUSTOMDRAWLINE =
+			SETCOLOR 0xDD0000
+			CALL MESSAGE_BL(1,"ヤマト：まだだ…まだあるぞ！さぁ追いついてみろ…！")
+			RESETCOLOR
+			CUSTOMDRAWLINE =
+			CALL MESSAGE_B(3,,"ヤマトの動きが早くなった！",)
+			
+			CFLAG:L_NO:行動回数 = 4
+			CFLAG:L_NO:速度補正 = 15
+			CALL SYNC_STATUS,L_NO
+		ENDIF
+	;-----------------------------
+	;- 1045 , 2045:戦闘中(アルコル)
+	;-----------------------------
+	CASE 1045 , 2045 , 3115 , 3125
+		LOCAL = FINDCHARA_ENEMY(3008)
+		L_NO = RESULT:1
+		SIF L_NO < 0 || CPOS(L_NO) <= 0 || LOCAL == 0 || LOCAL == 3
+			RETURN
+		
+		IF FLAG:経過ターン数 % 6 == 0
+			
+			;物理無効それ以外耐性
+			BASE:L_NO:剣撃 = 0
+			BASE:L_NO:打撃 = 0
+			BASE:L_NO:戦技 = 0
+			BASE:L_NO:火炎 = 50
+			BASE:L_NO:氷結 = 50
+			BASE:L_NO:電撃 = 50
+			BASE:L_NO:衝撃 = 50
+			BASE:L_NO:地変 = 50
+			BASE:L_NO:水撃 = 50
+			BASE:L_NO:疾風 = 50
+			BASE:L_NO:重力 = 50
+			BASE:L_NO:万能 = 100
+			CALL SYNC_STATUS,(L_NO)
+			
+			ABL:L_NO:スキル1 = [[スキル:混濁の瘴気]]
+			ABL:L_NO:スキル2 = [[スキル:裁きの雷火]]
+			ABL:L_NO:スキル3 = [[スキル:マハ・ザンダイン]]
+			ABL:L_NO:スキル4 = [[スキル:治癒促進(大)]]
+			
+			CALL MESSAGE_B(3,"アルコルの姿がキューブになった！","アルコルの耐性が変わった！","アルコルのスキルが変わった！")
+		ELSEIF FLAG:経過ターン数 % 3 == 0
+			LOCAL = FINDCHARA_ENEMY(3008)
+			L_NO = RESULT:1
+			SIF L_NO < 0 || CPOS(L_NO) <= 0 || LOCAL == 0 || LOCAL == 3
+				RETURN
+			
+			;物理衝撃疾風弱点万能耐性それ以外反射
+			BASE:L_NO:剣撃 = 150
+			BASE:L_NO:打撃 = 150
+			BASE:L_NO:戦技 = 150
+			BASE:L_NO:火炎 = 999
+			BASE:L_NO:氷結 = 999
+			BASE:L_NO:電撃 = 999
+			BASE:L_NO:衝撃 = 150
+			BASE:L_NO:地変 = 999
+			BASE:L_NO:水撃 = 999
+			BASE:L_NO:疾風 = 150
+			BASE:L_NO:重力 = 999
+			BASE:L_NO:万能 = 50
+			CALL SYNC_STATUS,(L_NO)
+			
+			;混沌の波紋(ハイパーカウンタで代用)、デスバウンド(メテオフィスト、連続撃ち)、万魔の乱舞
+			ABL:L_NO:スキル1 = [[スキル:ハイパーカウンタ]]
+			ABL:L_NO:スキル2 = [[スキル:メテオフィスト]]
+			ABL:L_NO:スキル3 = [[スキル:連続撃ち]]
+			ABL:L_NO:スキル4 = [[スキル:万魔の乱舞]]
+			
+			CALL MESSAGE_B(3,"アルコルの姿がトゲ状になった！","アルコルの耐性が変わった！","アルコルのスキルが変わった！")
+		ENDIF
+	;-----------------------------
+	;- 4057:戦闘中(真ポラリス戦　摂理)
+	;-----------------------------
+	CASE 4057 , 3137 , 3147
+		L_CNT = 1
+		
+		FOR LOCAL, 7 , 17
+			L_POSITION = POS(LOCAL)
+			
+			;ポラリスじゃない、あるいは誰もいない
+			SIF L_POSITION < 0 || NO:L_POSITION != 3311
+				CONTINUE
+			
+			;ボスフラグついた本体だったら
+			SIF CFLAG:L_POSITION:ボスフラグ == 1
+				L_NO = L_POSITION
+				
+			;該当するキャラが死んでない
+			IF CFLAG:L_POSITION:ステート != GET_STATE_NUM("DYING")
+				L_CNT ++
+			;取り巻きが死んで３ターン立った
+			ELSEIF !CFLAG:L_POSITION:ボスフラグ && CFLAG:L_POSITION:ステート経過ターン > 2
+				CALL MESSAGE_BL(3,,CALLNAME:L_POSITION+"が再生した",)
+				CFLAG:L_POSITION:ステート = 0
+				CFLAG:L_POSITION:ステート経過ターン = 0
+				CALL HEALTH_CHARA,(L_POSITION)
+				
+				L_CNT ++
+			ENDIF
+		NEXT
+		
+		
+		;本体が死んでたら
+		IF CFLAG:L_NO:ステート == GET_STATE_NUM("DYING")
+			FLAG:勝利フラグ = 1
+		;あなたが死んでたら
+		ELSEIF CFLAG:MASTER:ステート == GET_STATE_NUM("DYING")
+			FLAG:敗北フラグ = 1
+		;ポラリスの行動回数調整
+		ELSEIF L_CNT < CFLAG:L_NO:行動回数
+			CFLAG:L_NO:行動回数 = L_CNT
+			CALL MESSAGE_B(3,,"ポラリスの行動回数が減少した！",)
+		ELSEIF L_CNT > CFLAG:L_NO:行動回数
+			CFLAG:L_NO:行動回数 = L_CNT
+			CALL MESSAGE_B(3,,"ポラリスの行動回数が増えた！",)
+		ENDIF
+ENDSELECT
+
+
+;HIGHヤマトの思考パターン
+@SET_ACTION_HIGHヤマト,ARG
+;ＨＰ15％以下
+IF 現HP割合(ARG) < 15 && RAND:2 == 0
+	CALL CHECK_ACTIONABLE,ARG,[[スキル:メ・ディアラハン]]
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = [[スキル:メ・ディアラハン]]
+	CALL RANDOM_TARGET,ARG,[[スキル:メ・ディアラハン]]
+	RETURN 1
+;ＨＰ15％以上
+ELSEIF 現HP割合(ARG) >= 15
+	IF CFLAG:ARG:命中強化 < 0 || CFLAG:ARG:魔法威力強化 < 0
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:デ・クンダ]]
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = [[スキル:デ・クンダ]]
+		CALL RANDOM_TARGET,ARG,[[スキル:デ・クンダ]]
+		RETURN 1
+	ELSE
+		SELECTCASE RAND:100
+			;80％
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:メギドラ]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:メギドラ]]
+				CALL RANDOM_TARGET,ARG,[[スキル:メギドラ]]
+				RETURN 1
+			;20％
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:裁きの雷火]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:裁きの雷火]]
+				CALL RANDOM_TARGET,ARG,[[スキル:裁きの雷火]]
+				RETURN 1
+		ENDSELECT
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+
+ENDIF
+
+;前座ヤマトの思考パターン
+@SET_ACTION_前座ヤマト,ARG
+;1more
+IF CFLAG:ARG:１moreフラグ == 2
+	;メギドラオン
+	CALL CHECK_ACTIONABLE,ARG,[[スキル:メギドラオン]]
+	SIF RESULT == 0
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+;ＨＰ10％以下
+ELSEIF 現HP割合(ARG) < 10
+	IF CFLAG:ARG:集中フラグ == 1
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:メギドラオン]]
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+		RETURN 1
+	ELSE
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:ディアラハン]]
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = [[スキル:ディアラハン]]
+		CALL RANDOM_TARGET,ARG,[[スキル:ディアラハン]]
+		RETURN 1
+	ENDIF
+;ＨＰ10％以上
+ELSEIF 現HP割合(ARG) >= 10
+	IF CFLAG:ARG:集中フラグ == 1
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:メギドラオン]]
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+		RETURN 1
+	ELSEIF CFLAG:ARG:命中強化 < -2 || CFLAG:ARG:魔法威力強化 < -2
+		CALL CHECK_ACTIONABLE,ARG,[[スキル:デ・クンダ]]
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = [[スキル:デ・クンダ]]
+		CALL RANDOM_TARGET,ARG,[[スキル:デ・クンダ]]
+		RETURN 1
+	ELSEIF CFLAG:ARG:行動した回数 == 0
+		SELECTCASE RAND:100
+			;40％
+			CASE IS < 40
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:コンセントレイト]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:コンセントレイト]]
+				CALL RANDOM_TARGET,ARG,[[スキル:コンセントレイト]]
+				RETURN 1
+			;40％
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:マカ・カジャ]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:マカ・カジャ]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マカ・カジャ]]
+				RETURN 1
+			;20％
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:メギドラオン]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+				RETURN 1
+		ENDSELECT
+	ELSE
+		SELECTCASE RAND:100
+			;60％
+			CASE IS < 60
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:メギドラオン]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+				CALL RANDOM_TARGET,ARG,[[スキル:メギドラオン]]
+				RETURN 1
+			;30％
+			CASE IS < 90
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:マカ・カジャ]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:マカ・カジャ]]
+				CALL RANDOM_TARGET,ARG,[[スキル:マカ・カジャ]]
+				RETURN 1
+			;10％
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,[[スキル:コンセントレイト]]
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = [[スキル:コンセントレイト]]
+				CALL RANDOM_TARGET,ARG,[[スキル:コンセントレイト]]
+				RETURN 1
+		ENDSELECT
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+
+ENDIF

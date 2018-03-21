@@ -1,0 +1,155 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:TALK.ERB
+;	Facility	:戦闘中のTALK選択時の処理を行う
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/10		Ｎ鳥					TALK_COMMONを使用するように変更。
+;	003		2012/02/09		ネトリス				魅了状態時の処理追加
+;	004		2013/03/12		ネトリス				命乞い処理を追加
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=====================================================================
+;戦闘中の悪魔会話の処理
+;=====================================================================
+
+;=====================================================================
+;悪魔会話
+;=====================================================================
+@TALK,ARG
+
+SIF GETBIT(FLAG:命乞いフラグ, 1) || GETBIT(FLAG:命乞いフラグ, 2)
+	GOTO 命乞い
+	
+PLAYER = MASTER
+
+
+
+IF CFLAG:ARG:アンノウンフラグ == 1
+	PRINTFORMW If you have no idea what this is、you can't make contact
+	RETURN 0
+ENDIF
+
+IF CFLAG:ARG:決裂フラグ == 1
+	PRINTFORMW %CALLNAME:ARG% is fired up
+	RETURN 0
+ENDIF
+
+IF ABL:ARG:会話タイプ == 331
+	IF CFLAG:ARG:TALK時特殊メッセージ行数 > 0
+		CALL MESSAGE_B,CFLAG:ARG:TALK時特殊メッセージ行数,CSTR:ARG:TALK時特殊メッセージ1,CSTR:ARG:TALK時特殊メッセージ2,CSTR:ARG:TALK時特殊メッセージ3,CSTR:ARG:TALK時特殊メッセージ4,CSTR:ARG:TALK時特殊メッセージ5
+	ELSE
+		PRINTFORMW They will not talk！
+		PRINTFORMW %CALLNAME:ARG% is fired up
+	ENDIF
+	CFLAG:ARG:決裂フラグ = 1
+	RETURN 0
+ENDIF
+
+;簡易処理
+IF FLAG:主人以外TALK可能 && CFLAG:(FINDCHARA(NO,NO:ARG)):PTフラグ == 0
+	;魅了状態の仲間がいる場合、10％の確率で勝手に会話をする
+	IF FLAG:ムフフ展開
+		FOR COUNT, 1, 6
+			SIF POS(COUNT) == -1
+				CONTINUE
+			SIF !(CFLAG:(POS(COUNT)):ステート == GET_STATE_NUM("CHARM"))
+				CONTINUE
+			SIF TALENT:(POS(COUNT)):オトコ == 1
+				CONTINUE
+			IF RAND:100 < 10
+				PRINTFORMW %CALLNAME:(POS(COUNT))%がフラフラと%CALLNAME:ARG%の前に歩み出た
+				PLAYER = POS(COUNT)
+				GOTO 魅了会話
+			ENDIF
+		NEXT
+	ENDIF
+	CALL SHOW_NOW_FORMATION_P,0,2,0
+	PRINTL 誰が話す？
+	$INPUT_LOOP
+	ONEINPUT
+	LOCAL = RESULT
+	IF LOCAL > 0 && LOCAL < 7
+		SIF POS(LOCAL) == -1
+			GOTO INPUT_LOOP
+		SIF  陥落(POS(LOCAL)) == 0 && POS(LOCAL) != MASTER
+			CALL INPUTABLE_CHARA,POS(LOCAL)
+		SIF RESULT == 0
+			GOTO INPUT_LOOP
+		PLAYER = POS(LOCAL)
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ELSE
+	PLAYER = MASTER
+ENDIF
+$魅了会話
+$命乞い
+CUSTOMDRAWLINE ・
+CALL TALK_COMMON,ARG
+
+PRINTL
+
+;RESULT: 1 なかま2 ものもらい3 襲われる4 おこらせる5 単に会話終了　6立ち去る
+
+SELECTCASE RESULT
+	CASE 1,2,6
+		RETURN 1
+	CASE 4,5
+		RETURN 0
+	CASE 3
+		RETURN 2
+	CASEELSE
+		RETURN 0
+	
+ENDSELECT
+
+
+;=====================================================================
+;仲魔を外す処理
+;=====================================================================
+
+;=====================================================================
+;物をもらう
+;=====================================================================
+@GIFT_PUBLIC,ARG
+$GIFT
+	SIF RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) + CFLAG:ARG:友好度 < 50
+		GOTO GET_DAMAGE
+	SIF RAND:2 == 0
+		GOTO GETMONEY
+	GOTO GETMAG
+
+
+$GETMONEY
+LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (300 + RAND:1000) * 5 /100
+PRINTFORMW %CALLNAME:PLAYER% Got ￥{LOCAL:2}
+MONEY += LOCAL:2
+RETURN 5
+
+$GETMAG
+LOCAL:2 = CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) * (600 + RAND:1500) * 5 /100
+PRINTFORMW %CALLNAME:PLAYER% Got {LOCAL:2}MAG
+CALL CONTROL_MAG,PLAYER,LOCAL:2
+RETURN 5
+
+$GET_DAMAGE
+PRINTFORMW %CALLNAME:PLAYER% Took damage
+CALL VAR_HP,PLAYER,-MAXBASE:PLAYER:ＨＰ/5,0
+RETURN 5
+
+;=====================================================================
+;式中関数
+;=====================================================================
+@捧げたキャラ()
+#FUNCTION
+RETURNF TFLAG:捧げたキャラ
+@交渉対象()
+#FUNCTION
+RETURNF TFLAG:交渉対象
+

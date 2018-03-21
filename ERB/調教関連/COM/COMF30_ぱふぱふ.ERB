@@ -1,0 +1,75 @@
+@CHECK_COM_ABLE30
+
+;パイズリする実行判定
+;某RPGだと男でもぱふぱふできたけど…流石にそれは…
+SIF TALENT:110
+	RETURN 0
+SIF !USE_HAND(TARGET)
+	RETURN 0
+SIF !USE_BREAST(TARGET,0,8)
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+RETURN 1
+
+@ACT_COM30
+PRINTL Puff-Puff
+TSTR:0 = ぱふぱふ
+;CALL KOJO_MESSAGE_COM
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 5
+DOWNBASE:TARGET:気力 += 20
+
+SOURCE:TARGET:恭順 = 50
+SOURCE:TARGET:3 = 100
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;依存度ベクトル
+TFLAG:33 = 1
+
+;依存度補正値
+TFLAG:30 += 2
+
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+;	PRINTS EXPNAME:23
+;	PRINTL +1
+	CALL ADDS_EXP("愛情経験", 1, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+RETURN 1
+
+@MESSAGE_COM30
+PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%の顔を
+IF TALENT:110 && RAND:3 == 0
+	PRINT 豊満な胸
+ELSEIF TALENT:112
+	PRINT 豊満すぎる程の胸
+ELSEIF TALENT:109
+	PRINT 小振りの胸
+ELSE
+	PRINT 柔らかなおっぱい
+ENDIF
+IF (TALENT:110 || TALENT:112) && RAND:4 == 0
+	PRINTFORMW で包んできた…
+ELSEIF TALENT:109
+	PRINTFORMW に押し当ててきた…
+ELSE
+	PRINTFORMW の谷間で挟んできた…
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_30
+RETURN COMTYPE("コミュ系")
+

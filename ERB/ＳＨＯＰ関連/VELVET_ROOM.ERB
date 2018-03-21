@@ -1,0 +1,2790 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:VELVET_ROOM.ERB
+;	Facility	:ペルソナ作成・装着などの処理。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	000		20xx/xx/xx		----					新規作成
+;	001		2011/1/12		P						耐性強化を追加
+;	002		2011/1/16		P						耐性強化の式を一部修正
+;	003		2011/2/04		P						ペルソナ解除を修正
+;	004		2011/3/06		P						一部バグ修正・インセンスカード取得・使用の処理を追加
+;	005		2011/3/10		P						一部バグ修正・レベルアップに必要な経験値の式を改訂・変異関係のフラグの名前を登録
+;	006		2011/4/11		P						ペルソナステータス表示画面を一部修正
+;	007		2011/4/24		P						ペルソナステータス表示におけるバーの表示変更
+;	008		2011/5/26		P						スキル習得時に説明を表示するように
+;	009		2011/6/22		P						一体しか作れない悪魔をペルソナ化できないように
+;	010		2011/7/29		P						合体不可の悪魔はペルソナ化できないように・一部UI変更
+;	011		2012/12/8		GATA					潜在能力追加
+;	012		2012/04/18		豚の娘の豚				カード作成ペルソナに円環の理追加
+;	013		2013/11/30		ひみつ					リスト表示数設定。スキル属性表示の適用範囲拡大
+;	014		2017/06/23		kuni					キャラ表示でINPUT_CHARA_LISTを使用するように変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;=================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name
+;
+; *- SHOP関連(RPG)
+;
+;	# メニュー関連
+;	・SHOPCOMABLE_123
+;	・SHOP_COM_123
+;	・VELVET_ROOM
+;
+;	# ペルソナの作成
+;	・PERSONA_MAKE1(作成するペルソナの指定)
+;	・PERSONA_MAKE2(実際のペルソナ作成作業)
+;	・ADJUST_MAKE_PSTATUS(ペルソナのステータスを偏らせる処理)
+;	・MAKE_MATERIALCARD(マテリアルカードからのペルソナ作成)
+;	・EVOLUTE_PERSONA
+;
+;	# ステータス確認
+;	・PERSONA_STATUS_CHECK
+;	・PERSONA_STATUS(ARG)
+;	・SHOW_PERSONA_MASTER_STATUS
+;
+;	# ペルソナの着脱
+;	・CHANGE_PERSONA
+;	・CHANGE_PERSONA
+;	・PERSONA_UNEQUIPMENT
+;
+;	# ペルソナの削除
+;	・DEL_PERSONA
+;	・DEL_PERSONA2
+;	・MAKE_PERSONA_SKILLCARD
+;	# ペルソナ強化
+;	・ADD_SKILL_PERSONA
+;	・POWERUP_PERSONA
+;	・EVENT_LEVELUP_P
+;	・LEARN_SKILL_P
+;	・PERSONA_ENHANCE_DEFTYPE
+;
+;	#FUNCTION
+;	・PERSONA_MASTER_LIST
+;	・ペルソナ
+;=================================================
+@SHOPCOMABLE_123
+	RESULTS = Velvet Room
+		;すでに鍵を持っているかイベント『タルタロス踏破指令』『深い霧のスタジオ』のどちらかを起こしているかセブンスがらみのフラグを立てている
+		IF ITEM:契約者の鍵 || イベントフラグ:9:0  || イベントフラグ:12:0 || STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]])
+			RETURN 1
+		;女神異聞録ペルソナのイベントでペルソナ使いを仲間にしている
+		ELSEIF ダンジョンフラグ:10:10 == 1 || ダンジョンフラグ:10:10 == 2 || 依頼フラグ:15:0 == 1
+			RETURN 1
+		;
+		ELSEIF !イベントフラグ:5:0
+			FOR LOCAL, 0, CHARANUM
+				SIF !TALENT:LOCAL:ペルソナ使い
+					CONTINUE
+				IF !CFLAG:LOCAL:戦闘参加不可能 && CFLAG:LOCAL:売却可能
+					RESULTS = Persona
+					RETURN 1
+				ENDIF
+			NEXT
+		;デバッグフラグが立っているときは条件なし
+		ELSEIF FLAG:DEBUG
+			RETURN 1
+		ENDIF
+	RETURN 0
+
+@SHOP_COM_123
+	CUSTOMDRAWLINE =
+	CALL VELVET_ROOM
+
+@VELVET_ROOM
+	;初回
+	IF イベントフラグ:5:0 == 0
+		IF FLAG:ショップコマンド == [[ショップ:ベルベットルーム]]
+			PRINTFORMW While strolling idly in the vicinity of the Junk Shop and Jakyou Manor, something catches your eye.
+			;ジャンクショップや邪教の館がある区画を、何をするという目的もなく、ふらふらと歩いていると、
+			PRINTFORMW There is a strange blue door you've never seen before in a side alley...
+			;路地に見覚えのない真っ青な扉が立っているのが目に入った…
+		ELSEIF FLAG:ショップコマンド == [[ショップ:探索]]
+			PRINTFORMW You see a dark blue butterfly dancing around...
+			;場に相応しくない真っ青な蝶が舞っているのが目に入った…
+		ENDIF
+		PRINTFORMW Wondering if your eyes are playing a trick on you, you rub them, but to no avail.
+		;幻覚かと思い、目をこすってみるが、どうやらそういうわけでもないらしい。
+		SIF STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]])
+			PRINTFORMW フィレモンの\@FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] ?「青い扉を探せ」#「青い蝶を探せ」\@という言葉はこのことだったのだろう。
+		PRINTFORMW %CALLNAME:MASTER%, curious, \@FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] ? opens the door # reaches out for the butterfly\@...
+		;%CALLNAME:MASTER%は意を決して、\@FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] ?扉を開いた#手を伸ばした\@…
+		PRINTL 
+		PRINTFORML \@FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] ?Inside, there is# When touching the butterfly, you where moved to\@ a room colored entirely in shades of blue.
+		PRINTFORMW In it's center is a strange small man that seems to have waited for you.
+		;\@FLAG:ショップコマンド == [[ショップ:ベルベットルーム]] ?中に入った先、#瞬く間に移った\@青い部屋には奇妙な風貌の小男が待ち受けていた…
+		PRINTFORMW 「Welcome to the velvet room, a place shaped by the hearts of it's on-lookers...」
+		;「ようこそ、ベルベットルームへ。ここは、人の心の様々なる形を呼び覚ます部屋…」
+		PRINTFORMW 「\@STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]]) ?我らが主、フィレモン様の命により、貴方がたをお待ちしておりました。#It seems you found this room because it was your destiny that you would.\@ My name is Igor.」
+		;「\@STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]]) ?我らが主、フィレモン様の命により、貴方がたをお待ちしておりました。#どうやらあなたは我が主の導きではなく何らかの運命に巻き込まれてこの部屋に到る鍵を手に入れられた様子。\@我が名は、イゴールと申します」
+		PRINTFORML 「I can help awaken something new from the depths of a persons heart. New personas.
+		PRINTFORMW   It seems \@STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]]) ?I can do that for you # there is someone with you that I can help in this way\@...」
+		;「貴方の仲間の方々の新たな心、新たなペルソナの目覚めをお助けする\@STRFLAG_EV("ベルベットルーム使用可能", , [[イベント:ペルソナ]]) ?よう、仰せつかっており#者でござい\@ます。以後、お見知りおきを・・・」
+		PRINTFORMW 「I can give you a brief explanation on what we offer here, in the velvet room. Would you like that?」
+		;「さて、それでは、このベルベットルームで出来ることについて簡単に説明できますが、必要ですかな？」
+		CALL INPUT_YN, "Yes", "No"
+		IF RESULT == 0
+			PRINTW 「Then I'll start by telling you about summoning personas.」
+			;「まずはペルソナの召喚についてですな」
+			PRINTW 「A persona is an aspect of the hearth sleeping in an ocean of unconsciousness.」
+			;「ペルソナは無意識の海に眠る人の心の原形、これを呼び出すには悪魔の力を借ります」
+			PRINTW 「I can use your demons to summon them from this ocean.」
+			PRINTW 「The demons form will be reborn as the persona.」
+			;「貴方が契約しておられる悪魔を媒介にして、その悪魔と同じペルソナを呼び出すのです」
+			PRINTW 「The stronger the demon and it's bond with you, the stonger it's will to grant you power...」
+			;「その悪魔の力が強力であれば、あるほど、その悪魔が貴方に心酔し、より強く力を貸したいと願えば願うほど…」
+			PRINTW 「The stronger will be the personas I can summon.」
+			;「より、強力なペルソナを召喚することができましょうぞ」
+			PRINTW 「However, the demon used for the summoning will not be able to regain it's permanent physical form.」
+			;「しかし、召喚には多大な力を使い、悪魔は現世に姿を現すだけの力を一時的にとはいえ失ってしまいます」
+			PRINTW 「That means, once it's become a persona, you'll not be able to interact with it as you can now.」
+			;「こうなっては二度と、貴方と出会うこともできなくなってしまうでしょう」
+			PRINTW 「Please, keep that in mind.」
+			;「その点にだけはご注意を」
+			PRINTW 「Once it has been summoned, the persona will be tied to a persona card.」
+			;「召喚したペルソナはペルソナカードとなります」
+			PRINTW 「And, unless someone uses that card, it will be dormant, sleeping.」
+			;「そして、ペルソナカードは多々持っているだけでなく、降魔しなければ意味がありません」
+			PRINTW 「Persona users can call onto personas, using their powers as their own.」
+			;「降魔とはペルソナ使いが、ペルソナを自らに降ろし、自らの力とすることですな」
+			PRINTW 「Persona users always retain the first persona that awakens within them.」
+			;「ペルソナ使いは元々常に自分と共に育ってきたペルソナを降魔しておりますが」
+			PRINTW 「By giving them a persona card, they can use a different persona.」
+			;「ペルソナカードを渡しておくことにより、別のペルソナを降魔することが出来ますぞ」
+			PRINTW 「I addition to the original persona, persona users can carry up to 3 persona cards.」
+			;「元々のペルソナに加え、さらに最大で3体までのペルソナカードを持たせておけるので」
+			PRINTW 「They can switch between the personas both in combat and outside of it.」
+			;「ともに戦う場合にはしっかりとペルソナカードを用意して差し上げると、よろしいでしょう」
+			PRINTW 「And if you have any persona cards not equipped, I'll keep them for you.」
+			;「また、貴方の仲間の方々が持たせていないペルソナカードは我が預かっておきましょう」
+			PRINTW 「However, there can never be more than 10 persona cards, including thoose someone has equipped.」
+			;「ただし、仲間の方々が持っているペルソナとあわせて10枚までしかストックしておくことが出来ません」
+			PRINTW 「If there are already 10, you'll have to send one persona back to the ocean of unconsciousness to call another.」
+			;「すでに10枚有る時に、新しいペルソナを望まれる場合は、ペルソナを帰還させ、スペースを確保することです」
+			PRINTW 「And a persona sent there will never return. Others like it may come, but this one is gone.」
+			;「もちろん、帰還し、普遍的無意識の海に帰ったペルソナとは二度とめぐり合うことは出来ないでしょうが」
+			PRINTW 「Well, thats enough explanation for now.」
+			;「さて、説明はここらでよろしいでしょう。」
+		ELSE
+			PRINTFORMW 「I see.」
+			;「了解いたしました」
+		ENDIF
+
+		IF ITEM:契約者の鍵 == 0
+			PRINTL 
+			PRINTW 「Before we talk any further, please, take this.」
+			;「御用を伺う前に、これをお渡しいたしましょう」
+			PRINTFORMW A blue key has appeared before %CALLNAME:MASTER%...
+			PRINTW 「Use this key to enter the velvet room whenever you whish to return.」
+			;「あなたは大事なお客人。以後ベルベットルームに入る鍵です」
+			PRINTW You got the key to the velvet room.
+			;契約者の鍵を手に入れた
+			ITEM:契約者の鍵 = 1
+		ENDIF
+		PRINTFORMW 「Well then, lets see what I can do for you.」
+		;「それでは早速、御用を伺いましょうかな」
+		イベントフラグ:5:0 = 2
+	ELSE
+		RESULT = 0
+		CALL VELVET_ROOM_EVENT
+		IF !RESULT
+			PRINTL 「This room floats between consciousness and unconsciousness.」
+			PRINTW 「Only the sensitive can find the door to this place...Now, how can I help you?」
+		ENDIF
+	ENDIF
+
+	DRAWLINE
+	$VELVET_ROOM_START
+	LOCAL:1 = 0
+	;戦闘可能なペルソナ使いがいる
+	FOR LOCAL, 0 , CHARANUM
+		SIF TALENT:LOCAL:ペルソナ使い == 0
+			CONTINUE
+		;Changed so thoose with CFLAG:LOCAL:戦闘参加不可能 of -1 are useable here
+		;and the other 2 requirements are not needed with that
+		SIF CFLAG:LOCAL:戦闘参加不可能 > 0 ;&& !CFLAG:LOCAL:売却可能 && !陥落(LOCAL)
+			CONTINUE
+		SIF CFLAG:LOCAL:この場に居ないフラグ == 1
+			CONTINUE
+		LOCAL:1 = 1
+		BREAK
+	NEXT
+	IF !LOCAL:1
+		PRINTL 「Oh, you don't seem to have any persona-users.
+		PRINTW 　I'm sorry, but in this case, there is nothing we can do for you.」
+		;残念ですが、これでは我らがお役に立つことはできないでしょう」
+		PRINTW 「If you ever have a persona-user among your companions, please come again.」
+		RETURN 0
+	ENDIF
+	VARSET Q
+	PRINTL [0] Choose active Persona
+	PRINTL [1] Summon Persona
+	PRINTL [2] Give Persona
+	PRINTL [3] Remove Persona
+	PRINTL [4] Delete Persona
+	LOCAL:1 = 0
+	FOR LOCAL, GETNUM(ITEM, "溶岩の槌"), GETNUM(ITEM, "溶岩の槌") + 30
+		SIF ITEM:LOCAL == 1
+			LOCAL:1 = 1
+	NEXT
+	PRINTL [5] Enhance Persona
+	SIF LOCAL:1
+		PRINTL [6] Use a material card
+	LOCAL:2 = 0
+	FOR LOCAL, 0, CHARANUM
+		SIF CFLAG:LOCAL:ペルソナ強化フラグ % 2 == 1
+			LOCAL:2 = 1
+	NEXT
+	SIF LOCAL:2
+		PRINTL [7] Perform special summon
+	;LOCAL:3 = 0
+	;FOR LOCAL, 0, CHARANUM
+	;	SIF STRFLAG_EV("引継ぎペルソナ作成")
+	;		BREAK
+	;	SIF NO:LOCAL == MASTER
+	;		CONTINUE
+	;	SIF !TALENT:LOCAL:ペルソナ使い 
+	;		CONTINUE
+	;	SIF 陥落(LOCAL) < 3
+	;		CONTINUE
+	;	LOCAL:3 = 1
+	;	BREAK
+	;NEXT
+	;SIF LOCAL:3
+	;	PRINTL [8] 特別なペルソナカードを作成する
+
+	PRINTL [99] Check Persona status
+	PRINTL [100] Cancel
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 0
+		CALL PERSONA_MASTER_LIST
+		IF RESULT < 0 || NO:RESULT < 0
+			GOTO VELVET_ROOM_START
+		ELSE
+			イベントフラグ:5:0 = 3
+			CALL CHANGE_PERSONA(RESULT)
+			イベントフラグ:5:0 = 2
+		ENDIF
+	ELSEIF RESULT == 1
+		CALL PERSONA_MAKE1
+		CALL REFRESH_POS
+	ELSEIF RESULT == 2
+		CALL PERSONA_EQUIP
+	ELSEIF RESULT == 3
+		CALL PERSONA_MASTER_LIST
+		IF RESULT < 0
+			GOTO VELVET_ROOM_START
+		ELSE
+			IF EQUIP:RESULT:所持ペルソナ1 == 0
+				PRINTFORML 「Oh, there don't seem to be any personas I can remove.」
+				GOTO VELVET_ROOM_START
+			ELSE
+				LOCAL = RESULT
+				PRINTFORML 「Then, please tell me whose persona you which to remove.」
+				;それでは、外すペルソナをお教え願えますかな？
+				LOCAL:3 = -1
+				FOR LOCAL:2, GETNUM(EQUIP, "所持ペルソナ1"), GETNUM(EQUIP, "所持ペルソナ3")+1
+					SIF EQUIP:LOCAL:(LOCAL:2) == 0
+							BREAK
+					LOCAL:3 ++
+					CSVNAME DITEMTYPE:(EQUIP:LOCAL:(LOCAL:2)):1,0
+					IF EQUIP:LOCAL:(LOCAL:2) == EQUIP:LOCAL:装備ペルソナ
+						PRINT *
+					ELSE
+						PRINT  
+					ENDIF
+					PRINTFORML [{LOCAL:3}] %RESULTS%
+				NEXT
+				PRINTFORML [100] Return
+				$INPUT_LOOP1
+				INPUT
+				IF RESULT == 100
+					GOTO VELVET_ROOM_START
+				ELSEIF RESULT >= 0 && RESULT <= LOCAL:3
+					IF EQUIP:LOCAL:(GETNUM(EQUIP, "所持ペルソナ1")+RESULT) == EQUIP:LOCAL:装備ペルソナ
+						PRINTFORML Removed the equipped persona.
+						;現在装備しているペルソナは外すのですな
+						PRINTFORMW Please note that it has been turned into a demon.
+						;代わりに初期ペルソナを降魔させるのでご注意を
+					ENDIF
+					CALL PERSONA_UNEQUIPMENT(LOCAL, EQUIP:LOCAL:(GETNUM(EQUIP, "所持ペルソナ1")+RESULT))
+				ELSE
+					GOTO INPUT_LOOP1
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSEIF RESULT == 4
+		CALL DEL_PERSONA
+	ELSEIF RESULT == 5
+	;ITEM:スキルカード1
+	;	CALL ADD_SKILL_PERSONA
+		CALL POWERUP_PERSONA
+	ELSEIF RESULT == 6 && LOCAL:1
+		CALL PERSONA_MAKE3
+	ELSEIF RESULT == 7 && LOCAL:2
+		CALL EVOLUTE_PERSONA
+	;ELSEIF RESULT == 8 && LOCAL:3
+	;	CALL MAKE_SPECIAL_PERSONA
+	ELSEIF RESULT == 99
+		CALL PERSONA_STATUS_CHECK
+	ELSEIF RESULT == 100
+		PRINTW 「Then, farewell...」
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+	GOTO VELVET_ROOM_START
+
+
+@PERSONA_MAKE1
+CALL INPUT_CHARA_LIST("Which demon shall aid you?", "CASTING_PERSONA_MAKE1")
+;SIF LOCAL:1 > -1
+;	PRINTFORML %CALLNAME:(LOCAL:1)%
+IF RESULT == 1000
+	RETURN 0
+ELSEIF CFLAG:RESULT:売却不可能 || CFLAG:RESULT:１体のみ
+	PRINTFORMW 「Oh, %CALLNAME:RESULT% does not seem to be a persona.」
+	;おや、%CALLNAME:RESULT%はペルソナになるつもりがないようですな
+	RESTART
+ELSEIF ABL:RESULT:種族 == 43 || NO:RESULT == 3501 || NO:RESULT == 3502
+	PRINTFORMW Sorry, the figure of %CALLNAME:RESULT% doesn't seem to exists in the ocean of universal unconsciousness.
+	;残念ですが、%CALLNAME:RESULT%の姿は普遍的無意識の海に存在しないようです
+	RESTART
+ENDIF
+FOR LOCAL,1,11
+	SIF DITEMTYPE:LOCAL:ペルソナ("NO") != NO:RESULT
+		CONTINUE
+	PRINTFORMW 「Oh, %CALLNAME:RESULT% is already summoned.」
+	RESTART
+NEXT
+LOCAL:1 = RESULT
+
+LOCAL:3 = 0
+FOR LOCAL:2, 1, 11
+;生成済みペルソナ数をチェック
+	SIF DITEMTYPE:(LOCAL:2):ペルソナ("装備状態") == 0
+		BREAK
+	LOCAL:3 ++
+NEXT
+;10個あった場合は入れ替えるペルソナを選択させる
+IF LOCAL:3 == 10
+	DRAWLINE
+	PRINTFORML 「Oh, it seems there are already quite a few personas.」
+	;おや、すでにペルソナがいっぱいのようですな
+	PRINTFORML 「Then, please choose a persona to return to the sea of universal unconsciousness.」
+	;それでは、普遍的無意識の海に還すペルソナをお選びください
+	DRAWLINE
+	FOR LOCAL:3, 1, 11
+		;名前表示
+		PRINTFORM [{LOCAL:3-1}] %CSVNAME(DITEMTYPE:(LOCAL:3):ペルソナ("NO"), 0)%
+		IF DITEMTYPE:(LOCAL:3):ペルソナ("装備状態") == -1
+			PRINTL (Summoned)
+			;(所持中)
+		ELSEIF DITEMTYPE:(LOCAL:3):ペルソナ("装備状態") == -2
+			PRINTL (Equipped)
+		ELSE
+			PRINTL 
+		ENDIF
+	NEXT
+	PRINTFORML [100] Return
+;生成数10個未満の場合は一番若い番号にペルソナを作る
+ELSE
+	LOCAL:2 -= 1
+	GOTO END
+ENDIF
+$INPUT_LOOP2
+INPUT
+IF RESULT == 100
+	RESTART
+ELSEIF RESULT >= 0 && RESULT < 10
+	LOCAL:2 = RESULT + 1
+	IF DITEMTYPE:(LOCAL:2):ペルソナ("装備状態") < 0
+		FOR LOCAL, 0, CHARANUM
+			SIF TALENT:LOCAL:ペルソナ使い == 0
+				CONTINUE
+			FOR LOCAL:3, 1, 4
+				LOCALS = 所持ペルソナ{LOCAL:3}
+				IF EQUIP:LOCAL:LOCALS == LOCAL:2
+					CALL PERSONA_UNEQUIPMENT(LOCAL, LOCAL:2)
+					BREAK
+				ENDIF
+			NEXT
+		NEXT
+	ENDIF
+ELSE
+	GOTO INPUT_LOOP2
+ENDIF
+$END
+CALL PERSONA_MAKE2(LOCAL:1, LOCAL:2)
+
+@CASTING_PERSONA_MAKE1
+SIF ABL:COUNT:種族 == 0
+	RETURN 0
+SIF ABL:COUNT:種族 == 45
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF CFLAG:COUNT:合体不可
+	RETURN 0
+RETURN 1
+
+@PERSONA_MAKE2(ARG, ARG:1)
+	;ARG,対象の悪魔の登録番号
+	;ARG:1 ペルソナナンバー番号
+	;8番目のスキルを取得している場合は捨てるスキルを1個選ぶ
+	;IF ABL:ARG:スキル8
+	;	DRAWLINE
+	;	PRINTFORML ペルソナは7つまでしかスキルを所持することができないのです
+	;	PRINTFORML 捨てるスキルをひとつお選びください
+	;	DRAWLINE
+	;	REPEAT 8
+	;		CALLFORM SKILL_NAME_{ABL:ARG:(60 + COUNT)}
+	;		PRINTFORML [{COUNT}] %RESULTS%
+	;	REND
+	;	PRINTL [100] Return
+	;;	INPUT
+	;	$INPUT_LOOP
+	;	LOCAL:2 = 0
+	;	IF RESULT >= 0 && RESULT <= 6
+	;;		;8番目のスキルを引き継がない仕様なので8番目と捨てるスキルを交換
+	;		SWAP ABL:ARG:(GETNUM(ABL, "スキル1") + RESULT), ABL:ARG:スキル8
+	;		LOCAL:2 = (GETNUM(ABL, "スキル1") + RESULT)
+	;	;8番目を捨てるならそのまま
+	;	ELSEIF RESULT <= 7
+	;;	ELSEIF RESULT == 100
+	;		RETURN
+	;	ELSE
+	;		GOTO INPUT_LOOP
+	;	ENDIF
+	;ENDIF
+
+	;悪魔の所持スキルをフラグに引移して行く
+	FOR LOCAL, 0, 8
+		TRYCCALLFORM 敵専用_{ABL:ARG:(GETNUM(ABL, "スキル1") + LOCAL)}
+			SIF RESULT
+				CONTINUE
+		CATCH
+		ENDCATCH
+		DITEMTYPE:(ARG:1):(LOCAL+ペルソナ("スキル1")) = ABL:ARG:(GETNUM(ABL, "スキル1") + LOCAL)
+	NEXT
+	FOR LOCAL, 0, 20
+		DITEMTYPE:(ARG:1):(LOCAL+ペルソナ("習得スキル1")) = ABL:ARG:(GETNUM(ABL, "習得スキル1") + LOCAL)
+		DITEMTYPE:(ARG:1):(LOCAL+ペルソナ("習得LV1")) = ABL:ARG:(GETNUM(ABL, "習得LV1") + LOCAL)
+	NEXT
+	;ペルソナのキャラ番号を登録
+	DITEMTYPE:(ARG:1):ペルソナ("NO") = NO:ARG
+	;ペルソナ装備状態を登録
+	DITEMTYPE:(ARG:1):ペルソナ("装備状態") = 1
+
+	;悪魔のステータスを記録
+	FOR LOCAL, 0, 7
+		DITEMTYPE:(ARG:1):(ペルソナ("LV") + LOCAL) = (BASE:ARG:(GETNUM(BASE, "LV") + LOCAL))
+	NEXT
+	;---- EDIT 001 ADD START -------------------------
+	;相性をペルソナに記録し、持たせるように変更
+	;相性とCPを記録
+	CALL GET_CP_PERSONA, NO:ARG, ARG:1
+	;---- EDIT 001 ADD END -------------------------
+	DITEMTYPE:(ARG:1):ペルソナ("属性LD") = ABL:ARG:属性LD
+	DITEMTYPE:(ARG:1):ペルソナ("属性LC") = ABL:ARG:属性LC
+	;元悪魔の陥落状態を記録
+	DITEMTYPE:(ARG:1):ペルソナ("陥落") = 陥落(ARG)
+	;CALL ADJUST_MAKE_PSTATUS(ARG:1)
+
+	;潜在能力
+	;悪魔の種族を見て対応する潜在能力を追加
+	;潜在能力	６潜在補助　１潜在回復　２潜在防御　３潜在復活　４潜在特殊　５潜在攻撃
+	;潜在攻撃を持つペルソナ：イルルヤンカシュ　ホクトセイクン　ドゥルガー　スサノオ　サタン　シヴァ　ルシファー　ビシャモンテン
+	;↑悪魔が追加されたら追加
+	IF NO:ARG == 6 || NO:ARG == 1405 || NO:ARG == 1414 || NO:ARG == 1404
+		DITEMTYPE:(ARG:1):(ペルソナ("潜在能力")) = 5
+	ELSEIF (ABL:ARG:種族 >= 1 && ABL:ARG:種族 <= 3) || ABL:ARG:種族 == 13
+		DITEMTYPE:(ARG:1):(ペルソナ("潜在能力")) = 6
+	ELSEIF ABL:ARG:種族 == 4 || ABL:ARG:種族 == 5 || ABL:ARG:種族 == 16 || ABL:ARG:種族 == 18
+		DITEMTYPE:(ARG:1):(ペルソナ("潜在能力")) = 1
+	ELSEIF (ABL:ARG:種族 >= 6 && ABL:ARG:種族 <= 8) || ABL:ARG:種族 == 15
+		DITEMTYPE:(ARG:1):(ペルソナ("潜在能力")) = 2
+	ELSEIF (ABL:ARG:種族 >= 9 && ABL:ARG:種族 <= 11) || ABL:ARG:種族 == 32
+		DITEMTYPE:(ARG:1):(ペルソナ("潜在能力")) = 3
+	ELSEIF ABL:ARG:種族 == 42 || ABL:ARG:種族 == 44
+		DITEMTYPE:(ARG:1):(ペルソナ("潜在能力")) = 4
+	ENDIF
+
+	PRINTFORMW Hm, if you summon %CALLNAME:ARG% as a persona, it seems this will be the result.
+	;ふむ、%CALLNAME:ARG%の協力でペルソナを呼び出した場合、このような能力のペルソナが生まれるようですな
+	CALL PERSONA_STATUS(ARG:1)
+	PRINTL Really perform this summoning?
+	CALL INPUT_YN, "Yes", "No"
+	IF RESULT == 1
+		PRINTFORMW Undersood. Summoning canceled.
+		SIF LOCAL:2
+			SWAP ABL:ARG:(LOCAL:2), ABL:ARG:スキル8
+		FOR LOCAL,0, 40
+			DITEMTYPE:(ARG:1):LOCAL = 0
+		NEXT
+		RETURN 0
+	ENDIF
+	DITEMTYPE:(ARG:1):ペルソナ("ペルソナ所持者") = -1
+	CALL キャラ削除, ARG
+	@PERSONA_MAKE3
+	PRINTFORMW 「Then, please choose a card.」
+	;「それでは、お使いになるカードをお選びください」
+	VARSET LOCAL
+	FOR LOCAL, 0, 30
+		SIF ITEM:(LOCAL+GETNUM(ITEM, "溶岩の槌")) == 1
+			PRINTFORML [{LOCAL}] %ITEMNAME_E(LOCAL+GETNUM(ITEM, "溶岩の槌"))%
+	NEXT
+	PRINTL [100] Return
+	$INPUT_LOOP
+	INPUT
+	LOCAL = RESULT + GETNUM(ITEM, "溶岩の槌")
+	SIF RESULT == 100
+		RETURN
+
+	SIF LOCAL < GETNUM(ITEM, "溶岩の槌") || GETNUM(ITEM, "溶岩の槌") + 30 <= LOCAL || ITEM:LOCAL <= 0
+		GOTO INPUT_LOOP
+	LOCAL:3 = 0
+	FOR LOCAL:2, 1, 11
+	;生成済みペルソナ数をチェック
+		SIF DITEMTYPE:(LOCAL:2):ペルソナ("装備状態") == 0
+			BREAK
+		LOCAL:3 ++
+	NEXT
+	;10個あった場合は入れ替えるペルソナを選択させる
+	IF LOCAL:3 == 10
+		DRAWLINE
+		PRINTFORML 「Oh, it seems there are already quite a few personas.」
+		PRINTFORML 「Then, please choose a persona to return to the sea of unversal unconsciousness.」
+		DRAWLINE
+		FOR LOCAL:3, 1, 11
+			;名前表示
+			PRINTFORM [{LOCAL:3-1}] %CSVNAME(DITEMTYPE:(LOCAL:3):ペルソナ("NO"), 0)%
+			IF DITEMTYPE:(LOCAL:3):ペルソナ("装備状態") == -1
+				PRINTL (Summoned)
+				;(所持中)
+			ELSEIF DITEMTYPE:(LOCAL:3):ペルソナ("装備状態") == -2
+				PRINTL (Equipped)
+				;(降魔中)
+			ELSE
+				PRINTL 
+			ENDIF
+		NEXT
+		PRINTFORML [100] Return
+	;生成数10個未満の場合は一番若い番号にペルソナを作る
+	ELSE
+		LOCAL:2 -= 1
+		GOTO END
+	ENDIF
+	$INPUT_LOOP2
+	INPUT
+	IF RESULT == 100
+		RESTART
+	ELSEIF RESULT >= 0 && RESULT < 10
+		LOCAL:2 = RESULT + 1
+		IF DITEMTYPE:(LOCAL:2):ペルソナ("装備状態") < 0
+			FOR LOCAL, 0, CHARANUM
+				SIF TALENT:LOCAL:ペルソナ使い == 0
+					CONTINUE
+				FOR LOCAL:3, 1, 4
+					LOCALS = 所持ペルソナ{LOCAL:3}
+					IF EQUIP:LOCAL:LOCALS == LOCAL:2
+						CALL PERSONA_UNEQUIPMENT(LOCAL, LOCAL:2)
+						BREAK
+					ENDIF
+				NEXT
+			NEXT
+		ENDIF
+	ELSE
+		GOTO INPUT_LOOP2
+	ENDIF
+	$END
+	CALL MAKE_MATERIALCARD(LOCAL, LOCAL:2)
+
+;---- EDIT 001 ADD START -------------------------
+;新規作成
+@GET_CP_PERSONA, ARG, ARG:1
+	;ARG 悪魔のNO
+	;ARG:1 ペルソナのNO
+	LOCAL:1 = 15
+	FOR LOCAL, 0, FLAG:相性数
+		SELECTCASE CSVBASE(ARG, GETNUM(BASE, GET_TYPE(LOCAL)), 0)
+			CASE 999
+				LOCAL:1 += 25
+			CASE IS < 0
+				LOCAL:1 += 25
+			CASE 0
+				LOCAL:1 += 20
+			CASE IS > 199
+				LOCAL:1 -= 20
+			CASE IS > 100
+				LOCAL:1 -= 10
+			CASE IS <= 50
+				LOCAL:1 += 10
+			CASE IS < 100
+				LOCAL:1 += 5
+		ENDSELECT
+	NEXT
+	DITEMTYPE:(ARG:1):ペルソナ("CP") = MAX(1,LOCAL:1) + CSVCFLAG(ARG, GETNUM(CFLAG, "ＣＰ補正"), 0)
+;---- EDIT 001 ADD END -------------------------
+
+;@ADJUST_MAKE_PSTATUS(ARG)
+;仕様上、ペルソナのステータスが飲まれすぎというか
+;P使いのステにひきずられる度合いが強くて、ステータス面の変更が際立たないんで
+;ペルソナのステータスは極端になるように調整してみる
+;最大の値のステは最低の値のステの40%加算し、同値を最低の値から減算する
+;同様に2番は5番目と30%、3番目は4番目と20%の値を移動する
+
+;LOCAL:1~6にステータス格納
+;LOCALS:1~6にステータス名を格納
+;LOCAL:7はステータスの合計値
+;LOCAL:7 = 0
+;FOR LOCAL, 1 , 7
+;	LOCALS:LOCAL = %GET_BASESTATUS(LOCAL)%
+;	LOCAL:LOCAL = DITEMTYPE:ARG:ペルソナ(LOCALS:LOCAL)
+;	LOCAL:7 += LOCAL:LOCAL
+;NEXT
+;全てのステータスがフラットな値から、±2以内に収まっている場合はフラットが特徴ということで
+;ステータス調整を行わない
+;FOR LOCAL, 1 , 7
+;	SIF ABS(LOCAL:7 / 6 - LOCAL:LOCAL) > 2
+;		BREAK
+;	RETURN 0
+;NEXT
+;LOCAL = 1
+;LOCAL:1~LOCAL:6及びLOCALS:1~LOCALS:6を大きい順に並べる。まぁ所詮6個だし、最も原始的なソート方でいくように
+;隣合う項を比較して、次の項が大きかったら入れ替えをちゃんと整列するまで何週も繰り返えす
+;WHILE (LOCAL:1 < LOCAL:2) || (LOCAL:2 < LOCAL:3) || (LOCAL:3 < LOCAL:4) || (LOCAL:4 < LOCAL:5) || (LOCAL:5 < LOCAL:6)
+;	IF LOCAL:LOCAL < LOCAL:(LOCAL + 1)
+;		SWAP LOCAL:LOCAL, LOCAL:(LOCAL + 1)
+;		SWAP LOCALS:LOCAL, LOCALS:(LOCAL + 1)
+;	ENDIF
+;	SIF ++LOCAL >= 6
+;		LOCAL = 1
+;WEND
+;DITEMTYPE:ARG:ペルソナ(LOCALS:1) += (LOCAL:6) * 40 / 100
+;DITEMTYPE:ARG:ペルソナ(LOCALS:6) -= (LOCAL:6) * 40 / 100
+;DITEMTYPE:ARG:ペルソナ(LOCALS:2) += (LOCAL:5) * 30 / 100
+;DITEMTYPE:ARG:ペルソナ(LOCALS:5) -= (LOCAL:5) * 30 / 100
+;DITEMTYPE:ARG:ペルソナ(LOCALS:3) += (LOCAL:4) * 20 / 100
+;DITEMTYPE:ARG:ペルソナ(LOCALS:4) -= (LOCAL:4) * 20 / 100
+
+@MAKE_MATERIALCARD, ARG, ARG:1
+	#LOCALSIZE 10
+	FOR LOCAL, 0, 100
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):LOCAL = 0
+	NEXT
+	LOCAL = ARG - GETNUM(ITEM, "溶岩の槌") + 1
+	IF LOCAL == 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:ヴォルカヌス・改(ペルソナ)]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:マハ・ラギ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:アギラオ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:ツインスラッシュ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:利剣乱舞]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = MAX(BASE:MASTER:LV+2,16)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:タル・カジャ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = MAX(BASE:MASTER:LV+3,18)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:ペンパトラ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+4,22)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル4") = [[スキル:マハ・ラギオン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV4") = MAX(BASE:MASTER:LV+1,24)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル5") = [[スキル:アギダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV5") = MAX(BASE:MASTER:LV+5,30)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("陥落") = 1
+	ELSEIF LOCAL == 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:エロス・改(ペルソナ)]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:ディアラマ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:マハ・マグナ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:マグナス]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:マハ・マグナス]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = MAX(BASE:MASTER:LV+1,11)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:マリンカリン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = MAX(BASE:MASTER:LV+2,12)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:連続撃ち]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+3,24)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル4") = [[スキル:セクシーダンス]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV4") = MAX(BASE:MASTER:LV+4,25)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル5") = [[スキル:マグダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV5") = MAX(BASE:MASTER:LV+5,30)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("陥落") = 1
+	ELSEIF LOCAL == 3
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:マイア・改(ペルソナ)]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:メ・ディアラマ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:ブフーラ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:アクア]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:マハンマ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = MAX(BASE:MASTER:LV+1,11)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:ひっかき]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = MAX(BASE:MASTER:LV+2,12)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:子守唄]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+3,14)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:マルチディメンション]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+4,16)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:マハ・アクエス]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+5,28)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("陥落") = 1
+	ELSEIF LOCAL == 4
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:ラダマンティス(ペルソナ)]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:アクエス]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:一文字斬り]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:エイハ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:マハムド]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = MAX(BASE:MASTER:LV+1,15)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:テトラジャ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = MAX(BASE:MASTER:LV+2,17)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:剛切断]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+3,21)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル4") = [[スキル:マハ・アクエス]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV4") = MAX(BASE:MASTER:LV+4,25)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル5") = [[スキル:アクアダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV5") = MAX(BASE:MASTER:LV+5,32)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 2
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("陥落") = 1
+	ELSEIF LOCAL == 5
+		;ヴィシュヌ:剣打＋火氷電＋破魔＋スティティを習得していく。そのかわり素質なし
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = [[キャラ:ヴィシュヌ(ペルソナ)]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("陥落") = 0
+		IF BASE:MASTER:LV < 20
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:ヒートウェイブ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:デスバウンド]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = 20
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:ブフーラ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = 24
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:ジオンガ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = 26
+		ENDIF
+		IF BASE:MASTER:LV < 40
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:デスバウンド]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:虚空斬波]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = 40
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:ブフダイン]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = 42
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:ジオダイン]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = 44
+		ENDIF
+		SIF BASE:MASTER:LV >= 40
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:虚空斬波]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:ブフ]] + (BASE:MASTER:LV >= 20) + (BASE:MASTER:LV >= 40)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:ジオ]] + (BASE:MASTER:LV >= 20) + (BASE:MASTER:LV >= 40)
+		IF BASE:MASTER:LV < 15
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル9") = [[スキル:ソニックパンチ]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV9") = 15
+		ENDIF
+		IF BASE:MASTER:LV < 35
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル10") = [[スキル:ギガンフィスト]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV10") = 35
+		ENDIF
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル11") = [[スキル:アカシャアーツ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV11") = MAX(BASE:MASTER:LV + 2, 55)
+		IF BASE:MASTER:LV < 25
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル12") = [[スキル:破魔の雷光]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV12") = 25
+		ENDIF
+		IF BASE:MASTER:LV < 45
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル13") = [[スキル:光の裁き]]
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV13") = 45
+		ENDIF
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル14") = [[スキル:穢れ無き威光]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV14") = MAX(BASE:MASTER:LV + 4, 60)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル15") = [[スキル:コンセントレイト]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV15") = MAX(BASE:MASTER:LV + 6, 40)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル16") = [[スキル:スティティ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV16") = MAX(BASE:MASTER:LV + 10, 90)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 2
+	ELSEIF LOCAL == 8 || LOCAL == 9
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = LOCAL == 8 ? [[キャラ:Orpheus・改(ペルソナ)]] # [[キャラ:伊邪那岐大神(ペルソナ)]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = [[スキル:勝利の雄叫び]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:ディアラハン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:コンセントレイト]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = [[スキル:気合]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル4") = [[スキル:ツインスラッシュ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル5") = [[スキル:シングルショット]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル6") = [[スキル:ギガンフィスト]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル7") = [[スキル:アサルトダイブ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル8") = [[スキル:アギダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル9") = [[スキル:ブフダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル10") = [[スキル:ジオダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル11") = [[スキル:パララアイ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル12") = [[スキル:高揚の歌]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル13") = [[スキル:ハマオン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル14") = [[スキル:ムドオン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル15") = [[スキル:マグダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル16") = [[スキル:アクアダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル17") = [[スキル:ガルダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル18") = [[スキル:グラダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル19") = [[スキル:フレイダイン]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル20") = [[スキル:メギドラオン]]
+		FOR LOCAL, 1, 21
+			DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ(@"習得LV{LOCAL}") = MAX(BASE:MASTER:LV + 1, 100)
+		NEXT
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 1
+	;まどマギＭＯＤ追加分
+	ELSEIF LOCAL == 30
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") = 4391;魔法少女　円環の理
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル1") = 2999; フィニトラ・フレティア
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル2") = [[スキル:穢れ無き威光]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("スキル3") = [[スキル:高天烈風弾]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル1") = [[スキル:メギドラ]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV1") = MAX(BASE:MASTER:LV+1,82)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル2") = [[スキル:マカカジャオート]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV2") = MAX(BASE:MASTER:LV+2,83)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル3") = 2991; 救済の手
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV3") = MAX(BASE:MASTER:LV+3,84)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得スキル4") = [[スキル:万魔の乱舞]]
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("習得LV4") = MAX(BASE:MASTER:LV+4,85)
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("陥落") = 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LD") = 1
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("属性LC") = 2
+	;まどマギＭＯＤ追加分ここまで
+	ENDIF
+	DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("装備状態") = 1
+	DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("ランク") = 10
+	DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("EXP") = 1000
+
+	FOR LOCAL,1, 11
+		IF DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO") == DITEMTYPE:ペルソナ(@"ペルソナ{LOCAL}"):ペルソナ("NO")
+			PRINTFORMW Oh, %CSVCALLNAME(DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO"), 0)% has already been summoned.
+			;おや、%CSVCALLNAME(DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO"), 0)%はすでに召喚されておりますな
+			FOR LOCAL, 0, 100
+				DITEMTYPE:ペルソナ("ゲストペルソナ1"):LOCAL = 0
+			NEXT
+			RETURN 0
+		ENDIF
+	NEXT
+	;----------------------------------
+	;ステータス決定
+	;----------------------------------
+	DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("LV") = BASE:MASTER:LV
+	FOR LOCAL, 1, 7
+		LOCAL:LOCAL = CSVBASE(DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO"), GETNUM(BASE, GET_BASESTATUS(LOCAL)),0)
+	NEXT
+	LOCAL:7 = 100 * (BASE:MASTER:LV * 3 / 2 + 18) / SUMARRAY(LOCAL, 1, 7)
+	FOR LOCAL, 1, 7
+		LOCAL:LOCAL = LOCAL:LOCAL * LOCAL:7 / 100
+	NEXT
+	WHILE SUMARRAY(LOCAL, 1, 7) < BASE:MASTER:LV * 3 / 2 + 18
+		LOCAL:(LOCAL%6+1) += 1
+		LOCAL++
+	WEND
+	FOR LOCAL, 1, 7
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ(GET_BASESTATUS(LOCAL)) = LOCAL:LOCAL
+	NEXT
+	;---- EDIT 001 ADD START -------------------------
+	;ペルソナに相性を持たせる
+	CALL GET_CP_PERSONA, DITEMTYPE:ペルソナ("ゲストペルソナ1"):ペルソナ("NO"), ペルソナ("ゲストペルソナ1")
+	;---- EDIT 002 ADD START -------------------------
+	;CALL ADJUST_MAKE_PSTATUS(ペルソナ("ゲストペルソナ1"))
+	PRINTFORMW Hm, when you use %ITEMNAME_E(ARG)%, it sems a persona with these abilities will be called.
+	;ふむ、%ITEMNAME_E(ARG%を使って、ペルソナを呼び出した場合、このような能力のペルソナが生まれるようですな
+	CALL PERSONA_STATUS(ペルソナ("ゲストペルソナ1"))
+	PRINTL Do you want to summon this persona?
+	;本当に召喚してよろしいですかな？
+	CALL INPUT_YN, "Yes", "No"
+	SIF RESULT == 1
+		RETURN 0
+	FOR LOCAL, 0, 100
+		DITEMTYPE:(ARG:1):LOCAL = DITEMTYPE:ペルソナ("ゲストペルソナ1"):LOCAL
+		DITEMTYPE:ペルソナ("ゲストペルソナ1"):LOCAL = 0
+	NEXT
+	ITEM:ARG = -1
+	PRINTFORMW %CSVCALLNAME((DITEMTYPE:(ARG:1):ペルソナ("NO")),0)% has been summoned.
+	;を召喚しましたぞ
+	DITEMTYPE:(ARG:1):ペルソナ("ペルソナ所持者") = -1
+
+@EVOLUTE_PERSONA
+	PRINTW 「Oh, a persona seems to be calling to lend you power.」
+	;「おや、貴方がたに力を貸そうと呼びかけてきているペルソナがおりますな」
+	PRINTW 「A persona and a person, let us help them unite.」
+	;「ペルソナとペルソナ使い、その間を取り結ぶ手助けをしましょうぞ」
+	CALL PERSONA_MASTER_LIST(1)
+	SIF RESULT < 0 || NO:RESULT < 0
+		RETURN
+	LOCAL = RESULT
+	LOCAL:1 = ABL:LOCAL:初期ペルソナ
+	ABL:LOCAL:初期ペルソナ = CFLAG:LOCAL:ペルソナ強化フラグ == 1 ? ABL:LOCAL:初期ペルソナ2 # ABL:LOCAL:初期ペルソナ3
+	;口上があれば、口上を呼び出し
+	TRYCCALLFORM EVOLUTE_PERSONA_K{NO:RESULT}(LOCAL)
+	CATCH
+		PRINTFORMW %CALLNAME:LOCAL%'s persona %CSVNAME(LOCAL:1,0)% has changed into %CSVNAME(ABL:LOCAL:初期ペルソナ,0)%.
+		;%CALLNAME:LOCAL%の%CSVNAME(LOCAL:1,0)%が%CSVNAME(ABL:LOCAL:初期ペルソナ,0)%に変化した
+	ENDCATCH
+	;強化フラグをふやす
+	CFLAG:LOCAL:ペルソナ強化フラグ += 1
+	CALL SYNC_STATUS, LOCAL
+
+@PERSONA_STATUS_CHECK
+	#DIM PERSONA, 1
+	#DIM NUM, 1
+	VARSET LOCAL
+	CALL PERSONA_LIST
+	PRINTFORML [100] Return
+	$INPUT_LOOP
+	INPUT
+	SIF RESULT == 100
+		RETURN -1
+	IF Q:RESULT == -1
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+	NUM = RESULT
+	$PRINT_STATUS
+	PERSONA = Q:NUM
+	CALL PERSONA_STATUS(PERSONA)
+	IF (Q:(NUM-1) == -1) && (NUM <= 10 || Q:1 == -1)
+		PRINTFORMLC %" " * 16%
+	ELSE
+		PRINTFORMLC [101]Previous Persona
+	ENDIF
+	PRINTFORMLC   [102]Return to List
+	IF (Q:(NUM+1) == -1) && (NUM > 10 || Q:11 == -1)
+		PRINTFORMLC %" " * 16%
+	ELSE
+		PRINTFORMLC [103]Next Persona
+	ENDIF
+	PRINTFORMLC   [104]Show description
+	IF DITEMTYPE:PERSONA:ペルソナ("スキル1")
+		PRINTL 
+		PRINTFORMLC [105]Skill Sorting
+	ENDIF
+	$INPUT_LOOP5
+	INPUT
+	IF RANGE(RESULT, 1, 8)
+		SIF DITEMTYPE:PERSONA:(ペルソナ("スキル1") + RESULT - 1) == 0
+			GOTO INPUT_LOOP5
+		SIF FLAG:スキル属性表示設定 == 1
+			CALL SKILL_EXPLAIN_PERFORMANCE, DITEMTYPE:PERSONA:(ペルソナ("スキル1") + RESULT - 1), -1
+		TRYCCALLFORM SKILL_EXPLAIN_{DITEMTYPE:PERSONA:(ペルソナ("スキル1") + RESULT - 1)}
+			WAIT
+			GOTO PRINT_STATUS
+		CATCH
+			GOTO INPUT_LOOP5
+		ENDCATCH
+	ELSEIF RESULT == 100
+		RETURN -1
+	ELSEIF RESULT == 101
+		IF Q:(NUM-1) == -1
+			IF NUM == 11
+				FOR LOCAL, 10, 0, -1
+					SIF Q:LOCAL == -1
+						CONTINUE
+					NUM = LOCAL
+					BREAK
+				NEXT
+			ENDIF
+		ELSE
+			NUM--
+		ENDIF
+		GOTO PRINT_STATUS
+	ELSEIF RESULT == 102
+		RESTART
+	ELSEIF RESULT == 103
+		IF Q:(NUM+1) >= 0
+			NUM++
+		ELSE
+			SIF NUM < 11 && Q:11 >= 0
+				NUM = 11
+		ENDIF
+		GOTO PRINT_STATUS
+	ELSEIF RESULT == 104
+		FOR LOCAL, GETNUM(CSTR, "解説1"), GETNUM(CSTR, "解説20") + 1
+			PRINTFORML %CSVCSTR(DITEMTYPE:PERSONA:ペルソナ("NO"), LOCAL, 0)%
+		NEXT
+		WAIT
+		GOTO PRINT_STATUS
+	ELSEIF RESULT == 105 && DITEMTYPE:PERSONA:ペルソナ("スキル1")
+		$INPUT_LOOP_SKILLCHANGE
+		DRAWLINE
+		PRINTL Please choose the first skill.
+		IF GETBIT (FLAG:カスタムゲーム画面,1)
+			PRINTL
+			FOR LOCAL:3, 0, FLAG:スキル数
+				LOCALS:2 = スキル{LOCAL:3+1}
+				IF DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)
+					CALLFORM SKILL_NAME_{DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)}
+					PRINTFORM 　[{LOCAL:3+1}]%RESULTS,38,LEFT%
+				ENDIF
+				SIF LOCAL:3 % 2 == 1
+					PRINTL
+			NEXT
+		DRAWLINE
+		PRINTL 　　[9] Cancel
+		ELSE
+			FOR LOCAL:3, 0, FLAG:スキル数
+				LOCALS:2 = スキル{LOCAL:3+1}
+				IF DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)
+					CALLFORM SKILL_NAME_{DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)}
+					PRINTFORM 　[{LOCAL:3+1}]%RESULTS,20,LEFT%
+				ENDIF
+				SIF LOCAL:3 % 4 == 3
+					PRINTL
+			NEXT
+		PRINTL 　[9] Cancel
+		ENDIF
+		INPUT
+		SIF RESULT == 9
+			GOTO PRINT_STATUS
+		SIF RESULT < 0 || RESULT > 9
+			GOTO INPUT_LOOP_SKILLCHANGE
+		LOCALS = スキル{RESULT}
+		SIF DITEMTYPE:PERSONA:ペルソナ(LOCALS) <= 0
+			GOTO INPUT_LOOP_SKILLCHANGE
+		DRAWLINE
+		PRINTFORML Please choose the second skill.
+		IF GETBIT (FLAG:カスタムゲーム画面,1)
+			PRINTL
+			FOR LOCAL:3, 0, FLAG:スキル数
+				LOCALS:2 = スキル{LOCAL:3+1}
+				SIF DITEMTYPE:PERSONA:ペルソナ(LOCALS) == DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)
+					SETCOLOR 102,255,255
+				IF DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)
+					CALLFORM SKILL_NAME_{DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)},U
+					PRINTFORM 　[{LOCAL:3+1}]%RESULTS,38,LEFT%
+				ENDIF
+				RESETCOLOR
+				SIF LOCAL:3 % 2 == 1
+					PRINTL
+			NEXT
+		DRAWLINE
+		PRINTL 　　[9] Cancel
+		ELSE
+			FOR LOCAL:3, 0, FLAG:スキル数
+				LOCALS:2 = スキル{LOCAL:3+1}
+				SIF DITEMTYPE:PERSONA:ペルソナ(LOCALS) == DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)
+					SETCOLOR 102,255,255
+				IF DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)
+					CALLFORM SKILL_NAME_{DITEMTYPE:PERSONA:ペルソナ(LOCALS:2)},U
+					PRINTFORM 　[{LOCAL:3+1}]%RESULTS,20,LEFT%
+				ENDIF
+				RESETCOLOR
+				SIF LOCAL:3 % 4 == 3
+					PRINTL
+			NEXT
+		PRINTL 　[9] Cancel
+		ENDIF
+		INPUT
+		SIF RESULT == 9
+			GOTO PRINT_STATUS
+		SIF RESULT < 0 || RESULT > 9
+			GOTO INPUT_LOOP_SKILLCHANGE
+		LOCALS:1 = スキル{RESULT}
+		SIF DITEMTYPE:PERSONA:ペルソナ(LOCALS:1) <= 0
+			GOTO INPUT_LOOP_SKILLCHANGE
+		SWAP DITEMTYPE:PERSONA:ペルソナ(LOCALS), DITEMTYPE:PERSONA:ペルソナ(LOCALS:1)
+		GOTO PRINT_STATUS
+	ELSE
+		GOTO INPUT_LOOP5
+	ENDIF
+
+@PERSONA_STATUS(ARG)
+	#LOCALSIZE 5
+	LOCAL = DITEMTYPE:ARG:ペルソナ("NO")
+	DRAWLINE
+	CSVABL LOCAL, GETNUM(ABL, "種族") , 0
+	CSVCSTR LOCAL, GETNUM(CSTR, "種族名"), 0
+	IF STRLENS(RESULTS)
+		PRINTFORM Race:%RESULTS%　　
+	ELSE
+		PRINTFORM Race:%STR:RESULT%　　
+	ENDIF
+	CSVCALLNAME LOCAL,0
+	PRINTFORM %RESULTS%　　
+	SIF ARG < 50
+		PRINTFORM Loyalty:%AUTO_SPLIT("◯/◎/☆/★", "/", DITEMTYPE:ARG:ペルソナ("陥落"))%　　
+	PRINTFORM Holder:\@DITEMTYPE:ARG:ペルソナ("ペルソナ所持者") >= 0 ? %CALLNAME:FINDCHARA_ID(DITEMTYPE:ARG:ペルソナ("ペルソナ所持者"))% # Nobody\@
+	;なし
+
+	PRINTL 
+	DRAWLINE
+	PRINTFORM 　　LV{DITEMTYPE:ARG:ペルソナ("LV"),3}({DITEMTYPE:ARG:ペルソナ("LV"),3})　　　
+	PRINTFORM Rank{DITEMTYPE:ARG:ペルソナ("ランク"),2}　　　Exp {DITEMTYPE:ARG:ペルソナ("EXP"),4}/{LIMIT(DITEMTYPE:ARG:ペルソナ("ランク") + 1, 0, 10) *LIMIT(DITEMTYPE:ARG:ペルソナ("ランク") + 1, 0, 10) * 10,4}　　　
+	IF ARG >= 50 && CSVABL(NO:FINDCHARA_ID(DITEMTYPE:ARG:ペルソナ("ペルソナ所持者")), GETNUM(ABL, "初期ペルソナ"), 0) > 0
+		PRINTFORM %GET_ALI1(CSVABL(NO:FINDCHARA_ID(DITEMTYPE:ARG:ペルソナ("ペルソナ所持者")), GETNUM(ABL,"属性LD"), 0)),7%/
+		PRINTFORML %GET_ALI2(CSVABL(NO:FINDCHARA_ID(DITEMTYPE:ARG:ペルソナ("ペルソナ所持者")), GETNUM(ABL,"属性LC"), 0)),7%
+	ELSE
+		PRINTFORM %GET_ALI1(DITEMTYPE:ARG:ペルソナ("属性LD")),7%/
+		PRINTFORML %GET_ALI2(DITEMTYPE:ARG:ペルソナ("属性LC")),7%
+	ENDIF
+	DRAWLINE
+	;LVによるStatus補正
+	;表示詐欺なので注意
+	FOR LOCAL:1 , 1, 7
+		;補正後がLOCAL:3
+		;補正前がLOCAL:4
+		LOCAL:3 = DITEMTYPE:ARG:(ペルソナ("LV")+LOCAL:1) * PRANK_COLLECTION_VALUE(-1, ARG) / 100
+		LOCAL:4 = DITEMTYPE:ARG:(ペルソナ("LV")+LOCAL:1) * 75 / 100
+		PRINTFORM %GET_BASESTATUS_E(LOCAL:1),4%{LOCAL:3,3}({LOCAL:4,3})　
+		FOR LOCAL:2, 0, 100, 2
+			SETCOLOR 0xe0e0e0
+			SIF LOCAL:4 <= LOCAL:2
+				SETCOLOR 0x9090E8
+			SIF LOCAL:3 <= LOCAL:2
+				SETCOLOR COLOR("gray") 
+			IF LOCAL:3 > LOCAL:2 || LOCAL:4 > LOCAL:2
+				PRINTFORM %UNICODE(0x258B)%
+			ELSE
+				PRINT  
+			ENDIF
+		NEXT
+		PRINTL 
+		RESETCOLOR
+	NEXT
+	DRAWLINE
+	PRINTL Resistances
+	;---- EDIT 001 ADD START -------------------------
+	;相性をペルソナからとって表示するように
+	FOR LOCAL:1, 0, FLAG:相性数
+		LOCALS = %GET_TYPE(LOCAL:1)%
+		IF DITEMTYPE:ARG:ペルソナ("変更相性1") - 1 == LOCAL:1
+			LOCAL:2 = DITEMTYPE:ARG:ペルソナ("変更相性値1")
+		ELSE
+			LOCAL:2 = CSVBASE(DITEMTYPE:ARG:ペルソナ("NO"), GETNUM(BASE, LOCALS), 0)
+		ENDIF
+		CALL SET_AISYOU_COLOR, LOCAL:2
+		PRINTFORM %(GET_TYPE_S(LOCALS)),5,LEFT%\@LOCAL:2 < 0 ? Dr # 　\@
+		PRINTFORM \@ LOCAL:2 != 999 ? {ABS(LOCAL:2),4}％ # %" " *2%Refl \@　
+		;PRINTFORM {ABS(MAXBASE:ARG:(GET_TYPE(LOCAL)),4}％
+		SIF LOCAL:1 % 6 == 5
+			PRINTL
+	NEXT
+	;---- EDIT 001 ADD END -------------------------
+	RESETCOLOR
+	DRAWLINE
+	IF GETBIT (FLAG:カスタムゲーム画面,1)
+		FOR LOCAL:1, 0, FLAG:スキル数
+			SIF DITEMTYPE:ARG:(ペルソナ("スキル1") + LOCAL:1) == 0
+				CONTINUE
+			CALLFORM SKILL_NAME_{DITEMTYPE:ARG:(ペルソナ("スキル1") + LOCAL:1)}
+			PRINTFORM 　[{LOCAL:1+1}]%RESULTS,38,LEFT%
+			SIF LOCAL:1 == 2 || LOCAL:1 == 5 || LOCAL:1 == 8
+				PRINTL
+		NEXT
+	ELSE
+		FOR LOCAL:1, 0, FLAG:スキル数
+			SIF DITEMTYPE:ARG:(ペルソナ("スキル1") + LOCAL:1) == 0
+				CONTINUE
+			CALLFORM SKILL_NAME_{DITEMTYPE:ARG:(ペルソナ("スキル1") + LOCAL:1)}
+			PRINTFORM 　[{LOCAL:1+1}]%RESULTS,20,LEFT%
+			SIF LOCAL:1 % 4 == 3
+				PRINTL
+		NEXT
+	ENDIF
+	SIF LINEISEMPTY() == 0
+		PRINTL
+	DRAWLINE
+	RETURN ARG
+
+@SHOW_PERSONA_MASTER_STATUS(ARG, ARG:1)
+	;引数はペルソナ使いと変更後のペルソナ
+	;現在のペルソナを記憶し、ペルソナを一時的に付け替える
+	LOCAL:10 = EQUIP:ARG:装備ペルソナ
+	EQUIP:ARG:装備ペルソナ = ARG:1
+	;ステータス一致
+	CALL SYNC_STATUS, ARG
+	;ステータス呼び出し
+	;装備の表記を避けたかったのでそこだけ削りました
+	U = ARG
+	DRAWLINE
+	PRINTFORML %STR:(ABL:ARG:80)%　　%CALLNAME:U%　　
+	;1行目にレベル・属性を表示
+	CALL PRINT_BASE_STATUS,ARG
+	;2行目にHP・忠誠度を表示
+
+	PRINTFORML ＨＰ[{BASE:ARG:ＨＰ,4}/{MAXBASE:ARG:ＨＰ,4}]　　　　　Loyalty:{BASE:ARG:忠誠度,6}　　ＭＡＧ:{BASE:ARG:ＭＡＧ,6}
+
+
+	;3行目にＭＰ・ＥＸＰを表示
+	PRINTFORM ＭＰ[{BASE:ARG:ＭＰ,4}/
+	PRINTFORML {MAXBASE:ARG:ＭＰ,4}]　　　　　ＥＸＰ：{BASE:ARG:ＥＸＰ,8}/{MAXBASE:ARG:ＥＸＰ,8}　　ＣＰ:{MAXBASE:ARG:CP,3}
+	;4行目に通常攻撃の性能を表示
+	PRINTFORM Regular attack：%GET_TYPE_E(ABL:ARG:攻撃相性),6,LEFT%　{ABL:ARG:最低攻撃回数,2}-{ABL:ARG:最大攻撃回数,2} times　Range:
+	IF ABL:ARG:射程 == 1
+		PRINT Ｓ
+	ELSEIF ABL:ARG:射程 == 2
+		PRINT Ｍ
+	ELSEIF ABL:ARG:射程 == 3
+		PRINT Ｌ
+	ENDIF
+	PRINTFORML  %GET_SPHERE(ABL:ARG:攻撃範囲),4,LEFT%
+	IF ABL:ARG:追加効果 > 0
+		PRINTFORML 　　　　Additional Effect：%GET_STATE(ABL:ARG:追加効果),6,LEFT%　Type：%GET_TYPE_E(ABL:ARG:追加効果相性)%
+		;追加効果相性
+	ENDIF
+
+	;人間ならばここに銃攻撃の性能と銃攻撃力・銃命中を2行つかって表示
+	IF EQUIP:ARG:銃 > 0
+		DRAWLINE
+		PRINTFORML Gun：Power {MAXBASE:ARG:銃攻撃,4} Hit {MAXBASE:ARG:銃命中}
+		CALLFORM 最低攻撃回数_{EQUIP:ARG:銃}
+		PRINTFORM Attack Count {RESULT,2}-
+		CALLFORM 最大攻撃回数_{EQUIP:ARG:銃}
+		PRINTFORM {RESULT,2}
+		CALLFORM 射程_{EQUIP:ARG:銃}
+		PRINTFORM 　　Range：
+		IF RESULT == 1
+			PRINT Ｓ
+		ELSEIF RESULT == 2
+			PRINT Ｍ
+		ELSEIF RESULT == 3
+			PRINT Ｌ
+		ENDIF
+		CALLFORM 攻撃範囲_{EQUIP:ARG:銃}
+		PRINTFORM 　　%GET_SPHERE(RESULT),4,LEFT%
+		PRINTL
+	ENDIF
+	DRAWLINE
+	;5～10行目に基本能力値と戦闘能力値を表示
+	;棒グラフを表示する処理を追加しました。
+	;ステ2Pにつき、1個の*があらわれ,最大で50個（ステ100）まで増え続ける
+	;ついでに調教や装備やペルソナの補正なんか加算されてるぶんは水色、減算されてるぶんは灰色になります。
+	FOR LOCAL:1, 0, 6
+		PRINTFORM %GET_BASESTATUS_E(LOCAL:1+1),4%{MAXBASE:ARG:(GET_BASESTATUS(LOCAL:1+1)),4}({BASE:ARG:(GET_BASESTATUS(LOCAL:1+1)),4})　
+		FOR LOCAL,0,100,2
+			IF CFLAG:ARG:PTフラグ > 0
+				SETCOLOR 0xe0e0e0
+				SIF BASE:ARG:(GET_BASESTATUS(LOCAL:1+1)) <= LOCAL
+					SETCOLOR 0x9090E8
+				SIF MAXBASE:ARG:(GET_BASESTATUS(LOCAL:1+1)) <= LOCAL
+					SETCOLOR COLOR("gray")
+			ENDIF
+			IF MAXBASE:ARG:(GET_BASESTATUS(LOCAL:1+1)) > LOCAL || BASE:ARG:(GET_BASESTATUS(LOCAL:1+1)) > LOCAL
+				PRINTFORM %UNICODE(0x258B)%
+			ELSE
+				PRINT  
+			ENDIF
+		NEXT
+		SIF CFLAG:ARG:PTフラグ > 0
+			RESETCOLOR
+		PRINT 　
+		PRINTFORM %GET_BATTLESTATUS_E(LOCAL:1),8,LEFT%
+		PRINTFORML {MAXBASE:ARG:(GET_BATTLESTATUS(LOCAL:1)),5} 
+	NEXT
+	DRAWLINE
+
+	;11、12行目に被攻撃相性と継承可能表示
+	PRINTL Resistances
+	FOR LOCAL,0,FLAG:相性数
+			CALL SET_AISYOU_COLOR, MAXBASE:ARG:(GET_TYPE(LOCAL))
+			PRINTFORM %GET_TYPE_E(LOCAL),5,LEFT% \@(MAXBASE:ARG:(GET_TYPE(LOCAL)) < 0) ? Dr # 　\@
+			PRINTFORM \@ ((MAXBASE:ARG:(GET_TYPE(LOCAL)) != 999)) ? {ABS(MAXBASE:ARG:(GET_TYPE(LOCAL))),4}％ # %" " *2%Refl \@　
+			;PRINTFORM {ABS(MAXBASE:ARG:(GET_TYPE(LOCAL)),4}％
+		SIF LOCAL % 6 == 5
+			PRINTL
+	NEXT
+	RESETCOLOR
+	DRAWLINE
+	;added ,1 to the call to prevent getting a key to some linkage display that did nothing here
+	CALL PRINT_SKILL,1
+
+	EQUIP:ARG:100 = LOCAL:10
+	;ステータス復帰
+	CALL SYNC_STATUS, ARG
+
+@CHANGE_PERSONA(ARG)
+	;ARGは付け替えるキャラの登録番号
+	DRAWLINE
+	IF イベントフラグ:5:0 == 3
+		PRINTL Please select a persona to equip.
+		;降魔させるペルソナをお選びください
+	ELSE
+		PRINTL Please select a persona to equip.
+		;降魔させるペルソナを選んでください
+	ENDIF
+	DRAWLINE
+	$INPUT_LOOP1
+	FOR LOCAL, 0, 3
+		LOCALS = 所持ペルソナ{LOCAL+1}
+		IF EQUIP:ARG:LOCALS
+			PRINTFORM [{LOCAL}]
+			IF EQUIP:ARG:装備ペルソナ == EQUIP:ARG:LOCALS
+				PRINT *
+			ELSE
+				PRINT  
+			ENDIF
+			PRINTSL CSVNAME(DITEMTYPE:(EQUIP:ARG:(LOCALS)):ペルソナ("NO"),0)
+		ELSE
+			BREAK
+		ENDIF
+	NEXT
+	IF ABL:ARG:初期ペルソナ > 0
+		PRINT [9]
+
+		IF EQUIP:ARG:装備ペルソナ
+			PRINT  
+		ELSE
+			PRINT *
+		ENDIF
+		PRINTFORML %CSVNAME(ABL:ARG:初期ペルソナ,0)%
+	ENDIF
+	PRINTL [99] Check status
+	PRINTL [100] Return
+	$INPUT_LOOP
+	INPUT
+	IF RESULT >= 0 && RESULT <= LOCAL
+		LOCALS = 所持ペルソナ{RESULT+1}
+		;変更前と変更後でペルソナが一致している
+		IF EQUIP:ARG:LOCALS == EQUIP:ARG:装備ペルソナ
+			IF イベントフラグ:5:0 == 3
+				PRINTFORMW Oh, that persona has already been equipped.
+				;おや、そのペルソナはすでに降魔されておりますな
+			ELSE
+				PRINTFORMW That persona has already been equipped.
+				;そのペルソナはすでに降魔されています
+			ENDIF
+			GOTO INPUT_LOOP1
+		ELSE
+			;ペルソナを装備
+			EQUIP:ARG:装備ペルソナ = EQUIP:ARG:LOCALS
+			PRINTFORM %CSVNAME(DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("NO"),0)%
+			IF イベントフラグ:5:0 == 3
+				PRINTFORMW  has been equipped.
+				;を降魔されましたぞ
+			ELSE
+				PRINTFORMW  has been equipped.
+				;を降魔しました
+			ENDIF
+		ENDIF
+	ELSEIF RESULT == 9
+		SIF ABL:ARG:初期ペルソナ == 0
+			GOTO INPUT_LOOP
+		IF EQUIP:ARG:装備ペルソナ == 0
+			IF イベントフラグ:5:0 == 3
+				PRINTFORMW Oh, that persona has already been equipped.
+				;おや、そのペルソナはすでに降魔されておりますな
+			ELSE
+				PRINTFORMW That persona has already been equipped.
+				;そのペルソナはすでに降魔されています
+			ENDIF
+			GOTO INPUT_LOOP1
+		ENDIF
+		DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("装備状態") = -1
+		EQUIP:ARG:装備ペルソナ = 0
+		EQUIP:ARG:前回ペルソナ = 0
+		CALL SYNC_STATUS,ARG
+		PRINTFORM %CSVNAME(ABL:ARG:初期ペルソナ,0)%
+		IF イベントフラグ:5:0 == 3
+			PRINTFORMW  has been equipped.
+			;を降魔されましたぞ
+		ELSE
+			PRINTFORMW  has been equipped.
+			;を降魔しました
+		ENDIF
+		RETURN 0
+	ELSEIF RESULT == 99
+		LOCAL = 0
+		$INPUT_LOOP2
+		FOR LOCAL:1, 1, 4
+			LOCALS = 所持ペルソナ{LOCAL:1}
+			IF EQUIP:ARG:LOCALS
+				PRINTFORM [{LOCAL:1 - 1}]
+				IF EQUIP:ARG:装備ペルソナ == EQUIP:ARG:LOCALS
+					PRINT *
+				ELSE
+					PRINT  
+				ENDIF
+				PRINTFORML %CSVNAME(DITEMTYPE:(EQUIP:ARG:LOCALS):ペルソナ("NO"),0)%(Persona only)
+				;(ペルソナのみ)
+			ELSE
+				BREAK
+			ENDIF
+		NEXT
+		FOR LOCAL:1, 1, 4
+			LOCALS = 所持ペルソナ{LOCAL:1}
+			IF EQUIP:ARG:LOCALS
+				PRINTFORM [{LOCAL:1+2}]
+				IF EQUIP:ARG:装備ペルソナ == EQUIP:ARG:LOCALS
+					PRINT *
+				ELSE
+					PRINT  
+				ENDIF
+				PRINTFORML %CSVNAME(DITEMTYPE:(EQUIP:ARG:LOCALS):ペルソナ("NO"),0)%(Persona User＋Persona)
+			ELSE
+				BREAK
+			ENDIF
+		NEXT
+		IF ABL:ARG:初期ペルソナ
+			PRINT [8]
+			IF EQUIP:ARG:装備ペルソナ
+				PRINT  
+			ELSE
+				PRINT *
+			ENDIF
+			PRINTFORML %CSVNAME(ABL:ARG:初期ペルソナ,0)%(Persona)
+			PRINT [9]
+			IF EQUIP:ARG:装備ペルソナ
+				PRINT  
+			ELSE
+				PRINT *
+			ENDIF
+			PRINTFORML %CSVNAME(ABL:ARG:初期ペルソナ,0)%(Persona User＋Persona)
+		ENDIF
+		PRINTL [100] Return
+		$INPUT_LOOP3
+		INPUT
+		IF (RESULT >= 0 && RESULT <= LOCAL:1 - 1) || (RESULT >= 3 && RESULT <= LOCAL:1+2) || ((RESULT == 8 || RESULT == 9) && ABL:ARG:初期ペルソナ)
+			IF RESULT < 3 
+				CALL PERSONA_STATUS(EQUIP:ARG:(GETNUM(EQUIP, "所持ペルソナ1") + RESULT))
+			ELSEIF RESULT == 8 && ABL:ARG:初期ペルソナ
+				CALL PERSONA_STATUS(CFLAG:ARG:初期ペルソナナンバー)
+			ELSE
+				IF RESULT == 9 && ABL:ARG:初期ペルソナ
+					LOCAL = 0
+				ELSE
+					LOCAL = EQUIP:ARG:(RESULT + GETNUM(EQUIP, "所持ペルソナ1") - 3)
+				ENDIF
+				CALL SHOW_PERSONA_MASTER_STATUS(ARG, LOCAL)
+			ENDIF
+			GOTO INPUT_LOOP2
+		ELSEIF RESULT == 100
+			RESTART
+		ELSE
+			GOTO INPUT_LOOP3
+		ENDIF
+	ELSEIF RESULT == 100
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+	;能力の同期化
+	CALL SYNC_STATUS,ARG
+	;装備状態フラグの更新
+	DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("装備状態") = -2
+	DITEMTYPE:(EQUIP:ARG:前回ペルソナ):ペルソナ("装備状態") = -1
+	;前回装備ペルソナとして今回のペルソナを記録
+	EQUIP:ARG:前回ペルソナ = EQUIP:ARG:装備ペルソナ
+
+@PERSONA_EQUIP
+	#LOCALSIZE 300
+	VARSET LOCAL
+	CALL PERSONA_MASTER_LIST
+	LOCAL = RESULT
+	SIF RESULT == -1
+		RETURN -1
+	DRAWLINE
+	PRINTFORML %CALLNAME:LOCAL%s current personas.
+	;が現在所持しているペルソナ
+	FOR LOCAL:1, 1, 4
+		LOCALS = 所持ペルソナ{LOCAL:1}
+		IF EQUIP:LOCAL:LOCALS
+			IF EQUIP:LOCAL:装備ペルソナ == EQUIP:LOCAL:LOCALS
+				PRINT *
+			ELSE
+				PRINT  
+			ENDIF
+			PRINTSL CSVNAME(DITEMTYPE:(EQUIP:LOCAL:LOCALS):ペルソナ("NO"),0)
+			LOCAL:5 += 1
+		ELSE
+			BREAK
+		ENDIF
+	NEXT
+	DRAWLINE
+
+	PRINTFORML Please select a persona to give to %CALLNAME:LOCAL%.
+	;に所持させるペルソナを選んでください
+	FOR LOCAL:1, 1, 12
+		IF DITEMTYPE:(LOCAL:1):0 == 0
+			CONTINUE
+		ELSEIF DITEMTYPE:(LOCAL:1):ペルソナ("装備状態") > 0
+			PRINTFORML [{LOCAL:4}] %CSVNAME(DITEMTYPE:(LOCAL:1):ペルソナ("NO"),0)%
+			LOCAL:(LOCAL:4 + 10) = LOCAL:1
+			LOCAL:4 += 1
+		ENDIF
+	NEXT
+	PRINTL [100] Return
+	$INPUT_LOOP2
+	INPUT
+	IF RESULT == 100
+		RETURN 0
+	ELSEIF RESULT < 100 && RESULT >= 0 && LOCAL:(RESULT + 10)
+		LOCAL:6 = RESULT
+		CALL SHOW_PERSONA_MASTER_STATUS(LOCAL, LOCAL:(LOCAL:6 + 10))
+		CSVNAME DITEMTYPE:(LOCAL:(LOCAL:6 + 10)):ペルソナ("NO"), 0
+		PRINTFORML If %RESULTS% is given to %CALLNAME:LOCAL% the above will be the result.
+		;%RESULTS%を%CALLNAME:LOCAL%に降魔させた場合、以上のようなステータスになります
+		PRINTFORMW Do you want to hand over the persona?
+		;本当に渡してよろしいですかな？ 
+		
+		CALL INPUT_YN,"Yes","No",2
+
+		IF RESULT == 1
+			RETURN 0
+		ENDIF
+
+		;3個所持してる場合は入れ替えるペルソナを選ぶ
+		IF LOCAL:5 == 2
+			;新しく所持させるペルソナ
+			LOCAL:2 = LOCAL:(LOCAL:6 + 10)
+			PRINTFORML Please select a persona to be replaced.
+			;入れ替えるペルソナをお選びください
+			FOR LOCAL:1, 0, 2
+				LOCALS = 所持ペルソナ{LOCAL:1 + 1}
+				IF EQUIP:LOCAL:LOCALS == EQUIP:LOCAL:装備ペルソナ
+					PRINT *
+				ELSE
+					PRINT  
+				ENDIF
+				PRINTFORML [{LOCAL:1}] %CSVNAME(DITEMTYPE:(EQUIP:LOCAL:LOCALS):1, 0)%
+			NEXT
+			PRINTL [100] Return
+		ELSE
+			EQUIP:LOCAL:(LOCAL:5 + GETNUM(EQUIP, "所持ペルソナ1")) = LOCAL:(LOCAL:6 + 10)
+			DITEMTYPE:(LOCAL:(LOCAL:6 + 10)):ペルソナ("装備状態") = -1
+			DITEMTYPE:(LOCAL:(LOCAL:6 + 10)):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+			RETURN 0
+		ENDIF
+	ELSE
+		GOTO INPUT_LOOP2
+	ENDIF
+	$INPUT_LOOP3
+	INPUT
+	IF RESULT <= LOCAL:1 && RESULT >= 0
+		LOCALS = 所持ペルソナ{RESULT + 1}
+		;外れたペルソナはストックへ
+		DITEMTYPE:(EQUIP:LOCAL:LOCALS):ペルソナ("装備状態") = 1
+		DITEMTYPE:(EQUIP:LOCAL:LOCALS):ペルソナ("ペルソナ所持者") = -1
+		;ペルソナを入れ替える
+		EQUIP:LOCAL:LOCALS = LOCAL:2
+		;つけたペルソナは所持中に
+		DITEMTYPE:(LOCAL:2):ペルソナ("装備状態") = -1
+		DITEMTYPE:(LOCAL:2):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+		;現在装備してるペルソナと入れ替える場合
+		IF EQUIP:LOCAL:LOCALS == EQUIP:LOCAL:装備ペルソナ
+			EQUIP:LOCAL:装備ペルソナ = 0
+			;能力の同期化
+			CALL SYNC_STATUS, LOCAL
+		ENDIF
+	ELSEIF RESULT == 100
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP3
+	ENDIF
+	@PERSONA_UNEQUIPMENT(ARG, ARG:1)
+	;ARG Persona User
+	;ARG:1　外すペルソナ
+	IF EQUIP:ARG:装備ペルソナ == ARG:1
+		EQUIP:ARG:装備ペルソナ = 0
+		EQUIP:ARG:前回ペルソナ = 0
+	ENDIF
+	FOR LOCAL, 1, 4
+		IF EQUIP:ARG:("所持ペルソナ"+TOSTR(LOCAL)) == ARG:1
+			EQUIP:ARG:("所持ペルソナ"+TOSTR(LOCAL)) = 0
+			LOCAL:1 = LOCAL
+			BREAK
+		ENDIF
+	NEXT
+	DITEMTYPE:(ARG:1):ペルソナ("装備状態") = 1
+	DITEMTYPE:(ARG:1):ペルソナ("ペルソナ所持者") = -1
+	;番号をずらす
+	FOR LOCAL, LOCAL:1, 3
+		EQUIP:ARG:("所持ペルソナ"+TOSTR(LOCAL)) = EQUIP:ARG:("所持ペルソナ"+TOSTR(LOCAL+1))
+	NEXT
+	EQUIP:ARG:所持ペルソナ3 = 0
+	CALL SYNC_STATUS,ARG
+
+@DEL_PERSONA
+	#DIM 帰還アイテム
+	PRINTFORML Please choose a persona to return to the sea of unconciousness.
+	;記憶の海に還すペルソナを選んでください
+	;LOCAL:10~19に削除候補ペルソナを格納
+	FOR LOCAL, 1, 12
+		IF DITEMTYPE:LOCAL:0 == 0
+			BREAK
+		ELSE
+			PRINTFORM [{LOCAL-1}] %CSVNAME(DITEMTYPE:LOCAL:ペルソナ("NO"), 0)%
+			IF DITEMTYPE:LOCAL:ペルソナ("装備状態") == -1
+				PRINTFORML (Summoned)
+			ELSEIF DITEMTYPE:LOCAL:ペルソナ("装備状態") == -2
+				PRINTFORML (Equipped)
+			ELSE
+				PRINTL 
+			ENDIF
+		ENDIF
+	NEXT
+	PRINTFORML [100] Return
+	$INPUT_LOOP2
+	INPUT
+	IF  RESULT == 100
+		RETURN 0
+	ELSEIF RESULT > 10 || RESULT < 0
+		GOTO INPUT_LOOP2
+	ELSEIF DITEMTYPE:(RESULT+1):ペルソナ("装備状態")
+		;LOCAL:2は削除するペルソナ番号
+		LOCAL:2 = RESULT + 1
+		IF DITEMTYPE:(LOCAL:2):ペルソナ("ランク") >= 5
+			PRINTL The heart is ever changing...
+			;呼び覚まされたる古き心のカタチ
+			PRINTFORML The time to release %CSVNAME(DITEMTYPE:(LOCAL:2):ペルソナ("NO"),0)%...
+			;%CSVNAME(DITEMTYPE:(LOCAL:2):ペルソナ("NO"),0)%を解き放つ時が
+			PRINTW Has it come?
+			;来ましたか…
+			PRINTL Still, let it linger, in that changed heart..
+			;ならば共に戦いし、その別なる心
+			PRINTL In the shape of a card...
+			;カードに替えて、
+			PRINTW will it return to you.
+			;貴方に返しましょうかな…
+			CALL MAKE_PERSONA_SKILLCARD(LOCAL:2)
+			SIF RESULT == -1
+				RETURN 0
+		ENDIF
+		;ここで名前をとっておく
+		PRINTFORMW %CSVNAME(DITEMTYPE:(LOCAL:2):ペルソナ("NO"), 0)% has been returned to the ocean of universal unconsciousness.
+		;を普遍的無意識の海に還しましたぞ
+
+		;帰還アイテム入手処理
+		IF DITEMTYPE:(LOCAL:2):ペルソナ("ランク") >= 10 && DITEMTYPE:(LOCAL:2):ペルソナ("陥落") > 0
+			;DITEMTYPEに新しくペルソナ("帰還アイテム")を作りたくないのでCSVからの読み込みオンリーにする
+			帰還アイテム = CSVABL(DITEMTYPE:(LOCAL:2):ペルソナ("NO"), GETNUM(ABL, "受胎アイテム"), 0)
+			;一つでも所持してるなら無効
+			IF 帰還アイテム > 0 && ITEM:帰還アイテム == 0
+				PRINTFORMW ＞%ITEMNAME_E(帰還アイテム)% has be received.
+				;を手に入れた
+				ITEM:帰還アイテム = 1
+			ENDIF
+		ENDIF
+
+		CALL DEL_PERSONA2, LOCAL:2
+
+		IF DITEMTYPE:(LOCAL:2):ペルソナ("ペルソナ所持者") == -1
+			PRINTL 降魔中のペルソナを帰還させたので
+			PRINTW 降魔していたペルソナ使いは自動的に初期ペルソナを降魔するのでご注意を
+		ENDIF
+		DRAWLINE
+	ELSE
+		GOTO INPUT_LOOP2
+	ENDIF
+
+@DEL_PERSONA2, ARG
+	;装備されている場合は外す処理
+	IF DITEMTYPE:ARG:ペルソナ("装備状態") < 0
+		LOCAL = FINDCHARA_ID(DITEMTYPE:ARG:ペルソナ("ペルソナ所持者"))
+		CALL PERSONA_UNEQUIPMENT(LOCAL, ARG)
+	ENDIF
+	FOR LOCAL, 0, CHARANUM
+		SIF TALENT:LOCAL:ペルソナ使い == 0
+			CONTINUE
+		;EQUIP:100~104で削除するペルソナより番号が大きいものは-1
+		FOR LOCAL:1, GETNUM(EQUIP, "装備ペルソナ"), GETNUM(EQUIP, "前回ペルソナ") + 1
+			SIF EQUIP:LOCAL:(LOCAL:1) > ARG
+				EQUIP:LOCAL:(LOCAL:1) -= 1
+		NEXT
+	NEXT
+	;ペルソナ削除作業
+	FOR LOCAL, ARG,10
+		FOR LOCAL:1, 0, 100
+			DITEMTYPE:LOCAL:(LOCAL:1) = DITEMTYPE:(LOCAL+1):(LOCAL:1)
+		NEXT
+	NEXT
+	FOR LOCAL:1, 0, 100
+		DITEMTYPE:10:(LOCAL:1) = 0
+	NEXT
+
+;---- EDIT 004 MOD START -------------------------
+;帰還時の所持スキル判定を修正
+;新処理追加して書きなおす
+@MAKE_PERSONA_SKILLCARD, ARG
+	#LOCALSIZE 10
+	#LOCALSSIZE 11
+	#DIM CARD, 20
+	#DIM CARDPRICE, 20
+	VARSET CARDPRICE
+	VARSET CARD
+	PRINTW Well, please select the card to make.
+	;では、作るカードをお選びください
+	$START
+	DRAWLINE
+	FOR LOCAL, 1, 17
+		SELECTCASE LOCAL
+			CASE IS < 9
+				SIF LOCAL == 1
+					PRINTFORMDL Skill card
+					;スキルカード
+				LOCALS = スキル{LOCAL}
+				;スキルがない場合
+				SIF DITEMTYPE:ARG:ペルソナ(LOCALS) == 0
+					CONTINUE
+				;継承不能なスキルは除外
+				TRYCCALLFORM 継承不能_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+					SIF RESULT
+						CONTINUE
+				CATCH
+				ENDCATCH
+				CALLFORM SKILL_RANK_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+				SIF !RANGE(RESULT, 1, 15)
+					CONTINUE
+				CALLFORM SKILL_NAME_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+				SIF CARDPRICE:LOCAL
+					SETCOLOR COLOR("aqua")
+				PRINTFORML [{LOCAL}] %RESULTS%(Needed EXP:300)
+				CARD:LOCAL = 10000 + DITEMTYPE:ARG:ペルソナ(LOCALS)
+			CASE 9
+				CONTINUE
+			CASE IS < 15
+				IF LOCAL == 10
+					DRAWLINE
+					PRINTFORMDL EXP card
+					;EXPカード
+				ENDIF
+				SIF CARDPRICE:LOCAL
+					SETCOLOR COLOR("aqua")
+				CARD:LOCAL = GETNUM(ITEM, "新芽のカード")+LOCAL - 10
+				PRINTFORML [{LOCAL}] %ITEMNAME_E(CARD:LOCAL)%(Needed EXP:{(LOCAL-9)*200} Needed EXP:{ITEMPRICE:(CARD:LOCAL)})
+			CASE 15
+				IF LOCAL == 15
+					DRAWLINE
+					PRINTFORMDL Incense card
+					;インセンスカード
+				ENDIF
+				FOR LOCAL:1, 0, 6
+					IF DITEMTYPE:ARG:(ペルソナ("力") + LOCAL:1) == MAX(DITEMTYPE:ARG:ペルソナ("力"),DITEMTYPE:ARG:ペルソナ("耐力"),DITEMTYPE:ARG:ペルソナ("魔力"),DITEMTYPE:ARG:ペルソナ("知恵"),DITEMTYPE:ARG:ペルソナ("速さ"),DITEMTYPE:ARG:ペルソナ("運"))
+						SIF CARDPRICE:LOCAL
+							SETCOLOR COLOR("aqua")
+						CARD:LOCAL = GETNUM(ITEM, "STRインセンスカード")+LOCAL:1
+						PRINTFORML [{LOCAL}] %ITEMNAME_E(CARD:LOCAL)%(Needed EXP:500)
+						BREAK
+					ENDIF
+				NEXT
+			CASE 16
+				FOR LOCAL:1, 0, 6
+					IF DITEMTYPE:ARG:(ペルソナ("力") + LOCAL:1) == MIN(DITEMTYPE:ARG:ペルソナ("力"),DITEMTYPE:ARG:ペルソナ("耐力"),DITEMTYPE:ARG:ペルソナ("魔力"),DITEMTYPE:ARG:ペルソナ("知恵"),DITEMTYPE:ARG:ペルソナ("速さ"),DITEMTYPE:ARG:ペルソナ("運"))
+						SIF CARDPRICE:LOCAL
+							SETCOLOR COLOR("aqua")
+						CARD:LOCAL = GETNUM(ITEM, "STRマイナスカード")+LOCAL:1
+						PRINTFORML [{LOCAL}] %ITEMNAME_E(CARD:LOCAL)%(Needed EXP:500)
+						BREAK
+					ENDIF
+				NEXT
+		ENDSELECT
+		RESETCOLOR
+	NEXT
+	DRAWLINE
+	PRINTFORML Remaing EXP {DITEMTYPE:ARG:ペルソナ("EXP") - SUMARRAY(CARDPRICE)}
+	DRAWLINE
+	PRINTL [99] Return
+	PRINTL [100] Leave and keep the persona
+	;ペルソナを帰還させるのを辞める
+	DRAWLINE
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 100
+		RETURN -1
+	ELSEIF RESULT == 99
+		FOR LOCAL, 1, 17
+			SIF !CARDPRICE:LOCAL
+				CONTINUE
+			IF LOCAL < 9
+				CALLFORM SKILL_NAME_{DITEMTYPE:ARG:ペルソナ(@"スキル{LOCAL}")}
+				PRINTFORMW %RESULTS% has been turned into a card.
+				;のカードを手に入れた
+			ELSE
+				PRINTFORMW %ITEMNAME_E(CARD:LOCAL)% obtained.
+				;を手に入れた
+			ENDIF
+			CALL GET_ITEM(CARD:LOCAL, 1)
+		NEXT
+		PRINTFORMW Let's send this persona back now.
+		;では、ペルソナを帰還させましょう
+		RETURN 0
+	ELSEIF RESULT >= 1 && RESULT <= 16 && RESULT != 9 && CARD:RESULT
+		IF RESULT < 9
+			LOCAL = 300
+		ELSEIF RESULT < 15
+			LOCAL = 200 * (RESULT - 9)
+		ELSE
+			LOCAL = 500
+		ENDIF
+		IF CARDPRICE:RESULT
+			CARDPRICE:RESULT = 0
+		ELSEIF DITEMTYPE:ARG:ペルソナ("EXP") - SUMARRAY(CARDPRICE) >= LOCAL
+			CARDPRICE:RESULT = LOCAL
+		ELSE
+			GOTO INPUT_LOOP
+		ENDIF
+		GOTO START
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+;---- EDIT 004 MOD END -------------------------
+
+@ADD_SKILL_PERSONA, ARG
+	;DRAWLINE
+	;全ペルソナを表示する
+	;FOR LOCAL:1, 1, 11
+	;	SIF DITEMTYPE:(LOCAL:1):0 == 0
+	;		BREAK
+	;	;名前表示
+	;	PRINTFORML [{LOCAL:1}] %CSVNAME(DITEMTYPE:(LOCAL:1):ペルソナ("NO"),0)%
+	;NEXT
+	;FOR LOCAL:1, 50, 100
+	;	SIF DITEMTYPE:(LOCAL:1):0 == 0
+	;		BREAK
+	;	;名前表示
+	;	PRINTFORML [{LOCAL:1}] %CSVNAME(DITEMTYPE:(LOCAL:1):ペルソナ("NO"),0)%
+	;NEXT
+	;PRINTL [100] Return
+	;$INPUT_LOOP
+	;INPUT
+	;ペルソナを選択
+	;IF RESULT == 100
+	;	RETURN 0
+	;ELSEIF RESULT >= 1 && RESULT < 100 && DITEMTYPE:RESULT:ペルソナ("装備状態")
+	;	LOCAL:1 = RESULT
+	;ELSE
+	;	GOTO INPUT_LOOP
+	;ENDIF
+	;LOCAL:1はペルソナ番号
+	PRINTL Possessed skills
+	;所持スキル
+	FOR LOCAL:2 ,1, 9
+		LOCALS = スキル{LOCAL:2}
+		SIF DITEMTYPE:ARG:ペルソナ(LOCALS) == 0
+			BREAK
+		CALLFORM SKILL_NAME_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+		PRINTFORM 　%RESULTS,20,LEFT%
+		SIF LOCAL:2 == 4
+			PRINTL 
+	NEXT
+	SIF LOCAL:2 != 6
+		PRINTL 
+	DRAWLINE
+
+	$INPUT_LOOP2
+	PRINTL Available Skill cards
+	;使用可能なスキルカード
+	;継承部位考えると、キャラ造らずに処理通すのはちょっと無理そげ
+	ADDCHARA DITEMTYPE:ARG:ペルソナ("NO")
+	IF ARG >= 50
+		CALLF STRFLAG_EV("初期ペルソナスキル習得", 1, [[イベント:ペルソナ]])
+	ELSE
+		CALLF STRFLAG_EV("初期ペルソナスキル習得", -1, [[イベント:ペルソナ]])
+	ENDIF
+	CALL SHOW_LEARN_SKILL, CHARANUM - 1
+	LOCAL = RESULT
+	LOCAL:5 = 2
+	;素質がない場合2倍になる
+	TRYCCALLFORM SKILL_TYPE_{LOCAL}
+		SIF TALENT:(CHARANUM - 1):GET_SUCCESSION(RESULT)
+			LOCAL:5 = 1
+	CATCH
+	ENDCATCH
+	;ここでキャラ削除
+	;CALL キャラ削除, CHARANUM - 1
+	DELCHARA CHARANUM -1
+	FOR LOCAL:2 ,1, 9
+		LOCALS = スキル{LOCAL:2}
+		IF LOCAL && DITEMTYPE:ARG:ペルソナ(LOCALS) == LOCAL
+			CALLFORM SKILL_NAME_{LOCAL}
+			PRINTFORMW 「%CSVNAME(DITEMTYPE:ARG:ペルソナ("NO"),0)% already knows 【%RESULTS%】.」
+			; 「%CSVNAME(DITEMTYPE:ARG:ペルソナ("NO"),0)%は【%RESULTS%】をすでに覚えておりますな」
+			RESTART
+		ENDIF
+	NEXT
+	RESULT = LOCAL
+	SIF RESULT == 0
+		RETURN 0
+
+	;ELSEIF RESULT >= 0 && RESULT < 10 && RESULT < LOCAL && GETBIT(LOCAL:5, RESULT + 1)
+		;覚えさせるスキル
+		LOCAL = RESULT
+		LOCAL:3 = RESULT
+		CALLFORM SKILL_RANK_{LOCAL}
+		;必要なEXP
+		LOCAL:4 = (RESULT * 20 + 100 + MAX(RESULT * 50 - DITEMTYPE:ARG:ペルソナ("LV") * 10, 0)) * LOCAL:5 / 2
+		CALLFORM SKILL_NAME_{LOCAL}
+		LOCALS:1 = %RESULTS%
+		PRINTFORML {LOCAL:4} EXP is required to learn %RESULTS%.
+		;を習得するためにはが必要です
+		IF LOCAL:4 > DITEMTYPE:ARG:ペルソナ("EXP")
+			PRINTFORMW There is not enough EXP.
+			;が足りません
+			RETURN 0
+		ENDIF
+		PRINTFORML Do you wish to learn this new skill? (Current EXP {DITEMTYPE:ARG:ペルソナ("EXP")})
+		;スキルを習得させますか？(現EXP {DITEMTYPE:ARG:ペルソナ("EXP")})
+		CALL INPUT_YN, "Yes", "No"
+		IF RESULT
+			PRINTFORMW Decided not to learn this skill.
+			;スキルを修得するのをやめました
+			RETURN 0
+		ENDIF
+		;スキルが埋まってる
+		IF DITEMTYPE:ARG:ペルソナ("スキル8")
+			DRAWLINE
+			PRINTL 「Oh, you already have a full list of skills.」
+			;「おや、スキルがいっぱいですな」
+			PRINTW 「Then, please select a skill to replace.」
+			;「それでは忘れさせるスキルをお選びください」
+			FOR LOCAL:2 ,1, 9
+				LOCALS = スキル{LOCAL:2}
+				IF DITEMTYPE:ARG:ペルソナ(LOCALS)
+					CALLFORM SKILL_NAME_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+					PRINTFORM 　[{LOCAL:2}]%RESULTS,20,LEFT%
+				ENDIF
+				SIF LOCAL:2 % 4 == 0
+					PRINTL 
+			NEXT
+			PRINTL [100] Return
+			$INPUT_LOOP3
+			INPUT
+			IF RESULT == 100
+				RETURN
+			ELSEIF RESULT > 0 && RESULT < 9
+				LOCAL:2 = RESULT
+			ELSE
+				GOTO INPUT_LOOP3
+			ENDIF
+		ELSE
+			LOCAL:2 = 0
+			DO 
+				LOCAL:2++
+				LOCALS = スキル{LOCAL:2}
+			LOOP DITEMTYPE:ARG:ペルソナ(LOCALS)
+		ENDIF
+		LOCALS = スキル{LOCAL:2}
+		DITEMTYPE:ARG:ペルソナ(LOCALS) = LOCAL
+		DITEMTYPE:ARG:ペルソナ("EXP") -= LOCAL:4
+		ITEM:(10000+LOCAL) -= 1
+		PRINTFORMW %CSVNAME(DITEMTYPE:ARG:ペルソナ("NO"),0)% has learned %LOCALS:1%.
+		;を習得させました
+	;ELSE
+	;	GOTO INPUT_LOOP2
+	;ENDIF
+
+;---- EDIT 001 ADD START -------------------------
+;引継ぎを放棄してるので処理を封印
+;@MAKE_SPECIAL_PERSONA
+;IF DITEMTYPE:ペルソナ("ペルソナ11"):ペルソナ("装備状態")
+;	PRINTFORMW 「ふむ…新たなペルソナと絆を結ぶことを望むのですかな？」
+;	PRINTFORMW 「しかし、このベルベットルームにおいて特別な絆を結べるペルソナは一人のみ」
+;	PRINTFORMW 「新たな絆のためには古き絆を断たねばなりませんぞ」
+;	PRINTFORML 「それでもよろしいですかな？」
+;ELSE
+;	PRINTFORMW 「ふむ…貴方に対するペルソナ使いの強い思い…確かに感じますぞ」
+;	PRINTFORMW 「今ならば、その思いの力を借りて、貴方とペルソナの間に特別な絆を結ぶことができましょう」
+;	PRINTFORMW 「それは世界を超えてつながる絆であり、運命…」
+;	PRINTFORMW 「例え、なにもかも変わろうと貴方の手元には一枚のペルソナカードが残る」
+;	PRINTFORMW 「そういった絆です」
+;	PRINTFORML 「どうでしょう？　特別な絆、結んでみますかな？」
+;ENDIF
+;CALL INPUT_YN
+;IF RESULT == 1
+;	PRINTFORMW 「わかりました。それでは…この話はなかったことにしましょう」
+;	RETURN 0
+;ENDIF
+;$INPUT_LOOP1
+;PRINTFORMW 「それでは絆を結ぶペルソナをお選びください」
+;DRAWLINE
+;FOR LOCAL:1, 1, 11
+;	SIF DITEMTYPE:(LOCAL:1):0 == 0
+;		BREAK
+;	;名前表示
+;	PRINTFORML [{LOCAL:1}] %CSVNAME(DITEMTYPE:(LOCAL:1):ペルソナ("NO"),0)%
+;NEXT
+;DRAWLINE
+;PRINTFORML [100] Return
+;$INPUT_LOOP2
+;INPUT
+;IF RESULT == 100
+;	RETURN -1
+;ELSEIF RESULT > 0 && RESULT <= LOCAL:1
+;	LOCAL = RESULT
+;	CALL PERSONA_STATUS(LOCAL)
+;	DRAWLINE
+;	PRINTFORMW 「このペルソナでよろしいですかな？」
+;	CALL INPUT_YN
+;	SIF RESULT == 1
+;		GOTO INPUT_LOOP1
+;	FOR LOCAL:1, 0 ,50
+;;		DITEMTYPE:ペルソナ("ペルソナ11"):(LOCAL:1) = DITEMTYPE:LOCAL:(LOCAL:1)
+;	NEXT
+;	DITEMTYPE:ペルソナ("ペルソナ11"):ペルソナ("装備状態") = 1
+;	DITEMTYPE:ペルソナ("ペルソナ11"):ペルソナ("陥落") = 3
+;	CALL DEL_PERSONA2, LOCAL
+;	PRINTW ………
+;	PRINTW ……
+;	PRINTW …
+;	PRINTW
+;	PRINTFORMW 「%RESULTS%との新たな絆、しっかりと結べましたぞ」
+;	PRINTFORMW 「それではこれをお受け取り下さい」
+;	CALLF STRFLAG_EV("引継ぎペルソナ作成", 1)
+;ELSE
+;	GOTO INPUT_LOOP2
+;ENDIF
+
+;---- EDIT 001 ADD END -------------------------
+@POWERUP_PERSONA
+	#DIM PERSONA, 1
+	#DIM PMASTER, 1
+	#DIM NUM, 1
+	#DIM LINE, 3
+	#LOCALSIZE 5
+	LINE = LINECOUNT
+	PRINTFORML Then, please select a persona to strengthen.
+	;では、強化するペルソナを選んでください
+	PRINTL 
+	CALL PERSONA_LIST
+	PRINTFORML [100] Return
+	$INPUT_LOOP1
+	INPUT
+	SIF RESULT == 100
+		RETURN 0
+	SIF !RANGE(RESULT, 1, 100)
+		GOTO INPUT_LOOP1
+	NUM = RESULT
+	SIF Q:NUM == -1
+		GOTO INPUT_LOOP1
+	PERSONA = Q:NUM
+	PMASTER = FINDCHARA_ID(DITEMTYPE:PERSONA:ペルソナ("ペルソナ所持者"))
+	LINE:1 = LINECOUNT
+	$START_POWERUP
+	CLEARLINE LINECOUNT - LINE:1
+	DRAWLINE
+	PRINTFORML LV {DITEMTYPE:PERSONA:ペルソナ("LV")} %CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%
+	IF PERSONA < 50
+		PRINTFORM Rank{DITEMTYPE:PERSONA:ペルソナ("ランク")} 
+	ELSE
+		PRINT RANK:10 
+	ENDIF
+	PRINTFORML EXP {DITEMTYPE:PERSONA:ペルソナ("EXP")} / 1000
+	PRINTFORML Can enhance　{DITEMTYPE:PERSONA:ペルソナ("強化可能回数")} times
+	DRAWLINE
+	LOCAL:1 = 0
+	FOR LOCAL, ペルソナ("力"), ペルソナ("運") + 1
+		LOCAL:1++
+		PRINTFORM %GET_BASESTATUS_E(LOCAL:1),4% {DITEMTYPE:PERSONA:LOCAL,3}　
+		SIF LOCAL % 3 == 2
+			PRINTL 
+	NEXT
+	DRAWLINE
+	;---- EDIT 001 ADD START -------------------------
+	;相性をペルソナからとって表示するように
+	FOR LOCAL:1, 0, FLAG:相性数
+		LOCALS = %GET_TYPE(LOCAL:1)%
+		IF DITEMTYPE:PERSONA:ペルソナ("変更相性1") - 1 == LOCAL:1
+			LOCAL:2 = DITEMTYPE:PERSONA:ペルソナ("変更相性値1")
+		ELSE
+			LOCAL:2 = CSVBASE(DITEMTYPE:PERSONA:ペルソナ("NO"), GETNUM(BASE, LOCALS), 0)
+		ENDIF
+		CALL SET_AISYOU_COLOR, LOCAL:2
+		PRINTFORM %GET_TYPE_S(LOCALS)%\@LOCAL:2 < 0 ? Dr # 　\@
+		PRINTFORM \@ LOCAL:2 != 999 ? {ABS(LOCAL:2),4}％ # %" " *2%Refl \@　
+		;PRINTFORM {ABS(MAXBASE:PERSONA:(GET_TYPE(LOCAL)),4}％
+		SIF LOCAL:1 % 6 == 5
+			PRINTL
+	NEXT
+	;---- EDIT 001 ADD END -------------------------
+	RESETCOLOR
+	DRAWLINE
+	FOR LOCAL:1, 0, FLAG:スキル数
+		SIF DITEMTYPE:PERSONA:(ペルソナ("スキル1") + LOCAL:1) == 0
+			CONTINUE
+		CALLFORM SKILL_NAME_{DITEMTYPE:PERSONA:(ペルソナ("スキル1") + LOCAL:1)}
+		PRINTFORM 　[{LOCAL:1+1}]%RESULTS,20,LEFT%
+		SIF LOCAL:1 % 4 == 3
+			PRINTL
+	NEXT
+	PRINTL 
+	;---- EDIT 001 ADD START -------------------------
+	;耐性強化の選択肢を追加
+	DRAWLINE
+	;必要経験値の算出
+	IF PERSONA >= 50
+		LOCAL = LIMIT((200 - MAX(BASE:PMASTER:LV - DITEMTYPE:PERSONA:ペルソナ("LV") - 10, 0) * 10) * MAX(100 - 陥落(PMASTER)*10, 75) / 100, 50, 200) / 2
+		;;P3/4系ペルソナ使いは半減
+		;SIF TALENT:PMASTER:ペルソナ使い == 2
+		;	LOCAL /= 2
+		SIF DITEMTYPE:PERSONA:ペルソナ("LV") >= BASE:PMASTER:LV
+			LOCAL = 0
+	ELSE
+		LOCAL = LIMIT((200 - MAX(BASE:MASTER:LV - DITEMTYPE:PERSONA:ペルソナ("LV") - 10, 0) * 10) * MAX(100 - DITEMTYPE:PERSONA:ペルソナ("陥落") *10, 75) / 100, 50, 200) / 2
+		SIF DITEMTYPE:PERSONA:ペルソナ("LV") >= BASE:MASTER:LV
+			LOCAL = 0
+	ENDIF
+	LINE:2 = LINECOUNT
+	PRINTFORML [0] Level up \@ LOCAL> 0 ? (Requires: {LOCAL} EXP) # (Impossible to level up)\@
+	PRINTL [1] Stat enhancement
+	PRINTL [2] Use skill card
+	PRINTL [3] Use EXP card
+	PRINTL [4] Resistance enhancement
+	PRINTL [8] Return to list
+	PRINTL [9] End enhancement
+	CALL INPUTINT(0, 1, 2, 3, 4, 8, 9)
+	IF RESULT == 0
+		IF !LOCAL
+			IF PERSONA < 50
+				PRINTW You can not raise the persona level higher than the master.
+				;ペルソナのレベルを主人より高くすることは出来ません
+			ELSE
+				PRINTW It is not possible to raise the level of the initial persona higher than the persona-user.
+				;初期ペルソナのレベルをペルソナ使いより高くすることは出来ません
+			ENDIF
+		ELSEIF DITEMTYPE:PERSONA:ペルソナ("EXP") >= LOCAL
+			DITEMTYPE:PERSONA:ペルソナ("EXP") -= LOCAL
+			DITEMTYPE:PERSONA:ペルソナ("強化可能回数") += 1 + DITEMTYPE:PERSONA:ペルソナ("LV") % 2
+			DITEMTYPE:PERSONA:ペルソナ("LV") += 1
+			PRINTW Persona-lvl has been risen.
+			;ペルソナのレベルがあがりました
+			CALL EVENT_LEVELUP_P, PERSONA
+		ELSE
+			PRINTW Not enough EXP.
+			;EXPが足りません
+		ENDIF
+	ENDIF
+	CLEARLINE LINECOUNT - LINE:2
+	;---- EDIT 001 ADD END -------------------------
+	IF RESULT == 9
+		RETURN 0
+	ELSEIF RESULT == 1
+		$UP_STATUS
+		CLEARLINE LINECOUNT - LINE:1
+		DRAWLINE
+		PRINTFORML LV {DITEMTYPE:PERSONA:ペルソナ("LV")} %CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%
+		LOCAL:1 = 0
+		FOR LOCAL, ペルソナ("力"), ペルソナ("運") + 1
+			LOCAL:1++
+			PRINTFORM %GET_BASESTATUS_E(LOCAL:1),4% {DITEMTYPE:PERSONA:LOCAL,3}　
+			SIF LOCAL % 3 == 2
+				PRINTL 
+		NEXT
+		IF PERSONA < 50
+			PRINTFORM Rank{DITEMTYPE:PERSONA:ペルソナ("ランク")} 
+		ELSE
+			PRINT RANK:10 
+		ENDIF
+		PRINTFORML EXP {DITEMTYPE:PERSONA:ペルソナ("EXP")} / 1000
+		PRINTFORML {DITEMTYPE:PERSONA:ペルソナ("強化可能回数")} available lvl-up stat-points
+		;Can enhance　{DITEMTYPE:PERSONA:ペルソナ("強化可能回数")} times
+		DRAWLINE
+		PRINTL Distribute available lvl-up stat points:
+		;強化可能回数を消費して強化する
+		;Consume and enhance reinforceable times
+		PRINTL 
+		FOR LOCAL, 0 ,6
+			PRINTFORM [{LOCAL,2}] %GET_BASESTATUS_E(LOCAL+1),4%({DITEMTYPE:PERSONA:ペルソナ("強化可能回数"),2} times)
+			SIF LOCAL % 3 == 2
+				PRINTL
+		NEXT
+		DRAWLINE
+		PRINTL Use an incense card
+		PRINTL Increases one stat by 5 but lowers all others by 1 each
+		;インセンスカードを使用する
+		;特定のステータスを増やす代わりに他のすべてのステータスが減少します
+		PRINTL 
+		FOR LOCAL, 0 ,6
+			PRINTFORM [{LOCAL+6,2}] %GET_BASESTATUS_E(LOCAL+1),4%({ITEM:(GETNUM(ITEM,"STRインセンスカード")+LOCAL),2} times)
+			SIF LOCAL % 3 == 2
+				PRINTL
+		NEXT
+		DRAWLINE
+		PRINTL Use a minus card
+		PRINTL Reduces a specific stat of the persona and allows to re-allocate the removed points
+		;マイナスカードを使用する
+		;特定のステータスを減らす代わりに強化可能回数が増加します
+		PRINTL 
+		FOR LOCAL, 0 ,6
+			PRINTFORM [{LOCAL+12,2}] %GET_BASESTATUS_E(LOCAL+1),4%({ITEM:(GETNUM(ITEM,"STRマイナスカード")+LOCAL),2} times)
+			SIF LOCAL % 3 == 2
+				PRINTL
+		NEXT
+		PRINTFORML [18]  ALL({ITEM:ALLマイナスカード,2} times)
+		PRINTL [99] Return
+		DRAWLINE
+		INPUT
+		SIF RESULT == 99
+			GOTO START_POWERUP
+		SIF RESULT > 18 || RESULT < 0
+			GOTO UP_STATUS
+		CLEARLINE 1
+		LOCAL:4 = 0
+		SELECTCASE RESULT
+			CASE IS < 6
+				IF DITEMTYPE:PERSONA:ペルソナ("強化可能回数") == 0
+					PRINTW All available stat-points have been used.
+					;強化可能回数が0回です
+					;Enhancement possible count is 0 times
+				ELSE
+					DITEMTYPE:PERSONA:(RESULT+3) += 1
+					DITEMTYPE:PERSONA:ペルソナ("強化可能回数") -= 1
+					PRINTFORMW %GET_BASESTATUS_E(RESULT+1)% + 1
+					SIF DITEMTYPE:PERSONA:ペルソナ("強化可能回数") == 0
+						PRINTW All available stat-points have been used.
+						;強化可能回数が0回になりました
+						;The reinforcement possible count becomes 0 times
+				ENDIF
+			CASE IS < 12
+				LOCAL:1 = RESULT - 6
+				LOCAL:2 = GETNUM(ITEM, "STRインセンスカード") + RESULT - 6
+				IF ITEM:(LOCAL:2) == 0
+					PRINTFORMW You don't have a %ITEMNAME_E(LOCAL:2)%.
+				ELSE
+					FOR LOCAL:3, 0, 6
+						IF DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:3) > 1 && LOCAL:3 != LOCAL:1
+							PRINTFORML %GET_BASESTATUS(LOCAL:3+1)% - 1
+							DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:3) -= 1
+							LOCAL:4 += 1
+						ENDIF
+	 				NEXT
+	 				PRINTFORMW %GET_BASESTATUS_E(LOCAL:1+1)% + {LOCAL:4}
+	 				DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:1) += LOCAL:4
+	 				ITEM:(LOCAL:2) -= 1
+				ENDIF
+			CASE IS < 18
+				LOCAL:1 = RESULT - 12
+				LOCAL:2 = GETNUM(ITEM, "STRマイナスカード") + RESULT - 12
+				IF ITEM:(LOCAL:2) == 0
+					PRINTFORMW You don't have a %ITEMNAME_E(LOCAL:2)%.
+				ELSEIF DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:1) < 3
+					PRINTFORMW %CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%'s %GET_BASESTATUS_E(LOCAL:1+1)% can't get any lower.
+					;%CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%の%GET_BASESTATUS(LOCAL:1+1)%はこれ以上下げられません
+				ELSE
+					DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:1) -= 2
+					DITEMTYPE:PERSONA:ペルソナ("強化可能回数") += 2
+	 				PRINTFORML %GET_BASESTATUS_E(LOCAL:1+1)% - 2
+	 				PRINTFORMW Can enhance + 2
+	 				ITEM:(LOCAL:2) -= 1
+				ENDIF
+			CASE 18
+				LOCAL:1 = RESULT - 6
+				IF ITEM:ALLマイナスカード == 0
+					PRINTFORMW You don't have a ALL minus card.
+				ELSE
+					FOR LOCAL:3, 0, 6
+						IF DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:3) > 1
+							PRINTFORML %GET_BASESTATUS_E(LOCAL:3+1)% - 1
+							DITEMTYPE:PERSONA:(ペルソナ("力")+LOCAL:3) -= 1
+							LOCAL:4 += 1
+						ENDIF
+	 				NEXT
+	 				IF LOCAL:4
+		 				PRINTFORMW Can enhance + {LOCAL:4}
+		 				DITEMTYPE:PERSONA:ペルソナ("強化可能回数") += LOCAL:4
+		 				ITEM:ALLマイナスカード -= 1
+		 			ELSE
+		 				PRINTFORMW %CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%'s stats can't be lowered any further.
+						;の能力はこれ以上下げられません
+		 			ENDIF
+				ENDIF
+		ENDSELECT
+		GOTO UP_STATUS
+	ELSEIF RESULT == 2
+		CALL ADD_SKILL_PERSONA, PERSONA
+	ELSEIF RESULT == 3
+		$EXPCARD
+		FOR LOCAL, 0, 5
+			LOCAL:1 = LOCAL+GETNUM(ITEM,"新芽のカード") 
+			PRINTFORML [{LOCAL}] %ITEMNAME_E(LOCAL:1)%(EXP:{ITEMPRICE:(LOCAL:1),3})　{ITEM:(LOCAL:1),2} available
+		NEXT
+		DRAWLINE
+		PRINTL [9] Return
+		CALL INPUTINT(0, 1, 2, 3, 4, 9)
+		IF RESULT < 5
+			LOCAL = RESULT+GETNUM(ITEM,"新芽のカード")
+			IF !ITEM:(LOCAL)
+				PRINTW There is no card.
+				;カードがありませんぞ
+				GOTO EXPCARD
+			ENDIF
+			ITEM:(LOCAL) -= 1
+			DITEMTYPE:PERSONA:ペルソナ("EXP") += ITEMPRICE:LOCAL
+			SIF DITEMTYPE:PERSONA:ペルソナ("EXP") > 1000
+				DITEMTYPE:PERSONA:ペルソナ("EXP") = 1000
+		ENDIF
+	;---- EDIT 001 ADD START -------------------------
+	;Resistance enhancement
+	ELSEIF RESULT == 4
+		CALL PERSONA_ENHANCE_DEFTYPE, PERSONA
+	ELSEIF RESULT == 8
+		CLEARLINE LINECOUNT - LINE
+		RESTART
+	ENDIF
+	;---- EDIT 001 ADD END -------------------------
+	;元々のランクを記録
+	LOCAL = DITEMTYPE:PERSONA:ペルソナ("ランク")
+	LOCAL:1 = 0
+	WHILE 1
+		LOCAL:1 += 1
+		IF DITEMTYPE:PERSONA:ペルソナ("EXP") < LOCAL:1 * LOCAL:1 * 10
+			DITEMTYPE:PERSONA:ペルソナ("ランク") = LOCAL:1 - 1
+			BREAK
+		ENDIF
+	WEND
+	;ランク変化
+	SIF DITEMTYPE:PERSONA:ペルソナ("ランク") != LOCAL && PERSONA < 50
+		PRINTFORMW %CSVCALLNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%'s rank became {DITEMTYPE:PERSONA:ペルソナ("ランク")}.
+		;%CSVCALLNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%のランクが{DITEMTYPE:PERSONA:ペルソナ("ランク")}になりました
+	GOTO START_POWERUP
+
+
+@EVENT_LEVELUP_P, ARG
+	FOR LOCAL,1,21
+		IF DITEMTYPE:ARG:ペルソナ(("習得スキル"+TOSTR(LOCAL))) > 0
+			IF DITEMTYPE:ARG:ペルソナ(("習得LV"+TOSTR(LOCAL))) <= DITEMTYPE:ARG:ペルソナ("LV")
+				CALL LEARN_SKILL_P, ARG, DITEMTYPE:ARG:ペルソナ(("習得スキル"+TOSTR(LOCAL)))
+				DITEMTYPE:ARG:ペルソナ(("習得スキル"+TOSTR(LOCAL))) = 0
+				DITEMTYPE:ARG:ペルソナ(("習得LV"+TOSTR(LOCAL))) = 0
+			ENDIF
+		ENDIF
+	NEXT
+
+
+@LEARN_SKILL_P,ARG,ARG:1
+	;ARG = レベルアップしたペルソナ
+	;ARG:1 = 習得するスキル
+	;まず空のスキル枠を探す
+	LOCAL:1 = 0
+	LOCALS:1 = 
+	FOR LOCAL,1,FLAG:スキル数+1
+		LOCALS = スキル{LOCAL}
+		;既に習得していたら関数を抜ける
+		SIF DITEMTYPE:ARG:ペルソナ(LOCALS) == ARG:1
+			RETURN 0
+		;敵専用スキルも抜ける
+		TRYCCALLFORM 敵専用_{ARG:1}
+			SIF RESULT
+				RETURN 0
+		CATCH
+		ENDCATCH
+		IF DITEMTYPE:ARG:ペルソナ(LOCALS) < 1
+			LOCAL:1 = 1
+			LOCALS:1 = %LOCALS%
+			BREAK
+		ENDIF
+	NEXT
+	IF LOCAL:1 > 0
+		;空のスキル枠があれば習得
+		CALLFORM SKILL_NAME_{ARG:1},ARG
+		PRINTFORMW %CSVCALLNAME(DITEMTYPE:ARG:ペルソナ("NO"),0)% has learned %RESULTS%.
+		DITEMTYPE:ARG:ペルソナ(LOCALS:1) = ARG:1
+	ELSE
+		;無ければスキル枠を選択して入れ替え
+		CALLFORM SKILL_NAME_{ARG:1},ARG
+		LOCALS:1 = %RESULTS%
+		PRINTFORML %CSVCALLNAME(DITEMTYPE:ARG:ペルソナ("NO"),0)% can't learn %LOCALS:1% because the skill-list is full.
+		PRINTW Please select a skill to replace.
+		;破棄するスキルを選んでください
+		$CHOICE
+		DRAWLINE
+		CALLFORM SKILL_SUCCESSION_TYPE_{ARG:1}
+		PRINTFORML 【%GET_SUCCESSION_E(RESULT)%】 %LOCALS:1%
+		SIF FLAG:スキル属性表示設定 == 1
+			CALL SKILL_EXPLAIN_PERFORMANCE, ARG:1, -1
+		CALLFORM SKILL_EXPLAIN_{ARG:1}
+		DRAWLINE
+		FOR LOCAL,1,FLAG:スキル数+1
+			LOCALS = スキル{LOCAL}
+			IF DITEMTYPE:ARG:ペルソナ(LOCALS) > 0
+				CALLFORM SKILL_NAME_{DITEMTYPE:ARG:ペルソナ(LOCALS)},ARG
+				PRINTFORML [{LOCAL}] %RESULTS%
+			ENDIF
+		NEXT
+		DRAWLINE
+		PRINTFORML [0] Don't learn %LOCALS:1%
+		$INPUT_LOOP
+		INPUT
+		IF RESULT == 0
+			RETURN 0
+		ELSEIF RESULT >= 1 && RESULT <= FLAG:スキル数
+			LOCALS = スキル{RESULT}
+			CALLFORM SKILL_NAME_{ARG:1},ARG
+			DRAWLINE
+			CALLFORM SKILL_SUCCESSION_TYPE_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+			PRINTFORM 【%GET_SUCCESSION_E(RESULT)%】 
+			CALLFORM SKILL_NAME_{DITEMTYPE:ARG:ペルソナ(LOCALS)}, ARG
+			PRINTFORML %RESULTS%
+			SIF FLAG:スキル属性表示設定 == 1
+				CALL SKILL_EXPLAIN_PERFORMANCE, DITEMTYPE:ARG:ペルソナ(LOCALS), -1
+			TRYCALLFORM SKILL_EXPLAIN_{DITEMTYPE:ARG:ペルソナ(LOCALS)}
+			DRAWLINE
+			PRINTFORML Are you sure %RESULTS% should be replaced with %LOCALS:1%?
+			CALL INPUT_YN, "Yes", "No"
+			SIF RESULT == 1
+				GOTO CHOICE
+			PRINTFORMW %CSVCALLNAME(DITEMTYPE:ARG:ペルソナ("NO"),0)% has learned %LOCALS:1%.
+			DITEMTYPE:ARG:ペルソナ(LOCALS) = ARG:1
+		ELSE
+			GOTO INPUT_LOOP
+		ENDIF
+	ENDIF
+
+;---- EDIT 001 ADD START -------------------------
+;新規作成
+@PERSONA_ENHANCE_DEFTYPE, ARG
+	LOCAL:3 = 20
+	LOCAL = ABS(DITEMTYPE:ARG:ペルソナ("CP") / 10 - 5)
+	WHILE LOCAL
+		LOCAL:3 = DITEMTYPE:ARG:ペルソナ("CP") / 10 > 5 ? LOCAL:3 * 4 / 3 # LOCAL:3 * 9 / 10
+		LOCAL--
+	WEND
+	;---- EDIT 002 ADD START -------------------------
+	;弱点3個未満には変更できないように
+	LOCAL:10 = 0
+	FOR LOCAL, 0, FLAG:相性数
+		LOCALS = %GET_TYPE(LOCAL)%
+		SIF CSVBASE(DITEMTYPE:ARG:ペルソナ("NO"), GETNUM(BASE, LOCALS), 0) > 100 && CSVBASE(DITEMTYPE:ARG:ペルソナ("NO"), GETNUM(BASE, LOCALS), 0) < 999
+			LOCAL:10++
+	NEXT
+	;---- EDIT 002 ADD END   -------------------------
+	;---- EDIT 002 ADD START -------------------------
+	;ペルソナ使い本人の陥落度によって補正がかかるように変更
+	LOCAL:3 = ARG >= 50 ? MAX(LOCAL:3 / MAX(陥落(FINDCHARA_ID(DITEMTYPE:ARG:ペルソナ("ペルソナ所持者")))*2, 1), 5) # MAX(LOCAL:3 / MAX(DITEMTYPE:ARG:ペルソナ("陥落") * 2, 1), 5)
+	;---- EDIT 002 ADD END   -------------------------
+	PRINTFORML Necessary EXP Normal:\@LOCAL:3 > 100 || LOCAL:10 <= 3 ? ×#{LOCAL:3 * 10}\@ Half:\@LOCAL:3 > 40 ? ×#{LOCAL:3 * 25}\@ Void:\@LOCAL:3 > 20 ? ×#{LOCAL:3 * 50}\@ Drain:\@LOCAL:3 > 10 ? ×#{LOCAL:3 * 100}\@Reflect:\@LOCAL:3 > 10 ? ×#{LOCAL:3 * 100}\@  
+	IF DITEMTYPE:ARG:ペルソナ("変更相性1") > 0
+	PRINTFORM Current resistance enhancement:%GET_TYPE_E(DITEMTYPE:ARG:ペルソナ("変更相性1")-1)% 
+		IF DITEMTYPE:ARG:ペルソナ("変更相性値1") == 999
+			PRINTFORML Reflect
+		ELSEIF DITEMTYPE:ARG:ペルソナ("変更相性値1") == 0
+			PRINTFORML Void
+		ELSE
+			PRINTFORML {DITEMTYPE:ARG:ペルソナ("変更相性値1")}％
+		ENDIF
+	ENDIF
+	PRINTFORML 
+	PRINTL Which resistance will you enhance?(Only one can be active at a time)
+	FOR LOCAL, 0, FLAG:相性数 - 1
+		LOCALS = %GET_TYPE(LOCAL)%
+		IF DITEMTYPE:ARG:ペルソナ("変更相性1") - 1 == LOCAL
+			LOCAL:1 = DITEMTYPE:ARG:ペルソナ("変更相性値1")
+		ELSE
+			LOCAL:1 = CSVBASE(DITEMTYPE:ARG:ペルソナ("NO"), GETNUM(BASE, LOCALS), 0)
+		ENDIF
+		CALL SET_AISYOU_COLOR, LOCAL:1
+		PRINTFORM [{LOCAL,2}]%LOCALS,5,LEFT%\@LOCAL:1 < 0 ? Dr # 　\@
+		PRINTFORM \@ LOCAL:1 != 999 ? {ABS(LOCAL:1),4}％ # %" " *2%Refl \@　
+		SIF LOCAL % 5 == 4
+			PRINTL
+	NEXT
+	RESETCOLOR
+	PRINTL
+	PRINTL [100]Return
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 100
+		RETURN 0
+	ELSEIF RESULT < 0 || RESULT >= FLAG:相性数-1
+		GOTO INPUT_LOOP
+	ENDIF
+	LOCAL:1 = RESULT
+	DRAWLINE
+	PRINTFORML How do you want to change the %GET_TYPE_E(LOCAL:1)% resistance?
+	PRINTFORM Currently：
+	LOCAL:2 = LOCAL:1 == DITEMTYPE:ARG:ペルソナ("変更相性1") - 1? DITEMTYPE:ARG:ペルソナ("変更相性値1") # CSVBASE(DITEMTYPE:ARG:ペルソナ("NO"), GETNUM(BASE, GET_TYPE(LOCAL:1)), 0)
+	IF LOCAL:2 == 999
+		PRINTFORML Reflect
+	ELSEIF LOCAL:2 == 0
+		PRINTFORML Void
+	ELSE
+		PRINTFORML {LOCAL:2}％
+	ENDIF
+
+	PRINTL
+	;---- EDIT 002 ADD START -------------------------
+	;弱点3個未満には変更できない
+	IF LOCAL:2 > 100 && LOCAL:2 != 999 && LOCAL:10 <= 3
+		PRINTFORMW A persona whose number of weak points is 3 or less can not change the compatibility of their weak points.
+		;弱点の数が3個以下のペルソナは弱点の相性を変更することが出来ません
+		RETURN 0
+	ELSE
+		SIF LOCAL:2 > 100 && LOCAL:2 != 999 && LOCAL:3 <= 100
+			PRINTFORML [1]Normal  Necessary ＥＸＰ：{10*LOCAL:3}
+		SIF LOCAL:2 > 50 && LOCAL:2 != 999 && LOCAL:3 <= 40
+			PRINTFORML [2]Half    Necessary ＥＸＰ：{25*LOCAL:3}
+		SIF LOCAL:2 != 0 && LOCAL:3 <= 20
+			PRINTFORML [3]Void    Necessary ＥＸＰ：{50*LOCAL:3}
+		SIF LOCAL:2 >= 0 && LOCAL:3 <= 10
+			PRINTFORML [4]Drain   Necessary ＥＸＰ：{100*LOCAL:3}
+		SIF LOCAL:2 != 999 && LOCAL:3 <= 10
+			PRINTFORML [5]Reflect Necessary ＥＸＰ：{100*LOCAL:3}
+	ENDIF
+	;---- EDIT 002 ADD END   -------------------------
+	DRAWLINE
+	PRINTL [0] Return
+	$INPUT_LOOP_2
+	INPUT
+	IF RESULT == 0
+		RETURN 0
+	ELSEIF RESULT == 1 && LOCAL:2 > 100 && LOCAL:2 != 999 && DITEMTYPE:ARG:ペルソナ("EXP") >= 10*LOCAL:3
+		DITEMTYPE:ARG:ペルソナ("変更相性1") = LOCAL:1+1
+		DITEMTYPE:ARG:ペルソナ("変更相性値1") = 100
+		DITEMTYPE:ARG:ペルソナ("EXP") -= 10*LOCAL:3
+	ELSEIF RESULT == 2 && LOCAL:2 > 50 && LOCAL:2 != 999 && DITEMTYPE:ARG:ペルソナ("EXP") >= 25*LOCAL:3
+		DITEMTYPE:ARG:ペルソナ("変更相性1") = LOCAL:1+1
+		DITEMTYPE:ARG:ペルソナ("変更相性値1") = 50
+		DITEMTYPE:ARG:ペルソナ("EXP") -= 25*LOCAL:3
+	ELSEIF RESULT == 3 && LOCAL:2 != 0 && DITEMTYPE:ARG:ペルソナ("EXP") >= 50*LOCAL:3
+		DITEMTYPE:ARG:ペルソナ("変更相性1") = LOCAL:1+1
+		DITEMTYPE:ARG:ペルソナ("変更相性値1") = 0
+		DITEMTYPE:ARG:ペルソナ("EXP") -= 50*LOCAL:3
+	ELSEIF RESULT == 4 && LOCAL:2 >= 0 && DITEMTYPE:ARG:ペルソナ("EXP") >= 100*LOCAL:3
+		DITEMTYPE:ARG:ペルソナ("変更相性1") = LOCAL:1+1
+		DITEMTYPE:ARG:ペルソナ("変更相性値1") = -50
+		DITEMTYPE:ARG:ペルソナ("EXP") -= 100*LOCAL:3
+	ELSEIF RESULT == 5 && LOCAL:2 != 999 && DITEMTYPE:ARG:ペルソナ("EXP") >= 100*LOCAL:3
+		DITEMTYPE:ARG:ペルソナ("変更相性1") = LOCAL:1+1
+		DITEMTYPE:ARG:ペルソナ("変更相性値1") = 999
+		DITEMTYPE:ARG:ペルソナ("EXP") -= 100*LOCAL:3
+	ELSE
+		GOTO INPUT_LOOP_2
+	ENDIF
+;---- EDIT 001 ADD END -------------------------
+
+
+@PERSONA_MASTER_LIST, ARG
+;引数が0なら、全員
+;1ならペルソナ強化フラグもちだけ
+Z = ARG
+CALL INPUT_CHARA_LIST("Please select the Persona-user", "CASTING_PERSONA_MASTER_LIST")
+IF RESULT == 1000
+	RETURN -1
+ENDIF
+RETURN RESULT
+
+@CASTING_PERSONA_MASTER_LIST
+SIF TALENT:COUNT:ペルソナ使い == 0
+	RETURN 0
+;SIF CFLAG:LOCAL:戦闘参加不可能 && !CFLAG:LOCAL:売却可能 && !陥落(LOCAL)
+;	RETURN 0
+SIF CFLAG:COUNT:戦闘参加不可能 && !CFLAG:COUNT:売却可能 && !陥落(COUNT)
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+SIF Z == 1 && CFLAG:COUNT:ペルソナ強化フラグ % 2 == 0
+	RETURN 0
+RETURN 1
+
+;----------------------------
+;ペルソナの一覧
+;----------------------------
+@PERSONA_LIST
+	VARSET Q, -1
+	;全ペルソナを表示する
+	FOR LOCAL, 1, 11
+		SIF DITEMTYPE:(LOCAL):0 == 0
+			CONTINUE
+		;名前表示
+		PRINTFORML [{LOCAL,2}] %CSVNAME(DITEMTYPE:(LOCAL):ペルソナ("NO"),0),20,LEFT%　LV:{DITEMTYPE:LOCAL:ペルソナ("LV"),3}　EXP:{DITEMTYPE:LOCAL:ペルソナ("EXP"),4}　Holder:\@DITEMTYPE:(LOCAL):ペルソナ("ペルソナ所持者") >= 0 ? %CALLNAME:FINDCHARA_ID(DITEMTYPE:(LOCAL):ペルソナ("ペルソナ所持者"))% # %"Nobody",20,LEFT%\@
+		;なし
+		Q:LOCAL = LOCAL
+	NEXT
+	LOCAL:1 = 11
+	FOR LOCAL, 0, CHARANUM
+		SIF ABL:LOCAL:初期ペルソナ == 0
+			CONTINUE
+		SIF CFLAG:LOCAL:フィルタリングフラグ
+			CONTINUE
+		SIF CFLAG:LOCAL:戦闘参加不可能 > 0
+			CONTINUE
+		SIF CFLAG:LOCAL:この場に居ないフラグ == 1
+			CONTINUE
+		Q:(LOCAL:1) = CFLAG:LOCAL:初期ペルソナナンバー
+		PRINTFORML [{LOCAL:1}] %CSVNAME(DITEMTYPE:(CFLAG:LOCAL:初期ペルソナナンバー):ペルソナ("NO"),0),20,LEFT%　LV:{DITEMTYPE:(CFLAG:LOCAL:初期ペルソナナンバー):ペルソナ("LV"),3}　EXP:{DITEMTYPE:(CFLAG:LOCAL:初期ペルソナナンバー):ペルソナ("EXP"),4}　Holder:%CALLNAME:LOCAL,20,LEFT%
+		LOCAL:1++ 
+	NEXT
+
+
+@ペルソナ(ARGS)
+	#FUNCTION
+	SIF ARGS == "装備状態"
+		RETURNF 0
+	SIF ARGS == "NO"
+		RETURNF 1
+	SIF ARGS == "LV" || ARGS == "ＬＶ"
+		RETURNF 2
+	SIF ARGS == "力"
+		RETURNF 3
+	SIF ARGS == "知恵"
+		RETURNF 4
+	SIF ARGS == "魔力"
+		RETURNF 5
+	SIF ARGS == "耐力" || ARGS == "体力"
+		RETURNF 6
+	SIF ARGS == "速さ"
+		RETURNF 7
+	SIF ARGS == "運"
+		RETURNF 8
+	SIF ARGS == "ランク"
+		RETURNF 9
+	SIF ARGS == "EXP"
+		RETURNF 10
+	SIF ARGS == "スキル1"
+		RETURNF 11
+	SIF ARGS == "スキル2"
+		RETURNF 12
+	SIF ARGS == "スキル3"
+		RETURNF 13
+	SIF ARGS == "スキル4"
+		RETURNF 14
+	SIF ARGS == "スキル5"
+		RETURNF 15
+	SIF ARGS == "スキル6"
+		RETURNF 16
+	SIF ARGS == "スキル7"
+		RETURNF 17
+	SIF ARGS == "スキル8"
+		RETURNF 18
+	;---- EDIT 001 ADD START -------------------------
+	;新規追加
+	SIF ARGS == "CP"
+		RETURNF 19
+	SIF ARGS == "変更相性1"
+		RETURNF 20
+	SIF ARGS == "変更相性値1"
+		RETURNF 21
+	SIF ARGS == "変更相性2"
+		RETURNF 22
+	SIF ARGS == "変更相性値2"
+		RETURNF 23
+	SIF ARGS == "変更相性3"
+		RETURNF 24
+	SIF ARGS == "変更相性値3"
+		RETURNF 25
+	;---- EDIT 001 ADD END -------------------------
+	SIF ARGS == "属性LD"
+		RETURNF 30
+	SIF ARGS == "属性LC"
+		RETURNF 31
+	SIF ARGS == "陥落"
+		RETURNF 32
+	SIF ARGS == "ペルソナ所持者"
+		RETURNF 33
+	SIF ARGS == "強化可能回数"
+		RETURNF 34
+	SIF ARGS == "習得スキル1"
+		RETURNF 40
+	SIF ARGS == "習得スキル2"
+		RETURNF 41
+	SIF ARGS == "習得スキル3"
+		RETURNF 42
+	SIF ARGS == "習得スキル4"
+		RETURNF 43
+	SIF ARGS == "習得スキル5"
+		RETURNF 44
+	SIF ARGS == "習得スキル6"
+		RETURNF 45
+	SIF ARGS == "習得スキル7"
+		RETURNF 46
+	SIF ARGS == "習得スキル8"
+		RETURNF 47
+	SIF ARGS == "習得スキル9"
+		RETURNF 48
+	SIF ARGS == "習得スキル10"
+		RETURNF 49
+	SIF ARGS == "習得スキル11"
+		RETURNF 50
+	SIF ARGS == "習得スキル12"
+		RETURNF 51
+	SIF ARGS == "習得スキル13"
+		RETURNF 52
+	SIF ARGS == "習得スキル14"
+		RETURNF 53
+	SIF ARGS == "習得スキル15"
+		RETURNF 54
+	SIF ARGS == "習得スキル16"
+		RETURNF 55
+	SIF ARGS == "習得スキル17"
+		RETURNF 56
+	SIF ARGS == "習得スキル18"
+		RETURNF 57
+	SIF ARGS == "習得スキル19"
+		RETURNF 58
+	SIF ARGS == "習得スキル20"
+		RETURNF 59
+	SIF ARGS == "習得LV1"
+		RETURNF 60
+	SIF ARGS == "習得LV2"
+		RETURNF 61
+	SIF ARGS == "習得LV3"
+		RETURNF 62
+	SIF ARGS == "習得LV4"
+		RETURNF 63
+	SIF ARGS == "習得LV5"
+		RETURNF 64
+	SIF ARGS == "習得LV6"
+		RETURNF 65
+	SIF ARGS == "習得LV7"
+		RETURNF 66
+	SIF ARGS == "習得LV8"
+		RETURNF 67
+	SIF ARGS == "習得LV9"
+		RETURNF 68
+	SIF ARGS == "習得LV10"
+		RETURNF 69
+	;---- EDIT 001 ADD START -------------------------
+	;番号ミスの修正
+	SIF ARGS == "習得LV11"
+		RETURNF 70
+	SIF ARGS == "習得LV12"
+		RETURNF 71
+	SIF ARGS == "習得LV13"
+		RETURNF 72
+	SIF ARGS == "習得LV14"
+		RETURNF 73
+	SIF ARGS == "習得LV15"
+		RETURNF 74
+	SIF ARGS == "習得LV16"
+		RETURNF 75
+	SIF ARGS == "習得LV17"
+		RETURNF 76
+	SIF ARGS == "習得LV18"
+		RETURNF 77
+	SIF ARGS == "習得LV19"
+		RETURNF 78
+	SIF ARGS == "習得LV20"
+		RETURNF 79
+	SIF ARGS == "変異判定フラグ"
+		RETURNF 98
+	SIF ARGS == "余剰EXP"
+		RETURNF 99
+	;---- EDIT 001 ADD END ------------------------
+
+	SIF ARGS == "潜在能力"
+		RETURNF 80
+
+	SIF ARGS == "ペルソナ1"
+		RETURNF 1
+	SIF ARGS == "ペルソナ2"
+		RETURNF 2
+	SIF ARGS == "ペルソナ3"
+		RETURNF 3
+	SIF ARGS == "ペルソナ4"
+		RETURNF 4
+	SIF ARGS == "ペルソナ5"
+		RETURNF 5
+	SIF ARGS == "ペルソナ6"
+		RETURNF 6
+	SIF ARGS == "ペルソナ7"
+		RETURNF 7
+	SIF ARGS == "ペルソナ8"
+		RETURNF 8
+	SIF ARGS == "ペルソナ9"
+		RETURNF 9
+	SIF ARGS == "ペルソナ10"
+		RETURNF 10
+	SIF ARGS == "ペルソナ11"
+		RETURNF 11
+	SIF ARGS == "ゲストペルソナ1"
+		RETURNF 21
+	SIF ARGS == "ゲストペルソナ2"
+		RETURNF 22
+	SIF ARGS == "ゲストペルソナ3"
+		RETURNF 23
+	SIF ARGS == "初期ペルソナ1"
+		RETURNF 50
+	;エラー落ちさせる
+	THROW "ARGSが異常です"

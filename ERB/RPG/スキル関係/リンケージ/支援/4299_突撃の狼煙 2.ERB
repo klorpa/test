@@ -1,0 +1,232 @@
+
+;スキル名
+@SKILL_NAME_4299,ARG
+RESULTS = Charge
+;突撃の狼煙
+
+;　命中
+@SKILL_HITRATE_4299, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_4299, ARG
+RETURN 0
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_4299,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_4299,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_4299, ARG, ARG:1
+RETURN 3
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_4299, ARG
+RETURN 12
+
+;　相性
+@SKILL_TYPE_4299,ARG
+RETURN 0
+;　1EXTRAか2MAGICか
+
+@SKILL_DECIDE_TYPE_4299
+RETURN 2
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_4299
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_4299
+RETURN 2
+
+;　射程
+@SKILL_RANGE_4299,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_4299,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_4299
+RETURN 4
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_4299,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_4299
+RETURN 23
+;Fire
+
+;速度補正
+@SKILL_SPEED_4299, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_4299,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_4299
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_4299
+RETURN 0
+
+@SKILL_RANKUP_4299
+RETURN 0
+
+;テンプレート用、追加効果シリーズ
+;追加効果ステータス
+@SKILL_ADDTIONAL_STATE_4299,ARG
+RETURN 0
+
+;追加効果相性
+@SKILL_ADDTIONAL_TYPE_4299,ARG
+RETURN 0
+
+;追加効果基本付与確率
+@SKILL_ADDTIONAL_BASE_RATE_4299,ARG
+RETURN 0
+
+;追加効果付与確率上限
+@SKILL_ADDTIONAL_MAX_RATE_4299,ARG
+RETURN 0
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_4299,ARG,ARG:1
+#LOCALSIZE 4
+IF CFLAG:(ARG):PTフラグ == 0
+	LOCAL:2 = 7
+	LOCAL:3 = 17
+ELSE
+	LOCAL:2 = 1
+	LOCAL:3 = 7
+ENDIF
+
+FOR LOCAL,LOCAL:2,LOCAL:3
+	SIF POS(LOCAL) < 0
+		CONTINUE
+	FOR LOCAL:1,0,6
+		CFLAG:POS(LOCAL):(GET_BATTLESTATUS(LOCAL:1) + "強化") = MIN(32, CFLAG:POS(LOCAL):(GET_BATTLESTATUS(LOCAL:1) + "強化") + 8)
+	NEXT
+NEXT
+PRINTFORMW \@ CFLAG:ARG:PTフラグ == 0 ? foes # allies \@ Attack/Magic/Defense/Agility went up drastically!
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_4299
+PRINTL Raises all allies Attack/Magic/Defense/Agility drastically.
+
+;継承に必要な部位
+@継承部位_4299,ARG
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_4299,ARG
+CALL CHECK_COST,ARG,4299
+SIF RESULT == 0
+	RETURN 0
+RETURN 1
+;とくにない
+
+
+;=====================================================
+;リンケージ設定
+;=====================================================
+@LINKAGE_4299
+RETURN 1
+
+@参加人数_4299
+RETURN 3
+
+@参加条件表示_4299,ARG
+SELECTCASE ARG
+	CASE 1
+		PRINTFORM Makakaja or Sukukaja
+	CASE 2
+		PRINTFORM Samakaja
+	CASE 3
+		PRINTFORM Rakukaja
+	CASE 4
+		PRINTFORM Tarukaja
+ENDSELECT
+
+@発動者条件_4299 , ARG
+;タル・カジャを使えること
+SIF HAVE_SKILL(ARG, [[スキル:タル・カジャ]]) == 0
+	RETURN 0
+CALL CHECK_ACTIONABLE , ARG , [[スキル:タル・カジャ]]
+SIF RESULT
+	RETURN 1
+RETURN 0
+
+
+@参加者条件_4299, ARG , ARG:1
+SIF CPOS(ARG) < 1 || CPOS(ARG) > 6
+	RETURN 0
+CALL CHECK_COST_LINCAGE, ARG, 4299, ARG:1
+SIF RESULT == 0
+	RETURN 0
+SELECTCASE ARG:1
+	CASE 1
+		;マカ・カジャを使えること
+		IF HAVE_SKILL(ARG, [[スキル:マカ・カジャ]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:マカ・カジャ]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		;スク・カジャを使えること
+		IF HAVE_SKILL(ARG, [[スキル:スク・カジャ]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:スク・カジャ]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		RETURN 0
+	CASE 2
+		;サマ・カジャを使えること
+		IF HAVE_SKILL(ARG, [[スキル:サマ・カジャ]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:サマ・カジャ]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		RETURN 0
+	CASE 3
+		;ラク・カジャを使えること
+		IF HAVE_SKILL(ARG, [[スキル:ラク・カジャ]])
+			CALL CHECK_ACTIONABLE , ARG , [[スキル:ラク・カジャ]]
+			SIF RESULT
+				RETURN 1
+		ENDIF
+		RETURN 0
+ENDSELECT
+
+@リンケージコストタイプ_4299, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 3
+ENDSELECT
+@リンケージコスト_4299, ARG
+SELECTCASE ARG
+	CASE 1
+		RETURN 12
+	CASE 2
+		RETURN 12
+	CASE 3
+		RETURN 12
+ENDSELECT

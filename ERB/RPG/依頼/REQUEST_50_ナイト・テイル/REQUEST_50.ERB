@@ -1,0 +1,227 @@
+;====================
+;関連フラグリスト
+;====================
+;FLAG:ナイト・テイル進行度
+;	(；´∀｀)途中から変数の仕様が変わってます。見づらくてｽﾏﾝﾇ
+;====================
+;条件
+;・基本的に古代ちゃん必須。出撃可能な状態＝あなたと優良な関係で残存していないと、依頼自体が消滅する。
+;・Request: 幻想の王国１は摩耶の残存も条件（売っちゃったり削除してるとT.D.Lでユーリアを倒すしかなくなる
+;・Request: 幻想の王国２は摩耶・宮下・香鈴・結城の残存も条件（売っちゃったり削除しているとT.D.Lでユーリアを倒すしかなくなる
+;・Request: 幻想の王国１、２はT.D.Lでユーリアと出会っていると強制的にスキップされる
+;・ゲーム開始から51日目になると最後2つの依頼が消滅、クリア不可になる。
+;====================
+@PLAYABLE_REQUEST_50
+;古代が出撃不能な状態を除く
+SIF (GETCHARA(4559) > 0 && CFLAG:GETCHARA(4559):戦闘参加不可能 < 1) == 0
+	RETURN 0
+
+;EVENT_30_神野の娘で協力
+IF イベントフラグ:30:0 == 1 && FLAG:ナイト・テイル進行度 == 0
+	RESULTS = Request: Jacob's ladder　“MEN IN BLACK”
+	RETURN 1
+ELSEIF FLAG:ナイト・テイル進行度 == 1
+	RESULTS = Request: Mouriane Assault　“Einstein's　posthumous works”
+	RETURN 1
+ELSEIF FLAG:ナイト・テイル進行度 == 2
+	RESULTS = Request: Fallen Angels' Feast　“Blood　Diamond”
+	RETURN 1
+ELSEIF FLAG:ナイト・テイル進行度 == 3
+	RESULTS = Request: From Ryujin with Love “Caribbean　Blue”
+	RETURN 1
+;ユーリアと出会ってしまっている場合、幻想の王国がスキップされる
+ELSEIF (FLAG:ナイト・テイル進行度 == 4 || FLAG:ナイト・テイル進行度 == 5) && ダンジョンフラグ:35:8 > 0
+	RESULTS = Request: Return of the Legend　“Return　of　『J』”
+	RETURN 1
+;ここは摩耶ちゃんも必須＆T.D.Lでユーリアと出会っていない。
+ELSEIF FLAG:ナイト・テイル進行度 == 4 && GETCHARA(4628) > 0 && CFLAG:GETCHARA(4628):戦闘参加不可能 < 1 && ダンジョンフラグ:35:8 < 1
+	RESULTS = Request: Kingdom of Fantasy　“Reverse　Land”
+	RETURN 1
+;摩耶・結城・宮下・香鈴必須＆T.D.Lでユーリアと出会っていない。
+ELSEIF FLAG:ナイト・テイル進行度 == 5 && GROUPMATCH(-1, GETCHARA(4632), GETCHARA(4628), GETCHARA(4630), GETCHARA(4631)) == 0 && GROUPMATCH(1, CFLAG:GETCHARA(4632):戦闘参加不可能, CFLAG:GETCHARA(4628):戦闘参加不可能, CFLAG:GETCHARA(4630):戦闘参加不可能, CFLAG:GETCHARA(4631):戦闘参加不可能) == 0 && ダンジョンフラグ:35:8 < 1
+	RESULTS = Request: Kingdom of Fantasy(2)　“Never　Never　Land　Story”
+	RETURN 1
+
+
+;FLAG:ナイト・テイル進行度 == 6　に相当する部分はEVENT_50
+
+
+ELSEIF FLAG:ナイト・テイル進行度 == 700 || FLAG:ナイト・テイル進行度 == 700000
+	RESULTS = Request: Return of the Legend　　“Return　of　『J』”
+	RETURN 1
+	
+	
+;タイムオーバー
+ELSEIF (FLAG:ナイト・テイル進行度 == 800 || FLAG:ナイト・テイル進行度 == 800000) && CHECK_TIMELIMIT(0,DAY > 50)
+	FLAG:ナイト・テイル進行度 = 999997
+	RETURN 0
+	
+;幻想の王国(2)を通過し、トールと対決している場合、L寄りルート
+;TRUEENDには結城、宮下、香鈴、ユーリア、摩耶の友好的残存が必須
+ELSEIF FLAG:ナイト・テイル進行度 == 800000
+	RESULTS = Future: I Will be a God “La Maternite.”
+	RETURN 1
+	
+;幻想の王国(2)を通っていない場合or通っていてもファントムの力で突破した場合、D寄りルート
+ELSEIF FLAG:ナイト・テイル進行度 == 800
+	RESULTS = End: Twilight of the Gods　“bay-bay　JUPITER.”
+	RETURN 1
+	
+ENDIF
+RETURN 0
+
+@EXPLAIN_REQUEST_50
+IF FLAG:ナイト・テイル進行度 == 0
+	CALL EXPLAIN_REQUEST_50_1
+ELSEIF FLAG:ナイト・テイル進行度 == 1
+	CALL EXPLAIN_REQUEST_50_2
+
+ELSEIF FLAG:ナイト・テイル進行度 == 2
+	CALL EXPLAIN_REQUEST_50_3
+ELSEIF FLAG:ナイト・テイル進行度 == 3
+	CALL EXPLAIN_REQUEST_50_4
+;ユーリアと出会ってしまっている場合、幻想の王国スキップ
+ELSEIF (FLAG:ナイト・テイル進行度 == 4 || FLAG:ナイト・テイル進行度 == 5) && ダンジョンフラグ:35:8 > 0
+	CALL EXPLAIN_REQUEST_50_7
+
+ELSEIF FLAG:ナイト・テイル進行度 == 4
+	CALL EXPLAIN_REQUEST_50_5
+ELSEIF FLAG:ナイト・テイル進行度 == 5
+	CALL EXPLAIN_REQUEST_50_6
+	
+ELSEIF FLAG:ナイト・テイル進行度 == 700 || FLAG:ナイト・テイル進行度 == 700000
+	CALL EXPLAIN_REQUEST_50_7
+	
+ELSEIF FLAG:ナイト・テイル進行度 == 800
+	CALL EXPLAIN_REQUEST_50_8_D
+ELSEIF FLAG:ナイト・テイル進行度 == 800000
+	CALL EXPLAIN_REQUEST_50_8_L
+ENDIF
+
+@REQUEST_50
+IF FLAG:ナイト・テイル進行度 == 0
+	CALL REQUEST_50_1
+ELSEIF FLAG:ナイト・テイル進行度 == 1
+	CALL REQUEST_50_2
+	
+ELSEIF FLAG:ナイト・テイル進行度 == 2
+	CALL REQUEST_50_3
+ELSEIF FLAG:ナイト・テイル進行度 == 3
+	CALL REQUEST_50_4
+
+;ユーリアと出会ってしまっている場合、幻想の王国スキップ
+ELSEIF (FLAG:ナイト・テイル進行度 == 4 || FLAG:ナイト・テイル進行度 == 5) && ダンジョンフラグ:35:8 > 0
+	CALL REQUEST_50_7
+
+ELSEIF FLAG:ナイト・テイル進行度 == 4
+	CALL REQUEST_50_5
+ELSEIF FLAG:ナイト・テイル進行度 == 5
+	CALL REQUEST_50_6
+	
+ELSEIF FLAG:ナイト・テイル進行度 == 700 || FLAG:ナイト・テイル進行度 == 700000
+	CALL REQUEST_50_7
+	
+ELSEIF FLAG:ナイト・テイル進行度 == 800
+	CALL REQUEST_50_8_D
+ELSEIF FLAG:ナイト・テイル進行度 == 800000
+	CALL REQUEST_50_8_L
+ENDIF
+
+;/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_
+
+@EVENT_BATTLE_START_REQUEST50
+;黒眼鏡台詞
+IF FLAG:ナイト・テイル進行度 == 1
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃神野古代、マニラではよくも殺してくれましたね┃
+	PRINTFORML ┃あなたには神罰が下されることでしょう　　　　┃
+	PRINTFORML ┃まことに、そうなるでしょう。Ａ　Ｍ　Ｅ　Ｎ．┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTFORMW Divine　黒眼鏡が現れた！
+;ハーピー三姉妹台詞
+ELSEIF FLAG:ナイト・テイル進行度 == 2
+	PRINTFORMW 怪鳥　ハーピー三姉妹が襲い掛かってきた！
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃貴様を殺し！　　　　　　　　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃脳から直接！　　　　　　　　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃記憶を奪い取ってくれようぞーッ！！！　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+;黒眼鏡（二度目）台詞
+ELSEIF FLAG:ナイト・テイル進行度 == 12
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃Ｋｉｌｌ　Ｍｅ　　Ｏｎｃｅ　Ａｇａｉｎ．　　┃
+	PRINTFORML ┃この私をもう一度殺して御覧なさいッ！！！　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTFORMW Divine　黒眼鏡が現れた！
+;堕天使エリゴール台詞
+ELSEIF FLAG:ナイト・テイル進行度 == 3
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━━━┓
+	PRINTFORMW ┃性懲りもなく、また賊が入って来おったか　　　┃
+	PRINTFORMW ┃どいつもこいつも、軟弱ばかり　　　　　　　　┃
+	PRINTFORML ┃お前らは、楽しませてくれるのだろうな！？　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━━━┛
+	PRINTFORMW 堕天使　エリゴールが現れた！
+	
+ELSEIF FLAG:ナイト・テイル進行度 == 4 || FLAG:ナイト・テイル進行度 == 14 || FLAG:ナイト・テイル進行度 == 24
+	CALL EVENT_BATTLE_START_REQUEST50_4
+ELSEIF FLAG:ナイト・テイル進行度 == 5 || FLAG:ナイト・テイル進行度 == 15 || FLAG:ナイト・テイル進行度 == 25
+	CALL EVENT_BATTLE_START_REQUEST50_5
+ELSEIF FLAG:ナイト・テイル進行度 > 599 && FLAG:ナイト・テイル進行度 < 700
+	CALL EVENT_BATTLE_START_REQUEST50_6
+ELSEIF FLAG:ナイト・テイル進行度 == 700 || FLAG:ナイト・テイル進行度 == 700000
+	CALL EVENT_BATTLE_START_REQUEST50_7
+ELSEIF FLAG:ナイト・テイル進行度 >= 800000
+	CALL EVENT_BATTLE_START_REQUEST50_8_L
+ELSEIF FLAG:ナイト・テイル進行度 >= 800 && FLAG:ナイト・テイル進行度 < 800000
+	CALL EVENT_BATTLE_START_REQUEST50_8_D
+	
+ENDIF
+RETURN
+
+@EVENT_BATTLE_TURNTOP50
+RETURN
+
+@EVENT_BATTLE_TURNEND_REQUEST50
+	IF FLAG:ナイト・テイル進行度 == 4 || FLAG:ナイト・テイル進行度 == 14 || FLAG:ナイト・テイル進行度 == 24
+		CALL EVENT_BATTLE_TURNEND_REQUEST50_4
+	ELSEIF FLAG:ナイト・テイル進行度 >= 800000
+		CALL EVENT_BATTLE_TURNEND_REQUEST50_8_L
+	ELSEIF FLAG:ナイト・テイル進行度 >= 800 && FLAG:ナイト・テイル進行度 < 800000
+		CALL EVENT_BATTLE_TURNEND_REQUEST50_8_D
+	ENDIF
+RETURN
+
+@EVENT_BATTLE_ACTEND_REQUEST50
+	IF FLAG:ナイト・テイル進行度 == 4 || FLAG:ナイト・テイル進行度 == 14 || FLAG:ナイト・テイル進行度 == 24
+		CALL EVENT_BATTLE_ACTEND_REQUEST50_4
+	ELSEIF FLAG:ナイト・テイル進行度 > 599 && FLAG:ナイト・テイル進行度 < 700
+		CALL EVENT_BATTLE_ACTEND_REQUEST50_6
+	ELSEIF FLAG:ナイト・テイル進行度 >= 800000
+		CALL EVENT_BATTLE_ACTEND_REQUEST50_8_L
+	ELSEIF FLAG:ナイト・テイル進行度 >= 800 && FLAG:ナイト・テイル進行度 < 800000
+		CALL EVENT_BATTLE_ACTEND_REQUEST50_8_D
+	ENDIF
+RETURN
+
+
+
+
+;=================================================
+;   sub REQUEST_50_DAY_END
+;=================================================
+;   依頼:一日の終了
+;-------------------------------------------------
+@REQUEST_50_DAY_END
+
+PRINTFORMW The day has ended.
+
+;- 朝になる処理
+FLAG:休憩フラグ = 3
+BEGIN TURNEND
+RETURN
+
+

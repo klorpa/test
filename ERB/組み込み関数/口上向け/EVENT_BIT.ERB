@@ -1,0 +1,340 @@
+
+;-------------------------------------------------------------------------------
+;CFLAG:XX:YYのZZ番目のビットを操作する関数群
+;-------------------------------------------------------------------------------
+;ARG    = XX:キャラ番号(省略された場合はTARGETを代入)
+;ARGS   = YY:イベント分類(後述@EVENT_KEYWORDから値を取得)
+;ARGS:1 = ZZ:イベント内容(同上)
+;-------------------------------------------------------------------------------
+
+@EVENT_SETBIT(ARG=-1,ARGS,ARGS:1)
+#LOCALSIZE 2
+ARG = ARG == -1 ? TARGET # ARG
+LOCAL = EVENT_KEYWORD(ARGS)
+LOCAL:1 = EVENT_KEYWORD(ARGS:1)
+;PRINTFORMW SETBIT CFLAG:ARG:{LOCAL},{LOCAL:1}
+SETBIT CFLAG:ARG:LOCAL,LOCAL:1
+
+@EVENT_CLEARBIT(ARG=-1,ARGS,ARGS:1)
+ARG = ARG == -1 ? TARGET # ARG
+CLEARBIT CFLAG:ARG:(EVENT_KEYWORD(ARGS)),EVENT_KEYWORD(ARGS:1)
+
+@EVENT_INVERTBIT(ARG=-1,ARGS,ARGS:1)
+ARG = ARG == -1 ? TARGET # ARG
+INVERTBIT CFLAG:ARG:(EVENT_KEYWORD(ARGS)),EVENT_KEYWORD(ARGS:1)
+
+;-------------------------------------------------------------------------------
+;CFLAG:XX:YYのZZ番目のビットを取得する
+;-------------------------------------------------------------------------------
+;ARG    = XX:キャラ番号(省略された場合はTARGETを代入)
+;ARGS   = YY:イベント分類(後述@EVENT_KEYWORDから値を取得)
+;ARGS:1 = ZZ:イベント内容(同上,省略あるいは"ALL"で全てのビットを取得)
+;-------------------------------------------------------------------------------
+
+@EVENT_GETBIT(ARG=-1,ARGS,ARGS:1="ALL")
+#LOCALSIZE 3
+#FUNCTION
+ARG = ARG == -1 ? TARGET # ARG
+SIF ARGS:1 == "ALL"
+	RETURNF CFLAG:ARG:(EVENT_KEYWORD(ARGS))
+LOCAL = EVENT_KEYWORD(ARGS)
+LOCAL:1 = EVENT_KEYWORD(ARGS:1)
+LOCAL:2 = GETBIT(CFLAG:ARG:LOCAL,LOCAL:1)
+;PRINTFORML GETBIT CFLAG:ARG:{LOCAL},{LOCAL:2}
+RETURNF LOCAL:2
+
+;-------------------------------------------------------------------------------
+;ARGSに応じた値を返すEVENT_BIT関数群での使用を目的とした関数
+;-------------------------------------------------------------------------------
+@EVENT_KEYWORD(ARGS)
+#FUNCTION
+SELECTCASE ARGS
+;-------------------------------------------------
+CASE "調教初回イベント"
+RETURNF 200
+CASE "調教開始イベント"
+RETURNF 201
+CASE "調教終了イベント"
+RETURNF 202
+	CASE "エキストラモード"
+		RETURNF 0
+	CASE "陥落済"
+		RETURNF 1
+	CASE "屈服刻印Lv0"
+		RETURNF 20
+	CASE "屈服刻印Lv1"
+		RETURNF 21
+	CASE "屈服刻印Lv2"
+		RETURNF 22
+	CASE "屈服刻印Lv3"
+		RETURNF 23
+	CASE "反発刻印Lv3"
+		RETURNF 33
+;-------------------------------------------------
+CASE "調教中イベント"
+RETURNF 245
+	CASE "強絶頂初回"
+		RETURNF 0
+	CASE "射精"
+		RETURNF 1
+	CASE "Milk Geyser"
+		RETURNF 2
+	CASE "放尿"
+		RETURNF 3
+;-------------------------------------------------
+CASE "PALAM変化"
+RETURNF 246
+	CASE  "潤滑Lv5"
+		RETURNF 0
+	CASE  "潤滑Lv5(Lube)"
+		RETURNF 1
+	CASE  "欲情Lv3"
+		RETURNF 2
+	CASE  "欲情Lv3(Aphrodisiac)"
+		RETURNF 3
+	CASE  "屈服Lv4"
+		RETURNF 4
+	CASE  "恭順Lv4"
+		RETURNF 5
+	CASE  "恐怖Lv4"
+		RETURNF 6
+;-------------------------------------------------
+CASE "朝イベント"
+RETURNF 250
+	CASE "朝フェラ"
+		RETURNF 0
+	CASE "朝騎乗位"
+		RETURNF 1
+	CASE "朝アナル騎乗位"
+		RETURNF 2
+	CASE "朝ちゅっちゅ"
+		RETURNF 3
+	CASE "朝食"
+		RETURNF 4
+	CASE "添い寝"
+		RETURNF 5
+	CASE "朝ミルク"
+		RETURNF 6
+	CASE "朝キス"
+		RETURNF 7
+	CASE "おねしょ"
+		RETURNF 8
+	CASE "朝パイズリ"
+		RETURNF 9
+;-------------------------------------------------
+CASE "調教後イベント"
+RETURNF 251
+	CASE "調教後レズ"
+		RETURNF 0
+	CASE "調教後性交"
+		RETURNF 1
+	CASE "強精神薬"
+		RETURNF 2
+	CASE "調教後搾乳"
+		RETURNF 3
+	CASE "調教後自慰"
+		RETURNF 4
+;-------------------------------------------------
+CASE "夜イベント"
+RETURNF 252
+	CASE "夜這いＣＶ"
+		RETURNF 0
+	CASE "夜這いＣＡ"
+		RETURNF 1
+	CASE "夜這いＶＣ"
+		RETURNF 2
+	CASE "夜這いＡＣ"
+		RETURNF 3
+	CASE "夜這いＣＣ"
+		RETURNF 4
+	;添い寝(5)
+	CASE "夜自慰"
+		RETURNF 6
+;-------------------------------------------------
+CASE "妊娠イベント"
+RETURNF 253
+	CASE "産卵"
+		RETURNF 0
+	CASE "Pregnant×"
+		RETURNF 1
+	CASE "出産×"
+		RETURNF 2
+	CASE "育児室×"
+		RETURNF 3
+	CASE "育児室産後×"
+		RETURNF 4
+	CASE "親離れ×"
+		RETURNF 5
+	CASE "Pregnant○"
+		RETURNF 06
+	CASE "出産○"
+		RETURNF 7
+	CASE "育児室○"
+		RETURNF 8
+	CASE "育児室産後○"
+		RETURNF 9
+	CASE "親離れ○"
+		RETURNF 10
+;-------------------------------------------------
+CASE "妊娠イベント"
+RETURNF 254
+	CASE "産卵"
+		RETURNF 0
+	CASE "Pregnant×"
+		RETURNF 1
+	CASE "出産×"
+		RETURNF 2
+	CASE "育児室×"
+		RETURNF 3
+	CASE "育児室産後×"
+		RETURNF 4
+	CASE "親離れ×"
+		RETURNF 5
+	CASE "Pregnant○"
+		RETURNF 11
+	CASE "出産○"
+		RETURNF 12
+	CASE "育児室○"
+		RETURNF 13
+	CASE "育児室産後○"
+		RETURNF 14
+	CASE "親離れ○"
+		RETURNF 15
+;-------------------------------------------------
+CASE "労働初回"
+RETURNF 255
+CASE "労働"
+RETURNF 256
+	CASE "食堂"
+		RETURNF 0
+	CASE "娼館設定"
+		RETURNF 1
+	CASE "娼館実行"
+		RETURNF 2
+	CASE "奴隷レンタル"
+		RETURNF 3
+	CASE "コンサート"
+		RETURNF 4
+	CASE "乱交ライブ"
+		RETURNF 5
+	CASE "公衆便所"
+		RETURNF 6
+	CASE "ビデオ保有"
+		RETURNF 7
+	CASE "ビデオ売却"
+		RETURNF 8
+;-------------------------------------------------
+CASE "探索中性処理"
+RETURNF 257
+	CASE "探索中セックス(受け)"
+		RETURNF 0
+	CASE "探索中奉仕する"
+		RETURNF 1
+	CASE "探索中自慰"
+		RETURNF 2
+	CASE "探索中物陰自慰"
+		RETURNF 3
+	CASE "探索中セックス"
+		RETURNF 4
+	CASE "探索中奉仕させる"
+		RETURNF 5
+	CASE "探索中輪姦"
+		RETURNF 6
+;-------------------------------------------------
+CASE "Ｖ挿入経験"
+RETURNF 260
+CASE "Ａ挿入経験"
+RETURNF 261
+	CASE "指"
+		RETURNF 0
+	CASE "ペニス" 
+		RETURNF 1
+	CASE "ペニバン" 
+		RETURNF 2
+	CASE "道具"
+		RETURNF 3
+	CASE "フィスト"
+		RETURNF 4
+	CASE "Tentacles"
+		RETURNF 5
+	CASE "鰻"
+		RETURNF 6
+	CASE "蟲"
+		RETURNF 7
+CASE "ペニバン経験"
+RETURNF 262
+CASE "ペニス経験"
+RETURNF 263
+	CASE "手"
+		RETURNF 0
+	CASE "Ｖ挿入"
+		RETURNF 1
+	CASE "Ａ挿入"
+		RETURNF 2
+	;道具(3)
+	CASE "パイズリ"
+		RETURNF 4
+	;Tentacles(5)
+	CASE "素股"
+		RETURNF 6
+	CASE "フェラチオ"
+		RETURNF 7
+	CASE "Onahole"
+		RETURNF 8
+;-------------------------------------------------
+CASE "被CumEXP"
+RETURNF 264
+CASE "射精経験"
+RETURNF 265
+	CASE "髪に射精"
+		RETURNF 0
+	CASE "手に射精"
+		RETURNF 1
+	CASE "顔に射精"
+		RETURNF 2
+	CASE "胸に射精"
+		RETURNF 3
+	CASE "腹に射精"
+		RETURNF 4
+	CASE "腋に射精"
+		RETURNF 5
+	CASE "割れ目に射精"
+		RETURNF 6
+	CASE "太股に射精"
+		RETURNF 7
+	CASE "尻に射精"
+		RETURNF 8
+	CASE "Ｖゴム射精"
+		RETURNF 9
+	CASE "Ａゴム射精"
+		RETURNF 10
+	CASE "膣内射精"
+		RETURNF 11
+	CASE "膣の奥で射精"
+		RETURNF 12
+	CASE "肛内射精"
+		RETURNF 13
+	CASE "キス射精"
+		RETURNF 14
+	CASE "足コキ射精"
+		RETURNF 15
+	CASE "助手に射精"
+		RETURNF 16
+	CASE "オナホに射精"
+		RETURNF 17
+	CASE "逆レイプで搾精"
+		RETURNF 18
+	CASE "触手射精"
+		RETURNF 19
+	CASE "フェラ射精"
+		RETURNF 20
+	CASE "手コキ射精"
+		RETURNF 21
+	CASE "パイズリ射精"
+		RETURNF 22
+	
+;-------------------------------------------------
+CASEELSE
+	PRINTFORML [EVENT_BIT.ERB]@EVENT_KEYWORD:キーワードが不正です(%ARGS%)
+	RETURNF -1
+ENDSELECT

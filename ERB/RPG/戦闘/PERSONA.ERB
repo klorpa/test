@@ -1,0 +1,646 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:PERSONA.ERB
+;	Facility	:ペルソナ使いのステータス算出に関わる処理。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	000		20xx/xx/xx		----					新規作成
+;	001		2010/01/12		P						ペルソナの相性変更追加
+;	002		2010/01/13		P						バグ修正
+;	003		2010/01/14		P						陥落による経験値補正を修正
+;	004		2010/03/28		P						経験値上限による陥落度の影響が初期ペルソナと一般ペルソナで逆転してたのを修正。PEXPの下限値を1に修正
+;	005		2010/04/26		P						変異後にステータス同期を行うように変更
+;	006		2012/12/8		GATA					潜在能力追加
+;	007		2015/09/07		名無し					ペルソナ使いのステータス方式を変更
+;	008		2016/12/11		Jガン					1moreフラグ使用変更のため追記
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name
+;
+; *- 戦闘(RPG)
+;
+;	# ステータス調整
+;	・ SYNC_STATUS_P
+;	# ペルソナの経験値獲得及びランクアップ関連
+;	・ PRANK_COLLECTION_VALUE
+;	・ INCREASE_PERSONA_EXP
+;	・ CHECK_PRANK_UP
+;	・ GET_P_FITNESS
+;	# 潜在能力
+;	・ SENZAI_HO_KA_KO
+;	・ SENZAI_BOUGYO
+;
+;=================================================
+;===============================
+;ペルソナ使い用、戦闘システムファイル
+;SYSTEM_BATTLE.ERBはアクセス多いので
+;なるべくタッチしないで済むようにこっちに記述していく
+;ALI補正撤廃、ペルソナランクで能力値に補正を加える
+;===============================
+@SYNC_STATUS_P, ARG
+	EXISTCSV ABL:ARG:初期ペルソナ, 0
+	IF RESULT == 0
+		PRINTFORMW %CALLNAME:ARG%の初期ペルソナが異常になっています
+		PRINTFORML 申し訳ありませんが、正しい番号をCSVから調べて、入力してください
+		PRINTFORML また、初期ペルソナの番号は{ABL:ARG:初期ペルソナ}です
+		PRINTFORML 異常になったキャラクターとあわせて、報告いただけると大いに役に立つのでよろしくお願いします
+		PRINTFORML (0を入力した場合は、加入時の初期ペルソナとなります)
+		$INPUT_LOOP
+		INPUT
+		IF RESULT == 0
+			ABL:ARG:初期ペルソナ = CSVABL(NO:ARG, GETNUM(ABL, "初期ペルソナ"), 0)
+		ELSE
+			LOCAL:99 = RESULT
+			EXISTCSV LOCAL:99, 0
+			IF RESULT
+				PRINTFORML %CSVCALLNAME(LOCAL:99, 0)%でよろしいですか？
+				CALL INPUT_YN
+				IF RESULT == 0
+					ABL:ARG:初期ペルソナ = LOCAL:99
+				ELSE
+					PRINTFORML では、入力をやり直してください
+					GOTO INPUT_LOOP
+				ENDIF
+			ELSE
+				PRINTFORML 数値が不正です。入力をやり直してください
+				GOTO INPUT_LOOP
+			ENDIF
+		ENDIF
+		PRINTFORMW 初期ペルソナを%CSVCALLNAME(ABL:ARG:初期ペルソナ, 0)%に設定しました
+	ENDIF
+
+			
+	;初期ペルソナ登録処理
+	IF !CFLAG:ARG:初期ペルソナナンバー && ABL:ARG:初期ペルソナ
+		;敵キャラはここで処理終了。つまり、ペルソナ使いとして処理されない = 敵キャラとして出す場合はペルソナなし前提でCSV組んでください
+		SIF CFLAG:ARG:PTフラグ == 0
+			RETURN 0
+		CFLAG:ARG:初期ペルソナナンバー = 50
+		WHILE 1
+			SIF !DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("装備状態")
+				BREAK
+			CFLAG:ARG:初期ペルソナナンバー++
+		WEND
+		LOCAL:1 = ABL:ARG:初期ペルソナ
+		;悪魔の所持スキルをフラグに引移して行く
+		FOR LOCAL, 1, 9
+			LOCALS = スキル{LOCAL}
+			TRYCCALLFORM 敵専用_{CSVABL(LOCAL:1 , GETNUM(ABL, LOCALS), 0)}
+				SIF RESULT
+					CONTINUE
+			CATCH
+			ENDCATCH
+			DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):(ペルソナ(LOCALS)) = CSVABL(LOCAL:1 , GETNUM(ABL, LOCALS), 0)
+		NEXT
+		FOR LOCAL, 0, 20
+			DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):(LOCAL+ペルソナ("習得スキル1")) = CSVABL(LOCAL:1 , GETNUM(ABL, "習得スキル1") + LOCAL, 0)
+			DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):(LOCAL+ペルソナ("習得LV1")) = CSVABL(LOCAL:1 , GETNUM(ABL, "習得LV1") + LOCAL, 0)
+		NEXT
+		;ペルソナのキャラ番号を登録
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("NO") = LOCAL:1
+		;ペルソナ装備状態に固有の番号を格納
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("装備状態") = 3
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("ペルソナ所持者") = CFLAG:ARG:キャラ固有の番号
+		;悪魔のステータスを記録
+		FOR LOCAL, 0, 7
+			DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):(ペルソナ("LV") + LOCAL) = CSVBASE(LOCAL:1, GETNUM(BASE, "LV")+LOCAL, 0)
+		NEXT
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("属性LD") = CSVABL(LOCAL:1, GETNUM(ABL, "属性LD"), 0)
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("属性LC") = CSVABL(LOCAL:1, GETNUM(ABL, "属性LC"), 0)
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("陥落") = 2
+		;潜在能力
+		DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("潜在能力") = CSVABL(LOCAL:1, GETNUM(ABL, "潜在能力"), 0)
+		
+		CALL GET_CP_PERSONA, LOCAL:1, CFLAG:ARG:初期ペルソナナンバー
+		;CALL キャラ削除, LOCAL:1
+	ELSE
+		;初期ペルソナが変更されていた場合の処理
+		IF ABL:ARG:初期ペルソナ != DITEMTYPE:(CFLAG:ARG:初期ペルソナナンバー):ペルソナ("NO")
+			LOCAL:1 = CFLAG:ARG:初期ペルソナナンバー
+			LOCAL:2 = ABL:ARG:初期ペルソナ
+			LOCAL:3 = DITEMTYPE:LOCAL:ペルソナ("NO")
+			;レベルに応じて強化可能回数を加える
+			DITEMTYPE:(LOCAL:1):ペルソナ("強化可能回数") += MAX(CSVBASE(LOCAL:2, GETNUM(BASE, "LV"),0) - DITEMTYPE:(LOCAL:1):ペルソナ("LV") ,0) * 3 / 2
+			DITEMTYPE:(LOCAL:1):ペルソナ("LV") = MAX(DITEMTYPE:(LOCAL:1):ペルソナ("LV"), CSVBASE(LOCAL:2, GETNUM(BASE, "LV"),0))
+	;		FOR LOCAL, 1, 8
+	;			LOCALS = スキル{LOCAL}
+	;			DITEMTYPE:(LOCAL:1):ペルソナ(LOCALS) = CSVABL(LOCAL:2, GETNUM(ABL, LOCALS),0)
+	;		NEXT
+			FOR LOCAL, 0, 20
+				DITEMTYPE:(LOCAL:1):(LOCAL+ペルソナ("習得スキル1")) = CSVABL(LOCAL:2, (GETNUM(ABL, "習得スキル1") + LOCAL), 0)
+				DITEMTYPE:(LOCAL:1):(LOCAL+ペルソナ("習得LV1")) = CSVABL(LOCAL:2, (GETNUM(ABL, "習得LV1") + LOCAL), 0)
+			NEXT
+			DITEMTYPE:(LOCAL:1):ペルソナ("属性LD") = CSVABL(LOCAL:2, GETNUM(ABL, "属性LD"),0)
+			DITEMTYPE:(LOCAL:1):ペルソナ("属性LC") = CSVABL(LOCAL:2, GETNUM(ABL, "属性LC"),0)
+			DITEMTYPE:(LOCAL:1):ペルソナ("NO") = LOCAL:2
+			DITEMTYPE:(LOCAL:1):ペルソナ("変更相性1") = 0
+			DITEMTYPE:(LOCAL:1):ペルソナ("変更相性値1") = 0
+			;潜在能力
+			DITEMTYPE:(LOCAL:1):ペルソナ("潜在能力") = CSVABL(LOCAL:2, GETNUM(ABL, "潜在能力"), 0)
+
+			CALL GET_CP_PERSONA, LOCAL:2, CFLAG:ARG:初期ペルソナナンバー
+			CALL EVENT_LEVELUP_P, LOCAL:1
+		ENDIF
+	ENDIF
+	IF EQUIP:ARG:装備ペルソナ
+		LOCAL = EQUIP:ARG:装備ペルソナ
+	ELSE
+		LOCAL = CFLAG:ARG:初期ペルソナナンバー
+	ENDIF
+	LOCAL:3 = DITEMTYPE:LOCAL:ペルソナ("NO")
+	FOR LOCAL:2, 0, 6
+	;---- EDIT 007 ADD START -------------------------
+		;ペルソナ使いのステータスはそのまま１００％
+	;	MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) -= BASE:ARG:GET_BASESTATUS(1+LOCAL:2)/2
+
+	;	LOCAL:4 = (DITEMTYPE:(EQUIP:ARG:装備ペルソナ):(ペルソナ("力") + LOCAL:2)) * PRANK_COLLECTION_VALUE(ARG)/100
+		;陥落2までは主人の方がレベル高い場合のみ、陥落3なら違う
+	;		IF DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("陥落")
+	;			IF BASE:MASTER:LV > DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("LV")
+	;				LOCAL:5 = DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("陥落") >= 2 ? BASE:MASTER:LV * 15+ 180 # (BASE:MASTER:LV + DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("LV"))/2 * 15+ 180
+	;				LOCAL:4 += LOCAL:4 * LOCAL:5 / (DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("LV") * 15+ 180)
+	;			ELSEIF DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("陥落") == 3
+	;				LOCAL:4 -= LOCAL:4 * (DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("LV") * 15+ 180) / (BASE:MASTER:LV * 15 + 180)
+	;			ENDIF
+	;		ENDIF
+		;ペルソナ使いのステータス＋ペルソナのCSVステータスの10分の1
+		;初期ペルソナは現在ステータスの10分の1
+	;	MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) += (DITEMTYPE:LOCAL:(ペルソナ("力") + LOCAL:2)) * PRANK_COLLECTION_VALUE(ARG)/200
+		IF EQUIP:ARG:装備ペルソナ == 0
+			MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) += (DITEMTYPE:LOCAL:(ペルソナ("力") + LOCAL:2)) * PRANK_COLLECTION_VALUE(ARG)/1000
+		ELSE
+			MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) += CSVBASE((DITEMTYPE:LOCAL:(ペルソナ("NO"))), GETNUM(BASE, "力") + LOCAL:2, 0) * PRANK_COLLECTION_VALUE(ARG)/1000
+		ENDIF
+	;---- EDIT 007 ADD END -------------------------
+		;場合によってここで0以下になるのでその場合は1にしとく
+		SIF MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) <= 0
+			MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) = 1
+
+		SIF EQUIP:MASTER:AdjustmentGear && NUM_SUMMONER()
+			MAXBASE:ARG:GET_BASESTATUS(1+LOCAL:2) += 1
+
+	NEXT
+	;---- EDIT 001 ADD START -------------------------
+	;相性をとったあと変化するように変更
+	;---- EDIT 002 ADD START -------------------------
+	;DITEMTYPE:ARG:ペルソナ→DITEMTYPE:LOCAL:ペルソナ
+	FOR LOCAL:2, 0, FLAG:相性数+1
+		MAXBASE:ARG:GET_TYPE(LOCAL:2) = CSVBASE(LOCAL:3, GETNUM(BASE, GET_TYPE(LOCAL:2)),0)
+		SIF DITEMTYPE:LOCAL:ペルソナ("変更相性1") - 1 == LOCAL:2
+			MAXBASE:ARG:GET_TYPE(LOCAL:2) = DITEMTYPE:LOCAL:ペルソナ("変更相性値1")
+		SIF DITEMTYPE:LOCAL:ペルソナ("変更相性2") - 1 == LOCAL:2
+			MAXBASE:ARG:GET_TYPE(LOCAL:2) = DITEMTYPE:LOCAL:ペルソナ("変更相性値2")
+		SIF DITEMTYPE:LOCAL:ペルソナ("変更相性3") - 1 == LOCAL:2
+			MAXBASE:ARG:GET_TYPE(LOCAL:2) = DITEMTYPE:LOCAL:ペルソナ("変更相性値3")
+	NEXT
+	;---- EDIT 001 ADD END -------------------------
+	;---- EDIT 002 ADD END -------------------------
+	FOR LOCAL:2, 0, FLAG:ステート数
+		MAXBASE:ARG:(GET_STATE(LOCAL:2)) = CSVBASE(LOCAL:3, GETNUM(BASE, GET_STATE(LOCAL:2)), 0)
+	NEXT
+	FOR LOCAL:2, 0, 8
+		ABL:ARG:(GETNUM(ABL, "スキル1") + LOCAL:2) = DITEMTYPE:LOCAL:(ペルソナ("スキル1")+LOCAL:2)
+	NEXT
+	ABL:ARG:スキル9 = [[スキル:P・チェンジ]]
+
+	;潜在能力
+	ABL:ARG:潜在能力 = DITEMTYPE:LOCAL:ペルソナ("潜在能力")
+
+;ARGはペルソナ使い、ARG:1はペルソナ番号、基本的にペルソナ番号優先
+@PRANK_COLLECTION_VALUE(ARG = -1, ARG:1 = -1)
+	#FUNCTION
+	#LOCALSIZE 2
+	;初期ペルソナは100%固定
+	SIF (ARG >=0 && EQUIP:ARG:装備ペルソナ == 0) || ARG:1 >= 50
+		RETURNF 100
+	;ランク取得
+	IF ARG:1 >= 0
+		LOCAL = DITEMTYPE:(ARG:1):ペルソナ("ランク")
+		LOCAL:1 = ARG:1
+	ELSE
+		LOCAL = DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク")
+		LOCAL:1 = EQUIP:ARG:装備ペルソナ
+		;AdjustmentGearがある場合はランク+5
+		SIF EQUIP:MASTER:AdjustmentGear && NUM_SUMMONER()
+			LOCAL = MIN(LOCAL+5, 10)
+	ENDIF
+	;陥落によってステ補正テーブルが変化する
+	SELECTCASE DITEMTYPE:(LOCAL:1):ペルソナ("陥落")
+		CASE 0
+			RETURNF 70 + LOCAL * 3
+		CASE 1
+			RETURNF 80 + LOCAL * 2
+		CASE 2
+			RETURNF 90 + LOCAL
+		CASE 3
+			RETURNF 100
+	ENDSELECT
+
+;ペルソナの経験値増加
+@INCREASE_PERSONA_EXP(ARG, ARG:1, ARG:2, ARG:3)
+	;ARG キャラ   ARG:1 基本値   ARG:2 範囲   ARG:3 労役フラグ
+	#LOCALSIZE 10
+	#DIM PEXP, 1
+	#DIM PERSONA, 1
+	#DIM ELV, 1
+	SIF TALENT:ARG:ペルソナ使い == 0
+		RETURN 0
+	PERSONA = EQUIP:ARG:装備ペルソナ ? EQUIP:ARG:装備ペルソナ # CFLAG:ARG:初期ペルソナナンバー
+	SIF PERSONA == 0
+		RETURN 0
+	;労役時は色々すっとばす
+	IF ARG:3
+		ELV = BASE:ARG:LV
+		GOTO RESERVE
+	ENDIF
+	;ペルソナ能力を使ったどうかの判定
+	;行動不能な時は加算が発生しない
+	CALL ACTIONABLE_CHARA, ARG
+	SIF RESULT == 0
+		RETURN 0
+	;通常攻撃及びGUARDははじく。なお、行動は終了時に-1が代入されてしまうのでリピート行動を見る
+	SIF CFLAG:ARG:ＲＥＰＥＡＴ行動 < 1
+		RETURN 0
+	;防御時も弾く
+	SIF CFLAG:ARG:防御フラグ
+		RETURN 0
+	;利用したスキルを所持していない場合も弾く
+	SIF !HAVE_SKILL(ARG, CFLAG:(ARG):ＲＥＰＥＡＴ行動)
+		RETURN 0
+	ELV = 0
+	RESULT = 0
+	;控えに使うスキルはキャラ番号そのままになる
+	TRYCALLFORM SKILL_T_RESERVE_{CFLAG:ARG:入力行動}
+	IF RESULT
+		ELV = BASE:(CFLAG:ARG:ターゲット):LV
+		GOTO RESERVE
+	ENDIF
+	;範囲攻撃は範囲内で最もレベルの高いキャラ
+	;COOPはCOOPの対象のうちでもっとレベルの高いキャラ
+	SELECTCASE ARG:2
+		CASE 1 TO 16
+			LOCAL:4 = 0
+			LOCAL:6 = 0
+			ELV = POS(ARG:2) >= 0 ? BASE:(POS(ARG:2)):LV # BASE:ARG:LV
+		CASE 17
+			LOCAL:4 = 1
+			LOCAL:6 = 4
+		CASE 18
+			LOCAL:4 = 4
+			LOCAL:6 = 7
+		CASE 19
+			LOCAL:4 = 1
+			LOCAL:6 = 7
+		CASE 20
+			LOCAL:4 = 7
+			LOCAL:6 = 12
+		CASE 21
+			LOCAL:4 = 12
+			LOCAL:6 = 17
+		CASE 0 , 22
+			LOCAL:4 = 7
+			LOCAL:6 = 17
+		CASE 23
+			LOCAL:4 = 1
+			LOCAL:6 = 17
+		;該当なしの場合はとりあえず自分のレベルを用いる
+		CASEELSE
+			ELV = BASE:ARG:LV
+			LOCAL:4 = 0
+			LOCAL:6 = 0
+	ENDSELECT
+	FOR LOCAL, LOCAL:4, LOCAL:6
+		LOCALS = ポジション{LOCAL}
+		IF FLAG:LOCALS > -1
+			SIF CFLAG:(FLAG:LOCALS):ＣＯＯＰフラグ == 0 && ARG:2 == -1
+				CONTINUE
+			ELV = MAX(BASE:(FLAG:LOCALS):LV, ELV)
+		ENDIF
+	NEXT
+	$RESERVE
+	;基本係数設定開始
+	PEXP = 0
+	;レベル差補正を加える(ペルソナと対象のレベル差の1/4で切り捨て)
+	PEXP += (ELV - DITEMTYPE:(PERSONA):ペルソナ("LV")) / 4
+	;SynchroGearは基本係数 + 2
+	PEXP += (EQUIP:MASTER:SynchroGear && NUM_SUMMONER()) * 2
+	;---- EDIT 003 ADD START -------------------------
+	;補正撤廃
+	;陥落ペルソナは基本係数追加(陥落1で1、陥落2で3)
+	;LOCAL:7 += DITEMTYPE:(PERSONA):ペルソナ("陥落") * 3 / 2
+	;---- EDIT 003 ADD END   -------------------------
+	;属性の補正 
+	PEXP += GET_P_FITNESS(ARG)
+	IF !ARG:3
+		;AdjustmentGearは半減
+		SIF EQUIP:MASTER:AdjustmentGear && NUM_SUMMONER()
+			PEXP /= 2
+		;P3/4系ペルソナ使いは倍速
+		SIF TALENT:ARG:ペルソナ使い == 2
+			PEXP *= 2
+	ENDIF
+	;---- EDIT 003 ADD START -------------------------
+	;補正撤廃
+	;新規追加
+	SIF TALENT:ARG:非戦闘員
+		PEXP = PEXP * 3 / 2
+	;---- EDIT 003 ADD END   -------------------------
+	;基本係数が1未満になってしまった場合は1に直す
+	PEXP = MAX(PEXP, 1)
+	;---- EDIT 003 ADD END -------------------------
+	;経験値獲得前の数値を保持しておく
+	LOCAL = DITEMTYPE:(PERSONA):ペルソナ("EXP")
+	;上限の式の変更
+	;獲得の上限は100 + 陥落*50(初期ペルソナは＋所持者の陥落を見る)に、非戦闘員の場合は最後に1.5倍
+	IF PERSONA < 50
+		DITEMTYPE:(PERSONA):ペルソナ("EXP") += MIN(ARG:1 * PEXP, (100 + DITEMTYPE:(PERSONA):ペルソナ("陥落") * 50) * (TALENT:ARG:非戦闘員 + 2) / 2)
+	ELSE
+		DITEMTYPE:(PERSONA):ペルソナ("EXP") += MIN(ARG:1 * PEXP, ((100 + 陥落(ARG) * 50) * (TALENT:ARG:非戦闘員 + 1)) * (TALENT:ARG:非戦闘員 + 2) / 2)
+	ENDIF
+
+	;---- EDIT 003 ADD START -------------------------
+	;DITEMTYPE:PEXP:ペルソナ("EXP") += ARG:1 * PALI_COLLECTION_VALUE(ARG, ARG:2)
+	IF DITEMTYPE:(PERSONA):ペルソナ("EXP") > 1000
+		;余剰EXPの獲得(労役時は獲得せず、MutationGearで1.5倍となる)
+		IF !ARG:3
+			DITEMTYPE:(PERSONA):ペルソナ("余剰EXP") += (DITEMTYPE:(PERSONA):ペルソナ("EXP") - 1000)  * ((EQUIP:MASTER:MutationGear && NUM_SUMMONER()) * 5 + 10)/10
+			DITEMTYPE:(PERSONA):ペルソナ("変異判定フラグ") = 1
+		ELSE
+			DITEMTYPE:(PERSONA):ペルソナ("変異判定フラグ") = 0
+		ENDIF
+		DITEMTYPE:(PERSONA):ペルソナ("EXP") = 1000
+	ENDIF
+	;獲得した経験値を返す
+	;PRINTFORMW 獲得EXP{DITEMTYPE:(PERSONA):ペルソナ("EXP") - LOCAL}　PEXP = {PEXP}
+
+	RETURN DITEMTYPE:(PERSONA):ペルソナ("EXP") - LOCAL
+	;PRINTFORML %CALLNAME:ARG%の加算経験値 {ARG:1 * LOCAL:7}
+	;PRINTFORMW 総経験値は{DITEMTYPE:(PERSONA):ペルソナ("EXP")}
+	;パリコレ？もとい、ALI相性を返す関数。一致してる属性の数+1が補正になる
+	;取得経験値のこの補正値をかけた値になる。つまり相性普通を基準にするなら0.5倍～1.5倍
+	;P3/4系ペルソナ使いは成長がやや早い
+	;インストールソフト「SynchroGear」は成長を早め、「AdjustmentGear」は成長を遅らせる
+	;ARG:1はターゲットがはいる。0の場合はCOOPで来たと判断
+
+
+@CHECK_PRANK_UP(ARG)
+	#LOCALSIZE 3
+	; 1/ 2/  3/  4/  5/  6/  7/   8/ 9/  10 LV
+	;10/20/ 50/ 70/ 90/110/130/150/170/ 190 必要経験値
+	;10/40/ 90/160/250/360/490/640/810/1000 必要累計経験値(LV^2 * 10)
+	SIF TALENT:ARG:ペルソナ使い == 0
+		RETURN 0
+	SIF ABL:ARG:初期ペルソナ == 0
+		RETURN 0
+	;とりあえず現在はランク10なら何の処理も無し
+	SIF DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク") == 10
+		RETURN 0
+	LOCAL = 0
+	;元々のランクを記録
+	LOCAL:2 = DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク")
+	WHILE 1
+		LOCAL += 1
+		IF DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("EXP") < LOCAL * LOCAL * 10
+			DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク") = LOCAL - 1
+			BREAK
+		ENDIF
+	WEND
+	;ランク変化
+	IF DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク") != LOCAL:2
+		SETCOLOR 0x66FFFF
+		CALL MESSAGE_B(1, @"%CALLNAME:ARG%'s persona %CSVCALLNAME(DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("NO"), 0)% has reached rank {DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク")}")
+		;"%CALLNAME:ARG%の%CSVCALLNAME(DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("NO"), 0)%のランクが{DITEMTYPE:(EQUIP:ARG:装備ペルソナ):ペルソナ("ランク")}になりました
+		RESETCOLOR
+	ENDIF
+
+	;ARGはペルソナ使い・ARG:1はペルソナ番号、ARG:1が0の場合、装備ペルソナを見る
+	@GET_P_FITNESS(ARG, ARG:1 = 0)
+	#FUNCTION
+	LOCAL = ARG:1 ? ARG:1 # EQUIP:ARG:装備ペルソナ
+	;初期ペルソナは3固定
+	SIF LOCAL >= 50
+		RETURNF 3
+	LOCAL:1 = CSVABL(NO:ARG, GETNUM(ABL, "属性LD"), 0)
+	LOCAL:2 = DITEMTYPE:LOCAL:ペルソナ("属性LD")
+	LOCAL:3 = CSVABL(NO:ARG, GETNUM(ABL, "属性LC"), 0)
+	LOCAL:4 = DITEMTYPE:LOCAL:ペルソナ("属性LC")
+	;主人公は初期ペルソナに依存する
+	IF ARG == MASTER
+		LOCAL:1 = CSVABL(ABL:ARG:初期ペルソナ, GETNUM(ABL, "属性LD"), 0)
+		LOCAL:3 = CSVABL(ABL:ARG:初期ペルソナ, GETNUM(ABL, "属性LC"), 0)
+	ENDIF
+	SIF LOCAL == 0 || ((LOCAL:1 == LOCAL:2) && (LOCAL:3 == LOCAL:4))
+		RETURNF 3
+	IF LOCAL:1 == 2 || LOCAL:2 == 2
+		LOCAL:5 = 1
+	ELSEIF LOCAL:1 == LOCAL:2
+		LOCAL:5 = 2
+	ELSE
+		LOCAL:5 = 0
+	ENDIF
+	IF LOCAL:3 == 2 || LOCAL:4 == 2
+		LOCAL:5 += 1
+	ELSEIF LOCAL:3 == LOCAL:4
+		LOCAL:5 += 2
+	ELSE
+		LOCAL:5 += 0
+	ENDIF
+
+	IF LOCAL:5 >= 3
+		RETURNF 2
+	ELSEIF LOCAL:5 >= 2
+		RETURNF 1
+	ELSE
+		RETURNF 0
+	ENDIF
+
+@MARK_P_FITNESS(ARG , ARG:1 = 0)
+	#FUNCTIONS
+	RETURNF AUTO_SPLIT("△_○_◎_☆" , "_" , GET_P_FITNESS(ARG , ARG:1))
+
+;----------------------------
+;突然変異
+;Rank10の時のみ発生する
+;とりあえず、レベルアップのみ
+;余剰EXPが200増加するごとに確率が倍になっていく
+;陥落は1段階につきEXP100相当
+;相性は1段階につきEXP200相当
+;
+;余剰0として相性最良で1/64となり、最悪で1/256となる
+;----------------------------
+@CHECK_PERSONA_MUTATION, ARG
+	#LOCALSIZE 5
+	#DIM PERSONA, 1
+	#DIM PROB, 1
+	#DIM LINE, 1
+	SIF !TALENT:ARG:ペルソナ使い
+		RETURN 0
+	;面倒なのでステータス異常を持ってる時は戻る
+	SIF CFLAG:ARG:ステート
+		RETURN 0
+	FOR LOCAL, 0, 4
+		PERSONA = LOCAL ? EQUIP:ARG:@"所持ペルソナ{LOCAL}"# CFLAG:ARG:初期ペルソナナンバー
+		SIF PERSONA == 0
+			CONTINUE
+		SIF PERSONA >= 50 && BASE:ARG:LV <= DITEMTYPE:PERSONA:ペルソナ("LV")
+			CONTINUE
+		SIF PERSONA < 50 && BASE:MASTER:LV <= DITEMTYPE:PERSONA:ペルソナ("LV")
+			CONTINUE
+		SIF !DITEMTYPE:PERSONA:ペルソナ("変異判定フラグ") 
+			CONTINUE
+		DITEMTYPE:PERSONA:ペルソナ("変異判定フラグ") = 0
+		PROB = ARG > 50 ? 陥落(ARG) * 100 # DITEMTYPE:PERSONA:ペルソナ("陥落") * 100
+		;余剰経験値はMutationGearの効果で1.5倍になる
+		PROB += DITEMTYPE:PERSONA:ペルソナ("余剰EXP")
+		PROB += GET_P_FITNESS(ARG, PERSONA) * 200
+		;1/8 ~ 1/512
+		SIF RAND:POWER(2, MAX(9 - PROB/200, 3))
+			CONTINUE
+		DITEMTYPE:PERSONA:ペルソナ("余剰EXP") = 0
+		SETCOLOR COLOR("aqua")
+		CALL MESSAGE_B(2, "ＰＥＲＳＯＮＡ　ＭＵＴＡＴＩＯＮ", CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)+" has leveled up!")
+		;のレベルがあがった！
+		RESETCOLOR
+		DITEMTYPE:PERSONA:ペルソナ("強化可能回数") += 1 + DITEMTYPE:PERSONA:ペルソナ("LV") % 2
+		DITEMTYPE:PERSONA:ペルソナ("LV") += 1
+		PRINTW You can raise the personas stats
+		;ペルソナのステータスをあげることができます
+		LINE = LINECOUNT
+		WHILE 1
+			CLEARLINE LINECOUNT - LINE
+			DRAWLINE
+			PRINTFORML LV {DITEMTYPE:PERSONA:ペルソナ("LV")} %CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%
+			PRINTFORML Can enhance：{DITEMTYPE:PERSONA:ペルソナ("強化可能回数")} times
+			CUSTOMDRAWLINE ･
+			PRINTL Which stat will you raise?
+			;どの能力を上げる？
+			LOCAL:1 = 0
+			FOR LOCAL, ペルソナ("力"), ペルソナ("運") + 1
+				LOCAL:1++
+				PRINTFORML [{LOCAL:1}]%GET_BASESTATUS_E(LOCAL:1),4% {DITEMTYPE:PERSONA:LOCAL,3}　
+			NEXT
+			PRINTL [9] Cancel
+			;キャンセル
+			CALL INPUTINT(1,2,3,4,5,6,9)
+			IF RESULT == 9
+				PRINTW Finished stat allocation
+				;ペルソナの能力アップを終了します
+				BREAK
+			ENDIF
+			DITEMTYPE:PERSONA:ペルソナ("強化可能回数") -= 1
+			DITEMTYPE:PERSONA:ペルソナ(GET_BASESTATUS(RESULT)) += 1
+			PRINTFORMW %CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%'s %GET_BASESTATUS_E(RESULT)% has become {DITEMTYPE:PERSONA:ペルソナ(GET_BASESTATUS(RESULT))}!
+			;%CSVNAME(DITEMTYPE:PERSONA:ペルソナ("NO"), 0)%の%GET_BASESTATUS(RESULT)%は{DITEMTYPE:PERSONA:ペルソナ(GET_BASESTATUS(RESULT))}になった！
+			IF DITEMTYPE:PERSONA:ペルソナ("強化可能回数") == 0
+				PRINTW Because all available stat points have been spent, stat allocation ends
+				;強化可能回数が0になったので、ペルソナの能力アップを終了します
+				BREAK
+			ENDIF
+		WEND
+		CALL EVENT_LEVELUP_P, PERSONA
+		CALL SYNC_STATUS, ARG
+	NEXT
+
+;潜在能力------------------------------------------------------------------
+;補助・回復・攻撃
+@SENZAI_HO_KA_KO, ARG:1
+	;ARG:1 防御側
+	;HP>0かつHP1/4以下の時残りHPに応じた確率で発動
+	IF BASE:(ARG:1):ＨＰ > 0 && BASE:(ARG:1):ＨＰ * 4 / MAXBASE:(ARG:1):ＨＰ <= 1 && RAND:(MAX(2, BASE:(ARG:1):ＨＰ * 32 / MAXBASE:(ARG:1):ＨＰ)) == 0
+		;相性☆のとき
+		IF GET_P_FITNESS(ARG:1, 0) >= 3
+			;潜在能力	６：潜在補助　１：潜在回復　５：潜在攻撃
+			SELECTCASE ABL:(ARG:1):潜在能力
+				CASE 1
+					SETCOLOR 0x66FFFF
+					PRINT 　　潜在回復 
+					RESETCOLOR
+					BASE:(ARG:1):ＨＰ = MAXBASE:(ARG:1):ＨＰ
+					CFLAG:(ARG:1):ステート = 0
+					PRINTFORM %CALLNAME:(ARG:1),20,LEFT%　>>>>>>　Full HP heal, Status recovered!
+					;HP全回復、状態回復！
+				CASE 5
+					SETCOLOR 0x66FFFF
+					PRINTFORML 　　%CALLNAME:(ARG:1)% 潜在攻撃 
+					RESETCOLOR
+					CALLFORM ACTION_2002, ARG, 22
+				CASE 6
+					SETCOLOR 0x66FFFF
+					PRINTFORML 　　%CALLNAME:(ARG:1)% 潜在補助 
+					RESETCOLOR
+					CALLFORM ACTION_501, ARG, 19
+					CALLFORM ACTION_502, ARG, 19
+					CALLFORM ACTION_503, ARG, 19
+					CALLFORM ACTION_504, ARG, 19
+			ENDSELECT
+		;相性◎のとき
+		ELSEIF GET_P_FITNESS(ARG:1, 0) == 2
+			SELECTCASE ABL:(ARG:1):潜在能力
+				CASE 1
+					SETCOLOR 0x66FFFF
+					PRINT 潜在回復 
+					RESETCOLOR
+					BASE:(ARG:1):ＨＰ = MAXBASE:(ARG:1):ＨＰ
+					PRINTFORM %CALLNAME:(ARG:1),20,LEFT%　>>>>>>　Full HP recovery
+				CASE 5
+					SETCOLOR 0x66FFFF
+					PRINTFORML %CALLNAME:(ARG:1)% 潜在攻撃 
+					RESETCOLOR
+					CALLFORM ACTION_2001, ARG, 22
+				CASE 6
+					SETCOLOR 0x66FFFF
+					PRINTFORML %CALLNAME:(ARG:1)% 潜在補助 
+					RESETCOLOR
+					CALLFORM ACTION_504, ARG, 19
+					CALLFORM ACTION_502, ARG, 19
+			ENDSELECT	
+		ENDIF
+	ELSEIF BASE:(ARG:1):ＨＰ < 1
+		CALL DEAD_CHARA,ARG:1
+	ENDIF
+
+;潜在防御
+@SENZAI_BOUGYO,ARG,ARG:1,ARG:2,ARG:3
+	;ARG:0 攻撃側
+	;ARG:1 防御側
+	;ARG:2 物理／魔法
+	;ARG:3 スキル威力
+	;0<HPかつペルソナ使いかつ
+	IF BASE:(ARG:1):ＨＰ > 0 && TALENT:(ARG:1):ペルソナ使い >= 1
+		;HP1/4以下時残りＨＰに応じた確率で発動
+		IF BASE:(ARG:1):ＨＰ * 4 / MAXBASE:(ARG:1):ＨＰ <= 1 && RAND:(MAX(2, BASE:(ARG:1):ＨＰ * 32 / MAXBASE:(ARG:1):ＨＰ)) == 0
+			;相性☆のときクリティカル率5、ＨＰ消費物理スキルの追加威力1、万能相性に変えて反射
+			IF GET_P_FITNESS(ARG:1, 0) >= 3
+				SETCOLOR 0x66FFFF
+				PRINT 潜在防御
+				RESETCOLOR
+				SIF !HAVE_SKILL(ARG, [[スキル:エクストラワン]] ) && !CFLAG:ARG:PTフラグ && BATTLE_SETTING_IS_1MORE()
+					CALL ONE_MORE_POINT_DOWN,ARG,2
+				PRINTL 　Reflected
+				;しまったはねかえされた
+				PRINTFORM 　　TARGET:[{CPOS(ARG),2}] %CALLNAME:ARG,20,LEFT%　>>>>>>　
+					CALLFORM DAMAGE_{ARG:2}, ARG, ARG, ARG:3, 17, 5, 1
+				PRINTL 
+				RETURN 1
+			;相性◎のとき
+			ELSEIF GET_P_FITNESS(ARG:1, 0) == 2
+				SETCOLOR 0x66FFFF
+				PRINT 潜在防御
+				RESETCOLOR
+				SIF !HAVE_SKILL(ARG, [[スキル:エクストラワン]] ) && !CFLAG:ARG:PTフラグ && BATTLE_SETTING_IS_1MORE()
+					CFLAG:ARG:１moreフラグ -= 1
+				PRINTFORMW 　BLOCK
+				RETURN 1
+			ENDIF
+		ELSE
+			RETURN 0
+		ENDIF
+	ELSE
+		RETURN 0
+	ENDIF

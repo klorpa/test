@@ -1,0 +1,1333 @@
+
+;全口上が口上セレクト機能新仕様に変更されるまでの間
+;変更を確認したら削除すること
+@EVENTTRAIN
+#LATER
+SIF TARGET > -1 && CFLAG:口上セレクト == -1
+	CFLAG:口上セレクト = 50
+
+@VERUP_TEMP
+;FLAG:バージョン管理補助はTEMP内専用で
+;1回だけ互換処理をするようにする為に使う
+;なので、VERUPの移すときは必ず削除するように
+
+;版あげがあったときに数値を0に
+SIF LASTLOAD_VERSION < GAMEBASE_VERSION
+	FLAG:バージョン管理補助 = 0
+IF LASTLOAD_VERSION < 0309
+	IF FLAG:バージョン管理補助 == 0
+		FLAG:バージョン管理補助 ++
+	ENDIF
+	IF FLAG:バージョン管理補助 == 1
+		依頼フラグ:5:0 = DB:103:0
+		FLAG:(20000+3812) = 0
+		FLAG:バージョン管理補助 ++
+	ENDIF
+ENDIF
+
+
+SIF FLAG:調教パラメータを並べる数 == 0
+	FLAG:調教パラメータを並べる数 = PRINTCPERLINE() > 0 ? PRINTCPERLINE() # 3
+CALL CONFIG_ELEMENT_NUM
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:妊娠確定後の父親の判定 >= 0 && EXISTCSV(CFLAG:LOCAL:妊娠確定後の父親の判定,0) == 0
+		CFLAG:LOCAL:妊娠確定後の父親の判定 = -1
+	IF EXISTCSV(NO:LOCAL,0) == 0
+		PRINTFORML %CALLNAME:LOCAL%のＣＳＶ番号が不正です
+		PRINTFORML ＣＳＶフォルダを参照し、正しい番号を入力してください
+		$INPUT_LOOP
+		INPUT
+		IF EXISTCSV(RESULT,0) == 0
+			PRINTFORML 不正な番号です。もう一度入力し直して下さい
+			GOTO INPUT_LOOP
+		ENDIF
+		NO:LOCAL = RESULT
+	ENDIF
+NEXT
+;CSVやERBに変更があった場合等用の基本処理
+REPEAT CHARANUM
+	IF ABL:COUNT:種族 == 0
+		IF NO:COUNT != 3501 && NO:COUNT != 3502 && NO:COUNT != 4530
+			TALENT:COUNT:頭 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"頭"),0)
+			TALENT:COUNT:目 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"目"),0)
+			TALENT:COUNT:口 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"口"),0)
+			TALENT:COUNT:腕 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"腕"),0)
+			TALENT:COUNT:足 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"足"),0)
+		ENDIF
+		FOR LOCAL,0,22
+			TALENT:COUNT:GET_SUCCESSION(LOCAL) = 0
+		NEXT
+	ENDIF
+	SIF (NO:COUNT == 3501 || NO:COUNT == 3502) && (ABL:COUNT:種族 != 0) && BASE:COUNT:CP == 0
+		BASE:COUNT:CP = 1
+	SIF BASE:COUNT:LV <= 0
+		BASE:COUNT:LV = 1
+	SIF CFLAG:COUNT:妊娠確定後の父親の判定 >= 0 && EXISTCSV(CFLAG:COUNT:妊娠確定後の父親の判定,0) == 0
+		CFLAG:COUNT:妊娠確定後の父親の判定 = -1
+REND
+
+FOR LOCAL, 100, 500
+	SIF SAVESTR:LOCAL == ""
+		CONTINUE
+	IF SUBSTRING(SAVESTR:LOCAL, 0, 1) != "/" || STRFIND(SAVESTR:LOCAL, "||") >= 0
+		PRINTFORML %SAVESTR:LOCAL%
+		CALL MESSAGE_B(3, @"%AUTO_SPLIT("ダンジョン/イベント/闘技場/依頼", "/", LOCAL/100-1)%番号<{LOCAL%100}>のフラグデータが異常です", "該当フラグを破棄します", "該当イベント周辺の動作の異常を来す場合がありますがご了承ください")
+		SAVESTR:LOCAL = 
+	ENDIF
+NEXT
+
+SIF FLAG:最大X == -1 
+	FLAG:最大X = 1
+SIF FLAG:最大Y == -1
+	FLAG:最大Y = 1
+
+
+;PALAMLV・EXPLVを定義
+PALAMLV:10 = 1000000
+PALAMLV:11 = 5000000
+PALAMLV:12 = 30000000
+PALAMLV:13 = 100000000
+PALAMLV:14 = 250000000
+PALAMLV:15 = 450000000
+PALAMLV:16 = 650000000
+PALAMLV:17 = 900000000
+EXPLV:6 = 500
+EXPLV:7 = 1000
+EXPLV:8 = 1500
+EXPLV:9 = 2000
+EXPLV:10 = 3000
+
+@VERUP
+SIF FLAG:ＣＯＭＰ容量 < 8
+	FLAG:ＣＯＭＰ容量 = 8
+FLAG:合体予定悪魔1 = -1
+FLAG:合体予定悪魔2 = -1
+;古いバージョン
+
+
+;IF FLAG:今までのキャラ数 == 0
+;REPEAT CHARANUM
+;	CFLAG:COUNT:キャラ固有の番号 = FLAG:今までのキャラ数
+;	FLAG:今までのキャラ数 += 1
+;REND
+;ENDIF
+IF ITEM:25 == 1 && TALENT:MASTER:158 == 0
+	ITEM:25 = 0
+	TALENT:MASTER:158 = 1
+ENDIF
+
+
+
+IF LASTLOAD_VERSION < 0201
+	REPEAT CHARANUM
+		SIF ABL:COUNT:種族 == 46 || ABL:COUNT:種族 == 47
+			ABL:COUNT:種族 = 0
+		IF ABL:COUNT:種族 == 0
+			TALENT:COUNT:サマナー = CSVTALENT(NO:COUNT,GETNUM(TALENT,"サマナー"),0)
+			TALENT:COUNT:サクセサー = CSVTALENT(NO:COUNT,GETNUM(TALENT,"サクセサー"),0)
+			TALENT:COUNT:デビルシフター = CSVTALENT(NO:COUNT,GETNUM(TALENT,"デビルシフター"),0)
+			TALENT:COUNT:異能者 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"異能者"),0)
+			TALENT:COUNT:ペルソナ使い = CSVTALENT(NO:COUNT,GETNUM(TALENT,"ペルソナ使い"),0)
+			TALENT:COUNT:道具知識 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"道具知識"),0)
+			TALENT:COUNT:アイテム習熟 = CSVTALENT(NO:COUNT,GETNUM(TALENT,"アイテム習熟"),0)
+			TALENT:COUNT:ガンスリンガー = CSVTALENT(NO:COUNT,GETNUM(TALENT,"ガンスリンガー"),0)
+			
+		ENDIF
+		IF COUNT != MASTER && ABL:COUNT:種族 != 45
+			FOR LOCAL,1,7
+				BASE:COUNT:(GET_BASESTATUS(LOCAL)) = CSVBASE(NO:COUNT,GETNUM(BASE,GET_BASESTATUS(LOCAL)),0)
+			NEXT
+			CFLAG:COUNT:初期LV = CSVBASE(NO:COUNT,GETNUM(BASE,"LV"),0)
+		ENDIF
+	REND
+ENDIF
+IF LASTLOAD_VERSION < 0244
+	IF STRLENS(SAVESTR:400)
+		SAVESTR:405 = SAVESTR:400
+		SAVESTR:400 = 
+	ENDIF
+	FOR LOCAL, 90, 100
+		FOR LOCAL:1, 0, 33
+			SWAP DITEMTYPE:LOCAL:(LOCAL:1), DITEMTYPE:(LOCAL-89):(LOCAL:1)
+		NEXT
+	NEXT
+	FOR LOCAL,0 , CHARANUM
+		SIF TALENT:LOCAL:ペルソナ使い == 0
+			CONTINUE
+		PRINTS CALLNAME:LOCAL
+		FOR LOCAL:1, 100, 105
+			SIF EQUIP:LOCAL:(LOCAL:1)
+				EQUIP:LOCAL:(LOCAL:1) -= 89
+			PRINTFORML EQUIP:LOCAL:({LOCAL:1}) = {EQUIP:LOCAL:(LOCAL:1)}
+		NEXT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0257
+	SIF TARGET:1 == 0
+		TARGET:1 = -1
+	SIF TARGET:2 == 0
+		TARGET:2 = -1
+	SIF TARGET:3 == 0
+		TARGET:3 = -1
+	SIF ASSI:1 == 0
+		ASSI:1 = -1
+	SIF ASSI:2 == 0
+		ASSI:2 = -1
+	IF DB:34:8 == 1 && ITEM:Goetia == 0
+		CALL MESSAGE_B(3, "セーブデータ互換処理", "初台シェルタークリア報酬として", "インストールソフト「Goetia」を獲得！")
+		ITEM:Goetia = 1
+	ENDIF
+	;堕天使勢の移動
+	FOR LOCAL, 0, CHARANUM
+		SELECTCASE NO:LOCAL
+			CASE 352
+				NO:LOCAL = 1701
+			CASE 353
+				NO:LOCAL = 1702
+			CASE 354
+				NO:LOCAL = 1703
+			CASE 351
+				NO:LOCAL = 1704
+			CASE 356
+				NO:LOCAL = 1705
+			CASE 357
+				NO:LOCAL = 1706
+			CASE 358
+				NO:LOCAL = 1707
+		ENDSELECT
+	NEXT
+	;相性値初期設定
+	IF CFLAG:0:相性値20 == 0
+		FOR LOCAL, 0, CHARANUM
+			CALL SET_RELATION, LOCAL
+		NEXT
+	ENDIF
+ENDIF
+IF LASTLOAD_VERSION < 0261
+	IF DB:[[ダンジョン:SEBEC Building]]:9 == 1 && ITEM:SynchroGear == 0
+		CALL MESSAGE_B(4, "セーブデータ互換処理", "SEBECビルクリア報酬として", "インストールソフト「SynchroGear」を獲得！", "インストールソフト「AdjustmentGear」を獲得！")
+		ITEM:SynchroGear = 1
+		ITEM:AdjustmentGear = 1
+	ENDIF
+	FOR LOCAL,0, CHARANUM
+		SIF TALENT:LOCAL:ペルソナ使い == 0
+			CONTINUE
+		SIF NO:LOCAL == [[キャラ:りせ]]
+			TALENT:LOCAL:ペルソナ使い = 2
+		IF NO:LOCAL == [[キャラ:アイギス]]
+			ABL:LOCAL:初期ペルソナ = [[キャラ:パラディオン(ペルソナ)]]
+			TALENT:LOCAL:ペルソナ使い = 2
+		ENDIF
+		SIF NO:LOCAL == [[キャラ:P3男主人公]]
+			ABL:LOCAL:初期ペルソナ = [[キャラ:Orpheus(ペルソナ)]]
+		SIF NO:LOCAL == [[キャラ:P3女主人公]]
+			ABL:LOCAL:初期ペルソナ = [[キャラ:Orpheus(ペルソナ)]]
+		SELECTCASE ABL:LOCAL:初期ペルソナ
+			CASE 110
+				ABL:LOCAL:初期ペルソナ = [[キャラ:ヴェルザンディ(ペルソナ)]]
+			CASE 211
+				ABL:LOCAL:初期ペルソナ = [[キャラ:アエーシュマ2]]
+			CASE 212
+				ABL:LOCAL:初期ペルソナ = [[キャラ:アエーシュマ3]]
+			CASE 320
+				ABL:LOCAL:初期ペルソナ = [[キャラ:ミカエル(ペルソナ)]]
+			CASE 412
+				ABL:LOCAL:初期ペルソナ = [[キャラ:パリカー2]]
+			CASE 413
+				ABL:LOCAL:初期ペルソナ = [[キャラ:パリカー3]]
+			CASE 1510
+				ABL:LOCAL:初期ペルソナ = [[キャラ:フレイ(ペルソナ)]]
+			CASE 4051
+				ABL:LOCAL:初期ペルソナ = [[キャラ:ヴォルカヌス・改(ペルソナ)]]
+			CASE 4052
+				ABL:LOCAL:初期ペルソナ = [[キャラ:アポロ(ペルソナ)]]
+			CASE 4053
+				ABL:LOCAL:初期ペルソナ = [[キャラ:エロス・改(ペルソナ)]]
+			CASE 4054
+				ABL:LOCAL:初期ペルソナ = [[キャラ:ヴィーナス(ペルソナ)]]
+			CASE 4055
+				ABL:LOCAL:初期ペルソナ = [[キャラ:マイア・改(ペルソナ)]]
+			CASE 4056
+				ABL:LOCAL:初期ペルソナ = [[キャラ:アルテミス(ペルソナ)]]
+			CASE 4057
+				ABL:LOCAL:初期ペルソナ = [[キャラ:ニャルラトホテプ(弱)]]
+		ENDSELECT
+	NEXT
+	FOR LOCAL, 1, 11
+		SIF DITEMTYPE:LOCAL:ペルソナ("NO") == 4051
+			DITEMTYPE:LOCAL:ペルソナ("NO") = [[キャラ:ヴォルカヌス・改(ペルソナ)]]
+		SIF DITEMTYPE:LOCAL:ペルソナ("NO") == 4053
+			DITEMTYPE:LOCAL:ペルソナ("NO") = [[キャラ:エロス・改(ペルソナ)]]
+		SIF DITEMTYPE:LOCAL:ペルソナ("NO") == 4055
+			DITEMTYPE:LOCAL:ペルソナ("NO") = [[キャラ:マイア・改(ペルソナ)]]
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0266
+	;最終ペルソナフラグ廃棄 & 所持ペルソナを2個に
+	FOR LOCAL, 0, CHARANUM
+		IF TALENT:LOCAL:ペルソナ使い
+			DITEMTYPE:(EQUIP:LOCAL:所持ペルソナ3):0 = 1
+			SIF CFLAG:LOCAL:初期ペルソナナンバー == 1
+				CFLAG:LOCAL:初期ペルソナナンバー = 0
+			EQUIP:LOCAL:装備ペルソナ = 0
+			EQUIP:LOCAL:所持ペルソナ3 = 0
+		ENDIF
+		LOCAL:1 = HAVE_SKILL(LOCAL,714)
+		IF LOCAL:1
+			FOR LOCAL:2, LOCAL:1, 9
+				LOCALS = スキル{LOCAL:2}
+				LOCALS:1 = スキル{LOCAL:2+1}
+				ABL:LOCAL:LOCALS = ABL:LOCAL:(LOCALS:1)
+			NEXT
+		ENDIF
+	NEXT
+	FOR LOCAL, 0, 100
+		FOR LOCAL:1, 1, 7
+			LOCALS = スキル{LOCAL:1}
+			LOCALS:1 = スキル{LOCAL:1+1}
+			SIF DITEMTYPE:LOCAL:ペルソナ(LOCALS) == 714
+				LOCAL:2 = 1
+			SIF LOCAL:2 && LOCAL:1 < 7
+				DITEMTYPE:LOCAL:ペルソナ(LOCALS) = DITEMTYPE:LOCAL:ペルソナ(LOCALS:1)
+		NEXT
+		LOCAL:2 = 0
+	NEXT
+	;空博＆ゾディアック番号移動
+	FOR LOCAL, 0, 100
+		DB:13:LOCAL = 0
+		DB:14:LOCAL = 0
+	NEXT
+	SAVESTR:114 = 
+ENDIF
+IF LASTLOAD_VERSION < 0267
+	FOR LOCAL, 0, CHARANUM
+		SELECTCASE NO:LOCAL
+			;ナーガの変異をナーガラジャに
+			CASE 754
+	 			SIF ABL:LOCAL:変異 == 452
+	 				ABL:LOCAL:変異 = 755
+			CASE 956
+				SIF NAME:LOCAL == "ヒッポウ"
+					NO:LOCAL = 955
+		ENDSELECT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0272
+	FOR LOCAL,0,CHARANUM
+		CFLAG:LOCAL:被リンクフラグ = -1
+		CFLAG:LOCAL:リンク悪魔 = -1
+		;☆りせ、直斗の初期ペルソナを変更
+		SELECTCASE NO:LOCAL
+			CASE 4531
+				ABL:LOCAL:初期ペルソナ = [[キャラ:ヒミコ(ペルソナ)]]
+			CASE 4541
+				ABL:LOCAL:初期ペルソナ = [[キャラ:スクナヒコナ]]
+				TALENT:LOCAL:ペルソナ使い = 2
+			;正規加入条件を満たしているものとしてイベントフラグ追加
+			CASE 4501, 4502, 4503, 4508
+				CFLAG:LOCAL:イベント加入 = 1
+		ENDSELECT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0274
+	LOCAL = GETCHARA([[キャラ:りせ]])
+	SIF LOCAL >= 0
+		ABL:LOCAL:初期ペルソナ = [[キャラ:ヒミコ(ペルソナ)]]
+	FOR LOCAL, 0, CHARANUM
+		IF TALENT:LOCAL:ペルソナ使い
+			SIF EQUIP:LOCAL:所持ペルソナ1
+				DITEMTYPE:(EQUIP:LOCAL:所持ペルソナ1):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+			SIF EQUIP:LOCAL:所持ペルソナ2
+				DITEMTYPE:(EQUIP:LOCAL:所持ペルソナ2):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+		ENDIF
+	NEXT
+ENDIF
+;固有番号を振り直す
+IF LASTLOAD_VERSION < 0275
+	IF FLAG:41
+		;固有番号の大きい順に並べ直す
+		FOR LOCAL, 0, CHARANUM
+			FOR LOCAL:1, 0, CHARANUM-1
+				SIF CFLAG:(LOCAL:1):キャラ固有の番号 > CFLAG:(LOCAL:1 + 1):キャラ固有の番号
+					SWAPCHARA LOCAL:1, LOCAL:1+1
+			NEXT
+		NEXT
+		;RESULT配列に使われてる固有の番号を全部書きだしつつ、NO順に置き換える
+		VARSET RESULT, -2
+		FOR LOCAL, 0 , CHARANUM
+			IF CFLAG:LOCAL:キャラ固有の番号 > 0
+				RESULT:LOCAL = CFLAG:LOCAL:キャラ固有の番号
+				CFLAG:LOCAL:キャラ固有の番号 = LOCAL
+			ENDIF
+		NEXT
+		;最後に0に主人を入れる
+		RESULT = 0
+		;ペルソナの固有ナンバー調整
+		FOR LOCAL, 1 , 11
+			FOR LOCAL:1, 0, 200
+				SIF RESULT:(LOCAL:1) > -1 && DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") == RESULT:(LOCAL:1)
+					DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = LOCAL:1
+			NEXT
+		NEXT
+		FOR LOCAL, 50 , 100
+			FOR LOCAL:1, 0, 200
+				SIF RESULT:(LOCAL:1) > -1 && DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") == RESULT:(LOCAL:1)
+					DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = LOCAL:1
+			NEXT
+		NEXT
+		FOR LOCAL, 0, CHARANUM
+			IF CFLAG:LOCAL:被リンクフラグ > -1
+				FOR LOCAL:1, 0, 200
+					IF CFLAG:LOCAL:被リンクフラグ == RESULT:(LOCAL:1)
+						CFLAG:LOCAL:被リンクフラグ = LOCAL:1
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			IF CFLAG:LOCAL:被リンクフラグ > -1
+				FOR LOCAL:1, 0, 200
+					IF CFLAG:LOCAL:リンク悪魔 == RESULT:(LOCAL:1)
+						CFLAG:LOCAL:リンク悪魔 = LOCAL:1
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			IF CFLAG:LOCAL:娘の父親の固有番号娘 > -1
+				FOR LOCAL:1, 0, 200
+					IF CFLAG:LOCAL:娘の産みの親の固有番号娘 == RESULT:(LOCAL:1)
+						CFLAG:LOCAL:娘の産みの親の固有番号娘 = LOCAL:1
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+			IF CFLAG:LOCAL:娘の父親の固有番号娘 > -1
+				FOR LOCAL:1, 0, 200
+					IF CFLAG:LOCAL:娘の父親の固有番号娘 == RESULT:(LOCAL:1)
+						CFLAG:LOCAL:娘の父親の固有番号娘 = LOCAL:1
+						BREAK
+					ENDIF
+				NEXT
+			ENDIF
+		NEXT
+		FLAG:41 = 0
+	ENDIF
+ENDIF
+IF LASTLOAD_VERSION < 0276
+	;固有番号がおかしい場合になおす処置
+	FOR LOCAL, 1, 11
+		SIF DITEMTYPE:LOCAL:0 == 0
+			CONTINUE
+		IF DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") >= 0 && FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")) == -1
+			IF DITEMTYPE:LOCAL:ペルソナ("装備状態") > 0
+				DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = -1
+			ELSE
+				LOCAL:3 = 0
+				FOR LOCAL:1, 0, CHARANUM
+					FOR LOCAL:2, GETNUM(EQUIP, "装備ペルソナ"), GETNUM(EQUIP, "所持ペルソナ3")+1
+						IF EQUIP:(LOCAL:1):(LOCAL:2) == LOCAL
+							DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = CFLAG:(LOCAL:1):キャラ固有の番号
+							LOCAL:3 = 1
+						ENDIF
+					NEXT
+				NEXT
+				SIF LOCAL:3 == 0
+					DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = -1
+			ENDIF
+		ENDIF
+	NEXT
+	FOR LOCAL, 50, 100
+		SIF DITEMTYPE:LOCAL:0 == 0
+			CONTINUE
+		IF DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") >= 0 && FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")) == -1
+			LOCAL:3 = 0
+			FOR LOCAL:1, 0, CHARANUM
+				IF CFLAG:(LOCAL:1):初期ペルソナナンバー == LOCAL
+					DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = CFLAG:(LOCAL:1):キャラ固有の番号
+					LOCAL:3 = 1
+				ENDIF
+			NEXT
+			SIF LOCAL:3 == 0
+				DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = -1
+		ENDIF
+	NEXT
+	SIF ITEM:BaBel
+		FLAG:ベル神撃破 |= 32
+	SIF FLAG:直哉ルート >= 4
+		FLAG:ベル神撃破 |= 8
+	FOR LOCAL,0,CHARANUM
+		VARSET RESULT
+		ENCODETOUNI %NAME:LOCAL%
+		LOCAL:1 = RESULT+1
+		IF ABL:LOCAL:種族 == 0 || ABL:LOCAL:種族 == 45
+			CFLAG:LOCAL:危険日 = (SUMARRAY(RESULT , 1 , LOCAL:1) + DAY*4 + TIME)%16
+		ELSE
+			CFLAG:LOCAL:危険日 = (SUMARRAY(RESULT , 1 , LOCAL:1) + DAY*4 + TIME)%15
+			SIF CFLAG:LOCAL:危険日 >= 8
+				CFLAG:LOCAL:危険日 += 1
+		ENDIF
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0277
+	;IDに0が振られちゃったキャラを戻す
+	FOR LOCAL , 1 , CHARANUM
+		IF CFLAG:LOCAL:キャラ固有の番号 == 0
+			;RESULT配列に使われてる固有の番号を全部書きだす
+			VARSET RESULT, -1
+			FOR LOCAL:2, 0 , CHARANUM
+				SIF CFLAG:(LOCAL:2):キャラ固有の番号 > 0
+					RESULT:(CFLAG:(LOCAL:2):キャラ固有の番号) = LOCAL:2
+			NEXT
+			;主人は0固定のはずなので、0にする
+			RESULT = 0
+			;書きだしたリストから、開いている一番若い番号を探しす
+			FOR LOCAL:2, 0 , 201
+				SIF RESULT:(LOCAL:2) >= 0
+					CONTINUE
+				BREAK
+			NEXT
+			CFLAG:LOCAL:キャラ固有の番号 = LOCAL:2
+		ENDIF
+	NEXT
+	;ターゲットから外す
+	FOR LOCAL, 0, 4
+		IF LOCAL == 0
+			SIF TARGET >= CHARANUM
+				TARGET = -1
+			SIF TARGET >= 0 && CFLAG:TARGET:フィルタリングフラグ
+				TARGET = -1
+			SIF ASSI >= CHARANUM
+				ASSI = -1
+			SIF ASSI>= 0 && CFLAG:ASSI:フィルタリングフラグ
+				ASSI = -1
+		ENDIF
+		SIF FINDCHARA_ID(TARGET:LOCAL) >= 0 && (CFLAG:FINDCHARA_ID(TARGET:LOCAL):フィルタリングフラグ || CFLAG:FINDCHARA_ID(TARGET:LOCAL):この場に居ないフラグ)
+			TARGET:LOCAL = -1
+		SIF FINDCHARA_ID(ASSI:LOCAL) >= 0 && (CFLAG:FINDCHARA_ID(ASSI:LOCAL):フィルタリングフラグ || CFLAG:FINDCHARA_ID(ASSI:LOCAL):この場に居ないフラグ) && LOCAL < 3
+			ASSI:LOCAL -= 1
+	NEXT
+	;初期ペルソナ調整処理
+	FOR LOCAL, 50, 100
+		SIF !DITEMTYPE:LOCAL:ペルソナ("NO")
+			CONTINUE
+		SIF ABL:FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")):初期ペルソナ == DITEMTYPE:LOCAL:ペルソナ("NO")
+			CONTINUE
+		LOCAL:2 = 0
+		FOR LOCAL:1, 0, CHARANUM
+			IF ABL:(LOCAL:1):初期ペルソナ == DITEMTYPE:LOCAL:ペルソナ("NO")
+				CFLAG:(LOCAL:1):初期ペルソナナンバー = LOCAL
+				DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = CFLAG:(LOCAL:1):キャラ固有の番号
+				LOCAL:2 = 1
+			ENDIF
+		NEXT
+		FOR LOCAL:1,0,100
+			DITEMTYPE:LOCAL:(LOCAL:1) = 0
+		NEXT
+	NEXT
+	;ペルソナ使いの持ってる情報からペルソナの情報を書き換える
+	FOR LOCAL, 0, CHARANUM
+		SIF !TALENT:LOCAL:ペルソナ使い
+			CONTINUE
+		SIF EQUIP:LOCAL:所持ペルソナ1 > 0
+			DITEMTYPE:(EQUIP:LOCAL:所持ペルソナ1):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+		SIF EQUIP:LOCAL:所持ペルソナ2 > 0
+			DITEMTYPE:(EQUIP:LOCAL:所持ペルソナ1):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+		SIF CFLAG:LOCAL:初期ペルソナナンバー > 0
+			DITEMTYPE:(CFLAG:LOCAL:初期ペルソナナンバー):ペルソナ("ペルソナ所持者") = CFLAG:LOCAL:キャラ固有の番号
+	NEXT
+	;漏れたのをチェックして、ペルソナ使いでないものが所持か存在しないキャラ所持しているペルソナの情報をなおす
+	FOR LOCAL,1, 11
+		IF DITEMTYPE:LOCAL:ペルソナ("NO")
+			SIF FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")) == -1 || TALENT:FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")):ペルソナ使い == 0
+				DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者") = -1
+		ENDIF
+	NEXT
+	FOR LOCAL,50, 100
+		IF DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")
+			IF FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")) == -1 || !TALENT:FINDCHARA_ID(DITEMTYPE:LOCAL:ペルソナ("ペルソナ所持者")):ペルソナ使い
+				FOR LOCAL:1,0,100
+					DITEMTYPE:LOCAL:(LOCAL:1) = 0
+				NEXT
+			ENDIF
+		ENDIF
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0278
+	;ヤマトタケルの番号を修正する
+	FOR LOCAL, 0, CHARANUM
+		SIF ABL:LOCAL:初期ペルソナ == 4180
+			ABL:LOCAL:初期ペルソナ= 3980
+	NEXT
+	;ペルソナに相性を持たせる このタイミングでは削除
+	;IF LASTLOAD_VERSION < 0278
+	;	FOR LOCAL, 0, 100
+	;		SIF DITEMTYPE:LOCAL:ペルソナ("NO") <= 0
+	;			CONTINUE
+	;		CALL GET_CP_PERSONA, DITEMTYPE:LOCAL:ペルソナ("NO"), LOCAL
+	;	NEXT
+	;ENDIF
+ENDIF
+IF LASTLOAD_VERSION < 0280
+	FOR LOCAL,0, CHARANUM
+		FOR LOCAL:1, 1, 21
+			LOCALS = スキル{LOCAL:1}
+			LOCALS:1 = 習得スキル{LOCAL:1}
+			SIF ABL:LOCAL:LOCALS == 239
+				ABL:LOCAL:LOCALS = 333
+			SIF ABL:LOCAL:(LOCALS:1) == 239
+				ABL:LOCAL:(LOCALS:1) = 333
+			SIF ABL:LOCAL:LOCALS == 1326
+				ABL:LOCAL:LOCALS = 326
+			SIF ABL:LOCAL:(LOCALS:1) == 1326
+				ABL:LOCAL:(LOCALS:1) = 326
+		NEXT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0281
+	FOR LOCAL,0,CHARANUM
+		SIF CFLAG:LOCAL:初期リンク悪魔 == 3905
+			CFLAG:LOCAL:初期リンク悪魔 = 3801
+		SIF CFLAG:LOCAL:初期リンク悪魔 == 3905
+			CFLAG:LOCAL:初期リンク悪魔 = 3801
+	NEXT
+ENDIF
+
+IF LASTLOAD_VERSION < 0282
+	;ゆりこの番号変更
+	CALL CONVERT_CHARA_NO,663,424
+		FOR LOCAL, 0, CHARANUM
+			IF NO:LOCAL == [[キャラ:アマネ]] || NO:LOCAL == [[キャラ:マインドアマネ]]
+				ABL:LOCAL:種族 = 0
+				BASE:LOCAL:CP = 0
+				FOR LOCAL:1, 0, FLAG:相性数
+					BASE:LOCAL:GET_TYPE(LOCAL:1) = 100
+				NEXT
+				BASE:LOCAL:破魔 = 0
+			;一応ロキの番号変更
+			ELSEIF NO:LOCAL == 1509
+				NO:LOCAL = 261
+			;ゆりこのフラグを立てる
+			ELSEIF NO:LOCAL == 424
+				CFLAG:LOCAL:合体不可 = 1
+				CFLAG:LOCAL:容量未使用 = 1
+			ENDIF
+			;サマナーと道具知識のレベル制、アイテム習熟の実装に伴う同期とり
+			IF LOCAL == MASTER
+				IF TALENT:MASTER:ペルソナ使い || TALENT:MASTER:異能者
+					TALENT:MASTER:サマナー = 0
+					TALENT:MASTER:道具知識 = 0
+				ELSEIF (TALENT:MASTER:サマナー + TALENT:MASTER:サクセサー + TALENT:MASTER:ガンスリンガー + TALENT:MASTER:道具知識) == 0
+					;観光客はそれぞれ1Lvでもいーかなとも思ったけど、とりあえず両方0で。
+					TALENT:MASTER:サマナー = 0
+					TALENT:MASTER:道具知識 = 0
+				ELSE
+					TALENT:LOCAL:サマナー = CSVTALENT(NO:LOCAL,GETNUM(TALENT,"Summoner"),0)
+					TALENT:LOCAL:道具知識 = CSVTALENT(NO:LOCAL,GETNUM(TALENT,"道具知識"),0)
+				ENDIF
+			ELSEIF NO:LOCAL == 3501 || NO:LOCAL == 3502
+				SIF TALENT:LOCAL:サマナー == 1 && (TALENT:MASTER:ペルソナ使い + TALENT:MASTER:異能者) == 0
+					TALENT:LOCAL:サマナー = 5
+				SIF TALENT:LOCAL:道具知識 == 1 && (TALENT:MASTER:ペルソナ使い + TALENT:MASTER:異能者) == 0
+					TALENT:LOCAL:道具知識 = 3
+			ELSE
+				TALENT:LOCAL:サマナー = CSVTALENT(NO:LOCAL,GETNUM(TALENT,"Summoner"),0)
+				TALENT:LOCAL:道具知識 = CSVTALENT(NO:LOCAL,GETNUM(TALENT,"道具知識"),0)
+				TALENT:LOCAL:アイテム習熟 = CSVTALENT(NO:LOCAL,GETNUM(TALENT,"アイテム習熟"),0)
+				TALENT:LOCAL:サクセサー = CSVTALENT(NO:LOCAL,GETNUM(TALENT,"サクセサー"),0)
+			ENDIF
+		NEXT
+		FOR LOCAL,0,11
+			SIF DITEMTYPE:LOCAL:ペルソナ("NO") == 1509
+				DITEMTYPE:LOCAL:ペルソナ("NO") = 261
+		NEXT
+		FOR LOCAL,0, CHARANUM
+			;CSVから初期ペルソナを取得する
+			IF TALENT:LOCAL:ペルソナ使い
+				ABL:LOCAL:初期ペルソナ2 = CSVABL(NO:LOCAL, GETNUM(ABL, "初期ペルソナ2"), 0)
+				ABL:LOCAL:初期ペルソナ3 = CSVABL(NO:LOCAL, GETNUM(ABL, "初期ペルソナ3"), 0)
+			ENDIF
+			CALL ADJUST_CHARA_ALI, LOCAL
+			CALL SYNC_STATUS, LOCAL
+		NEXT
+	;ビエンの地図データを抹消
+	;FOR LOCAL:2, 19, 25
+	;	FOR LOCAL:1, 0, 20
+	;		FOR LOCAL, 0, 20
+	;			TA:((LOCAL:2*100+5)):(LOCAL):(LOCAL:1) = 0
+	;		NEXT
+	;	NEXT
+	;NEXT
+	;FOR LOCAL:2, 0, 2
+	;	FOR LOCAL:1, 0, 20
+	;		FOR LOCAL, 0, 20
+	;			TA:((LOCAL:2*100+97)):(LOCAL):(LOCAL:1) = 0
+	;		NEXT
+	;	NEXT
+	;NEXT
+	CALLF STRFLAG_D("D5M24", -1, [[ダンジョン:大魔宮]])
+	FOR LOCAL,0,11
+		SIF DITEMTYPE:LOCAL:ペルソナ("NO") == 1509
+			DITEMTYPE:LOCAL:ペルソナ("NO") = 261
+	NEXT
+	FOR LOCAL,0, CHARANUM
+		;CSVから初期ペルソナを取得する
+		IF TALENT:LOCAL:ペルソナ使い
+			ABL:LOCAL:初期ペルソナ2 = CSVABL(NO:LOCAL, GETNUM(ABL, "初期ペルソナ2"), 0)
+			ABL:LOCAL:初期ペルソナ3 = CSVABL(NO:LOCAL, GETNUM(ABL, "初期ペルソナ3"), 0)
+		ENDIF
+		CALL ADJUST_CHARA_ALI, LOCAL
+		CALL SYNC_STATUS, LOCAL
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0283
+	;絶縁状のミスを修正
+	SIF DB:101:6 == -10
+		FLAG:直哉ルート = -1 * ABS(FLAG:直哉ルート)
+	;すでに出ているものは出現履歴を取っていく
+	FOR LOCAL, 1, 100
+		TRYCCALLFORM PREREQUISITE_DUNGEON_{LOCAL}
+			IF RESULT
+				CALLFORM GET_DUNGEON_NAME_{LOCAL}
+				IF LOCAL <= 63
+					SIF GETBIT(FLAG:ダンジョン出現1,LOCAL)
+						CONTINUE
+					SETBIT FLAG:ダンジョン出現1,LOCAL
+				ELSE
+					SIF GETBIT(FLAG:ダンジョン出現2,LOCAL - 64)
+						CONTINUE
+					SETBIT FLAG:ダンジョン出現2,LOCAL - 64
+				ENDIF
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+	FOR LOCAL, 1, 100
+		TRYCCALLFORM PLAYABLE_COLOSSEUM_{LOCAL}
+			IF RESULT
+				IF LOCAL <= 63
+					SIF GETBIT(FLAG:闘技場出現1,LOCAL)
+						CONTINUE
+					SETBIT FLAG:闘技場出現1,LOCAL
+				ELSE
+					SIF GETBIT(FLAG:闘技場出現2,LOCAL - 64)
+						CONTINUE
+					SETBIT FLAG:闘技場出現2,LOCAL - 64
+				ENDIF
+			ENDIF
+		CATCH
+			
+		ENDCATCH
+	NEXT
+	FOR LOCAL, 1, 100
+		TRYCCALLFORM PLAYABLE_EVENT_{LOCAL}
+			IF RESULT
+				IF LOCAL <= 63
+					SIF GETBIT(FLAG:イベント出現1,LOCAL)
+						CONTINUE
+					SETBIT FLAG:イベント出現1,LOCAL
+				ELSE
+					SIF GETBIT(FLAG:イベント出現2,LOCAL - 64)
+						CONTINUE
+					SETBIT FLAG:イベント出現2,LOCAL - 64
+				ENDIF
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+	FOR LOCAL, 1, 100
+		TRYCCALLFORM PLAYABLE_REQUEST_{LOCAL}
+			IF RESULT
+				IF LOCAL <= 63
+					SIF GETBIT(FLAG:依頼出現1,LOCAL)
+						CONTINUE
+					SETBIT FLAG:依頼出現1,LOCAL
+				ELSE
+					SIF GETBIT(FLAG:依頼出現2,LOCAL - 64)
+						CONTINUE
+					SETBIT FLAG:依頼出現2,LOCAL - 64
+				ENDIF
+			ENDIF
+		CATCH
+			
+		ENDCATCH
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0284
+	FOR LOCAL,0,CHARANUM
+		;古代ちゃんの民俗学習得処理
+		IF NO:LOCAL == [[キャラ:古代]]
+			ABL:LOCAL:人間時スキル1 = [[スキル:民俗学]]
+			SIF CFLAG:LOCAL:悪魔変身 == 0
+				ABL:LOCAL:スキル1 = [[スキル:民俗学]]
+		ENDIF
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0286
+	FOR LOCAL,0,CHARANUM
+		IF NO:LOCAL == [[キャラ:古代]]
+			ABL:LOCAL:人間時スキル1 = [[スキル:民俗学]]
+		ENDIF
+	NEXT
+	;Demonica Suitを持っててDemonica(ソフト)を持っていない場合
+	;Demonica(ソフト)を追加
+	IF ITEM:531 == 0 &&  ITEM:5019 > 0
+		CALL MESSAGE_B(3, "セーブデータ互換処理", "Demonicaがスーツからインストールソフトに変わりました。", "インストールソフト「Demonica」を獲得！")
+		ITEM:531 = 1
+	ENDIF
+ENDIF
+SIF LASTLOAD_VERSION < 0287
+	FLAG:ジャックポット = MAX(FLAG:ジャックポット, 10000 * 100)
+
+IF LASTLOAD_VERSION < 0288
+	;全コマンド系統フィルタＯＮ
+	FOR LOCAL,0,CHARANUM
+		FOR LOCAL:1 , 0 , 13
+			CFLAG:LOCAL:(170+LOCAL:1) = 1
+		NEXT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0289
+	SIF GETCHARA([[キャラ:ユーリア]] , 0) > -1 && ABL:GETCHARA([[キャラ:ユーリア]] , 0):習得LV4 > 0
+		ABL:GETCHARA([[キャラ:ユーリア]] , 0):習得スキル4 = [[スキル:誘惑]]
+	;ＮＴＲ機能追加により、主人への陥落記憶
+	FOR LOCAL,1,CHARANUM
+		IF TALENT:LOCAL:恋慕
+			CFLAG:LOCAL:(2400) = 1
+		ELSEIF TALENT:LOCAL:親愛
+			CFLAG:LOCAL:(2400) = 4
+		ELSEIF TALENT:LOCAL:淫乱
+			CFLAG:LOCAL:(2400) = 2
+		ELSEIF TALENT:LOCAL:娼婦
+			CFLAG:LOCAL:(2400) = 5
+		ELSEIF TALENT:LOCAL:服従
+			CFLAG:LOCAL:(2400) = 3
+		ELSEIF TALENT:LOCAL:隷属
+			CFLAG:LOCAL:(2400) = 6
+		ENDIF
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0290
+	FOR LOCAL , 2390 , 2399
+		CVARSET CFLAG , LOCAL , 0
+	NEXT
+	FOR LOCAL , 0,CHARANUM
+		CFLAG:LOCAL:24 = CFLAG:LOCAL:23
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0291
+	FOR LOCAL, 1, 100
+		SIF GROUPMATCH(LOCAL, 4, 5, 50, 51, 70)
+			CONTINUE
+		TRYCCALLFORM GET_DUNGEON_NAME_{LOCAL}
+			LOCALS = %RESULTS%
+			FOR LOCAL:1, 0, 25
+				FLAG:最大X = -1
+				FLAG:現M = LOCAL:1
+				CALLFORM MAKE_FLOOR_{LOCAL}
+				SIF FLAG:最大X == -1
+					CONTINUE
+				SIF FLAG:最大Y == -1
+					CONTINUE
+				CALL SET_FLOOR_ANALYZE_DEFAULT, LOCAL, LOCAL:1
+				LOCAL:4 = 0
+				FOR LOCAL:3, 0, MIN(FLAG:最大Y,20)
+					FOR LOCAL:2, 0, MIN(FLAG:最大X,20)
+						SIF TA:((FLAG:現M*100+LOCAL)):(LOCAL:2):(LOCAL:3) == 0
+							CONTINUE
+						LOCAL:4 = 1
+						BREAK
+					NEXT
+				NEXT
+				SIF LOCAL:4 == 0
+					CONTINUE
+				FOR LOCAL:3, 0, MIN(FLAG:最大Y,20)
+					FOR LOCAL:2, 0, MIN(FLAG:最大X,20)
+						CALL SET_FLOOR_ANALYZE, TA:((FLAG:現M*100+LOCAL)):(LOCAL:2):(LOCAL:3), LOCAL, LOCAL:1, LOCAL:2, LOCAL:3
+							CONTINUE
+					NEXT
+				NEXT
+			NEXT
+			CALL MESSAGE_BL(1, @"[{LOCAL}]%RESULTS%互換完了")
+		CATCH
+			CONTINUE
+		ENDCATCH
+	NEXT
+	FLAG:最大X = 1
+	FLAG:最大X = 1
+	VARSET TA:0:0:0
+	SAVESTR:105 += SUBSTRING(SAVESTR:197,1) + SUBSTRING(SAVESTR:198,1) + SUBSTRING(SAVESTR:199,1)
+ENDIF
+IF LASTLOAD_VERSION < 0294
+	FLAG:経験ED数 = 0
+	FOR LOCAL,0,64
+		SIF GETBIT(FLAG:発見ED , LOCAL)
+			FLAG:経験ED数 ++
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0295
+	FOR LOCAL , 0 , CHARANUM
+		IF NO:LOCAL == [[キャラ:Zoma]]
+			TALENT:LOCAL:天使 = 0
+			TALENT:LOCAL:堕天使 = 0
+			TALENT:LOCAL:鳥 = 0
+			TALENT:LOCAL:爬虫類 = 0
+			TALENT:LOCAL:獣 = 0
+			TALENT:LOCAL:不定形 = 0
+			TALENT:LOCAL:人化 = 0
+			TALENT:LOCAL:羽 = 0
+			TALENT:LOCAL:尾 = 0
+			TALENT:LOCAL:動物耳 = 0
+			TALENT:LOCAL:毛皮 = 0
+			TALENT:LOCAL:鉤爪 = 0
+			TALENT:LOCAL:触手 = 0
+			TALENT:LOCAL:嘴 = 0
+			IF TALENT:LOCAL:鉤足
+				TALENT:LOCAL:鉤足 = 0
+				TALENT:LOCAL:足 = 1
+			ENDIF
+			BASE:LOCAL:剣撃 = 100
+			BASE:LOCAL:飛具 = 100
+			BASE:LOCAL:打撃 = 100
+			BASE:LOCAL:戦技 = 100
+			BASE:LOCAL:火炎 = 100
+			BASE:LOCAL:氷結 = 100
+			BASE:LOCAL:電撃 = 100
+			BASE:LOCAL:衝撃 = 100
+			BASE:LOCAL:神経 = 0
+			BASE:LOCAL:精神 = 0
+			BASE:LOCAL:破魔 = 0
+			BASE:LOCAL:呪殺 = 0
+			BASE:LOCAL:地変 = 100
+			BASE:LOCAL:水撃 = 100
+			BASE:LOCAL:疾風 = 100
+			BASE:LOCAL:重力 = 100
+			BASE:LOCAL:核熱 = 100
+			BASE:LOCAL:万能 = 100
+			BASE:LOCAL:サイコ = 100
+		ENDIF
+	NEXT
+	;悪魔全書に素質登録
+	FOR LOCAL , 2000 , 7000
+		SIF SAVESTR:LOCAL == ""
+			BREAK
+		LOCAL:2 = TOINT(AUTO_SPLIT(SAVESTR:LOCAL , "," , 1))
+		SIF EXISTCSV(LOCAL:2,0) == 0
+			CONTINUE
+		SIF LOCAL % 50 == 49
+			PRINTW バージョンアップ時の更新作業をしています...[クリックしてください]
+		;素質の書き込み
+		FOR LOCAL:1 , 0 , 159
+			SIF CSVTALENT(LOCAL:2 , LOCAL:1 , 0)
+				SAVESTR:(LOCAL) += "," + TALENTNAME:(LOCAL:1)
+		NEXT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0296
+	SIF CFLAG:MASTER:あなたの表の職業 == 0
+		CFLAG:MASTER:あなたの表の職業 = 1
+	IF CFLAG:MASTER:あなたの専攻分野 == 0
+		IF TALENT:MASTER:ペルソナ使い
+			CFLAG:MASTER:あなたの専攻分野 = 2
+		ELSEIF TALENT:MASTER:異能者
+			CFLAG:MASTER:あなたの専攻分野 = 3
+		ELSEIF TALENT:MASTER:サマナー
+			CFLAG:MASTER:あなたの専攻分野 = 1
+		ELSE
+			CFLAG:MASTER:あなたの専攻分野 = 4
+		ENDIF
+	ENDIF
+ENDIF
+IF LASTLOAD_VERSION < 0297
+	IF FLAG:ＮＴＲ機能
+		REPEAT 9
+			SETBIT FLAG:ＮＴＲ機能 , COUNT
+		REND
+	ENDIF
+ENDIF
+IF LASTLOAD_VERSION < 0298
+	CFLAG:MASTER:戦闘参加不可能 = 0
+	FOR LOCAL , 0 , CHARANUM
+		FOR LOCAL:1 , 0 , 24
+			SIF ABL:LOCAL:(LOCAL:1) > 10
+				ABL:LOCAL:(LOCAL:1) = 10
+		NEXT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0299
+	FOR LOCAL, 0, CHARANUM
+		SIF BASE:LOCAL:ＥＸＰ < GET_NEXT_EXP(BASE:LOCAL:LV-1, ABL:LOCAL:種族 != 0 && !陥落(LOCAL))
+			BASE:LOCAL:ＥＸＰ = GET_NEXT_EXP(BASE:LOCAL:LV-1, ABL:LOCAL:種族 != 0 && !陥落(LOCAL))
+		FOR LOCAL:1, 1, 9
+			;喰らいつき
+			SIF ABL:LOCAL:@"スキル{LOCAL:1}" == 331
+				ABL:LOCAL:@"スキル{LOCAL:1}" = [[スキル:喰らいつき]]
+			;最後の晩餐
+			SIF ABL:LOCAL:@"スキル{LOCAL:1}" == 332
+				ABL:LOCAL:@"スキル{LOCAL:1}" = [[スキル:最後の晩餐]]
+			;大嘗祭
+			SIF ABL:LOCAL:@"スキル{LOCAL:1}" == 221
+				ABL:LOCAL:@"スキル{LOCAL:1}" = [[スキル:大嘗祭]]
+			;食い散らし
+			SIF ABL:LOCAL:@"スキル{LOCAL:1}" == 222
+				ABL:LOCAL:@"スキル{LOCAL:1}" =  [[スキル:喰い散らし]]
+			SIF ABL:LOCAL:@"スキル{LOCAL:1}" == [[スキル:吸血瘴気]]
+				ABL:LOCAL:@"スキル{LOCAL:1}" =  0
+		NEXT
+		FOR LOCAL:1, 1, 21
+			;喰らいつき
+			SIF ABL:LOCAL:@"習得スキル{LOCAL:1}" == 331
+				ABL:LOCAL:@"習得スキル{LOCAL:1}" = [[スキル:喰らいつき]]
+			;最後の晩餐
+			SIF ABL:LOCAL:@"習得スキル{LOCAL:1}" == 332
+				ABL:LOCAL:@"習得スキル{LOCAL:1}" = [[スキル:最後の晩餐]]
+			;大嘗祭
+			SIF ABL:LOCAL:@"習得スキル{LOCAL:1}" == 221
+				ABL:LOCAL:@"習得スキル{LOCAL:1}" = [[スキル:大嘗祭]]
+			;食い散らし
+			SIF ABL:LOCAL:@"習得スキル{LOCAL:1}" == 222
+				ABL:LOCAL:@"習得スキル{LOCAL:1}" =  [[スキル:喰い散らし]]
+		NEXT
+		FOR LOCAL:1, 1, 9
+			;喰らいつき
+			SIF ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" == 331
+				ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" = [[スキル:喰らいつき]]
+			;最後の晩餐
+			SIF ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" == 332
+				ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" = [[スキル:最後の晩餐]]
+			;大嘗祭
+			SIF ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" == 221
+				ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" = [[スキル:大嘗祭]]
+			;食い散らし
+			SIF ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" == 222
+				ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" =  [[スキル:喰い散らし]]
+			SIF ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" == [[スキル:吸血瘴気]]
+				ABL:LOCAL:@"初期変身悪魔スキル{LOCAL:1}" =  0
+		NEXT
+		FOR LOCAL:1, 1, 21
+			;喰らいつき
+			SIF ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" == 331
+				ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" = [[スキル:喰らいつき]]
+			;最後の晩餐
+			SIF ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" == 332
+				ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" = [[スキル:最後の晩餐]]
+			;大嘗祭
+			SIF ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" == 221
+				ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" = [[スキル:大嘗祭]]
+			;食い散らし
+			SIF ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" == 222
+				ABL:LOCAL:@"初期変身悪魔習得スキル{LOCAL:1}" =  [[スキル:喰い散らし]]
+		NEXT
+	NEXT
+ENDIF
+IF LASTLOAD_VERSION < 0300
+	FOR LOCAL , 0 , CHARANUM
+		SIF DB:102:31 == 0
+			TALENT:LOCAL:妻拉致 = 0
+		SIF DB:102:32 == 0
+			TALENT:LOCAL:悪徳スカウト = 0
+	NEXT
+	GLOBAL:メッセージ速度 = 1
+	GLOBAL:オート時ウェイト = 500
+	GLOBAL:右クリック時ウェイト = 1000
+	FLAG:オート送り = 0
+	GLOBAL:メッセージアニメ利用 = 1
+	SAVEGLOBAL
+	IF !ITEM:しず玉 && STRFLAG_D("ミノタウロス撃破",,5)
+		CALL MESSAGE_B(3, "セーブデータ互換処理", "ミノタウロス撃破報酬として", "イベントアイテム「しず玉」を獲得！")
+		ITEM:しず玉 = 1
+	ENDIF
+	IF !ITEM:あら玉 && STRFLAG_D("ロキ撃破",,5)
+		CALL MESSAGE_B(3, "セーブデータ互換処理", "ロキ撃破報酬として", "イベントアイテム「あら玉」を獲得！")
+		ITEM:あら玉 = 1
+	ENDIF
+	IF !ITEM:ふる玉 && STRFLAG_D("ヘカーテ撃破",,5)
+		CALL MESSAGE_B(3, "セーブデータ互換処理", "ヘカーテ撃破報酬として", "イベントアイテム「ふる玉」を獲得！")
+		ITEM:ふる玉 = 1
+	ENDIF
+ENDIF
+
+
+IF LASTLOAD_VERSION < 0301
+	SIF GETCHARA([[キャラ:美鶴]], 0) >= 0
+		ABL:GETCHARA([[キャラ:美鶴]], 0):初期ペルソナ3 = CSVABL([[キャラ:美鶴]], GETNUM(ABL, "初期ペルソナ3"),0)
+	SIF GETCHARA([[キャラ:ゆかり]], 0) >= 0
+		ABL:GETCHARA([[キャラ:ゆかり]], 0):初期ペルソナ3 = CSVABL([[キャラ:ゆかり]], GETNUM(ABL, "初期ペルソナ3"),0)
+	FOR LOCAL, 1, CHARANUM
+		SIF TALENT:LOCAL:恋慕 || TALENT:LOCAL:隷属
+			SETBIT FLAG:(50000+NO:LOCAL), 1
+		SIF TALENT:LOCAL:親愛
+			SETBIT FLAG:(50000+NO:LOCAL), 2
+		SIF TALENT:LOCAL:淫乱 || TALENT:LOCAL:娼婦
+			SETBIT FLAG:(50000+NO:LOCAL), 3
+		SIF TALENT:LOCAL:娼婦
+			SETBIT FLAG:(50000+NO:LOCAL), 4
+		SIF TALENT:LOCAL:服従 || TALENT:LOCAL:隷属
+			SETBIT FLAG:(50000+NO:LOCAL), 5
+		SIF TALENT:LOCAL:隷属
+			SETBIT FLAG:(50000+NO:LOCAL), 6
+	NEXT
+	FOR LOCAL , 0 , CHARANUM
+		SIF CFLAG:LOCAL:口上セレクト == -1
+			CFLAG:LOCAL:口上セレクト = 10
+		SIF CFLAG:LOCAL:口上セレクト == 10
+			CFLAG:LOCAL:口上セレクト = 50
+		SIF CFLAG:LOCAL:口上セレクト == 99
+			CFLAG:LOCAL:口上セレクト = 0
+	NEXT
+ENDIF
+
+IF LASTLOAD_VERSION < 0302
+	IF GETCHARA([[キャラ:ハーリーＱ]], 0) >= 0
+		TALENT:GETCHARA([[キャラ:ハーリーＱ]], 0):火炎 = 1
+		FOR LOCAL, 1, 21
+			IF ABL:GETCHARA([[キャラ:ハーリーＱ]], 0):@"初期変身悪魔習得スキル{LOCAL}"
+				ABL:GETCHARA([[キャラ:ハーリーＱ]], 0):@"初期変身悪魔習得スキル{LOCAL}" = CSVABL([[キャラ:ハーリーＱ]], GETNUM(ABL, @"初期変身悪魔習得スキル{LOCAL}"),0)
+				ABL:GETCHARA([[キャラ:ハーリーＱ]], 0):@"初期変身悪魔習得LV{LOCAL}" = CSVABL([[キャラ:ハーリーＱ]], GETNUM(ABL, @"初期変身悪魔習得LV{LOCAL}"),0)
+			ENDIF
+		NEXT
+	ENDIF
+	IF GETCHARA([[キャラ:ジナーナ]], 0) >= 0
+		FOR LOCAL, 1, 21
+			TALENT:GETCHARA([[キャラ:ジナーナ]], 0):破魔 = 1
+			IF ABL:GETCHARA([[キャラ:ジナーナ]], 0):@"初期変身悪魔習得スキル{LOCAL}"
+				ABL:GETCHARA([[キャラ:ジナーナ]], 0):@"初期変身悪魔習得スキル{LOCAL}" = CSVABL([[キャラ:ジナーナ]], GETNUM(ABL, @"初期変身悪魔習得スキル{LOCAL}"),0)
+				ABL:GETCHARA([[キャラ:ジナーナ]], 0):@"初期変身悪魔習得LV{LOCAL}" = CSVABL([[キャラ:ジナーナ]], GETNUM(ABL, @"初期変身悪魔習得LV{LOCAL}"),0)
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+
+IF LASTLOAD_VERSION < 0303
+	FLAG:10 = 0
+ENDIF
+
+IF LASTLOAD_VERSION < 0304
+	;クドラクの番号を変更
+	SIF LASTLOAD_VERSION < 0303 || FLAG:バージョン管理補助 == 0
+		CALL CONVERT_CHARA_NO, 665 , 1085
+	;妻の救出とアイドルの末路のフラグを102→101
+	SIF DB:102:31
+		SWAP DB:102:31 , DB:101:31
+	SIF DB:102:32
+		SWAP DB:102:32 , DB:101:32
+	;千枝と雪子が引継ぎ済みでかつ-1にされた場合の処理
+	FOR LOCAL , 0 , CHARANUM
+		SIF (NO:LOCAL == [[キャラ:千枝]] || NO:LOCAL == [[キャラ:雪子]]) && CFLAG:LOCAL:引継ぎ回数 > 0 && CFLAG:LOCAL:戦闘参加不可能 == -1
+			CFLAG:LOCAL:戦闘参加不可能 = 0
+	NEXT
+	;品川とT.D.Lのフラグをリセット
+	IF LASTLOAD_VERSION < 0303 || FLAG:バージョン管理補助 < 4
+		FOR LOCAL , 0 , 100
+			DB:35:LOCAL = 0
+			DB:47:LOCAL = 0
+		NEXT
+	ENDIF
+	CVARSET CFLAG , 3 , 0
+	CVARSET CFLAG , 4 , 0
+	CVARSET CFLAG , 5 , 0
+	CVARSET CFLAG , 8 , 0
+	;
+ENDIF
+IF LASTLOAD_VERSION < 0305
+	DB:[[ダンジョン:T.D.L.]]:0 = MIN(DB:[[ダンジョン:T.D.L.]]:0, 3)
+	DB:[[ダンジョン:品川]]:0 = MIN(DB:[[ダンジョン:品川]]:0, 3)
+	LOCAL = FINDCHARA(NO , [[キャラ:古代]])
+	IF LOCAL > 0
+		ABL:LOCAL:人間時スキル1 = [[スキル:民俗学]]
+	ENDIF
+	FOR LOCAL , 0 , CHARANUM
+		IF !GROUPMATCH(NO:LOCAL , [[キャラ:あなたの娘]] , [[キャラ:奴隷の娘]])
+			CFLAG:LOCAL:娘の父親の固有番号娘 = -1
+			CFLAG:LOCAL:娘の産みの親の固有番号娘 = -1
+		ENDIF
+	NEXT
+	FOR LOCAL , 0 , CHARANUM
+		IF TALENT:LOCAL:デビルシフター || TALENT:LOCAL:喰奴 || TALENT:LOCAL:悪魔憑き
+			FOR LOCAL:1 , 1 , 9
+				ABL:LOCAL:@"人間時スキル{LOCAL:1}" = CSVABL(NO:LOCAL , GETNUM(ABL , @"人間時スキル{LOCAL:1}") , 0)
+			NEXT
+		ENDIF
+	NEXT
+ENDIF
+
+IF LASTLOAD_VERSION < 0306
+	FOR LOCAL , 0 , 500
+		SIF DC:LOCAL:45 == GET_STATE_NUM("BOMB")
+			DC:LOCAL:45 = GET_STATE_NUM("CHARAM")
+	NEXT
+	DB:[[ダンジョン:T.D.L.]]:0 = MIN(DB:[[ダンジョン:T.D.L.]]:0, 3)
+	CFLAG:MASTER:娘の父親の固有番号娘 = -1
+	CFLAG:MASTER:娘の産みの親の固有番号娘 = -1
+	IF GETCHARA([[キャラ:ハーリーＱ]], 0) >= 0
+		FOR LOCAL, 1, 21
+			CFLAG:GETCHARA([[キャラ:ハーリーＱ]], 0):@"相性{LOCAL}" = CSVCFLAG([[キャラ:ハーリーＱ]], GETNUM(CFLAG, @"相性{LOCAL}"), 0)
+			CFLAG:GETCHARA([[キャラ:ハーリーＱ]], 0):@"相性値{LOCAL}" = CSVCFLAG([[キャラ:ハーリーＱ]], GETNUM(CFLAG, @"相性値{LOCAL}"), 0)
+		NEXT
+	ENDIF
+	IF GETCHARA([[キャラ:ジナーナ]], 0) >= 0
+		FOR LOCAL, 1, 21
+			CFLAG:GETCHARA([[キャラ:ジナーナ]], 0):@"相性{LOCAL}" = CSVCFLAG([[キャラ:ジナーナ]], GETNUM(CFLAG, @"相性{LOCAL}"), 0)
+			CFLAG:GETCHARA([[キャラ:ジナーナ]], 0):@"相性値{LOCAL}" = CSVCFLAG([[キャラ:ジナーナ]], GETNUM(CFLAG, @"相性値{LOCAL}"), 0)
+		NEXT
+	ENDIF
+	FOR LOCAL, 0, CHARANUM
+		FOR LOCAL:1,80,93
+			CSTR:LOCAL:(LOCAL:1) = %CSVCSTR(NO:LOCAL, LOCAL:1, 0)%
+		NEXT
+	NEXT
+ENDIF
+
+IF LASTLOAD_VERSION < 0307
+	;不正なキャラ相性を持っている場合修正
+	IF LASTLOAD_VERSION < 306 || FLAG:バージョン管理補助 == 0 
+		FOR LOCAL, 0, CHARANUM
+			FOR LOCAL:1, 1, 21
+				SIF CFLAG:LOCAL:@"キャラ相性{LOCAL:1}" == 0
+					CFLAG:LOCAL:@"キャラ相性{LOCAL:1}" = -1
+			NEXT
+		NEXT
+	ENDIF
+	SIF SAVESTR:ランダム対戦チーム == ""
+		CALL SELECT_COLOSSEUM_RANDOMBATTLE
+ENDIF
+
+IF LASTLOAD_VERSION < 0308
+	;悪魔変身に異常値が入ってる場合0に
+	FOR LOCAL, 0, CHARANUM
+		SIF CFLAG:LOCAL:悪魔変身 > 1
+			CFLAG:LOCAL:悪魔変身 = 0
+		CSTR:LOCAL:相性グループ = %CSVCSTR(NO:LOCAL , GETNUM(CSTR , "相性グループ") , 0)%
+	NEXT
+	IF !(FLAG:バージョン管理補助 == 1 && LASTLOAD_VERSION == 0307 )
+		LOCAL = FINDCHARA(NO , [[キャラ:古代]])
+		IF LOCAL > 0
+			ABL:LOCAL:人間時スキル1 = [[スキル:民俗学]]
+		ENDIF
+		FOR LOCAL , 0 , CHARANUM
+			IF TALENT:LOCAL:デビルシフター || TALENT:LOCAL:喰奴 || TALENT:LOCAL:悪魔憑き
+				FOR LOCAL:1 , 1 , 9
+					ABL:LOCAL:@"人間時スキル{LOCAL:1}" = CSVABL(NO:LOCAL , GETNUM(ABL , @"人間時スキル{LOCAL:1}") , 0)
+				NEXT
+			ENDIF
+		NEXT
+	ENDIF
+	;フラグ変数新設につき移行
+	FOR LOCAL , 0 , 100
+		FOR LOCAL:1 , 0 , 100
+			ダンジョンフラグ:LOCAL:(LOCAL:1) = DB:LOCAL:(LOCAL:1)
+		NEXT
+		闘技場フラグ:LOCAL:0 = DB:100:LOCAL
+		イベントフラグ:LOCAL:0 = DB:101:LOCAL
+		依頼フラグ:LOCAL:0 = DB:102:LOCAL
+	NEXT
+	
+	;マッピング変数新設につき移行?
+	PRINTL ダンジョンのオートマッピング処理のデータ保存形式が文字列形式から整数方式に変更になりました
+	PRINTL 以前のデータを現在のデータ形式に変換する場合、長い時間がかかる可能性があります
+	PRINTL ダンジョンのオートマッピングのデータを引き継ぎますか？
+	CALL INPUT_YN , "Yes" , "No"
+	IF RESULT == 0
+		FOR LOCAL , 1 , 100
+			SIF LOCAL == [[ダンジョン:Tartarus]]
+				CONTINUE
+			TRYCCALLFORM GET_DUNGEON_NAME_{LOCAL}
+				LOCALS = %RESULTS%
+				FOR LOCAL:1, 0, 25
+					FLAG:最大X = -1
+					FLAG:現M = LOCAL:1
+					CALLFORM MAKE_FLOOR_{LOCAL}
+					SIF FLAG:最大X == -1 || FLAG:最大Y == -1
+						CONTINUE
+					;CALL SET_FLOOR_ANALYZE_DEFAULT, LOCAL, LOCAL:1
+					LOCAL:4 = 0
+					;データ取得
+					FOR LOCAL:3, 0, MIN(FLAG:最大Y,20)
+						FOR LOCAL:2, 0, MIN(FLAG:最大X,20)
+							;SIF TA:((FLAG:現M*100+LOCAL)):(LOCAL:2):(LOCAL:3) == 0
+							SIF VERUP_FLOOR_ANALYZE(LOCAL, FLAG:現M, LOCAL:2, LOCAL:3) == 0
+								CONTINUE
+							LOCAL:4 = 1
+							BREAK
+						NEXT
+					NEXT
+					;マッピングデータ作られてないダンジョンはスルー
+					SIF LOCAL:4 == 0
+						CONTINUE
+					;代入
+					FOR LOCAL:3, 0, MIN(FLAG:最大Y,20)
+						FOR LOCAL:2, 0, MIN(FLAG:最大X,20)
+							CALL SET_FLOOR_ANALYZE, VERUP_FLOOR_ANALYZE(LOCAL, FLAG:現M, LOCAL:2, LOCAL:3) , LOCAL , FLAG:現M , LOCAL:2 , LOCAL:3
+							;TA:((FLAG:現M*100+LOCAL)):(LOCAL:2):(LOCAL:3), LOCAL, LOCAL:1, LOCAL:2, LOCAL:3
+						NEXT
+					NEXT
+				NEXT
+				CALL MESSAGE_BL(1, @"[{LOCAL}]%RESULTS%互換完了")
+			CATCH
+			ENDCATCH
+		NEXT
+	ENDIF
+ENDIF
+
+SIF FLAG:戦闘難易度 == 0
+	FLAG:戦闘難易度 = FLAG:調教難易度
+;相性カラー初期設定
+SIF FLAG:通常カラー == 0
+	FLAG:通常カラー = 192192192
+SIF FLAG:弱点カラー == 0
+	FLAG:弱点カラー = 102255255
+SIF FLAG:耐性カラー == 0
+	FLAG:耐性カラー = 102102102
+SIF FLAG:無効カラー == 0
+	FLAG:無効カラー = 153000000
+SIF FLAG:吸収カラー == 0
+	FLAG:吸収カラー = 153000000
+SIF FLAG:反射カラー == 0
+	FLAG:反射カラー = 153000000
+	
+	
+@CONVERT_CHARA_CHECK
+IF LASTLOAD_VERSION < 0282
+	;NO変換処理
+	;CALL CONVERT_CHARA_NO,変換前,変換後
+ENDIF
+
+;キャラNO・ARGをARG:1変更する
+@CONVERT_CHARA_NO,ARG,ARG:1
+FOR LOCAL,0,CHARANUM
+	;NO
+	SIF NO:LOCAL == ARG
+		NO:LOCAL = ARG:1
+	;妊娠中の子の父親
+	SIF CFLAG:LOCAL:妊娠確定後の父親の判定 == ARG
+		CFLAG:LOCAL:妊娠確定後の父親の判定 = ARG:1
+	SIF ABL:LOCAL:変異 == ARG
+		ABL:LOCAL:変異 = ARG:1
+	SIF CFLAG:LOCAL:初期リンク悪魔 == ARG
+		CFLAG:LOCAL:初期リンク悪魔 = ARG:1
+	SIF ABL:LOCAL:初期ペルソナ == ARG
+		ABL:LOCAL:初期ペルソナ = ARG:1
+	SIF ABL:LOCAL:初期ペルソナ2 == ARG
+		ABL:LOCAL:初期ペルソナ2 = ARG:1
+	SIF ABL:LOCAL:初期ペルソナ3 == ARG
+		ABL:LOCAL:初期ペルソナ3 = ARG:1
+	;相性
+	FOR LOCAL:1,1,21
+		SIF CFLAG:LOCAL:("キャラ相性" + TOSTR(LOCAL:1)) == ARG
+			CFLAG:LOCAL:("キャラ相性" + TOSTR(LOCAL:1)) = ARG:1
+	NEXT
+NEXT
+;合体解禁
+FLAG:(10000+ARG:1) = FLAG:(10000+ARG)
+FLAG:(10000+ARG) = 0
+;解析度
+FLAG:(20000+ARG:1) = FLAG:(20000+ARG)
+FLAG:(20000+ARG) = 0
+;売却回数
+FLAG:(30000+ARG:1) = FLAG:(30000+ARG)
+FLAG:(30000+ARG) = 0
+	
+;ペルソナ
+FOR LOCAL, 0, 100
+	SIF DITEMTYPE:LOCAL:ペルソナ("NO") == ARG
+		DITEMTYPE:LOCAL:ペルソナ("NO") = ARG:1
+NEXT
+

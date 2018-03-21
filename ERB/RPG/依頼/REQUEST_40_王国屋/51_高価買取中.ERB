@@ -1,0 +1,79 @@
+@PLAYABLE_OUKOKUYA_REQ_51
+RESULTS = 高価買取中
+;ＮＴＲ要素が含まれているので一応
+SIF !GETBIT(FLAG:ＮＴＲ機能 , 1)
+	RETURN
+;3、6、9日限定
+;依頼を達成した場合は3、6、9日以外の日に王国屋で依頼を確認しないと、次の3、6、9日を迎えても依頼が復活しません
+;コレはこのファイル単体の処理でどうにかする為の使用です（何かいい案があれば変更していただければありがたいです）
+LOCAL = 1 
+LOCAL:1 = DAY
+WHILE LOCAL
+	IF LOCAL:1 >= 100
+		LOCAL:1 -= 100
+	ELSEIF LOCAL:1 >= 10
+		LOCAL:1 -= 10
+	ELSE
+		LOCAL = 0
+	ENDIF
+WEND
+IF LOCAL:1 == 3 || LOCAL:1 == 6 || LOCAL:1 == 9
+	SIF GETBIT(依頼フラグ:40:0, 51)
+		RETURN 0
+	RETURN 1
+ELSE
+	SIF GETBIT(依頼フラグ:40:0, 51)
+		CLEARBIT 依頼フラグ:40:0, 51
+	RETURN 0
+ENDIF
+
+@EXPLAIN_OUKOKUYA_REQ_51
+RESULTS = 
+RESULTS += "/高価買取中(依頼者:音鳥田奴隷商店)/"
+RESULTS += "Difficulty: ☆☆☆/"
+RESULTS += "Reward: Macca depending on the value of the request fullfilling demon./ボーナス条件有り/"
+RESULTS += "/Conditions:/"
+RESULTS += "Talent [Affection] or [Love]/"
+RESULTS += "ボーナス条件　Talent[Virgin]/"
+RESULTS += "/備考/"
+RESULTS += "毎度、お世話になっております/"
+RESULTS += "音鳥田奴隷商店の店主、伊助でございます/"
+RESULTS += "ただ今、当店では『背徳の味ＮＴＲフェア』を開催しております/"
+RESULTS += "普段は安く買い叩かれてしまう勘違いした牝や牡の高価買取を実施しております/"
+RESULTS += "古愛人、古恋人、古女房などの不要になった情婦、または情夫がありましたらお気軽にご連絡下さい/"
+RESULTS += "通常より高く買い取らせていただきます！！/"
+RESULTS += "この機会に奴隷共の整理などされてみてはどうでしょうか/"
+RESULTS += "ご連絡、お待ちしております/"
+@CHARASELLABLE_OUKOKUYA_REQ_51
+SIF Affection(COUNT) == 0 && Love(COUNT) == 0
+	RETURN 0
+RETURN 1
+
+;--------------------------------------------------------
+;報酬処理
+;ただし、売却人数・属性変動などは共通で処理済み
+;調教師名声の処理はされてないので適宜処理してください
+;
+;ARGはキャラクター
+;--------------------------------------------------------
+@TAKE_REWARD_OUKOKUYA_REQ_51, ARG
+#LOCALSIZE 1
+CALL CHARA_SELL, ARG, 1
+LOCAL = RESULT
+IF Affection(ARG)
+	TIMES LOCAL , 1.15
+ELSEIF Love(ARG)
+	TIMES LOCAL , 1.25
+ENDIF
+;ボーナス条件を満たした場合
+SIF TALENT:ARG:処女
+	TIMES LOCAL , 1.10
+	
+CALL MESSAGE_WINDOW, "", @"ありがとうございました/またのご利用をおまちしております", , , , , 4
+CALL MESSAGE_WINDOW, "", @"＞依頼を達成し/＞{LOCAL}魔貨を手に入れました", , , , , 4
+MONEY:1 += LOCAL
+
+FLAG:調教師名声 += 20
+
+;帳簿閲覧用処理
+CALL 帳簿閲覧, ARG, LOCAL

@@ -1,0 +1,207 @@
+;==================================
+;仲間再構成
+;==================================
+@RECONSTRUCTION
+PRINTL [1]Summon/Transfer
+PRINTL [2]Return/Remove
+PRINTL [1000]Do Nothing
+$INPUT_LOOP
+INPUT
+IF RESULT != 1 && RESULT != 2 && RESULT != 1000
+	GOTO INPUT_LOOP 
+ELSEIF RESULT == 1
+	CALL RECONSTRUCT_PARTNER
+ELSEIF RESULT == 2
+	CALL REMOVE_PARTNER
+ELSEIF RESULT == 1000
+	RETURN 1
+ENDIF
+;==================================
+;仲間入れ替え
+;==================================
+@RECONSTRUCT_PARTNER
+PRINTL
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+PRINTC [1000] - Return
+PRINTL
+DRAWLINE
+PRINTL Place where?
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT < 7 && 0 < RESULT
+	LOCAL = RESULT
+	$INPUT_LOOP2
+	CALL CHOOSE_PARTNER,2
+	LOCAL:1 = RESULT
+	IF RESULT == 1000
+		RESTART
+	ELSE
+		;---- EDIT 007 ADD END   -------------------------
+		;LOCAL:2 = FLAG:ショップコマンド
+		;FLAG:ショップコマンド = 106
+		CALL INSERT_PARTNER,LOCAL,LOCAL:1
+		;FLAG:ショップコマンド = LOCAL:2
+		IF RESULT > -1
+			SELECTCASE FLAG:ショップコマンド
+				CASE [[ショップ:探索]],[[ショップ:コロシアム参加]],[[ショップ:イベント]],[[ショップ:依頼請負]]
+					IF CFLAG:(LOCAL:1):PTフラグ > 0 && ABL:(LOCAL:1):種族 != 0
+						BASE:MASTER:ＭＡＧ -= MAXBASE:(LOCAL:1):￥
+					ENDIF
+			ENDSELECT
+		ENDIF
+	ENDIF
+
+	RESTART
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+CALL REFRESH_FORMATION
+
+;==================================
+;仲間帰還
+;==================================
+@REMOVE_PARTNER
+PRINTL
+DRAWLINE
+DRAWLINE
+CALL SHOW_NOW_FORMATION_P,0,2, 3
+DRAWLINE
+PRINTC [0]Quit
+
+PRINTL
+DRAWLINE
+PRINTL Who will be returned?
+$INPUT_LOOP
+INPUT
+LOCALS = ポジション{RESULT}
+IF RESULT == 0
+	RETURN 0
+
+ELSEIF RESULT < 1 || RESULT > 6 || FLAG:LOCALS == 0 || FLAG:LOCALS == -1
+	GOTO INPUT_LOOP
+ELSE
+	IF FLAG:ショップコマンド == 101 && (ABL:(FLAG:LOCALS):種族 > 45)
+		PRINTW You can not remove a human from the party inside a dungeon.
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+	CALL REMOVE_POSITION,RESULT
+ENDIF
+RESTART
+
+;==================================
+;ポジションに挿入
+;==================================
+@INSERT_PARTNER,ARG,ARG:1
+LOCALS = ポジション{ARG}
+IF CFLAG:(ARG:1):PTフラグ > 0
+	SIF ARG < 4
+		LOCALS:1 = ポジション{ARG+3}
+ELSE
+	SIF ARG < 12
+		LOCALS:1 = ポジション{ARG+5}
+ENDIF
+IF FLAG:LOCALS > -1
+	;後ろが空いてるならずれてもらう
+	IF ((CFLAG:(ARG:1):PTフラグ && ARG < 4) || (CFLAG:(ARG:1):PTフラグ == 0 && ARG < 12)) && FLAG:(LOCALS:1) == -1
+		CFLAG:(FLAG:LOCALS):ポジション = ARG+3+!CFLAG:(FLAG:LOCALS):PTフラグ*2
+		FLAG:(LOCALS:1) = FLAG:LOCALS
+		;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+		FLAG:LOCALS = ARG:1
+		;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+		CFLAG:(ARG:1):ポジション = ARG
+		SIF CFLAG:(ARG:1):PTフラグ
+			CFLAG:(ARG:1):PTフラグ = 2
+	;空いておらず、そこに居るのが悪魔なら交代
+	ELSEIF ABL:(FLAG:LOCALS):種族 >= 0 && ABL:(FLAG:LOCALS):種族 < 46 && (FLAG:LOCALS) != MASTER
+		CALL REMOVE_POSITION,ARG
+		;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+		FLAG:LOCALS = ARG:1
+		;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+		CFLAG:(ARG:1):ポジション = ARG
+		SIF CFLAG:(ARG:1):PTフラグ
+			CFLAG:(ARG:1):PTフラグ = 2
+	;そこに居るのが主人以外かつ探索or戦闘中でなければ交代
+	ELSEIF (FLAG:LOCALS) != MASTER && FLAG:ショップコマンド == 106
+		CALL REMOVE_POSITION,ARG
+		;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+		FLAG:LOCALS = ARG:1
+		;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+		CFLAG:(ARG:1):ポジション = ARG
+		SIF CFLAG:(ARG:1):PTフラグ
+			CFLAG:(ARG:1):PTフラグ = 2
+	ELSE
+	;どれかに引っかからなかったら交代できない
+		PRINTW This one can't be replaced.
+		RETURN -1
+	ENDIF
+	
+ELSE
+	IF CFLAG:(ARG:1):ポジション
+		LOCALS:2 = ポジション{CFLAG:(ARG:1):ポジション}
+		FLAG:(LOCALS:2) = -1
+	ENDIF
+	;PRINTFORML {ARG}に%CALLNAME:(ARG:1)%を配置します
+	FLAG:LOCALS = ARG:1
+	;PRINTFORML %CALLNAME:(ARG:1)%のポジションを{ARG}に書き換えます。
+	CFLAG:(ARG:1):ポジション = ARG
+	SIF CFLAG:(ARG:1):PTフラグ
+		CFLAG:(ARG:1):PTフラグ = 2
+ENDIF
+
+
+
+;==================================
+;仲間を表示
+;==================================
+;これって@CHOOSE_COMPANIONと中身一緒じゃない？
+@CHOOSE_PARTNER,ARG
+N = ARG
+IF FLAG:ショップコマンド == 106
+	CALL INPUT_CHARA_LIST("Who will you place?", "CASTING_CHOOSE_PARTNER", "", "", "", "Quit")
+ELSE
+	CALL INPUT_CHARA_LIST("Who will you summon?", "CASTING_CHOOSE_PARTNER", "", "", "", "Quit")
+ENDIF
+IF RESULT == 1000
+	RETURN 1000
+;ELSEIF RESULT == 1002 && ARG == 2 ;この1002がよく分からないからコメントアウト
+;	RETURN 1002
+ELSE
+	SELECTCASE FLAG:ショップコマンド
+		CASE [[ショップ:探索]],[[ショップ:コロシアム参加]],[[ショップ:イベント]],[[ショップ:依頼請負]]
+			IF ABL:RESULT:種族 != 0 && BASE:MASTER:ＭＡＧ < MAXBASE:RESULT:￥
+				PRINTW There is not enough MAG
+				CLEARLINE 2
+				RESTART
+			ENDIF
+	ENDSELECT
+	RETURN RESULT
+ENDIF
+
+@CASTING_CHOOSE_PARTNER
+SIF CFLAG:COUNT:PTフラグ != 1
+	RETURN 0
+SIF CFLAG:COUNT:戦闘参加不可能 > 0
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF N == 1 && GET_STATE(CFLAG:COUNT:ステート) == "DYING"
+	RETURN 0
+SIF TALENT:COUNT:非戦闘員
+	RETURN 0
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+SIF N == 1 && ABL:COUNT:種族 == 0
+	RETURN 0
+SIF N == 1 && CFLAG:COUNT:被変身フラグ
+	RETURN 0
+SIF N == 1 && CFLAG:COUNT:所属ＣＯＭＰ == -1
+	RETURN 0
+;フィルタリングされてるキャラは除外
+SIF CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+RETURN 1

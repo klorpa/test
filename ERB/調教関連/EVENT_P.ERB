@@ -1,0 +1,1238 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:EVENT_P.ERB
+;	Facility	:妊娠関連の処理群
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/22		Ｎ鳥					危険日に妊娠したかを判断するCFLAGを追加、妊娠確率の調整
+;	003		2011/01/31		Ｐ						労役による妊娠の際、親の判定を変更
+;	004		2011/02/11		Ｐ						妊娠の際、親の名称を取るように
+;	005		2011/03/28		Ｐ						記述を整理。処理を一部変更
+;	006		2011/06/27		Ｐ						顧客悪魔に解析度が必要に。一体のみ悪魔を除外
+;	007		2012/03/31		Ｐ						CHECK_CHILD_CAREをFUNCTION化
+;	008		2013/01/16		ネトリス				悪魔会話時の性交渉で孕んだ場合に相手悪魔を親とする処理を追加
+;	009		2017/01/13		トートの人				スリーサイズを設定してると妊娠時にバストが1cm大きくなる(縮まない)処理
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;EVENT_P、EVENT_PREGNANCY、妊娠関連のイベント
+
+@SHOPCOMABLE_171
+LOCAL:1 = 0
+FOR LOCAL,0,CHARANUM
+	SIF (TALENT:LOCAL:妊娠 && CFLAG:LOCAL:出産予定日 - 2 <= DAY && LOCAL != MASTER) || TALENT:LOCAL:育児中 && LOCAL != MASTER
+		LOCAL:1 += 1
+NEXT
+IF LOCAL:1 > 0 && FLAG:出産機能ONOFF == 1
+	RESULTS = Nursery
+	RETURN 1
+ELSE
+	RESULTS = ？？？？？
+	RETURN 0
+ENDIF
+
+@SHOP_COM_171
+			CALL CHILD_CARE_ROOM_SELECT
+RETURN 1
+
+;---------------------------------------------------------
+;中田氏・妊娠フラグチェック
+;中出しされた精子量に応じて確率処理
+;---------------------------------------------------------
+@IN_VAGINA
+#LOCALSIZE 3
+#LOCALSSIZE 1
+#DIM CHARA, 1
+;妊娠機能オフなら何もせずに帰る
+;…と、あとでONにしたときに一斉妊娠かますんでここで妊娠判定リセット
+IF FLAG:Pregnant機能 == 0
+	CALL CLEAR_PREGNANCY_DATERMINATION
+	RETURN 0
+ENDIF
+FOR CHARA, 0 , CHARANUM
+	CALL PREGNANCY_CHECK,CHARA
+
+	;結果チェック(妊娠していない場合はスルーされるはず)
+	SELECTCASE RESULT
+		;父親が主人
+		CASE 1
+			CALL SET_FATHERINFO, CHARA, NO:MASTER, CFLAG:MASTER:キャラ固有の番号, CALLNAME:MASTER
+		;父親が助手
+		CASE 2
+			CALL SET_FATHERINFO, CHARA, NO:ASSI, CFLAG:ASSI:キャラ固有の番号, CALLNAME:ASSI
+		;父親が奴隷
+		CASE 3
+			CALL SET_FATHERINFO, CHARA, NO:TARGET, CFLAG:TARGET:キャラ固有の番号, CALLNAME:TARGET
+		;労役中の妊娠
+		CASE 4
+			;暫定父親が仲魔(0以上)の場合
+			LOCAL = CFLAG:CHARA:労役中の中出氏による暫定父親
+			IF LOCAL > 0
+				CALL SET_FATHERINFO, CHARA, LOCAL , CFLAG:LOCAL:キャラ固有の番号 , CALLNAME:LOCAL
+			;暫定父親が仲魔以外(-1未満)だった場合
+			ELSEIF LOCAL < -1
+				;見世物小屋を探す
+				IF SHOW_TENT_ACTNO(LOCAL) != -1
+					CALL SET_FATHERINFO, CHARA, SHOW_TENT_ACTNO(LOCAL) , -1 , SHOW_TENT_ACTNAME(LOCAL)
+				;不明
+				ELSE
+					GOTO WORK_UNKNOWN_FATHER
+				ENDIF
+			;それ以外
+			ELSE
+				$WORK_UNKNOWN_FATHER
+				SELECTCASE RAND:100
+					;Adept
+					CASE IS < 25
+						DO
+							LOCAL = 4701 + RAND:99
+						LOOP ( !EXISTCSV(LOCAL, 0) )
+						CALL SET_FATHERINFO, CHARA, LOCAL, -3, LOCALS
+					;Nonｰcombatant
+					CASE IS < 50	
+						CALL SET_FATHERINFO, CHARA, -1, -4, LOCALS
+					;サクセサー
+					CASE IS < 60
+						CALL SET_FATHERINFO, CHARA, -1, -5, LOCALS
+					;Persona User
+					CASE IS < 70
+						CALL SET_FATHERINFO, CHARA, -1, RAND:2 ? -6 # -7, LOCALS
+					;Devil shifter
+					CASE IS < 75
+						CALL SET_FATHERINFO, CHARA, -1, -8, LOCALS
+					;悪魔
+					CASEELSE
+						WHILE 1
+							LOCAL = RAND:1900 + 1
+							SIF !EXISTCSV(LOCAL, 0)
+								CONTINUE
+							SIF !CSVABL(LOCAL, GETNUM(ABL, "種族"), 0)
+								CONTINUE
+							SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "特殊合体のみ"), 0)
+								CONTINUE
+							SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "合体条件有り"), 0)
+								CONTINUE
+							SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "全書召喚不可"), 0)
+								CONTINUE
+							SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "１体のみ"), 0)
+								CONTINUE
+							;解析度が０の場合は帰る
+							SIF !FLAG:(20000+LOCAL)
+								CONTINUE
+							BREAK
+						WEND
+						CALL SET_FATHERINFO, CHARA, LOCAL, , "名も知らぬ悪魔"
+				ENDSELECT
+			ENDIF
+		;触手が親
+		CASE 5
+			CALL SET_FATHERINFO, CHARA, -2, -2, "Tentacles"
+		;信者が親
+		CASE 6
+				WHILE 1
+					LOCAL = RAND:100 + 3101
+					SIF !EXISTCSV(LOCAL, 0)
+						CONTINUE
+					SIF (CSVABL(LOCAL, GETNUM(ABL, "属性LC"), 0) == 1 && 店舗("種類",(CFLAG:CHARA:労役フラグ - 10)) == 14) || (CSVABL(LOCAL, GETNUM(ABL, "属性LC"), 0) == 3 && 店舗("種類",(CFLAG:CHARA:労役フラグ - 10)) == 13)
+						CONTINUE
+					SIF !CSVTALENT(LOCAL, GETNUM(TALENT, "オトコ"), 0)
+						CONTINUE
+					BREAK
+				WEND
+			IF 店舗("種類",(CFLAG:CHARA:労役フラグ - 10)) == 14
+				CALL SET_FATHERINFO, CHARA, LOCAL, , "ガイア教の信者"
+			ELSEIF 店舗("種類",(CFLAG:CHARA:労役フラグ - 10)) == 13
+				CALL SET_FATHERINFO, CHARA, LOCAL, , "メシア教の信者"
+			ELSEIF 店舗("種類",(CFLAG:CHARA:労役フラグ - 10)) == 15
+				CALL SET_FATHERINFO, CHARA, LOCAL, , "教会の信者"
+			ELSE
+				CALL SET_FATHERINFO, CHARA, LOCAL, , "信者"
+			ENDIF
+		;悪魔会話時の性交渉で孕んでいた場合
+		CASEELSE
+			CALL SET_FATHERINFO, CHARA, CFLAG:CHARA:妊娠確定後の父親の判定, CFLAG:CHARA:父親の固有番号親, CSTR:CHARA:父親名称
+	ENDSELECT
+NEXT
+
+;@IN_VAGINA
+;;妊娠機能オフなら何もせずに帰る
+;;…と、あとでONにしたときに一斉妊娠かますんでここで妊娠判定リセット
+;IF FLAG:Pregnant機能 == 0
+;	CVARSET CFLAG,"主人の中出氏による妊娠判定",0
+;	CVARSET CFLAG,"助手の中出氏による妊娠判定",0
+;	CVARSET CFLAG,"奴隷の中出氏による妊娠判定",0
+;	CVARSET CFLAG,"顧客の中出氏による妊娠判定",0
+;	CVARSET CFLAG,"触手の中出氏による妊娠判定",0
+;	RETURN 0
+;ENDIF
+;REPEAT CHARANUM
+;	T = COUNT
+;	;主人の中田氏による妊娠判定
+;	IF CFLAG:T:主人の中出氏による妊娠判定 > 0
+;		P = 1
+;		CALL NAKADASHI_CHECK
+;	ENDIF
+;	;助手→奴隷への中田氏による妊娠判定
+;	IF CFLAG:T:助手の中出氏による妊娠判定 > 0 && ASSI > -1
+;		P = 2
+;		CALL NAKADASHI_CHECK
+;	ENDIF
+;	;奴隷→助手への中田氏による妊娠判定
+;	IF CFLAG:T:奴隷の中出氏による妊娠判定 > 0 && TARGET > -1
+;		P = 3
+;		CALL NAKADASHI_CHECK
+;	ENDIF
+;	;娼館やレンタル時に客に膣射された場合の妊娠判定
+;	IF CFLAG:T:顧客の中出氏による妊娠判定 > 0
+;		P = 4
+;		CALL NAKADASHI_CHECK
+;	ENDIF
+;	;Tentacles→奴隷への中田氏による妊娠判定
+;	IF CFLAG:T:触手の中出氏による妊娠判定 > 0
+;		P = 5
+;		CALL NAKADASHI_CHECK
+;	ENDIF
+;REND
+;
+;;妊娠確定時の処理
+;REPEAT CHARANUM
+;	T = COUNT
+;	;妊娠確定時の処理
+;	IF TALENT:T:妊娠 == 0 && CFLAG:T:妊娠時の父親の判定 != 0 && CFLAG:T:出産予定日 == 0
+;		SIF 危険日(T) > 1
+;			CFLAG:T:発情妊娠 = 1
+;		CFLAG:T:出産予定日 = DAY + 6
+;		;父親が主人
+;		IF CFLAG:T:妊娠時の父親の判定 == 1
+;			CFLAG:T:妊娠確定後の父親の判定 = NO:MASTER
+;			LOCAL = MASTER
+;		ENDIF
+;		;父親が助手
+;		IF CFLAG:T:妊娠時の父親の判定 == 2 && ASSI > -1
+;			CFLAG:T:妊娠確定後の父親の判定 = NO:ASSI
+;			LOCAL = ASSI
+;		ENDIF
+;		;父親が奴隷
+;		IF CFLAG:T:妊娠時の父親の判定 == 3 && TARGET > -1
+;			CFLAG:T:妊娠確定後の父親の判定 = NO:TARGET
+;			LOCAL = TARGET
+;		ENDIF
+;		;父親が顧客
+;		IF CFLAG:T:妊娠時の父親の判定 == 4
+;			CFLAG:T:妊娠確定後の父親の判定 = -1
+;		ENDIF
+;		;父親が触手
+;		IF CFLAG:T:妊娠時の父親の判定 == 5
+;			CFLAG:T:妊娠確定後の父親の判定 = -2
+;		ENDIF
+;		IF CFLAG:T:妊娠確定後の父親の判定 >= 0
+;			CFLAG:T:父親の固有番号親 = CFLAG:LOCAL:キャラ固有の番号
+;		ELSEIF CFLAG:T:妊娠確定後の父親の判定 == -1
+;			CSTR:T:父親名称 = 名も知らぬ人間
+;			SELECTCASE RAND:100
+;				;Adept
+;				CASE IS < 25
+;					WHILE 1
+;						LOCAL = 4701 + RAND:100
+;						SIF !EXISTCSV(LOCAL, 0)
+;							CONTINUE
+;						CFLAG:T:妊娠確定後の父親の判定 = LOCAL
+;						BREAK
+;					WEND
+;					CFLAG:T:父親の固有番号親 = -3
+;				;Nonｰcombatant
+;				CASE IS < 50	
+;					CFLAG:T:父親の固有番号親 = -4
+;				;サクセサー
+;				CASE IS < 60
+;					CFLAG:T:父親の固有番号親 = -5
+;				;Persona User
+;				CASE IS < 70
+;					CFLAG:T:父親の固有番号親 = RAND:2 ? -7 # -8
+;				;Devil shifter
+;				CASE IS < 75
+;					CFLAG:T:父親の固有番号親 = -8
+;				;悪魔
+;				CASEELSE
+;					WHILE 1
+;						LOCAL = RAND:1900 + 1
+;						SIF !EXISTCSV(LOCAL, 0)
+;							CONTINUE
+;						SIF !CSVABL(LOCAL, GETNUM(ABL, "種族"), 0)
+;							CONTINUE
+;						SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "特殊合体のみ"), 0)
+;							CONTINUE
+;						SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "合体条件有り"), 0)
+;							CONTINUE
+;						SIF CSVCFLAG(LOCAL, GETNUM(CFLAG, "全書召喚不可"), 0)
+;							CONTINUE
+;						CFLAG:T:妊娠確定後の父親の判定 = LOCAL
+;						BREAK
+;					WEND
+;					CSTR:T:父親名称 = 名も知らぬ悪魔
+;					CFLAG:T:父親の固有番号親 = -1
+;			ENDSELECT
+;		ELSE
+;			CFLAG:T:父親の固有番号親 = -2
+;		ENDIF
+;	ENDIF
+;REND
+;
+;@NAKADASHI_CHECK
+;;中出しされた精子量に応じて確率処理
+;;チェックするフラグ設定
+;F = 101 + P
+;SIF P == 1
+;	F = 101
+;SIF P == 5
+;	F = 112
+;
+;;中だしされてないなら関数終了
+;SIF CFLAG:T:F == 0
+;	RETURN 0
+;
+;;対象が男なら関数終了
+;IF TALENT:T:140 && TALENT:T:男の娘 == 0
+;	CFLAG:T:F = 0
+;	RETURN 0
+;ENDIF
+;
+;;子宮内避妊結界をを使っている場合は関数終了
+;IF CFLAG:T:108 == 1
+;	CFLAG:T:F = 0
+;	RETURN 0
+;ENDIF
+;
+;;妊娠が既に確定している場合は関数終了
+;IF CFLAG:T:110 > 0
+;	CFLAG:T:F = 0
+;	RETURN 0
+;ENDIF
+;
+;;妊娠中もしくは育児中は関数終了
+;IF TALENT:T:153 || TALENT:T:154
+;	CFLAG:T:F = 0
+;	RETURN 0
+;ENDIF
+;
+;;排卵剤の有無による定数設定
+;C = 1 + (CFLAG:T:"Fertility drug" > 0)
+;IF CFLAG:T:"Fertility drug" == 0 || (危険日(T) == 0) 
+;	SIF RAND:100 < MIN(50, CFLAG:T:F)
+;		CFLAG:T:妊娠時の父親の判定 = P
+;ELSE
+;	SIF RAND:100 < CFLAG:T:F*C * ((危険日(T) > 0) + 1)
+;		CFLAG:T:妊娠時の父親の判定 = P
+;ENDIF
+;;IF CFLAG:T:F >= 50
+;;	SIF RAND:(1 * C) == 0
+;;		CFLAG:T:妊娠時の父親の判定 = P
+;;ELSEIF CFLAG:T:F >= 30
+;;	SIF RAND:(2 * C) == 0
+;;		CFLAG:T:妊娠時の父親の判定 = P
+;;ELSEIF CFLAG:T:F >= 20
+;;	SIF RAND:(3 * C) == 0
+;;		CFLAG:T:妊娠時の父親の判定 = P
+;;ELSEIF CFLAG:T:F >= 15
+;;	SIF RAND:(4 * C) == 0
+;;		CFLAG:T:妊娠時の父親の判定 = P
+;;ELSEIF CFLAG:T:F >= 5
+;;	SIF RAND:(5 * C) == 0
+;;		CFLAG:T:妊娠時の父親の判定 = P
+;;ELSEIF CFLAG:T:F >= 1
+;;	SIF RAND:(6 * C) == 0
+;;		CFLAG:T:妊娠時の父親の判定 = P
+;;ENDIF
+;
+;;判定を行った膣射のリセット
+;CFLAG:T:F = 0
+;妊娠処理
+@GET_CHILD
+FOR LOCAL,0,CHARANUM
+;	IF TALENT:LOCAL:153 == 0 && CFLAG:COUNT:102 > 0 && CFLAG:COUNT:110 <= DAY+15 && CFLAG:COUNT:12 == 0
+	IF TALENT:LOCAL:153 == 0 && CFLAG:LOCAL:102 > 0
+;		T = LOCAL
+;		A = CFLAG:T:妊娠確定後の父親の判定
+		CALL GET_CHILD_MESSAGE, LOCAL
+	ENDIF
+NEXT
+
+@GET_CHILD_MESSAGE, ARG
+;C = -1
+;REPEAT CHARANUM
+;	SIF NO:COUNT == A
+;		C = COUNT
+;REND
+PRINTFORMW Something seems different about %CALLNAME:ARG%...
+;この時点で親の名前を持ってない場合は取得する
+IF !STRLENS(CSTR:ARG:父親名称)
+	SELECTCASE CFLAG:ARG:父親の固有番号親
+		CASE IS >= 0
+			CSTR:ARG:父親名称 = %CALLNAME:FINDCHARA_ID(CFLAG:ARG:父親の固有番号親)%
+		;親が不在
+		CASE -1
+			CSTR:ARG:父親名称 = %CSVCALLNAME((CFLAG:ARG:妊娠確定後の父親の判定),0)%
+		CASE -2
+			CSTR:ARG:父親名称 = Tentacles
+		CASEELSE
+			CSTR:ARG:父親名称 = Unknown male
+			;名も知らぬ男
+	ENDSELECT
+ENDIF
+PRINTFORML %CALLNAME:ARG% became pregnant with %CSTR:ARG:父親名称%'s child.
+;IF CFLAG:T:妊娠確定後の父親の判定 >= 0 && C >= 0
+;	PRINTFORML %CALLNAME:T%は%CALLNAME:C%の子供を身篭った様だ
+;	CSTR:T:父親名称 = %CALLNAME:C%
+;ELSEIF CFLAG:T:妊娠確定後の父親の判定 <= 3414 && CFLAG:T:妊娠確定後の父親の判定 >= 3401
+;	PRINTFORML %CALLNAME:T%は名も知らぬ男の子供を身篭った様だ
+;ELSEIF CFLAG:T:妊娠確定後の父親の判定 >= 0
+;	PRINTFORML %CALLNAME:T%は%CSVCALLNAME((CFLAG:T:妊娠確定後の父親の判定),0)%の子供を身篭った様だ
+;	SIF !STRLENS(CSTR:T:父親名称)
+;		CSTR:T:父親名称 = %CSVCALLNAME((CFLAG:T:妊娠確定後の父親の判定),0)%
+;ELSEIF CFLAG:T:妊娠確定後の父親の判定 == -2
+;	PRINTFORML %CALLNAME:T%は触手の子供を身篭った様だ
+;	CSTR:T:父親名称 = Tentacles
+;ELSE
+;	PRINTFORML %CALLNAME:T%は名も知らぬ男の子供を身篭った様だ
+;ENDIF
+PRINTS NAME:ARG
+PRINT  became 
+PRINT [
+PRINTS TALENTNAME_E(153)
+PRINT ].
+PRINTL 
+
+CFLAG:ARG:妊娠回数 += 1
+IF ARG != MASTER
+	LOCAL = RAND:6+1
+	CFLAG:ARG:(GET_BASESTATUS(LOCAL) + "強化回数") += 1
+	PRINTFORMW %CALLNAME:ARG%'s %GET_BASESTATUS_E(LOCAL)% went up by 1
+ENDIF
+TALENT:ARG:153 = 1
+CALL CHANGE_N_STATUS, ARG
+
+
+
+@CHANGE_N_STATUS, ARG
+;妊娠時のステータスの変化
+;共通処理
+;体力上限を減らす
+;体力が上限超えることもあるので、体力501以上なら500にする
+;MAXBASE:T:0 -= 500
+;SIF BASE:T:0 >= 501
+;	BASE:T:0 = 500
+
+;乳がワンランクパワーアップする
+;絶→貧　貧→普　普→巨　巨→爆　爆→そのまま
+;スリーサイズを設定していればバストが1cm大きくなる
+IF BASE:ARG:バスト > 0
+	PRINTFORMW %CALLNAME:ARG%'s chest size grew by 1cm.
+	;%CALLNAME:ARG%の胸が1cm大きくなった
+	BASE:ARG:バスト += 1
+ELSEIF TALENT:ARG:110 == 1
+	PRINTFORM %CALLNAME:ARG%'s 
+	PRINT [
+	PRINTS TALENTNAME_E(110)
+	PRINT ]
+	PRINT  grew to become  
+	PRINT [
+	PRINTS TALENTNAME:109
+	PRINT ].
+	PRINTFORMW 
+	TALENT:ARG:110 = 0
+	TALENT:ARG:109 = 1
+ELSEIF TALENT:ARG:109 == 1
+	PRINTFORM %CALLNAME:ARG%'s 
+	PRINT [
+	PRINTS TALENTNAME_E(109)
+	PRINT ]
+	PRINTW  grew to an average size.
+	PRINTFORMW 　
+	TALENT:ARG:109 = 0
+ELSEIF TALENT:ARG:111 == 0 && TALENT:ARG:112 == 0
+	PRINTFORM %CALLNAME:ARG%'s average-sized chest grew to become 
+	PRINT [
+	PRINTS TALENTNAME_E(111)
+	PRINT ].
+	PRINTW 
+	PRINTFORMW 　
+	TALENT:ARG:111 = 1
+ELSEIF TALENT:ARG:111 == 1
+	PRINTFORM %CALLNAME:ARG%'s 
+	PRINT [
+	PRINTS TALENTNAME_E(111)
+	PRINT ]
+	PRINT  grew to become 
+	PRINT [
+	PRINTS TALENTNAME_E(112)
+	PRINT ].
+	PRINTFORMW 
+	TALENT:ARG:111 = 0
+	TALENT:ARG:112 = 1
+ELSEIF TALENT:ARG:112 == 1
+	MARK:ARG:5 = 1
+ENDIF
+
+;母乳出るようになる
+IF TALENT:ARG:149 == 0
+	PRINTFORMW %CALLNAME:ARG% began to lactate.
+	PRINTFORMW 　
+	TALENT:ARG:149 = 1
+ENDIF
+
+
+;ストレス値の処理
+B = 95
+
+;その他素質による補正
+;気丈
+SIF TALENT:ARG:12
+	B -= 10
+;無関心
+SIF TALENT:ARG:21
+	B -= 5
+;感情乏しい
+SIF TALENT:ARG:22
+	B -= 10
+;楽観的
+SIF TALENT:ARG:25
+	B -= 5
+;悲観的
+SIF TALENT:ARG:26
+	B += 5
+;貞操観念
+SIF TALENT:ARG:30
+	B += 10
+;貞操無頓着
+SIF TALENT:ARG:31
+	B -= 10
+
+;天使は基本的に妊娠バッチコイ
+SIF STR:(ABL:ARG:種族) == "Divine" && TALENT:ARG:オトコ == 0
+	B -= 30
+;でもソドミーな結果妊娠とか受け入れがたい
+;堕ちてたら無効
+SIF STR:(ABL:ARG:種族) == "Divine" && TALENT:ARG:オトコ && TALENT:ARG:堕天使 == 0
+	B += 50
+
+;妊娠した回数だけ減少
+SIF CFLAG:ARG:妊娠回数 > 0
+	B -= MIN(30,CFLAG:ARG:妊娠回数)
+SIF B < 0
+	B = 0
+
+
+;反発刻印の2乗×10%増加
+B = B * (100+POWER(MARK:ARG:反発刻印,2)*10) / 100
+IF GROUPMATCH(CFLAG:ARG:妊娠時の父親の判定, 1, 2, 3)
+	IF 陥落(ARG)
+		IF RESULTS == "Affection"
+			IF FAVORITE_1(ARG) == FINDCHARA_ID(CFLAG:ARG:父親の固有番号親)
+				TIMES B , 0.01
+			ELSE
+				TIMES B , 0.60
+			ENDIF
+		ELSEIF RESULTS == "Lewd"
+			TIMES B , 0.40
+		ELSEIF RESULTS == "Submissive"
+			IF FAVORITE_1(ARG) == FINDCHARA_ID(CFLAG:ARG:父親の固有番号親)
+				TIMES B , 0.10
+			ELSE
+				TIMES B , 0.60
+			ENDIF
+		ENDIF
+	ENDIF
+;父親が主人
+;IF CFLAG:ARG:妊娠時の父親の判定 == 1
+;	;恋慕もしくは親愛
+;	SIF TALENT:ARG:3 || TALENT:ARG:6
+;		TIMES B , 0.01
+;	;淫乱もしくは娼婦
+;	SIF TALENT:ARG:4 || TALENT:ARG:7
+;		TIMES B , 0.40
+;	;服従もしくは隷属
+;	SIF TALENT:ARG:5 || TALENT:ARG:8
+;		TIMES B , 0.10
+;父親が奴隷または助手
+;ELSEIF CFLAG:ARG:妊娠時の父親の判定 == 2 || CFLAG:ARG:妊娠時の父親の判定 == 3
+;	;恋慕もしくは親愛
+;	SIF TALENT:ARG:3 || TALENT:ARG:6
+;		TIMES B , 0.60
+;	;淫乱もしくは娼婦
+;	SIF TALENT:ARG:4 || TALENT:ARG:7
+;		TIMES B , 0.40
+;	;服従もしくは隷属
+;	SIF TALENT:ARG:5 || TALENT:ARG:8
+;		TIMES B , 0.60
+;父親が顧客
+ELSEIF CFLAG:ARG:妊娠時の父親の判定 == 4
+	;恋慕もしくは親愛
+	SIF TALENT:ARG:3 || TALENT:ARG:6
+		TIMES B ,0.90
+	;淫乱もしくは娼婦
+	SIF TALENT:ARG:4 || TALENT:ARG:7
+		TIMES B , 0.40
+	;服従もしくは隷属
+	SIF TALENT:ARG:5 || TALENT:ARG:8
+		TIMES B , 0.40
+;父親が触手
+ELSEIF CFLAG:ARG:妊娠時の父親の判定 == 5
+	;恋慕もしくは親愛
+	SIF TALENT:ARG:3 || TALENT:ARG:6
+		TIMES B ,1.00
+	;淫乱もしくは娼婦
+	SIF TALENT:ARG:4 || TALENT:ARG:7
+		TIMES B , 0.90
+	;服従もしくは隷属
+	SIF TALENT:ARG:5 || TALENT:ARG:8
+		TIMES B , 0.80
+;父親が信者
+ELSEIF CFLAG:ARG:妊娠時の父親の判定 == 6
+	IF (CSVABL(ARG, GETNUM(ABL, "属性LC"), 0) == 1 && CSTR:ARG:父親名称 == "メシア教の信者") || (CSVABL(ARG, GETNUM(ABL, "属性LC"), 0) == 3 && CSTR:ARG:父親名称 == "ガイア教の信者") || (CSVABL(ARG, GETNUM(ABL, "属性LC"), 0) == 2 && CSTR:ARG:父親名称 == "教会の信者")
+		;恋慕もしくは親愛
+		IF TALENT:ARG:3 || TALENT:ARG:6
+			TIMES B ,0.90
+		;服従もしくは隷属
+		;淫乱もしくは娼婦
+		ELSEIF TALENT:ARG:4 || TALENT:ARG:7 || TALENT:ARG:5 || TALENT:ARG:8
+			TIMES B ,0.40
+		ELSE
+			TIMES B ,1.10
+		ENDIF
+	ELSEIF (CSVABL(ARG, GETNUM(ABL, "属性LC"), 0) == 1 && CSTR:ARG:父親名称 == "ガイア教の信者") || (CSVABL(ARG, GETNUM(ABL, "属性LC"), 0) == 3 && CSTR:ARG:父親名称 == "メシア教の信者")
+		;恋慕もしくは親愛
+		IF TALENT:ARG:3 || TALENT:ARG:6
+			TIMES B ,1.40
+		;服従もしくは隷属
+		;淫乱もしくは娼婦
+		ELSEIF TALENT:ARG:4 || TALENT:ARG:7 || TALENT:ARG:5 || TALENT:ARG:8
+			TIMES B ,0.60
+		ELSE
+			TIMES B ,0.90
+		ENDIF
+	ELSE
+		;恋慕もしくは親愛
+		IF TALENT:ARG:3 || TALENT:ARG:6
+			TIMES B ,1.00
+		;服従もしくは隷属
+		;淫乱もしくは娼婦
+		ELSEIF TALENT:ARG:4 || TALENT:ARG:7 || TALENT:ARG:5 || TALENT:ARG:8
+			TIMES B ,1.20
+		ELSE
+			TIMES B ,1.50
+		ENDIF
+	ENDIF
+ENDIF
+
+;相性による変動
+LOCAL = GETCHARA(A)
+IF LOCAL >= 0
+	B *= 100
+	B /= GET_RELATION(ARG, LOCAL)
+ENDIF
+
+SIF T == MASTER
+	B = 0
+
+SIF CFLAG:ARG:発情妊娠
+	B /= 5
+CFLAG:ARG:10 += B
+
+IF CFLAG:ARG:10 >= 100 && TALENT:ARG:9 == 0 && T != MASTER
+	IF TALENT:ARG:3 == 1 || TALENT:ARG:4 == 1 || TALENT:ARG:5 == 1 || TALENT:ARG:6 == 1 || TALENT:ARG:7 == 1 || TALENT:ARG:8 == 1
+		IF (CFLAG:ARG:ストレス値 -99) * 100 <= BASE:ARG:忠誠度
+			PRINTFORMW %CALLNAME:ARG% was very stressed...
+			PRINTFORMW %CALLNAME:ARG% lost {(CFLAG:ARG:ストレス値 -99) * 100} loyalty.
+			BASE:ARG:忠誠度 -= (CFLAG:ARG:ストレス値 -99) * 100
+			CFLAG:ARG:ストレス値 = 99
+		ENDIF
+	ELSE
+		IF (CFLAG:ARG:ストレス値 -99) * 500 <= BASE:ARG:忠誠度
+			PRINTFORMW %CALLNAME:ARG% was very stressed...
+			PRINTFORMW %CALLNAME:ARG% lost {(CFLAG:ARG:ストレス値 -99) * 500} loyalty.
+			BASE:ARG:忠誠度 -= (CFLAG:ARG:ストレス値 -99) * 500
+			CFLAG:ARG:ストレス値 = 99
+		ENDIF
+	ENDIF
+ENDIF
+
+;ストレス値の累積が100を超えた場合
+IF CFLAG:ARG:10 >= 100 && TALENT:ARG:9 == 0 && T != MASTER
+	PRINTFORMW %CALLNAME:ARG% has dull eyes.
+	PRINTFORMW Something was broken within %CALLNAME:ARG%.
+	PRINTFORM %CALLNAME:ARG% became [
+	PRINTS TALENTNAME_E(9)
+	PRINTW ].
+	PRINTL
+	IF TALENT:ARG:3 || TALENT:ARG:4 || TALENT:ARG:5 || TALENT:ARG:6 || TALENT:ARG:7 || TALENT:ARG:8
+		PRINTFORM %CALLNAME:ARG% lost [
+		SIF TALENT:ARG:3
+			PRINTS TALENTNAME_E(3)
+		SIF TALENT:ARG:4
+			PRINTS TALENTNAME_E(4)
+		SIF TALENT:ARG:5
+			PRINTS TALENTNAME_E(5)
+		SIF TALENT:ARG:6
+			PRINTS TALENTNAME_E(6)
+		SIF TALENT:ARG:7
+			PRINTS TALENTNAME_E(7)
+		SIF TALENT:ARG:8
+			PRINTS TALENTNAME_E(8)
+		PRINTW ].
+		SIF TALENT:ARG:3
+			TALENT:ARG:3 = 0
+		SIF TALENT:ARG:4
+			TALENT:ARG:4 = 0
+		SIF TALENT:ARG:5
+			TALENT:ARG:5 = 0
+		SIF TALENT:ARG:6
+			TALENT:ARG:6 = 0
+		SIF TALENT:ARG:7
+			TALENT:ARG:7 = 0
+		SIF TALENT:ARG:8
+			TALENT:ARG:8 = 0
+	ENDIF
+	TALENT:ARG:9 = 1
+ENDIF
+
+V = TARGET
+TARGET = ARG
+U = 0
+IF ASSI
+	IF ASSI == ARG
+		U = 1
+		W = ASSI
+	ENDIF
+ENDIF
+;妊娠発覚時のイベント口上
+TFLAG:13 = 11
+CALL KOJO_MESSAGE_EVENT
+TARGET = V
+SIF U
+	ASSI = W
+
+
+;臨月到達
+@REACH_FULL_TERM
+PRINTFORML %CALLNAME:C% will give birth soon.
+PRINTFORMW %CALLNAME:C% was moved to the nursery for delivery.
+SIF TARGET == C
+	TARGET = -1
+SIF ASSI == C
+	ASSI = -1
+
+;出産
+@CHILD_BIRTH
+T = TARGET
+F = -1
+FOR LOCAL, 0, CHARANUM
+	SIF NO:LOCAL == CFLAG:C:111
+		F = LOCAL
+NEXT
+IF F >= 0
+	PRINTFORMW %CALLNAME:C% safely delivered %CALLNAME:F%'s child.
+ELSEIF CFLAG:C:111 == -2
+	PRINTFORMW %CALLNAME:C% safely delivered the tentacle's child.
+ELSE 
+	PRINTFORMW %CALLNAME:C% safely delivered the child.
+ENDIF
+U = 0
+IF ASSI >= 0
+	SIF ASSI == C
+		U = 1
+ENDIF
+TARGET = C
+;出産時のイベント口上
+TFLAG:13 = 12
+CALL KOJO_MESSAGE_EVENT
+TARGET = T
+SIF U
+	ASSI = C
+
+;妊娠を失う
+TALENT:C:153 = 0
+CFLAG:C:発情妊娠 = 0
+EXP:C:60 += 1
+
+;育児放棄をした場合
+IF TALENT:C:9
+	;育児放棄の際の赤子の処置
+	A = 0
+	FOR LOCAL, 0, CHARANUM
+		SIF TALENT:LOCAL:153 == 0 && TALENT:LOCAL:154 == 0 && TALENT:LOCAL:155 && CFLAG:LOCAL:12 == 0
+			A += 1
+	NEXT
+	IF A > 0
+		$INPUT_LOOP_CHILD_BIRTH
+		PRINTFORMW Please decide whether the child will be raised by your slaves or a foster family.
+		PRINTW 
+		PRINTL Who will raise this child?
+		FOR LOCAL, 0, CHARANUM
+			;現在[妊娠]状態でなく、[母性]持ちで労役中でないキャラを羅列
+			IF TALENT:LOCAL:153 == 0 && TALENT:LOCAL:154 == 0 && TALENT:LOCAL:155 && CFLAG:LOCAL:12 == 0
+				IF LOCAL < 10
+					PRINTFORML [ {LOCAL}]%NAME:LOCAL% 
+				ELSE
+					PRINTFORML [{LOCAL}]%NAME:LOCAL% 
+				ENDIF
+			ENDIF
+		NEXT
+			PRINTFORML  [1000]Send the child to a foster family
+		INPUT
+		IF RESULT == 1000
+			PRINTFORMW %CALLNAME:MASTER% sent the child to a foster family.
+		ELSEIF RESULT < 0 || RESULT >= CHARANUM
+			GOTO INPUT_LOOP_CHILD_BIRTH
+		ELSEIF TALENT:RESULT:153 == 1 || TALENT:RESULT:154 == 1 || TALENT:RESULT:155 == 0 || CFLAG:RESULT:12 != 0
+			GOTO INPUT_LOOP_CHILD_BIRTH
+		ELSE
+			PRINTFORMW %CALLNAME:MASTER% decided to have %CALLNAME:RESULT% raise the child.
+			;育児期間を設定する
+			CFLAG:RESULT:110 = DAY+1
+			CFLAG:RESULT:出産日 = DAY
+			CFLAG:RESULT:111 = CFLAG:C:111
+			CFLAG:RESULT:娘の産みの親のキャラ番号親 = NO:C
+			CFLAG:RESULT:娘の産みの親の固有番号親 = CFLAG:C:キャラ固有の番号
+			CFLAG:RESULT:父親の固有番号親 = CFLAG:C:父親の固有番号親
+			CFLAG:RESULT:乳母かな？ = 1
+			IF TALENT:RESULT:154 == 0
+				TALENT:RESULT:154 = 1
+				SIF RESULT == TARGET
+					TARGET = -1
+				SIF RESULT == ASSI
+					ASSI = -1
+			ENDIF
+		ENDIF
+	ELSE
+		PRINTFORMW %CALLNAME:MASTER% reluctantly sent the child to a foster family.
+	ENDIF
+	;妊娠時に減った体力の最大値が回復
+;	MAXBASE:C:0 += 500
+	CALL CLEAR_FLAG
+	;妊娠時に大きくなった胸のサイズを一段小さくする
+	CALL REVERSE_B_SIZE
+;育児に入った場合
+ELSE
+						;****乳母パッチ改造ここから****
+	;赤子の教育についての処置
+	A = 0
+	FOR LOCAL, 0, CHARANUM
+		SIF TALENT:LOCAL:153 == 0 && TALENT:LOCAL:154 == 0 && TALENT:LOCAL:155 && CFLAG:LOCAL:12 == 0
+			A += 1
+	NEXT
+	IF A > 0
+		$INPUT_LOOP_CHILD_BIRTH_1
+		PRINTFORMW Should %NAME:C% raise the baby or will someone else do it?
+		PRINTW 
+		PRINTL Select someone who should raise this child
+		FOR LOCAL, 0, CHARANUM
+			;現在[妊娠]状態でなく、[母性]持ちで労役中でないキャラを羅列
+			IF TALENT:LOCAL:153 == 0 && TALENT:LOCAL:154 == 0 && TALENT:LOCAL:155 && CFLAG:LOCAL:12 == 0 && LOCAL != C
+				IF LOCAL < 10
+					PRINTFORML [ {LOCAL}]%NAME:LOCAL% 
+				ELSE
+					PRINTFORML [{LOCAL}]%NAME:LOCAL% 
+				ENDIF
+			ENDIF
+		NEXT
+			PRINTFORML [1000]%NAME:C% will raise the child
+		INPUT
+		IF RESULT == 1000
+			PRINTFORML %CALLNAME:C% began to raise the child in the nursery.
+			CFLAG:C:娘の産みの親のキャラ番号親 = NO:C
+			CFLAG:C:娘の産みの親の固有番号親 = CFLAG:C:キャラ固有の番号
+			CFLAG:C:出産日 = DAY
+			CFLAG:C:101 = 0
+			CFLAG:C:102 = 0
+			CFLAG:C:103 = 0
+			CFLAG:C:104 = 0
+			CFLAG:C:105 = 0
+			CFLAG:C:112 = 0
+			TALENT:C:154 = 1
+			;恋慕･親愛持ちで父親が主人
+			IF (TALENT:C:3 || TALENT:C:6) && CFLAG:C:111 == NO:MASTER && TALENT:C:155 == 0
+				PRINT Somehow, 
+				PRINTFORM %CALLNAME:C% has become [
+				PRINTS TALENTNAME_E(155)
+				PRINTW ].
+				TALENT:C:155 = 1
+			ENDIF
+		ELSEIF RESULT < 0 || RESULT >= CHARANUM
+			GOTO INPUT_LOOP_CHILD_BIRTH_1
+		ELSEIF TALENT:RESULT:153 == 1 || TALENT:RESULT:154 == 1 || TALENT:RESULT:155 == 0 || CFLAG:RESULT:12 != 0
+			GOTO INPUT_LOOP_CHILD_BIRTH_1
+		ELSE
+			PRINTFORMW %CALLNAME:MASTER% decided to have %CALLNAME:RESULT% raise the child.
+			;育児期間を設定する
+			CFLAG:RESULT:110 = DAY+1
+			CFLAG:RESULT:出産日 = DAY
+			CFLAG:RESULT:111 = CFLAG:C:111
+			CFLAG:RESULT:娘の産みの親のキャラ番号親 = NO:C
+			CFLAG:RESULT:娘の産みの親の固有番号親 = CFLAG:C:キャラ固有の番号
+			CFLAG:RESULT:父親の固有番号親 = CFLAG:C:父親の固有番号親
+			CFLAG:RESULT:乳母かな？ = 1
+			IF TALENT:RESULT:154 == 0
+				TALENT:RESULT:154 = 1
+				SIF RESULT == TARGET
+					TARGET = -1
+				SIF RESULT == ASSI
+					ASSI = -1
+			ENDIF
+			;妊娠時に減った体力の最大値が回復
+			;MAXBASE:C:0 += 500
+			CALL CLEAR_FLAG
+			;妊娠時に大きくなった胸のサイズを一段小さくする
+			CALL REVERSE_B_SIZE
+		ENDIF
+	ELSE
+		PRINTFORML %CALLNAME:C% began to raise the child in the nursery.
+		CFLAG:C:娘の産みの親のキャラ番号親 = NO:C
+		CFLAG:C:娘の産みの親の固有番号親 = CFLAG:C:キャラ固有の番号
+		CFLAG:C:出産日 = DAY
+		CFLAG:C:101 = 0
+		CFLAG:C:102 = 0
+		CFLAG:C:103 = 0
+		CFLAG:C:104 = 0
+		CFLAG:C:105 = 0
+		CFLAG:C:112 = 0
+		TALENT:C:154 = 1
+		;恋慕･親愛持ちで父親が主人
+		IF (TALENT:C:3 || TALENT:C:6) && CFLAG:C:111 == NO:MASTER && TALENT:C:155 == 0
+			PRINT Somehow, 
+			PRINTFORM %CALLNAME:C% has become [
+			PRINTS TALENTNAME_E(155)
+			PRINTW ].
+			TALENT:C:155 = 1
+		ENDIF
+	ENDIF
+						;****乳母パッチ改造ここまで****
+ENDIF
+
+@CHILD_CARE_ROOM_SELECT
+PRINTFORML Will you check on the nursery?
+PRINTL [0] - Check the nursery
+PRINTL [1] - Do not check the nursery
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	TFLAG:700 = 1
+	TFLAG:701 = DAY
+	TFLAG:702 = TIME
+	CALL CHILD_CARE_ROOM
+ELSEIF RESULT == 1
+	DRAWLINE
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+
+@CHILD_CARE_ROOM
+PRINTL Who will you check on?
+
+REPEAT CHARANUM
+	IF COUNT == MASTER
+		CONTINUE
+	;現在臨月か[育児中]のキャラを羅列
+	ELSEIF  (TALENT:COUNT:153 && (CFLAG:COUNT:110 - 3) <= DAY) || TALENT:COUNT:154
+		IF COUNT < 10
+			PRINTFORML [ {COUNT}]%NAME:COUNT% 
+		ELSE
+			PRINTFORML [{COUNT}]%NAME:COUNT% 
+		ENDIF
+	ENDIF
+REND
+PRINTFORML [100]Return
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT < 0 || RESULT >= CHARANUM
+	GOTO INPUT_LOOP
+ELSEIF RESULT == MASTER
+	GOTO INPUT_LOOP
+ELSEIF TALENT:RESULT:153 == 0 && (CFLAG:RESULT:110 - 3) <= DAY && TALENT:RESULT:154 == 0
+	GOTO INPUT_LOOP
+ELSE
+	PRINTFORML %CALLNAME:MASTER% went to %CALLNAME:RESULT%'s room.
+	PRINTW 
+	;育児室のイベント口上
+	A = TARGET
+	TARGET = RESULT
+	TFLAG:13 = 13
+	CALL KOJO_MESSAGE_EVENT
+	IF TALENT:154 == 1
+		PRINTFORML Do you agree to fund the education of %CALLNAME:TARGET%'s child with ￥50000?
+		PRINTFORMW Currently set to \@ CFLAG:娘教育 ? Yes  # No \@
+		
+		CALL INPUT_YN,"Yes","No",2
+
+		SELECTCASE RESULT
+			CASE 0
+				PRINTFORML %CALLNAME:TARGET%'s child's education will be paid for.
+				PRINTFORML The money is paid when the child is all grown up.
+				PRINTFORMW If you don't have ￥５００００ the child will not grow up.
+				CFLAG:娘教育 = 1
+			CASE 1
+				PRINTFORMW %CALLNAME:TARGET%'s child's education will not be paid for.
+				CFLAG:娘教育 = 0
+		ENDSELECT
+		
+	ENDIF
+	TARGET = A
+	PRINTL 
+	RESTART
+ENDIF
+
+
+RETURN 1
+
+
+;親離れ
+@DEPEARENT
+PRINTFORML The child %CALLNAME:C% was raising became independent.
+PRINTW 
+PRINTFORMW %CALLNAME:C% can now be trained again.
+;妊娠時に減った体力の最大値が回復
+;MAXBASE:C:0 += 500
+TALENT:C:154 = 0
+IF TALENT:C:109 == 0 && CFLAG:C:乳母かな？ == 0 && BASE:C:バスト == 0
+	PRINTFORMW %CALLNAME:C%'s breasts shrank as they no longer have to feed a child.
+	;妊娠時に大きくなった胸のサイズを一段小さくする
+	CALL REVERSE_B_SIZE
+ENDIF
+CFLAG:C:乳母かな？ = 0
+TRYCALL DAUGHTER_CHECK, C
+CALL CLEAR_FLAG
+
+;親離れ時のイベント口上
+A = TARGET
+TARGET = C
+TFLAG:13 = 14
+CALL KOJO_MESSAGE_EVENT
+TARGET = A
+
+;妊娠まわりのフラグをリセット
+@CLEAR_FLAG
+CFLAG:C:101 = 0
+CFLAG:C:102 = 0
+CFLAG:C:103 = 0
+CFLAG:C:104 = 0
+CFLAG:C:105 = 0
+CFLAG:C:110 = 0
+CFLAG:C:111 = 0
+CFLAG:C:112 = 0
+CFLAG:C:出産日 = 0
+CFLAG:C:父親の固有番号親 = 0
+CFLAG:C:父親失踪 = 0
+CFLAG:C:娘の産みの親のキャラ番号親 = 0
+CFLAG:C:娘の産みの親の固有番号親 = 0
+
+;子育て終了or妊娠強制終了時の胸サイズの縮小処理
+@REVERSE_B_SIZE
+;爆→巨　巨→普　普→貧　貧→絶　絶→そのまま
+IF TALENT:C:112 && MARK:C:5 == 1
+	TALENT:C:112 = 1
+ELSEIF TALENT:C:112
+	TALENT:C:112 = 0
+	TALENT:C:111 = 1
+ELSEIF TALENT:C:111
+	TALENT:C:111 = 0
+ELSEIF TALENT:C:109 == 0 && TALENT:C:110 == 0
+	TALENT:C:109 = 1
+ELSEIF TALENT:C:109 == 1
+	TALENT:C:109 = 0
+	TALENT:C:110 = 1
+ENDIF
+MARK:C:5 = 0
+
+;育児室にいるかの判定
+@CHECK_CHILD_CARE, ARG
+#FUNCTION
+SIF (TALENT:ARG:妊娠 && CFLAG:ARG:出産予定日 - 2 <= DAY)
+	RETURNF 1
+SIF TALENT:ARG:育児中
+	RETURNF 1
+RETURNF 0
+
+;==========================================================
+;@PREGNANCY_ABLE(ARG)
+;ARGのキャラが妊娠可能な状態かどうかを返す
+;<引数>
+;	ARG = 妊娠可否チェック対象キャラの登録番号
+;<戻り値>
+;	0 = 妊娠不可能
+;	1 = 妊娠可能
+;==========================================================
+@PREGNANCY_ABLE,ARG = -1
+#FUNCTION
+;以下の場合は妊娠しない
+;・妊娠機能がOFF
+;・対象が誰か分からない(ARGがキャラ登録番号の範囲外)
+;・既に妊娠している
+;・育児中
+;・子宮内避妊結界使用中
+;・出産予定日が設定されている
+SIF FLAG:Pregnant機能 == 0 || ARG < 0 || ARG >= CHARANUM || TALENT:ARG:妊娠 || TALENT:ARG:育児中 || CFLAG:ARG:"Contraceptive barrier" || CFLAG:ARG:出産予定日
+	RETURNF 0
+
+IF FLAG:Pregnant機能 == 1
+	;女性、男の娘ともに妊娠可能
+	SIF TALENT:ARG:オトコ == 0 || TALENT:ARG:男の娘
+		RETURNF 1
+ELSEIF FLAG:Pregnant機能 == 2
+	;女性のみ妊娠可能、男の娘は不可
+	SIF TALENT:ARG:オトコ == 0
+		RETURNF 1
+ENDIF
+RETURNF 0
+
+;==========================================================
+;@PREGNANCY_CHECK(ARG)
+;ARGのキャラが妊娠したかを調べる
+;<引数>
+;	ARG   = 妊娠チェック対象キャラの登録番号
+;	ARG:1 = イベント妊娠での父親の種類
+;<戻り値>
+;	0 = 妊娠していない
+;	1 = 主人の中田氏で妊娠
+;	2 = 助手の中田氏で妊娠
+;	3 = 奴隷の中田氏で妊娠
+;	4 = 顧客(NPC)の中田氏で妊娠
+;	5 = 触手の中田氏で妊娠
+;==========================================================
+@PREGNANCY_CHECK,ARG, ARG:1 = 0
+#LOCALSIZE 3
+;LOCAL 妊娠判定用CFLAG変数の配列番号
+;LOCAL:1 父親判定用の値
+
+;一応妊娠可能か確認
+IF !PREGNANCY_ABLE(ARG)
+	;妊娠できない状態でARGがキャラ登録番号の範囲内の場合
+	;妊娠判定の値をクリアして終了
+	SIF 0 <= ARG && ARG < CHARANUM
+		CALL CLEAR_PREGNANCY_DATERMINATION,ARG
+	RETURN 0
+ENDIF
+;悪魔会話で妊娠が確定している場合
+SIF CFLAG:ARG:妊娠時の父親の判定 > 0
+	RETURN CFLAG:ARG:妊娠時の父親の判定
+FOR LOCAL:1, 1, 7
+	;イベント妊娠チェック
+	;イベントで確実に妊娠する場合は判定処理を飛ばす
+	SIF ARG:1 == LOCAL:1
+		GOTO PREGNANCY_PROCESS
+
+	;チェックするフラグ設定
+	SELECTCASE LOCAL:1
+		CASE 1
+			LOCAL = GETNUM(CFLAG, "主人の中出氏による妊娠判定")
+		CASE 2
+			SIF ASSI < 0
+				CONTINUE
+			LOCAL = GETNUM(CFLAG, "助手の中出氏による妊娠判定")
+		CASE 3
+			SIF TARGET < 0
+				CONTINUE
+			LOCAL = GETNUM(CFLAG, "奴隷の中出氏による妊娠判定")
+		CASE 4
+			LOCAL = GETNUM(CFLAG, "顧客の中出氏による妊娠判定")
+		CASE 5
+			LOCAL = GETNUM(CFLAG, "触手の中出氏による妊娠判定")
+		CASE 6
+			LOCAL = GETNUM(CFLAG, "信者の中出氏による妊娠判定")
+	ENDSELECT
+
+	;確率処理(ここを抜けることで妊娠確定)
+	;排卵剤の有無による定数設定
+	LOCAL:2 = 1 + (CFLAG:ARG:"Fertility drug" > 0)
+	IF CFLAG:ARG:"Fertility drug" == 0 && (危険日(ARG) == 0) 
+		SIF RAND:100 >= MIN(50, CFLAG:ARG:LOCAL)
+			CONTINUE
+	ELSE
+		SIF RAND:100 >= CFLAG:ARG:LOCAL*LOCAL:2 * ((危険日(ARG) > 0) + 1)
+			CONTINUE
+	ENDIF
+
+$PREGNANCY_PROCESS
+	;妊娠確定後の処理
+	SIF 危険日(ARG) > 1
+		CFLAG:ARG:発情妊娠 = 1
+	CFLAG:ARG:出産予定日 = DAY + 6
+	CFLAG:ARG:妊娠時の父親の判定 = LOCAL:1
+	;妊娠確定したのでループを抜ける
+		BREAK
+NEXT
+;フラグ初期化
+CALL CLEAR_PREGNANCY_DATERMINATION, ARG
+
+RETURN CFLAG:ARG:妊娠時の父親の判定
+
+;==========================================================
+;@CLEAR_PREGNANCY_FLAG
+;妊娠判定用のフラグをクリアする。
+;<引数>
+;	ARG = -1(省略時):全員
+;	      -2		:男の娘
+;         0以上		:対象キャラの登録番号
+;<戻り値>
+;	なし
+;==========================================================
+@CLEAR_PREGNANCY_DATERMINATION, ARG = -1
+;全員のフラグをクリア
+IF ARG == -1
+	CVARSET CFLAG,"主人の中出氏による妊娠判定",0
+	CVARSET CFLAG,"助手の中出氏による妊娠判定",0
+	CVARSET CFLAG,"奴隷の中出氏による妊娠判定",0
+	CVARSET CFLAG,"顧客の中出氏による妊娠判定",0
+	CVARSET CFLAG,"触手の中出氏による妊娠判定",0
+	CVARSET CFLAG,"信者の中出氏による妊娠判定",0
+	CVARSET CFLAG, "労役中の中出氏による暫定父親" , -1
+;男の娘のフラグをクリア
+ELSEIF ARG == -2
+	REPEAT CHARANUM
+		;女で男の娘はないと思うけど念のため
+		IF TALENT:COUNT:オトコ && TALENT:COUNT:男の娘
+			CFLAG:COUNT:主人の中出氏による妊娠判定 = 0
+			CFLAG:COUNT:助手の中出氏による妊娠判定 = 0
+			CFLAG:COUNT:奴隷の中出氏による妊娠判定 = 0
+			CFLAG:COUNT:顧客の中出氏による妊娠判定 = 0
+			CFLAG:COUNT:触手の中出氏による妊娠判定 = 0
+			CFLAG:COUNT:信者の中出氏による妊娠判定 = 0
+			CFLAG:COUNT:労役中の中出氏による暫定父親 = -1
+		ENDIF
+	REND
+;対象キャラのフラグをクリア
+ELSEIF ARG >= 0 && ARG < CHARANUM
+	CFLAG:ARG:主人の中出氏による妊娠判定 = 0
+	CFLAG:ARG:助手の中出氏による妊娠判定 = 0
+	CFLAG:ARG:奴隷の中出氏による妊娠判定 = 0
+	CFLAG:ARG:顧客の中出氏による妊娠判定 = 0
+	CFLAG:ARG:触手の中出氏による妊娠判定 = 0
+	CFLAG:ARG:信者の中出氏による妊娠判定 = 0
+	CFLAG:ARG:労役中の中出氏による暫定父親 = -1
+ENDIF
+
+;==========================================================
+;@SET_FATHERINFO
+;妊娠したキャラに子供の父親に関する情報を設定する。
+;<引数>
+;	ARG   = 妊娠したキャラの登録番号
+;	ARG:1 = 父親のCSV番号
+;	ARG:2 = 父親のキャラ固有番号
+;	ARGS  = 父親の名称
+;<戻り値>
+;	なし
+;==========================================================
+@SET_FATHERINFO, ARG, ARG:1, ARG:2 = -1, ARGS = ""
+;ARGの値がキャラ登録番号の範囲外なら何もせずに戻る
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN
+
+;父親情報の設定
+CFLAG:ARG:妊娠確定後の父親の判定 = ARG:1
+CFLAG:ARG:父親の固有番号親 = ARG:2
+CSTR:ARG:父親名称 = %ARGS%
+

@@ -1,0 +1,148 @@
+@CHECK_COM_ABLE195
+;オトコだとダメ
+SIF TALENT:オトコ
+	RETURN 0
+;母乳体質じゃダメ
+SIF TALENT:母乳体質
+	RETURN 0
+;調教者の技巧が4以上じゃないとダメ
+SIF ABL:PLAYER:技巧 < 4
+	RETURN 0
+;ニプルキャップ使用中は不可
+SIF TEQUIP:16
+	RETURN 0
+;搾乳器使用中は不可
+SIF TEQUIP:17
+	RETURN 0
+;乳房電極装着中はダメ
+SIF TEQUIP:24
+	RETURN 0
+;縄使用中は不可
+SIF TEQUIP:19
+	RETURN 0
+;胸が露出してないとダメ
+SIF TEQUIP:乳房露出 != -1
+	RETURN 0
+;胸が露出してないとダメ
+SIF TEQUIP:乳首露出 != -1
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+RETURN 1
+
+;-------------------------------------------------
+;乳腺開発
+;特殊コマンド
+;-------------------------------------------------
+@ACT_COM195
+PRINTL Force Lactation
+TSTR:0 = 乳腺開発
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+IF ABL:PLAYER:技巧 >= 5 || ABL:従順 >= 5
+	IF TALENT:Ｂ敏感
+		TFLAG:乳腺開発失敗 = RAND:2
+	ELSEIF TALENT:Ｂ鈍感
+		TFLAG:乳腺開発失敗 = RAND:6
+	ELSE
+		TFLAG:乳腺開発失敗 = RAND:4
+	ENDIF
+	SIF TALENT:淫乳 && A > 0
+		TFLAG:乳腺開発失敗 = RAND:2
+ELSE
+	TFLAG:乳腺開発失敗 = RAND:8
+ENDIF
+SIF ITEM:14 && (TALENT:PLAYER:サド || ABL:PLAYER:サドっ気 > 2) && TFLAG:乳腺開発失敗 > 0
+	TFLAG:乳腺開発失敗 -= 1
+
+;CALL KOJO_MESSAGE_COM
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+;消費体力、Willpower
+LOSEBASE:0 += 500
+LOSEBASE:1 += 3000
+
+IF ABL:PLAYER:技巧 == 4
+	SOURCE:痛み = 5000
+ELSEIF ABL:PLAYER:技巧 >= 5
+	SOURCE:痛み = 2000
+ENDIF
+
+;ABL:従順をみる
+IF ABL:従順 == 0
+	SOURCE:逸脱 = 10000
+ELSEIF ABL:従順 == 1
+	SOURCE:逸脱 = 8000
+ELSEIF ABL:従順 == 2
+	SOURCE:逸脱 = 6000
+ELSEIF ABL:従順 == 3
+	SOURCE:逸脱 = 4000
+ELSEIF ABL:従順 == 4
+	SOURCE:逸脱 = 2000
+ELSE
+	SOURCE:逸脱 = 500
+ENDIF
+
+;淫乳
+SIF TALENT:淫乳
+	SOURCE:欲情 = 300
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+
+IF TFLAG:乳腺開発失敗 == 0 && TALENT:絶壁 == 0
+	TALENT:母乳体質 = 1
+	MAXBASE:母乳 = 10000
+;		PRINTL AbnormalEXP＋1
+;		EXP:50 += 1
+	CALL ADDS_ABNORMAL_EXP("Mammary gland development", TARGET)
+ENDIF
+
+IF TALENT:オトコ == 0 && TALENT:PLAYER:オトコ == 0
+	PRINTFORML %EXPNAME_E(40)%＋2
+	EXP:40 += 2
+ELSEIF TALENT:オトコ && TALENT:PLAYER:オトコ
+	PRINTFORML %EXPNAME_E(41)%＋2
+	EXP:41 += 2
+ENDIF
+
+
+RETURN 1
+
+;--------------------------------------------------
+;調教時メッセージ
+;--------------------------------------------------
+@MESSAGE_COM195
+
+PRINTL 
+PRINTFORM %CALLNAME:PLAYER%は
+SIF ITEM:14 && (TALENT:PLAYER:サド || ABL:PLAYER:サドっ気 > 2)
+	PRINTFORM %ITEMNAME_E(14)%を用いて
+PRINTFORMW %CALLNAME:TARGET%の乳腺を開発し、母乳が出るようにしようとした
+PRINTL 
+IF TALENT:絶壁
+	PRINTFORML しかし%CALLNAME:TARGET%の乳腺を開発するには
+	PRINTW 今の胸の大きさのままでは少し無理があるようだ……
+ELSEIF TFLAG:乳腺開発失敗 == 0
+	PRINTFORMW ツボに刺激を受けているうちに%CALLNAME:TARGET%の乳腺から母乳が垂れ出るようになった
+ELSE
+	PRINTFORMW 技巧が足りないのか、%CALLNAME:TARGET%の乳腺を開発しきれなかった……
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_195
+RETURN COMTYPE("特殊コマンド系")
+
+
+

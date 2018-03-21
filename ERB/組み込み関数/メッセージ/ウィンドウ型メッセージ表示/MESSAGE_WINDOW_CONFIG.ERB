@@ -1,0 +1,81 @@
+;----------------------------------------------------
+;メッセージアニメ用コンフィグ設定関数
+;メッセージアニメ自体から呼べるので注意してください
+;
+;GLOBAL:メッセージ速度		一回の描画における追加字数
+;GLOBAL:オート時ウェイト		オートモード時に、全ての文字表示後にウェイトをかける時間
+;GLOBAL:右クリック時ウェイト	右クリック時に文字表示後にウェイトをかける時間
+;----------------------------------------------------
+@MESSAGE_WINDOW_CONFIG
+#DIM LINE
+LINE = LINECOUNT
+$START
+REDRAW 0
+FOR LOCAL, 0, 50
+	PRINTL 
+NEXT
+CALL INPUT_SELECT_M(@"%"[0] Message speed",48,LEFT%{GLOBAL:メッセージ速度,22,RIGHT}字/%"[1] Auto-delay",48,LEFT%{GLOBAL:オート時ウェイト,22}ms/%"[2] Right-click-wait",48,LEFT%{GLOBAL:右クリック時ウェイト,22}ms/%"[3]Message animation" , 48 , LEFT%\@GLOBAL:メッセージアニメ利用 ? %"Used" , 24% # %"Not used",24%\@/[9] Leave settings", "/", "ログを残さない/ボタンを利用しない")
+;メッセージ速度		オート時ウェイト	メッセージアニメ利用	右クリック時ウェイト	する	しない	設定終了
+SELECTCASE RESULT
+	CASE 0
+		PRINTFORML ┌%"─"*36%┐
+		PRINTFORML │%"Message-speed setting", 72, LEFT%│
+		;タイプ方式のメッセージ速度を設定します
+		PRINTFORML │%"The entered value corresponds to 0.1seconds passing before text appears.", 72, LEFT%│
+		;0.1秒ごとに入力した数値の字数づつ表示されていきます
+		PRINTFORML │%"If 0 is entered, ther will be no text-type animations.", 72, LEFT%│
+		;また0を指定した場合、タイプ方式のアニメを停止させます
+		PRINTFORML │%"Please enter a number between 0 and 9 for this setting.", 72, LEFT%│
+		;0-9の間の数値を入力してください
+		PRINTFORML └%"─"*36%┘
+		CALL INPUT_MANY(0, 9)
+		GLOBAL:メッセージ速度 = RESULT
+	CASE 1
+		PRINTFORML ┌%"─"*36%┐
+		PRINTFORML │%"Delay setting for AUTO-mode", 72, LEFT%│
+		;AUTO設定時のウェイト時間を設定します
+		PRINTFORML │%"All characters will be displayed if AUTO is ON.", 72, LEFT%│
+		;AUTO機能がONの時文字がすべて表示されてから
+		PRINTFORML │%"The message will advance after the time set by this setting has passed.", 72, LEFT%│
+		;設定時間が経過すると自動的に次に進みます
+		PRINTFORML │%"Input is in milliseonds. At below 100, there will be no delay.", 72, LEFT%│
+		;単位は1msごとですが100未満を設定した場合はノーウェイトモードとなります
+		PRINTFORML └%"─"*36%┘
+		CALL INPUT_MANY(0, 10000)
+		SIF RESULT < 100
+			RESULT = 0
+		GLOBAL:オート時ウェイト = RESULT
+	CASE 2
+		PRINTFORML ┌%"─"*36%┐
+		PRINTFORML │%"Wait-time settings for right-click", 72, LEFT%│
+		;右クリック設定時のウェイト時間を設定します
+		PRINTFORML │%"On right-click, the set time", 72, LEFT%│
+		;右クリック時に設定時間の間だ
+		PRINTFORML │%"is applied to message display.", 72, LEFT%│
+		;メッセージを表示するためにウェイトをかけます
+		PRINTFORML │%"Input is in milliseonds. At below 100, there will be no delay.", 72, LEFT%│
+		PRINTFORML └%"─"*36%┘
+		CALL INPUT_MANY(0, 10000)
+		SIF RESULT < 100
+			RESULT = 0
+		GLOBAL:右クリック時ウェイト = RESULT
+	CASE 3
+		PRINTFORML ┌%"─"*36%┐
+		PRINTFORML │%"Setting for message animation", 72, LEFT%│
+		;メッセージのアニメーションを行うかどうか設定します
+		PRINTFORML │%"If set to 'Not used',", 72, LEFT%│
+		;ここで利用しないと指定した場合
+		PRINTFORML │%"fade-in animations will not be used.", 72, LEFT%│
+		;フェードイン・タイプ両方式のアニメーションを停止させます
+		PRINTFORML └%"─"*36%┘
+		CALL INPUT_YN, "Not used" , "Use"
+		;利用しない" , "利用する
+		GLOBAL:メッセージアニメ利用 = RESULT
+	CASE 9
+		CLEARLINE LINECOUNT - LINE
+		REDRAW 1
+		RETURN 1
+ENDSELECT
+SAVEGLOBAL
+CLEARLINE LINECOUNT - LINE
+GOTO START

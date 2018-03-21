@@ -1,0 +1,173 @@
+
+;スキル名
+@SKILL_NAME_3071,ARG
+RESULTS = MedicalKit
+
+
+;　命中
+@SKILL_HITRATE_3071, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_3071, ARG
+RETURN 30
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_3071,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_3071,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_3071, ARG
+RETURN 1
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_3071,ARG
+RETURN 0
+
+;　相性
+@SKILL_TYPE_3071,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_3071
+RETURN 0
+;魔法
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_3071
+RETURN 2
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_3071
+RETURN 2
+
+;　射程
+@SKILL_RANGE_3071,ARG
+RETURN 1
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_3071,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_3071
+RETURN 2
+
+;　 特殊処理の有無、及び処理内容
+@SKILL_SPECIALEFECT_3071,ARG
+;ARG = 1だった場合は処理の有無を返します
+SIF ARG == 1
+	RETURN 0
+;以下に特殊な処理を記述します
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_3071
+RETURN 0
+;継承不可
+
+;速度補正
+@SKILL_SPEED_3071, ARG = -1
+RETURN 5
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_3071,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_3071
+RETURN 1
+
+;スキル変化？用ランク
+@SKILL_RANK_3071
+RETURN 0
+;変化不可
+
+;====================================================
+;スキル及び行動の実行
+;====================================================
+@ACTION_3071,ARG,ARG:1
+SIF CFLAG:ARG:PTフラグ > 0
+ITEM:1071 -= 1
+
+;回復量
+LOCAL =  ITEM_POWERUP(ARG,50)
+
+IF ARG:1 == 19
+	LOCAL:7 = 1
+	LOCAL:8 = 7
+ELSE
+	LOCAL:7 = 7
+	LOCAL:8 = 17
+ENDIF
+
+FOR LOCAL:9,LOCAL:7,LOCAL:8
+	LOCALS = ポジション{LOCAL:9}
+	SIF FLAG:LOCALS < 0
+		CONTINUE
+	SIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+		CONTINUE
+	PRINTFORM 　　TARGET:[{LOCAL:9,2}] %CALLNAME:(FLAG:LOCALS),20,LEFT%　>>>>>>　
+	PRINTFORMW {LOCAL}ＨＰ recovered
+	CALL VAR_HP,FLAG:LOCALS,LOCAL,3
+
+NEXT
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+
+;====================================================
+;戦闘中以外での実行
+;====================================================
+@ACTION_FIELD_3071,ARG,ARG:1
+ITEM:1071 -= 1
+PRINTFORML Used a %ITEMNAME_E(1071)%.
+
+;回復量
+LOCAL = FIELDアイテム関数(3,100)
+
+FOR LOCAL:9,1,7
+	LOCALS = ポジション{LOCAL:9}
+	SIF FLAG:LOCALS < 0
+		CONTINUE
+	SIF GET_STATE(CFLAG:(FLAG:LOCALS):ステート) == "DYING"
+		CONTINUE
+	PRINTFORM 　　TARGET:[{CPOS(FLAG:LOCALS),2}] %CALLNAME:(FLAG:LOCALS),20,LEFT%　>>>>>>　
+	PRINTFORMW {LOCAL}ＨＰ recovered
+	CALL VAR_HP,FLAG:LOCALS,LOCAL,3
+NEXT
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_3071
+PRINTL Restores 100HP to an ally.
+;味方全体のＨＰを100回復する。
+
+@最大所持数_3071
+RETURN 10
+
+@道具購入条件_3071
+RETURN 0
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_3071,ARG
+SIF CFLAG:ARG:PTフラグ == 0
+	RETURN 1
+SIF ITEM:1071 < 1 || CFLAG:ARG:アイテム使用能力 < 1
+	RETURN 0
+RETURN 1
+;アイテムの個数チェック
+
+;魔貨交換可能か
+@ITEM_EXCHANGE_3071
+RETURN 2
+

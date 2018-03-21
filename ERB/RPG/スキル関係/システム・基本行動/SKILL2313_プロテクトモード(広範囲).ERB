@@ -1,0 +1,632 @@
+;プロテクトモード
+;システム用スキルです
+
+;スキル名
+@SKILL_NAME_2313,ARG
+	RESULTS = Protect mode(Party)
+	;プロテクトモード(広範囲)
+;　命中
+@SKILL_HITRATE_2313, ARG
+RETURN 100
+
+;　威力
+@SKILL_POWER_2313, ARG
+RETURN 18
+
+;　最低攻撃回数
+@SKILL_MINATTACKNUMBER_2313,ARG
+RETURN 1
+
+;　最大攻撃回数
+@SKILL_MAXATTACKNUMBER_2313,ARG
+RETURN 1
+
+;　ＨＰ2を支払うかＭＰ3を支払うか
+@SKILL_COSTTYPE_2313, ARG
+RETURN 1
+;消費なし＝1
+
+;　コストの量
+@SKILL_COST_2313,ARG
+RETURN 18
+
+;　相性
+@SKILL_TYPE_2313,ARG
+RETURN 0
+
+;　1EXTRAか2MAGICか
+@SKILL_DECIDE_TYPE_2313
+RETURN 1
+;どちらでもない
+
+;　1物理ダメージで計算するか2魔法ダメージで計算するか
+@SKILL_DAMAGETYPE_2313
+RETURN 1
+
+
+;　対象が1敵か2味方か3場全体か4特殊か
+@SKILL_TARGET_2313
+RETURN 2
+
+;　射程
+@SKILL_RANGE_2313,ARG
+RETURN 3
+
+;　範囲　1単体　21列　3全体　4　敵味方全体
+@SKILL_SPHERE_2313,ARG
+RETURN 3
+
+;　 効果のタイプ　1攻撃、2回復、3状態変化、4特殊、5状態回復
+@SKILL_EFECT_2313
+RETURN 4
+
+;継承タイプ
+@SKILL_SUCCESSION_TYPE_2313
+RETURN 0
+;継承不可
+
+;速度補正
+@SKILL_SPEED_2313, ARG = -1
+RETURN 0
+
+;　口上の表示とそのタイプ
+@SKILL_MESSAGE_2313,ARG
+
+;戦闘時以外に使用できるか
+@SKILL_ACTIONABLE_FIELD_2313
+RETURN 0
+
+;スキル変化？用ランク
+@SKILL_RANK_2313
+RETURN 0
+;変化不可
+
+;====================================================
+;スキル及び行動の実行
+;要は”ＯＯの壁”の任意選択可能なスキル
+;味方スキル用のデメリットとしてINPUTの方でオーバーヒートの状態異常を自分に付与するよう記述
+;単体版とは違い、オルギア同様に３ターン動きが止まる
+;仮に連発可能ならば仲魔の弱点を自由に一つ減らせるようなものなので、行動不能のデメリットは大きいくらいで良いと思われる
+;広範囲版はシステムスキル扱いをやめてDemonica持ち２～３体によるリンケージスキル化、かつ特定相性の無効ではなく物理or魔法の括りで広く軽減というのもアリかも
+;====================================================
+@ACTION_2313,ARG,ARG:1
+
+$PRINT_LIST
+DRAWLINE
+PRINTFORML Protect from which element?
+;どの攻撃相性をプロテクトする？
+DRAWLINE
+PRINTL [0]  Slash [1]  Gun [2]  Strke [3]  Skill
+PRINTL [4]  Fire [5]  Ice [6]  Elect [7]  Force
+PRINTL [8]  Nerve [9]  Mind [10] Light [11] Dark
+PRINTL [12] Earth [13] Water [14] Wind [15] Grav
+PRINTL [16] Nuclr
+
+INPUTS
+
+IF GROUPMATCH(RESULTS, "0", "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16")
+	LOCAL:1 = 0
+	TOINT RESULTS
+	;CALL INPUTINT(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)
+	LOCAL:1 = RESULT
+	SELECTCASE LOCAL:1
+		CASE 0
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):剣撃ガードキル
+							CFLAG:(FLAG:LOCALS):剣撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):剣撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):剣撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Slash attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):剣撃ガードキル
+							CFLAG:(FLAG:LOCALS):剣撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):剣撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):剣撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Slash attacks are blocked!
+			ENDIF
+		CASE 1
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):飛具ガードキル
+							CFLAG:(FLAG:LOCALS):飛具ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):飛具無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):飛具無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Gun attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):飛具ガードキル
+							CFLAG:(FLAG:LOCALS):飛具ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):飛具無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):飛具無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Gun attacks are blocked!
+			ENDIF
+		CASE 2
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):打撃ガードキル
+							CFLAG:(FLAG:LOCALS):打撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):打撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):打撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Strike attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):打撃ガードキル
+							CFLAG:(FLAG:LOCALS):打撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):打撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):打撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Strike attacks are blocked!
+			ENDIF
+		CASE 3
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):戦技ガードキル
+							CFLAG:(FLAG:LOCALS):戦技ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):戦技無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):戦技無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Skill attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):戦技ガードキル
+							CFLAG:(FLAG:LOCALS):戦技ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):戦技無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):戦技無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Skill attacks are blocked!
+			ENDIF
+		CASE 4
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):火炎ガードキル
+							CFLAG:(FLAG:LOCALS):火炎ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):火炎無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):火炎無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Fire attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):火炎ガードキル
+							CFLAG:(FLAG:LOCALS):火炎ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):火炎無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):火炎無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Fire attacks are blocked!
+			ENDIF
+		CASE 5
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):氷結ガードキル
+							CFLAG:(FLAG:LOCALS):氷結ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):氷結無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):氷結無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Ice attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):氷結ガードキル
+							CFLAG:(FLAG:LOCALS):氷結ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):氷結無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):氷結無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Ice attacks are blocked!
+			ENDIF
+		CASE 6
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):電撃ガードキル
+							CFLAG:(FLAG:LOCALS):電撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):電撃無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):電撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Electric attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):電撃ガードキル
+							CFLAG:(FLAG:LOCALS):電撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):電撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):電撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Electric attacks are blocked!
+			ENDIF
+
+		CASE 7
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):衝撃ガードキル
+							CFLAG:(FLAG:LOCALS):衝撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):衝撃無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):衝撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Force attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):衝撃ガードキル
+							CFLAG:(FLAG:LOCALS):衝撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):衝撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):衝撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Force attacks are blocked!
+			ENDIF
+
+
+		CASE 8
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):神経ガードキル
+							CFLAG:(FLAG:LOCALS):神経ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):神経無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):神経無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Nerve attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):神経ガードキル
+							CFLAG:(FLAG:LOCALS):神経ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):神経無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):神経無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Nerve attacks are blocked!
+			ENDIF
+
+
+		CASE 9
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):精神ガードキル
+							CFLAG:(FLAG:LOCALS):精神ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):精神無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):精神無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Mind attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):精神ガードキル
+							CFLAG:(FLAG:LOCALS):精神ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):精神無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):精神無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Mind attacks are blocked!
+			ENDIF
+		CASE 10
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):破魔ガードキル
+							CFLAG:(FLAG:LOCALS):破魔ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):破魔無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):破魔無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Light attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):破魔ガードキル
+							CFLAG:(FLAG:LOCALS):破魔ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):破魔無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):破魔無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Light attacks are blocked!
+			ENDIF
+		CASE 11
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):呪殺ガードキル
+							CFLAG:(FLAG:LOCALS):呪殺ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):呪殺無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):呪殺無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Dark attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):呪殺ガードキル
+							CFLAG:(FLAG:LOCALS):呪殺ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):呪殺無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):呪殺無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Dark attacks are blocked!
+			ENDIF
+		CASE 12
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):地変ガードキル
+							CFLAG:(FLAG:LOCALS):地変ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):地変無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):地変無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Earth attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):地変ガードキル
+							CFLAG:(FLAG:LOCALS):地変ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):地変無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):地変無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Earth attacks are blocked!
+			ENDIF
+		CASE 13
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):水撃ガードキル
+							CFLAG:(FLAG:LOCALS):水撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):水撃無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):水撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Water attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):水撃ガードキル
+							CFLAG:(FLAG:LOCALS):水撃ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):水撃無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):水撃無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Water attacks are blocked!
+			ENDIF
+		CASE 14
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):疾風ガードキル
+							CFLAG:(FLAG:LOCALS):疾風ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):疾風無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):疾風無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Wind attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):疾風ガードキル
+							CFLAG:(FLAG:LOCALS):疾風ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):疾風無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):疾風無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Wind attacks are blocked!
+			ENDIF
+		CASE 15
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):重力ガードキル
+							CFLAG:(FLAG:LOCALS):重力ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):重力無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):重力無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Grav attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):重力ガードキル
+							CFLAG:(FLAG:LOCALS):重力ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):重力無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):重力無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Grav attacks are blocked!
+			ENDIF
+
+		CASE 16
+			IF CFLAG:ARG:PTフラグ > 0
+				FOR LOCAL,1,7
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):核熱ガードキル
+							CFLAG:(FLAG:LOCALS):核熱ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):核熱無効化回数 < 1
+							CFLAG:(FLAG:LOCALS):核熱無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:PARTY >>>>>> Nuclear attacks are blocked!
+			ELSE
+
+				FOR LOCAL,7,17
+					LOCALS = ポジション{LOCAL}
+					IF FLAG:LOCALS > -1
+						IF CFLAG:(FLAG:LOCALS):核熱ガードキル
+							CFLAG:(FLAG:LOCALS):核熱ガードキル --
+						ELSE
+							SIF CFLAG:(FLAG:LOCALS):核熱無効化回数 < 1
+								CFLAG:(FLAG:LOCALS):核熱無効化回数 = 1
+						ENDIF
+					ENDIF
+				NEXT
+				PRINTW TARGET:ENEMY >>>>>> Nuclear attacks are blocked!
+			ENDIF
+
+	ENDSELECT
+ENDIF
+
+
+
+;====================================================
+;実行内容ここまで
+;====================================================
+
+;　 説明文の表示
+@SKILL_EXPLAIN_2313
+PRINTL Overcharge the plasma armor to protect all allies from the next attack of the chosen element.
+;任意の相性を一度だけ無効化するプラズマ装甲を広範囲に展開する。使用後はスーツがオーバーヒート
+PRINTL The suit will overheat after use.
+
+;使用条件
+@SKILL_SPECIAL_ACTIONABLE_2313,ARG
+RETURN 1
+;とくにない
+

@@ -1,0 +1,1302 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx_yyy.ERB
+;	Facility	:依頼:030(デビルサバイバー２) ３日目。
+;				 REQUEST_30のサブファイル。
+;				 ３日目のデータを管理する。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2011/10/15		旅人					新規作成
+;	002		2013/12/4		GunＰ					ボティスのスキルを加筆
+;	003		2014/12/13		セーロGUN				暴徒戦を追加し、大幅に改変
+;	004		2015/01/01		セーロGUN				描写修正
+;	004		2015/01/15		セーロGUN				フェクダの耐性変更の処理をループ式処理に変更
+;	004		2015/03/01		セーロGUN				一部の台詞と描写を変更
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【フラグついて】
+; フラグは下記のみ使用。
+;-------------------------------------------------------------------------------
+;勝手ながら使用フラグをイキ顔動画用に増やしました
+;FLAG:デビサバ２イキ顔動画進行度の100の位がアイリ用のビットになります
+;-------------------------------------------------------------------------------
+;
+; [00-09] 戦闘:ボティス
+; FLAG:デビサバ２進行度 = 200;初回
+; FLAG:デビサバ２進行度 = 201;訪問済み
+; FLAG:デビサバ２進行度 = 205;戦闘中(ボティス)
+; FLAG:デビサバ２進行度 = 206;戦闘中(暴徒)
+; FLAG:デビサバ２進行度 = 210;戦闘クリア
+;
+; [10-19] 戦闘:ロナウド＆フェクダ
+; FLAG:デビサバ２進行度 = 210;初回
+; FLAG:デビサバ２進行度 = 215;戦闘中(ロナウド)
+; FLAG:デビサバ２進行度 = 216;戦闘中(フェクダ)
+; FLAG:デビサバ２進行度 = 300;終了(2ND DAY)
+;
+;-------------------------------------------------------------------------------
+; [イキ顔動画]
+; FLAG:デビサバ２イキ顔動画進行度 = 000 ～ 099;アイリ無傷
+; FLAG:デビサバ２イキ顔動画進行度 = 100 ～ 299;アイリ調教された
+; FLAG:デビサバ２イキ顔動画進行度 = 300 ～ 699;アイリ処女喪失
+; FLAG:デビサバ２イキ顔動画進行度 = 700 ～ 799;アイリトラウマ
+; FLAG:デビサバ２イキ顔動画進行度 = 800 ～ 899;アイリ性の目覚め
+; FLAG:デビサバ２イキ顔動画進行度 >= 900;アイリ失神
+;-------------------------------------------------------------------------------
+;
+; 【メモ】
+; ・後半は２連戦。
+;-------------------------------------------------------------------------------
+; ・前半後半両方で二連戦となりました
+; ・イキ顔動画のフラグは後のアイリ加入時の能力値計算に使用
+;-------------------------------------------------------------------------------
+;
+;-------------------------------------------------------------------------------
+
+;===============================================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name						Explanation
+;
+;	・ REQUEST_xxx_yyy					依頼:メイン処理(yyy)
+;	・ EVENT_BATTLE_TURNEND_REQUESTxxx_yyy
+;										依頼:戦闘中処理(ターン終了時)(yyy)
+;
+;===============================================================================
+
+
+;====================
+;内容
+;====================
+@REQUEST_30_3
+#DIM L_FLAG_REQ
+#DIM L_FLAG_EVENT_DIGIT
+#DIM L_FLAG_EVENT_FIRST_DIGIT
+#DIM L_BTL_FLG
+#DIM L_TMP
+
+;- フラグをセット
+L_FLAG_REQ = FLAG:デビサバ２進行度
+
+;- フラグをセット(イベントフラグ:２桁)
+L_FLAG_EVENT_DIGIT = L_FLAG_REQ % 100
+
+;- フラグをセット(イベントフラグ:１桁目)
+L_FLAG_EVENT_FIRST_DIGIT = L_FLAG_REQ % 10
+
+;- 戦闘フラグ(デバッグ用。OFFで戦闘無しで実行出来る)
+L_BTL_FLG = 1
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+SELECTCASE L_FLAG_EVENT_DIGIT
+	;- 戦闘:ボティス
+	CASE 00 TO 09
+		;- 初回
+		IF L_FLAG_EVENT_FIRST_DIGIT == 0
+			;- フラグセット
+			FLAG:デビサバ２進行度 = 201
+
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞エレベータを抜け、ヤマトと面会した。
+			PRINTFORMW ＞ジプス東京支局の広間の一角にて、会議が行われた…。
+			PRINTFORML 
+			PRINTFORMW 「さてサマナー、前置きだが…」
+			PRINTFORMW 「ここ最近、名古屋支局にて様々な被害が発生している。通信設備への物理的破壊などだ…」
+			PRINTFORMW 「当該支局に対応をさせているが、敵は同じ悪魔使いだ。我々は暴徒と呼んでいる」
+			PRINTFORML
+			PRINTFORMW 「今回の依頼は、いつもとは少し違う」
+			PRINTFORMW 「昨夜、暴徒の影響かは不明だが名古屋支局との連絡が途絶えた」
+			PRINTFORMW 「先日のメラク戦の後、シジマを向かわせていたのだが、そちらも現地で行方不明となっている」
+			PRINTFORMW 「君には名古屋支局に赴き、現地にて必要な補助をして貰いたい」
+			PRINTFORMW 「本来はジプス局員を向かわせるべきなのだが、有力な局員は現在手が空いていない」
+			PRINTFORMW 「戦闘能力や経験の面で、君が適任と言う訳だ」
+			PRINTFORMW 「この件は東京組…"彼"に任せたが、名古屋は予断を許さない状況だ」
+			PRINTFORMW どうやら名古屋支局で、暴徒による破壊工作か何かがあったらしい。
+			PRINTFORMW "彼"とは、恐らくドゥベの際、イオと行動を共にしていたモジャッとした髪質の少年の事だろう。
+			PRINTFORMW %CALLNAME:MASTER%は現場に赴き、"彼"の手助けをすることになりそうだ…。
+			PRINTFORML
+			PRINTFORMW 「恐らく君に頼むのは、行方不明となったジプス局員の捜索だろう」
+			PRINTFORMW 「その局員はジプスで研究を担当している者だが、科学分野に精通している」
+			PRINTFORMW 「ジプスの設備は一般企業では修理出来ない部分がある。その局員の手が必要だ」
+			PRINTFORMW やる事も決まっており、人物の捜索を行う様だ…。
+			PRINTFORML
+			PRINTFORMW 「サマナー、これを渡しておこう」
+			PRINTFORMW 「これまでの"敵"の特徴を分析した結果、強力な耐性を持っている事が判明している」
+			PRINTFORMW 「何かの足しになるだろう。活用してくれ」
+			PRINTFORML 
+			PRINTFORMW ＞You got 4 Skillcards
+			PRINTFORML ＞Skillcard【Agi】 received
+			PRINTFORML ＞Skillcard【Bufu】 received
+			PRINTFORML ＞Skillcard【Zio】 received
+			PRINTFORMW ＞Skillcard【Zan】 received
+			ITEM:スキルカード【アギ】+= 1
+			ITEM:スキルカード【ブフ】+= 1
+			ITEM:スキルカード【ジオ】+= 1
+			ITEM:スキルカード【ザン】+= 1
+			PRINTFORML
+			PRINTFORML
+			PRINTFORMW 忘れない内に聞いておこう…。
+			PRINTFORMW %CALLNAME:MASTER%はヤマトに、ヒナコを融通して貰えないか聞いた。
+			PRINTFORMW 「…九条か」
+			PRINTFORMW 「…彼女は一般の協力者だからな…別に構わんと言えば構わん」
+			PRINTFORMW 「…君の働き次第で、検討しよう」
+			PRINTFORMW どうやら、働き次第で提供して貰えそうだ…。
+			PRINTFORMW しかしジプス局員…例えばマコトなどは、融通は不可能なのだろうか…。
+			PRINTFORMW …もう少し功を立ててから、聞いておこう…。
+			PRINTFORML
+			PRINTFORML
+
+		;- ２回目以降
+		ELSE
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞エレベータを抜け、ヤマトと面会した。
+		ENDIF
+
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW 「・・・それでは依頼を再確認したい」
+		PRINTFORMW 「君には名古屋に出向いて貰いたい」
+		PRINTFORMW 「現地で行う事は、恐らく人員の捜索だろう」
+		PRINTFORMW 「大きな危険は無いだろうが、全く無いわけでは無い…」
+		PRINTFORMW 「既に東京のメンバーは、シジマの拉致事件を解決する為、名古屋に派遣している」
+		PRINTFORMW 「現地では別行動だろうが、顔を合わせるかもしれないだろう」
+		PRINTFORML
+		PRINTFORMW 「さて、どうする？」
+		PRINTFORML
+		PRINTFORML  （ 注意：この依頼は長期戦になります。またクリアすると一日経過します ）
+		PRINTFORMW
+
+		CALL INPUT_YN("依頼を受ける", "まだ準備が")
+		PRINTL
+		IF RESULT == 0
+			PRINTFORMW 「そうか。それでは仕事に取り掛かって欲しい」
+			PRINTFORMW 「専用ホームより名古屋駅で下車してくれ。停車を指示しておく」
+			PRINTFORMW 「それと捜索を依頼する局員の資料も渡しておこう」
+		ELSE
+			PRINTFORMW 「そうか。幸いまだ時間はある」
+			PRINTFORMW 「準備が出来たらまたここに来てくれ」
+			PRINTFORMW ＞準備を整えたら、またここへ来よう。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			RETURN
+		ENDIF
+
+		PRINTFORML
+		PRINTFORMW ＞出発の時間までは、まだ多少時間がある。
+		PRINTFORMW ＞%CALLNAME:MASTER%は準備不足が無いか、入念にチェックを始めた…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+
+		;-----------------------------
+		;- タイトル
+		;-----------------------------
+
+		;- 依頼:一日のタイトル
+		CALL REQUEST_30_DAY_TITLE("3RD DAY", "不穏の第三日")
+
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 専用車両ホーム - 名古屋。
+		PRINTFORMW ＞名古屋についた。
+		PRINTFORMW ＞ホームには誰もおらず、携帯端末を確認してみれば、基地局でも破壊されたのか、どうも電波が届いていないようだ。
+		PRINTFORMW ＞ジプス専用のホームから地上へと上がると、何やら辺りが騒がしい…。
+		PRINTFORML
+		PRINTFORMW ＞赤い髪の少女が、召喚アプリを手にした悪魔使い達と戦っている…。
+		PRINTFORMW ＞少女はそれなりの悪魔使いのようだ…。
+		PRINTFORMW ＞苦戦しながらも数の不利を覆し、敵の携帯を取り上げて破壊している…。
+		PRINTFORMW ＞悪魔使い達が全て逃げると、こちらに気づいたらしい少女が近づいてくる…。
+		PRINTFORMW ＞年の頃は中学生ほどだろうか…。
+		PRINTFORMW ＞童顔の上に生意気そうな雰囲気を浮かべている事が相まり、余計に子供っぽい印象を見せている。
+		PRINTFORMW ＞しかし容姿自体は整っており、うまく調教すれば、とても可愛らしい娼婦になることだろう…。
+		PRINTFORML
+		PRINTFORMW 「えっと…ジプスのホームから出てきたみたいだし…ジプスですか？」
+		PRINTFORML
+		PRINTFORMW ＞%CALLNAME:MASTER%はは東京のジプスの依頼で名古屋に来たことを伝えた…。
+		PRINTFORMW ＞そして名古屋の状況について教えてほしい、と頼み、情報交換を行った…。
+		PRINTFORMW ＞少女の名前は伴 亜衣李(バン アイリ)。民間の協力者とのことだった。
+		PRINTFORML ＞アイリの話によれば、暴徒の活動が活発化したために、局員達を各地に分散せざるを得なくなった上、
+		PRINTFORMW 　携帯端末が突如、通話不能となったために、名古屋支局は混乱状態に陥ったという…。
+		PRINTFORML
+		PRINTFORML アイリ：
+		PRINTFORMW 「それで…皆バラバラ。他のことは…わからない。一緒に戦ってたジュンゴも途中ではぐれちゃったし…」
+		PRINTFORML
+		PRINTFORMW ＞名古屋で起きていたのは予想通り、暴徒によるもののようだ…。
+		PRINTFORMW ＞となれば、やはり依頼された人物の捜索を急いだほうがいいだろう…。
+		PRINTFORMW ＞携帯が復旧すれば、局員の合流も容易くなる…。
+		PRINTFORMW ＞逆に復旧しなければ、合流できない局員が暴徒に襲われる危険に晒されるのは明白だ…。
+		PRINTFORML
+		PRINTFORML 「そっか…。携帯復旧しないと、局員の皆探すの大変だもんね…」
+		PRINTFORML 「…うん、私もフミとジュンゴを探してみるから、そっちも気をつけて！それじゃ！」
+		PRINTFORMW ＞%CALLNAME:MASTER%はアイリに別れを告げると、別方向へと向かった…。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞名古屋 ― テレビ塔。
+		PRINTFORMW ＞情報を探している内に名古屋テレビ塔に来た。
+		PRINTFORMW ＞テレビ塔は公園内にある為、周囲には木々が林立し、人の出入りの無い区画もある。
+		PRINTFORMW ＞件の局員の情報を集めたところ、ここで目撃されたという。そして周囲には、不自然に結界が張ってある。
+		PRINTFORMW ＞ここで戦闘が起きても全く気付かれない様な、強力な結界だ…。
+		PRINTFORML
+		PRINTFORMW ＞木々の中に入って行くと…何やら巨大な机が置いてある。
+		PRINTFORMW ＞そこには、先日大阪で出会ったハッカーの女が居た…。
+		PRINTFORMW ＞ハッカーの女は前回と変わらず、虚ろな目でキーボードを叩いている…。
+		PRINTFORMW ＞…ジプスから渡された資料を再度確認してみると、やはりハッカーと資料の顔写真はよく似ている。
+		PRINTFORMW ＞彼女がジプスの局員、フミの様だ。しかし、前回同様、様子がおかしい…。
+		PRINTFORMW ＞様子を窺っていると、携帯端末の着信音が鳴り響く。
+		PRINTFORMW ＞それに反応するように一体の悪魔が現れた…。
+		PRINTFORML
+		PRINTFORML ボティス：
+		PRINTFORMW 「……！」
+		PRINTFORMW 「ウヌハ確カ…」
+		PRINTFORMW 「オノレ２度マデモ邪魔ヲスルカ。即刻、排除スル」
+		PRINTFORML
+		PRINTFORMW ＞先日ハッカーを攫って行った悪魔、ボティスの様だ…。
+		PRINTFORMW ＞ボティスはハッカーを護るように次々と悪魔を展開していく…。
+		PRINTFORMW ＞ボティスは強力な悪魔のようだし、どうすべきかと思っていると、そこに東京勢の二人がやってきた…。
+		PRINTFORML
+		PRINTFORML ジョー：
+		PRINTFORMW 「あれ、もしかしてサマナーさん多勢に無勢じゃない？」
+		PRINTFORMW 「おーい、周りの奴はこっちで相手するから、サマナーさんはそっちのヤバそうなのやっちゃいなよー」
+		PRINTFORML 
+		PRINTFORMW ＞…ジョーはボティスを押し付ける気のようだ。
+		PRINTFORMW ＞とはいえアレをどうにかしなければ依頼を果たせないのだから避けて通れない道ではある。
+		PRINTFORMW ＞%CALLNAME:MASTER%は、彼等が周りの悪魔を相手する間にボティスの前に立った…。
+		PRINTFORML
+		PRINTFORML ボティス：
+		PRINTFORMW 「フン…死ニタイヨウダナ」
+		PRINTFORMW 「ナラバ望ミドオリ、殺シテクレヨウ…！」
+		PRINTFORMW ＞ボティスは、両手の剣を構え始めた…。
+		PRINTFORML 
+		PRINTFORMW 「人間ノ分際デ、我ニ挑ムナド…」
+		PRINTFORMW 「アノ世デ後悔スルガ良イ！」
+		PRINTFORML
+		
+		;- 戦闘前処理
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 205
+		L_TMP = 0
+
+		PRINTFORML 
+		PRINTFORMW 堕天使 ボティスが一体出た！
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- 悪魔解析度増加処理(1000でMAX)
+			CALL INCREASE_ANALYZE([[キャラ:ボティス]],1000)
+
+			;- SET:ボティス
+			CALL SET_ENEMY,9,[[キャラ:ボティス]],REQUEST_30_BASE_LV(3),1,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+			CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			;耐性
+			BASE:(CHARANUM-1):剣撃 = 50
+			BASE:(CHARANUM-1):打撃 = 50
+			BASE:(CHARANUM-1):戦技 = 50
+			ABL:(CHARANUM-1):スキル1 = 3;回転切り
+			ABL:(CHARANUM-1):スキル2 = 405;メ・ディアラマ
+			ABL:(CHARANUM-1):スキル3 = 906;マハ・ジオダイン
+			ABL:(CHARANUM-1):スキル4 = 610;護りの盾
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			;- SET:雑魚
+			CALL SET_ENEMY,8, [[キャラ:オセ]],REQUEST_30_BASE_LV(3)
+			CALL SET_ENEMY,10, [[キャラ:オセ]],REQUEST_30_BASE_LV(3)
+
+			;- 戦闘開始
+			CALL BATTLE_START
+		ENDIF
+
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		L_TMP = ((FLAG:デビサバ２イキ顔動画進行度 / 100) % 10)
+		PRINTFORMW ＞ボティスの動きが止まった…。
+		CUSTOMDRAWLINE =
+		PRINTFORMW ＞見ると、フミは机の上でぐったりとしている…。
+		PRINTFORMW ＞どうやらジョー達が、フミを止めた様だ…。
+		PRINTFORML
+		PRINTFORML ボティス：
+		PRINTFORMW 「ココマデダ…！」
+		PRINTFORMW 「コレ以上、貴様ラニ構ッテイル時間ハ無イ…」
+		PRINTFORMW ＞ボティスは、どこかに去って行った…。
+		PRINTFORML
+		PRINTFORMW 『う…ん…？』
+		PRINTFORMW ＞むくりと起き上がったフミは、%CALLNAME:MASTER%を見ている…。
+		PRINTFORMW 『……。ん…誰』
+		PRINTFORMW %CALLNAME:MASTER%はひとまず、ジプスと答えた…。
+		PRINTL
+		PRINTFORMW 『ふ～ん…見た事無い』
+		PRINTFORMW 『アタシ菅野 史（カンノ　フミ）』
+		PRINTFORMW 『何でこんなトコいんの？』
+		PRINTFORMW ＞%CALLNAME:MASTER%は、大阪でフミに会ってからの経緯と状況を説明した…。
+		PRINTL
+		PRINTFORMW 『ふーん…アタシがその悪魔と一緒に？』
+		PRINTFORMW 『で、なんでアタシ探してたの？何のために？』
+		PRINTFORMW ＞%CALLNAME:MASTER%と東京勢の少年はフミに用件を伝える…。
+		PRINTFORMW ＞恐らくこれで、当初の依頼は完了だろう。
+		PRINTL
+		PRINTFORMW 『で、そっちの二人はシジマダイチって奴とジュンゴがピンチだから早く見つけたい、と』
+		PRINTFORMW 『ちょっと待って』
+		PRINTL
+		PRINTFORMW ＞フミはパソコンに向かい、操作を始めた…。
+		PRINTL
+		PRINTFORML フミ：
+		PRINTFORMW 『へぇ、ホントだ。アタシのパソコンから基地局がハッキングされてる』
+		PRINTFORMW 『携帯電話使えないのはそのせいだろうけど…何で？』
+		PRINTFORMW ＞悪魔に操られたせいだと答えると、とりあえずは納得したようだ。
+		PRINTFORMW 『はぁ…確かにこの前から今までの事、何も覚えて無いわ』
+		PRINTFORMW 『…まあいいか。え～とそれじゃあ…』
+		PRINTFORMW ＞フミがパソコンの操作を再開する…。
+		PRINTFORMW 『はいできた。携帯使えるはず。後、シジマとジュンゴの居場所だっけ？』
+		PRINTL
+		PRINTFORMW ＞まだ少しかかりそうだ…。
+		PRINTFORMW ＞…そういえば、先程、通話不能の状況にも関わらず、携帯端末の着信が入っていた。
+		PRINTFORMW ＞確認すると、やはりメールが一通入っている。
+		PRINTFORMW ＞メールを開くと、ニカイア動画の１シーンが再生された。
+		PRINTL
+		CALL REQUEST_30_NICAEA_BOOTVIEW("βver.","Orgasm Face Delivery Site")
+		CALL REQUEST_30_DELIVERY_アイリ(L_TMP)
+		CUSTOMDRAWLINE =
+		PRINTL
+		PRINTFORMW ＞…アイリが危ないようだ。
+		PRINTFORMW ＞画面の隅のほうに縛られたダイチがいたし、ヤマトに補助も頼まれた以上、救助しなければ不味いだろう。
+		PRINTFORMW ＞フミにアイリも探せないか、聞いてみる。
+		PRINTL
+		PRINTFORMW 『アイリ？あー、いたねそんなヤツ。まぁちょっと待ってて。今、こっちで探してみるから』
+		PRINTL
+		PRINTFORMW 『……うん、シジマとアイリは『みんなの科学館』ってとこにいるね。ジュンゴもそっちのほうに向かってるぽい』
+		PRINTFORMW 『地図と科学館の案内図のデータは送っとく。アタシは支局の復旧作業できるだけ続けとくから、後はよろしく。任した』
+		PRINTFORMW ＞３人はフミに礼を言うと、科学館へと向かった……。
+		PRINTW ………
+		PRINTW ……
+		PRINTW …
+		PRINTL
+		PRINTL
+		PRINTFORMW ＞名古屋 ― みんなの科学館。
+		PRINTFORMW ＞入り口を抜けると、プラネタリウムがある先の通路から喧騒がかすかに聞こえてくる。
+		PRINTFORMW ＞事前に打ち合わせた通りにジョーと別れると、%CALLNAME:MASTER%達と少年はプラネタリウムへ突入する。
+		PRINTL
+		PRINTFORMW ＞プラネタリウムでは帽子を被った青年がガラの悪い悪魔使い達を相手に孤軍奮闘していた。
+		PRINTFORML ＞数で勝る悪魔使い達相手を薙ぎ倒しながら、奥のアイリとダイチの元に突き進んでいる。
+		PRINTFORML ＞その強さに思わず感心していると、青年がこちらに振り返る。
+		PRINTL
+		PRINTFORMW 「……鳥居　純吾。敵？味方？」
+		PRINTFORMW ＞味方と答えると、ジュンゴは嬉しそうに微笑した。
+		PRINTFORMW 「…あそこの二人、助けたい。手を貸して」
+		PRINTFORMW ＞%CALLNAME:MASTER%達は頷くと、戦闘態勢をとった。
+		PRINTL
+		PRINTL ジュンゴ：
+		PRINTFORMW 「仲間を傷つけたお前達は絶対許さない…！」
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 206
+		
+		PRINTFORMW 
+		PRINTFORMW 人間 暴徒が３体出た！
+		
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;-----------------------------
+			;- 暴徒を３体設定
+			;-----------------------------
+			;- SET:xxx(局員の名前を変えて暴徒)
+			CALL SET_ENEMY,13,[[キャラ:ジプス局員]],REQUEST_30_BASE_LV(1)
+			NAME:(CHARANUM-1) = 暴徒
+			CALLNAME:(CHARANUM-1) = 暴徒
+			CALL SET_ENEMY,14,[[キャラ:ジプス局員]],REQUEST_30_BASE_LV(1)
+			NAME:(CHARANUM-1) = 暴徒
+			CALLNAME:(CHARANUM-1) = 暴徒
+			CALL SET_ENEMY,15,[[キャラ:ジプス局員]],REQUEST_30_BASE_LV(1)
+			NAME:(CHARANUM-1) = 暴徒
+			CALLNAME:(CHARANUM-1) = 暴徒
+			
+			CALL SET_ENEMY,7,[[キャラ:モスマン]],REQUEST_30_BASE_LV(3)
+			CALL SET_ENEMY,8,[[キャラ:ショウジョウ]],REQUEST_30_BASE_LV(3)
+			CALL SET_ENEMY,9,[[キャラ:ウェンディゴ]],REQUEST_30_BASE_LV(3)
+			CALL SET_ENEMY,10,[[キャラ:オルトロス]],REQUEST_30_BASE_LV(3)
+			CALL SET_ENEMY,11,[[キャラ:スクーグスロー]],REQUEST_30_BASE_LV(3)
+			
+			;- 戦闘開始
+			CALL BATTLE_START
+		ENDIF
+
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		
+		;- 戦闘終了
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		
+		PRINTFORMW ＞立ち塞がった暴徒の悪魔は全て撃破し、携帯も取り上げて破壊した…。
+		PRINTFORMW ＞人質の見張りをしていた暴徒も、別の出入り口から潜入していたジョーが倒したようだ…。
+		PRINTFORMW ＞もう、プラネタリウムには暴徒の姿はない…。
+		PRINTFORMW ＞…ダイチとアイリの救出は成功したようだ。
+		PRINTFORML 
+		SELECTCASE L_TMP
+			CASE 0
+				PRINTFORMW ＞ジュンゴがアイリの元へ向かう。
+				PRINTFORML ＞アイリは知っている者が来たことで安心したと同時に、照れ隠しなのだろうか、礼をいいつつも頬を膨らませて
+				PRINTFORMW 　ジュンゴが勝手な行動をとったためにはぐれたことを責めていた。
+			CASE IS < 4
+				PRINTFORMW ＞ジュンゴがアイリの元へ向かう。
+				PRINTFORML ＞アイリは知っている者が来たことで安心したと同時に犯されそうになった恐怖を思い出したのだろう、
+				PRINTFORMW 　自分から彼に抱き付き、堰を切ったように大泣きした。
+			CASE IS < 7
+				PRINTFORMW ＞ジュンゴが破瓜の血を流しながらプラネタリウムの床に破瓜の血を流しながら倒れるアイリの元へ向かう。
+				PRINTFORMW ＞ジュンゴに抱きしめられたアイリは処女を奪われたことを思い出し、彼の腕の中で堰を切ったように大泣きした。
+			CASE IS < 9
+				PRINTFORMW ＞ジュンゴがプラネタリウムの床に精液まみれで倒れるアイリの元へ向かう。
+				PRINTFORML ＞しかし、あまりにも酷いことを男達にされたためだろう、アイリは男であるジュンゴの手を払い、
+				PRINTFORMW 　涙をこらえるように押し黙っていた。
+			CASEELSE
+				PRINTFORMW ＞…アイリは激しい陵辱で体力がなくなったらしい。ジョーと%CALLNAME:MASTER%に介抱される間、静かに眠っていた。
+		ENDSELECT
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞名古屋駅ジプス専用ホーム…。
+		PRINTFORMW ＞ヤマトから帰還していい、との連絡が来たために東京勢とともにここに来ていた。
+		SELECTCASE L_TMP
+			CASE IS < 4
+				PRINTFORMW ＞見送りとしてジュンゴとアイリが来ている。フミは設備の復旧作業で忙しく来れないようだ。
+				PRINTFORML ジュンゴ：
+				PRINTFORMW 「皆、ありがとう。おかげでダイチとアイリ助けられた」
+				PRINTFORML アイリ：
+				PRINTFORMW 「うん、本当に助かったよ。それにしても、今日はジュンゴ探してて疲れちゃった。サマナーさん達帰っちゃうし、私も帰ろうかな…」
+				PRINTFORML ジュンゴ：
+				PRINTFORMW 「ジュンゴも疲れた…」
+				PRINTFORML アイリ：
+				PRINTFORMW 「～！」
+				PRINTFORMW 「あ・り・え・な・い！」
+				PRINTFORMW 「馬鹿ジュンゴがはぐれたせいで私が疲れたんでしょ！」
+				PRINTFORMW ＞ジュンゴはアイリに叩かれている…。
+				PRINTFORMW ＞初対面では大人しい印象だったが、アイリは感情豊かな様だ…。
+				PRINTFORMW ＞ジュンゴもなかなか個性的な人物らしい…。
+				PRINTFORML ＞ちょうど列車がホームに到着した。
+				PRINTFORML ＞%CALLNAME:MASTER%はアイリとジュンゴに別れを告げると、列車に乗り込んだ…。
+				;報酬を決める
+				LOCAL:1 = 50000
+			CASE IS < 7
+				PRINTFORMW ＞見送りとしてジュンゴとアイリが来ている。フミは設備の復旧作業で忙しく来れないようだ。
+				PRINTFORML ジュンゴ：
+				PRINTFORMW 「皆、ありがとう。おかげでダイチとアイリ助けられた」
+				PRINTFORML アイリ：
+				PRINTFORMW 「…私のことは気にしなくて大丈夫。でも、ありがとう」
+				PRINTFORMW あんなことがあったにも関わらず、アイリは明るく振舞っている。
+				PRINTFORML アイリ：
+				PRINTFORMW 「それにしても、今日はほんっと疲れた。ディアラマかけてもらったのにまだこの辺とか痛む気がするし…」
+				PRINTFORML ジュンゴ：
+				PRINTFORMW 「ジュンゴも疲れた…」
+				PRINTFORML アイリ：
+				PRINTFORMW 「～！」
+				PRINTFORMW 「あ・り・え・な・い！」
+				PRINTFORMW 「馬鹿ジュンゴがはぐれたせいで私があんな目に…」
+				PRINTFORMW 「ああ、もうこの馬鹿っ！おかげで思い出したじゃないっ！物凄く痛かったんだからね！」
+				PRINTFORMW ＞ジュンゴはアイリに叩かれている…。
+				PRINTFORMW ＞初対面では大人しい印象だったが、アイリは感情豊かな様だ…。
+				PRINTFORMW ＞ジュンゴもなかなか個性的な人物らしい…。
+				PRINTFORML ＞ちょうど列車がホームに到着した。
+				PRINTFORML ＞%CALLNAME:MASTER%はアイリとジュンゴに別れを告げると、列車に乗り込んだ…。
+				LOCAL:1 = 40000
+			CASEELSE
+				PRINTFORMW ＞見送りとしてジュンゴが来ている。
+				PRINTFORML ジュンゴ：
+				PRINTFORMW 「皆、ごめん。フミも忙しいし、アイリは元気なくて、見送りに来られなかった」
+				PRINTFORML ダイチ：
+				PRINTFORMW 「……謝るのは俺の方だ、ジュンゴ。あの子が酷い目に合ったの、俺のせいだ」
+				PRINTFORMW 「あの子…あんなにいっぱいいた悪魔使い達を見ても逃げなかったんだ」
+				PRINTFORMW 「…捕まってる俺に気づいちゃったから。…俺のせいなんだ。ごめん…」
+				PRINTFORMW ＞一時、重い沈黙が流れる。
+				PRINTFORMW ＞その沈黙を破るように、ジュンゴが自分のバッグの中から出したのは%CALLNAME:MASTER%達の人数分の茶碗蒸しだった。
+				PRINTFORML ジュンゴ：
+				PRINTFORMW 「…皆、これ」
+				PRINTFORMW 「ジュンゴ、板前の見習いやってた。親方に褒められたことある」
+				PRINTFORMW 「茶碗蒸しだけ、だけど…」
+				PRINTFORMW 「お腹減ってると余計に元気なくなる。皆、茶碗蒸し食べて元気になって」
+				PRINTFORMW 「ジュンゴも頑張ってアイリを元気にするから」
+				PRINTFORMW ＞…どうやらダイチ達を励まそうとしてくれているようだ。
+				PRINTFORML ダイチ：
+				PRINTFORMW 「…ジュンゴ。ありがとう…」
+				PRINTFORML ＞ダイチ達と%CALLNAME:MASTER%は礼を言って茶碗蒸しを受け取る。
+				PRINTFORML ＞ちょうど列車がホームに到着した。
+				PRINTFORML ＞%CALLNAME:MASTER%はジュンゴに別れを告げると、列車に乗り込んだ。
+				LOCAL:1 = 30000
+		ENDSELECT
+		PRINTW ………
+		PRINTW ……
+		PRINTW …
+		PRINTL
+		PRINTL
+		PRINTFORMW ＞列車の揺れを感じながらのんびりしていると、ジョーが声をかけてきた…。
+		PRINTFORMW 「…や、サマナーさん。ちょっといいかな？聞きたいことがあってさ」
+		PRINTFORMW ＞どうやら、真面目な話のようだ…。
+		PRINTFORMW ＞ダイチ達のいない、隣の車両で話を聞くことにする。
+		PRINTFORMW 「実はアレだ、その…。彼女の事、なんだけどね。俺の彼女の話」
+		PRINTFORMW 「や～…分かってるって。こんな時に、こんな事を悩むなんてアレだよね」
+		PRINTFORMW 「けど…俺にとっては、やっぱ重要な事でさ？ちょっと君に聞いてほしくて」
+		PRINTFORMW ＞%CALLNAME:MASTER%は構わない、と答えた…。
+		PRINTFORMW 「はは…ありがと♪やっぱサマナーさんって頼りになるなぁ。あ、それでさ…」
+		PRINTFORMW 「…俺の彼女、実は病気でさ。名古屋の病院にいるんだけど…」
+		PRINTFORMW 「結構重病なんだよコレが。ずっと入退院を繰り返してて、大変なんだわ」
+		PRINTFORMW 「一応彼氏としては、ちゃんと支えるべきなんだけど、ココ最近は会ってなくってさ…」
+		PRINTFORMW 「…仕事のせいにして、何やかんや避けちゃってて…」
+		PRINTFORMW 「あ、もちろん好きだよ？好きだし大切な人だけど…」
+		PRINTFORMW 「…自分のキャラくらい、分かってるつもりだよ。俺なんかには荷が重くてさ…」
+		PRINTFORMW ＞ジョーは自嘲するかのように笑った…。
+		PRINTFORMW 「…でもさすがに、このままじゃ良くないよね？随分悲しませてるみたいだし」
+		PRINTFORMW 「でもさ…何とかしなきゃだけど、中々踏ん切りが…ね」
+		PRINTFORMW 「…今更会って、どうすりゃいいのかな？」
+		PRINTFORMW 「かと言って、このまま会わないのは…やっぱりダメだろうし…」
+		PRINTFORMW ＞会うべきだ、と%CALLNAME:MASTER%は答えた。
+		PRINTFORMW ＞現状がどうなるか分からない上、会わずに死に別れてしまうという事でもあれば、恐らく彼は酷く後悔するだろう…。
+		PRINTFORMW 「…うん。やっぱそうだよねぇ。どうしようかな～…」
+		PRINTFORMW 「……」
+		PRINTFORMW 「ははは…やっぱり、サマナーさんは頼り甲斐あるねぇ。年齢よく分かんないけど、実はすごい年上だったり？」
+		PRINTFORMW 「そんな感じで、\@ TALENT:MASTER:オトコ ? 女の子も口説いてる # 男の子からモテモテな \@んでしょ？や～隠さなくっていいって」
+		PRINTFORMW 「…よし。とにかく考えてみるよ。ありがとう、聞いてくれて」
+		PRINTFORMW ＞ジョーは考え込みながら、元いた車両に戻った…。
+		PRINTW ………
+		PRINTW ……
+		PRINTW …
+		PRINTL
+		PRINTL
+		PRINTFORMW ￥{LOCAL:1}を入手しました。
+		PRINTL
+		MONEY += LOCAL:1
+
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 210
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_30_FLAG_RESET
+
+		;- 依頼:ターンの終了
+		CALL REQUEST_30_TURN_END
+		RETURN
+
+	;- 名古屋支局戦
+	CASE 10 TO 19
+		L_TMP = ((FLAG:デビサバ２イキ顔動画進行度 / 100) % 10)
+		PRINTFORMW ＞東京 ― 国会議事堂。
+		PRINTFORMW ＞エレベータを抜け、ヤマトと面会した。
+		PRINTFORMW ＞ジプス東京支局の広間の一角にて、会議が行われた…。
+		PRINTFORML 
+		PRINTFORMW ＞ヤマトは神妙な面持ちだ…。
+		PRINTFORMW 「…さてサマナー、折り入って頼みがある」
+		PRINTFORMW 「…現在、名古屋支局が暴徒に占拠されたという情報が入っている」
+		PRINTFORMW 「どうやら、先日の混乱の隙を突かれたようだ。情けない話ではあるがな」
+		PRINTFORMW 「当該支局の局員に対応させているが、サマナー、君にも向かって貰いたい」
+		PRINTFORMW ＞今回の仕事は、名古屋支局の奪還の様だ…。
+		PRINTFORML
+		PRINTFORMW 「…私の方は、早急に隠蔽工作をしなければならない」
+		PRINTFORMW 「日本という国家は健在だ。私も足元をすくわれる芽は摘んでおきたい」
+		PRINTFORMW ＞…どうやらヤマトは、支局が占拠されるという失態を、内密に処理したい様だ…。
+		PRINTFORMW ＞確かに日本政府は存在する。彼もある程度は、身を綺麗にしなければならないだろう…。
+		PRINTFORML
+		PRINTFORMW 「…残念だが、君の承諾を待っている時間は無い」
+		PRINTFORMW 「このまますぐに向かって貰う」
+		PRINTFORMW 「…無論、対価は払おう」
+		PRINTFORMW ＞かなり切迫している様だ。
+		PRINTFORMW ＞専用列車に乗り、急ぎ名古屋に向かおう。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 専用車両ホーム - 名古屋。
+		PRINTFORMW ＞名古屋に着いた。
+		IF L_TMP >= 7
+			PRINTFORMW ＞ホームにはフミ、ジュンゴやジプス局員などが滞在している。
+			PRINTFORMW ＞東京勢も姿が見える。ヤマトが派遣したのだろう。
+			PRINTFORML フミ：
+			PRINTFORMW 「おつかれちゃん」
+			PRINTFORML ジュンゴ：
+			PRINTFORMW 「ジュンゴ、頑張る」
+		ELSE
+			PRINTFORMW ＞ホームにはフミ、ジュンゴ、アイリに加えてジプス局員などが滞在している。
+			PRINTFORMW ＞東京勢も姿が見える。ヤマトが派遣したのだろう。
+			PRINTFORML フミ：
+			PRINTFORMW 「おつかれちゃん」
+			PRINTFORML アイリ：
+			PRINTFORMW 「サマナーさん来たし、奪還作戦を始めようよ」
+			PRINTFORML ジュンゴ：
+			PRINTFORMW 「ジュンゴ、頑張る」
+		ENDIF
+		PRINTFORMW ＞協力者と局員達と共に名古屋支局へ向かおう…。
+		PRINTFORML
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 名古屋支局。
+		PRINTFORMW ＞広間に到着した…。
+		PRINTFORMW ＞既に広間には、悪魔が展開されている様だ…。
+		PRINTFORMW ＞広間は局員たちに任せ、フミと共に指令室に向かった…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 名古屋支局 - 指令室。
+		PRINTFORMW ＞指令室に到着した…。
+		PRINTFORMW ＞数名の暴徒と、指令室の中央にリーダー格らしき人物が居る…。
+		PRINTFORMW ＞あの男が暴徒達のリーダー、"栗木　ロナウド(クリキ　ロナウド)"らしい…。
+		PRINTFORML
+		PRINTFORML ロナウド
+		PRINTFORMW 「物資の運び出しを急げ！グズグズすれば増援が来るっ…！」
+		PRINTFORML 暴徒：
+		PRINTFORMW 「げっ…！あ、アイツらは…！」
+		PRINTFORML ロナウド
+		PRINTFORMW 「クソッ…早いな、もう現れたか…！」
+		IF L_TMP < 7
+			PRINTFORML アイリ：
+			PRINTFORMW 「栗木ロナウドっ！いい加減にしなさいよ、ジプスをこんなメチャクチャにして！」
+		ELSE
+			PRINTFORML ジョー：
+			PRINTFORMW 「アンタがクリッキー・ロナウド？ちょっと名古屋荒れすぎじゃない？アンタが煽ったせいで滅茶苦茶だよ」
+		ENDIF
+		PRINTFORML ロナウド：
+		PRINTFORMW 「ほざけ、悪党っ！だったらこの物資は何だ！」
+		PRINTFORMW 「これだけの携帯端末…悪魔が出現するこの事態に、お前たちだけ自衛の手段を持つのか！」
+		PRINTFORMW ＞…どうやらロナウド達は、悪魔騒ぎの自衛の為に携帯端末を奪取しに来た様だ…。
+		PRINTFORML
+		PRINTFORML ロナウド：
+		PRINTFORMW 「力ある者だけ生きる権利があるというのか！」
+		PRINTFORMW 「そんな事…許せるはずがない！」
+		PRINTFORML
+		PRINTFORML フミ：
+		PRINTFORMW 「…メンドクサイな、言い合いなんてムダ」
+		PRINTFORMW ＞フミは端末を取り出した…。やる気の様だ…。
+		PRINTFORML
+		PRINTFORML 暴徒：
+		PRINTFORMW 「ひっ…あ、アイツら、ジプスの悪魔使いだ…！」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「うろたえるな！物資を外へ運び出せ！」
+		PRINTFORMW 「ヤツらの相手は…俺がする！」
+		PRINTFORML 暴徒：
+		PRINTFORMW 「は…ロナウドさん…！は、はいぃっ…！」
+		PRINTFORML ジョー：
+		PRINTFORMW 「ひゃー、これはまた、やるしかない雰囲気」
+		PRINTFORMW ＞東京勢も端末を取り出した…。
+		PRINTFORML フミ：
+		PRINTFORMW 「油断しないで。アイツ、強いよ？」
+		PRINTFORMW 「サマナー、私は重要機材を守るから、ロナウドをお願いね」
+		PRINTFORMW ＞…頼まれた様だ。
+		PRINTFORML
+		PRINTFORMW ＞…ロナウドの前に立った…。
+		PRINTFORMW ＞確かに、かなり強力な悪魔使いの様だ。
+		PRINTFORML ロナウド：
+		PRINTFORMW 「悪しき大義を盾に民を苦しめるなど…この栗木ロナウドが許さん！」
+		PRINTFORMW 「痴れ者っ…！己の罪を思い知れ！」
+		PRINTFORML
+		PRINTFORMW ＞ロナウドは悪魔を展開した―――。
+		PRINTFORML
+		PRINTFORMW 「来るか、悪意よ！お前達の様な連中に、俺の正義は砕かれんっ！」
+
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 215
+
+		PRINTFORML 
+		PRINTFORMW 人間　栗木ロナウドが一体出た！
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- 悪魔解析度増加処理(1000でMAX)
+			CALL INCREASE_ANALYZE([[キャラ:敵ロナウド]],1000)
+			CALL INCREASE_ANALYZE([[キャラ:バフォメット]],1000)
+			CALL INCREASE_ANALYZE([[キャラ:フェニックス]],1000)
+
+			;- SET:ロナウド
+			CALL SET_ENEMY,9,[[キャラ:敵ロナウド]],REQUEST_30_BASE_LV(3),1,1
+			NAME:(CHARANUM-1) = 栗木 ロナウド
+			CALLNAME:(CHARANUM-1) = ロナウド
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+			CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+			CFLAG:(CHARANUM-1):速度補正 = 5
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+
+			;- SET:雑魚
+			CALL SET_ENEMY,8, [[キャラ:バフォメット]],REQUEST_30_BASE_LV(3)
+			CALL SET_ENEMY,10, [[キャラ:フェニックス]],REQUEST_30_BASE_LV(3)
+
+			;- 戦闘開始
+			CALL BATTLE_START
+
+		ENDIF
+
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		PRINTFORML ロナウド：
+		PRINTFORMW 「く、不覚…！だが俺は負けるわけには…！」
+		PRINTFORMW ＞ロナウドは膝をついた…。
+		CUSTOMDRAWLINE =
+		PRINTFORML ロナウド：
+		PRINTFORMW 「残ったのは俺だけ、か…」
+		PRINTFORMW ＞…ロナウドを取り囲んだ…。
+		PRINTFORMW 「フッ、強いな！さすがはジプスの援軍だ」
+		PRINTFORML フミ：
+		PRINTFORMW 「止めときなよ。戦力はこっちが上、勝ち目ないよ？」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「フン…馬鹿な。降伏しろとでも言うのか？」
+		PRINTFORMW 「勝てぬ相手に挑まぬなら、俺は正義など口にはしない！」
+		PRINTFORMW ＞…どうやら、まだやる気の様だ…。
+		PRINTFORML 
+		PRINTFORML ロナウド：
+		PRINTFORMW 「フ…言葉は不要、か。分かっているようだな！」
+		PRINTFORMW 「おしゃべりは終わりだ、行くぞっ…！」
+		PRINTFORMW ＞だがその瞬間、指令室に電撃がほとばしった…。一つだけではなく、次々といくつも巻き起こる。
+		PRINTFORML 
+		PRINTFORML バチィ、バチィ…ゴゴゴゴ…
+		PRINTFORMW 
+		PRINTFORMW ＞地面…部屋が揺れている…。地震の様だ…。
+		PRINTFORML ロナウド：
+		PRINTFORMW 「な、何だ…。これは一体…!?」
+		PRINTFORMW 「……！上だ、上を見ろ！」
+		PRINTFORML 
+		PRINTFORML バリィィィィン…
+		PRINTFORMW
+		PRINTFORMW ＞その瞬間、天井のガラスを突き破り―――。
+		PRINTFORMW ＞巨大な物体が落下して来た―――。
+		PRINTFORML 
+		PRINTFORML ドスゥ…ン…
+		PRINTFORMW
+		PRINTFORML ロナウド：
+		PRINTFORMW 「……!?」
+		PRINTFORMW ＞そこには、指輪の様なリングの外周に、無数の水晶柱を付けた様な悪魔が居た―――。
+		PRINTFORML 
+		PRINTFORML ？？？：
+		PRINTFORMW 『○Ψ、％％Ω…』
+		PRINTFORML 
+		IF L_TMP < 7
+			PRINTFORML アイリ：
+			PRINTFORMW 「な…!?何アレ…！」
+			PRINTFORML 
+		ENDIF
+		PRINTFORMW ＞フミは端末を見ている…。
+		PRINTFORML フミ：
+		PRINTFORMW 「『フェクダ』か…」
+		PRINTFORMW 「参ったな、こんな時に来ちゃった」
+		PRINTFORML 
+		PRINTFORMW ＞携帯端末が鳴っている…。
+		PRINTFORML マコト：
+		PRINTFORMW 「…サマナーか、ようやく連絡が取れた！」
+		PRINTFORMW 「気を付けろ…ドゥベ、メラクに続く第三の存在が現れたんだ！」
+		PRINTFORMW 「詳しい情報は不明だが、情報によるとヤツは名古屋にいる！」
+		PRINTFORMW ＞…。
+		PRINTFORMW ＞%CALLNAME:MASTER%は目の前に居る事を伝えた…。
+		PRINTFORMW 「な…馬鹿な！」
+		PRINTFORMW 「サマナー、私もすぐに行くっ！決してヤツと…」
+		PRINTFORMW 「…………」
+		PRINTFORMW ＞電話は途切れた…。
+		PRINTFORML
+		PRINTFORML ジョー：
+		PRINTFORMW 「今の電話って、マコトさんの声だよね？…何だって？」
+;-------------------------------------------------
+		PRINTFORMW ＞マコトは待てと言う指示だったが…。
+		PRINTFORML フミ：
+		PRINTFORMW 「……。や～、そうはいかないんじゃないかな」
+;-------------------------------------------------
+;		PRINTFORMW ＞マコトは待てと言う指示だったが、放置は出来ないだろう…。
+;		PRINTFORMW ＞戦えと伝えた…。
+;		PRINTFORML フミ：
+;		PRINTFORMW 「……へぇ、サコっちにしては懸命な判断だわ」
+;-------------------------------------------------
+		PRINTFORMW 「さっきのアイツ、見たでしょ？かなり強力な放電を持ってる」
+		PRINTFORMW 「あの『フェクダ』って奴が、ここを狙ってるとすれば…」
+		PRINTFORMW 「この場で倒さなきゃ、手遅れになるよ」
+		PRINTFORMW 「……」
+		PRINTFORMW 「あ～、知らないか」
+		PRINTFORMW 「名古屋テレビ塔のジプス施設に電力を供給してるのは…」
+		PRINTFORMW 「この名古屋支局にある変電施設なんだね、コレが」
+		PRINTFORMW 「ジプス施設の電源が落ちると、結界も消えるから」
+		PRINTFORMW 「…そこら中に悪魔が沸くかもね」
+		PRINTFORMW ＞…つまり、戦うしか無いらしい。
+		PRINTFORMW ＞フェクダといつの間にか現れた悪魔達に向けて携帯を構える協力者達の中には、ロナウドの姿もあった…。
+		PRINTFORML 
+		PRINTFORML フミ：
+		PRINTFORMW 「あれ、ロナウド？逃げるヒマならいくらでもあったでしょ」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「…どう見ても簡単な相手じゃない。争っている場合か！」
+		PRINTFORMW ＞…端末を奪取しに来た割には、ロナウドは悪用や保身は考えていない様だ…。
+		PRINTFORML 
+		PRINTFORML ロナウド：
+		PRINTFORMW 「…カン違いするな。お前たちとの決着は、後に回すだけだ」
+		PRINTFORML 
+		PRINTFORML フェクダ：
+		PRINTFORMW 『％％Ψ、○Ω。￠ΔБ…！』
+		PRINTFORML 
+		IF L_TMP < 7
+			PRINTFORML アイリ：
+			PRINTFORMW 「何なのよ、もう！これ以上名古屋を荒らさせないんだから！」
+		ENDIF
+		PRINTFORML ジュンゴ：
+		PRINTFORMW 「ん、ジュンゴ、戦う。名古屋を好きにさせない…！」
+		PRINTFORML フミ：
+		PRINTFORMW 「あれが例の化け物…か。ナマで見るのは初めてだね、ちょっと観察したいトコだわ」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「おしゃべりは後だ。アレを始末するっ…！」
+		PRINTFORML 
+		PRINTFORMW ＞ジプスとロナウドの連合は、フェクダと対峙した―――。
+		PRINTFORML 
+		PRINTFORML 
+
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 216
+
+		PRINTFORML 
+		PRINTFORMW セプテントリオン　禄存星フェクダが一体出た！
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- 悪魔解析度増加処理(1000でMAX)
+			CALL INCREASE_ANALYZE([[キャラ:フェクダ]],1000)
+
+			;- SET:フェクダ
+			CALL SET_ENEMY,9,[[キャラ:フェクダ]],REQUEST_30_BASE_LV(3),1,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+			CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+			CFLAG:(CHARANUM-1):速度補正 = 15
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			
+			;万能以外無効
+			FOR LOCAL , GETNUM(MAXBASE, "剣撃") , GETNUM(MAXBASE, "万能")
+				BASE:(CHARANUM-1):LOCAL = 0
+			NEXT
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			;- 戦闘開始
+			CALL BATTLE_START
+		ENDIF
+
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		
+		PRINTFORMW ＞フェクダは崩れ落ちた…
+		CUSTOMDRAWLINE =
+		IF L_TMP < 7
+			PRINTFORML アイリ：
+			PRINTFORMW 「か…勝った。もう大丈夫だよね？」
+		ENDIF
+		PRINTFORML フミ：
+		PRINTFORMW 「あ～ロナウド。アンタも無事？」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「ああ、何とかな…。クソッ、何だったんだアレは」
+		PRINTFORML （マコトの声）：
+		PRINTFORMW 「アレは『フェクダ』、私達ジプスの敵だ」
+		PRINTFORMW ＞マコトが指令室に現れた…。
+		PRINTFORML 
+		PRINTFORML フミ：
+		PRINTFORMW 「あ～サコっち。アンタ遅すぎ…」
+		PRINTFORML マコト：
+		PRINTFORMW 「すまない、急いだのだが…。申し訳ない事をした」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「迫、お前か。フ…俺もツイていないな、お前が来るとは…」
+		PRINTFORML マコト：
+		PRINTFORMW 「…栗木ロナウド。やはり今回の件はお前の仕業だったか…」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「ああ…そうさ、俺はお前たちの悪事を決して許さない！…峰津院大和をな」
+		PRINTFORML マコト：
+		PRINTFORMW 「……。今は止そう、力を貸してくれた事に礼を言う」
+		PRINTFORML ロナウド：
+		PRINTFORMW 「…ふざけるな！お前達ジプスの情けなど、俺には無用っ！」
+		PRINTFORML マコト：
+		PRINTFORMW 「そんなつもりはない。だが…今のお前を討っても、我々の敵は残ったままだ…」
+		IF L_TMP < 7
+			PRINTFORML アイリ：
+			PRINTFORMW 「ちょ…冗談でしょ!?だってソイツ、支局を…、それに名古屋だって…！」
+			PRINTFORML マコト：
+			PRINTFORMW 「君が伴か、話は聞いている。だが我々ジプスは、私怨で敵を討つ組織ではない」
+		ELSE
+			PRINTFORMW ジュンゴが何か言いたそうにマコトを見ている。
+			PRINTFORML マコト：
+			PRINTFORMW 「……我々ジプスは、私怨で敵を討つ組織ではない」
+			PRINTFORMW 「それに彼女はロナウドが間接的な原因ではあるが直接の原因ではない…」
+			PRINTFORMW マコトは先日の件をそう断定する。しかし、その声には躊躇いが混じっていた…。
+		ENDIF
+		PRINTFORML フミ：
+		PRINTFORMW 「あのさ、サコっち。局長は許可してんの？知らないよ、何言われても」
+		PRINTFORML マコト：
+		PRINTFORMW 「……局長には私から報告する。この決定を下したのは私だ」
+		PRINTFORMW ＞…どうやらマコトの独断で、ロナウドを逃がす様だ…。
+		PRINTFORML 
+		PRINTFORML ロナウド：
+		PRINTFORMW 「フン…迫。お前の志に免じて、この場は退こう」
+		PRINTFORMW 「お前達…油断するな。ジプスは、お前たちの思うような組織じゃない」
+		PRINTFORMW 「いいか、峰津院はこの災害が起きる前より何かを企んでいる！」
+		PRINTFORMW 「決して、ヤツを信用するな…！」
+		IF L_TMP < 7
+			PRINTFORML アイリ：
+			PRINTFORMW 「あ、ちょっと…！待ちなさいよ、卑怯者っ！」
+		ENDIF
+		PRINTFORMW ＞ロナウドは去って行った…。
+		PRINTFORML 
+		PRINTFORML フミ：
+		PRINTFORMW 「やれやれ…理解できないなぁ。甘いんだよ…サコっちは」
+		PRINTFORML マコト：
+		PRINTFORMW 「…フミ、もういい」
+		PRINTFORMW 「それよりみんな、良く頑張ってくれたな」
+		PRINTFORMW ＞マコトが協力者達と会話をしている…。
+		PRINTFORMW ＞名古屋支局は、完全にジプスの手に戻った様だ…。
+		PRINTFORMW 「…では、私も施設の復旧を手伝わないといけない。戻るとするよ」
+		PRINTFORML フミ：
+		PRINTFORMW 「あ、ちょっと。サコっち～？」
+		PRINTFORMW ＞マコトとフミは、広間に去って行った…。
+		PRINTFORMW ＞協力者達は、何やら話をしている…。
+		PRINTFORMW ＞どうやら、ロナウドの発言が気になるらしい…。
+		PRINTFORMW ＞…こちらも状況を俯瞰する事に努めよう。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞ジプス ― 専用車両ホーム - 名古屋。
+		PRINTFORMW ＞ヤマトからの仕事は済んだ為、東京に戻る事にした。
+		PRINTFORMW ＞ホームでは、東京からこちらに来たヤマトと擦れ違った…。
+		PRINTFORMW ＞被害状況と復旧状況を見に来た様だ…。
+		PRINTFORML ヤマト：
+		PRINTFORMW 「…君か。ご苦労だった」
+		PRINTFORMW 「しかし無様だな。通信を妨害されたとはいえ、こうも簡単に支局が落ちるとは」
+		PRINTFORMW 「…しかも相手は、ただの一般人だ」
+		PRINTFORMW 「…名古屋支局は一体、何を遊んでいたんだ？」
+		PRINTFORMW 「…もはや言葉も浮かばんな。やはりクズはクズ…。訓練した所で使い物にならん」
+		PRINTFORMW ＞ヤマトは不満を漏らしている…。
+		PRINTFORMW ＞今回のマコトの行動は、彼女の立場に響くだろう…。
+		PRINTFORMW 「…迫の事か？聞いている」
+		PRINTFORMW 「…君の頼みなら…と言いたい所だが、元より咎める気はない」
+		PRINTFORMW 「…君に気に入られるとは、迫も果報者だな」
+		PRINTFORMW ＞どうやら、これといって処罰する気は無い様だ…。
+		PRINTFORMW ＞口添えは不要だったかも知れない…。
+		PRINTFORMW ＞ヤマトがホームを去ると同時に、アイリとジュンゴが走って来た…。
+		PRINTFORML
+		PRINTFORML ジュンゴ：
+		PRINTFORMW 「ジュンゴ、%CALLNAME:MASTER%見送りに来た」
+		PRINTFORML アイリ：
+		PRINTFORMW 「私が見送りに行こうって言ったんでしょ！」
+		SIF L_TMP > 6
+			PRINTFORMW ＞…アイリの顔は先日に比べると、ずっと明るい。何とか立ち直れたようだ…。
+		PRINTFORMW 「ってもう、恥ずかしくなったじゃない」
+		PRINTFORMW 「…あ、サマナーさん…、あの…これ」
+		PRINTFORMW ＞アイリから、土産を渡された…。
+		PRINTFORMW ＞『味噌チョコレート』と書いてある…。
+		PRINTFORML ジュンゴ：
+		PRINTFORMW 「%CALLNAME:MASTER%。ジュンゴ、作った」
+		PRINTFORMW ＞ジュンゴから、土産を渡された…。
+		IF L_TMP > 6
+			PRINTFORMW ＞また茶碗蒸しだ…。有り難く受け取る。
+		ELSE
+			PRINTFORMW ＞茶碗蒸しだ…。
+			PRINTFORMW ＞そういえば、ジュンゴは板前らしい…。
+		ENDIF
+		PRINTFORML ジュンゴ：
+		PRINTFORMW 「ありがとう。また名古屋に来て」
+		PRINTFORML アイリ：
+		PRINTFORMW 「来なかったら、東京まで行くからねっ！げ、元気でっ…！」
+		PRINTFORMW ＞二人に見送られながら、列車に乗った…。
+		PRINTFORMW ＞良く見ると、アイリの頬に一筋の涙が見える…。
+		PRINTFORMW ＞列車が発車した時、彼女の涙を拭ったジュンゴがアイリに叩かれている姿が、窓から見えていた……。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞今回は名古屋勢と面識を持てた。
+		PRINTFORMW ＞彼らは、今日の一件でこちらを信用してくれている様だ。
+		PRINTFORMW ＞ロナウドに関しては、こちらでも調査しておこう…。
+		PRINTFORML
+		PRINTFORMW ＞前回はヒナコと出会ったが、今回はアイリと出会う事が出来た…。
+		PRINTFORMW ＞アイリは悪魔使いとしても、性奴隷としても魅力的な人材である…。
+		PRINTFORMW ＞…今度、ヤマトにアイリを融通して貰えないか聞いておこう…。
+		PRINTFORML
+		PRINTFORMW ＞列車の中には誰も居ない…。一人の様だ…。景色は見られないが、車内の揺れが心地いい…。
+		PRINTFORMW ＞端末が鳴っている…。
+		PRINTFORML ティコ：
+		PRINTFORMW 「やほほ～、サマナーっち！今日もお疲れちん★」
+		PRINTFORMW ＞『ニカイア』だ…。
+		PRINTFORMW 「これまで色々あったけど、サマナーっちは全部ぶっ殺して来たよね★」
+		PRINTFORMW 「凄いね～！ドゥベでしょ、メラクでしょ、フェクダでしょ…もう３体★」
+		PRINTFORMW 「あとイオちゃんを奴隷にしたよね★サマナーっちは他の女の子も狙ってる様だけど」
+		PRINTFORMW 「サマナーっちの動画は特別仕様だから、頑張って先に獲物を奪ってね～★」
+		PRINTFORMW ＞そういえば、ダイチ達がニカイアについて話していた…。
+		PRINTFORMW ＞本来のニカイアは、知り合いの死の瞬間が先に動画で配信されるらしい…。
+		PRINTFORMW ＞ダイチの親友の"彼"は、この動画を元にケイタ、ジュンゴ、ダイチを救ったと言っていた…。
+		PRINTFORMW ＞生命の危機が貞操の危機に変わっているのは、こちらの職業に合わせてなのか…。
+		PRINTFORML
+		PRINTFORMW ＞しかし、このティコとは何者なのだろうか…。
+		PRINTFORMW ＞見た所スタイルも良く、巨乳である。奴隷に出来れば、使い道はあるだろう…。
+		PRINTFORMW 「あれれ～サマナーっち。もしかしてティコりんも狙ってるの？★」
+		PRINTFORMW 「サマナーっちって超変態なんだね★」
+		PRINTFORMW 「ティコりんと会いたいなら、あの方にお願いすると良いんじゃないかな★」
+		PRINTFORMW ＞あの方とは、誰だろう…。
+		PRINTFORMW 「あの方はサマナーっちのすぐ傍に居ると思うよ★」
+		PRINTFORMW ＞すぐ傍…。
+		PRINTFORMW ＞そういえば、初日に出会ったあの赤い少年も、すぐ傍と言っていた…。
+		PRINTFORMW 「それではっ！ハブ・ア・ナイスた～★」
+		PRINTFORMW ＞…アプリは切れた。
+		PRINTFORMW ＞…あの少年に会った時、探ってみよう。
+		PRINTFORML
+		PRINTFORMW ＞…最初のヤマトとの面会から約２時間が経過したが…濃密な２時間だった…。
+		PRINTFORMW ＞…東京への到着まではまだ時間がある…。
+		PRINTFORMW ＞…列車の揺れに身を任せ、仮眠を取っておこう…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORMW ￥50000を入手しました。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML 『3RD DAY』 が完了しました。
+		PRINTFORML
+		PRINTFORMW 
+		PRINTFORML 
+
+		MONEY += 50000
+
+		;- フラグセット
+		FLAG:デビサバ２進行度 = 300
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_30_FLAG_RESET
+
+		;- 依頼:ターンの終了
+		CALL REQUEST_30_TURN_END
+
+ENDSELECT
+
+
+;=================================================
+;   sub EVENT_BATTLE_TURNEND_REQUESTxxx_yyy
+;=================================================
+;   依頼:戦闘中処理(ターン終了時)
+;-------------------------------------------------
+;   FLAG:勝利フラグに1をセットすると、戦闘を強制終了出来る
+;   FLAG:敗北フラグに1をセットすると、ゲームオーバーに出来る
+;-------------------------------------------------
+@EVENT_BATTLE_TURNEND_REQUEST30_3
+#DIM L_FLAG_EVENT_DIGIT
+#DIM L_TMP
+#DIM L_CNT
+#DIM L_I
+
+;- フラグをセット(イベントフラグ:２桁)
+L_FLAG_EVENT_DIGIT = FLAG:デビサバ２進行度 % 100
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+SELECTCASE L_FLAG_EVENT_DIGIT
+	;-----------------------------
+	;- 5:戦闘中(ボティス)
+	;-----------------------------
+	CASE 5
+		;-------------------------------------------------
+		;- 5ターン毎にイキ顔動画のフラグが進行する
+		;-------------------------------------------------
+		IF (FLAG:経過ターン数 % 5) == 0
+			IF ((FLAG:デビサバ２イキ顔動画進行度 / 100) % 10) < 9
+				FLAG:デビサバ２イキ顔動画進行度 += 100
+			ELSE
+				;- 戦闘終了
+				FLAG:勝利フラグ = 1
+			ENDIF
+		ENDIF
+	;-----------------------------
+	;- 16:戦闘中(フェクダ)
+	;-----------------------------
+	CASE 16
+		;-------------------------------------------------
+		;- 5ターン毎に分裂→合体→分裂→合体...を繰り返す
+		;-------------------------------------------------
+		;5ターン毎
+		IF FLAG:経過ターン数 % 5 == 0
+			
+			CUSTOMDRAWLINE =
+			
+			;- 残存キャラ数を取得
+			L_TMP=0
+			L_CNT=0
+			L_I = -1
+			WHILE 1
+				SIF CHARANUM == (L_I + 1)
+					BREAK
+				L_I = FINDCHARA(NO, [[キャラ:フェクダ]], L_I + 1)
+				SIF L_I < 0
+					BREAK
+				L_CNT ++
+				L_TMP = MAX(L_TMP,BASE:L_I:ＨＰ)
+				;先に切り離しておく
+				CALL REMOVE_POSITION,CFLAG:L_I:ポジション
+			WEND
+
+			;- 残存キャラを除外
+			L_I = -1
+			WHILE 1
+				SIF CHARANUM == (L_I + 1)
+					BREAK
+				L_I = FINDCHARA(NO, [[キャラ:フェクダ]], L_I + 1)
+				SIF L_I < 0
+					BREAK
+				DELCHARA L_I
+				;減算
+				L_I --
+			WEND
+			;-----------------------------
+			;- 一体しか居ない場合は、分裂処理
+			;-----------------------------
+			IF L_CNT == 1
+				;- 赤
+				SETCOLOR 0xFF0000
+				CALL MESSAGE_B(3,,"フェクダは分裂を行った…！",)
+				RESETCOLOR
+				SIF FLAG:経過ターン数 == 5
+					CALL MESSAGE_B(1,"ロナウド：何っ…!?２つに分かれたぞ！")
+
+				;- SET:フェクダα（物理弱点）
+				CALL SET_ENEMY,8,[[キャラ:フェクダ]],REQUEST_30_BASE_LV(3),1,1
+				CALLNAME:(CHARANUM-1) = フェクダα
+				CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+				CFLAG:(CHARANUM-1):速度補正 = 15
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				;スキル
+				ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・ジオンガ]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:マハ・ブフーラ]]
+				ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・ザンマ]]
+				ABL:(CHARANUM-1):スキル4 = [[スキル:暗黒の雷光]]
+				ABL:(CHARANUM-1):スキル5 = 0
+				ABL:(CHARANUM-1):スキル6 = 0
+				ABL:(CHARANUM-1):スキル7 = 0
+				ABL:(CHARANUM-1):スキル8 = 0
+				;耐性(物理弱点)
+				FOR LOCAL , GETNUM(MAXBASE, "剣撃") , GETNUM(MAXBASE, "万能")
+					BASE:(CHARANUM-1):LOCAL = 0
+				NEXT
+				BASE:(CHARANUM-1):剣撃 = 150
+				BASE:(CHARANUM-1):打撃 = 150
+				BASE:(CHARANUM-1):戦技 = 150
+				
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				BASE:(CHARANUM-1):ＨＰ = L_TMP
+
+				;- SET:フェクダβ（4属性弱点）
+				CALL SET_ENEMY,10,[[キャラ:フェクダ]],REQUEST_30_BASE_LV(3),1,1
+				CALLNAME:(CHARANUM-1) = フェクダβ
+				CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+				CFLAG:(CHARANUM-1):速度補正 = 15
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				;スキル
+				ABL:(CHARANUM-1):スキル1 = [[スキル:絶妙打]]
+				ABL:(CHARANUM-1):スキル2 = [[スキル:百烈突き]]
+				ABL:(CHARANUM-1):スキル3 = 0
+				ABL:(CHARANUM-1):スキル4 = 0
+				ABL:(CHARANUM-1):スキル5 = 0
+				ABL:(CHARANUM-1):スキル6 = 0
+				ABL:(CHARANUM-1):スキル7 = 0
+				ABL:(CHARANUM-1):スキル8 = 0
+				
+				;耐性(4属性弱点)
+				FOR LOCAL , GETNUM(MAXBASE, "剣撃") , GETNUM(MAXBASE, "万能")
+					BASE:(CHARANUM-1):LOCAL = 0
+				NEXT
+				BASE:(CHARANUM-1):火炎 = 150
+				BASE:(CHARANUM-1):氷結 = 150
+				BASE:(CHARANUM-1):電撃 = 150
+				BASE:(CHARANUM-1):衝撃 = 150
+
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				BASE:(CHARANUM-1):ＨＰ = L_TMP
+
+			;-----------------------------
+			;- 二体居る場合は、合体処理
+			;-----------------------------
+			ELSE
+				;- 赤
+				SETCOLOR 0xFF0000
+				CALL MESSAGE_B(3,,"フェクダは合体を行った…！",)
+				RESETCOLOR
+				IF FLAG:経過ターン数 == 10
+					CALL MESSAGE_B(3,"どうやらこの敵は、分裂と合体を行うらしい。","合体中はあらゆる耐性を持ち、","分裂中はそれぞれに特化した耐性を持つ。")
+					PRINTL
+					CALL MESSAGE_B(3,"均等にダメージを与えて同時に倒さなければ","分裂と合体で修復してしまう様だ…。",)
+				ENDIF
+
+				;- SET:フェクダ
+				CALL SET_ENEMY,9,[[キャラ:フェクダ]],REQUEST_30_BASE_LV(3),1,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 = 1000
+				CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+				CFLAG:(CHARANUM-1):速度補正 = 15
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				
+				;万能以外無効
+				FOR LOCAL , GETNUM(MAXBASE, "剣撃") , GETNUM(MAXBASE, "万能")
+					BASE:(CHARANUM-1):LOCAL = 0
+				NEXT
+				
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				BASE:(CHARANUM-1):ＨＰ = L_TMP + 100
+
+			ENDIF
+		ENDIF
+
+ENDSELECT

@@ -1,0 +1,501 @@
+
+;=======================================================================
+;ゾディアック
+;ボス・イシュッキックORレイディスコルピオ
+;星あかりOR吉崎杏奈加入
+;ダンジョンナンバー13
+;=======================================================================
+;=======================================================================
+;関連フラグ一覧
+;=======================================================================
+;他のイベントで立てられるもの
+;イベントフラグ:4:0　仮面党討伐指令クリアフラグ（仮面党討伐指令クリア）
+;ダンジョンフラグ:13:3、大迷路フラグ（仮面党討伐指令）
+;ダンジョンフラグ:13:4、仮面党員強化フラグ（仮面党討伐指令）
+;ダンジョンフラグ:13:5、悪魔登場フラグ（仮面党討伐指令）
+;ダンジョンフラグ:13:6、ボス決定フラグ（仮面党討伐指令）
+
+;このダンジョン内でつくフラグ
+;ダンジョンフラグ:13:1、突入フラグ
+;ダンジョンフラグ:13:2、奥突入フラグ:いらなくなったきがする
+;ダンジョンフラグ:13:11、クリアフラグ;EVENT5「ペルソナ」出現フラグでもある
+
+;宝フラグ
+;1F 12,1 Medecine　21
+;2F 1,1 LuIncense　22
+;	5,1 魔貨 300　23
+;	13.15 RevivalBead　24
+;	7,7 ナパームボム　25
+;	5,8* Life stone　26
+;	6,8* \ 1500　27
+;3F 8,9 Dis-Charm　28
+;	9,8 YamataNoDrink　29
+
+
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_51
+PRINTL なんでも、JOKERに願いを叶えてもらったものは仮面党なる組織に入らなければならなく、
+PRINTW その入党式がこのゾディアックのシークレットルームで行われる
+PRINTW そして、その入党式には仮面党の幹部も出席するらしい
+PRINTW 今回の任務はその幹部を襲撃し、式を妨害することだ
+PRINTW 失敗は許されない。速やかにシークレットルームに辿りつき、幹部を撃破しよう
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_51
+;==========
+;メッセンジャー
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10  == 8
+	CALL MESSAGE_51
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 3
+	CALL TREASURE_51
+	RETURN 1
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 4
+	CALL EVENT_51
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10  == 7
+CALL DUNGEON_STAIRS_51
+RETURN 1
+ELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_51,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;========
+;宝の処理
+;========
+IF DA:(FLAG:現X):(FLAG:現Y) % 10  == 3
+	CALL TREASURE_51
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10  == 7
+	CALL DUNGEON_STAIRS_51
+	RETURN 1
+;=======
+;特殊タイル
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 9
+SELECTCASE FLAG:現M
+	CASE 0
+		CALL DUNGEON_WORP_ID, 1, 9, 1
+		FLAG:現Y -= 1
+	CASE 1
+		PRINTW ここで引き返せば、無事入党式は終わってしまう
+		PRINTW そして、侵入者がでた以上、ここを捨てる可能性も高い
+		PRINTW 後戻りするべきではないだろう
+		FLAG:現Y = 15
+	CASEELSE
+ENDSELECT
+RETURN 1
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 2
+	CALL DUNGEON_DOOR, ARG
+	RETURN 1
+;========================
+;イベント
+;========================
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10  == 4
+	CALL EVENT_51
+ENDIF
+RETURN 0
+@TREASURE_51
+#DIM LOCALSIZE, 2
+;個数,-1のとき、魔貨・0の時、\となる
+LOCAL:1 = 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;1F
+	CASE 100
+		LOCAL = GETNUM(ITEM, "Medicine")
+		LOCAL:1 = 3
+	;2F(通常)
+	CASE 200
+		LOCAL = GETNUM(ITEM, "NapalmBomb")
+		LOCAL:1 = 3
+	CASE 201
+		LOCAL = 1750
+		LOCAL:1 = 0
+	;2F(迷路)
+	CASE 300
+		LOCAL = GETNUM(ITEM, "RevivalBead")
+	CASE 301
+		LOCAL = 270
+		LOCAL:1 = -1
+	CASE 302
+		LOCAL = 120
+		LOCAL:1 = -1
+	CASE 303
+		LOCAL = GETNUM(ITEM, "スキルカード【アクエス】")
+	CASE 304
+		LOCAL = 2720
+		LOCAL:1 = 0
+	CASE 305
+		LOCAL = GETNUM(ITEM, "Holy Shell")
+		LOCAL:1 = 5
+	CASE 306
+		LOCAL = GETNUM(ITEM, "スキルカード【タル・ンダ】")
+	CASE 307
+		LOCAL = GETNUM(ITEM, "OxBezoar")
+		LOCAL:1 = 3
+	CASE 308
+		LOCAL = 1750
+		LOCAL:1 = 0
+	CASE 309
+		LOCAL = GETNUM(ITEM, "天蠍宮制服")
+	CASE 310
+		LOCAL = GETNUM(ITEM, "LuIncense")
+	CASE 311
+		LOCAL = GETNUM(ITEM, "スキルカード【マリンカリン】")
+	;南東
+	CASE 312
+		LOCAL = GETNUM(ITEM, "NapalmBomb")
+		LOCAL:1 = 3
+	CASE 313
+		LOCAL = GETNUM(ITEM, "InIncense")
+	CASE 314
+		LOCAL = 3250
+		LOCAL:1 = 0
+	CASE 315
+		LOCAL = 87
+		LOCAL:1 = -1
+	;3F
+	CASE 400
+		LOCAL = GETNUM(ITEM, "YamataNoDrink")
+	CASE 401
+		LOCAL = GETNUM(ITEM, "Dis-Charm")
+ENDSELECT
+IF LOCAL:1 > 0
+	CALL GET_TREASURE, LOCAL, LOCAL:1 , FLAG:現ダンジョン, FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSE
+	CALL GET_TREASURE_MONEY, -LOCAL:1, LOCAL, (FLAG:現ダンジョン), FLAG:現M + 75, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ENDIF
+@DUNGEON_STAIRS_51
+;迷路フラグが立っている場合は階段の飛び先が変わる
+IF DA:(FLAG:現X):(FLAG:現Y) % 10  == 6
+	IF FLAG:現M == 1
+		IF STRFLAG_NUM_EV("ゾディアックの怪の噂", , , , [[イベント:噂]]) == 2
+			CALL DUNGEON_UPSTAIRS_ID, 3, 3007
+		ELSE
+			CALL DUNGEON_UPSTAIRS_ID, 2, 2007
+		ENDIF
+	ELSE
+		CALL DUNGEON_UPSTAIRS_ID, 4, 4007
+	ENDIF
+ELSE
+	IF FLAG:現M == 4
+		IF STRFLAG_NUM_EV("ゾディアックの怪の噂", , , , [[イベント:噂]]) == 2
+			CALL DUNGEON_DOWNSTAIRS_ID, 3, 3006
+		ELSE
+			CALL DUNGEON_DOWNSTAIRS_ID, 2, 2006
+		ENDIF
+	ELSE
+		CALL DUNGEON_DOWNSTAIRS_ID, 1, 1006
+	ENDIF
+ENDIF
+@EVENT_51
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 400
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CUSTOMDRAWLINE =
+		IF STRFLAG_NUM_EV("コスプレクラブの噂", , , , [[イベント:噂]]) == 2
+			PRINTW ＞部屋の中には仮面をかぶった人間達が大勢いる
+			PRINTW ＞そして、彼らの中心で奇妙な仮面をつけ、赤いマントに身を包んだ人間が演説している
+			PRINTW ＞声からすると女、それも子供であるようだ……
+			PRINTL 
+			PRINTL 仮面の少女？:
+			PRINTW 「諸君は世界を救うために転生してきた勇者達である！」
+			PRINTW 「前世を思い出し、今こそ我らがグル、レオ様の元で使命のために戦おー！」
+			PRINTL 
+			PRINTFORMW ＞目の前の光景に少々ひきつつ、観察していると、少女のほうも%CALLNAME:MASTER%に気づいたらしい
+			PRINTL 
+			PRINTL 仮面の少女？:
+			PRINTW 「あー！　仮面をつけてないお前は報告にあった侵入者だなー！」
+			PRINTL 
+			PRINTL ＞少女はポーズをとり、ビシッと指を突きつけてきた
+			PRINTL 
+			PRINTL 仮面の少女？:
+			PRINTW 「このー！　世界を滅ぼさんとする悪魔使いどもめー！」
+			PRINTW 「め、め、め、め？　ちょっとタンマね」
+			PRINTL 
+			PRINTW ＞台本を取り出した少女は隣の仮面党員に話しかけた
+			PRINTL 
+			PRINTL 仮面の少女？:
+			PRINTW 「ねーねー、これ、なんて読むんだっけ？」
+			PRINTW 「ああ、ゆーきゅーね」
+			PRINTL 
+			PRINTW ＞仮面の少女？は再びポーズをとってみせる
+			PRINTL 
+			PRINTL 仮面の少女？:
+			PRINTW 「ゆーきゅーの、時の流れをへて転生した魔法戦士イシュキックが」
+			PRINTW 「正義のてっついで、ちょめちょめしてやるー！！」
+			PRINTL 
+			PRINTW ＞転生戦士 イシュキックと勇者達が出た！
+			PRINTL 
+			;イシュはHP1200に調整
+			;仮面党員も即死もあれなんでそれぞれHP増加
+			;さらにハマムドもかなり通りにくくしておく
+			;その代わり、Mind・神経に弱くしとく
+			;ターン数少ないうちは攻撃ぬるい仕様＋イシュ死亡で弱体化な仕様なんで
+			;速攻で数を減らしていくか、イシュを潰すか
+			;あとは状態異常で止めまくるか
+			;イシュが剣撃COOP取れるキャラが複数いるなら、つまり人間落としてるならイシュ潰し
+			;そうじゃないなら、仮面党員減らしがおすすめか
+			;状態異常はどっちにしろ、有効だと思います
+			CALL SET_ENEMY,9, [[キャラ:イシュキック]], 24, 0, 1
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 250
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,7,[[キャラ:牡牛カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 400
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,8,[[キャラ:牡牛カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 400
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,10,[[キャラ:獅子カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 350
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,11,[[キャラ:獅子カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 350
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,12,[[キャラ:蠍カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 250
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,13,[[キャラ:蠍カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 250
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,15,[[キャラ:水瓶カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 250
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL SET_ENEMY,16,[[キャラ:水瓶カメーン]],21
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 250
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			MAXBASE:(CHARANUM-1):破魔 = 20
+			MAXBASE:(CHARANUM-1):呪殺 = 20
+			MAXBASE:(CHARANUM-1):精神 = 150
+			MAXBASE:(CHARANUM-1):神経 = 150
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL BATTLE_START
+			CUSTOMDRAWLINE =
+			WAIT
+			CUSTOMDRAWLINE =
+			WAIT
+			PRINTW ＞すでに周りに人はいない
+			PRINTFORMW ＞%CALLNAME:MASTER%は、とりあえず少女の仮面を剥いでみることにした
+			PRINTW ＞すると、仮面の下から可愛らしく整った顔が現れた
+			PRINTW ＞幼すぎるきらいはあるが、これなら高く売れそうだ
+			PRINTW ＞いや、むしろこういうのを好む人間にとっては垂涎ものだろう
+			PRINTW ＞星 あかり を手に入れた
+			CALL ADD_NEW_COMPANION,[[キャラ:あかり]],200
+			;LV20に調整+抵抗追加
+			IF RESULT == 1
+				BASE:(GETCHARA([[キャラ:あかり]])):LV = 20
+				BASE:(GETCHARA([[キャラ:あかり]])):ＥＸＰ = 5*19*20*21/3
+				CALL SYNC_STATUS,GETCHARA([[キャラ:あかり]])
+				BASE:(GETCHARA([[キャラ:あかり]])):力 = 7
+				BASE:(GETCHARA([[キャラ:あかり]])):知恵 = 4
+				BASE:(GETCHARA([[キャラ:あかり]])):魔力 = 4
+				BASE:(GETCHARA([[キャラ:あかり]])):耐力 = 5
+				BASE:(GETCHARA([[キャラ:あかり]])):速さ = 8
+				BASE:(GETCHARA([[キャラ:あかり]])):運 = 11
+				TALENT:(GETCHARA([[キャラ:あかり]])):抵抗 = 1
+			ENDIF
+		ELSE
+			IF STRFLAG_NUM_EV("元陸上部員の意外な就職先の噂", , , , [[イベント:噂]]) == 2
+				PRINTW ＞部屋の中には、ビシッ、バシッという音が響いている…
+				PRINTW ＞大きな青い宝石が額に埋め込められた仮面をつけた女が鞭で、同じく仮面をつけた人間達を鞭打っている
+				PRINTW ＞そして、仮面の人間達は打たれる度に、ハイルカメーンと叫ぶ
+				PRINTW ＞これが入党の儀式という奴なのだろうか…？
+				PRINTFORMW ＞目の前の光景に少々面食らいながら、観察していると、女のほうも%CALLNAME:MASTER%に気づいたらしい
+				PRINTL 
+				PRINTL 仮面の女:
+				PRINTW 「仮面をつけていない。どうやら入党希望者というわけではないようね」
+				PRINTW 「まぁいいわ。せっかくだからサービスであなたにもこの鞭をあげることにするわ」
+			ELSE
+				PRINTW ＞部屋の中には仮面をかぶった人間が大勢いる
+				PRINTW ＞そして、彼らの前に大きな青い宝石が額に埋め込められた仮面をつけた女がいる
+				PRINTW ＞仮面の人間達は一人一人、女の前にでるとポーズをとり、ハイルカメーンと叫ぶ
+				PRINTW ＞恐らく、これが入党の儀式なのだろう
+				PRINTFORMW ＞少し観察していると、女のほうも%CALLNAME:MASTER%に気づいたらしい
+				PRINTL 
+				PRINTL 仮面の女:
+				PRINTW 「仮面をつけていない。どうやら入党希望者というわけではないようね」
+				PRINTW 「まぁいいわ。面倒だけど、相手をしてあげるわ」
+			ENDIF
+			PRINTL 
+			PRINTW ＞ペルソナ使い レイディスコルピオンが出た！
+			CUSTOMDRAWLINE =
+			WAIT
+			;レイディはイシュと比べるとふつー
+			;ふつーすぎるんで、色々AIでフォロー
+			;でも単一属性で火弱点はまぁどうとでもなると思います
+			CALL SET_ENEMY,9, [[キャラ:レイディ]], 24, 0 , 1
+			;SMクラブ化している場合は鞭の威力UP
+			SIF STRFLAG_NUM_EV("元陸上部員の意外な就職先の噂", , , , [[イベント:噂]]) == 2
+				BASE:(CHARANUM-1):力 += 10
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 1950
+			CFLAG:(CHARANUM-1):ＭＰ補正 = 200
+			CFLAG:(CHARANUM-1):速度補正 = 5
+			CSTR:(CHARANUM-1):思考パターン = %CALLNAME:(CHARANUM-1)%
+			CFLAG:(CHARANUM-1):行動回数 = 3
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL BATTLE_START
+			CUSTOMDRAWLINE =
+			WAIT
+			PRINTW ＞すでに周りに人はいない
+			PRINTFORMW ＞%CALLNAME:MASTER%は、とりあえず女の仮面を剥いでみることにした
+			PRINTW ＞すると、仮面の下から綺麗に整った顔が現れた
+			PRINTW ＞これなら十分高く売れそうだ
+			PRINTW ＞面倒な任務ではあったが、これはかなりの儲け物をしたかもしれない
+			CALL ADD_NEW_COMPANION,[[キャラ:杏奈]],200
+			IF RESULT == 1
+				IF STRFLAG_NUM_EV("元陸上部員の意外な就職先の噂", , , , [[イベント:噂]]) == 2
+					ABL:(GETCHARA([[キャラ:杏奈]])):サドっ気 = 3
+					EXP:(GETCHARA([[キャラ:杏奈]])):嗜虐快楽経験 = 30
+				ENDIF
+				BASE:(GETCHARA([[キャラ:杏奈]])):LV = 20
+				BASE:(GETCHARA([[キャラ:杏奈]])):ＥＸＰ = 5*19*20*21/3
+				CALL SYNC_STATUS, GETCHARA([[キャラ:杏奈]])
+				BASE:(GETCHARA([[キャラ:杏奈]])):力 = 5
+				BASE:(GETCHARA([[キャラ:杏奈]])):知恵 = 8
+				BASE:(GETCHARA([[キャラ:杏奈]])):魔力 = 9
+				BASE:(GETCHARA([[キャラ:杏奈]])):耐力 = 4
+				BASE:(GETCHARA([[キャラ:杏奈]])):速さ = 9
+				BASE:(GETCHARA([[キャラ:杏奈]])):運 = 4
+				TALENT:(GETCHARA([[キャラ:杏奈]])):抵抗 = 1
+			ENDIF
+			PRINTW ＞吉栄 杏奈 を手に入れた
+		ENDIF
+		CUSTOMDRAWLINE =
+		PRINTW ＞式は完膚なきまでにたたきつぶした
+		PRINTW ＞幹部もこうして倒し、捕獲した
+		PRINTW ＞無事、任務を達成したと言えるだろう
+		PRINTW ＞任務を達成した事により、褒賞として口座に￥50000が支払われた
+		MONEY += 50000
+		CALLF STRFLAG_NUM_EV("罪ルート進行", "=", , 4, [[イベント:ペルソナ２]])
+		CALLF STRFLAG_D("ゾディアッククリア", 1, [[ダンジョン:ペルソナ２]])
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		FLAG:脱出スキル禁止 = 0
+		FLAG:脱出 = 1
+	CASEELSE
+ENDSELECT
+;=====================
+;メッセンジャー(50)
+;=====================
+@TILE_MARK_COMMON_51_8, ARG, ARG:1, ARG:2
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@MESSAGE_51
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0
+		;大迷路フラグ　もちろん宝箱が増える
+		PRINTL 疲れ顔のスタッフ:
+		IF STRFLAG_NUM_EV("ゾディアックの怪の噂", , , , [[イベント:噂]]) == 2
+			PRINTW 「はぁ…ほんとヤになっちゃう」
+			PRINTW 「なんでここの2階ってあんなに入り組んでるのかしら」
+			PRINTW 「これじゃあ方向音痴な私じゃなくても、大変じゃない…」
+			PRINTW 「というか…まえは私くらいしか苦労してなかったような？」
+			PRINTW 「あれ？」
+		ELSE
+			PRINTW 「はぁ、ほんと疲れる…」
+			PRINTW 「これじゃあまるで２階が迷路だとか言わなくてもいいじゃない」
+			PRINTW 「そりゃ、私は方向音痴だけどさー」
+			PRINTW 「みんなもっと迷って私の苦労をわかってくれればいいのに」
+		ENDIF
+	CASE 1
+		PRINTL 頭の悪そうな男:
+		PRINTW 「なぁ、あんた知ってるか？」
+		PRINTW 「最近このへんに仮面党とかいうやつらがいるらしいんだが」
+		PRINTW 「なんか悪の秘密結社らしいし、やべーよな」
+		PRINTW 「つってもまぁ、でてきたら俺がやっつけてやろうとか思ってるんだけど」
+		PRINTW 「そうしたら俺も正義のヒーローってわけだ。そしたらちょーかっこいいだろ？」
+	CASE 2
+		;悪魔登場フラグ
+		PRINTL 臆病そうな女:
+		PRINTW 「なんだか、あなたって只者じゃなさそうね…」
+		PRINTW 「なんていうか、闇の住人とか、悪魔使いとかそういう雰囲気…」
+		PRINTW 「あは、まさかね…でも、ゾディアックの奥には悪魔がいっぱいって噂があるし…」
+		PRINTW 「それでかわいい女の子の客をバリバリ食べちゃってるとか…」
+		PRINTW 「ああ怖い…友達に誘われたから来たけどもう帰ろうかしら…」
+	CASE 3
+		;ボス決定フラグ
+		;微妙に思考パターン関係のヒント
+		PRINTL 危なそうな男:
+		IF STRFLAG_NUM_EV("コスプレクラブの噂", , , , [[イベント:噂]]) == 2
+			PRINTW 「はぁ、イシュキック様…」
+			PRINTW 「あなたと一緒に戦えるなら、この身がどうなろうと構いません…」
+			PRINTW 「あなたの傍にいるだけで、普段からは想像もつかない力を発揮できるのです」
+			PRINTW 「これが前世からつながる運命の力というやつでしょうか、ふふふふ」
+		ELSE
+			PRINTW 「あぁ、レイディ様…」
+			PRINTW 「あなたの冷たい瞳でみつめられるだけでゾクゾクします…」
+			PRINTW 「それに相手の弱点を、徹底的にいたぶり、効かないとわかった攻撃は控える」
+			PRINTW 「少しでも苦痛を増やそうとするその態度……ああ、踏まれたい！」
+		ENDIF
+ENDSELECT

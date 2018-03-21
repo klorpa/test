@@ -1,0 +1,706 @@
+
+
+;==========================================================================
+;素材の忠誠度による素質変更
+;==========================================================================
+@MAKE_TALENT,ARG,ARG:1
+;コピー作成
+ADDVOIDCHARA
+REPEAT 200
+		TALENT:(CHARANUM-1):COUNT = TALENT:ARG:COUNT
+REND
+
+
+
+;ARG:1からポイントを取得
+LOCAL = ARG:1/200
+PRINTFORML {LOCAL}ポイントの範囲で素質を付け替えることが出来ます。
+SIF ABL:ARG:種族 != 45
+	PRINTL ※使用した分だけ合体後の忠誠度は低下します
+WAIT
+CUSTOMDRAWLINE =
+LOCAL:1 = 0
+$PRINT
+PRINTFORML %STR:(ABL:ARG:種族)% %NAME:ARG% 
+PRINTFORML あと{LOCAL}ポイント
+U = ARG
+CALL NEW_PRINT_TALENT
+DRAWLINE
+
+CALLFORM PRINT_TALENT_{LOCAL:1},ARG
+PRINTL
+DRAWLINE
+
+PRINTFORMLC [1007] \@ LOCAL:1 == 0 ? 肉体・技術・性癖系素質 # 精神系素質 \@
+PRINTLC [1000] 終了
+PRINTLC [1009] リセット
+$INPUT_LOOP
+INPUT
+IF RESULT == 1000
+	IF TALENT:ARG:オトコ == 1 && TALENT:ARG:処女 == 1
+		TALENT:ARG:処女 = 0
+		LOCAL += 5
+	ENDIF
+	IF TALENT:ARG:処女 && CSVTALENT(NO:ARG,0,0) == 0
+		EXP:ARG:性交経験 -= EXP:ARG:Ｖ経験
+		EXP:ARG:Ｖ経験 = 0
+		EXP:ARG:膣射経験 = 0
+		EXP:ARG:Ｖ拡張経験 = 0
+		EXP:ARG:出産経験 = 0
+		ABL:ARG:Ｖ感覚 = 0
+	ELSEIF TALENT:ARG:処女 == 0 && EXP:ARG:Ｖ経験 == 0 && CSVTALENT(NO:ARG,0,0)
+		EXP:ARG:性交経験 += 1
+		EXP:ARG:Ｖ経験 += 1
+	ENDIF
+	DELCHARA CHARANUM-1
+	RETURN (ARG:1 - ((ARG:1/200 -LOCAL)*200))
+ELSEIF RESULT == 1007
+	IF LOCAL:1 == 0
+		LOCAL:1 = 1
+	ELSE
+		LOCAL:1 = 0
+	ENDIF
+	GOTO PRINT
+ELSEIF RESULT == 1009
+	REPEAT 200
+		TALENT:ARG:COUNT = TALENT:(CHARANUM-1):COUNT
+;		TALENT:ARG:COUNT = 0
+;		SIF CSVTALENT(NO:ARG,COUNT,0)
+;			TALENT:ARG:COUNT = 1
+	REND
+	DELCHARA CHARANUM-1
+	RESTART
+ELSEIF RESULT < 200  && RESULT >= 0 && T:RESULT > -100
+	IF T:RESULT > LOCAL
+		PRINTW ポイントが足りません
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+	ENDIF
+	IF TALENT:ARG:RESULT
+		PRINTFORMW %TALENTNAME_E(RESULT)%を消去しました。
+		TALENT:ARG:RESULT = 0
+		LOCAL -= T:RESULT
+		GOTO PRINT
+	ELSE
+		PRINTFORMW %TALENTNAME_E(RESULT)%を得ました。
+		TALENT:ARG:RESULT = 1
+		LOCAL -= T:RESULT
+		GOTO PRINT
+	ENDIF
+ELSE
+	CLEARLINE 1
+	GOTO INPUT_LOOP
+ENDIF
+
+;===========================
+;精神系素質表示
+;===========================
+@PRINT_TALENT_0,ARG
+PRINTFORML □精神系素質
+
+VARSET T,-100
+
+;表示
+
+IF TALENT:ARG:臆病
+	PRINTLC [ 10] 【Timid】消去　　　　　( 4P)　　
+	T:10 = 4
+ELSE
+	PRINTLC [ 10] 【Timid】追加　　　　　( 6P)　　
+	T:10 = 6
+ENDIF
+
+IF TALENT:ARG:反抗的
+	PRINTLC [ 11] 【Defiant】消去　　　　(10P)　　
+	T:11 = 10
+ELSE
+	PRINTLC [ 11] 【Defiant】追加　　　　( 4P)　　
+	T:11 = 4
+ENDIF
+
+IF TALENT:ARG:気丈
+	PRINTLC [ 12] 【気丈】消去　　　　　(16P)　　
+	T:12 = 16
+ELSE
+	PRINTLC [ 12] 【気丈】追加　　　　　( 4P)　　
+	T:12 = 4
+ENDIF
+
+IF TALENT:ARG:素直
+	PRINTLC [ 13] 【Docile】消去　　　　　( 4P)　　
+	T:13 = 4
+ELSE
+	PRINTLC [ 13] 【Docile】追加　　　　　(10P)　　
+	T:13 = 10
+ENDIF
+
+IF TALENT:ARG:大人しい
+	PRINTLC [ 14] 【Quiet】消去　　　( 4P)　　
+	T:14 = 4
+ELSE
+	PRINTLC [ 14] 【Quiet】追加　　　( 8P)　　
+	T:14 = 8
+ENDIF
+
+IF TALENT:ARG:プライド高い
+	PRINTLC [ 15] 【プライド高い】消去　(10P)　　
+	T:15 = 10
+ELSEIF TALENT:ARG:プライド高い == 0 && TALENT:ARG:プライド低い == 0
+	PRINTLC [ 15] 【プライド高い】追加　( 4P)　　
+	T:15 = 4
+ENDIF
+
+IF TALENT:ARG:生意気
+	PRINTLC [ 16] 【Sassy】消去　　　　( 8P)　　
+	T:16 = 8
+ELSE
+	PRINTLC [ 16] 【Sassy】追加　　　　( 2P)　　
+	T:16 = 2
+ENDIF
+
+IF TALENT:ARG:プライド低い
+	PRINTLC [ 17] 【プライド低い】消去　( 4P)　　
+	T:17 = 4
+ELSEIF TALENT:ARG:プライド高い == 0 && TALENT:ARG:プライド低い == 0
+	PRINTLC [ 17] 【プライド低い】追加　( 6P)　　
+	T:17 = 6
+ENDIF
+
+IF TALENT:ARG:ツンデレ
+	PRINTLC [ 18] 【Tsundere】消去　　　(10P)　　
+	T:18 = 10
+ELSE
+	PRINTLC [ 18] 【Tsundere】追加　　　( 8P)　　
+	T:18 = 8
+ENDIF
+
+IF TALENT:ARG:自制心
+	PRINTLC [ 20] 【自制心】消去　　　　(16P)　　
+	T:20 = 16
+ELSE
+	PRINTLC [ 20] 【自制心】追加　　　　( 6P)　　
+	T:20 = 6
+ENDIF
+
+IF TALENT:ARG:無関心
+	PRINTLC [ 21] 【Apathetic】消去　　　　(12P)　　
+	T:21 = 12
+ELSE
+	PRINTLC [ 21] 【Apathetic】追加　　　　(-6P)　　
+	T:21 = -6
+ENDIF
+
+IF TALENT:ARG:感情乏しい
+	PRINTLC [ 22] 【Lack emotions】消去　　(12P)　　
+	T:22 = 12
+ELSE
+	PRINTLC [ 22] 【Lack emotions】追加　　(-6P)　　
+	T:22 = -6
+ENDIF
+
+IF TALENT:ARG:好奇心
+	PRINTLC [ 23] 【Curious】消去　　　　(-5P)　　
+	T:23 = -5
+ELSEIF TALENT:ARG:保守的 == 0 && TALENT:ARG:好奇心 == 0
+	PRINTLC [ 23] 【Curious】追加　　　　( 5P)　　
+	T:23 = 5
+ENDIF
+
+IF TALENT:ARG:保守的
+	PRINTLC [ 24] 【Conservative】消去　　　　( 7P)　　
+	T:24 = 7
+ELSEIF TALENT:ARG:保守的 == 0 && TALENT:ARG:好奇心 == 0
+	PRINTLC [ 24] 【Conservative】追加　　　　( 4P)　　
+	T:24 = 4
+ENDIF
+
+IF TALENT:ARG:楽観的
+	PRINTLC [ 25] 【Optimistic】消去　　　　(-5P)　　
+	T:25 = -5
+ELSEIF TALENT:ARG:悲観的 == 0 && TALENT:ARG:楽観的 == 0
+	PRINTLC [ 25] 【Optimistic】追加　　　　( 5P)　　
+	T:25 = 5
+ENDIF
+IF TALENT:ARG:悲観的
+	PRINTLC [ 26] 【Pessimistic】消去　　　　( 8P)　　
+	T:26 = 8
+ELSEIF TALENT:ARG:悲観的 == 0 && TALENT:ARG:楽観的 == 0
+	PRINTLC [ 26] 【Pessimistic】追加　　　　(-4P)　　
+	T:26 = -4
+ENDIF
+
+IF TALENT:ARG:一線越えない
+	PRINTLC [ 27] 【Reserved】消去　(15P)　　
+	T:27 = 15
+ELSE
+	PRINTLC [ 27] 【Reserved】追加　( 6P)　　
+	T:27 = 6
+ENDIF
+IF TALENT:ARG:目立ちたがり
+	PRINTLC [ 28] 【Showｰoff】消去　(-4P)　　
+	T:28 = -4
+ELSE
+	PRINTLC [ 28] 【Showｰoff】追加　( 8P)　　
+	T:28 = 8
+ENDIF
+
+IF TALENT:ARG:貞操観念
+	PRINTLC [ 30] 【Virtuous】消去　　　( 6P)　　
+	T:30 = 6
+ELSEIF TALENT:ARG:貞操観念 == 0 && TALENT:ARG:貞操無頓着 == 0
+	PRINTLC [ 30] 【Virtuous】追加　　　( 5P)　　
+	T:30 = 5
+ENDIF
+IF TALENT:ARG:貞操無頓着
+	PRINTLC [ 31] 【Virtueless】消去　　( 4P)　　
+	T:31 = 4
+ELSEIF TALENT:ARG:貞操観念 == 0 && TALENT:ARG:貞操無頓着 == 0
+	PRINTLC [ 31] 【Virtueless】追加　　( 6P)　　
+	T:31 = 6
+ENDIF
+
+IF TALENT:ARG:抑圧
+	PRINTLC [ 32] 【Repressed】消去　　　　　(18P)　　
+	T:32 = 18
+ELSEIF TALENT:ARG:抑圧 == 0 && TALENT:ARG:解放 == 0
+	PRINTLC [ 32] 【Repressed】追加　　　　　(-8P)　　
+	T:32 = -8
+ENDIF
+IF TALENT:ARG:解放
+	PRINTLC [ 33] 【Liberated】消去　　　　　(-8P)　　
+	T:33 = -8
+ELSEIF TALENT:ARG:抑圧 == 0 && TALENT:ARG:解放 == 0
+	PRINTLC [ 33] 【Liberated】追加　　　　　(18P)　　
+	T:33 = 18
+ENDIF
+
+IF TALENT:ARG:抵抗
+	PRINTLC [ 34] 【Reluctant】消去　　　　　(16P)　　
+	T:34 = 16
+ELSE
+	PRINTLC [ 34] 【Reluctant】追加　　　　　(-6P)　　
+	T:34 = -6
+ENDIF
+
+IF TALENT:ARG:恥じらい
+	PRINTLC [ 35] 【Shy】消去　　　( 6P)　　
+	T:35 = 6
+ELSEIF TALENT:ARG:恥じらい == 0 && TALENT:ARG:恥薄い == 0
+	PRINTLC [ 35] 【Shy】追加　　　( 6P)　　
+	T:35 = 6
+ENDIF
+
+IF TALENT:ARG:恥薄い
+	PRINTLC [ 36] 【Shameless】消去　　　　( 5P)　　
+	T:36 = 5
+ELSEIF TALENT:ARG:恥じらい == 0 && TALENT:ARG:恥薄い == 0
+	PRINTLC [ 36] 【Shameless】追加　　　　( 7P)　　
+	T:36 = 7
+ENDIF
+
+IF TALENT:ARG:弱味
+	PRINTLC [ 37] 【Weak point】消去　　　　　(-6P)　　
+	T:37 = -6
+ELSE
+	PRINTLC [ 37] 【Weak point】追加　　　　　(12P)　　
+	T:37 = 12
+ENDIF
+
+
+IF TALENT:ARG:献身的
+	PRINTLC [ 63] 【Devoted】消去　　　　(-5P)　　
+	T:63 = -5
+ELSE
+	PRINTLC [ 63] 【Devoted】追加　　　　( 8P)　　
+	T:63 = 8
+ENDIF
+
+IF TALENT:ARG:小悪魔
+	PRINTLC [ 87] 【Little devil】消去　　　　(-6P)　　
+	T:87 = -6
+ELSE
+	PRINTLC [ 87] 【Little devil】追加　　　　(10P)　　
+	T:87 = 10
+ENDIF
+
+IF TALENT:ARG:狂気
+	PRINTLC [141] 【Insane】消去　　　　　(24P)　　
+	T:141 = 24
+ELSE
+	PRINTLC [141] 【Insane】追加　　　　　(-12P)　　
+	T:141 = -12
+ENDIF
+IF TALENT:ARG:幼稚
+	PRINTLC [151] 【Childlike】消去　　　　　(-5P)　　
+	T:151 = -5
+ELSE
+	PRINTLC [151] 【Childlike】追加　　　　　(10P)　　
+	T:151 = 10
+ENDIF
+
+
+;===========================
+;肉体・技術・性癖系素質表示
+;===========================
+@PRINT_TALENT_1,ARG
+PRINTL □肉体・技術・性癖素質
+
+IF TALENT:ARG:オトコ == 0
+	IF TALENT:ARG:処女
+		PRINTLC [  0] 【Virgin】消去　　　　　(-5P)　　
+		T:0 = -5
+	ELSE
+		PRINTLC [  0] 【Virgin】追加　　　　　(26P)　　
+		T:0 = 26
+	ENDIF
+ENDIF
+
+IF TALENT:ARG:痛みに弱い
+	PRINTLC [ 40] 【Pain vulnerable】消去　　( 4P)　　
+	T:40 = 4
+ELSEIF TALENT:ARG:痛みに強い == 0 && TALENT:ARG:痛みに弱い == 0
+	PRINTLC [ 40] 【Pain vulnerable】追加　　(10P)　　
+	T:40 = 10
+ENDIF
+IF TALENT:ARG:痛みに強い
+	PRINTLC [ 41] 【Pain tolerant】消去　　(10P)　　
+	T:41 = 10
+ELSEIF TALENT:ARG:痛みに強い == 0 && TALENT:ARG:痛みに弱い == 0
+	PRINTLC [ 41] 【Pain tolerant】追加　　( 6P)　　
+	T:41 = 6
+ENDIF
+
+IF TALENT:ARG:濡れやすい
+	PRINTLC [ 42] 【Easy to wet】消去　　(-6P)　　
+	T:42 = -6
+ELSEIF TALENT:ARG:濡れにくい == 0 && TALENT:ARG:濡れやすい == 0
+	PRINTLC [ 42] 【Easy to wet】追加　　(12P)　　
+	T:42 = 12
+ENDIF
+IF TALENT:ARG:濡れにくい
+	PRINTLC [ 43] 【Hard to wet】消去　　(10P)　　
+	T:43 = 10
+ELSEIF TALENT:ARG:濡れにくい == 0 && TALENT:ARG:濡れやすい == 0
+	PRINTLC [ 43] 【Hard to wet】追加　　(-6P)　　
+	T:43 = -6
+ENDIF
+
+IF TALENT:ARG:習得早い
+	PRINTLC [ 50] 【習得早い】消去　　　(-7P)　　
+	T:50 = -7
+ELSEIF TALENT:ARG:習得遅い == 0 && TALENT:ARG:習得早い == 0
+	PRINTLC [ 50] 【習得早い】追加　　　(12P)　　
+	T:50 = 12
+ENDIF
+IF TALENT:ARG:習得遅い
+	PRINTLC [ 51] 【Slow learning】消去　　　( 8P)　　
+	T:51 = 8
+ELSEIF TALENT:ARG:習得遅い == 0 && TALENT:ARG:習得早い == 0
+	PRINTLC [ 51] 【Slow learning】追加　　　(-6P)　　
+	T:51 = -6
+ENDIF
+
+IF TALENT:ARG:舌使い
+	PRINTLC [ 52] 【Skilled tongue】消去　　　　(-6P)　　
+	T:52 = -6
+ELSE
+	PRINTLC [ 52] 【Skilled tongue】追加　　　　(11P)　　
+	T:52 = 11
+ENDIF
+
+IF TALENT:ARG:針さばき
+	PRINTLC [ 53] 【Needle mastery】消去　　　(-6P)　　
+	T:53 = -6
+ELSE
+	PRINTLC [ 53] 【Needle mastery】追加　　　(11P)　　
+	T:53 = 11
+ENDIF
+
+IF TALENT:ARG:猫舌
+	PRINTLC [ 54] 【Cat tongue】消去　　　　　( 9P)　　
+	T:54 = 9
+ELSE
+	PRINTLC [ 54] 【Cat tongue】追加　　　　　(-4P)　　
+	T:54 = -4
+ENDIF
+
+IF TALENT:ARG:薬毒耐性
+	PRINTLC [ 56] 【Drug resistant】消去　　　(20P)　　
+	T:56 = 20
+ELSE
+	PRINTLC [ 56] 【Drug resistant】追加　　　(-8P)　　
+	T:56 = -8
+ENDIF
+
+IF TALENT:ARG:おもらし癖
+	PRINTLC [ 57] 【Peeing habbit】消去　　(-4P)　　
+	T:57 = -4
+ELSE
+	PRINTLC [ 57] 【Peeing habbit】追加　　(10P)　　
+	T:57 = 10
+ENDIF
+
+IF TALENT:ARG:自慰しやすい
+	PRINTLC [ 60] 【Masturbation lover】消去　(-5P)　　
+	T:60 = -5
+ELSE
+	PRINTLC [ 60] 【Masturbation lover】追加　(10P)　　
+	T:60 = 10
+ENDIF
+
+IF TALENT:ARG:汚臭鈍感
+	PRINTLC [ 61] 【Odor insensitive】消去　　　( 5P)　　
+	T:61 = 5
+ELSEIF TALENT:ARG:汚臭鈍感 == 0 && TALENT:ARG:汚臭敏感 == 0
+	PRINTLC [ 61] 【Odor insensitive】追加　　　( 8P)　　
+	T:61 = 8
+ENDIF
+IF TALENT:ARG:汚臭敏感
+	PRINTLC [ 62] 【Odor sensitive】消去　　　( 5P)　　
+	T:62 = 5
+ELSEIF TALENT:ARG:汚臭鈍感 == 0 && TALENT:ARG:汚臭敏感 == 0
+	PRINTLC [ 62] 【Odor sensitive】追加　　　( 8P)　　
+	T:62 = 8
+ENDIF
+
+IF TALENT:ARG:汚れ無視
+	PRINTLC [ 64] 【Filth ignore】消去　　　(-6P)　　
+	T:64 = -6
+ELSE
+	PRINTLC [ 64] 【Filth ignore】追加　　　( 6P)　　
+	T:64 = 6
+ENDIF
+
+
+IF TALENT:ARG:快感に素直
+	PRINTLC [ 70] 【Susceptible to pleasure】消去　　( 6P)　　
+	T:70 = 6
+ELSEIF TALENT:ARG:快感に素直 == 0 && TALENT:ARG:快感の否定 == 0
+	PRINTLC [ 70] 【Susceptible to pleasure】追加　　(12P)　　
+	T:70 = 12
+ENDIF
+IF TALENT:ARG:快感の否定
+	PRINTLC [ 71] 【Resistant to pleasure】消去　　(20P)　　
+	T:71 = 20
+ELSEIF TALENT:ARG:快感に素直 == 0 && TALENT:ARG:快感の否定 == 0
+	PRINTLC [ 71] 【Resistant to pleasure】追加　　( 4P)　　
+	T:71 = 4
+ENDIF
+
+IF TALENT:ARG:中毒しやすい
+	PRINTLC [ 72] 【Easily addicted】消去　(-6P)　　
+	T:72 = -6
+ELSE
+	PRINTLC [ 72] 【Easily addicted】追加　(10P)　　
+	T:72 = 10
+ENDIF
+
+IF TALENT:ARG:倒錯的
+	PRINTLC [ 80] 【Perverted】消去　　　　(-4P)　　
+	T:80 = -4
+ELSE
+	PRINTLC [ 80] 【Perverted】追加　　　　( 8P)　　
+	T:80 = 8
+ENDIF
+
+
+IF TALENT:ARG:両刀
+	PRINTLC [ 81] 【Bisexual】消去　　　　　(-6P)　　
+	T:81 = -6
+ELSEIF TALENT:ARG:男嫌い == 0 && TALENT:ARG:女嫌い == 0 && TALENT:ARG:両刀 == 0
+	PRINTLC [ 81] 【Bisexual】追加　　　　　( 7P)　　
+	T:81 = 7
+ENDIF
+
+IF TALENT:ARG:男嫌い
+	PRINTLC [ 82] 【Men hater】消去　　　　( 9P)　　
+	T:82 = 9
+ELSEIF TALENT:ARG:男嫌い == 0 && TALENT:ARG:両刀 == 0
+	PRINTLC [ 82] 【Men hater】追加　　　　(-3P)　　
+	T:82 = -3
+ENDIF
+
+IF TALENT:ARG:女嫌い
+	PRINTLC [ 88] 【Women hater】消去　　　　( 9P)　　
+	T:88 = 9
+ELSEIF TALENT:ARG:女嫌い == 0 && TALENT:ARG:両刀 == 0
+	PRINTLC [ 88] 【Women hater】追加　　　　(-3P)　　
+	T:88 = -3
+ENDIF
+
+IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:狐
+		PRINTLC [ 90] 【Kitsune】消去　　　　　　( 0P)　　
+		T:90 = 0
+	ELSE
+		PRINTLC [ 90] 【Kitsune】追加　　　　　　( 3P)　　
+		T:90 = 3
+	ENDIF
+ENDIF
+
+;IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:小柄体型
+		PRINTLC [100] 【Small figure】消去　　　(20P)　　
+		T:100 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTLC [100] 【Small figure】追加　　　(20P)　　
+		T:100 = 20
+	ENDIF
+;ENDIF
+
+IF TALENT:ARG:Ｃ鈍感
+	PRINTLC [101] 【ＣInsensitive】消去　　　　( 9P)　　
+	T:101 = 9
+ELSEIF TALENT:ARG:Ｃ鈍感 == 0 && TALENT:ARG:Ｃ敏感 == 0
+	PRINTLC [101] 【ＣInsensitive】追加　　　　(-4P)　　
+	T:101 = -4
+ENDIF
+IF TALENT:ARG:Ｃ敏感
+	PRINTLC [102] 【ＣSensitive】消去　　　　(-8P)　　
+	T:102 = -8
+ELSEIF TALENT:ARG:Ｃ鈍感 == 0 && TALENT:ARG:Ｃ敏感 == 0
+	PRINTLC [102] 【ＣSensitive】追加　　　　(12P)　　
+	T:102 = 12
+ENDIF
+
+
+IF TALENT:ARG:Ｖ鈍感
+	PRINTLC [103] 【ＶInsensitive】消去　　　　( 9P)　　
+	T:103 = 9
+ELSEIF TALENT:ARG:Ｖ鈍感 == 0 && TALENT:ARG:Ｖ敏感 == 0
+	PRINTLC [103] 【ＶInsensitive】追加　　　　(-4P)　　
+	T:103 = -4
+ENDIF
+IF TALENT:ARG:Ｖ敏感
+	PRINTLC [104] 【ＶSensitive】消去　　　　(-8P)　　
+	T:104 = -8
+ELSEIF TALENT:ARG:Ｖ鈍感 == 0 && TALENT:ARG:Ｖ敏感 == 0
+	PRINTLC [104] 【ＶSensitive】追加　　　　(12P)　　
+	T:104 = 12
+ENDIF
+
+IF TALENT:ARG:Ａ鈍感
+	PRINTLC [105] 【ＡInsensitive】消去　　　　( 9P)　　
+	T:105 = 9
+ELSEIF TALENT:ARG:Ａ鈍感 == 0 && TALENT:ARG:Ａ敏感 == 0
+	PRINTLC [105] 【ＡInsensitive】追加　　　　(-4P)　　
+	T:105 = -4
+ENDIF
+IF TALENT:ARG:Ａ敏感
+	PRINTLC [106] 【ＡSensitive】消去　　　　(-8P)　　
+	T:106 = -8
+ELSEIF TALENT:ARG:Ａ鈍感 == 0 && TALENT:ARG:Ａ敏感 == 0
+	PRINTLC [106] 【ＡSensitive】追加　　　　(12P)　　
+	T:106 = 12
+ENDIF
+
+IF TALENT:ARG:Ｂ鈍感
+	PRINTLC [107] 【ＢInsensitive】消去　　　　( 9P)　　
+	T:107 = 9
+ELSEIF TALENT:ARG:Ｂ鈍感 == 0 && TALENT:ARG:Ｂ敏感 == 0
+	PRINTLC [107] 【ＢInsensitive】追加　　　　(-4P)　　
+	T:107 = -4
+ENDIF
+IF TALENT:ARG:Ｂ敏感
+	PRINTLC [108] 【ＢSensitive】消去　　　　(-8P)　　
+	T:108 = -8
+ELSEIF TALENT:ARG:Ｂ鈍感 == 0 && TALENT:ARG:Ｂ敏感 == 0
+	PRINTLC [108] 【ＢSensitive】追加　　　　(12P)　　
+	T:108 = 12
+ENDIF
+
+IF TALENT:ARG:貧乳
+	PRINTLC [109] 【Small tits】消去　　　　　( 1P)　　
+	T:109 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTLC [109] 【Small tits】追加　　　　　( 1P)　　
+	T:109 = 1
+ENDIF
+IF TALENT:ARG:絶壁
+	PRINTLC [110] 【Flat chest】消去　　　　　( 1P)　　
+	T:110 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTLC [110] 【Flat chest】追加　　　　　( 1P)　　
+	T:110 = 1
+ENDIF
+IF TALENT:ARG:巨乳
+	PRINTLC [111] 【Big tits】消去　　　　　( 1P)　　
+	T:111 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTLC [111] 【Big tits】追加　　　　　( 3P)　　
+	T:111 = 3
+ENDIF
+IF TALENT:ARG:爆乳
+	PRINTLC [112] 【Huge tits】消去　　　　　( 1P)　　
+	T:112 = 1
+ELSEIF TALENT:ARG:貧乳 == 0 && TALENT:ARG:絶壁 == 0 && TALENT:ARG:巨乳 == 0 && TALENT:ARG:爆乳 == 0
+	PRINTLC [112] 【Huge tits】追加　　　　　( 2P)　　
+	T:112 = 2
+ENDIF
+
+	IF TALENT:ARG:大柄
+		PRINTLC [113] 【Big figure】消去　　　　　(20P)　　
+		T:113 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTLC [113] 【Big figure】追加　　　　　(20P)　　
+		T:113 = 20
+	ENDIF
+	IF TALENT:ARG:巨体
+		PRINTLC [114] 【Giant figure】消去　　　　　(20P)　　
+		T:114 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTLC [114] 【Giant figure】追加　　　　　(20P)　　
+		T:114 = 20
+	ENDIF
+IF TALENT:ARG:回復早い
+	PRINTLC [130] 【Fast recovery】消去　　　(-6P)　　
+	T:130 = -6
+ELSEIF TALENT:ARG:回復遅い == 0 && TALENT:ARG:回復早い == 0
+	PRINTLC [130] 【Fast recovery】追加　　　(16P)　　
+	T:130 = 16
+ENDIF
+IF TALENT:ARG:回復遅い
+	PRINTLC [131] 【Slow recovery】消去　　　(16P)　　
+	T:131 = 16
+ELSEIF TALENT:ARG:回復遅い == 0 && TALENT:ARG:回復早い == 0
+	PRINTLC [131] 【Slow recovery】追加　　　(-8P)　　
+	T:131 = -8
+ENDIF
+
+IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:ふたなり
+		PRINTLC [139] 【Futa】消去　　　( 0P)　　
+		T:139 = 0 
+	ELSE
+		PRINTLC [139] 【Futa】追加　　　( 5P)　　
+		T:139 = 5
+	ENDIF
+
+	IF TALENT:ARG:オトコ
+		PRINTLC [140] 【Male】消去　　　　( 0P)　　
+		T:140 = 0
+	ELSE
+		PRINTLC [140] 【Male】追加　　　　( 1P)　　
+		T:140 = 1
+	ENDIF
+ENDIF
+
+	IF TALENT:ARG:小人体型
+		PRINTLC [142] 【Tiny figure】消去　　　(20P)　　
+		T:142 = 20
+	ELSEIF (TALENT:ARG:小柄体型 || TALENT:ARG:小人体型 || TALENT:ARG:大柄 || TALENT:ARG:巨体) == 0
+		PRINTLC [142] 【Tiny figure】追加　　　(20P)　　
+		T:142 = 20
+	ENDIF
+
+
+IF ABL:ARG:種族 == 45
+	IF TALENT:ARG:動物耳
+		PRINTLC [143] 【Animal ears】消去　　　　( 0P)　　
+		T:143 = 0
+	ELSE
+		PRINTLC [143] 【Animal ears】追加　　　　( 6P)　　
+		T:143 = 12
+	ENDIF
+ENDIF
+

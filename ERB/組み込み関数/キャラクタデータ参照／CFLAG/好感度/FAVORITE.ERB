@@ -1,0 +1,32 @@
+;==========================================================
+;@FAVORITE(ARG,ARG:1)
+;ARGのARG:1への好感度を返す
+;<引数>
+;  ARG   - 好感度元キャラの登録番号
+;  ARG:1 - 好感度対象キャラの登録番号(マイナスの場合はNPC)
+;<戻り値>
+;  ARGのキャラがARG:1に対して持つ好感度
+;==========================================================
+@FAVORITE(ARG,ARG:1)
+#FUNCTION
+;ARG:1がマイナス(NPCに対する好感度)の場合は値をそのまま返す。
+SIF ARG:1 < 0
+	RETURNF CFLAG:ARG:(2100 + ARG:1)
+;ARG:1がキャラ登録番号範囲外の場合0を返す。
+SIF ARG:1 >= CHARANUM
+	RETURNF 0
+;ARG:1のキャラ固有の番号が0より小さい(キャラが存在しない場合)0を返す。
+SIF CFLAG:(ARG:1):キャラ固有の番号 < 0
+	RETURNF 0
+IF IS_LESBIAN(ARG, ARG:1)
+	LOCAL = ABL:ARG:レズっ気 * 10 + ABL:ARG:レズ中毒 * 20 + TALENT:ARG:両刀 * 50
+ELSEIF IS_GAY(ARG, ARG:1)
+	LOCAL = ABL:ARG:ＢＬっ気 * 10 + ABL:ARG:ＢＬ中毒 * 20 + TALENT:ARG:両刀 * 50
+ELSE
+	LOCAL = 100
+ENDIF
+SIF TALENT:ARG:女嫌い && IS_MALE(ARG:1) == 0
+	LOCAL -= 50
+SIF TALENT:ARG:男嫌い && IS_MALE(ARG:1)
+	LOCAL -= 50
+RETURNF CFLAG:ARG:(CFLAG:(ARG:1):キャラ固有の番号 + 2100) * LIMIT(LOCAL, 1, 100) / 100

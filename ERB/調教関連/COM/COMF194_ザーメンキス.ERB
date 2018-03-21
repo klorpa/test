@@ -1,0 +1,101 @@
+;-------------------------------------------------
+;ザーメンキス
+;特殊コマンド
+;-------------------------------------------------
+@ACT_COM194
+PRINTL Snowball
+TSTR:0 = ザーメンキス
+;CALL KOJO_MESSAGE_COM
+
+
+;汚れの計算
+Y = 0
+;愛液の汚れ
+SIF GET_STAIN("ペニス", "愛液", PLAYER)
+	Y += 1
+;精液の汚れ
+SIF GET_STAIN("ペニス", "精液", PLAYER)
+	Y += 3
+;アナルの汚れ
+SIF GET_STAIN("ペニス", "アナル", PLAYER)
+	Y += 7
+SIF GET_STAIN("ペニス", "粘液", PLAYER)
+	Y += 15
+
+SIF TALENT:61
+	Y /= 3
+SIF TALENT:62
+	Y *= 2
+
+;調教者←→調教対象
+TFLAG:28 = 3
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 0
+DOWNBASE:TARGET:気力 += 80
+
+SOURCE:TARGET:性行動 = 420
+SOURCE:TARGET:達成 = 150
+SOURCE:TARGET:屈従 = 1200
+SOURCE:TARGET:逸脱 = 500
+SOURCE:TARGET:反感 = 500
+
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*40 + 100
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 300
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;調教者の口の汚れと奴隷の口の汚れを処理
+CALL MOVE_STAIN("口", TARGET, "口", PLAYER)
+;S = STAIN:PLAYER:0
+;STAIN:PLAYER:0 |= STAIN:TARGET:0
+;STAIN:TARGET:0 |= S
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 5
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+
+;KissEXP
+CALL ADDS_EXP("キス経験", 1, TARGET)
+CALL ADDS_EXP("キス経験", 1, PLAYER)
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_194
+RETURN COMTYPE("特殊コマンド系")
+
+

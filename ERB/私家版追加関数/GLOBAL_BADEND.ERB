@@ -1,0 +1,172 @@
+;=================================================================
+;BADエンドに関する関数群
+;グローバル値にbitで記録する
+;バッドエンド記録1　No.0～63用
+;バッドエンド記録2　No.64～127用
+;
+;No. 0～　RPG系全滅エンドを想定(闘技場含む)
+;No.30～　調教系バットエンドを想定
+;No.40～　シナリオ上のバットエンドを想定
+;
+;バットエンドメッセージは以下みたいな感じで
+;	PRINTW 
+;	PRINTW 　　　　　　　　――  Bad Ending No.006 ( 全滅END -ソウルハッカーズ編- )
+;	CALL GLOBAL_BADEND_SET(6)
+;=================================================================
+
+
+;-----------------------------------------------------------------
+;@GLOBAL_BADEND_INIT
+;BADエンド関係の変数値を初期化
+;　引数、戻り値は特になし
+;-----------------------------------------------------------------
+@GLOBAL_BADEND_INIT
+	GLOBAL:バッドエンド記録1 = 0
+	GLOBAL:バッドエンド記録2 = 0
+	SAVEGLOBAL
+	RETURN 1
+
+;-----------------------------------------------------------------
+;@SHOPCOMABLE_700, @SHOP_COM_700
+;BADエンド関係デバック用リセットSHOPメニュー(700)
+;　引数、戻り値は特になし
+;-----------------------------------------------------------------
+@SHOPCOMABLE_700
+	[IF_DEBUG]
+		RESULTS = バッドエンド記録リセット
+		RETURN 1
+	[ENDIF]
+	IF FLAG:DEBUG
+		RESULTS = バッドエンド記録リセット
+		RETURN 1
+	ENDIF
+	RETURN -1
+
+@SHOP_COM_700
+	CALL GLOBAL_BADEND_INIT
+	PRINTL バットエンド記録をリセットしました
+
+;-----------------------------------------------------------------
+;@GLOBAL_BADEND_SET
+;指定されたBADエンドNo.を記録する
+;　ARG:0 記録するBADエンドのNo.
+;　戻り値は特になし
+;-----------------------------------------------------------------
+@GLOBAL_BADEND_SET, ARG
+	LOADGLOBAL
+	
+	IF ARG < 64
+		SETBIT GLOBAL:バッドエンド記録1, ARG
+	ELSE
+		LOCAL = ARG - 64
+		SETBIT GLOBAL:バッドエンド記録2, LOCAL
+	ENDIF
+	
+	SAVEGLOBAL
+	RETURN 1
+
+;-----------------------------------------------------------------
+;@GLOBAL_BADEND_GET
+;指定されたBADエンドNo.が記録済か返す
+;　ARG:0 記録済か判定するBADエンドのNo.
+;　RESULT 真:記録済 偽:記録なし
+;-----------------------------------------------------------------
+@GLOBAL_BADEND_GET, ARG
+	LOADGLOBAL
+
+	IF ARG < 64
+		LOCAL = GETBIT(GLOBAL:バッドエンド記録1, ARG)
+	ELSE
+		LOCAL = ARG - 64
+		LOCAL = GETBIT(GLOBAL:バッドエンド記録2, LOCAL)
+		LOCAL = LOCAL + 64
+	ENDIF
+	
+	RETURN LOCAL
+
+
+;-----------------------------------------------------------------
+;@GLOBAL_BADEND_DISP_BADENDLIST
+;BADエンドの一覧(No.とタイトル)を表示出力する
+;　引数、戻り値は特になし
+;-----------------------------------------------------------------
+@GLOBAL_BADEND_DISP_BADENDLIST
+	DRAWLINE
+	PRINTL Discovered BAD ends
+	DRAWLINE
+	FOR LOCAL ,0, 127
+		CALL GLOBAL_BADEND_GET(LOCAL)
+		SIF RESULT == 0
+			CONTINUE
+		PRINT 　
+		SELECTCASE LOCAL
+			CASE 0
+				PRINTL Bad Ending No.000 ( Total Annihilation END -Shin Megami Tensei（ＳＦＣ Version）- )
+			CASE 1
+				PRINTL Bad Ending No.001 ( Total Annihilation END -Shin Megami Tensei（ＧＢＡ Version）編- )
+			CASE 2
+				PRINTL Bad Ending No.002 ( Total Annihilation END -Shin Megami Tensei2編- )
+			CASE 3
+				PRINTL Bad Ending No.003 ( Total Annihilation END -Shin Megami Tensei3編- )
+			CASE 4
+				PRINTL Bad Ending No.004 ( Total Annihilation END -Digital Devil Saga: Avatar Tuner- )
+			CASE 5
+				PRINTL Bad Ending No.005 ( Total Annihilation END -Digital Devil Saga: Avatar Tuner 2- )
+			CASE 6
+				PRINTL Bad Ending No.006 ( Total Annihilation END -ソウルハッカーズ編- )
+			CASE 7
+				PRINTL Bad Ending No.007 ( Total Annihilation END -ペルソナ3編- )
+			CASE 8
+				PRINTL Bad Ending No.008 ( Total Annihilation END -ペルソナ4編- )
+			CASE 9
+				PRINTL Bad Ending No.009 ( Total Annihilation END -ストレンジジャーニー編- )
+			CASE 10
+				PRINTL Bad Ending No.010 ( Total Annihilation END -女神異聞録ペルソナ（ＰＳＰ Version）編- )
+			CASE 11
+				PRINTL Bad Ending No.011 ( Total Annihilation END -ペルソナ２罪　Innocent sin.（ＰＳ版）編- )
+			CASE 12
+				PRINTL Bad Ending No.012 ( Total Annihilation END -魔神転生編- )
+			CASE 20
+				PRINTL Bad Ending No.020 ( Total Annihilation END -饗宴の果てのハテ- )
+			CASE 21
+				PRINTL Bad Ending No.021 ( Arena Loss END -宴の終わり- )
+			CASE 22
+				PRINTL Bad Ending No.022 ( Arena Loss END -こんな可愛い便器が女の子のはずがない- )
+			CASE 23
+				PRINTL Bad Ending No.023 ( Arena Loss END -奉仕人形- )
+			CASE 24
+				PRINTL Bad Ending No.024 ( Arena Loss END -射精機械- )
+			CASE 25
+				PRINTL Bad Ending No.025 ( Arena Loss END -こんな可愛い検体が女の子のはずがない- )
+			CASE 26
+				PRINTL Bad Ending No.026 ( Arena Loss END -出産機械- )
+			CASE 30
+				PRINTL Bad Ending No.030 ( Outstanding Debt END -役立たずの末路- )
+			CASE 31
+				PRINTL Bad Ending No.031 ( Outstanding Debt END -肉穴の末路- )
+			CASE 32
+				PRINTL Bad Ending No.032 ( Outstanding Debt END -愚図の末路- )
+			CASE 33
+				PRINTL Bad Ending No.033 ( Outstanding Debt END -性処理便器の末路- )
+			CASE 34
+				PRINTL Bad Ending No.034 ( Outstanding Debt END -娼婦の末路- )
+			CASE 35
+				PRINTL Bad Ending No.035 ( Outstanding Debt END -贄の末路- )
+			CASE 36
+				PRINTL Bad Ending No.036 ( Outstanding Debt END -Public Fuckmeat end- )
+			CASE 40
+				PRINTL Bad Ending No.040 ( Alice's Toy END -My go od fri end- )
+			CASE 41
+				PRINTL Bad Ending No.041 ( Executive's mistress END )
+			CASE 42
+				PRINTL Bad Ending No.042 ( 使者の男END )
+			CASE 43
+
+			CASEELSE
+				
+		ENDSELECT
+
+	NEXT
+	PRINTL
+
+	RETURN 1

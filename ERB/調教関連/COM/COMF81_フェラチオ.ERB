@@ -1,0 +1,297 @@
+;-------------------------------------------------
+;フェラチオ
+;奉仕系コマンド、レベル2
+;-------------------------------------------------
+@JUMP_COM81
+;-------------------------------------------------
+;特殊派生処理
+;-------------------------------------------------
+;前回の調教が3Pのとき3Pへ
+;TFLAG:42 = 0
+;IF PREVCOM == 500
+;	CALL COM_ABLE_COMMON, 500
+;	IF RESULT == 1
+;		TFLAG:42 = 1
+;		RETURN 500
+;	ENDIF
+;調教者が前回:助手で今回:主人か、前回:主人で今回:助手のとき
+;ELSEIF TFLAG:前回の調教者 != PLAYER
+;	;前回の調教が正常位か後背位かアナルセックスのときは3Pへ
+;	IF PREVCOM == 60 || PREVCOM == 61 || PREVCOM == 62 || PREVCOM == 63
+;		CALL COM_ABLE_COMMON, 500
+;		SIF RESULT == 1
+;			RETURN 500
+;	ENDIF
+;ENDIF
+;前回の調教が正常位か後背位かアナルセックスか3Pのときは3Pへ
+IF GROUPMATCH(PREVCOM, 60, 61, 62, 63, 500 ,513, 514) && TEQUIP:TARGET:口挿入者 != SUBPLAYER()
+	;3Ｐ系から来たのを考慮して、ここで代入しなおしておく
+	TEQUIP:TARGET:口挿入者 = PLAYER
+	IF TEQUIP:TARGET:Ｖ挿入者 == SUBPLAYER()
+		CALL COM_ABLE_COMMON, 513
+		SIF RESULT == 1
+			RETURN 513
+	ELSEIF TEQUIP:TARGET:Ａ挿入者 == SUBPLAYER()
+		CALL COM_ABLE_COMMON, 514
+		SIF RESULT == 1
+			RETURN 514
+	ENDIF
+ENDIF
+;前回の調教が二本フェラのとき二本フェラへ
+IF PREVCOM == 511
+	CALL COM_ABLE_COMMON, 511
+	SIF RESULT == 1
+		RETURN 511
+;調教者が前回:助手で今回:主人か、前回:主人で今回:助手のとき
+ELSEIF TFLAG:前回の調教者 != PLAYER
+	;前回の調教がフェラチオだと二本フェラに
+	IF PREVCOM == 81
+		CALL COM_ABLE_COMMON, 511
+		SIF RESULT == 1
+			RETURN 511
+	ENDIF
+ENDIF
+;前回がクンニ・フェラする・シックスナイン・69パイズリの時、シックスナインへ
+IF GROUPMATCH(PREVCOM, 1, 2 , 501, 508)
+	CALL COM_ABLE_COMMON, 501
+	SIF RESULT == 1
+		RETURN 501
+ENDIF
+RETURN -1
+@ACT_COM81
+
+PRINTL Blowjob
+
+
+
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+TSTR:0 = フェラチオ
+;CALL KOJO_MESSAGE_COM
+
+;調教対象→調教者
+TFLAG:28 = 1
+TEQUIP:TARGET:口挿入者 = PLAYER
+TFLAG:挿入続行 = 1
+
+;-------------------------------------------------
+;射精ゲージチェック
+;-------------------------------------------------
+B = 1500
+
+;ABL:調教者の技巧をみる
+IF ABL:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:奉仕精神をみる
+IF ABL:7 == 0
+	TIMES B , 0.50
+ELSEIF ABL:7 == 1
+	TIMES B , 0.80
+ELSEIF ABL:7 == 2
+	TIMES B , 1.20
+ELSEIF ABL:7 == 3
+	TIMES B , 1.50
+ELSEIF ABL:7 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.40
+ENDIF
+
+;TALENT:舌使い、猫舌をみる
+SIF TALENT:52 || TALENT:54
+	TIMES B , 2.00
+
+;プレイヤーのABL:Ｃ感覚をみる
+IF ABL:PLAYER:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:PLAYER:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:PLAYER:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:PLAYER:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:PLAYER:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+;再装填処理中は射精ゲージは20分の1に
+SIF CFLAG:PLAYER:9 > 0
+	B /= 20
+
+
+SIF HAVE_PENIS(PLAYER)
+	BASE:PLAYER:2 += B
+
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 10
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:情愛 = 100
+SOURCE:TARGET:性行動 = 300
+SOURCE:TARGET:達成 = 150
+SOURCE:TARGET:屈従 = 700
+SOURCE:TARGET:逸脱 = 200
+SOURCE:TARGET:反感 = 200
+
+;上のほうで計算した汚れデータ
+SOURCE:TARGET:不潔 = Y*10 + 60
+
+;調教者にFEELＣ
+SOURCE:PLAYER:0 = 120
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 400
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 4
+;射精先選択の可・不可
+TFLAG:704 = 1
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;射精に関係なく行われる処理はここから
+;奴隷の口⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("口", TARGET, "ペニス", PLAYER)
+
+;奉仕精神ＬＶ２以上、技巧ＬＶ２以上なら汚れをなめ取る（ボールギャグ使用時は除く）
+IF ABL:7 >= 2 && ABL:2 >= 2 && TEQUIP:20 == 0
+	;STAIN:PLAYER:2 = 2
+	;タイミングをずらす
+	TFLAG:お掃除フェラ発生 = 1
+	TFLAG:8 = 1
+ENDIF
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:8+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:8+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;BlowjobEXP
+;PRINTFORML %EXPNAME:22%＋１
+CALL ADDS_EXP("フェラ経験", 1, TARGET)
+
+;LesbianEXP
+A = 7
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;LoveEXP
+IF (TALENT:3 == 1 || TALENT:6 == 1) && ASSIPLAY == 0
+;	PRINTS EXPNAME:23
+;	PRINTL +1
+	CALL ADDS_EXP("愛情経験", 1, TARGET)
+;	PRINTFORML LoveEXP(主人)＋１
+	CALL ADDS_EXP("愛情経験", 1, MASTER)
+ENDIF
+
+;奴隷が猫舌持ちの場合は、調教者にSadoEXPを追加
+IF TALENT:TARGET:54
+	CALL ADDS_EXP("嗜虐快楽経験", 1, TARGET)
+;	PRINTFORML %EXPNAME:32%＋１
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 1
+
+;依存度補正値(主人かつ恋慕、淫乱、服従で1。親愛、娼婦、隷属で2）
+IF (TALENT:3 || TALENT:4 || TALENT:5) && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF (TALENT:6 || TALENT:7 || TALENT:8) && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+TFLAG:100 = 1
+
+RETURN 1
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+@COM_ORDER_81, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "欲望", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "奉仕精神", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "精液中毒", 3, ARG, ARG:1
+CALL ADD_COM_ORDER, "MARK", "快楽刻印", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "PALAM", "欲情", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥じらい", -1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭鈍感", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭敏感", -3, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "献身的", 6, ARG, ARG:1
+SIF !TALENT:ARG:淫乱 && !TALENT:ARG:娼婦
+	CALL ADD_COM_ORDER, "TALENT", "快感の否定", -1, ARG, ARG:1
+;男嫌い（恋慕、親愛で無効）
+SIF HATE(ARG, ARG:1)
+	CALL ADD_COM_ORDER, "TALENT", \@IS_MALE(PLAYER) ? 男嫌い # 女嫌い \@, -12, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恋慕", 5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "親愛", 10, ARG, ARG:1
+;調教者がふたなり
+CALL ADD_COM_ORDER, "TALENT", "ふたなり", 8, ARG:1, ARG
+CALL ADD_COM_ORDER, "STAIN", "ペニス", 100, ARG, ARG:1
+CALL ADD_COM_ORDER, "RELATION", , , ARG, ARG:1
+
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_81
+RETURN 24
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_81
+RETURN COMTYPE("奉仕系")

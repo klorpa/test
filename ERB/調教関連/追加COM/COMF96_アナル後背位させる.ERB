@@ -1,0 +1,305 @@
+
+@CHECK_COM_ABLE96
+;アナル後背位させる実行判定
+
+;調教者のアヌスが使えないとダメ
+SIF !USE_ANUS(PLAYER)
+	RETURN 0
+
+;調教対象のペニスが使えないとダメ
+SIF !USE_PENIS(TARGET) && !USE_PBAND(TARGET)
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;縄・拘束中はダメ
+SIF TEQUIP:19
+	RETURN 0
+
+;三角木馬騎乗中はダメ
+SIF TEQUIP:41
+	RETURN 0
+
+;お風呂場プレイ中はプレイマットが無いとダメ
+IF TEQUIP:31
+	SIF !EXIST_ITEM(20)
+		RETURN 0
+ENDIF
+
+RETURN 1
+
+@ACT_COM96
+;アナル後背位させる
+PRINTL Let Anal Doggy Style
+TSTR:0 = アナル後背位させる
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+;CALL KOJO_MESSAGE_COM
+
+;調教者←→調教対象
+TFLAG:28 = 3
+
+;-------------------------------------------------
+;射精ゲージチェック　●付け足し
+;-------------------------------------------------
+B = 1500
+
+;ABL:調教対象の技巧をみる
+IF ABL:TARGET:2 == 0
+	TIMES B , 1.00
+ELSEIF ABL:TARGET:2 == 1
+	TIMES B , 1.20
+ELSEIF ABL:TARGET:2 == 2
+	TIMES B , 1.40
+ELSEIF ABL:TARGET:2 == 3
+	TIMES B , 1.60
+ELSEIF ABL:TARGET:2 == 4
+	TIMES B , 1.80
+ELSE
+	TIMES B , 2.00
+ENDIF
+
+;ABL:従順をみる
+IF ABL:0 == 0
+	TIMES B , 0.80
+ELSEIF ABL:0 == 1
+	TIMES B , 0.90
+ELSEIF ABL:0 == 2
+	TIMES B , 1.00
+ELSEIF ABL:0 == 3
+	TIMES B , 1.10
+ELSEIF ABL:0 == 4
+	TIMES B , 1.20
+ELSE
+	TIMES B , 1.30
+ENDIF
+
+;ABL:欲望をみる
+IF ABL:1 == 0
+	TIMES B , 1.00
+ELSEIF ABL:1 == 1
+	TIMES B , 1.10
+ELSEIF ABL:1 == 2
+	TIMES B , 1.20
+ELSEIF ABL:1 == 3
+	TIMES B , 1.30
+ELSEIF ABL:1 == 4
+	TIMES B , 1.40
+ELSE
+	TIMES B , 1.50
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES B , 0.60
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES B , 0.80
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES B , 1.00
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES B , 1.20
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES B , 1.40
+ENDIF
+
+;調教対象のABL:Ｃ感覚をみる
+IF ABL:TARGET:3 == 0
+	TIMES B , 1.00
+ELSEIF ABL:TARGET:3 == 1
+	TIMES B , 1.50
+ELSEIF ABL:TARGET:3 == 2
+	TIMES B , 2.00
+ELSEIF ABL:TARGET:3 == 3
+	TIMES B , 2.50
+ELSEIF ABL:TARGET:3 == 4
+	TIMES B , 3.50
+ELSE
+	TIMES B , 5.00
+ENDIF
+
+;再装填処理中は射精ゲージは20分の1に
+SIF CFLAG:PLAYER:9 > 0
+	B /= 20
+
+
+SIF HAVE_PENIS(PLAYER)
+	BASE:PLAYER:2 += B
+
+;調教対象→調教者
+TFLAG:28 = 1
+TEQUIP:PLAYER:Ａ挿入者 = TARGET
+TFLAG:挿入続行 = 1
+
+
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+LOSEBASE:0 += 40
+LOSEBASE:1 += 160
+
+SOURCE:0 = 650
+SOURCE:5 = 500
+SOURCE:6 = 1000
+SOURCE:18 = 500
+SIF IS_MALE(TARGET) && (TALENT:快感の否定 == 0 || ABL:欲望 > 2) && !IS_LOOKSLIKE_MALE(PLAYER)
+	SOURCE:18 /= 10
+SOURCE:15 = 750
+SOURCE:17 = 1500
+
+;調教者に快Ａ
+SOURCE:PLAYER:2 = 400
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:16 += 700
+
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 14
+;射精先選択の可・不可
+TFLAG:704 = 0
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;射精に関係なく行われる処理はここから
+;調教者のＡ⇔奴隷のＰの汚れが移動
+CALL MOVE_STAIN("アナル", PLAYER, "ペニス", TARGET)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;調教者のＡEXP
+CALL ADDS_EXP("Ａ経験", 1, PLAYER)
+
+;PRINTFORML ServicPlsEXP(調教者) + 1
+;EXP:PLAYER:奉仕快楽経験 += 1
+;PRINTFORML SexEXP(調教者) + 1
+;EXP:PLAYER:性交経験 += 1
+CALL ADDS_EXP("奉仕快楽経験", 1, PLAYER)
+CALL ADDS_EXP("性交経験", 1, PLAYER)
+;BestialEXP
+IF (TALENT:TARGET:獣 || TALENT:TARGET:鳥) && !(TALENT:PLAYER:獣 || TALENT:PLAYER:鳥)
+	CALL ADDS_EXP("獣姦経験", 1, PLAYER)
+	
+ENDIF
+;LesbianEXP
+A = 4
+IF IS_LESBIAN(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:40%+{A}
+;	PRINTFORML %EXPNAME:40%(調教者)+{A}
+;	EXP:40 += A
+;	EXP:PLAYER:40 += A
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:41%+{A}
+;	PRINTFORML %EXPNAME:41%(調教者)+{A}
+;	EXP:41 += A
+;	EXP:PLAYER:41 += A
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	
+	
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+;依存度補正値(主人かつ恋慕、淫乱、服従で1。親愛、娼婦、隷属で2）
+IF (TALENT:3 || TALENT:4 || TALENT:5) && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF (TALENT:6 || TALENT:7 || TALENT:8) && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+;奉仕快楽フラグ
+TFLAG:100 = 1
+
+RETURN 1
+
+@MESSAGE_COM96
+	IF TEQUIP:主導権
+		PRINTFORM %CALLNAME:TARGET%は後ろから%CALLNAME:PLAYER%のアヌスにペニスをあてがい
+		;「TARGETが真性のサドか」「サドっ気持ちか」で分岐
+		IF (TALENT:サド || ABL:サドっ気 >= 5) && RAND:3 == 0
+			PRINT 体ごと叩きつけるように
+		ELSEIF TALENT:サド || (ABL:サドっ気 >= 4 && RAND:2 == 0)
+			PRINT 二、三回菊門をなぞってから
+		ELSEIF RAND:2 == 0
+			PRINT ゆっくりと
+		ENDIF
+		;「TARGETが真性のサドか」「サドっ気持ちか」で分岐
+		IF (TALENT:サド || ABL:サドっ気 >= 5) && RAND:3 == 0
+			PRINT 奥まで突き入れ、
+		ELSEIF ABL:サドっ気 >= 3 && RAND:2 == 0
+			PRINT 挿入し、
+		ELSE
+			PRINT 入れ、
+		ENDIF
+		;恋慕で追加
+		SIF (TALENT:恋慕 || TALENT:親愛) && RAND:3 >= 1
+			PRINTFORM 快楽に悶える%CALLNAME:PLAYER%を愛おしそうに眺めながら
+		;「TARGETが真性のサドか」「サドっ気持ちか」で分岐
+		IF (TALENT:サド || ABL:サドっ気 == 5) && RAND:3 == 0
+			PRINTFORMW 激しく腰をピストンさせ%CALLNAME:PLAYER%の直腸内を深く抉った…
+		ELSEIF TALENT:サド || (ABL:サドっ気 >= 3 && RAND:2 == 0)
+			PRINTFORMW 乾いた音を立てて腰を打ちつけた…
+		ELSE
+			PRINTFORMW 腰を前後に動かし始めた…
+		ENDIF
+	ELSE
+		PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%の前で四つん這いになり、
+		SIF TALENT:PLAYER:淫乱
+			PRINTFORM いやらしく尻を突き出して
+		SIF EXP:PLAYER:Ａ経験 == 0
+			PRINT 男を受け入れた事のない
+		PRINTFORMW 自らのアヌスへの挿入をせがんだ…
+		PRINTFORM %CALLNAME:TARGET%は
+		;淫乱
+		SIF ABL:欲望 >= 3
+			PRINTFORM 菊座にペニスをニ、三回こすりつけてから、
+		;恋慕で追加
+		SIF TALENT:恋慕 && RAND:3 >= 1
+			PRINT 体をぴったりと密着させ、
+		PRINTFORMW %CALLNAME:PLAYER%の尻穴に挿入した…
+	ENDIF
+;-------------------------------------------------
+;実行判定処理
+;アナル正常位させると同じ
+;-------------------------------------------------
+@COM_ORDER_96, ARG, ARG:1
+CALL COM_ORDER_95, ARG, ARG:1
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_96
+RETURN 15
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_96
+RETURN COMTYPE("調教者奉仕系")
+
+

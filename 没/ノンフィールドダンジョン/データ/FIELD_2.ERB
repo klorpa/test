@@ -1,0 +1,271 @@
+
+
+;================================================
+;攻略条件
+;================================================
+@PREREQUISITE_DUNGEON_2
+RETURN 1
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_2
+RESULTS = 新宿衛生病院
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_2
+PRINT エコービル
+SELECTCASE FLAG:現階層
+	CASE 0
+		PRINTL 分院１Ｆ
+	CASE 1
+		PRINTL 分院Ｂ１Ｆ
+	CASE 2
+		PRINTL 本館Ｂ１Ｆ
+	CASE 3
+		PRINTL 本館１Ｆ
+		
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;================================================
+;階層呼び出し
+;================================================
+@START_DUNGEON_2
+FLAG:現階層 = 0
+FLAG:最大階層 = 4
+
+
+;================================================
+;フロア踏破時メッセージ
+;================================================
+@MESSAGE_NEXTFLOOR_1
+PRINTW 凍りついた扉を開け、次のエリアへと進んだ
+
+;================================================
+;開始時イベント
+;================================================
+@EVENT_START_DUNGEON_2
+RETURN 0
+
+;================================================
+;戦闘開始時イベント
+;================================================
+@EVENT_BATTLE_DUNGEON_2
+RETURN 0
+
+;================================================
+;探索時イベント
+;================================================
+@EVENT_SEARCH_DUNGEON_2
+RETURN 0
+
+@BOSS_DUNGEON_2
+IF DB:2:0 == 0
+	CUSTOMDRAWLINE =
+	PRINTW 病院の出入り口は分厚い氷で覆われ触れる事すら出来そうにない
+	PRINTW 「あら、まだ生き残っている人間が……それも、こんなに素敵な人が残っていただなんて」
+	PRINTL 声に振り向くと、青白く透き通るような肌の女性が立っている。
+	PRINTW 真っ白な着物を羽織ったその女性は恍惚とした表情で歩み寄ってきた。
+	PRINTW 「ああ、見れば見るほど素敵。逞しくて、暑く滾っていて──」
+	PRINTW 「──さぞや、凍らせ甲斐もあることでしょうね」
+	PRINTL 鬼女 ユキジョロウが１体出た！
+	CUSTOMDRAWLINE =
+	WAIT
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	CALL SET_ENEMY,9,603,102,0
+	ABL:(CHARANUM-1):スキル3 = 805
+	ABL:(CHARANUM-1):スキル4 = 1223
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	CALL BATTLE_START
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	PRINTW 賞金首・鬼女 ユキジョロウを討伐したことにより、口座に1500魔貨が支払われた
+	MONEY:1 += 1500
+	PRINTW 衛生病院を開放し、新宿周辺へ行けるようになった！
+	DB:2:0 = 1
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	FLAG:脱出 = 1
+ENDIF
+
+;================================================
+;１コマ毎の各確率の上昇
+;================================================
+@SEARCH_DUNGEON_2
+FLAG:踏破率 += RAND:25+1
+SIF FLAG:踏破率 > 100
+	FLAG:踏破率 = 100
+FLAG:遭遇率 += RAND:40+1
+SIF FLAG:遭遇率 > 100
+	FLAG:遭遇率 = 100
+FLAG:発見率 += RAND:20+1
+SIF FLAG:発見率 > 100
+	FLAG:発見率 = 100
+
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_2
+	$LOOP_ENCOUNT
+	SELECTCASE FLAG:現M
+		
+		CASE 0
+		;分院Ｂ１Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり20％の確率で出現
+				IF RAND:100 < 20
+					SELECTCASE RAND:100
+						CASE IS < 20
+							;25%でゾンビナース
+							CALL SET_ENEMY,LOCAL,501,0,0
+						CASE IS < 40
+							;25%でリリム
+							CALL SET_ENEMY,LOCAL,402,0,0
+						CASE IS < 60
+							;25%でゾンビちゃん
+							CALL SET_ENEMY,LOCAL,1001,1,0
+						CASE IS < 90
+							;15%でメリジェーヌ
+							CALL SET_ENEMY,LOCAL,802,0,0
+						CASE IS < 95
+							;5%でハーピーランク2
+							CALL SET_ENEMY,LOCAL,901,2,0
+						CASE IS < 100
+							;5%でゾンビちゃんランク２
+							CALL SET_ENEMY,LOCAL,1001,2,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+			
+		CASE 1
+		;２Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり20％の確率で出現
+				IF RAND:100 < 20
+					SELECTCASE RAND:100
+						CASE IS < 20
+							;25%でゾンビナース
+							CALL SET_ENEMY,LOCAL,501,1,0
+						CASE IS < 40
+							;25%でリリム
+							CALL SET_ENEMY,LOCAL,402,1,0
+						CASE IS < 60
+							;25%でヨモツシコメ
+							CALL SET_ENEMY,LOCAL,602,0,0
+						CASE IS < 80
+							;15%でメリジェーヌ
+							CALL SET_ENEMY,LOCAL,802,1,0
+						CASE IS < 90
+							;5%でアメノウズメ
+							CALL SET_ENEMY,LOCAL,101,1,0
+						CASE IS < 100
+							;5%でラミア
+							CALL SET_ENEMY,LOCAL,702,0,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+			
+		CASE 2
+		;３Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり25％の確率で出現
+				IF RAND:100 < 25
+					SELECTCASE RAND:100
+						CASE IS < 20
+							;25%でゾンビナース
+							CALL SET_ENEMY,LOCAL,501,2,0
+						CASE IS < 40
+							;25%でリリム
+							CALL SET_ENEMY,LOCAL,402,2,0
+						CASE IS < 60
+							;25%でヨモツシコメ
+							CALL SET_ENEMY,LOCAL,602,1,0
+						CASE IS < 80
+							;15%でメリジェーヌ
+							CALL SET_ENEMY,LOCAL,801,0,0
+						CASE IS < 90
+							;5%でアメノウズメ
+							CALL SET_ENEMY,LOCAL,101,1,0
+						CASE IS < 100
+							;5%でラミア
+							CALL SET_ENEMY,LOCAL,702,1,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+		CASE 3
+		;本館１Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり25％の確率で出現
+				IF RAND:100 < 25
+					SELECTCASE RAND:100
+						CASE IS < 20
+							;25%でゾンビナース
+							CALL SET_ENEMY,LOCAL,501,2,0
+						CASE IS < 40
+							;25%でリリム
+							CALL SET_ENEMY,LOCAL,402,2,0
+						CASE IS < 60
+							;25%でヨモツシコメ
+							CALL SET_ENEMY,LOCAL,602,2,0
+						CASE IS < 80
+							;15%でメリジェーヌ
+							CALL SET_ENEMY,LOCAL,801,1,0
+						CASE IS < 90
+							;5%でアメノウズメ
+							CALL SET_ENEMY,LOCAL,101,1,0
+						CASE IS < 100
+							;5%でキヨヒメ
+							CALL SET_ENEMY,LOCAL,702,0,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+			
+			
+	ENDSELECT
+	RETURN 1
+
+;================================================
+;発見するアイテム
+;================================================
+@CHECK_TREASURE_2
+SELECTCASE RAND:100
+	CASE IS < 10
+		RETURN 1102
+	CASE IS < 30
+		RETURN 1001
+	CASE IS < 70
+		RETURN 1105
+	CASE IS < 90
+		RETURN 1101
+	CASE IS < 100
+		RETURN 1008
+	CASE IS < 95
+		RETURN 2002
+	CASEELSE
+		RETURN 3501
+ENDSELECT
+

@@ -1,0 +1,41 @@
+;-------------------------------------------------
+;陥落識別関数 @陥落
+;関数名で出落ちすぎる。必要性どーなのと思われるかも知れないが
+;ルートごとに振り分けてしまってると便利そうなきがする
+;引数はキャラ番号、省略した場合はターゲット
+;陥落１段階目なら１、２段階目なら２が帰ってくる、契約なら３が帰ってくる
+;また、RESULTSにはルートごとに恋慕・淫乱・服従あるいはなしのいずれかが入るようにしておく
+;-------------------------------------------------
+@陥落(ARG = -1, ARG:1 = -1)
+#FUNCTION
+ARG = ARG > -1 ? ARG # TARGET
+IF ARG:1 == -1
+	IF TALENT:ARG:妻 || TALENT:ARG:夫 || TALENT:ARG:親愛 || TALENT:ARG:恋慕
+		RESULTS = Affection
+	ELSEIF TALENT:ARG:淫魔 || TALENT:ARG:娼婦 || TALENT:ARG:淫乱
+		RESULTS = Lewd
+	ELSEIF TALENT:ARG:玩具 || TALENT:ARG:隷属 || TALENT:ARG:服従
+		RESULTS = Submissive
+	ELSE
+		RESULTS = 
+	ENDIF
+;第二引数に中身がある場合は、ARGとARG:1の間の関係を見る
+ELSE
+	IF Affection(ARG, ARG:1) || Love(ARG, ARG:1)
+		RESULTS = Affection
+	ELSEIF Lewd(ARG, ARG:1) || Whore(ARG, ARG:1)
+		RESULTS = Lewd
+	ELSEIF Submissive(ARG, ARG:1) || Slave(ARG, ARG:1)
+		RESULTS = Submissive
+	ELSE
+		RESULTS = 
+		RETURNF 0
+	ENDIF
+ENDIF
+SIF TALENT:ARG:妻 || TALENT:ARG:夫 || TALENT:ARG:淫魔 || TALENT:ARG:玩具
+	RETURNF 3
+SIF TALENT:ARG:親愛 || TALENT:ARG:娼婦 || TALENT:ARG:隷属
+	RETURNF 2
+SIF TALENT:ARG:恋慕 || TALENT:ARG:淫乱 || TALENT:ARG:服従
+	RETURNF 1
+RETURNF 0

@@ -1,0 +1,72 @@
+;-------------------------------------------------
+;@FINDCHARA_B(ARG,ARG:1,ARG:2)
+;PT内というか、戦闘に関わるメンバーでARGのキャラがいて、健在かどうかを調べる
+;
+;//（ついでに敵も調べられるので）→敵は別関数に変更
+;
+;
+;ARG:1はイベント加入フラグで、これが一致していない場合はキャラがいても戻りは-1となる
+;なお、ARG:1が省略されていた場合はフラグを問わずになる
+;特定イベントではいった○○をチェックしたい場合に活用してください
+;戻り値はいない場合はいない場合は-1、いて健在な場合はPTフラグを返す
+;いても、行動入力不可能な状態のときはPTフラグ+10の値を返す
+;ただし、ストレージにしか居ない場合は3となる
+;
+;契約・ストレージの都合で複数キャラが存在するのが日常茶飯事になったので仕様変更(2011/3/08)
+;//ARG:2が真の場合、後ろから検索する。敵と味方両方いる場合、先頭から検索すると味方拾った時点で止まるので、敵を調べたい場合は、ARG:2を真にしてやったほうがいい
+;→ARG:2が偽の場合、味方サーチ。味方しかひっかからなくなる。
+;
+;最初に引っかかったキャラの数値を返していた
+;→常に全員をチェックし、優先順位の高い順に返す
+;健在な戦闘参加メンバー(2) > 健在でない戦闘参加メンバー(12) > 健在なCOMP内悪魔OR探索不参加人間(1) > 健在でない～(11) > 自宅サーバーに保存してある悪魔(0)
+
+;RESULT:1で、キャラ番号を取得して、いない場合は-1を返しています
+;先にFINDCHARA_Bを判定してるんで、そっちでちゃんと折れるはずなんで&&でつないでもまったく問題ないはず
+;-------------------------------------------------
+@FINDCHARA_B(ARG, ARG:1 = -100, ARG:2 = 0)
+#FUNCTION
+LOCAL:1 = -1
+LOCAL:2 = -1
+FOR LOCAL,CHARANUM-1,-1,-1
+	SIF NO:LOCAL != ARG
+		CONTINUE
+	SIF ARG:1 != CFLAG:LOCAL:イベント加入 && ARG:1 > -100
+		CONTINUE
+	SIF CFLAG:LOCAL:PTフラグ == 0
+		CONTINUE
+	IF CFLAG:LOCAL:PTフラグ == 1
+		;自宅サーバー内の悪魔
+		IF CFLAG:LOCAL:所属ＣＯＭＰ == -1
+			IF LOCAL:1 == -1
+				LOCAL:1 = 0
+				LOCAL:2 = LOCAL
+			ENDIF
+		;PTフラグが1の人間あるいは悪魔
+		ELSE
+			IF LOCAL:1 % 10 != 2
+				IF INPUTABLEF_CHARA(LOCAL)
+					LOCAL:1 = 1
+					LOCAL:2 = LOCAL
+				ELSE
+					IF LOCAL:1 != 1
+						LOCAL:1 = 11
+						LOCAL:2 = LOCAL
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;PTフラグが2、つまり実際に戦闘に参加している
+		IF INPUTABLEF_CHARA(LOCAL)
+			RESULT:1 = LOCAL
+			RETURNF 2
+		ELSE
+			IF LOCAL:1 != 2
+				LOCAL:1 = 12
+				LOCAL:2 = LOCAL
+			ENDIF
+		ENDIF
+	ENDIF
+NEXT
+RESULT:1 = LOCAL:2
+RETURNF LOCAL:1

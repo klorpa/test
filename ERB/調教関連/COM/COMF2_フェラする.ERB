@@ -1,0 +1,109 @@
+;-------------------------------------------------
+;フェラする
+;愛撫系コマンド、レベル1
+;-------------------------------------------------
+@JUMP_COM2
+;-------------------------------------------------
+;特殊派生処理
+;-------------------------------------------------
+;前回の調教がフェラチオかクンニ強制かシックスナインだとシックスナインに
+IF GROUPMATCH(PREVCOM, 81, 120, 501)
+	CALL COM_ABLE_COMMON, 501
+	SIF RESULT == 1
+		RETURN 501
+ENDIF
+;前回の調教がパイズリかパイズリフェラか６９パイズリだと６９パイズリに
+IF GROUPMATCH(PREVCOM, 82, 88, 508)
+	CALL COM_ABLE_COMMON, 508
+	SIF RESULT == 1
+		RETURN 508
+ENDIF
+RETURN -1
+@ACT_COM2
+PRINTL Blowjob
+TSTR:0 = フェラする
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+TEQUIP:PLAYER:口挿入者 = TARGET
+TFLAG:挿入続行 = 1
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 10
+DOWNBASE:TARGET:気力 += 80
+
+SOURCE:TARGET:快Ｃ = 120
+SOURCE:TARGET:露出 = 20
+SOURCE:TARGET:逸脱 = 20
+SOURCE:TARGET:反感 = 20
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 20
+
+;調教者のTALENT:舌使いをみる
+SIF TALENT:PLAYER:52
+	TIMES SOURCE:TARGET:快Ｃ , 1.50
+
+;調教者のTALENT:猫舌をみる
+SIF TALENT:PLAYER:54
+	TIMES SOURCE:TARGET:快Ｃ , 0.75
+
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷のＰ⇔調教者の口の汚れが移動
+CALL MOVE_STAIN("ペニス", TARGET, "口", PLAYER)
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:5+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 3
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;PRINTFORML BlowjobEXP(調教者) + 1
+CALL ADDS_EXP("フェラ経験", 1, PLAYER)
+
+;調教者が猫舌持ちの場合は、調教者にSadoEXPを追加
+IF TALENT:PLAYER:54
+	CALL ADDS_EXP("嗜虐快楽経験", 1, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+
+RETURN 1
+
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_2
+RETURN COMTYPE("調教者奉仕系")

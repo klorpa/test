@@ -1,0 +1,656 @@
+;キャラクターをリスト表示
+;=============================================================================
+;キャラリスト表示＋入力関数@INPUT_CHARA_LIST
+;ARGS   == 説明文(ARGS:2が呼び出された場合は省略されます)
+;ARGS:1 == 表示の可否を判断する関数名
+;    キャラクター(COUNT)が特定の条件を満たしたかどうかを判定し、
+;    表示可能な場合は1、表示できない場合は0を返す関数を別途に作ってください。
+;    この関数に引数は一切指定できません。
+;    指定した関数が存在しない場合は無条件で全てのキャラを表示します。
+;
+;ARGS:2 == 上部追加表示を行う関数名
+;ARGS:3 == 下部追加表示を行う関数名
+;    それぞれリストの上部、下部に何か特殊な表示をしたい時に指定します。
+;    この関数に引数は一切指定できません。
+;    単なる表示処理のみを想定しており、返り値が参照される事もありません。
+;
+;ARGS:4 == 選択肢を追加するための関数名
+;    キャラ選択、ページ送り、キャンセル以外の選択肢が必要な場合に指定します。
+;    引数は数値変数1つのみ指定できます。
+;    この関数は選択肢の表示時(引数=0)とINPUT直後(引数=RESULT)の2回呼び出されます。
+;    引数が0の時に選択肢の表示、それ以外の時に選択後の処理を行うよう設計してください。
+;    また、新たに関数をCALLする事でRESULTの値が変化する事に留意してください。
+;
+;    選択後に呼び出した後はRESULT:1を参照します。
+;    RESULT:1が0であれば現在のRESULTで処理を終了、それ以外ならRESTARTします。
+
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2013/03/23		GunＰ					二身合体の二体目と三身合体の三体目にＬＶを表示、キャラ一覧表示時で体力・気力表示時にＬＶを表示
+;	003		2015/09/23		Rsp暇人					悪魔全書登録の際、既登録との差異があれば色を変更するように。一覧から口上の有無を表示
+;	004		2017/01/10								仲魔リスト表示時の各労役を色分け。おまけで非処女判別機能追加（性別アイコンを暗い赤で表示）。
+;	005		2017/06/23		kuni					キャラ一覧の表示情報を切り替える機能を追加。
+;=============================================================================
+@INPUT_CHARA_LIST(ARGS, ARGS:1 = "", ARGS:2 = "", ARGS:3 = "", ARGS:4 = "", ARGS:5 = "Return")
+#DIM LINE, 2
+#DIM LLOCK
+#DIM LREDRAW
+#LOCALSSIZE 1
+
+IF !LLOCK
+	LREDRAW = CURRENTREDRAW()
+	REDRAW 2
+	LLOCK = 1
+ENDIF
+
+LINE = LINECOUNT
+;表示させるキャラを抽出（Q:*に表示するキャラの登録番号、Aに人数)
+VARSET Q, -1
+SIF LOCALS != ARGS:1
+	P = 0
+LOCALS = %ARGS:1%
+A = 0
+REPEAT CHARANUM
+	TRYCCALLFORM %ARGS:1%
+	CATCH
+		RESULT = 1
+	ENDCATCH
+	SIF RESULT == 0
+		CONTINUE
+	Q:A = COUNT
+	A   += 1
+REND
+P = LIMIT(P, 0, (A - 1) / リスト表示数())
+IF (FLAG:表示情報ページ保存 % 10)
+	;最後に見ていた表示情報を保存していた
+	O = (FLAG:表示情報ページ保存) / 100 -1
+ELSE
+	O = 0
+ENDIF
+
+$PRINT_LIST
+CLEARLINE LINECOUNT - LINE
+DRAWLINE
+TRYCCALLFORM %ARGS:2%
+CATCH
+	PRINTFORM %ARGS%　
+	SIF A > リスト表示数()
+		PRINTFORM ＜page.{P + 1}/{A / リスト表示数() + 1}＞
+	PRINTL
+ENDCATCH
+DRAWLINE
+LINE:1 = LINECOUNT - LINE:0
+CALL SHOW_CHARA_LIST
+PRINTFORM \@ P && P == (A - 1) / リスト表示数() ? %"\n" * (リスト表示数() + LINE:1 + LINE:0 - LINECOUNT)% # \@
+DRAWLINE
+PRINTFORMLC \@ A > リスト表示数() ?[1007]Previous page# [----] \@
+PRINTFORMLC \@ ARGS:5 != "キャンセル不可" ? [1000]%ARGS:5% # [----] \@
+PRINTFORMLC \@ A > リスト表示数() ?[1008]Next page# [----] \@
+PRINTLC [1009]Switch display information
+TRYCALLFORM %ARGS:4%(-1)
+
+TRYCALLFORM %ARGS:3%
+
+$INPUT_LOOP_1
+INPUT
+TRYCCALLFORM %ARGS:4%(RESULT)
+	IF !RESULT:1
+		LLOCK = 0
+		REDRAW LREDRAW
+		RETURN RESULT
+	ENDIF
+	SIF RESULT:1 == -1
+		RESTART
+CATCH
+ENDCATCH
+SELECTCASE RESULT
+	CASE 1000
+		IF ARGS:5 != "キャンセル不可"
+			LLOCK = 0
+			REDRAW LREDRAW
+			RETURN RESULT
+		ENDIF
+		CLEARLINE 1
+		GOTO INPUT_LOOP_1
+	CASE 1007
+		P = P <= 0 ? (A - 1) / リスト表示数() # P - 1
+	CASE 1008
+		P = P >= (A - 1) / リスト表示数() ? 0 # P + 1
+	CASE 1009
+		O += 1
+		SIF (FLAG:表示情報ページ保存 % 10)
+			FLAG:表示情報ページ保存 = ((O + 1) * 100 + 1)
+	CASEELSE
+		SIF RESULT < 0 || RESULT >= CHARANUM || MATCH(Q,RESULT,0) == 0
+			GOTO INPUT_LOOP_1
+		LLOCK = 0
+		REDRAW LREDRAW
+		RETURN RESULT
+ENDSELECT
+GOTO PRINT_LIST
+
+
+;=============================================================================
+;情報表示補助処理
+;=============================================================================
+;-------------------------------------------------
+;キャラ一覧表示時に[]内の数字を整列させる処理
+;-------------------------------------------------
+@ARRANGE_CHARALIST, ARG
+IF STRLENS(CALLNAME:ARG) <= 18
+	PRINTFORM [{ARG, 3}]%CALLNAME:ARG, 18, LEFT%
+ELSE
+	SUBSTRING CALLNAME:ARG, 0, 16
+	PRINTFORM [{ARG, 3}]\@ STRLENS(RESULTS) == 16 ? %RESULTS% # %SUBSTRING(CALLNAME:ARG, 0, 15)%. \@..
+ENDIF
+
+@ARRANGE_CHARALIST_2, ARG
+IF STRLENS(CALLNAME:ARG) <= 18
+	PRINTFORM %CALLNAME:ARG, 18, LEFT%
+ELSE
+	SUBSTRING CALLNAME:ARG, 0, 16
+	PRINTFORM \@ STRLENS(RESULTS) == 16 ? %RESULTS% # %SUBSTRING(CALLNAME:ARG, 0, 15)%. \@..
+ENDIF
+
+;-------------------------------------------------
+;キャラ一覧表示時に体力・気力を表示させる処理
+;-------------------------------------------------
+@ARRANGE_CHARALIFE, ARG
+#DIM 合体後忠誠度 , 1
+#DIM 合体後レベル , 1
+LOCAL = FLAG:ショップコマンド
+
+IF EQUALCHECK(LOCAL,102,103,104,106,122)
+	LOCAL = 1
+ELSEIF EQUALCHECK(LOCAL,101,120) && (FLAG:合体予定悪魔1 <= -1 || (FLAG:合体予定悪魔2 <= -1 && FLAG:合体人数 == 3))
+	LOCAL = 1
+ELSEIF EQUALCHECK(LOCAL,101,120) 
+	IF FLAG:合体人数 == 3
+		CALL RESULT_FUSION,FLAG:合体予定悪魔1,FLAG:合体予定悪魔2,ARG
+		合体後忠誠度 = (BASE:(FLAG:合体予定悪魔1):忠誠度 + BASE:(FLAG:合体予定悪魔2):忠誠度 + BASE:ARG:忠誠度)/3
+	ELSE
+		CALL RESULT_FUSION,FLAG:合体予定悪魔1,ARG
+		合体後忠誠度 = (BASE:(FLAG:合体予定悪魔1):忠誠度 + BASE:ARG:忠誠度)/2
+	ENDIF
+	LOCAL = RESULT > 0 ? 2 # 3
+ELSE
+	LOCAL = 4
+ENDIF
+
+SELECTCASE LOCAL
+	CASE 1
+		IF FLAG:カスタムゲーム画面
+			PRINTFORM LV:{BASE:ARG:LV,3} 
+			PRINTFORM ({CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0),3})  
+			PRINTFORM HP[{BASE:ARG:ＨＰ, 5}/{MAXBASE:ARG:ＨＰ, 5}] 
+			PRINTFORM MP[{BASE:ARG:ＭＰ, 5}/{MAXBASE:ARG:ＭＰ, 5}]
+		ELSE
+			PRINTFORM LV:{BASE:ARG:LV,3} 
+			PRINTFORM ({CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0),3})  
+			PRINTFORM ＨＰ({BASE:ARG:ＨＰ, 4}/{MAXBASE:ARG:ＨＰ, 4}) 
+			PRINTFORM ＭＰ({BASE:ARG:ＭＰ, 4}/{MAXBASE:ARG:ＭＰ, 4})
+		ENDIF
+	CASE 2
+		PRINTFORM LV:{BASE:ARG:LV,3} 
+		IF FLAG:(20000+(RESULT)) < 100
+			SETCOLOR 0xFDFE02
+			PRINT !
+			RESETCOLOR
+		ELSE
+			PRINT  
+		ENDIF
+		
+		合体後レベル = CSVBASE(RESULT,GETNUM(BASE,"LV"),0)
+		;特殊合体の色変えが来た場合は水色、レベルオーバーで黒色、両方は種族名が水色であとは青色となる
+		SIF 合体後レベル > BASE:MASTER:LV + FLAG:経験ED数 && 合体後忠誠度 < POWER(合体後レベル -(BASE:MASTER:LV + FLAG:経験ED数) , 2)*500 && EQUIP:MASTER:Steven == 0
+			SETCOLOR COLOR("gray")
+		SIF RESULT:1
+			SETCOLOR COLOR("aqua")
+;EDIT RASIEL-ADD-ON START ------------------------------------------------
+		;ラジエルアドオン処理が適用される対象の場合、水色
+		SIF EXTRACHECK_DEVIL_CHILDREN(RESULT) && EQUIP:MASTER:BookOfRaziel
+			SETCOLOR COLOR("aqua")
+;EDIT RASIEL-ADD-ON END   ------------------------------------------------
+		PRINTFORM ：%CSV種族名(RESULT,0),6,LEFT% 
+		SIF 合体後レベル > BASE:MASTER:LV + FLAG:経験ED数 && 合体後忠誠度 < POWER(合体後レベル -(BASE:MASTER:LV + FLAG:経験ED数) , 2)*500 && EQUIP:MASTER:Steven == 0
+			SETCOLOR COLOR("gray")
+		PRINTFORM LV{CSVBASE(RESULT,GETNUM(BASE,"LV"),0),2} 
+		LOCAL:1 = GETCOLOR()
+		SELECTCASE CSVABL(RESULT, GETNUM(ABL, "属性LD"), 0)
+			CASE 1
+				SETCOLOR 0x66FFFF
+				PRINT L
+			CASE 2
+				SETCOLOR 0xC0C0C0
+				PRINT N
+			CASE 3
+				SETCOLOR 0x990000
+				PRINT D
+		ENDSELECT
+		PRINTD /
+		SELECTCASE CSVABL(RESULT, GETNUM(ABL, "属性LC"), 0)
+			CASE 1
+				SETCOLOR 0x66FFFF
+				PRINT L
+			CASE 2
+				SETCOLOR 0xC0C0C0
+				PRINT N
+			CASE 3
+				SETCOLOR 0x990000
+				PRINT C
+		ENDSELECT
+		PRINT 　
+		SETCOLOR LOCAL:1
+		;PRINTFORM %CSVNAME(RESULT,0),18,LEFT%
+
+		;インストールソフト：CorruptDiaryを使用している場合
+		;全陥落制覇している場合はハートが付く
+		IF EQUIP:MASTER:CorruptDiary && FLAG:(50000+RESULT) == 255
+			PRINTFORM %CSVNAME(RESULT,0),17,LEFT%
+			SETCOLOR COLOR("PINK")
+			PRINTFORM %ハート()%
+			RESETCOLOR
+		ELSE
+			PRINTFORM %CSVNAME(RESULT,0),18,LEFT%
+		ENDIF
+		
+		;解析率
+		IF ABL:ARG:種族 > 0 && ABL:ARG:種族 < 45 && !TALENT:ARG:子供
+			IF FLAG:(20000+RESULT) <= 0
+				SETCOLOR 0xFFFFFF
+			ENDIF
+			IF FLAG:(20000+RESULT) > 999
+				SETCOLOR 0x404040
+				PRINT 100％ 
+			ELSE
+				PRINTFORM {FLAG:(20000+RESULT)/10,3}％ 
+			ENDIF
+			RESETCOLOR
+		ELSE
+			PRINTFORM ――  
+		ENDIF
+		
+		;インストールソフト：CorruptDiaryを使用している場合
+		;誕生予定の悪魔の陥落履歴を表示する
+		IF EQUIP:MASTER:CorruptDiary
+				LOCAL:1 = 0
+				LOCAL:2 = RESULT
+			FOR LOCAL:1, 1, 9
+				SETCOLOR GETBIT(FLAG:(50000+LOCAL:2), LOCAL:1) ? COLOR("aqua") # COLOR("light-gray")
+				PRINTFORM %AUTO_SPLIT("/恋/親/淫/娼/服/隷/ Virgin", "/", LOCAL:1)%
+				RESETCOLOR
+			NEXT
+		ENDIF
+
+
+	CASE 3
+		PRINT 　　　 
+		PRINTFORM  %"：×" , 43,LEFT%
+	CASE 4
+		PRINTFORM LV:{BASE:ARG:LV,3} 
+		IF FLAG:カスタムゲーム画面
+			PRINTFORM Stamina({BASE:ARG:0, 5}/{MAXBASE:ARG:0, 5}) 
+			PRINTFORM Willpower({BASE:ARG:1, 5}/{MAXBASE:ARG:1, 5}) 
+		ELSE
+			PRINTFORM Stamina({BASE:ARG:0, 4}/{MAXBASE:ARG:0, 4}) 
+			PRINTFORM Willpower({BASE:ARG:1, 4}/{MAXBASE:ARG:1, 4}) 
+		ENDIF
+		PRINTFORM Stress:{CFLAG:ARG:ストレス値, 3}
+ENDSELECT
+;-------------------------------------------------
+;キャラ一覧表示処理
+;-------------------------------------------------
+@SHOW_CHARA_LIST
+LOCAL:3 = 0
+REPEAT リスト表示数()
+	文字色変更 = 0
+	LOCAL = Q:(COUNT + P * リスト表示数())
+	SIF LOCAL < 0 || CFLAG:LOCAL:この場に居ないフラグ == 1
+		CONTINUE
+	IF FLAG:ショップコマンド == 1201
+		CALL STRFLAG_NUM_CPD(LOCAL,"DIFF")
+	ENDIF
+	
+	CALL ARRANGE_SETCOLOR, LOCAL
+
+	CALL ARRANGE_TARGETSIGN, LOCAL
+
+	IF FLAG:ショップコマンド == 107
+		CALL ARRANGE_NAMECALLS, LOCAL
+		CONTINUE
+	ENDIF
+
+	CALL ARRANGE_CHARALIST, LOCAL
+	
+	SELECTCASE O
+		CASE 1
+			IF FLAG:カスタムゲーム画面
+				PRINTFORM LV:{BASE:LOCAL:LV,3} 
+				PRINTFORM HP[{BASE:LOCAL:ＨＰ, 5}/{MAXBASE:LOCAL:ＨＰ, 5}] 
+				PRINTFORM MP[{BASE:LOCAL:ＭＰ, 5}/{MAXBASE:LOCAL:ＭＰ, 5}] 
+				PRINTFORM CP[{BASE:LOCAL:CP, 4}/{MAXBASE:LOCAL:CP, 4}] 
+			ELSE
+				PRINTFORM LV:{BASE:LOCAL:LV,3} 
+				PRINTFORM ＨＰ({BASE:LOCAL:ＨＰ, 4}/{MAXBASE:LOCAL:ＨＰ, 4}) 
+				PRINTFORM ＭＰ({BASE:LOCAL:ＭＰ, 4}/{MAXBASE:LOCAL:ＭＰ, 4}) 
+				PRINTFORM ＣＰ({BASE:LOCAL:CP, 3}/{MAXBASE:LOCAL:CP, 3}) 
+			ENDIF
+			PRINTFORM St：{BASE:LOCAL:力,3} 
+			PRINTFORM In：{BASE:LOCAL:知恵,3} 
+			PRINTFORM Ma：{BASE:LOCAL:魔力,3} 
+			PRINTFORM En：{BASE:LOCAL:耐力,3} 
+			PRINTFORM Ag：{BASE:LOCAL:速さ,3} 
+			PRINTFORML Lu：{BASE:LOCAL:運,3}
+		CASE 2
+			RESETCOLOR
+			FOR LOCAL:2, 0, FLAG:相性数 / 2
+				PRINTFORM  %CHARATU(BASENAME:(40+LOCAL:2), 0)%：
+				CALL SET_AISYOU_COLOR, MAXBASE:LOCAL:(GET_TYPE(LOCAL:2))
+				PRINTFORM \@(MAXBASE:LOCAL:(GET_TYPE(LOCAL:2)) < 0) ?Dr#　\@
+				PRINTFORM \@ ((MAXBASE:LOCAL:(GET_TYPE(LOCAL:2)) != 999)) ? {ABS(MAXBASE:LOCAL:(GET_TYPE(LOCAL:2))),3}％ # %" " *1%Refl \@
+				RESETCOLOR
+			NEXT
+			PRINTL
+		CASE 3
+			RESETCOLOR
+			FOR LOCAL:2, FLAG:相性数 / 2 + 1, FLAG:相性数
+				PRINTFORM  %CHARATU(BASENAME:(40+LOCAL:2), 0)%：
+				CALL SET_AISYOU_COLOR, MAXBASE:LOCAL:(GET_TYPE(LOCAL:2))
+				PRINTFORM \@(MAXBASE:LOCAL:(GET_TYPE(LOCAL:2)) < 0) ?Dr#　\@
+				PRINTFORM \@ ((MAXBASE:LOCAL:(GET_TYPE(LOCAL:2)) != 999)) ? {ABS(MAXBASE:LOCAL:(GET_TYPE(LOCAL:2))),3}％ # %" " *1%Refl \@
+				RESETCOLOR
+			NEXT
+			PRINTL
+		CASE 4
+			IF FLAG:カスタムゲーム画面
+				PRINTFORM Stamina({BASE:LOCAL:0, 5}/{MAXBASE:LOCAL:0, 5}) 
+				PRINTFORM Willpower({BASE:LOCAL:1, 5}/{MAXBASE:LOCAL:1, 5}) 
+				PRINTFORM Loyalty:{BASE:LOCAL:忠誠度,8} 
+			ELSE
+				PRINTFORM Stamina({BASE:LOCAL:0, 4}/{MAXBASE:LOCAL:0, 4}) 
+				PRINTFORM Willpower({BASE:LOCAL:1, 4}/{MAXBASE:LOCAL:1, 4}) 
+				PRINTFORM Loyalty:{BASE:LOCAL:忠誠度,6} 
+			ENDIF
+			CALL ARRANGE_CHARAPOSITION, LOCAL
+			CALL ARRANGE_FALLTALENT, LOCAL
+			CALL ARRANGE_SEX, LOCAL
+			CALL PRINT_ALIGNMENT(LOCAL,1,0)
+			;PRINTFORM %CSTR:LOCAL:種族名,6,LEFT% 
+			IF ABL:LOCAL:種族 > 0 && ABL:LOCAL:種族 < 45
+				IF FLAG:(20000+NO:LOCAL) <= 0
+					SETCOLOR 0xFFFFFF
+				ENDIF
+				IF FLAG:(20000+NO:LOCAL) > 999
+					SETCOLOR 0x404040
+					PRINT  100％
+				ELSE
+					PRINTFORM  {FLAG:(20000+NO:LOCAL)/10,3}％
+				ENDIF
+				RESETCOLOR
+			ELSE
+				PRINTFORM %" " * 6%
+			ENDIF
+			PRINTFORM 　%CSV種族名(NO:LOCAL,0),6,LEFT% 
+			PRINTL
+		;Oが0(デフォルト)の時及び上記のCASEに合わない場合
+		;Oが上記のCASEに合わない値を持っていてもO = 0でリセットする
+		CASEELSE
+			O = 0
+			CALL ARRANGE_CHARALIFE, LOCAL
+			CALL ARRANGE_CHARAPOSITION, LOCAL
+			CALL ARRANGE_FALLTALENT, LOCAL
+			CALL ARRANGE_SEX, LOCAL
+
+			SELECTCASE FLAG:ショップコマンド
+				CASE [[ショップ:探索]],[[ショップ:イベント]],[[ショップ:コロシアム参加]],[[ショップ:依頼請負]]
+					SIF ABL:LOCAL:種族 != 0
+					PRINTFORM 　Summoning Cost:{MAXBASE:LOCAL:￥,8}MAG
+				;CASE 120,122
+				CASE 120
+					IF FLAG:カスタムゲーム画面
+						SIF FLAG:ショップコマンド == 120
+							PRINTFORM 　Loyalty:{BASE:LOCAL:忠誠度,8}
+						PRINTFORM 　MAG:{BASE:LOCAL:ＭＡＧ,9}/{MAXBASE:LOCAL:ＭＡＧ,9}
+					ELSE
+						SIF FLAG:ショップコマンド == 120
+							PRINTFORM 　Loyalty:{BASE:LOCAL:忠誠度,6}
+						PRINTFORM 　MAG:{BASE:LOCAL:ＭＡＧ,6}/{MAXBASE:LOCAL:ＭＡＧ,6}
+					ENDIF
+				CASE [[ショップ:セットアップ]]
+					IF ABL:(LOCAL):種族 == 0
+						PRINTFORM [　‐　]
+					ELSE
+						PRINTFORM [\@ CFLAG:(LOCAL):所属ＣＯＭＰ == -1 ? Home server # ＣＯＭＰ \@]
+					ENDIF
+				CASE 1201
+					SIF 文字色変更 != 0
+						PRINT 　Different from record
+				CASE [[ショップ:夜這いフィルタ]]
+					PRINTFORM 　Allow night-visit：\@ CFLAG:LOCAL:夜這い不許可 ? [×] # [○] \@
+				CASEELSE
+					SELECTCASE CFLAG:LOCAL:労役フラグ
+						CASE 1	;食堂で働く
+							SETCOLOR COLOR("PASTEL-BLUE")
+						CASE 2	;体を売る
+							SETCOLOR COLOR("PASTEL-RED")
+						CASE 3	;奴隷のレンタル
+							SETCOLOR COLOR("PASTEL-PURPLE")
+						CASE 4	;音楽活動
+							SETCOLOR COLOR("PASTEL-GREEN")
+						CASE 5	;乱交ライブ
+							SETCOLOR COLOR("PASTEL-YELLOW")
+						CASE 6	;？？？？
+							SETCOLOR COLOR("GRAY")
+						CASE 7	;？？？？
+							SETCOLOR COLOR("GRAY")
+						CASE 8	;？？？？
+							SETCOLOR COLOR("GRAY")
+						CASE 9	;？？？？
+							SETCOLOR COLOR("GRAY")
+						CASE 10 TO 19	;経営店舗
+							SELECTCASE [[店舗:種類]]:(CFLAG:LOCAL:労役フラグ-10)
+								CASE 10	;公衆便所
+									SETCOLOR COLOR("PASTEL-BLUEGREEN")
+								CASE 11	;ストリップ劇場
+									SETCOLOR COLOR("PINK")
+								CASE 12	;見せ物小屋
+									SETCOLOR COLOR("DARK-PINK")
+								CASE 13	;メシア教会
+									SETCOLOR COLOR("AQUA")
+								CASE 14	;ガイア教会
+									SETCOLOR COLOR("RED")
+								CASE 15	;教会
+									SETCOLOR COLOR("LIGHT-GRAY")
+								CASEELSE
+									SETCOLOR COLOR("WHITE")
+							ENDSELECT
+						CASEELSE
+							SETCOLOR COLOR("WHITE")
+					ENDSELECT
+					PRINTFORM %GET_JOB_OMIT(CFLAG:LOCAL:労役フラグ > 9 ? [[店舗:種類]]:(CFLAG:LOCAL:労役フラグ-10) # CFLAG:LOCAL:労役フラグ)%
+					RESETCOLOR
+					;[TR]追加部分(アラインメント表示)
+					PRINTS " "
+					CALL PRINT_ALIGNMENT(LOCAL,1,0)
+					CALL 口上呼び出し , "存在" , LOCAL
+					IF RESULT == 1
+						PRINT 　専
+					ELSEIF RESULT == 2
+						PRINT 　汎
+					ELSE
+						PRINT 　―
+					ENDIF
+			ENDSELECT
+			;SIF FLAG:ショップコマンド == 122
+			;	PRINTFORM 　MAG:{BASE:LOCAL:ＭＡＧ, 8}/{MAXBASE:LOCAL:ＭＡＧ, 8}
+			IF FLAG:ショップコマンド == 122
+				IF BASE:LOCAL:ＭＡＧ == MAXBASE:LOCAL:ＭＡＧ
+					SETCOLOR COLOR("pink")
+				ELSEIF BASE:LOCAL:ＭＡＧ >= MAXBASE:LOCAL:ＭＡＧ / 4 * 3
+					SETCOLOR 0xff66ff
+				ELSEIF BASE:LOCAL:ＭＡＧ >= MAXBASE:LOCAL:ＭＡＧ / 2
+					SETCOLOR 0xff99ff
+				ELSEIF BASE:LOCAL:ＭＡＧ >= MAXBASE:LOCAL:ＭＡＧ / 4
+					SETCOLOR 0xffccff
+				ENDIF
+				IF FLAG:カスタムゲーム画面
+					PRINTFORM 　MAG:{BASE:LOCAL:ＭＡＧ,9}/{MAXBASE:LOCAL:ＭＡＧ,9}
+				ELSE
+					PRINTFORM 　MAG:{BASE:LOCAL:ＭＡＧ,6}/{MAXBASE:LOCAL:ＭＡＧ,6}
+				ENDIF
+				RESETCOLOR
+			ENDIF
+			CALL ARRANGE_危険日, LOCAL
+
+			PRINTL 
+			RESETCOLOR
+	ENDSELECT
+REND
+RESETCOLOR
+		;IF E >= 1
+		;	PRINT 　　　☆:Partner ★:Assistant ○:Can assist ●:Former assistant
+		;	SIF FLAG:15 & 4096 && FLAG:75 & 32768 && LOCAL:3 & 1
+		;		PRINT  ◆:触手幽閉中
+		;;	SIF FLAG:15 & 4096 && LOCAL:3 & 2
+		;;		PRINT  ▲:檻幽閉中
+		;	SIF LOCAL:3 & 4 && FLAG:13 & 1024
+		;		PRINT  ◇：売春中
+		;	PRINTL 　を表しています
+		;ENDIF
+
+;-------------------------------------------------
+;文字色の設定
+;-------------------------------------------------
+@ARRANGE_SETCOLOR,ARG
+SIF CFLAG:ARG:PTフラグ == 0
+	SETCOLOR 0x990000
+SIF (CFLAG:ARG:PTフラグ == 0 && CPOS(ARG) < 1) || CFLAG:ARG:被召喚フラグ
+	SETCOLOR 0x404040
+IF FLAG:ショップコマンド == 667 && CFLAG:ARG:フィルタリングフラグ
+	SETCOLOR 0x404040
+ELSEIF FLAG:ショップコマンド == 1201 && 文字色変更 != 0
+	SETCOLOR 文字色変更
+ELSEIF FLAG:ショップコマンド == 667
+	RESETCOLOR
+ENDIF
+;SIF FLAG:ショップコマンド == 110 || FLAG:ショップコマンド == 108 || FLAG:ショップコマンド == 109
+;	SETCOLOR 0xCC33FF
+
+;-------------------------------------------------
+;調教対象・助手などの設定表示
+;-------------------------------------------------
+@ARRANGE_TARGETSIGN,ARG
+LOCAL = EQUALCHECK_TURN(1,ARG == TARGET,ARG == ASSI,ISASSI:ARG == 1,CFLAG:ARG:売却可能 == 2)
+PRINTFORM %AUTO_SPLIT("　,☆,★,●,○",",",LOCAL)%
+
+;-------------------------------------------------
+;名称・相性・一人称・二人称の表示
+;-------------------------------------------------
+@ARRANGE_NAMECALLS,ARG
+RESULTS = [{ARG, 2}]
+RESULTS = %RESULTS%Name:
+IF FLAG:カスタムゲーム画面
+    RESULTS = %RESULTS%%NAME:ARG, 34, LEFT% 
+    RESULTS = %RESULTS%Nickname:
+    RESULTS = %RESULTS%%CALLNAME:ARG, 18, LEFT% 
+    RESULTS = %RESULTS%1st Person：
+    RESULTS = %RESULTS%%CSTR:ARG:一人称, 18, LEFT% 
+ELSE
+    RESULTS = %RESULTS%%NAME:ARG, 21, LEFT% 
+    RESULTS = %RESULTS%Nickname:
+    RESULTS = %RESULTS%%CALLNAME:ARG, 21, LEFT% 
+    RESULTS = %RESULTS%1st Person：
+    RESULTS = %RESULTS%%CSTR:ARG:一人称, 12, LEFT% 
+ENDIF
+IF ARG != MASTER
+    RESULTS = %RESULTS%%CALLNAME:MASTER%'s 2nd Person：
+    RESULTS = %RESULTS%%CSTR:ARG:二人称, 12, LEFT%
+ENDIF
+PRINTFORML %RESULTS%
+
+;-------------------------------------------------
+;性別表示
+;-------------------------------------------------
+@ARRANGE_SEX,ARG
+IF TALENT:ARG:オトコ
+	SETCOLOR 0x008B8B
+ELSEIF TALENT:ARG:処女 || TALENT:ARG:再生処女
+	SETCOLOR 0xCC0000
+ELSE
+	SETCOLOR 0x660022
+ENDIF
+IF TALENT:ARG:妊娠
+ 	SETCOLOR 0xCC33FF
+ 	PRINT 孕 
+ELSEIF TALENT:ARG:不定形 || TALENT:ARG:異形 || TALENT:ARG:男の娘 || TALENT:ARG:ふたなり
+	PRINT ？ 
+ELSE
+	PRINTFORM %TALENT:ARG:オトコ ? "♂" # "♀" % 
+ENDIF
+RESETCOLOR
+
+;-------------------------------------------------
+;陥落素質表示
+;-------------------------------------------------
+@ARRANGE_FALLTALENT,ARG
+LOCAL = EQUALCHECK_TURN(1,TALENT:ARG:ＮＴＲ==1,TALENT:ARG:ＮＴＲ==2,TALENT:ARG:ＮＴＲ==3,TALENT:ARG:恋慕,TALENT:ARG:淫乱,TALENT:ARG:服従,TALENT:ARG:親愛,TALENT:ARG:娼婦,TALENT:ARG:隷属,TALENT:ARG:崩壊)
+PRINTFORM %AUTO_SPLIT("――   ,Ｎ ,Ｎ ,Ｎ ,Affec  ,Lewd   ,Submis ,Love   ,Whore  ,Slave  ,Broken ,",",",LOCAL)%
+
+;-------------------------------------------------
+;ポジション表示
+;-------------------------------------------------
+@ARRANGE_CHARAPOSITION,ARG
+PRINTFORM %AUTO_SPLIT("   ,① ,② ,③ , ④, ⑤, ⑥,⑦ ,⑧ ,⑨ ,⑩ ,⑪ ,⑫ ,⑬ , ⑭, ⑮, ⑯, ⑰, ⑱, ⑲, ⑳",",",CFLAG:ARG:ポジション)%
+
+;-------------------------------------------------
+;危険日表示
+;-------------------------------------------------
+@ARRANGE_危険日,ARG
+SIF !GROUPMATCH(FLAG:ショップコマンド, 108, 109, 110, 531, 532, 533, 534, 535, 536, 537, 538, 539)
+	RETURN
+
+IF CHECK_CHILD_CARE(ARG) && FLAG:出産機能ONOFF
+	PRINT  At nursery
+	;育児室
+ELSEIF TALENT:ARG:妊娠
+	SELECTCASE 危険日(ARG)
+		CASE 2
+			SETCOLOR 0xCC33FF
+			LOCAL = 0
+		CASE 3
+			SETCOLOR 0xCC33FF
+			LOCAL = 1
+		CASEELSE
+			PRINT  Pregnant
+			RETURN
+	ENDSELECT
+	CALL HEARTB
+	PRINTFORM %AUTO_SPLIT("Pregnant in Heat,Pregnant F-Moon Heat",",",LOCAL)%
+	;妊婦発情中	妊婦満月発情中
+	CALL HEARTB
+	RESETCOLOR
+ELSE
+	SELECTCASE 危険日(ARG)
+		CASE 1
+			SETCOLOR 0xCC33FF
+			LOCAL = 0
+		CASE 2
+			SETCOLOR 0xCC33FF
+			LOCAL = 1
+		CASE 3,-2
+			SETCOLOR 0xCC33FF
+			LOCAL = 2
+		CASEELSE
+			RETURN
+	ENDSELECT
+	CALL HEARTB
+	PRINTFORM %AUTO_SPLIT("Danger Day,In Heat,F-Moon Heat",",",LOCAL)%
+	;満月発情中
+	CALL HEARTB
+	RESETCOLOR
+ENDIF
+

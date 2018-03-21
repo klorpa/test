@@ -1,0 +1,562 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx.ERB
+;	Facility	:依頼:060(真IV)。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【当ファイルについて】
+; 当ファイルは真IVのイベントをCALLするだけの、メインファイルである。
+; 詳細な処理は各サブファイルに記載する。
+; （サブファイルはイベントごとに１ファイル用意する）
+;
+;
+; 【フラグについて】
+; デビルサバイバー２のイベントでは、"FLAG:真IV進行度"を使用している。
+; ３桁の数値が以下の仕様で設定される。
+;
+; ・３桁目…イベント進行度
+; ・２桁目…
+; ・１桁目…
+;
+;-------------------------------------------------------------------------------
+
+;===============================================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name						Explanation
+;
+;	・ PLAYABLE_REQUEST_xxx				依頼:条件
+;	・ EXPLAIN_REQUEST_xxx				依頼:説明
+;	・ REQUEST_xxx						依頼:メイン処理
+;	・ EVENT_BATTLE_TURNTOP_REQUESTxxx	依頼:戦闘中処理(ターン開始時)
+;	・ EVENT_BATTLE_TURNEND_REQUESTxxx	依頼:戦闘中処理(ターン終了時)
+;
+; *- 独自関数
+;
+;	・ REQUEST_30_FLAG_RESET			依頼:フラグリセット
+;	・ REQUEST_30_DAY_TITLE				依頼:一日のタイトル
+;	・ REQUEST_30_DAY_END				依頼:一日の終了
+;	・ REQUEST_30_TURN_END				依頼:ターンの終了
+;	・ REQUEST_30_BASE_LV				依頼:基礎レベル
+;
+;===============================================================================
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_REQUEST_60
+#DIM DYNAMIC L_FLAG_REQ
+#DIM DYNAMIC L_FLAG_EVENT_DIGIT
+#DIM DYNAMIC L_FLAG
+#DIM DYNAMIC L_FLAG2
+#DIM DYNAMIC L_FLAG3
+
+;-----------------------------
+;- 共通チェック
+;-----------------------------
+
+;- デバッグ
+IF FLAG:DEBUG
+	;OK
+
+;- 主人レベル20以上
+ELSEIF BASE:MASTER:LV >= 20
+	;OK
+
+ELSE
+	;NG
+	RETURN 0
+ENDIF
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+;- フラグをセット(イベントフラグ:3桁目)
+L_FLAG_REQ = FLAG:真IV進行度 /100
+
+SELECTCASE L_FLAG_REQ
+	;-----------------------------
+	;- [第1イベント　東京スカイタワー]
+	;-----------------------------
+	CASE 0
+		;- CHK:イベントフラグ
+		RESULTS = Sky Tree pocket dimension
+		RETURN 1
+	;-----------------------------
+	;- [第2イベント　新宿]
+	;-----------------------------
+	CASE 1
+		;- CHK:イベントフラグ 新宿でオザワが倒されている
+		IF ダンジョンフラグ:42:新宿フラグ("オザワ") > 0
+			RESULTS = Request of the Ashura-Kai 
+			RETURN 1
+		ENDIF
+	;-----------------------------
+	;- [第3イベント　]
+	;-----------------------------
+	CASE 2
+	;- フラグをセット(イベントフラグ:2桁目)
+		L_FLAG_REQ = FLAG:真IV進行度 % 100
+		L_FLAG_REQ = L_FLAG_REQ / 10
+
+		IF L_FLAG_REQ == 1
+			RESULTS = Request from the Ashura-Kai
+			RETURN 1
+		ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:1桁目)
+		L_FLAG_REQ = FLAG:真IV進行度 % 10
+			IF L_FLAG_REQ == 2
+				RESULTS = Request of the Eastern Country of Mikado
+				RETURN 1
+			ELSE
+				RESULTS = Demon extermination in Ikebukuro
+				RETURN 1
+			ENDIF
+		ENDIF
+	;-----------------------------
+	;- [第4イベント　]
+	;-----------------------------
+	CASE 3
+;- フラグをセット(イベントフラグ:2桁目)
+		L_FLAG_REQ = FLAG:真IV進行度 % 100
+		L_FLAG_REQ = L_FLAG_REQ / 10
+		IF L_FLAG_REQ == 1
+			L_FLAG = イベントフラグ:60:0 % 10
+			IF L_FLAG == 2
+				RESULTS = Request from the Ashura-Kai 2
+				RETURN 1
+			ENDIF
+		ELSEIF L_FLAG_REQ == 9
+;- フラグをセット(イベントフラグ:1桁目)
+			L_FLAG = イベントフラグ:60:0 % 10
+			L_FLAG2 = イベントフラグ:60:0 / 10
+			L_FLAG2 = L_FLAG2 % 10
+			L_FLAG3 = イベントフラグ:60:0 / 100
+
+			IF L_FLAG + L_FLAG2 + L_FLAG3 >= 3
+				RESULTS = Request of the Eastern Country of Mikado 2
+				RETURN 1
+			ENDIF
+		ENDIF
+	;-----------------------------
+	;- [第5イベント　]
+	;-----------------------------
+	CASE 4
+;- フラグをセット(イベントフラグ:2桁目)
+		RESULTS = Reverse Hills
+		RETURN 1
+	;-----------------------------
+	;- [第6イベント　]
+	;-----------------------------
+	CASE 5
+;- フラグをセット(イベントフラグ:2桁目)
+		IF イベントフラグ:60:1 >= 100
+			L_FLAG_REQ = FLAG:真IV進行度 % 100
+			L_FLAG_REQ = L_FLAG_REQ / 10
+			IF L_FLAG_REQ == 1
+				RESULTS = Yuriko assassination plot
+				RETURN 1
+			ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:1桁目)
+				L_FLAG = 0
+				IF イベントフラグ:60:1 == 101
+					L_FLAG2 = [[キャラ:ヨナタン]]
+				ELSEIF イベントフラグ:60:1 == 102
+					L_FLAG2 = [[キャラ:イザボー]]
+				ELSEIF イベントフラグ:60:1 == 103
+					L_FLAG2 = [[キャラ:ワルター]]
+				ELSE
+					L_FLAG2 = 0
+				ENDIF
+				FOR LOCAL, 1, 7
+					;空きポジションは勘定外
+					SIF POS(LOCAL) < 0
+						CONTINUE
+					;主人は勘定外
+					SIF POS(LOCAL) == MASTER
+						CONTINUE
+					;Human以外は勘定外
+					SIF ABL:POS(LOCAL):種族
+						CONTINUE
+					SIF NO:POS(LOCAL) == L_FLAG2
+						L_FLAG = 1
+				NEXT
+				IF L_FLAG == 1
+					RESULTS = Yuriko again
+					RETURN 1
+				ELSE
+					RETURN 0
+				ENDIF
+			ENDIF
+		ELSE
+			RETURN 0
+		ENDIF
+	;-----------------------------
+	;- [第7イベント　]
+	;-----------------------------
+	CASE 6
+;- フラグをセット(イベントフラグ:2桁目)
+		IF イベントフラグ:60:1 >= 100
+			L_FLAG_REQ = FLAG:真IV進行度 % 100
+			L_FLAG_REQ = L_FLAG_REQ / 10
+			IF L_FLAG_REQ == 1
+				RESULTS = Secret of Tayama
+				RETURN 1
+			ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:1桁目)
+				L_FLAG = 0
+				IF イベントフラグ:60:1 == 101
+					L_FLAG2 = [[キャラ:ヨナタン]]
+				ELSEIF イベントフラグ:60:1 == 102
+					L_FLAG2 = [[キャラ:イザボー]]
+				ELSEIF イベントフラグ:60:1 == 103
+					L_FLAG2 = [[キャラ:ワルター]]
+				ELSE
+					L_FLAG2 = 0
+				ENDIF
+				FOR LOCAL, 1, 7
+					;空きポジションは勘定外
+					SIF POS(LOCAL) < 0
+						CONTINUE
+					;主人は勘定外
+					SIF POS(LOCAL) == MASTER
+						CONTINUE
+					;Human以外は勘定外
+					SIF ABL:POS(LOCAL):種族
+						CONTINUE
+					SIF NO:POS(LOCAL) == L_FLAG2
+						L_FLAG = 1
+				NEXT
+				IF L_FLAG == 1
+					RESULTS = To Ichigaya
+					RETURN 1
+				ELSE
+					RETURN 0
+				ENDIF
+			ENDIF
+		ELSE
+			RETURN 0
+		ENDIF
+
+	;-----------------------------
+	;- 終了
+	;-----------------------------
+	;- 作成中
+	CASEELSE
+		RESULTS = This request is still under construction
+		RETURN 1
+
+ENDSELECT
+
+;念の為
+RETURN 0
+
+;====================
+;説明
+;====================
+@EXPLAIN_REQUEST_60
+#DIM DYNAMIC L_FLAG_REQ
+#DIM DYNAMIC L_FLAG_EVENT_FIRST_DIGIT
+
+;- フラグをセット
+L_FLAG_REQ = FLAG:真IV進行度 /100
+
+
+SELECTCASE L_FLAG_REQ
+	;-----------------------------
+	;- 1ST 
+	;-----------------------------
+	CASE 0
+		PRINTFORML -An e-mail arrived-
+		PRINTFORML 
+		PRINTFORML ...it was a job from the Phantom Society.
+		PRINTFORML A pocket dimension appeared in the Tokyo Sky Tree.
+		PRINTFORML 
+		PRINTFORML Your job is prompt investigation and resolution of the incident.
+		PRINTFORML 
+		PRINTFORML Reward：￥50000
+
+	;-----------------------------
+	;- 2nd
+	;-----------------------------
+	CASE 1
+		PRINTFORML -An e-mail arrived-
+		PRINTFORML 
+		PRINTFORML ...It is a job from the Phantom Society.
+		PRINTFORML A yakuza group called the 「Ashura-Kai」 seems to have become active in Shinjuku.
+		PRINTFORML Your job is to investigate...
+		PRINTFORML 
+		PRINTFORML Reward：￥10000
+	;-----------------------------
+	;-3rd
+	;-----------------------------
+	CASE 2
+	;- フラグをセット(イベントフラグ:2桁目)
+		L_FLAG_REQ = FLAG:真IV進行度 % 100
+		L_FLAG_REQ = L_FLAG_REQ / 10
+
+		IF L_FLAG_REQ == 1
+			PRINTFORML -An e-mail arrived-
+			PRINTFORML 
+			PRINTFORML ...It is a job from Phantom Society.
+			PRINTFORML It is a request from the Ashura-Kai, they want you to smash the forces of the opposing Gaeans.
+			PRINTFORML 
+			PRINTFORML 
+			PRINTFORML Reward：￥30000
+		ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:2桁目)
+			L_FLAG_REQ = FLAG:真IV進行度 % 10
+			IF L_FLAG_REQ == 2
+				PRINTFORML -An e-mail arrived-
+				PRINTFORML 
+				PRINTFORML ...It is a job from the Phantom Society.
+				PRINTFORML They have made contact with the 『Eastern Country of Mikado』 you reported earlier.
+				PRINTFORML This group seems to be offering jobs.
+				PRINTFORML 
+				PRINTFORML Reward：￥20000
+			ELSE
+				PRINTFORML -An e-mail arrived-
+				PRINTFORML 
+				PRINTFORML ...It is a job from the Phantom Society.
+				PRINTFORML They want you to exterminate the powerful demon that appeared in Ikebukuro.
+				PRINTFORML Naturally, because Phantom Society isn't the only group concerned with such things, you may run into conflict with other groups there.
+				PRINTFORML 
+				PRINTFORML Reward：￥30000
+			ENDIF
+		ENDIF
+	;-----------------------------
+	;-4th
+	;-----------------------------
+	CASE 3
+	;- フラグをセット(イベントフラグ:2桁目)
+		L_FLAG_REQ = FLAG:真IV進行度 % 100
+		L_FLAG_REQ = L_FLAG_REQ / 10
+		IF L_FLAG_REQ == 1
+			PRINTFORML -An e-mail arrived-
+			PRINTFORML 
+			PRINTFORML ...It is a job from the Phantom Society.
+			PRINTFORML It is a request from Tayama of the Ashura-Kai, he wants you to investigate the Gaean base in Ginza.
+			PRINTFORML 
+			PRINTFORML 
+			PRINTFORML Reward：￥10000
+		ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:2桁目)
+			PRINTFORML -An e-mail arrived-
+			PRINTFORML 
+			PRINTFORML ...It is a job from the Phantom Society.
+			PRINTFORML It is a request of Hugo of the 『Eastern Country of Mikado』.
+			PRINTFORML Though executed, the search for the black samurai that 「rivived and disappeared」 has run into difficulty.
+			PRINTFORML 
+			PRINTFORML Reward：￥10000
+		ENDIF
+	;-----------------------------
+	;-5th
+	;-----------------------------
+	CASE 4
+	;- フラグをセット(イベントフラグ:2桁目)
+		L_FLAG_REQ = FLAG:真IV進行度 % 100
+		L_FLAG_REQ = L_FLAG_REQ / 10
+		IF L_FLAG_REQ == 1
+			PRINTFORML -An e-mail arrived-
+			PRINTFORML 
+			PRINTFORML ‥‥It is a job from Phantom Society。
+			PRINTFORML As a request from Tayame of Ashura-Kai、you are to to aid in the defense of the basement of the Roppongi Hills building。
+			PRINTFORML While there would be little reward is no combat happens、that scenario is very unlikely‥‥
+			PRINTFORML 
+			PRINTFORML Reward：￥10000 + α
+		ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:2桁目)
+			PRINTFORML -An e-mail arrived-
+			PRINTFORML 
+			PRINTFORML ‥‥It came from the samurai you met。
+			PRINTFORML You may join Walter、who is heading to the basement of Roppongi Hills。
+			PRINTFORML %CALLNAME:MASTER% must join him soon if you want to go with him。
+			PRINTFORML 
+		ENDIF
+	;-----------------------------
+	;- [第6イベント　]
+	;-----------------------------
+	CASE 5
+;- フラグをセット(イベントフラグ:2桁目)
+		IF イベントフラグ:60:1 >= 100
+
+			L_FLAG_REQ = FLAG:真IV進行度 % 100
+			L_FLAG_REQ = L_FLAG_REQ / 10
+			IF L_FLAG_REQ == 1
+				PRINTFORML -An e-mail arrived-
+				PRINTFORML 
+				PRINTFORML ‥‥It is a job from Phantom Society。
+				PRINTFORML As a request from Tayama of the Ashura-Kai、you are to challenge Yuriko of the Gaeans……？
+				PRINTFORML 
+				PRINTFORML Reward：￥50000 + α
+			ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:1桁目)
+				PRINTFORML ‥‥You must go to meet Yuriko with the samurai of the Eastern Country of Mikado……
+				PRINTFORML 
+			ENDIF
+		ENDIF
+	;-----------------------------
+	;- [第7イベント　]
+	;-----------------------------
+	CASE 6
+;- フラグをセット(イベントフラグ:2桁目)
+		IF イベントフラグ:60:1 >= 100
+
+			L_FLAG_REQ = FLAG:真IV進行度 % 100
+			L_FLAG_REQ = L_FLAG_REQ / 10
+			IF L_FLAG_REQ == 1
+				PRINTFORML -An e-mail arrived-
+				PRINTFORML 
+				PRINTFORML ‥‥It is a job from Phantom Society。
+				PRINTFORML Thinking on it、Tayama did say that the next job would come immediately。
+				PRINTFORML 
+				PRINTFORML Reward：￥50000 + α
+			ELSEIF L_FLAG_REQ == 9
+	;- フラグをセット(イベントフラグ:1桁目)
+				PRINTFORML ‥‥Will you go to Ichigaya with the samurai from the Eastern Country of Mikado。
+				PRINTFORML 
+			ENDIF
+		ENDIF
+
+	;-----------------------------
+	;- 作成中
+	;-----------------------------
+	CASEELSE
+		PRINTFORML -An e-mail arrived-
+		PRINTFORML 
+		PRINTFORML ‥‥ここから先は未作成です。
+ENDSELECT
+
+;====================
+;内容
+;====================
+@REQUEST_60
+#DIM DYNAMIC L_FLAG_REQ
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+PRINTL
+L_FLAG_REQ = FLAG:真IV進行度 /100
+SELECTCASE L_FLAG_REQ
+	;-----------------------------
+	;- スカイツリー
+	;-----------------------------
+	CASE 0
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_1
+		
+	;-----------------------------
+	;- 新宿
+	;-----------------------------
+	CASE 1
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_2
+
+	;-----------------------------
+	;- 池袋
+	;-----------------------------
+	CASE 2
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_3
+	;-----------------------------
+	;- 銀座
+	;-----------------------------
+	CASE 3
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_4
+	;-----------------------------
+	;- 逆さヒルズ
+	;-----------------------------
+	CASE 4
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_5
+	;-----------------------------
+	;- 逆さヒルズ
+	;-----------------------------
+	CASE 5
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_6
+		
+	;-----------------------------
+	;- 市ヶ谷
+	;-----------------------------
+	CASE 6
+		;- 依頼:メイン処理(1ST DAY)
+		CALL REQUEST_60_7
+	;-----------------------------
+	;- 作成中
+	;-----------------------------
+	CASEELSE
+
+		PRINTFORMW ＞In your home。
+		PRINTFORMW ＞Comfirming the request、it seems the scenario hasn't been written yet。
+		PRINTFORMW ＞続きが作成されれば、依頼のタイトルも変わるだろう。
+		PRINTFORMW ＞…気長に待つ事にしよう。
+		PRINTFORMW ＞………
+		PRINTFORMW ＞……
+		PRINTFORMW ＞…
+ENDSELECT
+
+
+
+;-------------------------------------------------------------------------------
+;   独自関数
+;-------------------------------------------------------------------------------
+
+;=================================================
+;   sub REQUEST_60_FLAG_RESET
+;=================================================
+;   依頼:フラグリセット
+;-------------------------------------------------
+;   MENU画面で「依頼出現」が出る様、
+;   依頼登録フラグをリセットする
+;-------------------------------------------------
+@REQUEST_60_FLAG_RESET
+#DIM DYNAMIC L_REQUEST_NO
+
+L_REQUEST_NO = 60
+
+;- フラグがONの場合、クリアしてOFFに変更
+SIF GETBIT(FLAG:依頼出現1,L_REQUEST_NO)
+	CLEARBIT  FLAG:依頼出現1,L_REQUEST_NO
+
+
+;=================================================
+;   sub REQUEST_60_DAY_END
+;=================================================
+;   依頼:一日の終了
+;-------------------------------------------------
+@REQUEST_60_DAY_END
+
+PRINTFORMW The day has ended.
+
+;- 朝になる処理
+FLAG:休憩フラグ = 3
+BEGIN TURNEND
+RETURN
+
+;=================================================
+;   sub REQUEST_60_TURN_END
+;=================================================
+;   依頼:ターンの終了
+;-------------------------------------------------
+@REQUEST_60_TURN_END
+
+;- 1ターン経過
+FLAG:休憩フラグ = 1
+BEGIN TURNEND
+RETURN
+

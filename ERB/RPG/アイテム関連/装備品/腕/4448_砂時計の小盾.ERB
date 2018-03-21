@@ -1,0 +1,223 @@
+
+;======================================================
+;装備品のデータ
+;Hourglass Shield
+;
+;ほむほむ受胎アイテム
+;素の性能自体は３０レベル
+;陥落した魔法少女を所持していると能力上昇
+;	まどか	魔＋２、破魔半減
+;	ほむら	知＋２、呪殺一回無効
+;	マミ	運＋２、神経半減
+;	さやか	体＋２、自動治癒（中）
+;	杏子	速＋２、精神半減
+;	ゆま	衝撃無効
+;	おりこ	核熱無効
+;	キリカ	力＋２、物理にゆるい耐性
+;	女神まど	万能にゆるい耐性
+;	そして魔法少女一人ごとに盾のレベル＋１０
+;本当はゆまはラクカジャオート、おりこはスクカジャオートだったが
+;どうしても機能しないため耐性付与
+;
+;機能するように修正して耐性消去、眼鏡ほむらに対応させて引き継ぎ可能に
+;基本性能が高すぎたため計算式を変更、Zomaでもレベルが上っていたためそちらも修正
+;======================================================
+
+@基本能力修正_4448,ARG,ARG:1 = -1
+IF ARG:1 > -1
+	SELECTCASE GET_BASESTATUS(ARG)
+		;キリカ陥落時、力＋２
+		CASE "力"
+			LOCAL = GETCHARA([[キャラ:キリカ]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2
+			ENDIF
+		;ほむら陥落時、知＋２
+		CASE "知恵"
+			LOCAL = GETCHARA([[キャラ:ほむら]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2
+			ENDIF
+		;まどか陥落時、魔＋２
+		CASE "魔力"
+			LOCAL = GETCHARA([[キャラ:まどか]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2
+			ENDIF
+		;さやか陥落時、体＋２
+		CASE "耐力"
+			LOCAL = GETCHARA([[キャラ:さやか]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2
+			ENDIF
+		;杏子陥落時、速＋２
+		CASE "速さ"
+			LOCAL = GETCHARA([[キャラ:杏子]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2
+			ENDIF
+		;マミ陥落時、運＋２
+		CASE "運"
+			LOCAL = GETCHARA([[キャラ:マミ]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2
+			ENDIF
+	ENDSELECT
+ENDIF
+RETURN 0
+
+@戦闘能力修正_4448,ARG,ARG:1 = -1
+#LOCALSIZE 3
+LOCAL:1 = 0
+LOCAL:2 = 30
+IF ARG:1 > -1
+	;陥落している魔法少女１人毎にレベル＋１０
+	;（＋５に変更）
+	FOR LOCAL, 4390, 4399
+		LOCAL:1 = GETCHARA(LOCAL)
+		IF LOCAL:1 > 0 && FAVORITE_1(LOCAL:1) == ARG:1 && 陥落(LOCAL:1)
+;			LOCAL:2 += 10
+			LOCAL:2 += 5
+		ENDIF
+	NEXT
+	;眼鏡ほむら陥落時、レベル＋１０
+	LOCAL:1 = GETCHARA([[キャラ:ほむら(U-U)]])
+	IF LOCAL:1 > 0 && FAVORITE_1(LOCAL:1) == ARG:1 && 陥落(LOCAL:1)
+		LOCAL:2 += 10
+	ENDIF
+ENDIF
+;盾仕様に変更
+SELECTCASE GET_BATTLESTATUS(ARG)
+	CASE "防御"
+;		TIMES LOCAL:2, 0.25
+;		RETURN LOCAL:2 + 25
+		RETURN (LOCAL:2 * 275 + 750) * 250 / 100000
+	CASE "回避"
+;		TIMES LOCAL:2, 0.15
+;		RETURN LOCAL:2 + 10
+		RETURN (LOCAL:2 * 175 + 600) * 150 / 100000
+	CASE "魔法威力"
+;		TIMES LOCAL:2, 0.1
+;		RETURN LOCAL:2
+		RETURN (LOCAL:2 * 225 + 600) *  50 / 100000
+	CASE "魔法効果"
+;		TIMES LOCAL:2, 0.1
+;		RETURN LOCAL:2 + 6
+		RETURN (LOCAL:2 * 175 + 600) * 100 / 100000
+ENDSELECT
+RETURN 0
+
+@防御相性_4448,ARG,ARG:1 = -1
+IF ARG:1 > -1
+	SELECTCASE GET_TYPE(ARG)
+		;キリカ陥落時、物理に薄い耐性
+		CASE "剣撃", "飛具", "打撃", "戦技"
+			LOCAL = GETCHARA([[キャラ:キリカ]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 90
+			ENDIF
+		;マミ陥落時、神経半減
+		CASE "神経"
+			LOCAL = GETCHARA([[キャラ:マミ]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 50
+			ENDIF
+		;杏子陥落時、精神半減
+		CASE "精神"
+			LOCAL = GETCHARA([[キャラ:杏子]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 50
+			ENDIF
+		;まどか陥落時、破魔半減
+		CASE "破魔"
+			LOCAL = GETCHARA([[キャラ:まどか]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 50
+			ENDIF
+		;円環の理陥落時、万能に薄い耐性
+		CASE "万能"
+			LOCAL = GETCHARA([[キャラ:円環の理]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 90
+			ENDIF
+	ENDSELECT
+ENDIF
+RETURN 100
+
+@攻撃相性_4448, ARG = -1
+
+RETURN 2
+
+@最低攻撃回数_4448, ARG = -1
+
+RETURN 1
+
+@最大攻撃回数_4448, ARG = -1
+
+RETURN 1
+
+@射程_4448, ARG = -1
+
+RETURN 1
+
+@攻撃範囲_4448, ARG = -1
+
+RETURN 1
+
+@装備箇所_4448
+
+RETURN GET_EQUIPNUM("腕")
+
+@装備条件_4448,ARG
+RETURN 1
+
+
+@購入条件_4448
+RETURN 0
+
+@装備解説_4448
+PRINTL 最高の友達を守る、その祈りが形となった盾。
+PRINTL これは時こそ操れぬが、魔法少女達の因果を受けて成長してゆく。
+PRINTL 魔法少女　暁美 ほむら　の受胎アイテム
+
+;魔貨交換可能か
+@EQUIP_EXCHANGE_4448
+RETURN 0
+
+@戦闘開始時効果_4448, ARG
+;ほむら陥落時、呪殺を一回無効化
+LOCAL = GETCHARA([[キャラ:ほむら]])
+IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG && 陥落(LOCAL)
+	CFLAG:ARG:呪殺無効化回数 += 1
+ENDIF
+
+@装備追加スキル_4448, ARG, ARG:1 = -1
+IF ARG:1 > -1
+	SELECTCASE ARG
+		;さやか陥落時、自動治癒（中）追加
+		CASE 0
+			LOCAL = GETCHARA([[キャラ:さやか]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2409
+			ENDIF
+		;ゆま陥落時、ラクカジャオート追加
+		CASE 1
+			LOCAL = GETCHARA([[キャラ:ゆま]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2415
+			ENDIF
+		;おりこ陥落時、スクカジャオート追加
+		CASE 2
+			LOCAL = GETCHARA([[キャラ:織莉子]])
+			IF LOCAL > 0 && FAVORITE_1(LOCAL) == ARG:1 && 陥落(LOCAL)
+				RETURN 2417
+			ENDIF
+	ENDSELECT
+ENDIF
+RETURN 0
+
+@引継ぎ可不可_4448
+RETURN 1
+
+@装備条件説明_4448
+PRINTL 特殊条件: 魔法少女と関係が深いものが装備するときのみ性能が変化する

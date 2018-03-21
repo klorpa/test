@@ -1,0 +1,137 @@
+;-------------------------------------------------
+;アナルビーズ使う
+;道具使用コマンド、レベル3
+;-------------------------------------------------
+@CHECK_COM_ABLE54
+
+;アナルビーズ実行判定
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;解除はいつでも可能
+SIF TEQUIP:PLAYER:15
+	RETURN 1
+;小人体型持ちは、双方が調教者と調教対象ならOK
+;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
+SIF TALENT:PLAYER:小人体型 && PLAYER != MASTER && TALENT:MASTER:144 == 0
+	RETURN 0
+
+;アイテムを持っているか、アイテムなし設定でないとダメ
+SIF !EXIST_ITEM(6)
+	RETURN 0
+
+SIF !USE_ANUS(PLAYER)
+	RETURN 0
+
+;新妻プレイ中はダメ
+SIF TEQUIP:33
+	RETURN 0
+
+RETURN 1
+
+@ACT_COM54
+PRINTL Use Anal beads
+TSTR:0 = アナルビーズ使う
+;CALL KOJO_MESSAGE_COM
+
+;着脱の処理
+IF TEQUIP:PLAYER:15 == 0
+	TEQUIP:PLAYER:15 = 1
+ELSE
+	TEQUIP:PLAYER:15 = 0
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+LOSEBASE:0 += 10
+LOSEBASE:1 += 10
+
+SOURCE:4 = 10
+SOURCE:13 = 10
+SOURCE:17 = 10
+
+SOURCE:PLAYER:道具快Ａ = 150
+
+;装着時は快Aは下がる
+SIF TEQUIP:PLAYER:15 == 1
+	TIMES SOURCE:PLAYER:2 , 0.80
+
+;外す時は快Aは上がる
+SIF TEQUIP:PLAYER:15 == 0
+	TIMES SOURCE:PLAYER:2 , 3.00
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+IF TEQUIP:PLAYER:19 == 0
+	;EXP:PLAYER:1 += 1
+	;PRINTL ＡEXP＋１(調教者)
+	CALL ADDS_EXP("Ａ経験", 2, PLAYER)
+ELSEIF TEQUIP:PLAYER:19 == 1
+	;EXP:PLAYER:1 += 2
+	;PRINTL ＡEXP＋２(調教者)
+	CALL ADDS_EXP("Ａ経験", 1, PLAYER)
+ENDIF
+
+A = 1
+;B = NO:PLAYER + 899
+IF IS_LESBIAN(TARGET,PLAYER)
+	;PRINTFORML %EXPNAME:40%+{A}
+	;EXP:40 += A
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	;PRINTFORML %EXPNAME:41%+{A}
+	;EXP:41 += A
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM54
+;アナルビーズ挿入中
+
+PRINTL ＜アナルビーズ挿入中(調教者)＞
+
+SOURCE:PLAYER:道具快Ａ += 75
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;EXP:PLAYER:1 += 1
+;PRINTL ＡEXP＋１(調教者)
+CALL ADDS_EXP("Ａ経験", 1, PLAYER)
+
+
+RETURN 1
+
+;-------------------------------------------------
+;調教時テキスト
+;-------------------------------------------------
+;54,アナルビーズ使う
+;-------------------------------------------------
+@MESSAGE_COM54
+;装着時
+IF TEQUIP:PLAYER:15
+	PRINTFORMW %CALLNAME:PLAYER%は菊穴にアナルビーズをひとつづつ飲み込ませていった……
+;解除時
+ELSE
+	PRINTFORMW %CALLNAME:PLAYER%はアヌスからアナルビーズを勢い良く引き抜いた……
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_54
+RETURN COMTYPE("対調教者道具系")
+

@@ -1,0 +1,4951 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST.7.ERB
+;	Facility	:依頼「灼熱の花」　ダンジョン「精神世界」の前提となる依頼
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX								新規作成
+;	002		20XX/XX/XX			P					直哉ルートの追加
+;	003		20XX/11/15			P					直哉ルート・百合の花ルートの仕様変更にあわせてメッセージ追加
+;	004		20XX/11/15			P					台詞の誤表示などを修正
+;	005		2011/02/06			P					デビサバ主人公の加入処理を追加
+;	006		2011/02/06			Rsp暇人				道具知識のレベル制に対応
+;	007		2011/02/08			P					アマネ・ハル会話・ユズアツロウ会話→カイドー→ライブ・説法になるようにイベント進行を一部変更
+;	008		2011/02/11			P					ヤドリギを使用するための一時的な道具知識獲得の直後にMASTERのステータス同期を実行させるように
+;	009		2011/03/12			P					カジノ追加
+;	010		2014/12/16			Iz					ストーリー展開に沿った、主人公への素質等の追加
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;=======================================================================
+;
+;ボス・未定
+;ダンジョンナンバー42　ＭＡＰ0~14
+;=======================================================================
+;スイッチ管理
+;ダンジョンフラグ:42:0 == 1.BOSS　2.マリ先生
+;ダンジョンフラグ:42:1 == 1.初めて
+;ダンジョンフラグ:42:2 == 1.Ｇ百合折れた　2.成立
+;ダンジョンフラグ:42:3 == 1.百合　2.昼の教会内で情報を得た　3.オザワ撃破　4.突入直前　5.アジト壊滅
+;ダンジョンフラグ:42:4 == 1.Ｒ　2.Ｒ絶望　3.ワイルド（笑
+;ダンジョンフラグ:42:5 == 1.ギャル
+;ダンジョンフラグ:42:6 == 1.若者A
+;ダンジョンフラグ:42:7 == 1.悪魔
+;ダンジョンフラグ:42:8 == 1.元社長
+;ダンジョンフラグ:42:9 == 1.一方○行さんではなくＫさん
+;ダンジョンフラグ:42:10 == 1.女悪魔の店
+;ダンジョンフラグ:42:11 == +1.オザワの情報集め
+;ダンジョンフラグ:42:12 == 1.オザワ　2.Ｒ起動
+;ダンジョンフラグ:42:13 == 1.上野クリア
+;ダンジョンフラグ:42:14 == 1.オザワ撃破後Ｎ
+;ダンジョンフラグ:42:15 == 1.Ｇ
+;ダンジョンフラグ:42:16 == 1.百合Ｎ
+;ダンジョンフラグ:42:17 == 1.昼教会Ｎ
+;ダンジョンフラグ:42:18 == 1.決戦
+;ダンジョンフラグ:42:19 == 1000.貢いだ回数
+;ダンジョンフラグ:42:20 == 1.魔人生誕　2.タイル通過
+;ダンジョンフラグ:42:21 == 1.朝です死んでください　2.夜です永眠しましょう
+;遊び人風の男
+;ダンジョンフラグ:42:22 == ろきしぼう
+;ダンジョンフラグ:42:23 == いざべる
+;ダンジョンフラグ:42:24 == べりいある
+
+;ダンジョンフラグ:42:30 == ふぁいなる
+;ダンジョンフラグ:42:31 == 1.ふぉるねうすさん
+
+
+;ダンジョンフラグ:16:14 == 1.渋谷攻略済み
+;ダンジョンフラグ:17:13 == 1.池袋攻略済み
+;ダンジョンフラグ:18:22 == 1.上野攻略済み
+
+@新宿フラグ, ARGS
+#FUNCTION
+;1,悪魔の薬クリア, 2,ベル・デル進行中, 3,ベル・デル撃破後
+SIF ARGS == "イベントクリアフラグ"
+	RETURNF 0
+SIF ARGS == "新宿初回"
+	RETURNF 1
+;1．不成立　2.成立
+SIF ARGS == "百合の花依頼"
+	RETURNF 2
+;1.百合　2.昼の教会内で情報を得た　3.オザワ撃破　4.突入直前　5.アジト壊滅
+SIF ARGS == "薬イベント進行度"
+	RETURNF 3
+;1.Ｒ　2.Ｒ絶望　3.ワイルド（笑
+SIF ARGS == "リセフラグ"
+	RETURNF 4
+SIF ARGS == "ギャル"
+	RETURNF 5
+SIF ARGS == "若者"
+	RETURNF 6
+SIF ARGS == "悪魔"
+	RETURNF 7
+SIF ARGS == "元社長"
+	RETURNF 8
+SIF ARGS == "海堂"
+	RETURNF 9
+SIF ARGS == "女悪魔の店"
+	RETURNF 10
+SIF ARGS == "オザワの情報"
+	RETURNF 11
+;1.オザワ　2.Ｒ起動
+SIF ARGS == "オザワ"
+	RETURNF 12
+SIF ARGS == "上野クリア"
+	RETURNF 13
+SIF ARGS == "直人[オザワ撃破後]"
+	RETURNF 14
+SIF ARGS == "Ｇ"
+	RETURNF 15
+SIF ARGS == "直人[百合]"
+	RETURNF 16
+SIF ARGS == "直人[昼教会]"
+	RETURNF 17
+SIF ARGS == "決戦"
+	RETURNF 18
+SIF ARGS == "貢いだ回数"
+	RETURNF 19
+SIF ARGS == "魔人フラグ"
+	RETURNF 20
+;1.朝です死んでください　2.夜です永眠しましょう
+SIF ARGS == "朝夜"
+	RETURNF 21
+SIF ARGS == "遊び人風の男[ロキ撃破]"
+	RETURNF 22
+SIF ARGS == "遊び人風の男[イザベル撃破]"
+	RETURNF 23
+SIF ARGS == "遊び人風の男[ベルイアル撃破]"
+	RETURNF 24
+SIF ARGS == "ケイスケ会話"
+	RETURNF 25
+SIF ARGS == "カイドー会話"
+	RETURNF 26
+SIF ARGS == "ナオヤ会話"
+	RETURNF 27
+SIF ARGS == "ベルデル初戦闘"
+	RETURNF 28
+SIF ARGS == "ハル入手"
+	RETURNF 29
+SIF ARGS == "チンピラ"
+	RETURNF 30
+SIF ARGS == "アマネ会話"
+	RETURNF 40
+SIF ARGS == "ハル会話"
+	RETURNF 41
+SIF ARGS == "ユズ会話"
+	RETURNF 42
+SIF ARGS == "ベル・デル進行度"
+	RETURNF 43
+SIF ARGS == "ベル・デル追撃"
+	RETURNF 44
+SIF ARGS == "デビサバ主人公会話"
+	RETURNF 45
+SIF ARGS == "アツロウ＋ユズ会話"
+	RETURNF 46
+RETURNF -1
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_42
+;新宿衛生病院クリア
+SIF ダンジョンフラグ:3:1 == 0
+	RETURN 0
+RETURN 1
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_42
+RESULTS = Shinjuku
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_42
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Shinjuku North
+	CASE 1
+		PRINTL Shinjuku South
+	CASE 2
+		PRINTL West Entrance
+	CASE 3
+		PRINTL East Entrance
+	CASE 4
+		PRINTL Lily Commumity Chest Office
+	CASE 5
+		PRINTL YAKUZA Building １Ｆ
+	CASE 6
+		PRINTL YAKUZA Building ２Ｆ
+	CASE 7
+		PRINTL Shinjuku Cathedral Bridge
+	CASE 8
+		PRINTL Shinjuku Messian Church
+	CASE 9
+		PRINTL Heaven
+	CASE 10
+		PRINTL Shinjuku Gaean Temple
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_42_0_1_19
+RESULTS = ↓
+@TILE_MARK_42_0_7_19
+RESULTS = ↓
+@TILE_MARK_42_0_11_19
+RESULTS = ↓
+@TILE_MARK_42_0_18_19
+RESULTS = ↓
+@TILE_MARK_42_0_15_11
+RESULTS = 天
+
+@TILE_MARK_42_1_1_0
+RESULTS = ↑
+@TILE_MARK_42_1_7_0
+RESULTS = ↑
+@TILE_MARK_42_1_11_0
+RESULTS = ↑
+@TILE_MARK_42_1_18_0
+RESULTS = ↑
+;メッセンジャー
+@TILE_MARK_ID_42_0_4
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_0_14
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_0_24
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_0_34
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_0_54
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_0_64
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+
+@TILE_MARK_ID_42_1_14
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_1_24
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_1_34
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_1_44
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_1_104
+RESULTS = Ｃ
+@TILE_MARK_ID_42_4_4
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+
+@TILE_MARK_ID_42_5_4
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_5_14
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_5_24
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+
+@TILE_MARK_ID_42_6_4
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_6_14
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_6_24
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+
+@TILE_MARK_ID_42_8_4
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_8_14
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_8_24
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+
+@TILE_MARK_ID_42_10_4
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_10_14
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@TILE_MARK_ID_42_10_24
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_42,ARG
+FLAG:現M = 2
+FLAG:現X = 1
+FLAG:現Y = 1
+;CALL AUTOMAP
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_42
+;上野攻略後
+IF ダンジョンフラグ:18:22 == 1 && ダンジョンフラグ:42:新宿フラグ("上野クリア") == 0
+	IF ダンジョンフラグ:46:0 == 0
+		PRINTW The demon Pazuzu was summoned by the mesiac curch here in Shinjuku.
+		;邪神パズスのいるのは新宿のメシア教会だろう。
+		PRINTW As long as their real intentions are not known, hasty actions should be avoided.
+		;相手の真意が定かではない以上、早急に動くのは得策ではない。
+		IF FINDCHARA_B(4501,0) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+			PRINTW 「この街にはメシア教の支部もあるし、何か目ぼしい情報がないか聞いてみようか？」
+			PRINTW Having the former temple knight Beth with you should make it easier to gather information.
+			;元テンプルナイトのベスが居れば情報収集もしやすいだろう。
+			PRINTW まずはメシア教と邪神パズスの動向を探るとしよう。
+		ELSE
+			PRINTW まずは新宿の街でメシア教と邪神パズスの動向を探ってからでも遅くはない。
+			PRINTW 何より両宗派の空白地帯となっている新宿には多くの人と情報が集まる。
+			PRINTW この街ならば『星の力』について知っている人物がいてもおかしくはない。
+		ENDIF
+	ENDIF
+	ダンジョンフラグ:42:新宿フラグ("上野クリア") = 1
+	ダンジョンフラグ:42:新宿フラグ("魔人フラグ")= 1
+ENDIF
+;百合の花の場合、上野クリア以前
+IF FLAG:直哉ルート == 3 || (FLAG:百合の花ルート == 3 && ダンジョンフラグ:18:22 == 0)
+	ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 1
+	ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") = 2
+ENDIF
+IF ダンジョンフラグ:42:新宿フラグ("新宿初回") == 0
+	PRINTFORMW 唯一神を至上とし神による統治と救済を謳う『メシア教』
+	PRINTFORMW 悪魔と人間の融和を唱える『ガイア教』
+	PRINTFORMW メシア教の拠点のある新宿、品川。
+	PRINTFORMW ガイア教に組みする団体の存在する渋谷、池袋、上野、市ヶ谷駐屯地。
+	PRINTFORMW 二大宗教の睨みあいと、対立が表面化してからは新宿の治安も悪化し
+	PRINTFORMW 街の中でも悪魔の姿が見られる様になっている。
+	PRINTFORMW それでも新宿においては両宗派共に表向きは中立を唱えている為、
+	PRINTFORMW 街の中では大きな衝突は見られない。
+	PRINTFORMW 東京全土に渡り両宗派の抗争が広がる中、空白地帯となったこの地域には
+	PRINTFORMW 多くの人と物が集まり、正規ルートでは手に入らない物が売買されるブラックマーケットさながらの様相を呈していた。
+	ダンジョンフラグ:42:新宿フラグ("新宿初回") = 1
+	IF FINDCHARA_B(4503,0) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+		PRINTFORMW 「もしかして！？」
+		PRINTFORMW 「もしかしなくてもデートだよね」
+		PRINTFORMW たまきの意見は大きくずれていたがそれに突っ込むほど%CALLNAME:MASTER%は野暮ではなかった。
+	ENDIF
+ENDIF
+
+;でからびあさん
+SIF ダンジョンフラグ:3:1 == 1
+	ダンジョンフラグ:42:31 |= 1
+
+;魔人ポイントの初期化
+SIF ダンジョンフラグ:42:新宿フラグ("魔人フラグ") == 2
+	ダンジョンフラグ:42:新宿フラグ("魔人フラグ")= 1
+
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_42,ARG,ARG:1
+IF FLAG:現M == 2 && ARG == 3 && ARG:1 == 2
+	IF TIME == 3
+		ダンジョンフラグ:42:新宿フラグ("朝夜")= 2
+		;PRINTFORMW 夜です永眠してください
+	ELSE
+		ダンジョンフラグ:42:新宿フラグ("朝夜")= 1
+		;PRINTFORMW 朝です死んでください
+	ENDIF
+ENDIF
+	
+IF FLAG:現M == 0 && ARG == 17 && ARG:1 == 4
+ 	IF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 2 && FLAG:百合の花ルート
+		PRINTW ＞You shouldn't return to the Lily Community Chest office now!
+		;今は百合の花共同募金事務所に戻るべきではない！
+		RETURN 0
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("百合の花依頼") == 0
+		PRINTW ＞The door seems to be locked.
+		;扉には鍵がかけられているようだ
+		RETURN 0
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("百合の花依頼") > 1 
+		RETURN 1
+	ENDIF
+ENDIF
+IF FLAG:現M == 1 && ARG == 2 && ARG:1 == 9
+	IF ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") < 1
+		PRINTW ＞The door seems to be locked.
+		RETURN 0
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") >= 1
+		RETURN 1
+	ENDIF
+ENDIF
+IF FLAG:現M == 1 && ARG == 10 && ARG:1 == 15
+	IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") < 1 || FLAG:百合の花ルート == 0
+		PRINTL ＞The door doesn't open...
+		;扉はあかない…
+		PRINTW ＞There is a paper stating that a new tenant is wanted..
+		;テナント募集中と書かれた紙が貼ってある…
+		RETURN 0
+	ELSE
+		RETURN 1
+	ENDIF
+ENDIF
+;IF FLAG:現M == 0 && ARG == 16 && ARG:1 == 17
+;	IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 0
+;		PRINTW 扉には鍵がかけられているようだ
+;		RETURN 0
+;	ELSEIF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") >= 1
+;		RETURN 1
+;	ENDIF
+;ENDIF
+	
+IF FLAG:現M == 0 && ARG == 17 && ARG:1 == 12
+	IF ダンジョンフラグ:42:新宿フラグ("悪魔") < 2
+		PRINTL 'Door to the heavens' is written on the entrance.
+		;扉には天国への入り口と書いてある。
+		PRINTW The door seems to be locked and cannot be opened.
+		;鍵がかかっているらしく開かない
+		RETURN 0
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("悪魔") == 2
+		RETURN 1
+	ENDIF
+ENDIF
+
+;百合事務所
+IF FLAG:現M == 4 && ARG == 12 && ARG:1 == 3
+	IF FLAG:百合の花ルート
+		RETURN 1
+	ELSE
+		PRINTW The door seems to be locked.
+		RETURN 0
+	ENDIF
+ENDIF
+
+IF FLAG:現M == 9 && ARG == 1 && ARG:1 == 1
+	IF ダンジョンフラグ:42:新宿フラグ("悪魔") < 3
+		PRINTW There is a barrier blocking the exit!!
+		;出口には結界が張られている！！
+		RETURN 0
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("悪魔") == 3
+		RETURN 1
+	ENDIF
+ENDIF
+
+IF FLAG:現M == 0 && ARG == 12 && ARG:1 == 11
+	IF TIME < 3
+		PRINTL The stores shutters are closed.
+		;店のシャッターはおりている。
+		PRINTW It seems it is only open at night.
+		;夜に出直すしかない。
+		RETURN 0
+	ELSEIF TIME == 3
+		RETURN 1
+	ENDIF
+ENDIF
+
+IF FLAG:現M == 1 && ARG == 13 && ARG:1 == 2
+	IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") >= 1
+		RETURN 1
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") >= 1
+		PRINTFORMW There is a mesiac Temple Knight here...
+		;メシア教のテンプルナイトがいる…。
+		PRINTL 
+		PRINTL Temple knight:
+		;テンプルナイト:
+		;夜
+		IF ダンジョンフラグ:42:新宿フラグ("朝夜") == 2
+			;生贄
+			IF ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") == 4
+				PRINTFORMW 「儀式の準備は整っている」
+				PRINTFORMW 「我等が同胞にパズス様の加護があらんことを…」
+				PRINTFORMW ＞オザワから受け取った黒の免罪符を見せると通してくれた。
+				RETURN 1
+			ELSE
+				PRINTFORMW 「Our priest has a day off. You should came back later.」
+				;「司祭様はお休みだ　昼に出直して来るといい」
+				RETURN 0
+			ENDIF
+		;昼間
+		ELSEIF ダンジョンフラグ:42:新宿フラグ("朝夜") == 1
+			PRINTFORMW 「免罪符を持っているな、貴方にも神の加護があらんことを…」
+			;---- EDIT 004 ADD START -------------------------
+			;ルート分岐追加
+			PRINTFORMW ＞The temple night let you pass when you showed him the picture of the \@FLAG:百合の花ルート?boy#man in japanese clothes\@.
+			;\@FLAG:百合の花ルート?少年#和服姿の男\@から貰った板切れを示すとテンプルナイトはどいてくれた
+			;---- EDIT 004 ADD END ---------------------------
+			RETURN 1
+		ENDIF
+	ELSE
+		;夜
+		IF ダンジョンフラグ:42:新宿フラグ("朝夜") == 2
+			PRINTFORMW 「Our priest has a day off. You should came back later.」
+			;「司祭様はお休み中だ　昼に出直して来るといい」
+		ELSEIF ダンジョンフラグ:42:新宿フラグ("朝夜") == 1
+			PRINTFORMW 「Suspicous person, this is the mesiac church.」
+			;「怪しい奴め、ここはメシア教会だ」
+			PRINTFORMW 「I cannot let people without an indulgence inside.」
+			;「免罪符の無い者を通すわけにはいかない」
+			;ベス
+;			IF FINDCHARA_B(4501,1) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+;				PRINTFORML 「昔はこんなに警備が厳重じゃなかったのに」
+;				PRINTFORML 「悪魔やガイア教徒を警戒しているのかしら？」
+;				PRINTFORMW ベスは首を傾げた。
+;			ENDIF
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+IF FLAG:現M == 1 && ARG == 16 && ARG:1 == 17 && ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 2 && FLAG:直哉ルート
+	PRINTW ＞You shouldn't return to the Gaean church now!
+	;今はガイア教会に戻るべきではない！
+	RETURN 0
+ENDIF
+;オザワ
+IF FLAG:現M == 6 && ARG == 9 && ARG:1 == 8
+	IF ダンジョンフラグ:42:新宿フラグ("オザワの情報") >= 6 && ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") >= 2
+		RETURN 1
+	ELSE
+		PRINTFORMW The door is locked.
+		;扉には鍵がかかっている
+		RETURN 0
+	ENDIF
+ENDIF
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_42
+SELECTCASE FLAG:現M
+	CASE 0
+	;新宿北
+
+		FLAG:最大X = 20 
+		FLAG:最大Y = 20
+								;01234567890123456789
+		CALL MAKE_FLOOR_LINE, 0,"                    "
+		CALL MAKE_FLOOR_LINE, 1," 111111111111111114 "
+		CALL MAKE_FLOOR_LINE, 2," 1 2 1 2 1 2 1    1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 4 1 1 1 1 1 61 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1   1 2 1   1 1121 "
+		CALL MAKE_FLOOR_LINE, 5," 1141111111111    1 "
+		CALL MAKE_FLOOR_LINE, 6," 1 2 1 2 1 2 411111 "
+		CALL MAKE_FLOOR_LINE, 7," 1 1 1 1 1 1 1 2  1 "
+		CALL MAKE_FLOOR_LINE, 8," 1   1   1   1 11 1 "
+		CALL MAKE_FLOOR_LINE, 9," 1111111111114 11 1 "
+		CALL MAKE_FLOOR_LINE,10," 1    2   41      1 "
+		CALL MAKE_FLOOR_LINE,11," 121  1 121124 91 1 "
+		CALL MAKE_FLOOR_LINE,12," 1 1  1   14   1121 "
+		CALL MAKE_FLOOR_LINE,13," 1 1241 421124    1 "
+		CALL MAKE_FLOOR_LINE,14," 11       14     11 "
+		CALL MAKE_FLOOR_LINE,15,"  1111111141111111  "
+		CALL MAKE_FLOOR_LINE,16,"621   2    1     126"
+		CALL MAKE_FLOOR_LINE,17,"  1   141  1 11121  "
+		CALL MAKE_FLOOR_LINE,18," 1421 111  1 111 11 "
+		CALL MAKE_FLOOR_LINE,19," 9     9   9      9 "
+								;01234567890123456789
+		;メッセンジャー
+		;若者A
+		DA:3:5 = 4
+		;女
+		DA:13:9 = 14
+		;遊び人Ｌ
+		;DA:16:9 = 24
+		;若者B
+		DA:11:10 = 34
+		;デカラビア
+		DA:5:13 = 44
+		;チンピラ
+		SIF ダンジョンフラグ:42:新宿フラグ("チンピラ") == 0
+			DA:7:17 = 54
+		;リセ
+		IF ダンジョンフラグ:42:新宿フラグ("オザワ") == 1 && ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 0
+			DA:10:15 = 64
+		ELSE
+			DA:10:15 = 1
+		ENDIF
+		;階段
+		DA:15:3 = 6
+		DA:0:16 = 16
+		DA:19:16 = 26
+		;店
+		;上野後 邪教の館
+		IF ダンジョンフラグ:16:14 == 1 && FLAG:周回回数 >= 1
+			DA:3:3 = 104
+		ELSE
+			DA:3:3 = 1
+		ENDIF
+		;大人の玩具屋
+		DA:13:11 = 114
+		;ジャンクショップ
+		DA:8:13 = FLAG:周回回数 >= 1 ? 124 # 1
+		;ラグの店
+		DA:13:13 =  FLAG:周回回数 >= 1 ? 134 # 1
+		;ケイスケ
+		DA:18:1 = ダンジョンフラグ:42:新宿フラグ("ケイスケ会話") || ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") ? 1 # 204
+		;カイドー
+		DA:2:18 = !ダンジョンフラグ:42:新宿フラグ("カイドー会話") && ダンジョンフラグ:42:新宿フラグ("アマネ会話") && ダンジョンフラグ:42:新宿フラグ("アツロウ＋ユズ会話") && ダンジョンフラグ:42:新宿フラグ("ハル会話") ? 214 # 1
+		;ベルデル初戦闘(アマネ)
+		DA:11:12 = ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘") ? 1 # 224
+		;直哉ルート　ベルデル戦闘
+		DA:13:6 = FLAG:直哉ルート == 3 && ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 2 ? 234 # 1
+		;デビサバ主人公
+		DA:10:10 = !ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話") && FLAG:百合の花ルート == 3 && ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 1 ? 244 # 1
+	CASE 1
+	;新宿南
+		FLAG:最大X = 20 
+		FLAG:最大Y = 20 
+								;01234567890123456789
+		CALL MAKE_FLOOR_LINE, 0," 9     9   9      9 "
+		CALL MAKE_FLOOR_LINE, 1," 1111111   1 1126 1 "
+		CALL MAKE_FLOOR_LINE, 2," 1         1 4    1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 1111111 1 1111 1 "
+		CALL MAKE_FLOOR_LINE, 4," 1 1     1 1 1111 1 "
+		CALL MAKE_FLOOR_LINE, 5," 1 1 12121 1 1111 1 "
+		CALL MAKE_FLOOR_LINE, 6," 1 1 1   1 1 1111 1 "
+		CALL MAKE_FLOOR_LINE, 7," 1 1 126 1 1 1111 1 "
+		CALL MAKE_FLOOR_LINE, 8," 4 1     1 1 2  1 1 "
+		CALL MAKE_FLOOR_LINE, 9," 121111111 1 11 1 1 "
+		CALL MAKE_FLOOR_LINE,10," 1         1    2 1 "
+		CALL MAKE_FLOOR_LINE,11," 1 11111   1    1 1 "
+		CALL MAKE_FLOOR_LINE,12," 111141111111111111 "
+		CALL MAKE_FLOOR_LINE,13," 1 11111    1     1 "
+		CALL MAKE_FLOOR_LINE,14," 1        4 1     1 "
+		CALL MAKE_FLOOR_LINE,15," 1 14 11  2 1 611 1 "
+		CALL MAKE_FLOOR_LINE,16," 1 11 41  1 1 111 1 "
+		CALL MAKE_FLOOR_LINE,17," 1  2  2  1 1   2 1 "
+		CALL MAKE_FLOOR_LINE,18," 111111111111111111 "
+		CALL MAKE_FLOOR_LINE,19,"                    "
+								;01234567890123456789
+		;メッセンジャー
+		DA:4:15 = 14
+		DA:6:16 = 24
+		DA:5:11 = 34
+		SIF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") >= 1
+			DA:13:2 = 1
+		;直人[オザワ撃破後]
+		SIF ダンジョンフラグ:42:新宿フラグ("直人[オザワ撃破後]") == 0 && ダンジョンフラグ:42:新宿フラグ("オザワ") && FLAG:百合の花ルート
+			DA:4:3 = 204
+		;百合の花開始
+		SIF ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘") && ダンジョンフラグ:42:新宿フラグ("百合の花依頼") < 2 && FLAG:百合の花ルート
+			DA:14:9 = 214
+		;ベルデル初戦闘(ハルライブ)
+		DA:5:12 = ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘") ? 1 # 224
+		;ユズ
+		DA:1:4 = !ダンジョンフラグ:42:新宿フラグ("ユズ会話") && FLAG:直哉ルート == 3 ? 234 # 1
+		;ユズを見捨ててる場合
+		SIF FLAG:直哉ルート == 3 && ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 3 && ダンジョンフラグ:42:新宿フラグ("ユズ会話") == -1
+			DA:1:4 = 244
+		;アツロウ＋ユズ
+		DA:1:8 = !ダンジョンフラグ:42:新宿フラグ("アツロウ＋ユズ会話") ? 254 # 1
+		DA:10:14 = ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") < 1 || FLAG:百合の花ルート == 0 ? 1 # 104
+		;武器屋メニュー
+;		CALL SET_TILE,4,1,ダンジョンフラグ:42:1,1,4
+;		CALL SET_TILE,13,3,ダンジョンフラグ:42:3,3,4
+		
+		;階段
+		DA:16:1 = 36
+		DA:7:7 = 46
+		DA:14:15 = 76
+	CASE 2
+	;新宿西出口
+		FLAG:最大X = 8 
+		FLAG:最大Y = 4 
+							    ;01234567
+		CALL MAKE_FLOOR_LINE, 0,"        "
+		CALL MAKE_FLOOR_LINE, 1," 821    "
+		CALL MAKE_FLOOR_LINE, 2,"   1127 "
+		CALL MAKE_FLOOR_LINE, 3,"        "
+
+		;CALL SET_TILE,3,2,ダンジョンフラグ:42:1,1,4
+		;階段
+		DA:6:2 = 17
+	CASE 3
+	;新宿東出口
+		FLAG:最大X = 8 
+		FLAG:最大Y = 4 
+							    ;01234567
+		CALL MAKE_FLOOR_LINE, 0,"        "
+		CALL MAKE_FLOOR_LINE, 1,"    128 "
+		CALL MAKE_FLOOR_LINE, 2," 7211   "
+		CALL MAKE_FLOOR_LINE, 3,"        "
+		;階段
+		DA:1:2 = 27
+	CASE 4
+	;元レジスタンスアジト　現百合の花共同募金事務所
+		FLAG:最大X = 15 
+		FLAG:最大Y = 9
+								;012345678901234
+		CALL MAKE_FLOOR_LINE, 0,"               "
+		CALL MAKE_FLOOR_LINE, 1," 1 11111112111 "
+		CALL MAKE_FLOOR_LINE, 2," 2 1         1 "
+		CALL MAKE_FLOOR_LINE, 3," 111   1211121 "
+		CALL MAKE_FLOOR_LINE, 4," 1   111   1 1 "
+		CALL MAKE_FLOOR_LINE, 5," 1         1 1 "
+		CALL MAKE_FLOOR_LINE, 6," 1   127   1 2 "
+		CALL MAKE_FLOOR_LINE, 7," 11111   121 1 "
+		CALL MAKE_FLOOR_LINE, 8,"               "
+		;直人[百合]
+		IF ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") == 0 && ダンジョンフラグ:42:新宿フラグ("直人[百合]") == 0
+			DA:13:7 = 204
+		ELSEIF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 1 && FLAG:百合の花ルート == 3
+			DA:13:7 = 214
+		ELSE
+			DA:13:7 = 1
+		ENDIF
+		
+		;階段
+		DA:7:6 = 7
+
+		CALL SET_TILE,5,4,ダンジョンフラグ:42:32,0,3
+		CALL SET_TILE,9,7,ダンジョンフラグ:42:33,0,3
+
+	CASE 5
+	;生贄ビル一階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 11 
+								;01234567890
+		CALL MAKE_FLOOR_LINE, 0,"           "
+		CALL MAKE_FLOOR_LINE, 1," 111111  1 "
+		CALL MAKE_FLOOR_LINE, 2," 1    1  1 "
+		CALL MAKE_FLOOR_LINE, 3," 1211 2  1 "
+		CALL MAKE_FLOOR_LINE, 4," 1    1111 "
+		CALL MAKE_FLOOR_LINE, 5," 1       1 "
+		CALL MAKE_FLOOR_LINE, 6," 11111   1 "
+		CALL MAKE_FLOOR_LINE, 7,"     1 721 "
+		CALL MAKE_FLOOR_LINE, 8," 11  1   1 "
+		CALL MAKE_FLOOR_LINE, 9," 11211 621 "
+		CALL MAKE_FLOOR_LINE,10,"           "
+								;01234567890
+		;ギャル
+		SIF ダンジョンフラグ:42:新宿フラグ("ギャル") == 0
+			DA:9:1 = 4
+		;若者
+		SIF ダンジョンフラグ:42:新宿フラグ("若者") == 0
+			DA:4:3 = 14
+		;リセ
+		SIF ダンジョンフラグ:42:新宿フラグ("リセフラグ") == 0
+			DA:1:8 = 24
+			
+		;階段
+		DA:7:9 = 56
+		DA:7:7 = 47
+	CASE 6
+	;生贄ビルニ階
+		FLAG:最大X = 11 
+		FLAG:最大Y = 11 
+								;01234567890
+		CALL MAKE_FLOOR_LINE, 0,"           "
+		CALL MAKE_FLOOR_LINE, 1," 111111111 "
+		CALL MAKE_FLOOR_LINE, 2," 1       1 "
+		CALL MAKE_FLOOR_LINE, 3," 1 1111121 "
+		CALL MAKE_FLOOR_LINE, 4," 1 2  1  2 "
+		CALL MAKE_FLOOR_LINE, 5," 1 11 1  1 "
+		CALL MAKE_FLOOR_LINE, 6," 1    1    "
+		CALL MAKE_FLOOR_LINE, 7," 1 1111111 "
+		CALL MAKE_FLOOR_LINE, 8," 1       2 "
+		CALL MAKE_FLOOR_LINE, 9," 1111117 1 "
+		CALL MAKE_FLOOR_LINE,10,"           "
+								;01234567890
+		;鬼
+		SIF ダンジョンフラグ:42:新宿フラグ("悪魔") == 0 || ダンジョンフラグ:42:新宿フラグ("悪魔") == 3
+			DA:4:5 = 4
+		;元社長
+		SIF ダンジョンフラグ:42:新宿フラグ("元社長") == 0
+			DA:3:7 = 14
+		;オザワ
+		DA:9:9 = ダンジョンフラグ:42:新宿フラグ("オザワ") ? 24 # 204
+		;階段
+		DA:7:9 = 57
+	CASE 7
+	;新宿大聖堂地下連絡路　Ｂ１Ｆ
+		FLAG:最大X = 8 
+		FLAG:最大Y = 4 
+								;01234567
+		CALL MAKE_FLOOR_LINE, 0,"        "
+		CALL MAKE_FLOOR_LINE, 1,"    126 "
+		CALL MAKE_FLOOR_LINE, 2," 8111   "
+		CALL MAKE_FLOOR_LINE, 3,"        "
+
+		;階段
+		DA:6:1 = 66
+		;魔人
+		SIF ダンジョンフラグ:42:新宿フラグ("魔人フラグ") == 1
+			CALL SET_TILE,2,2,ダンジョンフラグ:42:20,1,204
+	CASE 8
+	;新宿小聖堂　１Ｆ
+		FLAG:最大X = 12
+		FLAG:最大Y = 9 
+								;012345678901
+		CALL MAKE_FLOOR_LINE, 0,"            "
+		CALL MAKE_FLOOR_LINE, 1," 7    11111 "
+		CALL MAKE_FLOOR_LINE, 2," 121  11111 "
+		CALL MAKE_FLOOR_LINE, 3," 1     111  "
+		CALL MAKE_FLOOR_LINE, 4," 121 1  2   "
+		CALL MAKE_FLOOR_LINE, 5," 1   1 111  "
+		CALL MAKE_FLOOR_LINE, 6," 111111111  "
+		CALL MAKE_FLOOR_LINE, 7," 7   1      "
+		CALL MAKE_FLOOR_LINE, 8,"            "
+								;01234567890123456789
+		;昼司祭
+		SIF ダンジョンフラグ:42:新宿フラグ("朝夜") == 1
+			DA:8:1 = 14
+		;昼教会Ｎ
+		SIF ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") == 1 && ダンジョンフラグ:42:新宿フラグ("直人[昼教会]") == 0
+			DA:3:2 = 214
+		;夜戦闘
+		SIF  ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") == 4 && ダンジョンフラグ:42:新宿フラグ("朝夜") == 2 && ダンジョンフラグ:42:新宿フラグ("決戦") == 0
+			DA:8:1 = 204
+		;メッセンジャー
+		SIF ダンジョンフラグ:42:新宿フラグ("朝夜") == 1
+			DA:9:6 = 24
+		;百合の花ルート　ベルデル戦闘
+		SIF FLAG:百合の花ルート == 3 && ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 2
+			DA:8:1 = 224
+		;階段
+		DA:1:1 = 67
+		DA:1:7 = 37
+	CASE 9
+		;ホテル新宿
+		FLAG:最大X = 5 
+		FLAG:最大Y = 5 
+								;01234
+		CALL MAKE_FLOOR_LINE, 0,"     "
+		CALL MAKE_FLOOR_LINE, 1," 911 "
+		CALL MAKE_FLOOR_LINE, 2," 111 "
+		CALL MAKE_FLOOR_LINE, 3," 119 "
+		CALL MAKE_FLOOR_LINE, 4,"     "
+								;012345
+		SIF ダンジョンフラグ:42:新宿フラグ("悪魔") == 2
+			DA:2:2 = 204
+	CASE 10
+		;ガイア教会
+		FLAG:最大X = 10 
+		FLAG:最大Y = 9 
+		;						 0123456789
+		CALL MAKE_FLOOR_LINE, 0,"          "
+		CALL MAKE_FLOOR_LINE, 1," 1111111  "
+		CALL MAKE_FLOOR_LINE, 2," 11 1 11  "
+		CALL MAKE_FLOOR_LINE, 3," 1 111 1  "
+		CALL MAKE_FLOOR_LINE, 4," 1111111  "
+		CALL MAKE_FLOOR_LINE, 5," 1 414 1  "
+		CALL MAKE_FLOOR_LINE, 6," 11 1 41  "
+		CALL MAKE_FLOOR_LINE, 7," 1111117  "
+		CALL MAKE_FLOOR_LINE, 8,"          "
+		DA:3:5 = 4
+		DA:5:5 = 14
+		DA:6:6 = 24
+		DA:7:7 = 77
+		;ナオヤ
+		IF ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘") && FLAG:直哉ルート && ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") == 0
+			DA:2:6 = 204
+		ELSEIF FLAG:直哉ルート == 3
+			DA:2:6 = 214
+		ENDIF
+ENDSELECT
+
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_42,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	IF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 1 || ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 3
+		IF FLAG:直哉ルート
+			PRINTW ＞You should go meet Naoya at the Gaean church.
+			;ガイア教会でナオヤに会おう
+		ELSE
+			PRINTW ＞
+		ENDIF
+		RETURN 0
+	ELSEIF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 2
+		IF FLAG:直哉ルート
+			PRINTW ＞Find the boy with the knitted hat in the north of the city.
+			;街の北にいるニット帽の少年を探そう
+		ELSE
+			PRINTW ＞
+		ENDIF
+		RETURN 0
+	ENDIF
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	SELECTCASE FLAG:現M
+		CASE 4
+			IF FLAG:現X == 5 && FLAG:現Y == 4
+				CALL GET_TREASURE,1031,2,FLAG:現ダンジョン,32
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 7
+				CALL GET_TREASURE,1019,2,FLAG:現ダンジョン,33
+			ENDIF
+
+	ENDSELECT
+	RETURN 1
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	CALL EVENT_42
+	RETURN 1
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL STAIR_42
+	RETURN 1
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 9
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 1 && FLAG:現Y == 19
+				CALL DUNGEON_WORP,1,1,1
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 19
+				CALL DUNGEON_WORP,1,7,1
+			ELSEIF FLAG:現X == 11 && FLAG:現Y == 19
+				CALL DUNGEON_WORP,1,11,1
+			ELSEIF FLAG:現X == 18 && FLAG:現Y == 19
+				CALL DUNGEON_WORP,1,18,1
+			ELSEIF FLAG:現X == 15 && FLAG:現Y == 11
+				;アマラ宇宙への入り口
+				CALL DUNGEON_WORP,9,3,3
+			ELSEIF FLAG:現X == 13 && FLAG:現Y == 18
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+		CASE 1
+			IF FLAG:現X == 1 && FLAG:現Y == 0
+				CALL DUNGEON_WORP,0,1,18
+			ELSEIF FLAG:現X == 7 && FLAG:現Y == 0
+				CALL DUNGEON_WORP,0,7,18
+			ELSEIF FLAG:現X == 11 && FLAG:現Y == 0
+				CALL DUNGEON_WORP,0,11,18
+			ELSEIF FLAG:現X == 18 && FLAG:現Y == 0
+				CALL DUNGEON_WORP,0,18,18
+			ENDIF
+		CASE 9
+			SIF FLAG:現X == 1 && FLAG:現Y == 1
+				CALL DUNGEON_WORP,1,5,7
+		CASEELSE
+			CALL DUNGEON_TERMINAL
+			RETURN 1
+	ENDSELECT
+	RETURN 1
+	
+
+
+
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+RETURN 0
+ENDIF
+RETURN 0
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_42
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	SELECTCASE FLAG:現M
+		CASE 4
+			IF FLAG:現X == 5 && FLAG:現Y == 4
+				CALL GET_TREASURE,1031,2,FLAG:現ダンジョン,32
+			ELSEIF FLAG:現X == 9 && FLAG:現Y == 7
+				CALL GET_TREASURE,1019,2,FLAG:現ダンジョン,33
+			ENDIF
+	ENDSELECT
+	RETURN 1
+;========
+;イベント
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 4
+	;0番台はメッセンジャー
+	IF DA:(FLAG:現X):(FLAG:現Y) / 100 == 0
+		CALL MESSAGE_42
+	;その他はイベント
+	ELSE
+		CALL EVENT_42
+	ENDIF
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6 || DA:(FLAG:現X):(FLAG:現Y) % 10 == 7
+	CALL STAIR_42
+	RETURN 1
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	SELECTCASE FLAG:現M
+		CASE 0
+			IF FLAG:現X == 13 && FLAG:現Y == 18
+				CALL DUNGEON_TERMINAL
+				RETURN 1
+			ENDIF
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+ELSE
+	PRINTW Nothing seems to be here.
+	RETURN 0
+ENDIF
+;=======================================================================
+;イベント
+;=======================================================================
+@EVENT_42
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 104
+				PRINTFORML ＞Jakyou Manor
+				;邪教の館
+				IF ダンジョンフラグ:42:新宿フラグ("貢いだ回数") == 1000 && GETCHARA([[キャラ:モー・ショボー]]) == -1
+					PRINTFORMW ＞邪教の館の主とRaptorモー・ショボーがいた。
+					PRINTFORMW 何時もとは様子が違うようだ。
+					PRINTFORMW 「1000回も通うなんて……」
+					PRINTFORMW 「あんた、バカなの？」
+					PRINTFORMW 「っていうか、バカよね？　バカでしょ？」
+					PRINTFORMW 「しょうがないからついていってあげるわよ」
+					PRINTFORMW 邪教の館の主からRaptorモー・ショボーを譲り受けた。
+					CALL ADD_NEW_COMPANION,902,500,1
+					BASE:(CHARANUM-1):忠誠度 += 1000
+					ABL:(CHARANUM-1):スキル1 = 402
+					ABL:(CHARANUM-1):スキル3 = 2412
+					ABL:(CHARANUM-1):スキル4 = 406
+					ABL:(CHARANUM-1):スキル5 = 417
+					ABL:(CHARANUM-1):スキル6 = 419
+					ABL:(CHARANUM-1):スキル7 = 1214
+					BASE:(CHARANUM-1):LV = 50
+					BASE:(CHARANUM-1):力 += 7
+					BASE:(CHARANUM-1):知恵 += 7 
+					BASE:(CHARANUM-1):魔力 += 8
+					BASE:(CHARANUM-1):耐力 += 7
+					BASE:(CHARANUM-1):速さ += 5
+					BASE:(CHARANUM-1):運 += 6
+					CSTR:(CHARANUM-1):種族名 = Raptor
+					TALENT:(CHARANUM-1):ツンデレ = 1
+					ダンジョンフラグ:42:新宿フラグ("貢いだ回数") += 1
+				;一時的に容量オーバーする分には問題でないのでオミット
+				; && FLAG:ＣＯＭＰ容量 > NUM_NAKAMA() + ソフト容量()
+				ELSE
+					IF ダンジョンフラグ:42:新宿フラグ("貢いだ回数") > 1000
+						IF RAND:2 == 0
+							IF GETCHARA([[キャラ:モー・ショボー]]) >= 0
+								PRINTFORMW 「その娘はモー・ショボーじゃないか、元気にしとったかい」
+							ELSE
+								PRINTFORMW 「モー・ショボーは元気にしておるかのぉ？」
+							ENDIF
+						ELSE
+							PRINTFORMW 「こう見えてもワシは昔は女悪魔にモテモテだったんじゃよ」
+						ENDIF
+					ELSE
+						PRINTFORMW ＞A young woman is here instead of the lord of Jakyou manor...she seems to be a Raptor Moh Shuvuu.
+						;邪教の館の主の代わりに幼女…もとい、Raptorモー・ショボーがいた…。
+						IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+							PRINTL 「Welcome, oni-chan」
+							;「お帰りなさい、お兄ちゃん」
+							PRINTW 「My grandfather is resting with lower back pain, I'll do my best to fill in for him%UNICODE(0x2661)%」
+							;「おじいちゃんは腰痛で休養中なの、私が頑張って代わりをするね%UNICODE(0x2661)%」
+						ELSE
+							PRINTL 「Welcome, master」
+							;「お帰りなさいませ、ご主人様」
+							PRINTL 「当店は本日よりドリームクラブ新宿一号店になりました」
+							PRINTW 「The old owner is currently resting because of his back pains, so I will act as his agent.」
+							;「支配人のおじい様は現在、腰痛で休養中なので私が代行を務めさせていただきます」
+						ENDIF
+						IF MONEY >= 500 || MONEY:1 >= 10
+							IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+								PRINTW 「Hey...can I have some pocket money?」
+								;「あのね…私、お小遣い欲しいな」
+							ELSE
+								PRINTFORMW 「当店は料金完全前払い制となっております」
+							ENDIF
+						ELSE
+							IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+								PRINTL 「Oni-chan...you are quite poor aren't you?」
+								;「お兄ちゃん……貧乏なんだね」
+								PRINTL 「Bye-bye.」
+								;「バイバイ」
+								PRINTW You were sent outside by the Raptor Moh Shuvuu.
+								;Raptorモー・ショボーに追い出された。
+							ELSE
+								PRINTL 「How rude of you to come without money. Go home.」
+								;「お客様、失礼ですがお帰りいただきます」
+								PRINTW You were sent outside by the Raptor Moh Shuvuu.
+							ENDIF
+							RETURN -1
+						ENDIF
+						PRINTFORML Do you want to pay?		Current money: ￥{MONEY}
+						; 支払いますか？		所持金
+						PRINTL
+						IF MONEY >= 500
+							PRINTL [0]Pay
+							;払う
+						ENDIF
+						PRINTL [100] Leave Jokyou manor
+						;邪教の館を出る
+						$INPUT_LOOP_D1
+						INPUT
+						IF RESULT == 0
+							IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+								PRINTFORMW 「Thank you, oni-chan%UNICODE(0x2661)%.」
+								;「ありがとう、お兄ちゃん%UNICODE(0x2661)%」
+							ELSE
+								PRINTFORML 「ありがとうございます」
+								PRINTFORMW 「なお、指名料金、オプションは別料金となっております」
+							ENDIF
+							MONEY -= 500
+							SIF ダンジョンフラグ:42:新宿フラグ("貢いだ回数") < 1000
+								ダンジョンフラグ:42:新宿フラグ("貢いだ回数") += 1
+						ELSEIF RESULT == 100
+							RETURN -1
+						ELSE
+							GOTO INPUT_LOOP_D1
+						ENDIF
+					ENDIF
+					TRYCALLFORM SHOP_COM_120
+				ENDIF
+			CASE 114
+				IF CFLAG:MASTER:帽子 == 3 || CFLAG:MASTER:服 == 106
+					PRINTFORML 「見回りご苦労様です」
+					PRINTW 「Black market?　It's nothing like that.」
+					;「闇市？　そんなものないですよ」
+				ELSE
+					PRINTL ＞Junk shop
+					;ジャンクショップ
+					TRYCALLFORM SHOP_COM_115
+				ENDIF
+			CASE 124
+				PRINTL ＞Adult toy store
+				;大人の玩具屋
+				IF TIME == 3
+					PRINTFORML ＞A female demon is the clerk here...
+					;女悪魔が店員をしている…。
+					;上野　ラドン撃破
+					IF ダンジョンフラグ:18:22 == 1
+						IF FLAG:周回回数 >= 1 && TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+							PRINTFORML 「ねぇねぇ、お兄さん」
+							IF RAND:2 == 0
+								PRINTFORMW 「もしも、救世主に会ったらサインもらってきて欲しいな」
+							ELSE
+								PRINTFORML 「私が救世主に襲われてたら助けてくれる？」
+								PRINTFORMW 「助けて欲しいなぁ%UNICODE(0x2661)%」
+							ENDIF
+						ELSE
+							PRINTFORML 「上野の友達が見たって言ってたんだけど」
+							PRINTFORML 「なんか、救世主って奴が現れたらしいよ？」
+							PRINTFORMW 「悪魔は皆殺しにする頭のイカれた奴なんだって」
+						ENDIF
+					;池袋　トール撃破
+					ELSEIF ダンジョンフラグ:17:13 == 1
+						PRINTFORML 「マントラ軍って知ってる？」
+						PRINTFORML 「池袋にいるムキムキマッチョ軍団なんだけどさ」
+						PRINTFORMW 「筋肉美もいいけどやっぱイケメンじゃないとねぇ…」
+					;渋谷　魔王バラム
+					ELSEIF ダンジョンフラグ:16:14 == 1
+						PRINTFORML 「ねぇねぇ、知ってる？」
+						PRINTFORML 「渋谷の魔王バラムが死んだんだってさ」
+						PRINTFORMW 「サバトしてるだけで刺されちゃうなんて、マジで怖くない？」
+					ELSE
+						IF ダンジョンフラグ:42:新宿フラグ("女悪魔の店") == 0
+							IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+								PRINTFORML 「南西のビルに居るオザワって奴は女を騙して調教して売っちゃうんだって」
+								PRINTFORMW 「マジで怖くない？」
+							ELSE
+								PRINTFORML 「南西のビルに居るオザワって奴には気をつけてね」
+								PRINTFORML 「女だったら悪魔でも誘拐して調教して売る鬼畜らしいよ？」
+								PRINTFORMW 「私の友達が言ってたからきっとマジだよ」
+							ENDIF
+							ダンジョンフラグ:42:新宿フラグ("女悪魔の店") = 1
+							ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+						ELSE
+							PRINTFORML 「いらっしゃい、お客さんも好きね」
+							PRINTFORMW 「良かったらお姉さんと試して見る？%UNICODE(0x2661)%」
+						ENDIF
+					ENDIF
+					SIF FLAG:周回回数 >= 1
+						TRYCALLFORM SHOP_COM_113
+				ELSE
+					PRINTL ＞The store is closed...
+					;店は閉まっている……
+				ENDIF
+			CASE 134
+				IF CFLAG:MASTER:帽子 == 3 || CFLAG:MASTER:服 == 106
+					PRINTFORML 「見回リ、ゴ苦労様デス」
+					PRINTFORMW 「闇市？　サテネ？」
+				ELSE
+					PRINTL ＞Rug store
+					;ラグの店
+					TRYCALLFORM SHOP_COM_114
+				ENDIF
+			CASE 204
+				PRINTW ＞A woman is surrounded by demons here...
+				;なにやら女が悪魔に囲まれている…
+				PRINTFORML ＞Upon seeing %CALLNAME:MASTER%, she pleads for help.
+				;女は%CALLNAME:MASTER%を見ると助けを求めてきた
+				CALL INPUT_YN("Help her", "Don't interfere")
+				;助ける", "放っておく
+				LOCAL = RESULT
+				IF RESULT == 0
+					PRINTW 「ぐぐ…げげ…おばえもぐぅ…！」
+				ELSE
+					PRINTW 「に、にんげん…にがさない…食う…！」
+					PRINTFORMW ＞But the demons noticed %CALLNAME:MASTER% and attacked.
+					;しかし、%CALLNAME:MASTER%に気づいた悪魔が襲いかかってきた
+				ENDIF
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				PRINTL 3 Undead Zombie Boys appeared!
+				;外道 ゾンビくんが３体出た！
+				CALL SET_ENEMY,8, [[キャラ:ゾンビくん]], 15, 0
+				CALL SET_ENEMY,9, [[キャラ:ゾンビくん]], 15, 0
+				CALL SET_ENEMY,10, [[キャラ:ゾンビくん]], 15, 0
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTW ＞The woman is not here anymore. It seems she ran away whe the fighting started.
+				;女はすでにいない。戦ってるうちに逃げたようだ
+				IF LOCAL == 0
+					PRINTFORMW ＞When %CALLNAME:MASTER% turned to leave, a boy with glasses approached.
+					;%CALLNAME:MASTER%がその場をあとにしようとすると眼鏡の少年が話しかけてきた
+					PRINTW 「せっかく、助けようとしたのに…もう逃げてるとかひどいですね…」
+					PRINTW 「Ah, sorry. I'm called Keisuke Takashiro.」
+					;「あ、いえ、僕は高城 圭介といいます」
+					PRINTW 「There is something I wanted to ask you...」
+					;「ちょっとお聞きしたいことがあったので…」
+					PRINTW 「Are you a demon user?」
+					;「あなたは悪魔使いなんですよね？」
+					PRINTW 「If yes, do you know abou the rumor game machine type ＣＯＭＰ of Shinjuku?」
+					;「それじゃあ、いま新宿で噂のゲーム機型ＣＯＭＰについて知りませんか？」
+					PRINTFORMW ＞%CALLNAME:MASTER% shook the head.
+					;＞%CALLNAME:MASTER%は首をふった
+					PRINTW 「そうですか。いえ、変なこと聞いてすいません」
+					PRINTW 「最近、誰にでも扱える。簡単なＣＯＭＰが配られてるって噂があって…」
+					PRINTW ＞Keisuke lowered his head and left for somewhere...
+					;＞ケイスケは頭を下げると、どこかへと去っていった
+					ダンジョンフラグ:42:新宿フラグ("ケイスケ会話") = 1
+				ELSE
+					PRINTFORMW ＞%CALLNAME:MASTER% walked away.
+					;がその場をあとにした
+					ダンジョンフラグ:42:新宿フラグ("ケイスケ会話") = -1
+				ENDIF
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			CASE 214
+				PRINTFORML ＞There are some thugs talking to each other...
+				;チンピラ同士が揉めている…
+				PRINTL Thug:
+				;チンピラ:
+				PRINTW 「カイドーさん…」
+				PRINTL Thug called Kaido:
+				;カイドーと呼ばれたチンピラ:
+				PRINTW 「てめぇ、例の薬をもってるんだろう？」
+				PRINTW 「悪いことはいわねぇ。いますぐそいつを捨てるんだ」
+				PRINTL Thug:
+				PRINTW 「す、捨てろだなんて…カイドーさんは強いからわからないんですよ」
+				PRINTW 「俺たちみたいな力がないやつがどんなにびくびくしながら毎日生きていかなきゃいけないかってのが！」
+				PRINTL Kaido:
+				PRINTW 「あぁん！？」
+				PRINTL Thug:
+				PRINTW 「う、うぅ。でも、そんなふうに脅したって無駄ですよ。この薬があれば…！」
+				PRINTW 「馬鹿！　やめろ！」
+				PRINTW ＞チンピラはなにやら薬を取り出すと一息に飲み干した
+				PRINTL Thug:
+				PRINTW 「あ…あぁ…うぐ、ぐぁ…」
+				PRINTW ＞チンピラの姿みるみる変わっていく…
+				PRINTL Kaido:
+				PRINTW 「おい…大丈夫かヨ…おい。うぐっ」
+				PRINTW ＞カイドーは悪魔とかしたチンピラに殴りつけられ、倒れた
+				PRINTFORMW ＞そして、悪魔はことの成り行きを眺めていた%CALLNAME:MASTER%に襲いかかってきた
+				PRINTW ＞Brute Orc appeared!
+				;妖鬼　オークが出た！
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, [[キャラ:オーク]], 20, 0
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTL Kaido:
+				PRINTW 「う…うぅ…」
+				;望月 麻里　マリ先生
+				IF FINDCHARA_B(4506,0) == 2
+					;ごくり、この文法…一○通行さんじゃねえか
+					PRINTW ＞うめき声をあげるカイドーにマリが駆け寄った
+					PRINTL マリ：
+					PRINTW 「タダシ君、大丈夫？」
+					PRINTL Kaido:
+					PRINTFORMW 「う…？　てめぇは…マリ姉!!、今まで何処をほっつき歩いてやがった？」
+					PRINTL マリ:
+					PRINTFORMW 「タダシ君…心配させてごめんなさい」
+					PRINTFORMW ＞どうやらマリの知り合いのようだ
+					PRINTL Kaido：
+					PRINTW 「俺がどんだけ心配したと…い、いや、それよりあいつはどうなったんだ！？」
+				ELSE
+					PRINTW ＞カイドーがうめき声をあげながら起き上がった…
+					PRINTW 「あいつは、あいつはどうなったんだ！？」
+				ENDIF
+				PRINTFORMW ＞%CALLNAME:MASTER%はいまにも食って掛かってきそうなカイドーに手早く説明した
+				PRINTL Kaido:
+				PRINTW 「ちくしょう！　俺はあいつをたすけられなかったのか」
+				PRINTW 「ああいや、あんたが悪いわけじゃねえ」
+				PRINTW 「俺さえ、あいつを止められてれば…」
+				PRINTW 「あぁ、すまねぇ…自己紹介がまだだったな」
+				PRINTW 「俺は二階堂 征志…、【渋谷ダイモンズ】のリーダーだ」
+				PRINTW 「最近、悪魔になれる薬とかいうのがこっちまで流れてきてな…」
+				PRINTW 「使ってやべぇことになったやつがちらほら出てきて…」
+				PRINTW 「それで、出所だっていうここに来たんだが、見ての通りだ」
+				PRINTW 「くそっ、絶対ゆるさねぇ…！」
+				PRINTW 「なぁ、あんた、薬を流してる奴について何か知ってねぇか？」
+				PRINTFORMW ＞%CALLNAME:MASTER%は首を振った
+				PRINTL Kaido:
+				PRINTW 「そうか…」
+				IF FINDCHARA_B(4506,0) == 2
+					PRINTW 「…ところで、すっかり忘れてたがあんた、マリ姉とどういう関係なんだ？」
+					PRINTL マリ:
+					PRINTFORMW 「彼はお世話になってる人なの」
+					PRINTL Kaido:
+;					IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+;						PRINTFORMW 『……おい、テメェ何者だ？』
+;						PRINTFORMW チンピラは%CALLNAME:MASTER%を睨みつけてきた。
+;						PRINTFORMW 「ケッ…そうかヨ」
+;					ELSE
+;						PRINTFORMW 「どうやら、てめぇの世話になってるみたいだな」
+;						PRINTFORMW 「ありがとよ」
+;					ENDIF
+					PRINTW 「そうなのかヨ」
+					PRINTFORMW 「で、今まで一体、何処で何してやがったんだヨ？」
+					PRINTL マリ:
+					PRINTFORMW 「それは…言えないわ」
+					PRINTFORMW 「でも、心配しないで全てが終わったらちゃんと説明するから」
+					PRINTL Kaido：
+					PRINTFORMW 「チッ、しゃーねえな」
+					PRINTFORMW 「渋谷もガイア教ってのが出張ってワケわかんねー状態だしな……」
+					PRINTW 「あんたと一緒にいたほうが安全そうだ」
+					PRINTFORMW 「マリ姉の事頼んだぜ」
+				ELSE
+					PRINTW 「それじゃあ、すっかり世話になったな」
+					PRINTW 「何かあったら言ってくれ。全力で手伝わせてもらうぜ」
+				ENDIF
+				PRINTW ＞Saying so, Kaido left for some other place.
+				;そういうとカイドーはどこかへと去っていった
+				ダンジョンフラグ:42:新宿フラグ("カイドー会話") = 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+;					IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+;						PRINTFORMW 『マリ姉の事だから何か考えがあんだろ』
+;						PRINTFORMW 『テメェは何者か知りたくもねーが、マリ姉に指一本でも触れたらぶっ殺してやっからヨ』
+;					ELSE
+;						PRINTFORMW 『ワケありなんだろ？、困った事があったらココに連絡よこしな』
+;						PRINTFORMW 『マリ姉の事頼んだぜ』
+;					ENDIF
+;					PRINTFORML 「ちっと話を聞かせてくんねぇか？」
+;					PRINTFORML 「知り合いを探してるんだがヨ」
+;					PRINTFORMW チンピラは包容力のある２３歳養護教諭(巨乳)を探しているらしい。
+;					PRINTFORMW ……何処かで聞いた事がある人物の気が%CALLNAME:MASTER%には正直に答える義理はない。
+			CASE 224
+				IF ダンジョンフラグ:42:新宿フラグ("ハル会話") && ダンジョンフラグ:42:新宿フラグ("アマネ会話") && ダンジョンフラグ:42:新宿フラグ("カイドー会話")
+					PRINTL ＞There are alot of people gathering on the street.
+					;路上は人集りでいっぱいだ
+					PRINTW ＞もうすぐ、メシア教の説法が始まるようだ
+					PRINTL ＞Will you listen?
+					;聞いていく？
+					CALL INPUT_YN,"Yes","No"
+					IF RESULT == 1
+						PRINTFORMW ＞%CALLNAME:MASTER% left.
+						;はその場から離れた
+						RETURN 0
+					ENDIF
+					PRINTW ＞先程の少女が用意された壇上に立った
+					PRINTW ＞そして、大きく手を広げると、説法を始めた…
+					PRINTL 
+					PRINTL Girl:
+					PRINTL 「いま、この街…いえ、世界中のあちこちで悪魔が闊歩し、
+					PRINTW 　治安は乱れ、人々は苦しんでおります」
+					PRINTW 「まさに、苦難の時代と言えるでしょう」
+					PRINTW 「この時代において、神の助けがないと非難する声も聞かれます」
+					PRINTW 「しかし、神を非難するのは間違いなのです」
+					PRINTW 「なぜならば、この苦難も神の意志であり、人類に課せられた試練なのだからです」
+					PRINTW 「神はこの人類に苦難を乗り越えることを望んでおられるのです」
+					PRINTW 「そして、我々はそのための力を……」
+					PRINTL 
+					PRINTW ＞少女の説法がいよいよ盛り上がっていこうとするところで、突然悲鳴があがった！
+					PRINTW ＞悲鳴があがったほうをみると、銀色の体をした悪魔がいる！
+					PRINTL Demon:
+					PRINTW 「感じるぞ。感じるぞ」
+					PRINTW 「イザ・ベル、汝はそのニンゲンの中にいるのだな…！」
+					PRINTW 「クククククッ…」
+					PRINTW 「このベル・デルがニンゲンごと喰らってやろう…！」
+					PRINTL Girl:
+					PRINTW 「あれはベル・デル！？」
+					PRINTW 「まさか、ヤドリギがないというのに」
+					PRINTW 「……いえ、そんなことよりも、みなさん逃げてください！」
+					PRINTL 
+					PRINTL ＞The stunned spectators began to scatter and escape.
+					;呆然としていた観客たちが散り散りに逃げ始めた
+					PRINTW ＞Ignoring the crowd, Beldr approached the girl.
+					;ベル・デルと名乗った悪魔は聴衆たちにかまわず少女に近づいていく
+					PRINTL 
+					PRINTL メシア教徒:
+					PRINTW 「Miss Amane, please escape from here.」
+					;「アマネ様も、ここはお逃げください」
+					PRINTL Amane:
+					;アマネ:
+					PRINTW 「But...」
+					PRINTL メシア教徒:
+					PRINTW 「You know you can't beat him here, right?」
+					;「いま、奴を倒すことができないのはわかってるでしょう？」
+					PRINTW 「We can't loose you Amane.」
+					;「我々はアマネ様を失うわけにはいかないのです」
+					PRINTL Amane:
+					PRINTW 「I understand...」
+					;「わかりました…」
+					PRINTL メシア教徒:
+					PRINTW 「Now, demon!!」
+					;「さぁ、悪魔め…！」
+					PRINTW 「We shall be your opponents!」
+					;「我々が相手だ！」
+					PRINTL Beldr：
+					PRINTW 「イザ・ベルよ。汝はこのようなゴミどもに助けられるのか！」
+					PRINTW 「だが、知るがいい。ゴミによって助かることはできぬとな！」
+					PRINTL 
+					CALL INPUT_YN("Help for free", "Hope for a reward")
+					;メシア教徒達を助ける", "報酬が期待できそうだ
+					IF RESULT == 0
+						CALL INCREASE_LD, 3
+						CALL INCREASE_LC, 3
+					ELSE
+						CALL INCREASE_LC, -3
+					ENDIF
+					PRINTFORMW ＞%CALLNAME:MASTER% stepped in front of Beldr.
+					;はベル・デルの前に立ちふさがった
+					PRINTL 
+					PRINTL Beldr:
+					PRINTW 「The puny humans face me!」
+					;「脆弱な人間ごときが我に立ち向かうか！」
+					PRINTW 「But that's fine. I'm hungry for your ＭＡＧ.」
+					;「いいだろう。ちょうどＭＡＧに飢えていたところよ」
+					PRINTW 「And, I'll also take your blood!!」
+					;「汝の血、啜らせてもらうぞ…！」
+					PRINTL 
+					PRINTW ＞Bel Beldr appeared!
+					;ベル神　ベル・デルが出た！
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_BALDEL
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTL Beldr:
+					PRINTW 「グォオオオオオオッッ…！」
+					PRINTW 「ＭＡＧぎれとは！」
+					PRINTW 「我を暗き冥府へと繋ぎ止める忌々しきこの鎖に感謝するがいい…！」
+					PRINTW 「だが、ニンゲンよ！　覚えておけ！」
+					PRINTW 「我は近いうちにまた、現世に現れる！」
+					PRINTW 「そして、汝らを嘆きと絶望の涙の海に沈めるのだ…！」
+					PRINTL 
+					PRINTW ＞Beldr has disappeared...
+					;ベル・デルは消え去った…
+					PRINTL 
+					PRINTL ？？？:
+					PRINTW 「見せてもらったよ」
+					PRINTL 
+					PRINTL ＞いつのまにか、遊び人風の男が傍にいた…
+					PRINTL 
+					PRINTL 遊び人風の男:
+					PRINTW 「いやぁ、愉快、愉快♪」
+					PRINTW 「あのベル・デルに真っ向から挑んで生き延びる人間がいるなんてねぇ」
+					PRINTW 「あれは悪魔たちを束ねる嘆きの長で、不死の者なんだよ」
+					PRINTW 「人間は血の宴のなかで奴の餌食になるしかないはずなんだけどねぇ」
+					PRINTW 「さて…せっかく面白いものを見れたんだし、１つくらい、サービスしちゃおうか？」
+					PRINTL 「不死の者ベル・デルは、その昔、この世に存在する全てのものたちに、
+					PRINTW 　自分と契約するようにと、申し出た」
+					PRINTL 「結果、彼はその行為によって、彼と契約を為した、
+					PRINTW 　いかなるものにも傷つけられる事はなくなったんだ…」
+					PRINTW 「…でもねぇ、彼と契約をなしていない、たったひとつの存在があるんだよ」
+					PRINTL 「それを見つけ出すことが出来れば、あるいは人間でも
+					PRINTW 　ベル・デルを倒すことが出来るかもしれないねぇ…？」
+					PRINTW 「いや、ナオヤくんに言わせれば、それは全然可能だって話だったか」
+					PRINTW 「まぁいいや…それより今の君の活躍で、君を利用したい連中がでてくるんじゃないか？」
+					PRINTW 「君もそいつらを利用してやるといいんじゃないかなぁ、なぁんてね」
+					PRINTL 
+					PRINTW ＞男はそれだけいうといきなり消え去った…
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘") = 1
+					FLAG:百合の花ルート = 1
+				ELSEIF ダンジョンフラグ:42:新宿フラグ("アマネ会話")
+					PRINTL ＞メシア教徒達が世話しなく、動き回っている
+					PRINTW ＞It seems the preparations are not yet complete.
+					;まだ、説法の準備が出来ていないようだ
+				ELSE
+					PRINTL ＞路上を歩いていると、ローブを着た、どこか神秘的な雰囲気を纏った少女に声をかけられた
+					PRINTL 
+					PRINTL Girl:
+					PRINTW 「あの、すいません…メシア教に興味はありませんか？」
+					PRINTL 
+					PRINTW ＞どうやら、メシア教の勧誘のようだ
+					IF CFLAG:MASTER:善悪値 + CFLAG:MASTER:秩混値 < 232
+						PRINTL 
+						PRINTL Girl:
+						PRINTW 「間違っていたら申し訳ありませんが…」
+						PRINTW 「あなたがサマナーで、力と混沌に心を惹かれておられるようにお見受けしましたので…」
+						PRINTW 「この苦難の時代に力に溺れず、秩序を見失わないことは大変なことです」
+						PRINTW 「しかし、力あるものがその誘惑に屈することは無力であること以上に恐ろしいことです」
+						PRINTW 「もしよろしければ、しばらくしたら、ここで説法をするので来て下さい」
+						PRINTW 「きっと、あなたが正しき道を歩むためのよすがとなるでしょう」
+					ELSE
+						CALL INPUT_YN("I'm interrested", "Ignore her")
+						;興味がある", "無視する
+						PRINTL 
+						IF RESULT == 0
+							PRINTL Girl:
+							PRINTW 「そうですか。それはよかった」
+							PRINTW 「あなたになにやら力を感じたものですから」
+							PRINTW 「失礼ですが、サマナーでしょうか？」
+							PRINTW 「いえ、それをどうこうということはありません」
+							PRINTL 「この苦難の時代を乗り越えるには悪魔の力を借り、
+							PRINTW 　かつその誘惑に屈しない、そういった強さが求められている」
+							PRINTW 「それが私たちの考えですから」
+							PRINTW 「もしよろしければ、しばらくしたら、ここで説法をするので来て下さい」
+							PRINTW 「あなたのように力がある存在にこそ、私たちは話を聞いてもらいたいのです」
+							CALL INCREASE_LC,3
+						ELSE
+							PRINTL Girl:
+							PRINTW 「失礼ですが、あなたはサマナーですね？」
+							PRINTW 「あなたに力を感じたものですから、間違っていたらすいません」
+							PRINTW 「サマナーの方が、神の教えに抵抗を持つのはわかります」
+							PRINTW 「しかし、私たちはサマナーこそ、神の僕にふさわしいと考えているのです」
+							PRINTL 「この苦難の時代を乗り越えるには悪魔の力を借り、
+							PRINTW 　かつその誘惑に屈しない、そういった強さが求められているのです」
+							PRINTW 「もしよろしければ、しばらくしたら、ここで説法をするので来て下さい」
+							PRINTW 「あなたのように力がある存在にこそ、私たちは話を聞いてもらいたいのです」
+						ENDIF
+					ENDIF
+					ダンジョンフラグ:42:新宿フラグ("アマネ会話") = 1
+				ENDIF
+			CASE 234
+				PRINTW ＞There is aboy wearing a knitted ap here.
+				;ニット帽をかぶった少年がいる…
+				PRINTL 
+				PRINTL Boy:
+				PRINTW 「Long time no see.」
+				;「お久しぶりです」
+				PRINTW 「Thank you for coming. This...」
+				;「来てくれてありがとうございます。これを……」
+				PRINTL 
+				PRINTW ＞You received a wooden strap.
+				;木製のストラップを受け取った
+				PRINTL 
+				PRINTL Boy:
+				PRINTW 「It may just look like an accessory, but...」
+				;「見た目はアクセサリーみたいなものですけど…」
+				PRINTW 「Well, you should try to use it.」
+				;「これを使えば大丈夫なはずです」
+				PRINTL 
+                PRINTW ＞霊樹・ヤドリギの加護により、道具知識を得た
+				PRINTW ＞※ヤドリギは攻撃アイテムとして使用することが出来ます
+				PRINTL 
+				PRINTL Beldr:
+				PRINTW 「You...don't think you can escape me forever!」
+				;「ニンゲンよ…。いつまでも逃げ続けられると思うな！」
+				PRINTL 
+				PRINTW ＞Beldr has appeared again!
+				;ベル・デルに追いつかれた！
+				PRINTL 
+				PRINTL Boy:
+				PRINTW 「Woa! He's already here!?」
+				;「やば！　もう来たのか！？」
+				PRINTW 「Summoner, lease do you best!」
+				;「サマナーさん。頑張ってください！」
+				PRINTW 「Lets meet again at the Gaean church!」
+				;「ガイア教会でまた会いましょう！」
+				PRINTL 
+				PRINTW ＞Saying so, the boy began to run.
+				;少年はそう言うと走っていった
+				PRINTL 
+				PRINTL Beldr:
+				PRINTW 「You can't run away anymore.」
+				;「もう、逃げられんぞ」
+				PRINTW 「黄昏の時間は訪れ、ニンゲンは我がために涙するのだ」
+				PRINTW 「Now, give me your blood!」
+				;「さぁ、そのの血を我に捧げよっ！」
+				;LOCAL = TALENT:MASTER:道具知識
+				;TALENT:MASTER:道具知識 = MAX(TALENT:MASTER:道具知識,1)
+				IF TALENT:MASTER:道具知識 == 3
+				     TALENT:MASTER:アイテム習熟 = 1
+				ELSE
+				     TALENT:MASTER:道具知識 = 3
+				ENDIF
+				CALL SYNC_STATUS, MASTER
+				ITEM:ヤドリギ = 1
+				PRINTW ＞Bel Beldr appeared!
+				;ベル神　ベル・デルが出た！
+				ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 3
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_BALDEL
+				CALL BATTLE_START
+				CUSTOMDRAWLINE =
+				PRINTL Beldr:
+				PRINTW 「グッ…グォオオオオォォッ！」
+				PRINTW 「人間風情が…我を…っっ！」
+				PRINTW 「グォオオォォッ…力が…、我の力が吸われてゆくっ！」
+				PRINTW 「バカな…貴様などが…、ギャァアアアアッッ…！」
+				PRINTL 
+				PRINTW ＞Beldr was sucked into your ＣＯＭＰ and dissapeared.
+				;ベル・デルはＣＯＭＰの中に吸い込まれて消え去った
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				ITEM:ヤドリギ = 0
+				FLAG:10409 = 1
+				;TALENT:MASTER:道具知識 = LOCAL
+				FLAG:ベル神撃破 |= 8
+			CASE 244
+				PRINTW ＞As you walked down the street, suddenly a man screamed!
+				;道を歩いていると、男の悲鳴が聞こえてきた…！
+				PRINTW ＞When you look, there is a boy with headphones surrounded by demons.
+				;見ると、ヘッドホンをつけた少年が悪魔に囲まれている
+				PRINTW ＞And one of the demons is Beldr.
+				;そして、その悪魔の中にはベル・デルもいる
+				PRINTL 
+				PRINTL Beldr:
+				PRINTW 「感じる。感じるぞ！　貴様、ベルの力をその身に宿しているな？」
+				PRINTW 「クククク、ちょうどいい」
+				PRINTW 「Give me your blood!」
+				;「貴様の血をよこせぇっ！」
+				PRINTL 
+				PRINTW ＞The boy backed away from te approaching Beldr.
+				;迫り来るベル・デルに、少年は後退りをする
+				PRINTL 
+				PRINTL Demon:
+				PRINTW 「ニンゲン、ベル・デル様の贄になれるんだ。光栄に思うんだな」
+				PRINTL Demon:
+				PRINTW 「そうよ。たかがニンゲンごときがベル・デル様に食べてもらえるなんて、もったいないくらいよ」
+				PRINTL 
+				PRINTW ＞The boy looks arround for an escpe way, but he is completely surrounded.
+				;少年は逃げ道を探して、周囲を見渡すが完全に囲まれてしまっている…
+				PRINTL 
+				PRINTL Beldr:
+				PRINTW 「さぁ、泣き叫ぶがいい。それが我が享楽のスパイスとなるのだ！」
+				PRINTL 
+				CALL INPUT_YN("Help him", "Leave")
+				;("助ける", "放っておく")
+				IF RESULT == 0
+					PRINTL Beldr:
+					PRINTW 「貴様は、あの時の忌々しい人間か」
+					PRINTW 「我が不死の力を理解しなかったのか？」
+					PRINTW 「Oh well. I'm in a good mood now.」
+					;「まぁいい。我は今機嫌がいいのだ」
+					PRINTW 「I'll eat you too!」
+					;「貴様も一緒に喰らってやろう！」
+					PRINTL ＞Bel Beldr appeared!
+					;ベル神　ベル・デルが出た！
+					PRINTW ＞Beldrs servants appeared!
+					;ベル・デルの下僕たちが出た！
+					CALL SET_ENEMY, 7, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 8, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 10, [[キャラ:リリム]], 20
+					CALL SET_ENEMY, 11, [[キャラ:リリム]], 20
+					CALL SET_BALDEL
+					CALL SET_BALDEL_SERVANT_ST
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTW ＞You defended the boy and repelled Beldr.
+					;少年を連れ、ベル・デルを振り切った
+					PRINTW ＞It seems te boy lost consciousness during the fighting...
+					;少年は先程の戦いに巻き込まれて気を失っている…
+					PRINTL ＞Now that you helped, what will you do with the boy?
+					;助けたものの、この少年をどうする？
+					CALL INPUT_YN("Make him a slave", "Take him to a save place")
+					;奴隷にする", "安全なところまで連れて行く
+					IF RESULT == 0
+						ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話") = 1
+						PRINTFORML ＞%CALLNAME:MASTER% decided to take the boy.
+						;は少年を奴隷にすることに決めると、
+						PRINTW ＞You looked through the boys belongings to find his identity...
+						;少年の素性を調べるため、荷物をあらためた…
+						PRINTW ＞You found a game machine type COMP.
+						;すると、ゲーム機型のCOMPが見つかった
+						PRINTW ＞After you started it, you found out his name...
+						;起動すると、少年の名前が確認できた…
+						CALL ADD_NEW_COMPANION, [[キャラ:デビサバ主人公]],200
+						IF RESULT
+							LOCAL = CHARANUM - 1
+							$MAKE_NAME
+							PRINTL ＞What is the name of the boy?(Please input it)
+							;少年の名前は？(入力してください)
+							INPUTS
+							NAME:LOCAL = %RESULTS%
+							PRINTL ＞What is the nickname of the boy?(Please input it)
+							;少年の愛称は？(入力してください)
+							INPUTS
+							CALLNAME:LOCAL = %RESULTS%
+							PRINTFORML Name:%NAME:LOCAL% Nickname:%CALLNAME:LOCAL%
+							PRINTL Is this ok?
+							CALL INPUT_YN,"Yes","No"
+							SIF RESULT == 1
+								GOTO MAKE_NAME
+							PRINTW ＞In addition, the ＣＯＭＰ had the data of a demon stored.
+							;また、データはＣＯＭＰには悪魔のデータが入っていた
+							PRINTL ＞It was...
+							;その悪魔は……
+							PRINTL [0]Brute Kobold
+							;妖鬼 コボルトだ
+							PRINTL [1]Fairy Pixie
+							;妖精 ピクシーだ
+							PRINTL [2]Beast Kabuso
+							;魔獣 カブソだ
+							CALL INPUTINT(0,1,2)
+							IF RESULT == 0
+								IF GETCHARA([[キャラ:コボルト]]) == -1
+									PRINTW ＞You got Brute Kobold
+									CALL ADD_NEW_COMPANION, [[キャラ:コボルト]],200
+								ELSE
+									PRINTL ＞You tried to move the Kobolds data to you COMP,
+									;＞コボルトのデータを移そうとしましたが
+									PRINTW ＞but the transfer was stopped because you already have a Kobold stored.
+									;すでに仲魔にコボルトがいるのでやめました
+								ENDIF
+								ABL:LOCAL:スキル1 = [[スキル:突撃]]
+								ABL:LOCAL:スキル2 = [[スキル:タル・カジャ]]
+								ABL:LOCAL:習得スキル1 = [[スキル:一分の活泉]]
+								ABL:LOCAL:習得スキル2 = [[スキル:ショートジャブ]]
+								ABL:LOCAL:習得スキル3 = [[スキル:暴れまくり]]
+								ABL:LOCAL:習得スキル4 = [[スキル:ギガンフィスト]]
+								ABL:LOCAL:習得スキル5 = [[スキル:三分の活泉]]
+								ABL:LOCAL:習得スキル6 = [[スキル:挑発]]
+								ABL:LOCAL:習得スキル7 = [[スキル:食いしばり]]
+								ABL:LOCAL:習得スキル8 = [[スキル:デスバウンド]]
+								ABL:LOCAL:習得LV1 = 7
+								ABL:LOCAL:習得LV2 = 8
+								ABL:LOCAL:習得LV3 = 12
+								ABL:LOCAL:習得LV4 = 15
+								ABL:LOCAL:習得LV5 = 20
+								ABL:LOCAL:習得LV6 = 25
+								ABL:LOCAL:習得LV7 = 30
+								ABL:LOCAL:習得LV8 = 35
+								BASE:LOCAL:力 = 6
+								BASE:LOCAL:知恵 = 3
+								BASE:LOCAL:魔力 = 3
+								BASE:LOCAL:耐力 = 5
+								BASE:LOCAL:速さ = 4
+								BASE:LOCAL:運 = 4
+							ELSEIF RESULT == 1
+								IF GETCHARA([[キャラ:ピクシー]]) == -1
+									PRINTW ＞You got Fairy Pixie
+									;妖精 ピクシーを手に入れた
+									CALL ADD_NEW_COMPANION, [[キャラ:ピクシー]],200
+								ELSE
+									PRINTL ＞You tried to move the Pixies data to you COMP,
+									PRINTW ＞but the transfer was stopped because you already have a Pixie stored.
+								ENDIF
+								ABL:LOCAL:スキル1 = [[スキル:ディア]]
+								ABL:LOCAL:スキル2 = [[スキル:ジオ]]
+								ABL:LOCAL:習得スキル1 = [[スキル:ポズムディ]]
+								ABL:LOCAL:習得スキル2 = [[スキル:メ・ディア]]
+								ABL:LOCAL:習得スキル3 = [[スキル:ディアラマ]]
+								ABL:LOCAL:習得スキル4 = [[スキル:ジオンガ]]
+								ABL:LOCAL:習得スキル5 = [[スキル:リカーム]]
+								ABL:LOCAL:習得スキル6 = [[スキル:メ・ディアラマ]]
+								ABL:LOCAL:習得スキル7 = [[スキル:アムリタ]]
+								ABL:LOCAL:習得スキル8 = [[スキル:ディアラハン]]
+								ABL:LOCAL:習得LV1 = 6
+								ABL:LOCAL:習得LV2 = 8
+								ABL:LOCAL:習得LV3 = 15
+								ABL:LOCAL:習得LV4 = 20
+								ABL:LOCAL:習得LV5 = 25
+								ABL:LOCAL:習得LV6 = 32
+								ABL:LOCAL:習得LV7 = 35
+								ABL:LOCAL:習得LV8 = 38
+								BASE:LOCAL:力 = 3
+								BASE:LOCAL:知恵 = 5
+								BASE:LOCAL:魔力 = 4
+								BASE:LOCAL:耐力 = 3
+								BASE:LOCAL:速さ = 6
+								BASE:LOCAL:運 = 4
+							ELSE
+								IF GETCHARA([[キャラ:カブソ]]) == -1
+									PRINTW ＞You got Beast Kabuso
+									;魔獣 カブソを手に入れた
+									CALL ADD_NEW_COMPANION, [[キャラ:カブソ]],200
+								ELSE
+									PRINTL ＞You tried to move the Kabusos data to you COMP,
+									PRINTW ＞but the transfer was stopped because you already have a Kabuso stored.
+								ENDIF
+								ABL:LOCAL:スキル1 = [[スキル:アギ]]
+								ABL:LOCAL:スキル2 = [[スキル:ザン]]
+								ABL:LOCAL:習得スキル1 = [[スキル:マハ・ラギ]]
+								ABL:LOCAL:習得スキル2 = [[スキル:マハ・ザン]]
+								ABL:LOCAL:習得スキル3 = [[スキル:アギラオ]]
+								ABL:LOCAL:習得スキル4 = [[スキル:ザンマ]]
+								ABL:LOCAL:習得スキル5 = [[スキル:メギド]]
+								ABL:LOCAL:習得スキル6 = [[スキル:アギダイン]]
+								ABL:LOCAL:習得スキル7 = [[スキル:ザンダイン]]
+								ABL:LOCAL:習得スキル8 = [[スキル:コンセントレイト]]
+								ABL:LOCAL:習得LV1 = 8
+								ABL:LOCAL:習得LV2 = 8
+								ABL:LOCAL:習得LV3 = 16
+								ABL:LOCAL:習得LV4 = 16
+								ABL:LOCAL:習得LV5 = 24
+								ABL:LOCAL:習得LV6 = 30
+								ABL:LOCAL:習得LV7 = 30
+								ABL:LOCAL:習得LV8 = 35
+								BASE:LOCAL:力 = 3
+								BASE:LOCAL:知恵 = 5
+								BASE:LOCAL:魔力 = 5
+								BASE:LOCAL:耐力 = 3
+								BASE:LOCAL:速さ = 5
+								BASE:LOCAL:運 = 4
+							ENDIF
+						ELSE
+							LOCAL = RESULT:1
+						ENDIF
+						PRINTFORMW ＞You got %CALLNAME:LOCAL%.
+						
+						;ダークに傾く
+						CALL INCREASE_LD,-6
+					ELSE
+						PRINTW ＞If you go to the Lilly Flower Joint Fundraising Office, they'll help the boy there.
+						;百合の花共同募金事務所までいけば、少年を引き渡せるだろう
+						PRINTW ＞You should hurry to the Lilly Flower Joint Fundraising Office.
+						;急いで、百合の花共同募金事務所に向かおう
+						;LIGHTに大きく傾く
+						CALL INCREASE_LD,24
+						ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話") = 2
+					ENDIF
+				ELSE
+					PRINTW ＞You rushed away to avoid Beldr.
+					;ベル・デル達に気付かれないように先を急いだ
+					PRINTFORMW ＞Behing %CALLNAME:MASTER%, they boy let out a terrifed scream...
+					;そんな%CALLNAME:MASTER%の背後で少年の悲鳴が響き渡った…
+					ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話") = -1
+					CALL MESSAGE_COMP_OVER
+				ENDIF
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+		ENDSELECT
+	CASE 1
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 104
+				PRINTW ＞It's a casino.
+				;カジノだ…
+				CALL CASINO,3
+			CASE 204
+				PRINTL Boy:
+				PRINTFORMW 「オザワからの情報と黒の免罪符を入手して来てくれるとは…流石です」
+				PRINTFORMW 「ボクの調査によると…この聖堂では悪魔を人間の身体に宿し、召喚する儀式が行われているようです」
+				PRINTFORMW 「これで動かぬ証拠は揃いました」
+				PRINTFORMW 「With the interruption of the ceremony, the request will be complete.」
+				;「後は儀式を妨害すれば依頼は完了です」
+				PRINTFORMW 「I had planned to go there myself, but unfortunately, my cover has been blown.」
+				;「本来ならボクが行くべきなのですが、残念ながらボクは既に顔が割れています」
+				PRINTFORMW 「Could you infilitrate the ceremony in my stead and disturb it to catch the instigator?」
+				;「ボクの代わりに儀式に潜入し儀式を妨害、首謀者を捕らえてはいただけませんか？」
+				PRINTFORMW 「I can promise you a reward, will you lend my your strength?」
+				;「報酬はお約束します、力を貸してはいただけませんか？」
+				PRINTL
+				PRINTL [0] Yes
+				PRINTL [1] No
+				$INPUT_LOOP_F1
+				INPUT
+				IF RESULT == 0
+					PRINTL Boy:
+					PRINTFORMW 「Thank you.」
+					;---- EDIT 003 ADD START -------------------------
+					;属性について示唆する台詞を追加
+					PRINTFORMW 「ああ、そうだ。ひとつだけ忠告させてください」
+					PRINTFORMW 「この騒動は悪魔を使うものが暴走したものです」
+					PRINTFORMW 「このような力を得た人間は得てして、邪悪と混沌にひかれやすいものです」
+					PRINTFORMW 「あなたも力に、引きずられることがないように、常に正義と秩序を忘れないようにしてください」
+					;---- EDIT 003 ADD END ---------------------------
+					PRINTFORMW 「Well, please be careful...」
+					PRINTFORMW ＞Saying so, the boy quickly moved away.
+					;少年はそういって颯爽とその場を去った
+					ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 4
+				ELSEIF RESULT == 1
+					PRINTL Boy:
+					PRINTFORMW 「Is that so.. I'm sorry to hear that.」
+					;「そうですか…残念です」
+					PRINTFORMW 「Well, please accept this for what you did so far.」
+					;「少ないですがこれを受け取ってください」
+					PRINTFORMW ＞少年に黒の免罪符を渡した。
+					PRINTFORMW ＞You got a reward of ￥10000.
+					MONEY += 10000
+				ELSE
+					GOTO INPUT_LOOP_F1
+				ENDIF
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				ダンジョンフラグ:42:新宿フラグ("オザワ") = 2
+				ダンジョンフラグ:42:新宿フラグ("直人[オザワ撃破後]") = 1
+			CASE 214
+				;新宿南　百合募金
+				PRINTW ＞ローブを目深に被った人物が話しかけてきた
+				PRINTL 
+				PRINTFORML ローブを目深に被った人物:
+				PRINTFORMW 「そこの貴方、デビルサマナーとお見受けします」
+				PRINTFORMW 「実は…私、悪魔の事で悩まされています」
+				PRINTFORMW 「訳あって詳しい事情は説明出来ないのですが」
+				PRINTFORMW 「ご迷惑とは思いますが、お力を貸してはいただけませんか？」
+				;ベスは問答無用で助けます。基本的にここでベスが加入していることがありえなくなったので
+;				IF FINDCHARA_B(4501,1) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+;					PRINTFORMW 「喜んで」
+;					PRINTFORMW あなたが判断するより早くベスが即答した。
+;					PRINTFORMW 「ありがとうございます」
+;					PRINTFORMW 「この花を持ってこの町の北東の階段をあがってください」
+;					PRINTFORML 
+;					PRINTFORML ＞百合の花を受け取った
+;					PRINTFORMW ＞ローブの人物は立ち去った
+;					;L/L寄りに+3動く
+;					CALL INCREASE_LC,3
+;					CALL INCREASE_LD,3
+;					ダンジョンフラグ:42:新宿フラグ("百合の花依頼") = 2
+;				ELSE
+					PRINTL
+					PRINTL [0] Accept
+					;引き受ける
+					PRINTL [1] Refuse
+					;断る
+					$INPUT_LOOP1
+					INPUT
+					IF RESULT == 0
+						PRINTFORML ローブを目深に被った人物:
+						PRINTFORMW 「Thank you」
+						PRINTFORMW 「Please take this flower and head to the northeast steairs of the town.」
+						;「この花を持ってこの町の北東の階段をあがってください」
+						PRINTFORMW ＞そう言って、花を手渡すとローブを目深に被った人物は部屋から出て行った
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+						;L/L寄りに+3動く
+						CALL INCREASE_LC,3
+						CALL INCREASE_LD,3
+						ダンジョンフラグ:42:新宿フラグ("百合の花依頼") = 2
+						ダンジョンフラグ:42:新宿フラグ("Ｇ") = 1
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+					ELSEIF RESULT == 1
+						PRINTFORML ローブを目深に被った人物:
+						PRINTFORMW 「Is that so...」
+						;「そうですか…」
+;						ダンジョンフラグ:42:新宿フラグ("百合の花依頼") = 1
+					ELSE
+						GOTO INPUT_LOOP1
+					ENDIF
+;				ENDIF
+				;たまき
+				IF FINDCHARA_B(4503,0) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+					PRINTL たまき：
+					PRINTFORMW 「不思議な感じの人だね」
+					PRINTFORMW 「あなたはどっちだと思った？」
+					PRINTFORMW 「私は多分、あの人は女の子…」
+					PRINTFORMW 「それも本当は人間じゃなくて悪魔なんじゃないかな…なーんてね」
+					PRINTFORMW ＞たまきは個人的な感想を述べてくれた。
+				ENDIF
+			CASE 224
+				IF ダンジョンフラグ:42:新宿フラグ("ハル会話") && ダンジョンフラグ:42:新宿フラグ("アマネ会話") && ダンジョンフラグ:42:新宿フラグ("カイドー会話")
+					PRINTW ＞There are people gathering on the street.
+					;路上に人集りが出来ている
+					PRINTW ＞もうすぐ、ハルのライブが始まるのだろう
+					PRINTL ＞Will you listen?
+					;聞いていく？
+					CALL INPUT_YN,"Yes","No"
+					IF RESULT == 1
+						PRINTFORMW ＞%CALLNAME:MASTER% left.
+						;はその場から離れた
+						RETURN 0
+					ENDIF
+					PRINTL Haru:
+					PRINTL 「バッテリーで動くポケットアンプだから、
+					PRINTW 　迫力出なくて、ごめんな～！」
+					PRINTW 「恨むなら、このご時世を恨んでくれよ！」
+					PRINTW 「まぁ、アタシの歌でも聞いて、少しでも元気を出しておくれ！」
+					PRINTW 「それじゃ、いくよーー！」
+					PRINTW ＞Haru has began to perform...
+					;ハルの演奏が始まった…
+					PRINTFORMW ………
+					PRINTFORMW ……
+					PRINTFORMW …
+					PRINTFORMW 
+					PRINTW ＞As Haru's song continued, there was a sudden scream!
+					;ハルの熱唱が続く中、突然悲鳴があがった！
+					PRINTW ＞悲鳴があがったほうをみると、銀色の体をした悪魔がいる！
+					PRINTL Demon:
+					PRINTW 「感じるぞ。感じるぞ」
+					PRINTW 「原初の言葉だな…！」
+					PRINTW 「クククククッ…」
+					PRINTW 「このベル・デルの糧となれ！」
+					PRINTL Haru:
+					PRINTW 「な、なんだあれ…」
+					PRINTW 「あんな、すげー悪魔見たことないよ…」
+					PRINTW 「……いや、そんなことよりも、みんな逃げるんだ！」
+					PRINTL 
+					PRINTL ＞The stunned spectators began to scatter and escape.
+					;呆然としていた観客たちが散り散りに逃げ始めた
+					PRINTL ＞Ignoring the crowd, Beldr approached Haru.
+					;ベル・デルと名乗った悪魔は観客たちにかまわずハルに近づいていく
+					PRINTL 
+					PRINTL Haru:
+					PRINTW 「はは…、アタシをご指名ってわけか。こりゃ参ったね…」
+					PRINTL 
+					CALL INPUT_YN("Help Haru", "Help hoping for a price")
+					;ハルを助ける", "賞金が期待できそうな悪魔だ
+					IF RESULT == 0
+						CALL INCREASE_LD, 3
+					ELSE
+						CALL INCREASE_LC, -3
+					ENDIF
+					PRINTFORMW ＞%CALLNAME:MASTER% stepped in front of Beldr.
+					PRINTL 
+					PRINTL Beldr:
+					PRINTW 「The puny humans face me!」
+					PRINTW 「But that's fine. I'm hungry for your ＭＡＧ.」
+					PRINTW 「And, I'll also take your blood!!」
+					PRINTL 
+					PRINTW ＞Bel Beldr appeared!
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL SET_BALDEL
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTL Beldr:
+					PRINTW 「グォオオオオオオッッ…！」
+					PRINTW 「ＭＡＧぎれとは！」
+					PRINTW 「我を暗き冥府へと繋ぎ止める忌々しきこの鎖に感謝するがいい…！」
+					PRINTW 「だが、ニンゲンよ！　覚えておけ！」
+					PRINTW 「我は近いうちにまた、現世に現れる！」
+					PRINTW 「そして、汝らを嘆きと絶望の涙の海に沈めるのだ…！」
+					PRINTL 
+					PRINTW ＞Beldr has disappeared...
+					PRINTL 
+					PRINTL Haru:
+					PRINTW 「はは、ほんとにすげーや…参ったね…」
+					CALL INPUT_YN("Ask about that demon", "Ask if he is injured")
+					;先程の悪魔について尋ねる", "ケガがなかったか尋ねる
+					IF RESULT == 0
+						PRINTL Haru:
+						PRINTW 「さっきの悪魔…？」
+						PRINTW 「はは…こっちが聞きたいね」
+						PRINTW 「もしかして、アタシの願いを叶えに来てくれてんのかな」
+						PRINTW 「あ、いやなんでもない…今のは、軽く流してよ」
+					ELSE
+						PRINTL Haru:
+						PRINTW 「あ…、ああ、大丈夫」
+						PRINTW 「ありがとう…」
+						PRINTW 「今回は、マジでやばかったわ」
+						PRINTW 「でも、アンタもあんまり無茶しないほうがいいよ」
+						PRINTW 「これで殺されてたら、洒落にもならないだろ」
+						PRINTW 「アタシならどうなっても…いやなんでもない…今のは、軽く流してよ」
+					ENDIF
+					PRINTW 「それより、アンタってさ。面白い奴だね」
+					PRINTW 「あれに向かっていくなんて、そうそうできるこっちゃないよ」
+					PRINTW 「その内、ゆっくり話そうよ」
+					PRINTW 「Because I'll treat you to a meal as thanks.」
+					;「今日のお礼におごるからさ」
+					PRINTL [0] ………
+					PRINTL [1] I'm looking forward to it
+					;楽しみにしてる
+					PRINTL [2] How about you be my slave instead
+					;そんなことより、奴隷になれ
+					CALL INPUTINT(0, 1, 2)
+					IF RESULT == 2
+						PRINTW 「は…？　奴隷…？」
+						PRINTW 「If thats a joke, I fail to find it funny.」
+						;「なのその、冗談。笑えないよ」
+						PRINTW 「って、やめっ…！」
+						PRINTL 
+						PRINTW ＞You got Yoshino Harusawa.
+						;春沢 芳野 を手に入れた
+						CALL ADD_NEW_COMPANION, [[キャラ:ハル]], 200
+						ダンジョンフラグ:42:新宿フラグ("ハル入手") = 1
+						PRINTL 
+						PRINTL ？？？:
+						PRINTW 「うーん、アイドルを救ったヒーローかと思ったら、実は奴隷商人というわけか」
+						PRINTW 「カワイイ子がいたら、僕も一人くらい売ってもらおうかなぁ」
+						PRINTW 「と、まぁそんなことはどうでもいいとして…」
+					ELSE
+						IF RESULT == 1 && TALENT:MASTER:オトコ
+							PRINTW 「はは…言うじゃん」
+							PRINTW 「格好いいよ、アンタ」
+						ELSE
+							PRINTW 「じゃ、またね…」
+							PRINTL 
+							PRINTW ＞ハルは去っていった
+							PRINTL 
+							PRINTL ？？？:
+							PRINTW 「見せてもらったよ」
+						ENDIF
+					ENDIF
+					PRINTL 
+					PRINTL ＞いつのまにか、遊び人風の男が傍にいた…
+					PRINTL 
+					PRINTL 遊び人風の男:
+					PRINTW 「いやぁ、愉快、愉快♪」
+					PRINTW 「あのベル・デルに真っ向から挑んで生き延びる人間がいるなんてねぇ」
+					PRINTW 「あれは悪魔たちを束ねる嘆きの長で、不死の者なんだよ」
+					PRINTW 「人間は血の宴のなかで奴の餌食になるしかないはずなんだけどねぇ」
+					PRINTW 「さて…せっかく面白いものを見れたんだし、１つくらい、サービスしちゃおうか？」
+					PRINTL 「不死の者ベル・デルは、その昔、この世に存在する全てのものたちに、
+					PRINTW 　自分と契約するようにと、申し出た」
+					PRINTL 「結果、彼はその行為によって、彼と契約を為した、
+					PRINTW 　いかなるものにも傷つけられる事はなくなったんだ…」
+					PRINTW 「…でもねぇ、彼と契約をなしていない、たったひとつの存在があるんだよ」
+					PRINTL 「それを見つけ出すことが出来れば、あるいは人間でも
+					PRINTW 　ベル・デルを倒すことが出来るかもしれないねぇ…？」
+					PRINTW 「いや、ナオヤくんに言わせれば、それは全然可能だって話だったか」
+					PRINTW 「うん、君はおもしろいね」
+					PRINTW 「僕の友達が君みたいな人間と知り合いになりたがっててねぇ」
+					PRINTW 「彼と君のためにちょっと紹介してあげたいんだよ」
+					PRINTW 「おっと、あれはナオヤ君のお友達か」
+					PRINTL 
+					PRINTW ＞遊び人風の男の視線の先を見ると、ニット帽の少年がいた
+					PRINTW ＞少年はこちらに向かって走ってきている…
+					PRINTL
+					PRINTW 「ちょうどいい。彼が君にお願いをするだろうから、是非とも引き受けてあげなよ」
+					PRINTW 「ね、いいだろう？」
+					PRINTW 「君にとっても悪いことじゃないよ」
+					PRINTL 
+					PRINTW ＞男はそれだけいうといきなり消え去り、それと同時に少年があなたの元にやってきた
+					PRINTL 
+					PRINTL Boy with a knitted hat:
+					PRINTW 「はぁ…はぁ…、すいません…」
+					PRINTW 「さっきの戦いみさせてもらいました」
+					PRINTW 「あれは特別な悪魔なのに、普通に戦えてましたよね？」
+					PRINTW 「まぁ、ちょっと連れが安全なところまで連れていけって騒ぐもんで最後までは見れなかったんですが…」
+					PRINTW 「あれをやっつけたんですか？」
+					PRINTL 
+					PRINTFORMW ＞%CALLNAME:MASTER% shook the head.
+					PRINTL 
+					PRINTL Boy with a knitted hat:
+					PRINTW 「そうですよね…いえ、仕方ないです。むしろあれで生き残ったのがすごいんです」
+					PRINTW 「きっとあなたなら、ナオヤさんも満足するはず…」
+					PRINTW 「あなたに仕事を頼みたい人がいるんです」
+					PRINTW 「Please go to the Gaean church.」
+					;「ガイア教会に行ってください」
+					PRINTW 「俺は、その人にあなたのことを伝えて、ガイア教会まで来るようにいいますんで！」
+					PRINTL 
+					PRINTW ＞After saying so, the boy quickly moved away.
+					;そう言うとニット帽の少年は走って行ってしまった…
+					ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘") = 1
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					FLAG:直哉ルート = 1
+				ELSEIF ダンジョンフラグ:42:新宿フラグ("ハル会話")
+					PRINTL Haru:
+					PRINTW 「I'm sorry, but I'm not yet done with my preparations.」
+					;「すまないけど、まだ用意できてないんだ」
+					PRINTW 「Please come back later.」
+					;「もうちょっとしたら来てよ」
+				ELSE
+					PRINTW ＞なにやら派手な女とローブを着た集団が揉めている…
+					PRINTL 
+					PRINTL ローブの男:
+					PRINTW 「ですから、ハルさん。あなたは悪魔に狙われているんですよ」
+					PRINTW 「私達と来て下さい。我々ならあなたを守ることができます」
+					PRINTL ローブの女:
+					PRINTW 「そうですよ。あなたの歌が失われたら、悲しむ人達はメシア教徒にもたくさんいます」
+					PRINTL ハルと呼ばれた女:
+					PRINTL 「申し出はありがたいけど…遠慮しとくよ…」
+					PRINTL ローブの男:
+					PRINTW 「どうしてですか？　我々はあなたが歌うのを邪魔したりしないですよ」
+					PRINTL Haru:
+					PRINTW 「あんたらは、私がガイア教徒に歌を聞かせたら、嫌な顔をするんじゃないの？」
+					PRINTL ローブの女:
+					PRINTW 「それはそうですよ。奴らにあなたの歌は勿体無いです」
+					PRINTL Haru:
+					PRINTW 「あたしからしてみれば、あたしの歌を聞いてくれる奴と聞いてくれない奴の二種類しかいないんだよ」
+					PRINTW 「歌を聞くのに、メシアもガイアもない。そんなこともわからない連中の世話はなれない」
+					PRINTL ローブの女:
+					PRINTW 「しかし、善人と悪人の違いはあるでしょう？」
+					PRINTW 「あなたが私たちに協力してくれれば、多くの人を善行に導くことだって…」
+					PRINTL Haru:
+					PRINTW 「そういうことはあんたらの好きな説教でやってよ」
+					PRINTW 「あたしは、歌はそういうことに使うものじゃないと思うから…」
+					PRINTL ローブの女:
+					PRINTW 「善行をなせるというのに、それをしないのは悪ですよ」
+					PRINTL Haru:
+					PRINTW 「……こうして自由に振舞うことが悪だっていうんなら、悪人だって言われても構わないよ」
+					PRINTL ローブの男:
+					PRINTW 「むぅ…、わかってもらえないのですか…」
+					PRINTW 「仕方ありません。今日は帰るとしましょう」
+					PRINTW 「でも、また来ますよ」
+					PRINTL Haru:
+					PRINTW 「……はぁ」
+					PRINTL 
+					PRINTW ＞ローブを着た集団は去っていった
+					PRINTFORMW ＞そして、ハルがため息を付いたその時、%CALLNAME:MASTER%と目があってしまった
+					PRINTL 
+					PRINTL Haru:
+					PRINTW 「ありゃ、見られてたのか」
+					PRINTW 「まったく、最近はメシア教徒が五月蝿くて困るね」
+					PRINTW 「正義と秩序、悪いことじゃないとは思うんだけど…どうにもついていけなくてね…」
+					IF CFLAG:MASTER:善悪値 + CFLAG:MASTER:秩混値 > 276
+						PRINTW 「ちょっと、そんな顔しないでよ」
+						PRINTW 「別に悪いことしたいっていうんじゃなくて、なんか考えがあわないってだけだし」
+						PRINTW 「あいつらのおかげで助かってることも多いっていうのはわかってるさ」
+						PRINTW 「あんたもあたしみたいにひねくれてるとかってんじゃなきゃ、協力してやるといいよ」
+						PRINTW 「ああ、でもそれでもあたしのことは放っておいて欲しいかな…」
+					ENDIF
+					PRINTW 「まぁいいや、もうすぐライブやるからさ」
+					PRINTW 「こんなポケットアンプしかなくて申し訳ないけどさ」
+					PRINTW 「それでも、今できる最高の歌を歌ってみせるから、聞きに来てよ」
+					ダンジョンフラグ:42:新宿フラグ("ハル会話") = 1
+				ENDIF
+			CASE 234
+				PRINTW ＞As you walked down the street, you heard the scream of a girl!
+				;道を歩いていると、女の悲鳴があがった…！
+				PRINTW ＞When you look, there is a big-chested girl surrounded by demons.
+				;見ると、胸の大きな少女が悪魔に囲まれている
+				PRINTW ＞And one of them is Beldr.
+				PRINTL 
+				PRINTL Beldr:
+				PRINTL 「昏く、冷たい冥府からせっかく出たのだ
+				PRINTW 　久しぶりに肉の温かみを楽しませてもらうぞ」
+				PRINTL ユズ:
+				PRINTW 「や、やだ…、助けて…」
+				PRINTL Demon:
+				PRINTW 「ニンゲン、ベル・デル様の贄になれるんだ。光栄に思うんだな」
+				PRINTL Demon:
+				PRINTW 「そうよ。たかがニンゲンごときがベル・デル様に犯してもらえるなんて、もったいないくらいよ」
+				PRINTL ユズ:
+				PRINTW 「い…いや、いやだよ…」
+				PRINTL Beldr:
+				PRINTW 「さぁ、泣き叫ぶがいい。それが我が享楽のスパイスとなるのだ！」
+				PRINTL 
+				CALL INPUT_YN("Help her", "Leave")
+				;助ける", "放っておく
+				IF RESULT == 0
+					PRINTL Beldr:
+					PRINTW 「貴様は、あの時の忌々しい人間か」
+					PRINTW 「我が不死の力を理解しなかったのか？」
+					PRINTW 「こんどは前のようにはいか…むぅ…？」
+					PRINTW 「感じる。感じるぞ！　貴様、ベルの力をその身に宿しているな？」
+					PRINTW 「クククク、ちょうどいい」
+					PRINTW 「Give me your blood!」
+					ダンジョンフラグ:42:新宿フラグ("ユズ会話") = 1
+					PRINTL ＞Bel Beldr appeared!
+					PRINTW ＞Beldrs servants appeared!
+					CALL SET_ENEMY, 7, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 8, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 10, [[キャラ:リリム]], 20
+					CALL SET_ENEMY, 11, [[キャラ:リリム]], 20
+					CALL SET_BALDEL
+					CALL SET_BALDEL_SERVANT_ST
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					ダンジョンフラグ:42:新宿フラグ("ユズ会話") = 1
+					PRINTW ＞You drove Beldr away.
+					;ベル・デルを振り切った
+					PRINTL 
+					PRINTL Girl:
+					PRINTW 「はぁ…はぁ…ありがとう…」
+					PRINTW 「Thank you for saving me...」
+					;「おかげで助かった…」
+					PRINTW 「But...」
+					PRINTL 
+					PRINTW ＞Apparently the girl is still shaken from the attack of Beldr.
+					;どうやら、少女はベル・デルをまだ恐れているようだ…
+					PRINTL 
+					PRINTL Girl:
+					PRINTW 「No, it's not that...could you take me to the Gaean church?」
+					;えっと、そのすいませんが…ガイア教会まで連れて行ってもらえませんか？
+					PRINTW 「An aquaintance of mine is there.」
+					;「そこに私の知り合いの人がいるんです」
+					PRINTW 「ナオヤさんっていって、すごいプログラマーで、きっとあなたがあっても損はないはずです」
+					PRINTL 
+					PRINTFORMW ＞%CALLNAME:MASTER%はちょうどナオヤに会いに行く途中であると告げた
+					PRINTL 
+					PRINTL Girl:
+					PRINTW 「そうだったんですか」
+					PRINTW 「えっと、じゃあ、ついていってもいいですよね…？」
+					PRINTL 
+					PRINTL 
+					PRINTFORMW ＞%CALLNAME:MASTER%が頷くと、ユズは笑顔を浮かべた
+					PRINTL ユズ:
+					PRINTW 「私、谷川柚子っていいます。それじゃあよろしくお願いします」
+					PRINTL 
+					PRINTW ＞Lets head to the Gaean church.
+					;ガイア教会に急ごう
+				ELSE
+					PRINTW ＞You quickly left to avoid Beldr.
+					;ベル・デル達に気付かれないように先を急いだ
+					PRINTFORMW ＞Behind %CALLNAME:MASTER%, the girl let out a terrified scream...
+					;そんな%CALLNAME:MASTER%の背後で少女の悲鳴が響き渡った…
+					ダンジョンフラグ:42:新宿フラグ("ユズ会話") = -1
+				ENDIF
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			CASE 244
+				PRINTW ＞There a lot of demons 'playing' with a girl here.
+				;大勢の悪魔たちが少女を犯している
+				PRINTL 
+				PRINTL Demon:
+				PRINTW 「はやくかわってくれよ」
+				PRINTL Demon:
+				PRINTW 「落ち着けよ。まだまだ使えるんだから焦ることはない」
+				PRINTL Demon:
+				PRINTW 「そんなこといって壊すんじゃねーぞ」
+				PRINTL Demon:
+				PRINTW 「壊す？　ベル・デル様に突っ込まれたときにもう壊れちゃってるぜ？」
+				PRINTL Demon:
+				PRINTW 「それもそうか…」
+				PRINTL Demon:
+				PRINTW 「あんなに悲鳴あげてたのに、すぐ大人しくなっちまってちょっと面白くねぇよなぁ」
+				PRINTL Demon:
+				PRINTW 「おかげでベル・デル様もすぐ飽きて、俺達にプレゼントしてくれたってわけだけどさ」
+				PRINTL 	
+				CALL INPUT_YN("Defeat the demons", "Leave them alone")
+				;悪魔達を倒す", "放っておく
+				IF RESULT == 0
+					PRINTW ＞Beldrs servants appeared!
+					;ベル・デルの下僕たちが出た！
+					CALL SET_ENEMY, 7, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 8, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 9, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 10, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 11, [[キャラ:インプ]], 20
+					CALL SET_ENEMY, 12, [[キャラ:ガギソン]], 20
+					CALL SET_ENEMY, 13, [[キャラ:ガギソン]], 20
+					CALL SET_ENEMY, 14, [[キャラ:ガギソン]], 20
+					CALL SET_ENEMY, 15, [[キャラ:ガギソン]], 20
+					CALL SET_ENEMY, 16, [[キャラ:ガギソン]], 20
+					CALL SET_BALDEL_SERVANT_ST
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					CALL BATTLE_START
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTW ＞The girls eyes seem empty but she is still alive.
+					;少女の目は虚ろだが、まだ生きているようだ
+					CALL INPUT_YN("Take her", "Leave her")
+					;拾っていく", "いらない
+					IF RESULT == 0
+						CALL ADD_NEW_COMPANION, [[キャラ:ユズ]],200
+						IF RESULT == 1
+							LOCAL = RESULT:1
+							TALENT:LOCAL:処女 = 0
+							ABL:LOCAL:Ｃ感覚 = 1
+							ABL:LOCAL:Ｖ感覚 = 1
+							ABL:LOCAL:Ａ感覚 = 1
+							ABL:LOCAL:Ｂ感覚 = 1
+							ABL:LOCAL:露出癖 = 1
+							ABL:LOCAL:マゾっ気 = 2
+							ABL:LOCAL:精液中毒 = 1
+							EXP:LOCAL:Ｖ経験 = 20
+							EXP:LOCAL:Ａ経験 = 10
+							EXP:LOCAL:キス経験 += 10
+							EXP:LOCAL:絶頂経験 = 5
+							EXP:LOCAL:性交経験 = 20
+							EXP:LOCAL:膣射経験 = 20
+							EXP:LOCAL:自慰経験 = 0
+							EXP:LOCAL:調教自慰経験 = 0
+							EXP:LOCAL:精液経験 = 25
+							EXP:LOCAL:フェラ経験 = 20
+							EXP:LOCAL:苦痛快楽経験 = 10
+							EXP:LOCAL:緊縛経験 = 20
+							EXP:LOCAL:異常経験 = 2
+							CFLAG:LOCAL:イベント加入 = 1
+						ENDIF
+						PRINTW ＞You got Yuzu Tanikawa.
+						;谷川 柚子を手に入れた
+					ELSE
+						PRINTW ＞You leave the girl here and move on.
+						;少女を放置して立ち去った
+					ENDIF
+				ELSE
+					PRINTW ＞You leave the demons to their pleasure and move on.
+					;少女を犯すのに夢中な悪魔達を放置してその場を立ち去った
+				ENDIF
+				ダンジョンフラグ:42:新宿フラグ("ユズ会話") = -2
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			CASE 254
+				PRINTW ＞A boy with a knitted cap and a big-chested girl are talking here
+				;ニット帽の少年と胸の大きな少女が立ち話をしている…
+				PRINTL 
+				PRINTL Girl:
+				PRINTW 「はぁ、力のある人間を探せって言われてもどうしたら…」
+				PRINTL Boy:
+				PRINTW 「そりゃ、こんだけ悪魔がいるんだし、戦ってるところを見るとかさ」
+				PRINTL Girl:
+				PRINTW 「そんなこといって私たちも危ないじゃない…」
+				PRINTL Boy:
+				PRINTW 「まぁそれはCOMPがあるわけだし、どうとでもなるだろ」
+				PRINTL Girl:
+				PRINTW 「でも…」
+				PRINTL Boy:
+				PRINTW 「ナオヤさんが探してるっていう力のある人間さえ見つかれば、こんなふうに怯えなくたってよくなるわけだし…」
+				PRINTL Girl:
+				PRINTW 「人間が魔王になる…って、そんなのほんとにできるの？」
+				PRINTW 「ううん、それ以前に神をも恐れないような強い人間ってそんなのが魔王になって大丈夫なの？」
+				PRINTW 「そんな魔王の力に頼るより、素直に神様に助けてもらったほうが……」
+				PRINTL Boy:
+				PRINTW 「メシア教の連中より、ナオヤさんにもらったCOMPのほうに助けられてるだろ、俺たち」
+				PRINTW 「ナオヤさんのことを信じようぜ」
+				PRINTL Girl:
+				PRINTW 「はぁ…、わかったわよ」
+				PRINTW 「でも、ハルのライブが始まるまでだからね」
+				PRINTW 「ライブは絶対見るんだから」
+				PRINTL Boy:
+				PRINTW 「ああ、それでいい。サンキューな」
+				PRINTL 
+				PRINTW ＞The boy and girl seperated and went different ways.
+				;少年と少女はどこかへと立ち去っていった…
+				ダンジョンフラグ:42:新宿フラグ("アツロウ＋ユズ会話") = 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+		ENDSELECT
+	CASE 4
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 204
+				;ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") == 1レジスタンス（笑
+				PRINTW ＞The boy with the hat has been waiting for you.
+				;帽子を被った少年があなたを待っていた。
+				PRINTW 「I'll get straight to the point.」
+				;「単刀直入に用件をお伝えします」
+				IF ダンジョンフラグ:18:22 == 1
+					PRINTFORMW 「邪神パズスを信仰するメシア狂信者による生贄の儀式を防いでいただきたい」
+					PRINTFORMW 「あなたの素性については知っていますし、あなたが何をしたかも知っています」
+					PRINTFORMW 「最終的な判断は…あなたに任せるようにとの事です」
+				ELSE
+					PRINTFORMW 「ここ新宿のメシア教会で一部の暴走したメシア教徒により生贄の儀式が行われると言う情報が手に入りました」
+					PRINTFORMW 「貴方にはその儀式を妨害していただきたい」
+					PRINTFORMW 「これは依頼です、あなたは無視する事も出来る」
+				ENDIF
+				PRINTFORMW 「ボクはメッセンジャーです、あなたの組織とあなたの行動を阻害するつもりはない」
+				PRINTW 「Of course, I'll pay you a reward.」
+				;「勿論、報酬はお支払い致します」
+				PRINTFORML 
+				PRINTFORMW ＞百合の花を受け取った少年はあなたに小さな板きれを渡すと颯爽とその場を立ち去った。
+				ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 1
+	;			;ベス
+	;			IF FINDCHARA_B(4501,1) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+	;				PRINTFORMW 「それは免罪符ね」
+	;				PRINTFORMW 「解りやすく言うと…自分がメシア教徒ですよって身分を証明する身分証明書みたいなものかな」
+	;				PRINTFORMW 「この街の南東にもメシア教会があるから行ってみましょう」
+	;				PRINTFORMW ベスの言葉に従ってみよう。
+				;たまき
+				IF FINDCHARA_B(4503,0) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+					PRINTFORMW 「不思議な感じの子だったね」
+					PRINTFORMW 「%CSTR:(RESULT:1):二人称%はどっちだと思った？」
+					PRINTFORMW 「私は多分、あの子は女の子じゃないかなって思うよ」
+					PRINTFORMW たまきは個人的な感想を述べてくれた。
+				ENDIF
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			CASE 214
+				IF ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話")
+					PRINTW ＞以前出会った、帽子の少年がいるがどうやら怪我をしているらしい
+					PRINTL 
+					PRINTL Boy:
+					PRINTW 「Uh, I'm sorry...the demons attacked me...and robbed the mistletoe..」
+					;「くぅ、すいません。悪魔たちに襲われて…ヤドリギを奪われて…」
+					PRINTL 
+					PRINTL Voice:
+					PRINTW 「クククッ、逃がさんぞ」
+					PRINTW 「貴様らは我が糧となるほかないのだ」
+					PRINTL 
+					PRINTW ＞少年と話そうとした、その時ベル・デルが事務所内に現れた！
+					PRINTL 
+					PRINTL Boy:
+					PRINTW 「Beldr...!　Let's escape quickly!」
+					;「ぐ、ベル・デルまで…！　とにかくいまは一度逃げましょう！」
+				ELSE
+					PRINTW ＞以前出会った、帽子の少年が悪魔達に囲まれている
+					PRINTW ＞悪魔の中には、ベル・デルの姿もある
+					PRINTL 
+					PRINTL Demon:
+					PRINTW 「ベル・デル様、情報通りです。こいつ、ヤドリギを持ってやしたぜ」
+					PRINTL 
+					PRINTW ＞そう言うと、悪魔は何かをベル・デルに渡した
+					PRINTL 
+					PRINTL Boy:
+					PRINTW 「くそっ、それを返せっ…！」
+					PRINTL Beldr:
+					PRINTW 「愚かなニンゲンよ。汝らのように脆弱な存在がそのようなものを持ち出して
+					PRINTW 　我に仇なそうとは…。このようなもの…こうしてくれるわ！」
+					PRINTL 
+					PRINTW ＞ベル・デルがそういうと悪魔から受け取った何かが燃えあがった
+					PRINTL 
+					PRINTL Beldr:
+					PRINTW 「さぁ、ニンゲンよ。これで汝には万の一つの勝ち目さえなくなった」
+					PRINTW 「そして、汝は今から我に喰われるのだ」
+					PRINTW 「さぁ嘆き、苦しみ、絶望の涙を流すのだ！」
+					PRINTL 
+					PRINTW ＞Beldr approaches the boy.
+					;ベル・デルが少年に近づこうとする
+					PRINTFORMW ＞%CALLNAME:MASTER% jumped into the group of demons to help him.
+					;は依頼主を助けるべく、悪魔達の輪の中に飛び込んだ
+					PRINTL 
+					PRINTL Boy:
+					PRINTW 「あなたはっ…！」
+					PRINTL Beldr:
+					PRINTW 「貴様は、あの時の忌々しい人間か」
+					PRINTW 「我が不死の力を理解しなかったのか？」
+					PRINTW 「こんどは前のようにはいかんぞ」
+					PRINTW 「クククッ、さぁそこのニンゲンともども我が糧にしてやろう…！」
+				ENDIF
+				PRINTL ＞Bel Beldr appeared!
+				PRINTW ＞Beldrs servants appeared!
+				CALL SET_ENEMY, 7, [[キャラ:インプ]], 20
+				CALL SET_ENEMY, 8, [[キャラ:インプ]], 20
+				CALL SET_ENEMY, 10, [[キャラ:リリム]], 20
+				CALL SET_ENEMY, 11, [[キャラ:リリム]], 20
+				CALL SET_BALDEL
+				CALL SET_BALDEL_SERVANT_ST
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CUSTOMDRAWLINE =
+				ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 2
+				PRINTW ＞You shook of Beldr and escaped the office.
+				;ベル・デルを振り切り、事務所の外に飛び出した
+				PRINTL 
+				PRINTL Boy:
+				IF ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話")
+					PRINTW 「すいません。おかげで助かりました…」
+				ELSE
+					PRINTW 「無事、逃げれたみたいですね…」
+				ENDIF
+				PRINTL 「However, the misteltoe is...
+				;しかし、ヤドリギが…
+				PRINTW 　Beldr cannot be defeated without it...」
+				;あれがなければベル・デルは倒せないのです」
+				PRINTW 「...but there s another misteltoe in this town.」
+				;「……この街にはもう一つヤドリギがあります」
+				PRINTL 
+				PRINTW ＞少年は百合の花を手渡してきた…
+				PRINTL 
+				PRINTL Boy:
+				PRINTW 「それをもって大聖堂まで行き、九頭竜 天音に会ってください」
+				PRINTW 「彼女は神秘的、いや神々しいといってさえいいほどの巫女です」
+				PRINTW 「あえば、一目でわかるはずです」
+				PRINTL 「彼女の父は急進的なメシア教の一派の幹部ですが…
+				PRINTW 　彼女自身は我々の考えに近いのです」
+				PRINTW 「いまだに説得することができていませんでしたが…」
+				PRINTFORMW 「ベル・デルに挑む力を持つ…そう、救世主の%CALLNAME:MASTER%ならおそらく……」
+				PRINTW 「お願いです。彼女を説得し、ヤドリギを手に入れ、ベル・デルを討ってください」
+				PRINTL 
+				IF ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話") == 2
+					PRINTW ＞そういって、どこかへと去っていこうとする少年をひきとめた…
+					PRINTL 
+					PRINTL Boy:
+					PRINTW 「どうしたんですか？　え、その人を保護してくれ」
+					PRINTW 「なるほど、ベル・デルに襲われていたのですか」
+					PRINTW 「わかりました。この人は百合の花共同募金で責任もって保護します」
+					PRINTW 「では…健闘を祈ります。ご無事で…」
+					PRINTL 
+					PRINTW ＞The boy left...
+					;少年は去っていった…
+				ELSE
+					PRINTW ＞After saying so, the boy left.
+					;そういうと少年はどこかへと去っていった…
+				ENDIF
+				CALL DUNGEON_WORP, 0, 18, 4
+		ENDSELECT
+	CASE 6
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 204
+				PRINTFORML ＞偉そうな男がいる…。
+				PRINTL 
+				PRINTL Ozawa:
+				;オザワ:
+				IF FLAG:百合の花ルート
+					PRINTFORMW 「アダルトビデオ？」
+					PRINTFORMW 「そんなちんけな商売に興味はない」
+					PRINTL [0] ビルについて
+					PRINTL [1] メシア教について
+					PRINTL [2] オザワの目的について
+					$INPUT_LOOP_E1
+					INPUT
+					IF RESULT == 0
+						IF イベントフラグ:8:0 == 1 && ダンジョンフラグ:40:23 == 1
+							PRINTFORMW 「ここから奴隷を従えてこの街を支配する」
+							PRINTFORMW 「邪魔をするな」
+						ELSE
+							PRINTFORMW 「悪魔が現れてからな、この街は巨大な生産工場になった」
+							PRINTFORMW 「労働力、悪魔の餌、奴隷」
+							PRINTFORMW 「使い道は何でもある」
+						ENDIF
+					ELSEIF RESULT == 1
+						PRINTFORMW 「新宿がガイア教とメシア教の戦場にならない理由が解るか？」
+						PRINTFORMW 「ココは狩場なんだよ」
+						PRINTFORMW 「労働力、信者獲得、奴隷、生贄、その他諸々のな」
+						PRINTFORMW 「奇麗事を言ってないだけガイア教の方がマシってもんだろ」
+					ELSEIF RESULT == 2
+						IF イベントフラグ:8:0 == 1 && ダンジョンフラグ:40:23 == 1
+							PRINTFORML 「ゴトウが死んだ今、俺が新宿を牛耳る」
+							PRINTFORMW 「その為の駒となる奴隷を作るのさ」
+						ELSE
+							PRINTFORML 「俺は上の命令でとある女を探している」
+							PRINTFORML 「それにいらない女はメシア教かガイア教にに売るなり奴隷にするなり出来る」
+							PRINTFORMW 「ここは何かと都合がいいんだよ」
+						ENDIF
+					ELSE
+						GOTO INPUT_LOOP_E1
+					ENDIF
+					;ベス
+	;				IF FINDCHARA_B(4501,1) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+	;					CUSTOMDRAWLINE =
+	;					PRINTFORMW 『人間を何だと思っているの』
+	;					PRINTFORMW 『神に代わり、私があなたを倒します』
+	;					PRINTFORMW 怒りに燃えるベスは武器を抜いた。
+					;たまき
+					IF FINDCHARA_B(4503,0) == 2 && (TALENT:(RESULT:1):恋慕 || TALENT:(RESULT:1):親愛)
+						CUSTOMDRAWLINE =
+						PRINTFORMW 『貴方みたいな最低人間』
+						PRINTFORMW 『うちのご主人様の爪の垢を飲んだ方がいいと思うよ』
+						PRINTFORMW 「ケツの青いガキが…どの道お前らは生きて帰すわけにはいかんさ」
+					ELSE
+						PRINTL
+						PRINTL [0] 外道が…
+						PRINTL [2] Go home
+						;帰る
+						$INPUT_LOOP_E2
+						INPUT
+						IF RESULT == 0
+							CUSTOMDRAWLINE =
+							PRINTFORML 「お前と変な小僧がオレの事を探っているのは知っている」
+							PRINTFORML 「一体、何処まで知ってるかしらんが…」
+							PRINTFORMW 「つまらん正義感を振りかざして首を突っ込めば火傷じゃすまないぜ、ファントム・ソサエティのサマナーさんよ」
+						ELSEIF RESULT == 2
+							CUSTOMDRAWLINE =
+							PRINTFORML 「こそこそ嗅ぎ回ってるのは知っているぞ」
+							PRINTFORMW 「はい、そうですかと帰すと思ったか！？」
+							FLAG:現Y -= 1
+						ELSE
+							GOTO INPUT_LOOP_E2
+						ENDIF
+					ENDIF
+				ELSE
+					PRINTFORMW 「メシア教の儀式…？」
+					PRINTFORMW 「てっきり、ファントム・ソサエティの使者かと思ったが…」
+					PRINTFORMW 「別件で動いてるのか」
+					PRINTFORMW 「ならば、話すことはなにもない」
+					PRINTFORMW 「まずは帰って、組織として、俺と交渉するかどうか話しあうんだな」
+					PRINTFORMW ＞オザワは取り合おうとしない
+					CALL INPUT_YN("力づくで情報をはかせる", "とりあえず一旦下がる")
+					IF RESULT == 0
+						PRINTFORMW Ozawa:
+						PRINTFORMW 「ち、サマナーはすぐに力があると思って暴れるから困る」
+						PRINTFORMW 「もう、悪魔の召喚ごとき大したことでもないのにな！」
+						PRINTFORMW ＞オザワはそう言うと、なにやらゲーム機を取り出した
+						PRINTFORMW ＞そして、オザワがゲーム機になにやら入力すると悪魔が現れた
+					ELSE
+						RETURN 0
+					ENDIF
+				ENDIF
+				CUSTOMDRAWLINE =
+				PRINTW 1 Kunitsu Take-Minakata appeared!
+				;鬼神　タケミナカタが１体が出た！
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9, 1407, 20, 0, 1
+				CSTR:(CHARANUM-1):思考パターン = 1407
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+				CFLAG:(CHARANUM-1):速度補正 = 10
+				BASE:(CHARANUM-1):力 += 10
+				BASE:(CHARANUM-1):知恵 += 5
+				BASE:(CHARANUM-1):魔力 += 5
+				BASE:(CHARANUM-1):耐力 += 10
+				BASE:(CHARANUM-1):速さ += 5
+				ABL:(CHARANUM-1):スキル1 = 902
+				ABL:(CHARANUM-1):スキル2 = 904
+				ABL:(CHARANUM-1):スキル3 = 905
+				ABL:(CHARANUM-1):スキル3 = 511
+				ABL:(CHARANUM-1):スキル4 = 201
+				ABL:(CHARANUM-1):スキル6 = 203
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTL
+				CUSTOMDRAWLINE =
+				IF FLAG:百合の花ルート
+					PRINTFORMW 「負けた…だと！？」
+					PRINTFORMW 「一つだけ教えておいてやる」
+					PRINTFORMW 「薬の出所はガイア教じゃねえ」
+					PRINTFORMW 「後は自分で調べろ……」
+					PRINTFORMW ＞オザワは黒の免罪符を投げて寄越した
+					ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 3
+				ELSE
+					PRINTFORMW 「ぐ、わかった。情報は渡すが…」
+					PRINTFORMW 「この件で、俺が始末されないようにファントムソサエティのほうで
+					PRINTFORMW 　保護してくれることが条件だ」
+					PRINTFORMW 「もちろん、これからは組織に忠誠を誓い、協力させてもらう」
+					PRINTFORMW 「俺が持ってる新宿のコネが使えるんだ。悪い話ではないだろう？」
+					PRINTFORMW ＞%CALLNAME:MASTER%は、判断はファントム・ソサエティに委ねると告げた…
+					PRINTFORMW 「……確約はできないか。まぁ仕方ない」
+					PRINTFORMW 「まぁ、俺を使わないほど、ファントム・ソサエティは馬鹿ではないだろう」
+					PRINTFORMW 「じゃあ、情報だ」
+					PRINTFORMW 「奴らは生贄の儀式を行い、悪魔の力を得ている」
+					PRINTFORMW 「儀式を潰したいなら、夜に大聖堂に行くといい」
+					PRINTFORMW 「これがあれば入れる…」
+					PRINTFORMW ＞オザワは黒の免罪符を投げて寄越した
+					PRINTFORMW 「ほら、これでわかったろう？」
+					PRINTFORMW 「俺はこれだけのものを手に入れられる」
+					PRINTFORMW 「ファントム・ソサエティにとってきっと役に立つ」
+					PRINTFORMW 「それじゃあ、良い返事を待ってるぜ」
+					ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 4
+				ENDIF
+				CUSTOMDRAWLINE =
+				ダンジョンフラグ:42:新宿フラグ("オザワ") = 1
+				FLAG:現X = 9
+				FLAG:現Y = 9
+				DA:9:9 = 24
+		ENDSELECT
+	CASE 7
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 204
+				PRINTW There is the presense of a strong demon.
+				;強大な悪魔の気配がする…。
+				PRINTL 
+				PRINTL ........
+				PRINTL ......
+				PRINTW ...
+				IF RAND:100 < 10
+					M:1 = RAND:3
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					IF M:1 == 2
+						PRINTL 
+						PRINTW Fiend Matador appeared!
+						CUSTOMDRAWLINE =
+						WAIT
+						CALL SET_ENEMY,9,4101,40,0
+						BASE:(CHARANUM-1):知恵 += 10
+						BASE:(CHARANUM-1):魔力 += 10
+						BASE:(CHARANUM-1):運 += 10
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 1575
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						CALL BATTLE_START
+						CUSTOMDRAWLINE =
+						WAIT
+					ELSEIF M:1 == 1
+						PRINTL 
+						PRINTW Fiend Hell's Angel appeared!
+						CUSTOMDRAWLINE =
+						WAIT
+						CALL SET_ENEMY,9,4102,56,0
+						BASE:(CHARANUM-1):知恵 += 10
+						BASE:(CHARANUM-1):魔力 += 10
+						BASE:(CHARANUM-1):運 += 15
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 1625
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						CALL BATTLE_START
+						CUSTOMDRAWLINE =
+						WAIT
+					ELSE
+						PRINTL 
+						PRINTW Fiend Daisoujou appeared!
+						CUSTOMDRAWLINE =
+						WAIT
+						CALL SET_ENEMY,9,4103,82,0
+						BASE:(CHARANUM-1):運 += 25
+						CFLAG:(CHARANUM-1):ＨＰ補正 = 3605
+						CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						CALL BATTLE_START
+						CUSTOMDRAWLINE =
+						WAIT
+					ENDIF
+					FLAG:逃走不可フラグ = 0
+					FLAG:会話不能フラグ = 0
+					FLAG:先制不意打ちキャンセル = 0
+					PRINTL
+					PRINTW ...the demons presence has faded...
+					;…悪魔の気配は消えた…。
+				ELSE
+					PRINTL 
+					PRINTW ...it seems you imagined it...
+					;…どうやら気のせいだったようだ…。
+				ENDIF
+				ダンジョンフラグ:42:新宿フラグ("魔人フラグ")= 2
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+		ENDSELECT
+	CASE 8
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 204
+				PRINTFORMW 薄暗い礼拝堂の中にはメシア教の礼服を来た複数の人影。
+				PRINTFORMW 祭壇の上には赤髪の少女が寝かされていた。
+				SIF ダンジョンフラグ:42:新宿フラグ("リセフラグ") == 2
+					PRINTFORMW It's the girl you saw at Ozawa.
+					;あれはオザワの所にいた少女だ。
+				PRINTFORMW 「偉大なる神の使者パズス神よ、供物を受け取り我等にも力を与えたまえ」
+				PRINTW The sacrificial ritual had already begun.
+				PRINTL
+				PRINTL [0] Pull out weapons
+				;武器を抜く
+				PRINTL [1] Keep watching
+				;様子を見る
+				$INPUT_LOOP_F2
+				INPUT
+				IF RESULT == 0
+					CUSTOMDRAWLINE =
+					PRINTW 「Who are you?」
+					PRINTW 「An Gaean agent!?」
+					PRINTW 喧騒を制し司祭がニタリと笑った。
+					PRINTW 「まあ良い、悪魔の力を得た我等の力を試す絶好のチャンスです」
+					PRINTW 「Die!!」
+					CUSTOMDRAWLINE =
+					PRINTW ６ demons appeared!
+					;悪魔が６体出た！
+					CUSTOMDRAWLINE =
+					WAIT
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+
+					CALL SET_ENEMY,8,301, 20,0
+					ABL:(CHARANUM-1):スキル1 = 402
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+
+					CALL SET_ENEMY,9,359,20, 0
+
+					CALL SET_ENEMY,10,301, 20,0
+					ABL:(CHARANUM-1):スキル1 = 402
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+
+					CALL SET_ENEMY,13,301, 20,0
+					ABL:(CHARANUM-1):スキル1 = 402
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+
+					CALL SET_ENEMY,14,359, 24,1
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+
+					CALL SET_ENEMY,15, 18, 20,0
+					ABL:(CHARANUM-1):スキル1 = 402
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+			
+					CALL BATTLE_START
+
+				ELSEIF RESULT == 1
+					CUSTOMDRAWLINE =
+					PRINTFORMW 「偉大なる神の力を我等に！」
+					PRINTFORMW 集まった人々が一斉に手にした杯を空ける様が見えた…
+					PRINTFORMW 様子を見ていた%CALLNAME:MASTER%はおぞましい気配に思わず武器に手をかける。
+					PRINTFORMW 視線の先、祭壇の上に寝かされた少女が半身を起こしていた。
+					IF イベントフラグ:5:0 == 2
+						PRINTFORMW 彼女から現れたペルソナの爪が司祭の身体を貫いていた
+					ELSE
+						PRINTFORMW そして、その背後から立ち昇る実体の薄い得体の知れない悪魔の爪が司祭の身体を貫いた。
+					ENDIF
+					PRINTFORMW 「か、神が光臨なされた!!」
+					PRINTFORMW 「ひ、やっやめ…」
+					PRINTW Some of them stand dumbfolded while others flee in panic.
+					;呆然と立ち尽くす信者、パニックになり逃げ出そうとする信者。
+					PRINTW If you don't intervene, there will be a blood bath here.
+					;このまま放っておけば礼拝堂は血の海になるだろう。
+					PRINTW While you don't feel obliged to help, you are already here.
+					;助ける義理はないが、乗りかかった船だ。
+					IF イベントフラグ:5:0 == 2
+						PRINTW Plus, it wouldn't be bad to capture another persona-user.
+						;新しいペルソナ使いを捕らえるのも悪くはない。
+					ELSE
+						PRINTFORMW メシア教に恩を売るのも悪くはない。
+					ENDIF
+					PRINTFORMW %CALLNAME:MASTER% decided to face the girl that so suddenly awakened to power.
+					;は武器を抜いて化け物を連れた少女に向き合った。
+					CUSTOMDRAWLINE =
+					IF FLAG:DEBUG
+						PRINTFORM ＞元アイドル 久慈川りせ
+					ELSEIF イベントフラグ:5:0 == 2
+						PRINTFORM ＞Persona user Rise Kujikawa
+						;ペルソナ使い 久慈川りせ
+					ELSE
+						PRINTFORM ＞Demon possessed Rise Kujikawa
+						;悪魔憑き 久慈川りせ
+					ENDIF
+					PRINTFORMW  appeared!!
+					;が一体出た！！
+					CUSTOMDRAWLINE =
+					FLAG:逃走不可フラグ = 1
+					FLAG:会話不能フラグ = 1
+					FLAG:先制不意打ちキャンセル = 1
+					;☆　１４３０　２５１６
+					;久慈川りせ
+					CALL SET_ENEMY,9,4211, 20, 0, 1
+					SIF イベントフラグ:5:0 < 1
+						CSTR:(CHARANUM-1):種族名 = Demon Possessed
+						;悪魔憑き
+					CFLAG:(CHARANUM-1):ＨＰ補正 += 500
+					CFLAG:(CHARANUM-1):ＭＰ補正 += 2000
+					CFLAG:(CHARANUM-1):速度補正 = 10
+					CFLAG:(CHARANUM-1):行動回数 = 2
+					CSTR:(CHARANUM-1):思考パターン = 4211
+					CALL SYNC_STATUS,(CHARANUM-1)
+					CALL HEALTH_CHARA,(CHARANUM-1)
+					CALL BATTLE_START
+				ELSE
+					GOTO INPUT_LOOP_F2
+				ENDIF
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				ダンジョンフラグ:42:新宿フラグ("決戦")= 1
+				ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 5
+				ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") = 1
+				
+				CUSTOMDRAWLINE =
+				PRINTFORMW ＞礼拝堂は血の海になった…
+				PRINTFORMW ＞既にこの場には生贄の少女しかいない。
+				PRINTFORMW ＞少女の容姿からすれば、いくらでも使い道はありそうだ。
+				PRINTW ＞You got Rise Kujikawa
+				;久慈川りせを手に入れた。
+				PRINTL 
+				PRINTFORMW ＞式の妨害という当初の目的は果たせた。
+				PRINTFORMW ＞しかし、騒ぎを聞きつけてメシア教の連中が集まってくると面倒な事になる。
+				IF FLAG:百合の花ルート
+					PRINTFORMW ＞%CALLNAME:MASTER% decided that staying any longer would be risky and left.
+					;＞これ以上此処にとどまるのは危険と判断した%CALLNAME:MASTER%は礼拝堂を後にした
+					PRINTL
+					PRINTW You where paid a reward of ￥50000 by the Lily Community Chest.
+					;百合の花共同募金より寄付という名義で￥50000が払い込まれた。
+					FLAG:百合の花ルート = 2
+				ELSE
+					PRINTFORMW ＞そう考え、%CALLNAME:MASTER%は礼拝堂を後にしようとしたとき、拍手が響き渡った
+					PRINTFORMW ＞音がするほうを見ると、和服姿の男がいた
+					PRINTL 
+					PRINTL 和服姿の男:
+					PRINTW 「さすが、本職。見事なものだ」
+					PRINTW 「ここまでひどいことにしてしまうとはな、くく」
+					PRINTW 「まぁそんなことはどうでもいい。これで契約成立だな」
+					PRINTW 「さぁこれを受け取るがいい」
+					PRINTW ＞男は一枚のディスクを渡してきた
+					PRINTL 和服姿の男:
+					PRINTW 「魔王を屈服させ、人を神に昇華させるソフトだ」
+					PRINTW 「あとでインストールしておくんだな」
+					;---- EDIT 003 ADD START -------------------------
+					;属性について示唆する台詞を追加
+					PRINTW 「それで、お前は神と戦うための力を得るチャンスを手にする」
+					PRINTW 「そう、ここから先お前に進んでもらうのは神と敵対する道だ」
+					PRINTW 「自分の立場には気をつけることだ」
+					PRINTW 「お前が神やその下僕のメシア教徒に惹かれるようなら…」
+					PRINTW 「まぁ…神が俺達に何をしてくれたか考えてみるといい」
+					PRINTW 「そうすれば、神に従おうなどとは思わないだろう」
+					IF TALENT:MASTER:サマナー == 0
+					     TALENT:MASTER:サマナー = 1
+					     PRINTL 和服姿の男:
+					     PRINTW 「…何？使い方が判らないだと…？」
+					     PRINTW 「…まあ些細な事だ。コツだけ教えておいてやる」
+					     PRINTW ＞基本操作を教わり、サマナーLV1を得た
+					ELSE
+					     IF FLAG:ＣＯＭＰ容量 < 30
+					          FLAG:ＣＯＭＰ容量 += 5
+					          PRINTL 和服姿の男:
+					          PRINTW 「そいつはそれなりに容量を食うのでな」
+					          PRINTW 「支障の無いようにしておいてやろう。サービスだ」
+					          PRINTW ＞ソフト分の容量を増設してもらった
+					     ELSE
+					          FLAG:ＣＯＭＰ容量 += 2
+					          PRINTL 和服姿の男:
+					          PRINTW 「ほぅ、流石はプロのサマナー、良いモノを使っている」
+					          PRINTW 「だが最高には程遠い。少し手入れしてやろう。」
+					          PRINTW 「お前にはもっと強くなって貰わんと困るのでな…よし、これでいい」
+					          PRINTW ＞クロックアップによって容量が増えた
+					     ENDIF
+					ENDIF
+					PRINTW 「まぁ、こんなところか」
+					;---- EDIT 003 ADD END -------------------------
+					PRINTW 「ああ、それと俺はナオヤだ」
+					PRINTW 「この名前でメールでもいれさせてもらうから、覚えておくんだな」
+					PRINTW 「くく、いずれあの不死の者が再び蘇るだろう」
+					PRINTW 「その時、また会おう……と、忘れるところだった」
+					PRINTW ＞ナオヤは金を手渡すと、礼拝堂から出て行った
+					PRINTFORMW ＞%CALLNAME:MASTER%も、ナオヤに続き、礼拝堂を後にした
+					PRINTFORMW ＞インストールソフト【BaBel】を手に入れた
+					PRINTFORMW ＞￥50000を手に入れた
+					ITEM:BaBel = 1
+					;ア・ベルははじめからインストール済み
+					FLAG:ベル神撃破 |= 32
+					FLAG:直哉ルート = 2
+				ENDIF
+				CUSTOMDRAWLINE =
+				CALL ADD_NEW_COMPANION,4531,500
+				MONEY += 50000
+				IF ダンジョンフラグ:42:新宿フラグ("リセフラグ") < 2 && RESULT
+					;PRINTFORMW りせは殺意の波動に目覚めていないよ☆ミ
+					TALENT:(RESULT:1):非戦闘員 = 1
+				ENDIF
+				FLAG:脱出 = 1
+					;戦闘可能
+					;REPEAT CHARANUM
+						;SIF NO:COUNT == 4531
+							;CFLAG:COUNT:戦闘参加不可能 = -1
+					;REND
+			CASE 214
+				PRINTFORMW ＞The boy with the hat was waiting for you.
+				;帽子を被った少年があなたを待っていた。
+				PRINTL 
+				PRINTL Boy:
+				PRINTFORMW 「ボクが得た情報によれば、この教会で夜な夜な怪しい儀式が行われているようです」
+				PRINTFORMW 「街で噂になっている悪魔になる薬の出所というのが鍵の様です」
+				PRINTFORMW 「And... it seems a man named Ozawa is involved, but I don't know any details.」
+				;「それと…オザワと言う男が関わっている様なのですが詳しい事はまだ解りません」
+				PRINTFORMW 「I'll continue my investigation...you should be careful too.」
+				;ボクも引き続き調査は続けますが…くれぐれもお気をつけて」
+				PRINTFORML 
+				PRINTFORMW ＞The boy walked away.
+				;少年は颯爽とその場を立ち去った。
+				ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 2
+				ダンジョンフラグ:42:新宿フラグ("直人[昼教会]")= 1
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			CASE 224
+				PRINTW ＞前に説法をしていた神秘的な雰囲気を纏った少女がいる…
+				PRINTL 
+				PRINTL Girl:
+				PRINTW 「あなたは……無事だったのですね」
+				PRINTW 「街頭での説法にベル・デルがあらわれたあのとき、あなたがベル・デルに挑んだと聞いたものですから…」
+				PRINTW 「不死の者、ベル・デルと戦って無事だとはやはり、あなたは優秀なサマナーなのですね」
+				PRINTW 「あぁ、申し訳ありません。自己紹介がまだでしたね」
+				PRINTW 「私は九頭竜 天音…、メシア教の巫女をしています」
+				PRINTL 
+				PRINTW ＞九頭竜 天音を見付け出した
+				PRINTFORMW ＞%CALLNAME:MASTER%は百合の花を渡し、ヤドリギを譲ってくれるよう頼んだ
+				PRINTL 
+				PRINTL Amane:
+				PRINTW 「これは……、あなたはガブリエル様の……」
+				PRINTW 「しかし、ヤドリギを望むということはあのベル・デルを倒すということですか？」
+				PRINTW 「それはなりません。あれを討つのは私の使命です」
+				PRINTW 「……いえ、そうではなく、確かにあなたに託すべきなのかもしれません」
+				PRINTW 「私はこの身に眠るイザ・ベルを抑えることすら、満足にできていません」
+				PRINTW 「恐らく、私は救世主の器ではないのでしょう…」
+				PRINTW 「ならば、ここであなたにこのヤドリギを託すことが神の望むことなのかもしれません」
+				PRINTL 
+				PRINTW ＞突然、悲鳴があがった
+				PRINTW ＞見ると、ベル・デルが聖堂内にいる！
+				PRINTL 
+				PRINTL Amane:
+				PRINTW 「あれは…！」
+				PRINTW 「わかりました。あなたを信じましょう」
+				PRINTW 「これをどうぞ。これがあれば奴と戦えるはずです」
+				PRINTL 
+				PRINTW ＞木製のストラップを受け取った
+				PRINTL 
+				PRINTL Amane:
+				PRINTW 「さぁ、あなたの力を私に見せてください」
+				PRINTL 
+				PRINTW ＞霊樹・ヤドリギの加護により、道具知識を得た
+				PRINTW ＞※ヤドリギは攻撃アイテムとして使用することが出来ます
+				PRINTL Beldr:
+				PRINTW 「You can't run away anymore.」
+				;「もう、逃げられんぞ」
+				PRINTW 「黄昏の時間は訪れ、ニンゲンは我がために涙するのだ」
+				PRINTW 「Now, give me your blood!」
+				;「さぁ、そのの血を我に捧げよっ！」
+				ITEM:ヤドリギ = 1
+				;LOCAL = TALENT:MASTER:道具知識
+				;TALENT:MASTER:道具知識 = MAX(TALENT:MASTER:道具知識,1)
+				IF TALENT:MASTER:道具知識 == 3
+				     TALENT:MASTER:アイテム習熟 = 1
+				ELSE
+				     TALENT:MASTER:道具知識 = 3
+				ENDIF
+				CALL SYNC_STATUS, MASTER
+				PRINTW ＞Bel Beldr appeared!
+				ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 3
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_BALDEL
+				CALL BATTLE_START
+				CUSTOMDRAWLINE =
+				PRINTL Beldr:
+				PRINTW 「グッ…グォオオオオォォッ！」
+				PRINTW 「人間風情が…我を…っっ！」
+				PRINTW 「グォオオォォッ…体が…、我が体が朽ちてゆくっ！」
+				PRINTW 「バカな…貴様などが…、ギャァアアアアッッ…！」
+				PRINTL 
+				PRINTW ＞Beldr died and disappeared.
+				;ベル・デルは消え去った
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				PRINTL 
+				PRINTL Amane:
+				PRINTW 「……さすがです」
+				PRINTW 「やはり、あなたは救世主…」
+				PRINTL 「あの、話したいことが……いえ、今日はお疲れですよね
+				PRINTW 　また、会いましょう。あなたにお願いしたいことがあるのです」
+				PRINTL 
+				PRINTFORMW ＞%CALLNAME:MASTER%はアマネに別れをつげて、新宿の街を出た
+				PRINTFORMW ＞百合の花共同募金から%CALLNAME:MASTER%の口座に￥50000が振り込まれた
+				MONEY += 50000
+				ITEM:ヤドリギ = 0
+				FLAG:10409 = 1
+				FLAG:ベル神撃破 |= 8
+				ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") = 3
+				ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 4
+				FLAG:百合の花ルート = 4
+				FLAG:脱出 = 1
+		ENDSELECT
+	CASE 9
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 204
+				PRINTFORMW 「私が新宿一番の泡姫じゃ」
+				PRINTFORMW 「元気の良い若者がいると聞いて楽しみに待っておったわい」
+				PRINTFORMW 「ヒャッヒャッヒャッ、特別出血大サービスじゃっ！！」
+				CUSTOMDRAWLINE =
+				PRINTFORMW ＞Femme Datsue-Ba appeared!
+				;ダツエバが出た！！
+				WAIT
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+
+				CALL SET_ENEMY,9,610,15,0
+				ABL:(CHARANUM-1):スキル1 = 1102
+				ABL:(CHARANUM-1):スキル2 = 1212
+				ABL:(CHARANUM-1):スキル3 = 1213
+				ABL:(CHARANUM-1):スキル4 = 1214
+				ABL:(CHARANUM-1):スキル5 = 1224
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				PRINTW 「ぐげぇ」
+				PRINTW The bad foam princess has perished.
+				;悪しき泡姫は滅んだ。
+				ダンジョンフラグ:42:新宿フラグ("悪魔") = 3
+				;タイル破壊
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+		ENDSELECT
+	CASE 10
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 204
+				IF ダンジョンフラグ:42:新宿フラグ("ナオヤ会話") == 0
+					PRINTL 和服姿の男:
+					PRINTW 「ふむ、お前がベル・デルと戦ったサマナーか」
+					PRINTL 「現世に留まるだけのＭＡＧを確保できていないとはいえ、
+					PRINTW 　あれと真っ向から戦えるサマナーがいるとはな」
+					PRINTL 「ファントム・ソサエティからも候補を選定しようとはしていたが
+					PRINTW 　こうして、自分から来てくれるとは、運命というやつを感じるぞ」
+					PRINTW 「なぁ、俺の仕事を受けないか？」
+					PRINTW 「なに、不安がることはない。これはむしろお前にとっていい話になるはずだ」
+				ELSE
+					PRINTL 和服姿の男:
+					PRINTW 「どうだ？　引き受ける気になったか？」
+				ENDIF
+				ダンジョンフラグ:42:新宿フラグ("ナオヤ会話") = 1
+				CALL INPUT_YN("Accept", "Refuse")
+				;受ける", "受けない
+				IF RESULT == 0
+					PRINTL 和服姿の男:
+					PRINTW 「では、お前には神になってもらう」
+					PRINTW 「クク、驚いてるようだが、冗談ではないぞ？」
+					PRINTL 「まぁ、適任でほぼ間違いないとはいえ、まずは
+					PRINTW 　テストを受けてもらわなければならないが…」
+					PRINTW 「そうだな…ちょうどガイア教から依頼がでている」
+					PRINTW 「それをやってもらうということにするか」
+					PRINTL 「なにやら、最近メシア教が怪しげな儀式をやっているとかなんとかいう話で
+					PRINTW 　それをぶっ潰せということだ。どうだ？　わかりやすいだろう。くく」
+					PRINTW 「もちろん、報酬はお前のものだ。適当にこなしてくれ」
+					PRINTW 「と言っても、あんまり手間どられてもつまらないな」
+					PRINTW 「まずはオザワという男をさがすといい」
+					PRINTW 「くだらんチンピラだが、メシア教ともコネがある」
+					PRINTW 「締め上げれば、情報の一つや二つ出てくるだろう」
+					PRINTW 「それとこれをもっていけ」
+					PRINTW ＞男は木の板を渡してきた
+					PRINTL 和服姿の男
+					PRINTW 「免罪符だ。これがあれば教会に出入りできる」
+					PRINTW 「なにかの役には立つだろう」
+					PRINTW 「じゃあ、とっとと仕事をこなすんだな。話はそれからだ」
+					PRINTW ＞そういうと、男は教会から出て行った…
+					DA:(FLAG:現X):(FLAG:現Y) = 1
+					ダンジョンフラグ:42:新宿フラグ("薬イベント進行度") = 2
+				ELSE
+					PRINTL ＞和服姿の男
+					PRINTW 「つれないな」
+					PRINTW 「まぁ、候補はいくらでもいるからいいが…」
+					PRINTW 「だが、その気になったらここにくるがいい」
+					PRINTW 「これでもそこそこ期待してるんでな」
+				ENDIF
+		CASE 214
+			IF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 3
+				ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 4
+				ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") = 4
+				FLAG:直哉ルート = 4
+				PRINTL ナオヤ:
+				PRINTW 「ほぅ…、ちゃんと戻ってきたか」
+				PRINTW 「ヤドリギがあるとはいえ、あのベル・デルを本当に倒してしまうとはな」
+				PRINTL ニット帽の少年:
+				PRINTW 「あ、さっきはどうも…って、そういえば自己紹介もしてませんでしたね」
+				PRINTW 「俺は木原 篤郎です
+				PRINTW 「改めて、よろしくお願いしますね」
+				IF ダンジョンフラグ:42:新宿フラグ("ユズ会話") == 1
+					PRINTL ユズ:
+					PRINTW 「はぁ、よかった…」
+					PRINTW 「あんな化け物相手にして、殺されちゃったんじゃないかって…」
+					PRINTL アツロウ:
+					PRINTW 「あほソデコ、ナオヤさんが選んだサマナーだぜ？」
+					PRINTW 「負けるわけないだろ」
+					PRINTL ユズ:
+					PRINTW 「何よ。あほソデコって…えっらそーに」
+					PRINTW 「別にアツロウが倒したわけじゃないのに」
+					PRINTW 「まぁ、アツロウはともかくとして、ほんと無事でよかったです」
+					PRINTL 
+					PRINTW ＞ユズはそう言って、頭を下げた
+				ENDIF
+				PRINTL 
+				PRINTL ナオヤ:
+				PRINTW 「さて、それでは、ベル神について話すとしよう」
+				PRINTW 「ベルとは、神に比肩する力を持つ魔界の王だ」
+				PRINTW 「しかし、ベルは神に敗れ、バラバラにされてしまった」
+				PRINTW 「先ほど、お前が倒したベル・デルは、そのベルの力の一部を持っていたのだ」
+				PRINTW 「こうしたベルの名を持つ悪魔は他にも大勢いる」
+				PRINTW 「彼らは互いに争い、倒した相手を吸収し、再びひとつになろうとしている」
+				PRINTW 「これがいま行われているベルの王位争いだ」
+				PRINTW 「ベルは強大な悪魔だ。ゆえに神も悪魔も、この争いに加担している」
+				PRINTW 「この王位争いにおいて、どちらの陣営が勝つかで世界は大きく変るだろう」
+				PRINTW 「……が、俺は神にも悪魔にも勝たせるつもりがない」
+				PRINTW 「ベルの王になり、その力を得るのは人間だ」
+				PRINTW 「神は人間を無限の可能性を持つものとして、想像した」
+				PRINTW 「ということはだ。人間もまたベルの王になりうるということだ」
+				PRINTW 「そして、実際に俺はそれを可能にするプログラムを作った」
+				PRINTW 「それが、この前、お前に渡した【BaBel】だ」
+				PRINTW 「どうだ？　ベル・デルを倒したとき、お前のＣＯＭＰが奴を吸収したんじゃないか？」
+				PRINTL 
+				PRINTFORMW ＞%CALLNAME:MASTER%は頷いて、肯定してみせた
+				PRINTL 
+				PRINTL ナオヤ:
+				PRINTW 「つまり、今日お前はベルの王になる権利、つまり神に対抗しうる力を得る権利を得たということだ」
+				PRINTW 「クク、もう神も悪魔も、お前を放っておきはしないだろう」
+				PRINTL 「こうなった以上は、全てのベルの悪魔に打ち勝ち、ベルの王となるか
+				PRINTW 　喰われて終わるか、神に始末されるかといったところだ」
+				PRINTW 「おっと、そう怖い顔はするな」
+				PRINTW 「俺もお前に勝ってもらわなければ困る」
+				PRINTW 「これからもよろしく頼むぞ」
+				PRINTL 
+				PRINTL ＞ナオヤはそう言って、手を差し出してきた
+				CALL INPUT_YN("Shake hands", "Ignore")
+				;握手する", "無視する
+				IF RESULT ==0
+					PRINTL ナオヤ:
+					PRINTW 「これで俺達は一蓮托生というわけだな」
+				ELSE
+					PRINTL ナオヤ:
+					PRINTW 「まぁいい。どちらにしろ、俺達はもう一蓮托生だ」
+				ENDIF
+				PRINTW 「おっと、そうだ。また忘れるところだった」
+				PRINTL 
+				PRINTL ＞ナオヤは￥50000を渡してきた
+				PRINTL 
+				PRINTL ナオヤ:
+				PRINTW 「一応、依頼主ではあるわけだからな。とっておくといい」
+				MONEY += 50000
+				PRINTL 
+				PRINTFORML ＞%CALLNAME:MASTER%はナオヤに別れを告げた
+				IF ダンジョンフラグ:42:新宿フラグ("ユズ会話") == 1
+					PRINTFORMW ＞すると、横で一緒にナオヤの話をきいていたユズが%CALLNAME:MASTER%を引き止めてきた
+					PRINTL 
+					PRINTL ユズ:
+					PRINTW 「ちょっと待ってください」
+					PRINTW 「えっと、その、私も連れていってくれませんか？」
+					PRINTL アツロウ:
+					PRINTW 「ソデコ、何言ってるんだ？」
+					PRINTL ユズ:
+					PRINTW 「だって、もうこんなところで悪魔に怯えながら暮らすのなんて嫌」
+					PRINTW 「ううん、悪魔だけじゃない。メシア教徒だって最近怖いよ」
+					PRINTW 「今日だってこの人がいなかったらどうなってたかわからないんだよ」
+					PRINTL アツロウ:
+					PRINTW 「でも、だからって…」
+					PRINTL ナオヤ:
+					PRINTL 「ファントム・ソサエティは暴力的な組織で
+					PRINTW 　そのサマナーは単なるサマナーというだけでなく非合法な事もしている」
+					PRINTW 「この場合は、奴隷商人だな」
+					PRINTW 「そのことはわかってるな？」
+					PRINTL ユズ:
+					PRINTW 「うん……で、でも、助けてくれたし」
+					PRINTW 「なにより、ナオヤさんだって仕事を頼んでるわけだし、悪い人じゃないんでしょ？」
+					PRINTL ナオヤ:
+					PRINTW 「さぁ、それはどうかな？」
+					PRINTW 「俺はあくまで力があるかどうかで選んだだけで、善人か、悪人かで選んだわけではないからな」
+					PRINTW 「ひょっとしたら、とんでもない悪人かもしれんぞ」
+					PRINTL ユズ:
+					PRINTW 「う……でも、私は信じる。絶対悪い人じゃないって」
+					PRINTL アツロウ:
+					PRINTW 「なぁ、ソデコ。やめとけよ」
+					PRINTW 「そりゃまぁ、今の新宿は物騒だけどさ…」
+					PRINTL ユズ:
+					PRINTW 「なによ。アツロウはこの人のこと信じられないって言うの？」
+					PRINTL アツロウ:
+					PRINTW 「いや、そんなことはないけど。ただ、そんな風に逃げるっていうのかな？」
+					PRINTW 「そういうのはよくないし、迷惑かけるだけじゃないかって」
+					PRINTL ユズ:
+					PRINTW 「アツロウに頼んでるわけじゃないんだから、黙っててよ」
+					PRINTW 「お願いします。私に出来る事ならなんでもしますから、連れて行ってください」
+					CALL INPUT_YN("Allow her to join", "Deny her")
+					;連れていく", "連れていかない
+					IF RESULT == 0
+						PRINTL ユズ:
+						PRINTW 「ほんと！？」
+						PRINTW 「ありがとうございます！」
+						PRINTL アツロウ:
+						PRINTW 「まじかよ…」
+						PRINTL ナオヤ:
+						PRINTW 「お互い、文句はないようだし、いいじゃないか」
+						PRINTW 「どこでどうするかは本人の勝手だ」
+						PRINTL アツロウ:
+						PRINTW 「……でも……あー、もうしょうがない」
+						PRINTW 「すいませんが、俺も連れて行ってください」
+						PRINTL ユズ:
+						PRINTW 「え？」
+						PRINTL アツロウ:
+						PRINTW 「ソデコ、一人で行かせちゃ迷惑かけるだろうし、俺が付いて行ってやる」
+						PRINTL 「ナオヤさんほどじゃないけど、俺もプログラムを扱えるし、
+						PRINTW 　このゲーム機型ＣＯＭＰがあれば、本職のサマナーとまではいかないけど
+						PRINTW 　戦うことだってできます」
+						PRINTW 「ナオヤさんもかまわないですよね？」
+						PRINTL ナオヤ:
+						PRINTW 「さっき言ったろう。本人の勝手だ」
+						PRINTL アツロウ:
+						PRINTW 「……そういうわけでお願いします」
+						PRINTL 
+						PRINTFORMW ＞%CALLNAME:MASTER%はアツロウの熱意におされ、一緒に連れてかえることにした
+						PRINTL ＞谷川 柚子を手に入れた
+						PRINTW ＞木原 篤郎を手に入れた
+						CALL ADD_NEW_COMPANION, [[キャラ:ユズ]],500
+						;戦闘参加可能で加入するが、調教で戦闘参加不可能になる
+						SIF RESULT == 1
+							CFLAG:GETCHARA([[キャラ:ユズ]]):戦闘参加不可能 = -1
+						CALL ADD_NEW_COMPANION, [[キャラ:アツロウ]],500
+						SIF RESULT == 1
+							CFLAG:GETCHARA([[キャラ:アツロウ]]):戦闘参加不可能 = -1
+					ELSE
+						PRINTL ユズ:
+						PRINTW 「………」
+						PRINTL アツロウ:
+						PRINTW 「忙しいわけだし、あんま迷惑かけるようなこというなよ」
+						PRINTL ユズ:
+						PRINTW 「でも……」
+						PRINTL アツロウ:
+						PRINTW 「俺もナオヤさんもいるんだし、大丈夫だって」
+						PRINTW 「だから、元気出して頑張ってこうぜ」
+						PRINTL ユズ:
+						PRINTW 「……うん」
+						PRINTL 
+					ENDIF
+				ENDIF
+				FLAG:脱出 = 1
+				PRINTFORMW ＞You left Shinjuku and returned to your office.
+				;新宿を後にして、事務所に戻った
+			ELSE
+			PRINTW 「よく、来たな」
+			IF ダンジョンフラグ:42:新宿フラグ("ユズ会話") == 1
+				PRINTL 
+				PRINTL ユズ:
+				PRINTW 「ナオヤさん！」
+				PRINTL 
+				PRINTL ナオヤ:
+				PRINTW 「おや、お前らがどうして一緒にいるんだ？」
+				PRINTW 「まさか、奴隷の売り込みか？」
+				PRINTL ユズ:
+				PRINTW 「え…奴隷？　売り込み？」
+				PRINTL ナオヤ:
+				PRINTW 「どうやら、違うようだな」
+				PRINTW 「名だたるファントム・ソサエティの奴隷商人だ」
+				PRINTL 「もしかしたら、サマナーの仕事ついでに現地で商品を仕入れて、売りに来た…
+				PRINTW 　というのもありうるかと思ったが、まぁさすがにないか」
+				PRINTL ユズ:
+				PRINTW 「ファントム・ソサエティ？　それに奴隷商人…？」
+				PRINTL ナオヤ:
+				PRINTW 「あとでそのへんは教えてやる」
+				PRINTW 「それより、結局どういうことだ？」
+				PRINTL 
+				PRINTFORMW ＞%CALLNAME:MASTER%は、ユズがベル・デルに襲われていて助けたことをはなした
+				PRINTL 
+				PRINTL ナオヤ:
+				PRINTW 「ハハハ、本当にお前は面白い！」
+				PRINTW 「ベル・デルが不死だと知っていても普通に挑むとはな！」
+				PRINTW 「それでこそ、というべきか？」
+				PRINTW 「まぁ、それはともかくとして、こいつは俺が責任もって保護しておこう」
+			ENDIF
+				PRINTW 「Well then, lets talk business.」 
+				;「それじゃあ、仕事のを話をしようか」 
+				PRINTW 「First of all, do you know what you need to defeat Beldr?」
+				;「まずはだ。お前はずばり、ベル・デルを倒すのに何が必要か知っているか？」
+				CALL INPUT_YN,"Yes","No"
+				IF RESULT == 0
+					PRINTL ナオヤ:
+					PRINTW 「ほぅ…知っていたか」
+					PRINTW 「さすがはサマナーといったところか」
+					PRINTW 「じゃあ、何か答えてもらおうか」
+				ELSE
+					PRINTL ナオヤ:
+					PRINTL 「美しき者、王たる主、ベル・デルの、
+					PRINTL 　決して傷おうことなき盟約に、
+					PRINTW 　年若きヤドリギのみ契ること能わず」
+					PRINTL 「古に、災いの者ロキ、
+					PRINTL 　彼の者の弟を護りて、ヤドリギを用い、
+					PRINTW 　これを死の国へと落とせしむ…」
+					PRINTW 「これがベル・デルの伝承だ。さぁ必要なものはなにか？」
+				ENDIF
+				PRINTL 答えを入力してください
+				INPUTS
+				IF RESULTS == "ヤドリギ" || RESULTS == "宿り木" || RESULTS == "宿木" || RESULTS == "やどりぎ"
+					PRINTL ナオヤ:
+					PRINTW 「そうだ。ヤドリギだ」
+				ELSE
+					PRINTL ナオヤ:
+					PRINTW 「答えはヤドリギだ」
+					PRINTW 「力があっても、知性に欠けるというのもまぁ困るが…」
+					PRINTW 「そこらへんは俺がフォローしてやることもできるか」
+				ENDIF
+				PRINTW 「そして、ヤドリギをここで渡す…といいたいところだが」
+				PRINTW 「残念ながら、ヤドリギはここにはない」
+				PRINTW 「メシア教の奴らもベル・デルを狙っていて、新宿にヤドリギを持ち込むのは大変でな」
+				PRINTW 「だがまぁ、裏を返せば、メシア教の奴らならヤドリギを用意できるというわけだ」
+				PRINTW 「俺の協力者が、すでにメシア教の奴らからヤドリギを盗み出した」
+				PRINTW 「少し待てば、ここに来るだろう」
+				PRINTL 
+				PRINTW ＞その時、教会内に叫び声が響いた
+				PRINTW ＞Looking back, Beldr came...
+				;見ると、ベル・デルがいる…
+				PRINTL 
+				PRINTL Beldr:
+				ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") = 2
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+				IF ダンジョンフラグ:42:新宿フラグ("ユズ会話") == 1
+					PRINTW 「クククッ、見つけたぞ」
+					PRINTW 「貴様は我が糧となるほかないのだ」
+					PRINTL ユズ:
+					PRINTW 「ま、またあいつ…！？」
+					PRINTL ナオヤ:
+					;---- EDIT 004 ADD START -------------------------
+					;重複により削除
+					PRINTW 「チッ、追いかけられてたということか」
+					;PRINTW 「まともに相手をするなよ」
+					;PRINTW 「お前はとにかく、街の北にいけ」
+					;PRINTW 「アツロウ……ニット帽をかぶった男がいるはずだから、そいつから受け取れ」
+					;---- EDIT 004 ADD END ---------------------------
+				ELSE
+					PRINTW 「感じる。感じるぞ！　我を忌々しき鎖より解き放つベルの力を感じるぞ！」
+					PRINTW 「さぁ、このベル・デルの糧よ……ほぅ。貴様は、あの時の忌々しい人間ではないか」
+					PRINTW 「なぜ、貴様がベルの力をその身に宿しているかはわからんが、クククク、ちょうどいい」
+					PRINTW 「こんどこそ食い尽くしてやろう」
+					PRINTL ナオヤ:
+				ENDIF
+				PRINTW 「まともに相手をするなよ」
+				PRINTW 「お前はとにかく、街の北にいけ」
+				PRINTW 「アツロウ……ニット帽をかぶった男がいるはずだから、そいつから受け取れ」
+				PRINTW 「あとでここで落ち合うぞ」
+				PRINTL 
+				IF ダンジョンフラグ:42:新宿フラグ("ユズ会話") == 1
+					PRINTW ナオヤはそう言って、ユズを連れて、教会から出て行った
+				ELSE
+					PRINTW ナオヤはそう言って、教会から出て行った
+				ENDIF
+				PRINTL 
+				PRINTL ＞Bel Beldr appeared!
+				;ベル神　ベル・デルが出た！
+				PRINTW ＞Beldrs servants appeared!
+				;ベル・デルの下僕たちが出た！
+				CALL SET_ENEMY, 7, [[キャラ:インプ]], 20
+				CALL SET_ENEMY, 8, [[キャラ:インプ]], 20
+				CALL SET_ENEMY, 10, [[キャラ:リリム]], 20
+				CALL SET_ENEMY, 11, [[キャラ:リリム]], 20
+				CALL SET_BALDEL
+				CALL SET_BALDEL_SERVANT_ST
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CUSTOMDRAWLINE =
+				PRINTW ＞You escaped from Beldr and left the church.
+				;ベル・デルを振り切り、教会の外に飛び出した！
+				CALL DUNGEON_WORP, 1, 16, 18
+			ENDIF
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;メッセンジャー
+;=======================================================================
+@MESSAGE_42
+SELECTCASE FLAG:現M
+	CASE 0
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 4
+				PRINTFORML Youth:
+				;若者:
+				;上野　ラドン撃破
+				IF ダンジョンフラグ:18:22 == 1
+					PRINTFORMW 「この町の近くにある大聖堂にはパズス様がおられる」
+					PRINTFORMW 「メシア教は弱い者の味方なんだ」
+				;池袋　トール撃破
+				ELSEIF ダンジョンフラグ:17:13 == 1
+					PRINTFORMW 「今度は池袋に救世主が現れてガイア教と一戦交えたらしい」
+					PRINTFORMW 「マントラ軍のNo2軍神トールも救世主の前には手も足も出なかったと言う話だぜ」
+				;渋谷　魔王バラム
+				ELSEIF ダンジョンフラグ:16:14 == 1
+					PRINTFORMW 「渋谷のガイア教支部のボス魔王バラムが倒されたらしい」
+					PRINTFORMW 「メシア教の経典にある救世主が遂に現れたんだ」
+				ELSE
+					IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 0
+						PRINTFORMW 「選ばれし者なら悪魔の力を手に入れられる薬」
+						PRINTFORMW 「そんな物があるらしいよ」
+					ELSE
+						PRINTFORMW 「新宿にも悪魔が現れ始めたよ」
+						PRINTFORMW 「でも、メシア教とガイア教が争ってないだけ他の街よりましかな」
+					ENDIF
+				ENDIF
+			CASE 14
+				PRINTFORML Woman:
+				;女
+				;上野　ラドン撃破
+				IF ダンジョンフラグ:18:22 == 1
+					PRINTFORMW 「メシア教は神を信じる人なら誰でも入信出来るのよ」
+					PRINTFORMW 「貴方も入らない？」
+				;池袋　トール撃破
+				ELSEIF ダンジョンフラグ:17:13 == 1
+					PRINTFORMW 「近頃は物騒になってきたし…」
+					PRINTFORMW 「私みたいに弱い人間はメシア教を頼るしかないわ」
+				;渋谷　魔王バラム
+				ELSEIF ダンジョンフラグ:16:14 == 1
+					PRINTFORMW 「池袋はマントラ軍って怖い人達に占領されてるんだってね」
+					PRINTFORMW 「新宿は平和なままだといいんだけど」
+				ELSE
+					IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 0
+						PRINTFORMW 「最近この街でも悪魔になれる怪しい薬が出回ってるらしいわ」
+						PRINTFORMW 「悪魔が怖いからって自分が悪魔になるなんてね」
+					ELSE
+						PRINTFORMW 「怪しい薬を作っていた悪魔がメシア教に倒されたんだって」
+						PRINTFORMW 「少しはこの街も平和になるかな」
+					ENDIF
+				ENDIF
+			CASE 24
+				;上野をクリア済みの場合遊び人Ｌ登場
+				PRINTL Man looking like a playboy:
+				;遊び人風の男:
+				;ばるはらのろきしぼう
+;				IF ダンジョンフラグ:8:14 == 1 && ダンジョンフラグ:42:新宿フラグ("遊び人風の男[ロキ撃破]") == 0
+;					PRINTFORMW 「おやおや、暴君を倒した偉大な勇者様のお出ましだ」
+;					PRINTFORMW 「勇者様がこんな所で油を売っていて良いのかい？」
+;					PRINTFORMW 「こうしている間にも魔王ルシファーは復活しようとしているんだよ」
+;					PRINTFORMW 「それとも、勇者たるもの庶民のタンス漁りは欠かせないと言うわけかな？」
+;					ダンジョンフラグ:42:新宿フラグ("遊び人風の男[ロキ撃破]") = 1 
+;				;べるのあらそいにかたん　なおや＆いざ・べる
+;				ELSEIF イベントフラグ:3:0 == 1 && ダンジョンフラグ:42:新宿フラグ("遊び人風の男[イザベル撃破]") == 0
+;					REPEAT CHARANUM
+;						IF NO:COUNT == 207
+;							PRINTFORMW 「ほほぅ…君が可哀想な魔女イザ･ベルの新しいご主人様か」
+;							PRINTFORMW 「彼女は実家にバアル信仰を持ち込んだ為、とあるえら～い神様から魔女扱いを受けた可哀想な女性なんだよ」
+;							PRINTFORMW 「そして、現代の東京で魔王バアルの手先ガイア教と神様の手先メシア教が争っている」
+;							PRINTFORMW 「まるで喜劇じゃないか、そうは思わないかい？」
+;							ダンジョンフラグ:42:新宿フラグ("遊び人風の男[イザベル撃破]") = 1
+;						ELSE
+;							RETURN 0
+;						ENDIF
+;					REND
+;				;べるいあるしぼう
+;				ELSEIF イベントフラグ:6:0 == 1 && ダンジョンフラグ:42:新宿フラグ("遊び人風の男[ベルイアル撃破]") == 0
+;					PRINTFORMW 「おやおや、六本木の守護神の片割れを倒したのかい」
+;					PRINTFORMW 「何分の一かの力しかないその分身とは言え、力で捻じ伏せるとは大したものだね」
+;					PRINTFORMW 「彼はソロモン72柱の中でも最も強力な王の一人」
+;					PRINTFORMW 「堕天使にして、かの魔王ルシファーに最も近き者の一人なのだがね」
+;					PRINTFORMW 「まあ、君が六本木に行く事があればかの者には気をつけるんだよ」
+;					PRINTFORMW 「彼は幼女を愛でると言う趣のある趣味をしているが、とても強力な悪魔だからね」
+;					ダンジョンフラグ:42:新宿フラグ("遊び人風の男[ベルイアル撃破]") = 1
+			CASE 34
+				PRINTL Youth:
+				;若者:
+				;上野　ラドン撃破
+				IF ダンジョンフラグ:18:22 == 1
+					PRINTW 「Because of the Gaeans...this world is getting crazy.」
+					;「ガイア教徒がいるから…この世界はおかしくなっちまうんだ」
+					PRINTW 「メシア教こそが世界を救うんだ…」
+				;池袋　トール撃破
+				ELSEIF ダンジョンフラグ:17:13 == 1
+					PRINTW 「The Gaeans are manipulating demons.」
+					;「ガイア教の連中が悪魔を操ってるんだってさ」
+					PRINTW 「It's troubling.」
+					;「迷惑な話だよな」
+				;渋谷　魔王バラム
+				ELSEIF ダンジョンフラグ:16:14 == 1
+					IF RAND:2 == 0
+						PRINTFORMW 「この辺にも悪魔が出るけど、渋谷は悪魔の親玉が倒されてから悪魔の数が減ったらしいよ」
+						PRINTFORMW 「ココより安全なら渋谷に行きたいけど道中も悪魔が出るんだよな…」
+					ELSE
+						PRINTFORMW 「池袋では悪魔が裁判の真似事をしてるんだってさ」
+						PRINTFORMW 「まず裁くべきは悪魔の癖に人間の真似事してる自分自身だろ」
+					ENDIF
+				ELSE
+					IF ダンジョンフラグ:42:新宿フラグ("悪魔") == 2
+						PRINTFORMW 「騙された…」
+						PRINTFORMW 「何を言ってるか解らねーと思うが、アレは泡姫なんてちゃちなもんじゃねえ…」
+						PRINTFORMW 「とんでもない婆のバケモノだった」
+						ダンジョンフラグ:42:新宿フラグ("悪魔") = 3
+					ELSE
+						IF RAND:2 == 0
+							PRINTFORMW 「そこのアダルトショップ」
+							PRINTFORMW 「夜しかやってないんだけど店員さんが凄い綺麗なんだ」
+						ELSE
+							IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 0
+								PRINTFORMW 「今、この街では悪魔になれる？薬ってのが出回ってる」
+								PRINTFORMW 「選ばれた者だけが悪魔の力を得られるらしいんだ」
+							ELSE
+								PRINTFORML 「例の薬騒ぎの元凶は悪魔の仕業だったらしいぜ」
+								PRINTFORMW 「メシア教会に侵入した所を倒されたらしいけどな」
+							ENDIF
+						ENDIF
+					ENDIF
+				ENDIF
+			CASE 44
+				IF FLAG:周回回数 >= 1 && ダンジョンフラグ:3:1 == 1
+					PRINTFORML 「Forneus is coming late...」
+					PRINTFORMW 「What is he doing at Shinjuku Hygienic Hospital!?」
+					ダンジョンフラグ:42:31 |= 2
+				ELSE
+					PRINTFORMW 「He's late...」
+					PRINTFORMW 「Where's that Forneus!?」
+				ENDIF
+			CASE 54
+				PRINTFORML Thug:
+				;チンピラ:
+				PRINTFORMW 「Geez...that Ozawa is such a bastard.」
+				;「ったく…オザワって野郎は何処にいやがる」
+				SIF ダンジョンフラグ:42:新宿フラグ("チンピラ") == 0
+					ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+				ダンジョンフラグ:42:新宿フラグ("チンピラ") = 1
+			CASE 64
+				PRINTW ＞A pretty girl with red hair and twintails is standing here..
+				;赤い髪をツインテールにまとめた可愛らしい少女が佇んでいた。
+				PRINTL Girl:
+				PRINTL 「If I had the power...」
+				;「私に力があれば…」
+				PRINTW 「I wonder if I could detroy this unpleasant world...」
+				;「こんな嫌な世界を壊してしまえるのかな」
+				ダンジョンフラグ:42:新宿フラグ("オザワ") = 2
+				ダンジョンフラグ:42:新宿フラグ("リセフラグ") = 2
+		ENDSELECT
+	CASE 1
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 14
+				PRINTFORML Man:
+				IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 1
+					PRINTW 「最近、北のほうが騒がしいな…」
+					PRINTW 「こっちにとばっちりが来なければいいが」
+				ELSE
+					PRINTW 「南はガイア教の力が強い…」
+					PRINTW 「というより、メシア教の力が弱いんだ」
+					PRINTW 「治安はやや悪いかも知れないが、こっちのほうが気楽でいいよ」
+				ENDIF
+			CASE 24
+				PRINTFORML Woman:
+				IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 1
+					PRINTW 「ゲーム機型ＣＯＭＰ、やっぱり実在したみたいね」
+					PRINTW 「誰かが配ってるみたいで、結構使ってる子がいるし」
+					PRINTW 「あー…私もほしいなぁ」
+				ELSE
+					PRINTW 「ゲーム機型ＣＯＭＰの噂知ってる？」
+					PRINTW 「見た目は普通のゲーム機なんだけど」
+					PRINTW 「悪魔を召喚したり、持ち主を強くする力があるらしいのよ」
+				ENDIF
+			CASE 34
+				PRINTFORML Demon:
+				IF RAND:2 == 0
+					PRINTFORMW 「この街では闇市が開かれてるんだぜ」
+					PRINTFORMW 「武器やGunや、怪しい道具まで手に入るぜ」
+				ELSE
+					PRINTFORMW 「俺等なんかは近づいただけで見境なしにGunをぶっぱなしてくる人間の方がよっぽどやべえよ」
+				ENDIF
+		ENDSELECT
+	CASE 4
+	CASE 5
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 4
+				PRINTL Gal:
+				;ギャル:
+				PRINTW 「Hey..listen I heard that our office has been bought.」
+				;「ねぇ…聞いてよ、うちの事務所買収されちゃったんだって」
+				PRINTW 「Do we have a new president?...it seems that Ozawa bought us.」
+				;「新しい社長なのかな？…オザワって人が買い取ったらしいんだけど」
+				PRINTW 「I wonder if they'll threaten us and sent us to the ＡＶ...」
+				;「ちょっとカッコいいけどいかにもな感じなんだよね、私達も脅されてＡＶに出されたりしちゃうのかな」
+				SIF ダンジョンフラグ:42:新宿フラグ("ギャル") == 0
+					ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+				ダンジョンフラグ:42:新宿フラグ("ギャル") = 1
+			CASE 14
+				PRINTFORML Youth:
+				;若者:
+				PRINTW 「I'm telling you, I saw it...」
+				;「み、見ちまったんだ…」
+				PRINTW 「I saw where Ozawa has been summoning demons.」
+				;「オザワって奴が悪魔を召喚する所を」
+				PRINTW 「He definitely isn't a human being.」
+				;「あいつはきっと人間じゃない」
+				SIF ダンジョンフラグ:42:新宿フラグ("若者") == 0
+					ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+				ダンジョンフラグ:42:新宿フラグ("若者") = 1
+			CASE 24
+				PRINTL Girl:
+				PRINTW 「ＡＶ is absolutely irritating...」
+				;「ＡＶなんて絶対イヤだよ……」
+				PRINTW 「If it's like that, I shouldn't become an idol...」
+				;「こんな事になるんだったらアイドルなんてならなきゃよかった……」
+				PRINTW ＞A pretty girl with red hair and twintails is muttering to herself.
+				;＞赤い髪をツインテールにまとめた可愛らしい少女は悲しげに呟いた。
+				SIF ダンジョンフラグ:42:新宿フラグ("リセフラグ") == 0
+					ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+				ダンジョンフラグ:42:新宿フラグ("リセフラグ") = 1
+		ENDSELECT
+	CASE 6
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 4
+				IF ダンジョンフラグ:42:新宿フラグ("悪魔") == 3
+					PRINTL Oni:
+					PRINTFORMW 「やぁ…実は罠だったんだ」
+					PRINTFORMW 「けれど、脱衣婆に出会って」
+					PRINTFORMW 「君は妖怪婆相手に童貞を捨て俺の気持ちを解ってくれたと思う」
+					PRINTFORMW 「じゃあ、注文を聞こうか」
+;					ダンジョンフラグ:42:新宿フラグ("悪魔") = 4
+				ELSEIF ダンジョンフラグ:42:新宿フラグ("悪魔") == 2
+					PRINTL Oni:
+					PRINTW 「チケットを手に入れるの苦労したんだからな」
+					PRINTW 「今更、返せとはいわねーが」
+					PRINTW 「せめて、おもいっきり楽しんでくれよ」
+				ELSE
+					ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+					PRINTFORML Demon:
+					PRINTFORMW 「うへへっ、見つかっちまった」
+					PRINTFORMW 「人間がこんな所で何してんだよ？」
+					PRINTFORMW 「俺か、俺はな」
+					PRINTFORMW 「へっへっへっ」
+					PRINTFORML 「これからアイドルの卵から生体ＭＡＧをチューチューしたり、
+					PRINTFORMW 　逆にぶちまけたりしまくってやんだよぉおおお」
+					PRINTL
+					PRINTL [0] 義により成敗致す
+					PRINTL [1] どうでもいい
+					$INPUT_LOOP2
+					INPUT
+					IF RESULT == 0
+						PRINTL Demon:
+						PRINTW 「やんのか、このやろう!!」
+						CUSTOMDRAWLINE =
+						PRINTW ＞A group of Oni appeared!!
+						FLAG:逃走不可フラグ = 1
+						FLAG:会話不能フラグ = 1
+						FLAG:先制不意打ちキャンセル = 1
+						CALL SET_ENEMY,9,654,15,0
+						CFLAG:(CHARANUM-1):行動回数 = 2
+						ABL:(CHARANUM-1):スキル1 = 1
+						ABL:(CHARANUM-1):スキル2 = 201
+						ABL:(CHARANUM-1):スキル3 = 507
+						ABL:(CHARANUM-1):スキル4 = 0
+						ABL:(CHARANUM-1):スキル5 = 0
+						ABL:(CHARANUM-1):スキル6 = 0
+						ABL:(CHARANUM-1):スキル7 = 0
+						ABL:(CHARANUM-1):スキル8 = 0
+						CALL SYNC_STATUS,(CHARANUM-1)
+						CALL HEALTH_CHARA,(CHARANUM-1)
+						CALL BATTLE_START
+						CUSTOMDRAWLINE =
+						WAIT
+						FLAG:逃走不可フラグ = 0
+						FLAG:会話不能フラグ = 0
+						FLAG:先制不意打ちキャンセル = 0
+						IF TALENT:MASTER:140 == 1 && TALENT:MASTER:157 == 0
+							PRINTL Oni:
+							PRINTFORMW 「こ、この新宿一の泡姫と遊ぶチケットをやるから…」
+							PRINTFORMW 「命だけは助けてくれ」
+							PRINTL
+							PRINTL [0] 許す
+							PRINTL [1] 天誅！！
+							$INPUT_LOOP3
+							INPUT
+							IF RESULT == 0
+								PRINTL Oni:
+								PRINTFORMW 「Thank you」
+								PRINTFORMW 「Take this and go to the room in the north-east of the city.」
+								;「これを持ってこの街の北東の部屋にいきな」
+								;C寄りに3動く
+								CALL INCREASE_LC,-3
+								ダンジョンフラグ:42:新宿フラグ("悪魔") = 2
+							ELSEIF RESULT == 1
+								PRINTL Oni:
+								PRINTFORML 「ぐげぇ…」
+								PRINTFORMW 「俺のＡＶ男優デビューが…」
+								ダンジョンフラグ:42:新宿フラグ("悪魔") = 1
+								DA:(FLAG:現X):(FLAG:現Y) = 1
+							ELSE
+								GOTO INPUT_LOOP3
+							ENDIF
+						ELSE
+							PRINTL Oni:
+							PRINTFORML 「ぐげぇ…」
+							PRINTFORMW 「俺のＡＶ男優デビューが…」
+							ダンジョンフラグ:42:新宿フラグ("悪魔") = 1
+							;L/L寄りに+3動く
+							CALL INCREASE_LC,3
+							CALL INCREASE_LD,3
+							DA:(FLAG:現X):(FLAG:現Y) = 1
+						ENDIF
+					ELSEIF RESULT == 1
+						PRINTL Oni:
+						IF TALENT:MASTER:オトコ
+							PRINTFORML 「なぁなぁ、本当は羨ましいんだろ」
+							PRINTFORMW 「オマエのその気持ちの分も俺が頑張ってやるからな」
+						ELSE
+							PRINTFORMW 「女には男のロマンは解らないだろうな」
+						ENDIF
+						PRINTW ＞それだけいうと悪魔はどこかへ行ってしまった
+						CALL INCREASE_LC,-3
+						CALL INCREASE_LD,-3
+						ダンジョンフラグ:42:新宿フラグ("悪魔") = 1
+						DA:(FLAG:現X):(FLAG:現Y) = 1
+					ELSE
+						GOTO INPUT_LOOP2
+					ENDIF
+				ENDIF
+			CASE 14
+				PRINTFORML Middle-aged man:
+				;中年の男:
+				PRINTW 「They are forcing cute young girls to ＡＶ...」
+				;「ワシの可愛い娘達をＡＶに出すなんぞ…」
+				PRINT 「How did this happen
+				;PRINT 「どうしてこうなった
+				IF RAND:2 == 0
+					PRINTFORMW ...how did this happen..」
+					;どうしてこうなった」
+				ELSE
+					PRINTFORMW 」
+				ENDIF
+				SIF ダンジョンフラグ:42:新宿フラグ("元社長") == 0
+					ダンジョンフラグ:42:新宿フラグ("オザワの情報") += 1
+				ダンジョンフラグ:42:新宿フラグ("元社長") = 1
+			CASE 24
+				PRINTL Ozawa:
+				;オザワ:
+				IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 0
+					IF FLAG:百合の花ルート
+						PRINTW 「さっき、やった免罪符で片はつくはずだ」
+						PRINTW 「使いどころくらい、自分でかんがえろ」
+						PRINTW 「わかったら、とっとどどこかに行きやがれ」
+					ELSE
+						PRINTW 「いいか。夜の新宿大聖堂だ」
+						PRINTW 「その免罪符さえあれば、どうとでもなるはずだ」
+					ENDIF
+				ELSE
+					IF FLAG:百合の花ルート
+						PRINTW 「何の用だ？」
+						PRINTW 「用がないなら、とっとと帰りやがれ」
+						PRINTW 「俺は忙しいんだ」
+					ELSE
+						PRINTW 「よう。なにか。依頼でもあるのか？」
+						PRINTW 「ファントム・ソサエティのためならなんでもするぜ」
+					ENDIF
+				ENDIF
+		ENDSELECT
+	CASE 8
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 14
+				IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 1
+					PRINTFORML メシア教のシスター:
+					IF RAND:2 == 0
+						PRINTFORMW 「神を信じない者は千年王国に導かれる事はないでしょう」
+					ELSE
+						PRINTFORMW 「前におられた司祭様は布教の為、他の土地へ旅立たれたと聞いています」
+					ENDIF
+				ELSE
+					PRINTFORML メシア教の司祭:
+					IF RAND:2 == 0
+						PRINTFORMW 「神を信じなさい、神を信じる者だけが千年王国へ入ることを許されるのです」
+					ELSE
+						PRINTFORMW 「やがて救世主が現れ、我等を導くでしょう」
+					ENDIF
+				ENDIF
+			CASE 24
+				PRINTFORML メシア教の信者:
+				IF RAND:2 == 0
+					PRINTFORMW 「いつかきっと救世主様が現れて悪魔を滅ぼしてくださるはずです」
+				ELSE
+					PRINTFORMW 「今は試練の時、神の使者が私達を迎えに来る日まで耐えねばなりません」
+				ENDIF
+		ENDSELECT
+	CASE 10
+		SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+			CASE 4
+				PRINTL Gaean:
+				;ガイア教徒
+				IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 1
+					PRINTW 「メシア教徒は一枚岩ではないようですね」
+					PRINTW 「このまま内部で争ってくれていると助かるのですが」
+				ELSE
+					PRINTW 「中立地帯といっても、新宿は明らかにメシア教の力が強いです…」
+					PRINTW 「でも、メシア教についていけない人も大勢います」
+					PRINTW 「そういう人達はこうして集まらないとここでは生きていけません」
+				ENDIF
+			CASE 14
+				PRINTL Gaean priest:
+				;ガイア教の司祭:
+				PRINTW 「とにかく、己の力を信じることですよ」
+				PRINTW 「救ってもらえるなんて考えていて、生き抜けるなんて考えてはなりませんよ」
+			CASE 24
+				PRINTL Gaean:
+				IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") == 1
+					PRINTW 「悪魔に襲われた？」
+					PRINTW 「本当にそれだけの話なんだろうか？」
+				ELSE
+					PRINTW 「……メシア教は恐ろしいよ」
+					PRINTW 「正直いって、何をしでかすかわかったもんじゃない」
+				ENDIF
+		ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;階段
+;=======================================================================
+@STAIR_42
+;飛ぶ先の階層を決定する
+;今回は法則性がないので手動で設定
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)
+	CASE 6
+		LOCAL = 4
+	CASE 16
+		LOCAL = 2
+	CASE 26
+		LOCAL = 3
+	CASE 36
+		LOCAL = 8
+	CASE 46
+		LOCAL = 5
+	CASE 56
+		LOCAL = 6
+	CASE 66
+		LOCAL = 8
+	CASE 76
+		LOCAL = 10
+	CASE 7
+		LOCAL = 0
+	CASE 17
+		LOCAL = 0
+	CASE 27
+		LOCAL = 0
+	CASE 37
+		LOCAL = 1
+	CASE 47
+		LOCAL = 1
+	CASE 57
+		LOCAL = 5
+	CASE 67
+		LOCAL = 7
+	CASE 77
+		LOCAL = 1
+ENDSELECT
+;のぼり階段（下一桁が6）
+IF DA:(FLAG:現X):(FLAG:現Y) % 10 == 6
+	;LOCALは階層。自分のID+1の下り階段を目指す
+	CALL DUNGEON_UPSTAIRS_ID, LOCAL, DA:(FLAG:現X):(FLAG:現Y) + 1
+ELSE
+	CALL DUNGEON_DOWNSTAIRS_ID, LOCAL, DA:(FLAG:現X):(FLAG:現Y) - 1
+ENDIF
+
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_42
+SELECTCASE FLAG:現M
+	CASE 0
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 1
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 2
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 3
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	;百合
+	CASE 4
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*3
+	;893
+	CASE 5
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	CASE 6
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+	;連絡通路
+	CASE 7
+		FLAG:エンカウント率 = FLAG:未遭遇歩数*2
+	CASE 8
+		IF ダンジョンフラグ:42:新宿フラグ("イベントクリアフラグ") >= 1
+			FLAG:エンカウント率 = 0
+		ELSEIF ダンジョンフラグ:42:新宿フラグ("朝夜") == 1
+			FLAG:エンカウント率 = 0
+		ELSE
+			FLAG:エンカウント率 = FLAG:未遭遇歩数*8
+		ENDIF
+	CASE 9
+		FLAG:エンカウント率 = 0
+	CASE 10
+		FLAG:エンカウント率 = 0
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_42
+RETURN 16, 13, 22, 20
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_42
+#LOCALSIZE 3
+IF RAND:100 < FLAG:エンカウント率
+	IF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 2 || (ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 1 && (ダンジョンフラグ:42:新宿フラグ("ユズ会話") == 1 || ダンジョンフラグ:42:新宿フラグ("デビサバ主人公会話")> 0))
+		FOR LOCAL, 1, 3
+			SELECTCASE RAND:5
+				CASE 0
+					LOCAL:LOCAL = [[キャラ:インプ]]
+				CASE 1
+					LOCAL:LOCAL = [[キャラ:オキュペテー]]
+				CASE 2
+					LOCAL:LOCAL = [[キャラ:ジャックフロスト]]
+				CASE 3
+					LOCAL:LOCAL = [[キャラ:リリム]]
+				CASE 4
+					LOCAL:LOCAL = [[キャラ:ガギソン]]
+			ENDSELECT
+		NEXT
+		FOR LOCAL, 7, 17
+			SIF RAND:2 && LOCAL != 9
+			CALL SET_ENEMY, LOCAL, LOCAL:RAND(1, 3), 20
+		NEXT
+		CALL SET_BALDEL
+		CALL SET_BALDEL_SERVANT_ST
+		ダンジョンフラグ:42:新宿フラグ("ベル・デル追撃") = 1
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		RETURN 1
+	ELSE
+		ダンジョンフラグ:42:新宿フラグ("ベル・デル追撃") = 0
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		CALL ENEMY_TABLE
+		IF RAND:5 == 1
+			ABL:(CHARANUM-1):アイテム2 = 1407
+			ABL:(CHARANUM-1):入手確率2 = 10
+		ELSEIF RAND:4 == 1
+			ABL:(CHARANUM-1):アイテム2 = 1408
+			ABL:(CHARANUM-1):入手確率2 = 10
+		ELSEIF RAND:3 == 1
+			ABL:(CHARANUM-1):アイテム2 = 1409
+			ABL:(CHARANUM-1):入手確率2 = 10
+		ELSEIF RAND:2 == 1
+			ABL:(CHARANUM-1):アイテム2 = 1410
+			ABL:(CHARANUM-1):入手確率2 = 10
+		ELSE
+			ABL:(CHARANUM-1):アイテム2 = 1411
+			ABL:(CHARANUM-1):入手確率2 = 10
+		ENDIF
+	ENDIF
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_42
+RETURN CLASS_NUM_COMMON("中級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_42, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_42, ARG
+SELECTCASE FLAG:現M
+	CASE 0, 1, 2, 3
+	;新宿南北及び通路
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖魔インプLv9　ランク2
+				RETURN 459, 15
+			CASE IS < 30
+				;15%　妖精ジャックフロスト　Lv15
+				RETURN 512, 15
+			CASE IS < 40
+				;15%　Raptorヒッポウ　Lv10　ランク1
+				RETURN 955, 13
+			CASE IS < 50
+				;ナハトコボルト
+				RETURN 467, 14
+			CASE IS < 60
+				;15%　外道ゾンビくん　Lv7　ランク2
+				RETURN 1094, 13
+			CASE IS < 70
+				;10%　妖精ドリアード　Lv12　ランク1
+				RETURN 502, 15
+			CASE IS < 85
+				;15%　外道ゾンビちゃん　Lv4　ランク4
+				RETURN 1001, 16
+			CASE IS < 95
+				;15%　外道ゾンビナース　Lv8　ランク2
+				RETURN 1002, 14
+			CASE IS < 100
+				;15%　外道オバタリオン　Lv8　ランク2
+				RETURN 1047, 14
+		ENDSELECT
+	CASE 4
+	;百合
+		SELECTCASE RAND:100
+			CASE IS < 35
+				;25%　Divine　エンジェル
+				RETURN 301, 15
+			CASE IS < 60
+				;25％　妖魔コッパテング
+				RETURN 451, 13
+			CASE IS < 85
+				;25％　魔獣イヌガミ
+				RETURN 853, 15
+			CASEELSE
+				;15%　妖精ジャックフロスト
+				RETURN 512, 15
+		ENDSELECT
+	CASE 5, 6
+	;YAKUZAビル１Ｆでの遭遇
+		SELECTCASE RAND:100
+			CASE IS < 15
+				;15％　妖精ドリアードLv12
+				RETURN 502, 16
+			CASE IS < 25
+				;10%　妖鬼ヨモツシコメ　Lv16　ランク1
+				RETURN 602, 16
+			CASE IS < 40
+				;10%　魔獣ネコマタ LV12
+				RETURN 801, 16
+			CASE IS < 55
+				;15%　Raptorヒッポウ　Lv10
+				RETURN 955, 16
+			CASE IS < 70
+				;10%　堕天使ガギソン
+				RETURN 1702, 15
+			CASE IS < 85
+				;15%　外道やくざ　Lv2　ランク5
+				RETURN 1097, 15
+			CASEELSE
+				;15%　妖精ジャックフロスト　Lv15
+				RETURN 512, 15
+		ENDSELECT
+	CASE 7
+		SELECTCASE RAND:100
+			CASE IS < 40
+				;40％　天使エンジェルLv5　ランク5
+				RETURN 301, 20
+			CASE IS < 80
+				;40%　Kyojin教信者　Lv19
+				RETURN 3109, 20
+			CASE IS < 100
+				;20%　Kyojinテンプルナイト　Lv22
+				RETURN 3110, 22
+		ENDSELECT
+	CASE 8
+	;礼拝堂
+		SELECTCASE RAND:100
+			CASE IS < 30
+				;30％　天使エンジェルLv5
+				RETURN 301, 17
+			CASE IS < 45
+				;15%　妖鳥グルル　Lv19
+				RETURN 953, 19
+			CASE IS < 60
+				;15%　妖鳥モー・ショボーLv15　ランク1
+				RETURN 902, 18
+			CASE IS < 65
+				;5%　天使アークエンジェル　Lv24
+				RETURN 359, 20
+			CASE IS < 95
+				;30%　Kyojin教信者　Lv15
+				RETURN 3109, 18
+			CASE IS < 100
+				;5%　Kyojinテンプルナイト　Lv22
+				RETURN 3110, 22
+		ENDSELECT
+	CASE 10
+	;ガイア教会
+		SELECTCASE RAND:100
+			CASE IS < 25
+				;25％　妖魔インプLv9　ランク2
+				RETURN 459, 15
+			CASE IS < 50
+				;25%　妖精ジャックフロスト　Lv15
+				RETURN 512, 15
+			CASEELSE
+				;15%　外道ゾンビナース　Lv8　ランク2
+				RETURN [[キャラ:特攻隊]], 15
+		ENDSELECT
+ENDSELECT
+;=================================
+;思考パターン
+;=================================
+@ENEMY_BATTLE_MESSAGE_K1407, ARG
+IF 現HP割合(ARG) < 50 && LOCAL == 0
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━┓
+	PRINTFORML ┃糞っ　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃オマエの力はこの程度か？　　　　　　┃
+	PRINTFORML ┃国津神の意地を見せてみろ　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━┛
+	LOCAL = 1
+ELSEIF 現HP割合(ARG) < 15 && LOCAL == 1
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━┓
+	PRINTFORML ┃っ…タケミナカタがここまで　　　　　┃
+	PRINTFORML ┃ファントム・ソサエティめ　　　　　　┃
+	PRINTFORML ┃恐ろしい奴を送り込んで来やがった…　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━┛
+	LOCAL = 2
+ENDIF
+
+;タケミナカタの思考パターン
+@SET_ACTION_1407,ARG
+;1more
+IF CFLAG:ARG:１moreフラグ == 2
+	IF RAND:3 == 0
+		;ジオンガ
+		CALL CHECK_ACTIONABLE,ARG,902
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 902
+		CALL RANDOM_TARGET,ARG,902
+		RETURN 1
+	ELSEIF RAND:2 == 0
+		;マハジオ
+		CALL CHECK_ACTIONABLE,ARG,904
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 904
+		CALL RANDOM_TARGET,ARG,904
+		RETURN 1
+	ELSE
+		;暴れ
+		CALL CHECK_ACTIONABLE,ARG,203
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 203
+		CALL RANDOM_TARGET,ARG,203
+		RETURN 1
+	ENDIF
+;ＨＰ30％以下
+ELSEIF 現HP割合(ARG) < 30
+	IF CFLAG:ARG:行動した回数 == 0
+		SELECTCASE RAND:100
+			;100％気合
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,511
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 511
+				CALL RANDOM_TARGET,ARG,511
+				RETURN 1
+		ENDSELECT
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE RAND:100
+			;30％突撃
+			CASE IS < 30
+				CALL CHECK_ACTIONABLE,ARG,201
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 201
+				CALL RANDOM_TARGET,ARG,201
+				RETURN 1
+			;40％暴れ
+			CASE IS < 70
+				CALL CHECK_ACTIONABLE,ARG,203
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 203
+				CALL RANDOM_TARGET,ARG,203
+				RETURN 1
+			;30％マハジオンガ
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,905
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 905
+				CALL RANDOM_TARGET,ARG,905
+				RETURN 1
+		ENDSELECT
+	ENDIF
+;ＨＰ50％以下
+ELSEIF 現HP割合(ARG) < 50
+	IF CFLAG:ARG:行動した回数 == 0
+		SELECTCASE RAND:100
+			;100％気合
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,511
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 511
+				CALL RANDOM_TARGET,ARG,511
+				RETURN 1
+		ENDSELECT
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE RAND:100
+			;50％突撃
+			CASE IS < 50
+				CALL CHECK_ACTIONABLE,ARG,201
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 201
+				CALL RANDOM_TARGET,ARG,201
+				RETURN 1
+			;30％暴れ
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,203
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 203
+				CALL RANDOM_TARGET,ARG,203
+				RETURN 1
+			;20％マハジオンガ
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,905
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 905
+				CALL RANDOM_TARGET,ARG,905
+				RETURN 1
+		ENDSELECT
+	ENDIF
+;ＨＰ50％以上
+ELSEIF 現HP割合(ARG) > 50
+	IF CFLAG:ARG:行動した回数 == 0
+		SELECTCASE RAND:100
+			;30％　ジオンガ
+			CASE IS < 30
+				CALL CHECK_ACTIONABLE,ARG,902
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 902
+				CALL RANDOM_TARGET,ARG,902
+				RETURN 1
+			;30％　マハジオ
+			CASE IS < 60
+				CALL CHECK_ACTIONABLE,ARG,904
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 904
+				CALL RANDOM_TARGET,ARG,904
+				RETURN 1
+				
+			;40％　突撃
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,201
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 201
+				CALL RANDOM_TARGET,ARG,201
+				RETURN 1
+		ENDSELECT
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE RAND:100
+			;50％突撃
+			CASE IS < 50
+				CALL CHECK_ACTIONABLE,ARG,201
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 201
+				CALL RANDOM_TARGET,ARG,201
+				RETURN 1
+			;30％ジオンガ
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,902
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 902
+				CALL RANDOM_TARGET,ARG,902
+				RETURN 1
+			;40％マハジオ
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,904
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 904
+				CALL RANDOM_TARGET,ARG,904
+				RETURN 1
+		ENDSELECT
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+
+
+
+
+
+
+
+
+
+
+;=================================
+;思考パターン
+;=================================
+@ENEMY_BATTLE_MESSAGE_K4211, ARG
+IF CFLAG:ARG:入力行動 == 1214
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━┓
+	PRINTFORML ┃いいよ…　　　　　　　　　　　　　　┃
+	PRINTFORML ┃あなたにだけ特別に見せてあげる　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━┛
+ELSEIF CFLAG:ARG:入力行動 == 1212
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━┓
+	PRINTFORML ┃もっと見てぇ　　　　　　　　┃
+	PRINTFORML ┃あぁん…　　　　　　　　　　┃
+	PRINTFORML ┃そんなに見られたら…　　　　┃
+	PRINTFORML ┃たまらなくなっちゃうよ　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━┛
+ELSEIF CFLAG:ARG:入力行動 == 607
+	PRINTFORML ┏>MESSAGE━━━━━━━━━━━━━━━━┓
+	PRINTFORML ┃あぁあ～ん　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃貴方の興奮してる所全部見えちゃってる　　┃
+	PRINTFORML ┃はぁん…　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃ダメ、濡れてきちゃう…　　　　　　　　　┃
+	PRINTFORMW ┗━━━━━━━━━━━━━━━━━━━━┛
+ENDIF
+
+;久慈川りせの思考パターン
+@SET_ACTION_4211,ARG
+;1more
+IF CFLAG:ARG:１moreフラグ == 2
+	IF RAND:3 == 0
+		;アギラオ
+		CALL CHECK_ACTIONABLE,ARG,702
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 702
+		CALL RANDOM_TARGET,ARG,702
+		RETURN 1
+	ELSEIF RAND:2 == 0
+		;マハラギ
+		CALL CHECK_ACTIONABLE,ARG,704
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 704
+		CALL RANDOM_TARGET,ARG,704
+		RETURN 1
+	ELSE
+		;マインドスライス　Skill
+		CALL CHECK_ACTIONABLE,ARG,307
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 307
+		CALL RANDOM_TARGET,ARG,307
+		RETURN 1
+	ENDIF
+;ＨＰ30％以下
+ELSEIF 現HP割合(ARG) < 30
+	IF CFLAG:ARG:行動した回数 == 0
+		;初回セクシー
+		IF ダンジョンフラグ:42:30 == 0
+			CALL CHECK_ACTIONABLE,ARG,1212
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 1212
+			CALL RANDOM_TARGET,ARG,1212
+			ダンジョンフラグ:42:30 = 1
+			RETURN 1
+		;初回ファイナル
+		ELSEIF ダンジョンフラグ:42:30 == 1
+			CALL CHECK_ACTIONABLE,ARG,1214
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 1214
+			CALL RANDOM_TARGET,ARG,1214
+			ダンジョンフラグ:42:30 = 2
+			RETURN 1
+		;毎ターン初手マハアナライズ
+		ELSE
+			CALL CHECK_ACTIONABLE,ARG,607
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 607
+			CALL RANDOM_TARGET,ARG,607
+			RETURN 1
+		ENDIF
+
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE RAND:100
+			;40％でアギラオ
+			CASE IS < 40
+				CALL CHECK_ACTIONABLE,ARG,702
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 702
+				CALL RANDOM_TARGET,ARG,702
+				RETURN 1
+			;30％でマハラギ
+			CASE IS < 70
+				CALL CHECK_ACTIONABLE,ARG,704
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 704
+				CALL RANDOM_TARGET,ARG,704
+				RETURN 1
+			;20％でマハラギオン
+			CASE IS < 90
+				CALL CHECK_ACTIONABLE,ARG,705
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 705
+				CALL RANDOM_TARGET,ARG,705
+				RETURN 1
+			;10％でセクシーダンス
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,1212
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 1212
+				CALL RANDOM_TARGET,ARG,1212
+				RETURN 1
+		ENDSELECT
+	ENDIF
+
+ELSEIF 現HP割合(ARG) < 50
+	IF CFLAG:ARG:行動した回数 == 0
+		;毎ターン初手マハアナライズ
+		CALL CHECK_ACTIONABLE,ARG,607
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 607
+		CALL RANDOM_TARGET,ARG,607
+		RETURN 1
+
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE RAND:100
+			;45％でアギラオ
+			CASE IS < 40
+				CALL CHECK_ACTIONABLE,ARG,702
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 702
+				CALL RANDOM_TARGET,ARG,702
+				RETURN 1
+			;30％でマハラギ
+			CASE IS < 70
+				CALL CHECK_ACTIONABLE,ARG,704
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 704
+				CALL RANDOM_TARGET,ARG,704
+				RETURN 1
+			;15％でマハラギオン
+			CASE IS < 85
+				CALL CHECK_ACTIONABLE,ARG,705
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 705
+				CALL RANDOM_TARGET,ARG,705
+				RETURN 1
+			;5％でセクシーダンス
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,1212
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 1212
+				CALL RANDOM_TARGET,ARG,1212
+				RETURN 1
+		ENDSELECT
+	ENDIF
+
+ELSEIF 現HP割合(ARG) > 50
+	IF CFLAG:ARG:行動した回数 == 0
+		IF ダンジョンフラグ:42:30 == 0
+			;初回セクシー
+			CALL CHECK_ACTIONABLE,ARG,1212
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+			CFLAG:ARG:入力行動 = 1212
+			ダンジョンフラグ:42:30 = 1
+		ELSE
+			SELECTCASE RAND:100
+				;20％でアギ
+				CASE IS < 20
+					CALL CHECK_ACTIONABLE,ARG,701
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+					CFLAG:ARG:入力行動 = 701
+					CALL RANDOM_TARGET,ARG,701
+					RETURN 1
+				;30％でアギラオ
+				CASE IS < 50
+					CALL CHECK_ACTIONABLE,ARG,702
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+					CFLAG:ARG:入力行動 = 702
+					CALL RANDOM_TARGET,ARG,702
+					RETURN 1
+				;20％でマハラギ
+				CASE IS < 70
+					CALL CHECK_ACTIONABLE,ARG,704
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+					CFLAG:ARG:入力行動 = 704
+					CALL RANDOM_TARGET,ARG,704
+					RETURN 1
+				;20％でマインドスライス　Skill
+				CASE IS < 90
+					CALL CHECK_ACTIONABLE,ARG,307
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+					CFLAG:ARG:入力行動 = 307
+					CALL RANDOM_TARGET,ARG,307
+					RETURN 1
+				;10％で通常攻撃
+				CASE IS < 100
+					CALL CHECK_ACTIONABLE,ARG,0
+					SIF RESULT == 0
+						GOTO DECIDE_ACTION
+					CFLAG:ARG:入力行動 = 0
+					CALL RANDOM_TARGET,ARG,0
+					RETURN 1
+			ENDSELECT
+		ENDIF
+
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		SELECTCASE RAND:100
+			;20％でアギ
+			CASE IS < 20
+				CALL CHECK_ACTIONABLE,ARG,701
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 701
+				CALL RANDOM_TARGET,ARG,701
+				RETURN 1
+			;30％でアギラオ
+			CASE IS < 50
+				CALL CHECK_ACTIONABLE,ARG,702
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 702
+				CALL RANDOM_TARGET,ARG,702
+				RETURN 1
+			;30％でマハラギ
+			CASE IS < 80
+				CALL CHECK_ACTIONABLE,ARG,704
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 704
+				CALL RANDOM_TARGET,ARG,704
+				RETURN 1
+			;20％でマインドスライス　Skill
+			CASE IS < 100
+				CALL CHECK_ACTIONABLE,ARG,307
+				SIF RESULT == 0
+					GOTO DECIDE_ACTION
+				CFLAG:ARG:入力行動 = 307
+				CALL RANDOM_TARGET,ARG,307
+				RETURN 1
+		ENDSELECT
+	ENDIF
+
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル数 {RESULT}
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+;	PRINTFORML [{CFLAG:ARG:5}]のスキル {LOCAL:1}
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+@SET_BALDEL
+IF ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘")
+	CALL SET_ENEMY, 9, [[キャラ:ベル・デル]], 25, 0, 1
+ELSE
+	CALL SET_ENEMY, 9, [[キャラ:ベル・デル]], 20, 0, 1
+ENDIF
+LOCAL = CHARANUM - 1
+;HP2000/MP1000
+LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 10 + (FLAG:戦闘難易度 - 3) * 2 # 10
+CALL SET_BATTLE_STATUS(LOCAL, 200 * LOCAL:1, "ＨＰ")
+CALL SET_BATTLE_STATUS(LOCAL, 100 * LOCAL:1, "ＭＰ")
+CFLAG:LOCAL:速度補正 = 10
+CSTR:LOCAL:思考パターン = %CALLNAME:LOCAL%
+CSTR:LOCAL:増援パターン = %CALLNAME:LOCAL%
+CFLAG:LOCAL:行動回数 = 2
+CALL SYNC_STATUS, LOCAL
+CALL HEALTH_CHARA, LOCAL
+;ベル・デルの思考パターン
+@SET_ACTION_ベル・デル, ARG
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+SELECTCASE RAND:100
+	CASE IS < 30
+		CFLAG:ARG:入力行動 = 0
+	CASE IS < 50
+		;対象が防御してれば、マモリクズシ。バステなら弱者必滅拳、どれでもなければギガンフィスト
+		CFLAG:ARG:入力行動 = [[スキル:ギガンフィスト]]
+		CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+		SIF CFLAG:POS(CFLAG:ARG:ターゲット):ステート != GET_STATE_NUM("GOOD")
+			CFLAG:ARG:入力行動 = [[スキル:弱者必滅拳]]
+		SIF CFLAG:POS(CFLAG:ARG:ターゲット):防御フラグ
+			CFLAG:ARG:入力行動 = [[スキル:マモリクズシ]]
+	CASE IS < 80
+		CFLAG:ARG:入力行動 = [[スキル:地獄の業火]]
+	CASEELSE
+		CFLAG:ARG:入力行動 = [[スキル:メテオフィスト]]
+ENDSELECT
+;4の倍数のターンの1回目行動で吸血瘴気
+SIF FLAG:経過ターン数 % 4 == 0 && CFLAG:ARG:１moreフラグ != 2 && CFLAG:ARG:行動した回数 == 0
+	CFLAG:ARG:入力行動 = [[スキル:吸血瘴気]]
+
+;奇数ターンの1回目行動で召し寄せ(最後の戦闘のときのみ)
+SIF FLAG:経過ターン数 % 2 == 1 && CFLAG:ARG:１moreフラグ != 2 && CFLAG:ARG:行動した回数 == 0 && ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 3
+	CFLAG:ARG:入力行動 = [[スキル:召し寄せ]]
+;アクション実行不能
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+SIF RESULT == 0
+	CFLAG:ARG:入力行動 = [[スキル:ＧＵＮ]]
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+@EVENT_BATTLE_TURNEND_DUNGEON42
+;ベル・デルがPT番号0以外なら先に進まない
+SIF !FINDCHARA_ENEMY([[キャラ:ベル・デル]])
+	RETURN 0
+;初戦闘時は戻る
+IF !ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘")
+	IF FLAG:経過ターン数 == 2
+		SETCOLOR 0xff0033
+		CALL MESSAGE_B(2, "クククククッ、我は不死なる者、如何なる攻撃も効かぬわ！", "さぁ、人間よ！　絶望し、嘆くがよい！")
+		RESETCOLOR
+	ENDIF
+	RETURN 0
+ENDIF
+SIF ダンジョンフラグ:42:新宿フラグ("ベル・デル進行度") == 3
+	RETURN 0
+LOCAL:1 = 0
+FOR LOCAL, 7, 17
+	SIF POS(LOCAL) >= 0
+		LOCAL:1 ++
+NEXT
+IF LOCAL:1 > 1
+	SETCOLOR 0xff0033
+	CALL MESSAGE_B(1, "取り巻きがいるうちは逃げられそうにない！")
+	FLAG:逃走不可フラグ = 1
+ELSE
+	SETCOLOR 0x33ffcc
+	CALL MESSAGE_B(1, "逃走のための隙が出来た！")
+	FLAG:逃走不可フラグ = 0
+ENDIF
+RESETCOLOR
+@EVENT_BATTLE_ACTEND_DUNGEON42
+;ベル・デルがいないなら先に進まない
+SIF !FINDCHARA_ENEMY([[キャラ:ベル・デル]])
+	RETURN 0
+;初戦闘時
+SIF ダンジョンフラグ:42:新宿フラグ("ベルデル初戦闘")
+	RETURN 0
+SIF FLAG:経過ターン数 < 5
+	RETURN 0
+SIF FLAG:敗北フラグ
+	RETURN 0
+SETCOLOR 0xff0033
+CALL MESSAGE_B(1, "グッ…ググゥ…グアアアアアッ！")
+PRINTW 突然、ベル・デルが叫び声をあげ、動きを止めた…
+FLAG:勝利フラグ = 1
+RESETCOLOR
+RETURN -1
+
+
+@増援パターン_ベル・デル, ARG, ARG:1, ARG:2
+IF RAND:5 == 0
+	CALL SET_ENEMY, ARG:1, [[キャラ:インプ]], 20
+ELSEIF RAND:4 == 0
+	CALL SET_ENEMY, ARG:1, [[キャラ:オキュペテー]], 20
+ELSEIF RAND:3 == 0
+	CALL SET_ENEMY, ARG:1, [[キャラ:ジャックフロスト]], 20
+ELSEIF RAND:2
+	CALL SET_ENEMY, ARG:1, [[キャラ:リリム]], 20
+ELSE
+	CALL SET_ENEMY, ARG:1, [[キャラ:ガギソン]], 20
+ENDIF
+CALL SET_BALDEL_SERVANT_ST
+SIF ARG:2 < 2
+	RETURN 0
+RETURN 1
+@SET_BALDEL_SERVANT_ST
+FOR LOCAL:1, 7 , 17
+	LOCAL = POS(LOCAL:1)
+	SIF LOCAL < 0
+		CONTINUE
+	SELECTCASE NO:LOCAL
+		CASE [[キャラ:インプ]]
+			ABL:LOCAL:スキル1 = [[スキル:ザンマ]]
+			ABL:LOCAL:スキル3 = [[スキル:淀んだ空気]]
+			MAXBASE:LOCAL:飛具 = 200
+			MAXBASE:LOCAL:重力 = 200
+			MAXBASE:LOCAL:衝撃 = 200
+			MAXBASE:LOCAL:破魔 = 200
+			MAXBASE:LOCAL:疾風 = 200
+		CASE [[キャラ:オキュペテー]]
+			ABL:LOCAL:スキル4 = [[スキル:子守唄]]
+			MAXBASE:LOCAL:飛具 = 300
+			MAXBASE:LOCAL:戦技 = 200
+			MAXBASE:LOCAL:衝撃 = 200
+		CASE [[キャラ:ジャックフロスト]]
+			ABL:LOCAL:スキル1 = [[スキル:タル・カジャ]]
+			ABL:LOCAL:スキル4 = [[スキル:ハッピーステップ]]
+			MAXBASE:LOCAL:重力 = 200
+			MAXBASE:LOCAL:衝撃 = 200
+			MAXBASE:LOCAL:火炎 = 300
+			MAXBASE:LOCAL:核熱 = 300
+		CASE [[キャラ:リリム]]
+			ABL:LOCAL:スキル4 = [[スキル:プリンパ]]
+			ABL:LOCAL:スキル5 = [[スキル:ドルミナー]]
+			MAXBASE:LOCAL:飛具 = 200
+			MAXBASE:LOCAL:戦技 = 200
+			MAXBASE:LOCAL:衝撃 = 200
+			MAXBASE:LOCAL:破魔 = 200
+			MAXBASE:LOCAL:疾風 = 200
+		CASE [[キャラ:ガギソン]]
+			ABL:LOCAL:スキル1 = [[スキル:ポイズマ]]
+			ABL:LOCAL:スキル4 = [[スキル:ジオンガ]]
+			MAXBASE:LOCAL:飛具 = 150
+			MAXBASE:LOCAL:電撃 = 200
+			MAXBASE:LOCAL:神経 = 200
+			MAXBASE:LOCAL:疾風 = 200
+			MAXBASE:LOCAL:核熱 = 200
+	ENDSELECT
+NEXT
+@EVENT_BATTLE_START_DUNGEON42
+IF ダンジョンフラグ:42:新宿フラグ("ベル・デル追撃") == 1
+	SETCOLOR 0xff0033
+	CALL MESSAGE_B(1, "ベル・デルに追いつかれた！")
+	RESETCOLOR
+	ダンジョンフラグ:42:新宿フラグ("ベル・デル追撃") = 0
+ENDIF
+
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_42
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:5
+	CASE 0
+		RETURN [[キャラ:ガギソン]] , 3 + RAND:10 , CSVBASE([[キャラ:ガギソン]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:特攻隊]] , 3 + RAND:10 , CSVBASE([[キャラ:特攻隊]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:やくざ]] , 3 + RAND:10 , CSVBASE([[キャラ:やくざ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 3
+		RETURN [[キャラ:狂信者]] , 3 + RAND:10 , CSVBASE([[キャラ:狂信者]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 4
+		RETURN [[キャラ:インプ]] , 3 + RAND:10 , CSVBASE([[キャラ:インプ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT

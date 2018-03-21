@@ -1,0 +1,908 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx_yyy.ERB
+;	Facility	:依頼:030(デビルサバイバー２) 関数置き場。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2013/06/16		旅人					新規作成
+;	002		2015/01/01		セーロGUN				関数追加。ウサミミの加入処理を追加した関数に移行
+;	003		2015/01/15		セーロGUN				イオちゃんデビオク加入処理を追加しました
+;											ロナウドとヤマトの加入処理を加筆
+;	004		2015/02/28		セーロGUN				イオちゃんデビオク加入処理削除
+;											ニカイア画面表示処理追加してみる
+;	004		2015/03/13		セーロGUN				ニカイア画面表示処理を修正
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;===============================================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name						Explanation
+;
+;	・ REQUEST_30_TEMP_GET				依頼:仮入手
+;	・ REQUEST_30_GETAFTER_SETUP			依頼:後半で入手後のLVUP調整。主人公は初期設定も行う
+;	・ REQUEST_30_NICAEA_BOOTVIEW			依頼:ニカイア起動画面表示
+;
+;===============================================================================
+
+
+;=================================================
+;   sub REQUEST_30_TEMP_GET
+;=================================================
+;   依頼:仮入手
+;-------------------------------------------------
+@REQUEST_30_TEMP_GET
+#DIM L_T
+#DIM L_INPUT
+#DIM L_ADD
+
+PRINTFORMW ＞ジプスより、人材の受け渡しについての知らせが来た。
+PRINTFORMW ＞どうやらまだ本編の続きが出来ていないらしく、暫定対応として各キャラを奴隷として入手出来る様だ。
+PRINTFORMW ＞続きが作成されるまでは、こちらで必要なキャラを入手しよう。
+PRINTL
+PRINTFORMW ＞また、本編の続きが作成されれば、依頼のタイトルも変わると思われる。
+PRINTFORMW ＞…本編については、気長に待つ事にしよう。
+PRINTFORMW ＞………
+PRINTFORMW ＞……
+PRINTFORMW ＞…
+;-----------------------------
+;- リスト表示
+;-----------------------------
+$LIST_TOP
+DRAWLINE
+;PRINTL ＞どのキャラを入手しますか？
+;PRINTL
+
+
+;PRINTFORMLC [ 1] 九条緋那子
+;PRINTFORMLC [ 2] 伴亜衣梨
+;PRINTL
+;PRINTFORMLC [ 3] 迫真琴
+;PRINTFORMLC [ 4] 管野史
+;PRINTFORMLC [ 5] 柳谷乙女
+;PRINTL
+;PRINTFORMLC [ 6] ティコ
+;PRINTL
+;PRINTL
+
+;PRINTFORMLC [ 7] デビサバ２主人公
+;PRINTFORMLC [ 8] 志島大地
+;PRINTFORMLC [ 9] 峰津院大和
+;PRINTL
+;PRINTFORMLC [10] 和久井啓太
+;PRINTFORMLC [11] 鳥居純吾
+;PRINTFORMLC [12] 秋江譲
+;PRINTL
+;PRINTFORMLC [13] 栗木ロナウド
+;PRINTFORMLC [14] 憂う者
+;PRINTL
+;PRINTL
+PRINTL ＞現在、この依頼で入手できるのは峰津院都のみです
+PRINTL ＞入手しますか？
+
+PRINTL [15] 入手する
+PRINTL [ 0] 終わる
+
+$INPUT_LOOP
+INPUT
+L_INPUT = RESULT
+L_ADD = 200
+
+SELECTCASE L_INPUT
+	CASE 0
+		RETURN
+;	;-----------------------------
+;	;- 女
+;	;-----------------------------
+;	CASE 1
+;		L_T = [[キャラ:ヒナコ]]
+;		L_ADD = 400
+;	CASE 2
+;		L_T = [[キャラ:アイリ]]
+;		L_ADD = 400
+;	CASE 3
+;		L_T = [[キャラ:マコト]]
+;		L_ADD = 600
+;	CASE 4
+;		L_T = [[キャラ:フミ]]
+;		L_ADD = 400
+;	CASE 5
+;		L_T = [[キャラ:オトメ]]
+;		L_ADD = 400
+;	CASE 6
+;		L_T = [[キャラ:ティコ]]
+	
+	CASE 15
+		L_T = [[キャラ:ミヤコ]]
+
+;	;-----------------------------
+;	;- 男
+;	;-----------------------------
+;	CASE 7
+;		L_T = [[キャラ:デビサバ２主人公]]
+;	CASE 8
+;		L_T = [[キャラ:ダイチ]]
+;	CASE 9
+;		L_T = [[キャラ:ヤマト]]
+;		L_ADD = 600
+;	CASE 10
+;		L_T = [[キャラ:ケイタ]]
+;	CASE 11
+;		L_T = [[キャラ:ジュンゴ]]
+;	CASE 12
+;		L_T = [[キャラ:ジョー]]
+;	CASE 13
+;		L_T = [[キャラ:ロナウド]]
+;	CASE 14
+;		L_T = [[キャラ:サダク]]
+;		L_ADD = 600
+	CASEELSE
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+ENDSELECT
+
+IF GETCHARA(L_T) > -1
+	CLEARLINE 1
+	REUSELASTLINE （既にそのキャラは入手済みです）
+	GOTO INPUT_LOOP
+ENDIF
+
+;- キャラ追加
+CALL ADD_NEW_COMPANION,L_T,L_ADD
+
+L_T = (CHARANUM - 1)
+
+;戦闘には常に参加可能
+CFLAG:L_T:戦闘参加不可能 = 0
+
+SELECTCASE NO:L_T
+	;-----------------------------
+	;- 女
+	;-----------------------------
+;	CASE [[キャラ:ヒナコ]]
+;		PRINTFORMW ＞ヒナコを引き取る為、彼女の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「サマナーはん、どうしたん？」
+;		PRINTFORMW 「え？引き取りに来た？」
+;		PRINTFORMW 「五日目に出番あるって聞いてたんやけど」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「へー、そうなんや。そりゃしゃーないわ」
+;		PRINTFORMW 「でも奴隷って…何するん？」
+;		PRINTFORMW 「え、エッチな事！？」
+;
+;	CASE [[キャラ:アイリ]]
+;		PRINTFORMW ＞アイリを引き取る為、彼女の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「サマナーさんじゃん、どうしたの？」
+;		PRINTFORMW 「え？引き取りに来た？」
+;		PRINTFORMW 「五日目に出番あるって聞いてたんだけど」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「バッッッッッッカじゃないの！？」
+;		PRINTFORMW 「１６歳の女の子に性奴隷になれとか…」
+;		PRINTFORMW 「何もこんな時に発情しなくても…」
+;
+;	CASE [[キャラ:マコト]]
+;		PRINTFORMW ＞マコトを引き取る為、彼女の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「ん？サ、サマナー？」
+;		PRINTFORMW 「いや、すまない…不意を突かれただけだ…」
+;		PRINTFORMW 「私を引き取りに…？」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「そうか。そういう話が…」
+;		PRINTFORMW 「いや、サマナーの下ならば不満は無い」
+;		PRINTFORMW 「だがその…希望を言わせてもらえば、身体を売る様な真似はしたくない…」
+;		PRINTFORMW 「サマナーが相手ならまだしも…」
+;
+;	CASE [[キャラ:フミ]]
+;		PRINTFORMW ＞フミを引き取る為、彼女の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「サマナー、おつかれちん」
+;		PRINTFORMW 「え？引き取りに来た？」
+;		PRINTFORMW 「六日目に出番あるって聞いてたんだけど」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「ふーん、超めんどくさそう」
+;		PRINTFORMW 「ま、奴隷なら奴隷で、研究機材持っていくから」
+;		PRINTFORMW 「機材置ける広い部屋用意しといてね」
+;		PRINTFORMW 「奴隷って私にいやらしい事する気？したい？」
+;		PRINTFORMW 「アンタになら少しは興味あるけど…」
+;
+;	CASE [[キャラ:オトメ]]
+;		PRINTFORMW ＞オトメを引き取る為、彼女の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「あらサマナーさん、どうしたの？」
+;		PRINTFORMW 「ああ、私を引き取りに…」
+;		PRINTFORMW 「でも、私は６日目にフミちゃんとマコトさんと一緒に引き取られるとか…」
+;		PRINTFORMW 「あの話は無くなったのかしら」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「事情は分かったわ」
+;		PRINTFORMW 「でも、奴隷って何をさせられるの？」
+;		PRINTFORMW 「私も女だから、いやらしい事は許して欲しいかな」
+;		PRINTFORMW 「あ、でもサマナーさんなら…」
+;
+;	CASE [[キャラ:ティコ]]
+;		PRINTFORMW ＞ティコを引き取る為、自室の携帯端末を開いた…
+;		PRINTL
+;		PRINTFORMW 「あれ～？どうしたのサマナーっち？」
+;		PRINTFORMW 「えっ？あなたのティコティコ、ティコりんが欲しいって？」
+;		PRINTFORMW ＞%CALLNAME:MASTER%は事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「ティコりんはあの方のお手伝いをしないといけないんだけど…ま、いっか～☆」
+;		PRINTFORMW 「サマナーっちはあの方も認める人間。一緒に付いて行ってあげてもいいよ～☆」
+;		PRINTFORMW ＞そういうと、ティコは実体化した…
+;		PRINTFORMW 「それではサマナーっち、これからよろ…いやこっちかな？」
+;		PRINTL
+;		PRINTFORMW 「ティコりんは電霊ティコ…コンゴトモヨロシク…☆」
+;
+	CASE [[キャラ:ミヤコ]]
+		PRINTFORMW ＞ミヤコを引き取る為、彼女の部屋に向かった…
+		PRINTL
+		PRINTFORMW 「ファントムの悪魔使い。何か御用でしょうか？」
+		PRINTFORMW 「…私が必要、なのですか？」
+		PRINTFORMW 「しかし、私があなたの仲間になる場面はもっと後のはずですが…」
+		PRINTFORMW ＞%CALLNAME:MASTER%は事情を説明した…
+		PRINTL
+		PRINTFORMW 「事情は分かりました」
+		PRINTFORMW 「これも、世界の摂理によるものかもしれません…。あなたに身を委ねましょう」
+		PRINTFORMW 「…ですが、その…せ、性的交渉は控えていただけると…」
+		
+	;-----------------------------
+	;- 男
+	;-----------------------------
+;	CASE [[キャラ:デビサバ２主人公]]
+;		PRINTFORMW ＞デビサバ２主人公を引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW ＞部屋にはデビサバ２主人公が居る…
+;		PRINTFORMW ＞彼の成長タイプはどれだろう…？
+;		;デビサバ２用の加入後処理を呼ぶ
+;		CALL REQUEST_30_GETAFTER_SETUP(L_T)
+;
+;	CASE [[キャラ:ダイチ]]
+;		PRINTFORMW ＞ダイチを引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「あ、サマナーさん、俺に何か用っすか？」
+;		PRINTFORMW 「俺を引き取りに？」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「ど、奴隷なんて…」
+;		PRINTFORMW 「うう、でも拒否権とか無いんです…よね？」
+;		PRINTFORMW 「は、はい！がんばります！」
+;		PRINTFORMW 「うう、昨日まで普通の高校生だったのに…」
+;
+;	CASE [[キャラ:ヤマト]]
+;		PRINTFORMW ＞ヤマトを引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「サマナー、私に何か用か？」
+;		PRINTFORMW 「ほう、私を引き取りに来たか」
+;		PRINTFORMW 「君ほどの人間なら私を欲しがるのも頷ける…良いだろう」
+;
+;	CASE [[キャラ:ケイタ]]
+;		PRINTFORMW ＞ケイタを引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「なんやサマナー、俺になんか用か？」
+;		PRINTFORMW 「あん？俺を引き取りに来た？」
+;		PRINTFORMW 「フン、あのヤマトが７日目に暴れられる言うてたけど嘘かい」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「よく分からんけど、お前んとこで奴隷になれって事か」
+;		PRINTFORMW 「まぁこっちもええけど、お前んとこでも十分鍛えられそうやしな」
+;		PRINTFORMW 「力を付けられるんならこの際どこでもええわ」
+;		PRINTFORMW 「奴隷でも何でもやったるから、強い奴用意せえよ」
+;
+;	CASE [[キャラ:ジュンゴ]]
+;		PRINTFORMW ＞ジュンゴを引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「サマナーさん、お久しぶり」
+;		PRINTFORMW 「？ジュンゴを引き取りに？」
+;		PRINTFORMW 「ジュンゴ、じゅんごとなら一緒に行く…」
+;		PRINTFORMW 「ジュンゴ、じゅんごを置いて行けない…」
+;		PRINTFORMW ＞ジュンゴは猫を抱えている…
+;		PRINTFORMW ＞ジュンゴに猫のじゅんごも連れてくる様に伝えた…
+;		PRINTL
+;		PRINTFORMW 「サマナーさん、ありがとう」
+;		PRINTFORMW 「じゅんご、引越ししよう」
+;		PRINTFORMW ＞ジュンゴは猫のじゅんごを撫でている…
+;
+;	CASE [[キャラ:ジョー]]
+;		PRINTFORMW ＞ジョーを引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「あれ、どったのサマナーさん？」
+;		PRINTFORMW 「え？引き取りに来た？」
+;		PRINTFORMW 「あれ、確か『ドキッ！男しか居ない７日目！』で俺たち出番あるんじゃなかったっけ？」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「へー、作成が追い付かないから取りあえず引き取れる様にしたんだ」
+;		PRINTFORMW 「まぁジプスの官舎も良いけど、サマナーさんのとこも居心地良いのかな？」
+;		PRINTFORMW 「それじゃ荷物まとめてくるから、またね～っ」
+;
+;	CASE [[キャラ:ロナウド]]
+;		PRINTFORMW ＞ロナウドを引き取る為、彼の部屋に向かった…
+;		PRINTL
+;		PRINTFORMW 「サマナーか、どうした？」
+;		PRINTFORMW 「何？俺を引き取りに？」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「そうか…君には俺が必要か…」
+;		PRINTFORMW 「いや、そこまで言われると悪い気はしない」
+;		PRINTFORMW 「私物はそれほど多くないが、幾つか荷をまとめてから伺おう。また後でな」
+;
+;	CASE [[キャラ:サダク]]
+;		PRINTFORMW ＞憂う者を引き取る為、自室に戻った…
+;		PRINTL
+;		PRINTFORMW 「やぁ、輝く者よ」
+;		PRINTFORMW 「今日はどうしたんだい？」
+;		PRINTFORMW ＞あなたは事情を説明した…
+;		PRINTL
+;		PRINTFORMW 「そうか…そういう可能性もあるのか…」
+;		PRINTFORMW 「自分では思い付かなかったが、それも悪くない…」
+;		PRINTFORMW 「そうだな…その前に私の名前を教えておこう」
+;		PRINTFORMW 「私はサダク。アル・サダクだ」
+;		PRINTFORMW 「…それで、君の物になった後は、私は何をすれば良いんだい？」
+ENDSELECT
+SELECTCASE NO:L_T
+	CASE [[キャラ:ヒナコ]], [[キャラ:アイリ]], [[キャラ:マコト]], [[キャラ:フミ]], [[キャラ:オトメ]], [[キャラ:ミヤコ]]
+		PRINTFORMW %CALLNAME:L_T%は%CALLNAME:MASTER%に犯される妄想をしているのか、顔を赤くしている…
+ENDSELECT
+
+PRINTFORMW ………
+PRINTFORMW ……
+PRINTFORMW …
+PRINTFORMW ＞%CALLNAME:L_T%を引き取った
+
+GOTO LIST_TOP
+
+;=================================================
+;   sub REQUEST_30_GETAFTER_SETUP
+;=================================================
+;   依頼:後半入手後のレベル調整
+;-------------------------------------------------
+; Input:
+;  ARG:0				キャラの番号
+;  ARG:1				LV
+;-------------------------------------------------
+@REQUEST_30_GETAFTER_SETUP(ARG:0,ARG:1)
+#DIM L_NO
+
+L_NO = ARG:0
+BASE:L_NO:LV = (ARG:1)
+
+SELECTCASE NO:L_NO
+	CASE [[キャラ:イオ]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 18
+				BASE:L_NO:知恵 = 15
+				BASE:L_NO:魔力 = 18
+				BASE:L_NO:耐力 = 9
+				BASE:L_NO:速さ = 9
+				BASE:L_NO:運 = 1
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル2 = [[スキル:マハ・ジオンガ]]
+				ABL:L_NO:スキル3 = [[スキル:マハ・ジオダイン]]
+				ABL:L_NO:スキル4 = [[スキル:ヒートウェイブ]]
+				ABL:L_NO:スキル5 = [[スキル:リカーム]]
+				ABL:L_NO:スキル6 = [[スキル:デスバウンド]]
+				ABL:L_NO:スキル7 = [[スキル:メ・ディアラマ]]
+				ABL:L_NO:スキル8 = [[スキル:回し蹴り]]
+		ENDSELECT
+	CASE [[キャラ:ダイチ]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 18
+				BASE:L_NO:知恵 = 9
+				BASE:L_NO:魔力 = 6
+				BASE:L_NO:耐力 = 9
+				BASE:L_NO:速さ = 18
+				BASE:L_NO:運 = 10
+				ABL:L_NO:スキル1 = [[スキル:ジオンガ]]
+				ABL:L_NO:スキル2 = [[スキル:トラフーリ]]
+				ABL:L_NO:スキル3 = [[スキル:気合]]
+				ABL:L_NO:スキル4 = [[スキル:なぎ払い]]
+				ABL:L_NO:スキル5 = [[スキル:暴れまくり]]
+				ABL:L_NO:スキル6 = [[スキル:ラク・ンダ]]
+				ABL:L_NO:スキル7 = [[スキル:雄叫び]]
+				ABL:L_NO:スキル8 = [[スキル:追撃の心得]]
+		ENDSELECT
+	CASE [[キャラ:ジョー]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 2
+				BASE:L_NO:知恵 = 11
+				BASE:L_NO:魔力 = 22
+				BASE:L_NO:耐力 = 5
+				BASE:L_NO:速さ = 22
+				BASE:L_NO:運 = 8
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル2 = [[スキル:ガルーラ]]
+				ABL:L_NO:スキル3 = [[スキル:一分の魔脈]]
+				ABL:L_NO:スキル4 = [[スキル:ペンパトラ]]
+				ABL:L_NO:スキル5 = [[スキル:マハ・ガルーラ]]
+				ABL:L_NO:スキル6 = [[スキル:パニックボイス]]
+				ABL:L_NO:スキル7 = [[スキル:タル・ンダ]]
+				ABL:L_NO:スキル8 = [[スキル:リカーム]]
+			;40レベル
+			CASE 40
+				BASE:L_NO:力 = 2
+				BASE:L_NO:知恵 = 12
+				BASE:L_NO:魔力 = 25
+				BASE:L_NO:耐力 = 6
+				BASE:L_NO:速さ = 25
+				BASE:L_NO:運 = 8
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル2 = [[スキル:ガルーラ]]
+				ABL:L_NO:スキル3 = [[スキル:一分の魔脈]]
+				ABL:L_NO:スキル4 = [[スキル:ペンパトラ]]
+				ABL:L_NO:スキル5 = [[スキル:テトラジャ]]
+				ABL:L_NO:スキル6 = [[スキル:パニックボイス]]
+				ABL:L_NO:スキル7 = [[スキル:タル・ンダ]]
+				ABL:L_NO:スキル8 = [[スキル:リカーム]]
+		ENDSELECT
+	CASE [[キャラ:ヤマト]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 15
+				BASE:L_NO:知恵 = 17
+				BASE:L_NO:魔力 = 17
+				BASE:L_NO:耐力 = 6
+				BASE:L_NO:速さ = 7
+				BASE:L_NO:運 = 6
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル2 = [[スキル:コウハ]]
+				ABL:L_NO:スキル3 = [[スキル:ハマオン]]
+				ABL:L_NO:スキル4 = [[スキル:マハンマ]]
+				ABL:L_NO:スキル5 = [[スキル:メ・ディアラマ]]
+				ABL:L_NO:スキル6 = [[スキル:アドバイス]]
+				ABL:L_NO:スキル7 = [[スキル:テトラジャ]]
+				ABL:L_NO:スキル8 = [[スキル:バイコウハ]]
+			;40レベル
+			CASE 40
+				BASE:L_NO:力 = 15
+				BASE:L_NO:知恵 = 20
+				BASE:L_NO:魔力 = 20
+				BASE:L_NO:耐力 = 6
+				BASE:L_NO:速さ = 9
+				BASE:L_NO:運 = 6
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル2 = [[スキル:メギド]]
+				ABL:L_NO:スキル3 = [[スキル:ハマオン]]
+				ABL:L_NO:スキル4 = [[スキル:マハンマ]]
+				ABL:L_NO:スキル5 = [[スキル:メ・ディアラマ]]
+				ABL:L_NO:スキル6 = [[スキル:アドバイス]]
+				ABL:L_NO:スキル7 = [[スキル:テトラジャ]]
+				ABL:L_NO:スキル8 = [[スキル:バイコウハ]]
+		ENDSELECT
+	CASE [[キャラ:マコト]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 19
+				BASE:L_NO:知恵 = 15
+				BASE:L_NO:魔力 = 10
+				BASE:L_NO:耐力 = 10
+				BASE:L_NO:速さ = 12
+				BASE:L_NO:運 = 4
+				ABL:L_NO:スキル1 = [[スキル:アクアダイン]]
+				ABL:L_NO:スキル2 = [[スキル:なぎ払い]]
+				ABL:L_NO:スキル3 = [[スキル:ラク・カジャ]]
+				ABL:L_NO:スキル4 = [[スキル:ラクカジャオート]]
+				ABL:L_NO:スキル5 = [[スキル:三分の活泉]]
+				ABL:L_NO:スキル6 = [[スキル:ディアラハン]]
+				ABL:L_NO:スキル7 = [[スキル:気合]]
+				ABL:L_NO:スキル8 = [[スキル:氷の乱舞]]
+			;40レベル
+			CASE 40
+				BASE:L_NO:力 = 20
+				BASE:L_NO:知恵 = 17
+				BASE:L_NO:魔力 = 14
+				BASE:L_NO:耐力 = 11
+				BASE:L_NO:速さ = 12
+				BASE:L_NO:運 = 4
+				ABL:L_NO:スキル1 = [[スキル:アクアダイン]]
+				ABL:L_NO:スキル2 = [[スキル:なぎ払い]]
+				ABL:L_NO:スキル3 = [[スキル:ラク・カジャ]]
+				ABL:L_NO:スキル4 = [[スキル:ラクカジャオート]]
+				ABL:L_NO:スキル5 = [[スキル:三分の活泉]]
+				ABL:L_NO:スキル6 = [[スキル:ディアラハン]]
+				ABL:L_NO:スキル7 = [[スキル:気合]]
+				ABL:L_NO:スキル8 = [[スキル:テトラカーン]]
+		ENDSELECT
+		
+	CASE [[キャラ:ヒナコ]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 20
+				BASE:L_NO:知恵 = 9
+				BASE:L_NO:魔力 = 3
+				BASE:L_NO:耐力 = 7
+				BASE:L_NO:速さ = 20
+				BASE:L_NO:運 = 11
+				
+				ABL:L_NO:スキル1 = [[スキル:ハッピーステップ]]
+				ABL:L_NO:スキル2 = [[スキル:突撃]]
+				ABL:L_NO:スキル3 = [[スキル:パトラ]]
+				ABL:L_NO:スキル4 = [[スキル:デ・カジャ]]
+				ABL:L_NO:スキル5 = [[スキル:回し蹴り]]
+				ABL:L_NO:スキル6 = [[スキル:食いしばり]]
+				ABL:L_NO:スキル7 = [[スキル:セクシーダンス]]
+				ABL:L_NO:スキル8 = [[スキル:挑発]]
+		ENDSELECT
+		
+	CASE [[キャラ:ケイタ]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 23
+				BASE:L_NO:知恵 = 5
+				BASE:L_NO:魔力 = 2
+				BASE:L_NO:耐力 = 16
+				BASE:L_NO:速さ = 21
+				BASE:L_NO:運 = 3
+				
+				ABL:L_NO:スキル1 = [[スキル:ソニックパンチ]]
+				ABL:L_NO:スキル2 = [[スキル:一分の活泉]]
+				ABL:L_NO:スキル3 = [[スキル:マモリクズシ]]
+				ABL:L_NO:スキル4 = [[スキル:電光石火]]
+				ABL:L_NO:スキル5 = [[スキル:弱者必滅拳]]
+				ABL:L_NO:スキル6 = [[スキル:挑発]]
+				ABL:L_NO:スキル7 = [[スキル:リベラマ]]
+				ABL:L_NO:スキル8 = [[スキル:押し潰し]]
+		ENDSELECT
+		
+	CASE [[キャラ:アイリ]]
+		SELECTCASE BASE:L_NO:LV
+			;30レベル
+			CASE 30
+				BASE:L_NO:力 = 3
+				BASE:L_NO:知恵 = 12
+				BASE:L_NO:魔力 = 16
+				BASE:L_NO:耐力 = 9
+				BASE:L_NO:速さ = 18
+				BASE:L_NO:運 = 5
+				ABL:L_NO:スキル1 = [[スキル:ザンマ]]
+				ABL:L_NO:スキル2 = [[スキル:ペンパトラ]]
+				ABL:L_NO:スキル3 = [[スキル:嵐の乱舞]]
+				ABL:L_NO:スキル4 = [[スキル:雷の乱舞]]
+				ABL:L_NO:スキル5 = [[スキル:一分の魔脈]]
+				ABL:L_NO:スキル6 = [[スキル:マリンカリン]]
+				ABL:L_NO:スキル7 = [[スキル:マカカジャオート]]
+				ABL:L_NO:スキル8 = [[スキル:ディアラハン]]
+			;;35レベル
+			;CASE 35
+			;	BASE:L_NO:力 = 3
+			;	BASE:L_NO:知恵 = 13
+			;	BASE:L_NO:魔力 = 19
+			;	BASE:L_NO:耐力 = 10
+			;	BASE:L_NO:速さ = 20
+			;	BASE:L_NO:運 = 5
+			;	ABL:L_NO:スキル1 = [[スキル:ザンマ]]
+			;	ABL:L_NO:スキル2 = [[スキル:アムリタ]]
+			;	ABL:L_NO:スキル3 = [[スキル:嵐の乱舞]]
+			;	ABL:L_NO:スキル4 = [[スキル:雷の乱舞]]
+			;	ABL:L_NO:スキル5 = [[スキル:一分の魔脈]]
+			;	ABL:L_NO:スキル6 = [[スキル:マリンカリン]]
+			;	ABL:L_NO:スキル7 = [[スキル:マカカジャオート]]
+			;	ABL:L_NO:スキル8 = [[スキル:ディアラハン]]
+		ENDSELECT
+		
+	CASE [[キャラ:ジュンゴ]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 36
+				BASE:L_NO:知恵 = 1
+				BASE:L_NO:魔力 = 1
+				BASE:L_NO:耐力 = 13
+				BASE:L_NO:速さ = 10
+				BASE:L_NO:運 = 9
+				
+				ABL:L_NO:スキル1 = [[スキル:なぎ払い]]
+				ABL:L_NO:スキル2 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル3 = [[スキル:一分の魔脈]]
+				ABL:L_NO:スキル4 = [[スキル:サマーソルト]]
+				ABL:L_NO:スキル5 = [[スキル:エストマ]]
+				ABL:L_NO:スキル6 = [[スキル:食いしばり]]
+				ABL:L_NO:スキル7 = [[スキル:秘孔突き]]
+				ABL:L_NO:スキル8 = [[スキル:気合]]
+		ENDSELECT
+		
+	CASE [[キャラ:フミ]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 3
+				BASE:L_NO:知恵 = 21
+				BASE:L_NO:魔力 = 16
+				BASE:L_NO:耐力 = 6
+				BASE:L_NO:速さ = 21
+				BASE:L_NO:運 = 6
+				ABL:L_NO:スキル1 = [[スキル:メ・ディア]]
+				ABL:L_NO:スキル2 = [[スキル:マハ・ブフーラ]]
+				ABL:L_NO:スキル3 = [[スキル:二分の魔脈]]
+				ABL:L_NO:スキル4 = [[スキル:テンタラフー]]
+				ABL:L_NO:スキル5 = [[スキル:氷の乱舞]]
+				ABL:L_NO:スキル6 = [[スキル:コンセントレイト]]
+				ABL:L_NO:スキル7 = [[スキル:テトラジャ]]
+				ABL:L_NO:スキル8 = [[スキル:マカジャマ]]
+		ENDSELECT
+		
+	CASE [[キャラ:オトメ]]
+		SELECTCASE BASE:L_NO:LV
+			;30レベル
+			CASE 30
+				BASE:L_NO:力 = 3
+				BASE:L_NO:知恵 = 16
+				BASE:L_NO:魔力 = 14
+				BASE:L_NO:耐力 = 13
+				BASE:L_NO:速さ = 10
+				BASE:L_NO:運 = 7
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル3 = [[スキル:ポズムディ]]
+				ABL:L_NO:スキル4 = [[スキル:パトラ]]
+				ABL:L_NO:スキル5 = [[スキル:ラク・カジャ]]
+				ABL:L_NO:スキル6 = [[スキル:メ・ディア]]
+				ABL:L_NO:スキル7 = [[スキル:ドルミナー]]
+				ABL:L_NO:スキル8 = [[スキル:リカーム]]
+			;35レベル
+			;CASE 35
+			;	BASE:L_NO:力 = 3
+			;	BASE:L_NO:知恵 = 17
+			;	BASE:L_NO:魔力 = 17
+			;	BASE:L_NO:耐力 = 16
+			;	BASE:L_NO:速さ = 10
+			;	BASE:L_NO:運 = 7
+			;	ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+			;	ABL:L_NO:スキル3 = [[スキル:ポズムディ]]
+			;	ABL:L_NO:スキル4 = [[スキル:パトラ]]
+			;	ABL:L_NO:スキル5 = [[スキル:ラク・カジャ]]
+			;	ABL:L_NO:スキル6 = [[スキル:チャムディ]]
+			;	ABL:L_NO:スキル7 = [[スキル:ドルミナー]]
+			;	ABL:L_NO:スキル8 = [[スキル:リカーム]]
+			;40レベル
+			CASE 40
+				BASE:L_NO:力 = 3
+				BASE:L_NO:知恵 = 20
+				BASE:L_NO:魔力 = 20
+				BASE:L_NO:耐力 = 18
+				BASE:L_NO:速さ = 10
+				BASE:L_NO:運 = 7
+				ABL:L_NO:スキル1 = [[スキル:ディアラハン]]
+				ABL:L_NO:スキル3 = [[スキル:ポズムディ]]
+				ABL:L_NO:スキル4 = [[スキル:パトラ]]
+				ABL:L_NO:スキル5 = [[スキル:ラク・カジャ]]
+				ABL:L_NO:スキル6 = [[スキル:チャムディ]]
+				ABL:L_NO:スキル7 = [[スキル:ドルミナー]]
+				ABL:L_NO:スキル8 = [[スキル:リカーム]]
+		ENDSELECT
+	CASE [[キャラ:ロナウド]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 23
+				BASE:L_NO:知恵 = 16
+				BASE:L_NO:魔力 = 2
+				BASE:L_NO:耐力 = 20
+				BASE:L_NO:速さ = 6
+				BASE:L_NO:運 = 3
+				ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+				ABL:L_NO:スキル2 = [[スキル:気合]]
+				ABL:L_NO:スキル3 = [[スキル:散弾撃ち]]
+				ABL:L_NO:スキル4 = [[スキル:連続撃ち]]
+				ABL:L_NO:スキル5 = [[スキル:気功(小)]]
+				ABL:L_NO:スキル6 = [[スキル:コーチング]]
+				ABL:L_NO:スキル7 = [[スキル:ミドルショット]]
+				ABL:L_NO:スキル8 = [[スキル:ねらいうち]]
+			;40レベル
+			CASE 40
+				BASE:L_NO:力 = 25
+				BASE:L_NO:知恵 = 19
+				BASE:L_NO:魔力 = 2
+				BASE:L_NO:耐力 = 22
+				BASE:L_NO:速さ = 7
+				BASE:L_NO:運 = 3
+				ABL:L_NO:スキル1 = [[スキル:ディアラハン]]
+				ABL:L_NO:スキル2 = [[スキル:気合]]
+				ABL:L_NO:スキル3 = [[スキル:散弾撃ち]]
+				ABL:L_NO:スキル4 = [[スキル:連続撃ち]]
+				ABL:L_NO:スキル5 = [[スキル:気功(中)]]
+				ABL:L_NO:スキル6 = [[スキル:コーチング]]
+				ABL:L_NO:スキル7 = [[スキル:ミドルショット]]
+				ABL:L_NO:スキル8 = [[スキル:ねらいうち]]
+				
+		ENDSELECT
+		
+	CASE [[キャラ:サダク]]
+		SELECTCASE BASE:L_NO:LV
+			;35レベル
+			CASE 35
+				BASE:L_NO:力 = 12
+				BASE:L_NO:知恵 = 16
+				BASE:L_NO:魔力 = 13
+				BASE:L_NO:耐力 = 12
+				BASE:L_NO:速さ = 12
+				BASE:L_NO:運 = 5
+				
+				ABL:L_NO:スキル1 = [[スキル:なぎ払い]]
+				ABL:L_NO:スキル2 = [[スキル:炎の乱舞]]
+				ABL:L_NO:スキル3 = [[スキル:一分の魔脈]]
+				ABL:L_NO:スキル4 = [[スキル:雷の乱舞]]
+				ABL:L_NO:スキル5 = [[スキル:嵐の乱舞]]
+				ABL:L_NO:スキル6 = [[スキル:ジオンガ]]
+				ABL:L_NO:スキル7 = [[スキル:ザンマ]]
+				ABL:L_NO:スキル8 = [[スキル:マハ・ラギ]]
+		ENDSELECT
+		
+	CASE [[キャラ:デビサバ２主人公]]
+		PRINTW デビサバ２主人公の成長タイプを決めてください
+		PRINTL
+		PRINTL
+		PRINTL [1] 力型
+		PRINTL [2] 魔型
+		
+		CALL INPUTINT(1,2)
+		
+		L_NO = ARG:0
+		BASE:L_NO:LV = (ARG:1)
+		
+		ABL:L_NO:習得LV1 = 10
+		ABL:L_NO:習得LV2 = 14
+		ABL:L_NO:習得LV3 = 18
+		ABL:L_NO:習得LV4 = 22
+		ABL:L_NO:習得LV5 = 26
+		ABL:L_NO:習得LV6 = 30
+		ABL:L_NO:習得LV7 = 34
+		ABL:L_NO:習得LV8 = 38
+		ABL:L_NO:習得LV9 = 42
+		ABL:L_NO:習得LV10 = 46
+		ABL:L_NO:習得LV11 = 50
+		
+		SELECTCASE RESULT
+			;力型
+			CASE 1
+				;物理系を覚える（Slash、Strke）
+				ABL:L_NO:習得スキル1	= [[スキル:利剣乱舞]]
+				ABL:L_NO:習得スキル2	= [[スキル:一分の活泉]]
+				ABL:L_NO:習得スキル3	= [[スキル:回し蹴り]]
+				ABL:L_NO:習得スキル4	= [[スキル:サマーソルト]]
+				ABL:L_NO:習得スキル5	= [[スキル:気合]]
+				ABL:L_NO:習得スキル6	= [[スキル:タル・カジャ]]
+				ABL:L_NO:習得スキル7	= [[スキル:トラエスト]]
+				ABL:L_NO:習得スキル8	= [[スキル:食いしばり]]
+				ABL:L_NO:習得スキル9	= [[スキル:三分の活泉]]
+				ABL:L_NO:習得スキル10	= [[スキル:デスバウンド]]
+				ABL:L_NO:習得スキル11	= [[スキル:万魔の一撃]]
+				
+				SELECTCASE BASE:L_NO:LV
+					CASE 35
+						BASE:L_NO:力 = 20
+						BASE:L_NO:知恵 = 4
+						BASE:L_NO:魔力 = 4
+						BASE:L_NO:耐力 = 12
+						BASE:L_NO:速さ = 18
+						BASE:L_NO:運 = 12
+						
+						ABL:L_NO:スキル1 = [[スキル:トラエスト]]
+						ABL:L_NO:スキル2 = [[スキル:暴れまくり]]
+						ABL:L_NO:スキル3 = [[スキル:利剣乱舞]]
+						ABL:L_NO:スキル4 = [[スキル:一分の活泉]]
+						ABL:L_NO:スキル5 = [[スキル:回し蹴り]]
+						ABL:L_NO:スキル6 = [[スキル:サマーソルト]]
+						ABL:L_NO:スキル7 = [[スキル:気合]]
+						ABL:L_NO:スキル8 = [[スキル:タル・カジャ]]
+					CASEELSE
+						ABL:L_NO:スキル1	= [[スキル:ディア]]
+						ABL:L_NO:スキル2	= [[スキル:突撃]]
+				
+				ENDSELECT
+				
+				PRINTL
+				PRINTL ＞名前を聞くと、亜斗羅 修太郎（あとら・しゅうたろう）と言うそうだ…
+				
+				NAME:L_NO	= 亜斗羅 修太郎
+				CALLNAME:L_NO	= シュータロー
+			;魔型
+			CASE 2
+				;魔法系を覚える（回復・Force）※相手を翻弄する衝撃的なセクハラ
+				ABL:L_NO:習得スキル1	= [[スキル:マハ・ザン]]
+				ABL:L_NO:習得スキル2	= [[スキル:一分の魔脈]]
+				ABL:L_NO:習得スキル3	= [[スキル:メ・ディア]]
+				ABL:L_NO:習得スキル4	= [[スキル:嵐の乱舞]]
+				ABL:L_NO:習得スキル5	= [[スキル:コンセントレイト]]
+				ABL:L_NO:習得スキル6	= [[スキル:マカ・カジャ]]
+				ABL:L_NO:習得スキル7	= [[スキル:トラエスト]]
+				ABL:L_NO:習得スキル8	= [[スキル:食いしばり]]
+				ABL:L_NO:習得スキル9	= [[スキル:ディアラハン]]
+				ABL:L_NO:習得スキル10	= [[スキル:リカーム]]
+				ABL:L_NO:習得スキル11	= [[スキル:万魔の乱舞]]
+				
+				SELECTCASE BASE:L_NO:LV
+					;35レベル
+					CASE 35
+						BASE:L_NO:力 = 4
+						BASE:L_NO:知恵 = 15
+						BASE:L_NO:魔力 = 21
+						BASE:L_NO:耐力 = 8
+						BASE:L_NO:速さ = 18
+						BASE:L_NO:運 = 5	
+						
+						ABL:L_NO:スキル1 = [[スキル:ディアラマ]]
+						ABL:L_NO:スキル2 = [[スキル:ザンマ]]
+						ABL:L_NO:スキル3 = [[スキル:トラエスト]]
+						ABL:L_NO:スキル4 = [[スキル:一分の魔脈]]
+						ABL:L_NO:スキル5 = [[スキル:メ・ディア]]
+						ABL:L_NO:スキル6 = [[スキル:嵐の乱舞]]
+						ABL:L_NO:スキル7 = [[スキル:コンセントレイト]]
+						ABL:L_NO:スキル8 = [[スキル:マカ・カジャ]]
+						
+					CASEELSE
+						ABL:L_NO:スキル1	= [[スキル:ディア]]
+						ABL:L_NO:スキル2	= [[スキル:ザン]]
+				ENDSELECT
+				
+				;アニメ版終盤の彼はどう考えても魔型なので…
+				PRINTL
+				PRINTL ＞名前を聞くと、久世 響希（くぜ・ひびき）と言うそうだ…
+		
+				NAME:L_NO	= 久世 響希
+				CALLNAME:L_NO	= ヒビキ
+				
+		ENDSELECT
+		
+		PRINTL ＞名前と呼び名を変えますか？
+		CALL INPUT_YN
+		IF RESULT == 0
+			PRINTL ＞新しい名前を入力してください
+			PRINTL ＞名前を変更しない場合は、空入力をして下さい
+			PRINTL
+			INPUTS
+			SIF RESULTS != ""
+				NAME:L_NO = %RESULTS%
+			
+			PRINTL ＞新しい呼び名を入力してください
+			PRINTL ＞呼び名を変更しない場合は、空入力をして下さい
+			PRINTL
+			INPUTS
+			SIF RESULTS != ""
+				CALLNAME:L_NO = %RESULTS%
+		ENDIF
+ENDSELECT
+CALL SYNC_STATUS,(L_NO)
+CALL HEALTH_CHARA,(L_NO)
+
+;=================================================
+;   sub REQUEST_30_NICAEA_BOOTVIEW
+;=================================================
+;   依頼:ニカイア起動画面表示
+;-------------------------------------------------
+;   フォーマットは下記
+;
+; ┏━━━━━━━━━━━━━┓
+; ┃Nicaea βver.　　　　　　 ┃
+; ┃Death Face Delivery Site　┃
+; ┗━━━━━━━━━━━━━┛
+;-------------------------------------------------
+; Input:
+;  ARGS:0				ニカイアバージョン
+;  ARGS:1				サブタイトル
+;-------------------------------------------------
+@REQUEST_30_NICAEA_BOOTVIEW(ARGS,ARGS:1)
+CUSTOMDRAWLINE =
+LOCALS = Nicaea %ARGS%
+PRINTFORML ┏━━━━━━━━━━━━━┓
+PRINTFORML ┃%LOCALS,26,LEFT%┃
+PRINTFORML ┃%ARGS:1,26,LEFT%┃
+PRINTFORML ┗━━━━━━━━━━━━━┛
+CUSTOMDRAWLINE =
+WAIT

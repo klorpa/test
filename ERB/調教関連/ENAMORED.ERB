@@ -1,0 +1,64 @@
+
+@ENAMORED_CHECK
+;忠誠度が一定値以上なら従順が3まで上がり、恋慕がつく
+LOCAL:2 = 0
+
+;最初にオプションONしたとき、xPAINx・快楽・屈服刻印が１以上（おそらく調教済み、例外は既に恋慕付きのチカリンだけ？）のキャラは除外するように
+IF MAXBASE:MASTER:忠誠度 == 0
+	FOR LOCAL,0,CHARANUM
+		SIF LOCAL == MASTER
+			CONTINUE
+		SIF CFLAG:LOCAL:被調教回数 > 0 || 陥落(LOCAL) || CFLAG:LOCAL:NTRフラグ > 0
+			CONTINUE
+		SIF MARK:LOCAL:苦痛刻印 || MARK:LOCAL:快楽刻印 || MARK:LOCAL:屈服刻印
+			CFLAG:LOCAL:被調教回数 += 1
+	NEXT
+	MAXBASE:MASTER:忠誠度 = 1
+ENDIF
+
+IF FLAG:未調教時陥落 > 0
+	FOR LOCAL,0,CHARANUM
+		SIF LOCAL == MASTER
+			CONTINUE
+		SIF CFLAG:LOCAL:被調教回数 > 0 || 陥落(LOCAL) || CFLAG:LOCAL:NTRフラグ > 0
+			CONTINUE
+		;必要な忠誠度を算出。
+		LOCAL:1 = 10000 + (ABS(ABL:LOCAL:属性LD - ABL:MASTER:属性LD) + ABS(ABL:LOCAL:属性LC - ABL:MASTER:属性LC)) * 5000
+		;同性の場合は、謎の魅力が必要かつ必要な忠誠度２倍
+		IF IS_LESBIAN(LOCAL,MASTER) || IS_GAY(LOCAL,MASTER)
+			SIF TALENT:MASTER:謎の魅力 == 0
+				CONTINUE
+			LOCAL:1 *= 2
+		ELSEIF TALENT:MASTER:謎の魅力
+		;異性相手かつ主人が謎の魅力持ちの場合、0.8倍
+			TIMES LOCAL:1,0.8
+		ENDIF
+		SIF (BASE:LOCAL:忠誠度 - MAXBASE:LOCAL:忠誠度) < LOCAL:1
+			CONTINUE
+		IF (FLAG:未調教時陥落 == 1 && CFLAG:LOCAL:戦闘参加不可能 == -1) || FLAG:未調教時陥落 == 2
+			PRINTL 
+			PRINTFORMW %CALLNAME:LOCAL% looks different somehow.
+			PRINTFORMW %CALLNAME:LOCAL%'s trust in %CALLNAME:MASTER% built up, and %HE_SHE(LOCAL)% became fond of %HIM_HER(MASTER)%.
+			PRINTFORMW %NAME:LOCAL% developed 【Affection】 for %CALLNAME:MASTER%.
+			PRINTL 
+			MARK:LOCAL:屈服刻印 = MAX(MARK:LOCAL:屈服刻印,3)
+			ABL:LOCAL:従順 = MAX(ABL:LOCAL:従順,3)
+			TALENT:LOCAL:恋慕 = 1
+			CFLAG:LOCAL:未調教陥落 = 1
+			SIF CFLAG:LOCAL:戦闘参加不可能 == -1
+				CFLAG:LOCAL:戦闘参加不可能 = 0
+			FLAG:恋慕人数 += 1
+			FLAG:今周回恋慕人数 += 1
+			;主人に落とされていることを保存
+			CFLAG:LOCAL:2400 = 2
+			CFLAG:LOCAL:陥落キャラ = CFLAG:MASTER:キャラ固有の番号
+			SIF ABL:LOCAL:種族 != 0
+				CALL CHECK_LEVEL_UP, LOCAL
+			LOCAL:2 = 1
+		ENDIF
+	NEXT
+	RETURN LOCAL:2
+ELSE
+	RETURN 0
+ENDIF
+

@@ -1,0 +1,103 @@
+
+;-1未満,CHARANUM以上 :追加卑語なし
+;-1                  :成人男性を想定した追加卑語
+;0以上,CHARANUM未満  :指定番号キャラの性別や体格で追加卑語
+@卑語_精液(ARG=-1)
+#FUNCTIONS
+IF LOCAL == 0
+	LOCALS:(LOCAL++) = 精液
+	LOCALS:(LOCAL++) = 子種汁
+	LOCALS:(LOCAL++) = ザー汁
+	LOCALS:(LOCAL++) = チンポミルク
+	LOCALS:(LOCAL++) = チンポエキス
+	LOCAL:1 = LOCAL
+ENDIF
+LOCAL = LOCAL:1
+IF ARG == -1
+	LOCALS:(LOCAL++) = ザーメン
+	LOCALS:(LOCAL++) = チンポ汁
+	LOCALS:(LOCAL++) = オスミルク
+	LOCALS:(LOCAL++) = オス汁	
+ELSEIF INRANGE(ARG,0,CHARANUM-1)
+	;獣
+	IF IS_BEAST(ARG)
+		LOCALS:(LOCAL++) = 野生ザーメン
+		IF TALENT:ARG:獣
+			LOCALS:(LOCAL++) = 獣姦精液
+			LOCALS:(LOCAL++) = 獣姦チンポ汁
+			LOCALS:(LOCAL++) = ケモミルク
+			LOCALS:(LOCAL++) = ケダモノ汁
+		ENDIF
+		IF TALENT:ARG:爬虫類
+			LOCALS:(LOCAL++) = 爬虫類エキス
+			LOCALS:(LOCAL++) = 爬虫類ミルク
+			LOCALS:(LOCAL++) = トカゲ汁
+		ENDIF
+		IF TALENT:ARG:不定形
+			LOCALS:(LOCAL++) = 体液
+			LOCALS:(LOCAL++) = スライム汁
+		ENDIF
+		;IF TALENT:ARG:魚
+		;	;LOCALS:(LOCAL++) = 魚汁
+		;ENDIF
+	ELSE
+		LOCALS:(LOCAL++) = ザーメン
+		;一般的な男性
+		IF IS_LOOKSLIKE_MALE(ARG) && GROUPMATCH(体格(ARG),0,1)
+			LOCALS:(LOCAL++) = チンポ汁
+			LOCALS:(LOCAL++) = オスミルク
+			LOCALS:(LOCAL++) = オス汁
+		;それ以外の男(男の子、男の娘)
+		ELSEIF IS_MALE(ARG) && ( TALENT:ARG:男の娘 || GROUPMATCH(体格(ARG),-1) )
+			LOCALS:(LOCAL++) = ショタエキス
+			LOCALS:(LOCAL++) = ショタミルク
+			LOCALS:(LOCAL++) = ショタ汁
+		ELSEIF !IS_MALE(ARG)
+			LOCALS:(LOCAL++) = 牝チンポ汁
+			LOCALS:(LOCAL++) = 牝チンポミルク
+			LOCALS:(LOCAL++) = ふたなり汁
+			LOCALS:(LOCAL++) = ふたなりエキス
+		ENDIF
+		;小人
+		IF 体格(ARG) <= -10
+			LOCALS:(LOCAL++) = 妖精ミルク
+			LOCALS:(LOCAL++) = 妖精チンポ汁
+			LOCALS:(LOCAL++) = 妖精ミルク
+			LOCALS:(LOCAL++) = 妖精チンポ汁
+		;巨体
+		ELSEIF 体格(ARG) >= 10
+			LOCALS:(LOCAL++) = デカチンポ汁
+			LOCALS:(LOCAL++) = デカマラ汁
+			LOCALS:(LOCAL++) = デカマラミルク
+		ENDIF
+		;絶倫
+		SIF TALENT:ARG:絶倫
+			LOCALS:(LOCAL++) = 無限ザーメン
+		;早漏(早漏がないのでＣSensitive)
+		IF TALENT:ARG:Ｃ敏感
+			LOCALS:(LOCAL++) = 早漏ザーメン
+			LOCALS:(LOCAL++) = 早漏精液
+		ENDIF
+	ENDIF
+ENDIF
+
+LOCALS:LOCAL = %LOCALS:(RAND:LOCAL)%
+SIF ARG == -1
+	GOTO ランダム修飾
+
+;修飾
+IF EXP:ARG:射精経験 == 0
+	LOCALS:LOCAL = 初物%LOCALS:LOCAL%
+ELSEIF EXP:ARG:性交経験 == 0
+	LOCALS:LOCAL = 童貞%LOCALS:LOCAL%
+ELSE
+	$ランダム修飾
+	SELECTCASE RAND:100
+	CASE IS < 3
+		LOCALS:LOCAL = 濃厚%LOCALS:LOCAL%
+	CASE IS < 6
+		LOCALS:LOCAL = 特濃%LOCALS:LOCAL%
+	ENDSELECT
+ENDIF
+
+RETURNF LOCALS:LOCAL

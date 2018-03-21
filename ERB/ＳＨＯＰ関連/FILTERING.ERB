@@ -1,0 +1,55 @@
+@SHOPCOMABLE_667
+RESULTS = Filter Chars
+;一応、マスターしかいないときは除外
+SIF CHARANUM < 2
+	RETURN 0
+RETURN 1
+
+@SHOP_COM_667
+CALL INPUT_CHARA_LIST("Please select a character to change their filter setting", "CASTING_SHOP_COM_667")
+IF RESULT == 1000
+	;FOR LOCAL, 0, CHARANUM - 1
+	;	IF CFLAG:LOCAL:フィルタリングフラグ
+	;		FOR LOCAL:1, LOCAL, CHARANUM
+	;			SIF CFLAG:(LOCAL:1):フィルタリングフラグ
+	;				CONTINUE
+	;			SIF TARGET == LOCAL:1
+	;				TARGET = LOCAL
+	;			SWAPCHARA LOCAL, LOCAL:1
+	;			BREAK
+	;		NEXT
+	;	ENDIF
+	;NEXT
+	;ポジションに齟齬が発生するので、FLAG側を初期化＋CFLAG側から読み込み
+	CALL REFRESH_POS
+	RETURN 0
+ENDIF
+INVERTBIT CFLAG:RESULT:フィルタリングフラグ,0
+IF CFLAG:RESULT:フィルタリングフラグ
+	;ターゲットから外す
+	FOR LOCAL, 0, 4
+		IF LOCAL == 0
+			SIF TARGET == RESULT
+				TARGET = -1
+			SIF ASSI == RESULT
+				ASSI = -1
+		ENDIF
+		SIF TARGET:LOCAL == CFLAG:RESULT:キャラ固有の番号
+			TARGET:LOCAL = -1
+		SIF ASSI:LOCAL == CFLAG:RESULT:キャラ固有の番号 && LOCAL < 3
+			ASSI:LOCAL -= 1
+	NEXT
+ENDIF
+RESTART
+
+@CASTING_SHOP_COM_667
+;主人公は除外
+SIF COUNT == 0
+	RETURN 0
+;仕事中のキャラも面倒なことになりそうだし、基本的にフィルターかけるとは思えないので除外
+SIF CFLAG:COUNT:労役フラグ
+	RETURN 0
+;いないキャラも除外
+SIF CFLAG:COUNT:この場に居ないフラグ == 1
+	RETURN 0
+RETURN 1

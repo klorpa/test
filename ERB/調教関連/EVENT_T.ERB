@@ -1,0 +1,649 @@
+;EVENT_T.ERB、EVENT_TRAIN、調教時及び調教前後のイベント
+@EVENTTRAIN
+#PRI
+;主人公の射精を0に
+BASE:MASTER:2 = 0
+BASE:MASTER:3 = 0
+BASE:MASTER:99 = 0
+;いちおう調教対象と助手も
+BASE:TARGET:2 = 0
+BASE:TARGET:99 = 0
+IF ASSI >= 0
+	ISASSI:ASSI = 1
+	BASE:ASSI:2 = 0
+	BASE:ASSI:3 = 0
+	BASE:ASSI:99 = 0
+ENDIF
+BASE:TARGET:3 = 0
+BASE:MASTER:4 = 0
+
+;射精限界数の確保
+REPEAT CHARANUM
+	CFLAG:COUNT:11 = 10 + (EXP:COUNT:絶頂経験/200 + EXP:COUNT:射精経験/200)
+	SIF TALENT:COUNT:絶倫 == 1
+		TIMES CFLAG:COUNT:11,1.50
+	LOCAL = 10000
+	SIF TALENT:152
+		LOCAL /= 2
+	MAXBASE:COUNT:2 = LOCAL
+	MAXBASE:COUNT:99 = LOCAL
+REND
+
+;射精後の充填時間をリセット
+CFLAG:MASTER:9 = 0
+CFLAG:TARGET:9 = 0
+SIF ASSI >= 0
+	CFLAG:ASSI:9 = 0
+
+;射精フラグ、処女喪失フラグなどをリセット
+VARSET TFLAG, 0, 0, 200
+;SELECTCOM・PREVCOMの廃棄
+VARSET SELECTCOM, -1
+VARSET PREVCOM, -1
+;REPEAT 200
+;	TFLAG:COUNT = 0
+;REND
+
+;膣内にヴァギナ汚れを付加
+;SIF HAVE_VAGINA(TARGET)
+;	CALL SET_STAIN("膣内", "愛液", TARGET)
+;SIF HAVE_VAGINA(MASTER)
+;	STAIN:MASTER:6 |= 1
+;IF ASSI >= 0
+;	SIF HAVE_VAGINA(ASSI)
+;		STAIN:ASSI:6 |= 1
+;ENDIF
+
+;コンドーム自動装着設定のリセット
+FLAG:98 = 0
+
+;コンドーム射精フラグをリセット
+CFLAG:107 = 0
+
+;調教者は誰か
+IF ASSIPLAY == 0
+	PLAYER = MASTER
+ELSE
+	PLAYER = ASSI
+ENDIF
+
+;主導権を最初から握っているか
+TEQUIP:MASTER:主導権 = 1
+SIF ASSI >= 0
+	TEQUIP:ASSI:主導権 = 1
+	
+IF CFLAG:TARGET:初期主導権 && ABL:TARGET:従順 < 3
+	TEQUIP:TARGET:主導権 = 1
+	TEQUIP:MASTER:主導権 = 0
+	SIF ASSI >= 0
+		TEQUIP:ASSI:主導権 = 0
+ENDIF
+CFLAG:TARGET:被調教回数 += 1
+
+@EVENTTRAIN
+#LATER
+;戦闘参加不可能フラグの消去
+;便利な関数が出来てたので早速利用
+IF CFLAG:TARGET:戦闘参加不可能
+	SIF CFLAG:TARGET:売却可能 || 陥落(TARGET)
+		CFLAG:TARGET:戦闘参加不可能 = 0
+ENDIF
+
+@EVENTTURNEND
+#PRI
+;売却や助手化が可能になったか
+SIF TARGET < 0
+	RETURN 0
+
+SIF ABL:従順+ABL:欲望 < 6
+	RETURN 0
+SIF ABL:従順 < 4 && ((TALENT:11 && TALENT:5 == 0 && TALENT:8 == 0) || TALENT:12)
+	RETURN 0
+SIF ABL:欲望 < 4 && (TALENT:20 || TALENT:32 || TALENT:34)
+	RETURN 0
+LOCAL = 0
+SIF ABL:技巧 >= 2 && ABL:奉仕精神 >= 2
+	LOCAL += 1
+SIF ABL:技巧 >= 4 && ABL:奉仕精神 >= 4
+	LOCAL += 1
+SIF ABL:露出癖 >= 3 && ABL:自慰中毒
+	LOCAL += 1
+SIF ABL:マゾっ気 >= 3
+	LOCAL += 1
+SIF ABL:3+ABL:4+ABL:5+ABL:6 >= 8
+	LOCAL += 1
+SIF ABL:3+ABL:4+ABL:5+ABL:6 >= 13
+	LOCAL += 1
+SIF ABL:従順 >= 4
+	LOCAL += 1
+SIF ABL:欲望 >= 4
+	LOCAL += 1
+SIF ABL:精液中毒
+	LOCAL += 1
+SIF ABL:獣姦中毒
+	LOCAL += 1
+SIF ABL:触手中毒
+	LOCAL += 1
+SIF ABL:輪姦中毒
+	LOCAL += 1
+SIF ABL:キス中毒
+	LOCAL += 1
+SIF (ABL:レズっ気 >= 3 && ABL:レズ中毒) || (ABL:ＢＬっ気 >= 3 && ABL:ＢＬ中毒)
+	LOCAL += 1
+SIF ABL:料理技能 >= 2 || ABL:歌唱技能 >= 2
+	LOCAL += 1
+SIF MARK:屈服刻印 >= 3 && MARK:快楽刻印 >= 3
+	LOCAL += 1
+SIF MARK:屈服刻印 >= 3 && MARK:苦痛刻印 >= 3
+	LOCAL += 1
+
+;IF GROUPMATCH(1,(ABL:技巧 >= 3 && ABL:奉仕精神 >= 3) , (ABL:露出癖 >= 3 && ABL:自慰中毒) , ABL:マゾっ気 >= 3 , ABL:3+ABL:4+ABL:5+ABL:6 >= 13 , ABL:0 >= 5 , ABL:1 >= 5) >= 2
+IF LOCAL > MIN(6,CSVBASE(NO:TARGET,GETNUM(BASE,"LV"),0)/10 + (ABL:種族 == 0))
+	IF CFLAG:1 <= 0
+		PRINTFORMW %NAME:TARGET% can now be sold.
+		CFLAG:1 = 1
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
+
+IF ABL:0+ABL:1+ABL:2+(TALENT:オトコ ? ABL:ＢＬっ気 # ABL:レズっ気) >= 12
+	IF CFLAG:1 <= 1
+		PRINTFORMW %NAME:TARGET% became available as an assistant.
+		CFLAG:1 = 2
+	ENDIF
+ENDIF
+
+@EVENTTURNEND
+;IF TARGET >= 0
+;	;ストレス値の加算
+;	CFLAG:TARGET:10 += 1
+;	SIF MARK:3 > 2
+;		CFLAG:TARGET:10 += 1
+;	;ストレス値100以上で崩壊を得る
+;	SIF CFLAG:TARGET:10 >= 100 && TALENT:9 == 0
+;		CALL COLLAPSE_MIND_TRAIN
+;ENDIF
+
+IF ASSI >= 0
+	IF TALENT:ASSI:91 && ITEM:41 == 0
+		PRINTW Your assisstant's [Youko] caused an aphrodisiac effect.
+		;[妖狐]の効果で媚薬を手に入れました
+		ITEM:41 = 1
+	ENDIF
+ENDIF
+
+REPEAT 100
+	SIF ITEM:COUNT < 0
+		ITEM:COUNT = 0
+REND
+
+RETURN 0
+
+@ASSI_CHANGE
+;[狐]かつ技巧LV5、Ｃ感覚LV5で処女
+IF TALENT:ASSI:90 && (ABL:ASSI:2 >= 5 && ABL:ASSI:3 >= 5 && TALENT:ASSI:0)
+	DRAWLINE
+	PRINTFORML %NAME:ASSI%'s [Kitsune] awakened and turned into [Youko].
+	;は[妖狐]となった
+	DRAWLINE
+	WAIT
+	TALENT:ASSI:90 = 0
+	TALENT:ASSI:91 = 1
+ENDIF
+
+$INPUT_LOOP
+;[不思議な根]かつＣ感覚LV5、精液中毒LV3以上
+IF TALENT:ASSI:138 && (ABL:ASSI:3 >= 5 && ABL:ASSI:16 >= 3) && TALENT:ASSI:139 == 0 && !IS_MALE(ASSI)
+	DRAWLINE
+	PRINTFORML ...it seems %CALLNAME:ASSI%'s [Mysterious rod] is becoming active.
+	;……どうやら[不思議な根]の効果が現れそうだ
+	PRINTFORMW Will you allow %CALLNAME:ASSI% to become a [Futa]?
+	;%CALLNAME:ASSI%を[Futa]にしますか？
+	PRINTL [0] - Allow change
+	PRINTL [1] - Stop change
+	INPUT
+	IF RESULT == 0
+		PRINTFORML %NAME:ASSI%'s [Mysterious rod] turned her into a [Futa].
+		;%NAME:ASSI%の[不思議な根]は[Futa]となった
+		TALENT:ASSI:139 = 1
+	ELSEIF RESULT == 1
+		PRINTFORML %NAME:ASSI% suppressed the effect of the [Mysterious rod] and it disappeared...
+		;%NAME:ASSI%は[不思議な根]を失った
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+	DRAWLINE
+	WAIT
+	TALENT:ASSI:138 = 0
+ENDIF
+
+$INPUT_LOOP_2
+;[具現]かつ欲望LV5かレズっ気LV4以上
+IF TALENT:ASSI:146 && (ABL:ASSI:1 >= 5 || ABL:ASSI:11 >= 4) && TALENT:ASSI:139 == 0 && !IS_MALE(ASSI)
+	DRAWLINE
+	PRINTFORML ...it seems %CALLNAME:ASSI%'s [Embodiment] is becoming active.
+	;……どうやら[具現]の効果が現れそうだ
+	PRINTFORML Will you allow %CALLNAME:ASSI% to become a [Futa]?
+	PRINTL [0] - Allow change
+	PRINTL [1] - Stop change
+	INPUT
+	IF RESULT == 0
+		PRINTFORML %NAME:ASSI%'s [Embodiment] turned her into a [Futa].
+		TALENT:ASSI:139 = 1
+	ELSEIF RESULT == 1
+		PRINTFORML %NAME:ASSI% suppressed the effect of [Embodiment] and it disappeared...
+	ELSE
+		GOTO INPUT_LOOP_2
+	ENDIF
+	DRAWLINE
+	WAIT
+	TALENT:ASSI:146 = 0
+ENDIF
+
+;ISASSI:ASSI = 1
+
+RETURN 0
+
+@YOUJI
+;調教者が幼稚
+IF TALENT:PLAYER:151
+	PRINTS NAME:PLAYER
+	PRINT が乳を吸ううちに
+	PRINTS NAME:TARGET
+	PRINTW は母乳が出るようになった
+	TALENT:149 = 1
+ENDIF
+
+@EVENTCOMEND
+
+IF EXP:0 == 0 && EXP:1 > 0 && TALENT:30 && CFLAG:100
+	CFLAG:100 = 1
+	PRINTW 貞操を守れるなら、少しは後ろを攻められてもよいと思っているようだ……
+ENDIF
+@EVENTCOMEND
+#PRI
+SIF PLAYER == MASTER
+	CFLAG:TARGET:構ったフラグ = 1
+
+;調教で【崩壊】を得た場合のイベント
+@COLLAPSE_MIND_TRAIN
+;陥落持ちかどうかで必要忠誠度変化
+IF 陥落(TARGET)
+	IF (CFLAG:TARGET:ストレス値 -99) * 100 <= BASE:TARGET:忠誠度
+		PRINTFORMW %CALLNAME% seems to be very stressed...
+		;は強くストレスを感じているようだ……
+		PRINTFORMW %CALLNAME%'s loyalty decreased by {(CFLAG:TARGET:ストレス値 -99) * 100}.
+		;%CALLNAME%の忠誠度が{(CFLAG:TARGET:ストレス値 -99) * 100}減少した
+		BASE:TARGET:忠誠度 -= (CFLAG:TARGET:ストレス値 -99) * 100
+		CFLAG:ストレス値 = 99
+		RETURN 0
+	ENDIF
+ELSE
+	IF (CFLAG:TARGET:ストレス値 -99) * 500 <= BASE:TARGET:忠誠度
+		PRINTFORMW %CALLNAME% seems to be very stressed...
+		PRINTFORMW %CALLNAME%'s loyalty decreased by {(CFLAG:TARGET:ストレス値 -99) * 500}.
+		BASE:TARGET:忠誠度 -= (CFLAG:TARGET:ストレス値 -99) * 500
+		CFLAG:ストレス値 = 99
+		RETURN 0
+	ENDIF
+ENDIF
+
+PRINTFORMW %CALLNAME:TARGET% has a strange look.
+;%CALLNAME:TARGET%の様子がおかしい
+PRINTFORMW It seems that because of the severe traing, %CALLNAME:TARGET% spirit became abnormal.
+;激しい調教の影響によって、%CALLNAME:TARGET%の精神に異常をきたしてしまったようだ
+PRINTFORMW %NAME:TARGET% has 【Collapsed】.
+;%NAME:TARGET%は【崩壊】してしまった
+TALENT:9 = 1
+IF TALENT:3 || TALENT:4 || TALENT:5 || TALENT:6 || TALENT:7 || TALENT:8
+	PRINTFORM %CALLNAME:TARGET%'s [
+	SIF TALENT:3
+		PRINTS TALENTNAME_E(3)
+	SIF TALENT:4
+		PRINTS TALENTNAME_E(4)
+	SIF TALENT:5
+		PRINTS TALENTNAME_E(5)
+	SIF TALENT:6
+		PRINTS TALENTNAME_E(6)
+	SIF TALENT:7
+		PRINTS TALENTNAME_E(7)
+	SIF TALENT:8
+		PRINTS TALENTNAME_E(8)
+	PRINTW ] was lost.
+	SIF TALENT:3
+		TALENT:3 = 0
+	SIF TALENT:4
+		TALENT:4 = 0
+	SIF TALENT:5
+		TALENT:5 = 0
+	SIF TALENT:6
+		TALENT:6 = 0
+	SIF TALENT:7
+		TALENT:7 = 0
+	SIF TALENT:8
+		TALENT:8 = 0
+ENDIF
+
+@EVENTEND
+#PRI
+SIF TARGET > 0 && TALENT:TARGET:ペルソナ使い
+	CALL ISABLE_EVOLUTE_PERSONA
+
+@EVENTEND
+#LATER
+PRINTL End of training
+IF CFLAG:TARGET:戦闘参加不可能 == -1
+	SETCOLOR 0xff0033
+	PRINTFORML From receiving training, %NAME:TARGET% lost some trust in %NAME:MASTER% and will no longer participate in battle.
+	PRINTFORMW ※ Fullfill their sell condition or make them 'fall', and they will participate again
+	;調教を受けたことにより、%NAME:TARGET%は%NAME:MASTER%への信頼を失い、戦闘に参加しなくなりました
+	CFLAG:戦闘参加不可能 = 1
+	SIF CFLAG:ポジション > 0
+		CALL REMOVE_POSITION,CFLAG:ポジション
+	RESETCOLOR
+ENDIF
+;非戦闘員が食堂で働いていて、労役の条件を満たさなくなったら労役解除
+IF (ABL:TARGET:従順 + ABL:TARGET:奉仕精神 + ABL:TARGET:料理技能 + TALENT:TARGET:恋慕*3 + TALENT:TARGET:親愛*6) < 6 && TALENT:TARGET:非戦闘員 && CFLAG:TARGET:被調教回数 && CFLAG:TARGET:労役フラグ == 1
+	SETCOLOR 0xff0033
+	PRINTFORMW From being trained, %NAME:TARGET% lost some trust in %NAME:MASTER% and will no longer work.
+	;調教を受けたことにより、%NAME:TARGET%は%NAME:MASTER%への信頼を失い、労役しなくなりました
+	CFLAG:TARGET:労役フラグ = 0
+	RESETCOLOR
+ENDIF
+
+
+;調教後行為のチェック
+CALL SELF_CHECK
+
+;搾乳した母乳の売却
+CALL SELL_MILK
+
+;調教時に録画したビデオを売却
+CALL SELL_VIDEO
+
+;調教時に撮影した写真を売却
+CALL SELL_PICTURE
+
+;何の珠を得られたか
+CALL JUEL_CHECK
+
+;否定の珠の打ち消しチェック
+CALL DENIAL_CHECK
+
+CALL CHANGE_ALI
+
+BEGIN ABLUP
+
+;ストレス値の加算
+CFLAG:TARGET:10 += 1
+SIF MARK:TARGET:3 > 2
+	CFLAG:TARGET:10 += 1
+;ストレス値100以上で崩壊を得る
+SIF CFLAG:TARGET:10 >= 100 && TALENT:TARGET:9 == 0
+	CALL COLLAPSE_MIND_TRAIN
+
+@JUEL_CHECK
+
+LOCAL = (EX:0 + EX:1 + EX:2 +EX:3+EX:4+EX:5)*2
+REPEAT 15
+	IF PALAM:COUNT < PALAMLV:1
+		G = 0
+	ELSEIF PALAM:COUNT < PALAMLV:1*3
+		G = 1
+	ELSEIF PALAM:COUNT < PALAMLV:2
+		G = 2
+	ELSEIF PALAM:COUNT < PALAMLV:2*3
+		G = 10
+	ELSEIF PALAM:COUNT < PALAMLV:3
+		G = 20
+	ELSEIF PALAM:COUNT < PALAMLV:3*2
+		G = 100
+	ELSEIF PALAM:COUNT < PALAMLV:4
+		G = 200
+	ELSEIF PALAM:COUNT < PALAMLV:5
+		G = 1000
+	ELSEIF PALAM:COUNT < PALAMLV:6
+		G = 2000
+	ELSEIF PALAM:COUNT < PALAMLV:7
+		G = 3000
+	ELSEIF PALAM:COUNT < PALAMLV:8
+		G = 5000
+	ELSEIF PALAM:COUNT < PALAMLV:9
+		G = 8000
+	ELSEIF PALAM:COUNT < PALAMLV:10
+		G = 12000
+	ELSEIF PALAM:COUNT < PALAMLV:11
+		G = 25000
+	ELSEIF PALAM:COUNT < PALAMLV:12
+		G = 40000
+	ELSEIF PALAM:COUNT < PALAMLV:13
+		G = 60000
+	ELSEIF PALAM:COUNT < PALAMLV:14
+		G = 100000
+	ELSEIF PALAM:COUNT < PALAMLV:15
+		G = 250000
+	ELSEIF PALAM:COUNT < PALAMLV:16
+		G = 500000
+	ELSE
+		G = 1000000
+	ENDIF
+
+	IF COUNT == 0
+		GOTJUEL:COUNT = G + EX:0 * 1000
+	ELSEIF COUNT == 1
+		GOTJUEL:COUNT = G + EX:1 * 1000
+	ELSEIF COUNT == 2
+		GOTJUEL:COUNT = G + EX:2 * 1000
+	ELSEIF COUNT == 3
+		GOTJUEL:COUNT = G + EX:3 * 1000
+	ELSEIF COUNT < 12
+		GOTJUEL:COUNT = G
+		LOCAL += PALAMLV_F(TARGET,PALAMNAME:COUNT)*3
+	ELSE
+		GOTJUEL:100 += G
+	ENDIF
+REND
+
+DRAWLINE
+PRINTL Result of training:
+IF LOCAL > 0 && FLAG:(20000+NO:TARGET)
+	PRINTFORML Analysis level ＋{LOCAL/10}.{LOCAL%10}％
+	CALL INCREASE_ANALYZE,NO:TARGET,LOCAL
+ENDIF
+D = 0
+REPEAT 15
+	IF COUNT == 0
+		D = 0
+	ELSEIF COUNT == 1
+		D = 1
+	ELSEIF COUNT == 2
+		D = 2
+	ELSEIF COUNT == 3
+		D = 3
+	ELSEIF COUNT == 4
+		D = 4
+	ELSEIF COUNT == 5
+		D = 5
+	ELSEIF COUNT == 6
+		D = 6
+	ELSEIF COUNT == 7
+		D = 7
+	ELSEIF COUNT == 8
+		D = 8
+	ELSEIF COUNT == 9
+		D = 9
+	ELSEIF COUNT == 10
+		D = 10
+	ELSEIF COUNT == 11
+		D = 11
+	ELSEIF COUNT == 12
+		D = 12
+	ELSEIF COUNT == 13
+		D = 13
+	ELSEIF COUNT == 14
+		D = 14
+	ENDIF
+	
+	IF D == 12
+		PRINTFORML %PALAMNAME_E(100)% Orbs×({JUEL:100}+{GOTJUEL:100})
+		JUEL:100 += GOTJUEL:100
+	ELSEIF D != 4 && D != 13 && D != 14
+		PRINTFORML %PALAMNAME_E(D)% Orbs×({JUEL:D}+{GOTJUEL:D})
+		JUEL:D += GOTJUEL:D
+	ENDIF
+	
+REND
+
+PRINTW Received above Orbs
+
+@DENIAL_CHECK
+SIF JUEL:100 == 0
+	RETURN 0
+
+SIF SUMARRAY(JUEL,5,8) < 1
+	RETURN 0
+
+$LABEL_1
+A = RAND:3 + 5
+B = JUEL:100 / 2
+SIF B == 0 && JUEL:100 > 0
+	B = 1
+SIF JUEL:A < B
+	B = JUEL:A
+JUEL:A -= B
+JUEL:100 -= B
+
+SIF B > 0
+	PRINTFORML %PALAMNAME_E(A)% Orbs ×{B} removed
+	;減少
+SIF JUEL:100 > 0 && (JUEL:5 + JUEL:6 + JUEL:7) > 0
+	GOTO LABEL_1
+
+$LABEL_2
+A = RAND:3 + 9
+B = JUEL:100 / 2
+SIF B == 0 && JUEL:100 > 0
+	B = 1
+SIF JUEL:A < B
+	B = JUEL:A
+JUEL:A -= B
+JUEL:100 -= B
+SIF B > 0
+	PRINTFORML %PALAMNAME_E(A)% Orbs ×{B} removed
+	;個減少
+SIF JUEL:100 > 0 && (JUEL:9 + JUEL:10 + JUEL:11) > 0
+	GOTO LABEL_2
+
+DRAWLINE
+PRINTL Negative Orbs have been subtracted.
+PRINTL As a result,
+D = 0
+REPEAT 13
+	IF COUNT == 0
+		D = 0
+	ELSEIF COUNT == 1
+		D = 1
+	ELSEIF COUNT == 2
+		D = 2
+	ELSEIF COUNT == 3
+		D = 3
+	ELSEIF COUNT == 4
+		D = 4
+	ELSEIF COUNT == 5
+		D = 5
+	ELSEIF COUNT == 6
+		D = 6
+	ELSEIF COUNT == 7
+		D = 7
+	ELSEIF COUNT == 8
+		D = 8
+	ELSEIF COUNT == 9
+		D = 9
+	ELSEIF COUNT == 10
+		D = 10
+	ELSEIF COUNT == 11
+		D = 11
+	ELSEIF COUNT == 12
+		D = 12
+	ENDIF
+	
+
+	IF D == 12
+		PRINTFORML %PALAMNAME_E(100)% Orbs ×({JUEL:100})
+	ELSEIF D != 4
+		PRINTFORML %PALAMNAME_E(D)% Orbs ×({JUEL:D})
+	ENDIF
+
+REND
+
+PRINTW It change to what is above.
+
+@CHANGE_ALI
+;ALI変更処理、主人・助手・調教対象全員かかわるのでここで,とはいえ助手はちょっとどうしたモンかなって感じなので、無視する形で保留
+;とりあえず、主人と調教対象のALIの平均に、主人は1、調教対象は陥落していれば4、していなければ2だけ近づく
+;主人もしくは対象がLonely Ringを装備しているとき変動が発生しない
+IF EQUIP:MASTER:アクセサリ != 5010 && TARGET >= 0 && EQUIP:TARGET:アクセサリ != 5010
+	;主人のみLiving Soul Ringsを装備(より主人の側に近づきやすくなる)
+	IF EQUIP:MASTER:アクセサリ == 5034 && EQUIP:TARGET:アクセサリ != 5034
+		LOCAL = (CFLAG:MASTER:善悪値 * 2 + CFLAG:TARGET:善悪値) / 3
+		LOCAL:1 = 5
+		LOCAL:2 = 1
+	;奴隷のみLiving Soul Ringsを装備(より奴隷の側に近づきやすくなる)
+	ELSEIF EQUIP:MASTER:アクセサリ != 5034 && EQUIP:TARGET:アクセサリ == 5034
+		LOCAL = (CFLAG:MASTER:善悪値 + CFLAG:TARGET:善悪値 * 2 ) / 3
+		LOCAL:1 = 3
+		LOCAL:2 = 3
+	;両方がLiving Soul Ringsを装備しているか、どちらも装備していない
+	ELSE
+		LOCAL = (CFLAG:MASTER:善悪値 + CFLAG:TARGET:善悪値) / 2
+		LOCAL:1 = 3
+		LOCAL:2 = 1
+	ENDIF
+	IF 陥落(TARGET)
+		CALL CHANGE_CHARA_LD,TARGET,LOCAL,LOCAL:1 * 2
+	ELSE
+		CALL CHANGE_CHARA_LD,TARGET,LOCAL,LOCAL:1
+	ENDIF
+	CALL CHANGE_CHARA_LD,MASTER,LOCAL,LOCAL:2
+
+	;主人のみLiving Soul Ringsを装備(より主人の側に近づきやすくなる)
+	IF EQUIP:MASTER:アクセサリ == 5034 && EQUIP:TARGET:アクセサリ != 5034
+		LOCAL = (CFLAG:MASTER:秩混値 * 2 + CFLAG:TARGET:秩混値) / 3
+		LOCAL:1 = 5
+		LOCAL:2 = 1
+	;奴隷のみLiving Soul Ringsを装備(より奴隷の側に近づきやすくなる)
+	ELSEIF EQUIP:MASTER:アクセサリ != 5034 && EQUIP:TARGET:アクセサリ == 5034
+		LOCAL = (CFLAG:MASTER:秩混値 + CFLAG:TARGET:秩混値 * 2 ) / 3
+		LOCAL:1 = 3
+		LOCAL:2 = 3
+	;両方がLiving Soul Ringsを装備しているか、どちらも装備していない
+	ELSE
+		LOCAL = (CFLAG:MASTER:秩混値 + CFLAG:TARGET:秩混値) / 2
+		LOCAL:1 = 3
+		LOCAL:2 = 1
+	ENDIF
+	IF 陥落(TARGET)
+		CALL CHANGE_CHARA_LC,TARGET,LOCAL,LOCAL:1 * 2
+	ELSE
+		CALL CHANGE_CHARA_LC,TARGET,LOCAL,LOCAL:1
+	ENDIF
+	CALL CHANGE_CHARA_LC,MASTER,LOCAL,LOCAL:2
+ENDIF
+
+@ISABLE_EVOLUTE_PERSONA
+;強化フラグが奇数 = 強化待ちの時は終了
+SIF CFLAG:ペルソナ強化フラグ % 2 == 1
+	RETURN 0
+;2段階目が飛ばされて、3段階目が設定されている場合は0から2まで進める
+SIF !ABL:初期ペルソナ2 && ABL:初期ペルソナ3 && !CFLAG:ペルソナ強化フラグ
+	CFLAG:ペルソナ強化フラグ = 2
+IF CFLAG:ペルソナ強化フラグ == 0 && 陥落(TARGET) >= 1 && BASE:LV >= 30 && ABL:初期ペルソナ2
+	CFLAG:ペルソナ強化フラグ = 1
+	TFLAG:ペルソナ強化可能 = 2
+ENDIF
+IF CFLAG:ペルソナ強化フラグ == 2 && 陥落(TARGET) >= 2 && BASE:LV >= 50 && ABL:初期ペルソナ3
+	CFLAG:ペルソナ強化フラグ = 3
+	TFLAG:ペルソナ強化可能 = 3
+ENDIF
+

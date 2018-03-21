@@ -1,0 +1,229 @@
+;-------------------------------------------------
+;鰻風呂
+;ハードな調教コマンド、レベル4
+;-------------------------------------------------
+@ACT_COM151
+PRINTL Eel Bath
+TSTR:0 = 鰻風呂
+;CALL KOJO_MESSAGE_COM
+
+F = 1
+R = 1
+;Vに道具を挿入している場合
+IF TEQUIP:13 || TALENT:オトコ
+	F = 0
+ELSE
+	;V経験を伴うコマンドのフラグ(処女膜再生対応)
+	TFLAG:19 = 1
+ENDIF
+
+;Aに道具を挿入している場合
+IF TEQUIP:14 || TEQUIP:15 || TEQUIP:21 || TEQUIP:22 || TEQUIP:23
+	R = 0
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 400
+DOWNBASE:TARGET:気力 += 650
+
+SOURCE:TARGET:快Ｃ = 100
+SOURCE:TARGET:快Ｂ = 100
+SOURCE:TARGET:痛み = 1000
+SOURCE:TARGET:恐れ = 2000
+SOURCE:TARGET:屈従 = 1200
+SOURCE:TARGET:不潔 = 800
+SOURCE:TARGET:逸脱 = 1500
+SOURCE:TARGET:反感 = 1500
+;Vに道具を挿入している場合
+IF F > 0
+	SOURCE:1 = 100
+	SOURCE:TARGET:痛み += 500
+	SOURCE:TARGET:恐れ += 500
+ENDIF
+;Aに道具を挿入している場合
+IF R > 0
+	SOURCE:TARGET:快Ａ = 100
+	SOURCE:TARGET:痛み += 500
+	SOURCE:TARGET:恐れ += 500
+ENDIF
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;Vに道具を挿入している場合のみ見る
+IF F > 0
+	;Vへの苦痛は先に処理しておく
+	;EXP:Ｖ経験をみる（処女の反感は別途処理済みなので省略）
+	IF EXP:0 < EXPLV:1
+		TIMES SOURCE:TARGET:痛み , 2.50
+	ELSEIF EXP:0 < EXPLV:2
+		TIMES SOURCE:TARGET:痛み , 0.80
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF EXP:0 < EXPLV:3
+		TIMES SOURCE:TARGET:痛み , 0.40
+	ELSEIF EXP:0 < EXPLV:4
+		TIMES SOURCE:TARGET:痛み , 0.10
+	ELSEIF EXP:0 < EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.00
+	ELSEIF EXP:0 >= EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.00
+	ENDIF
+
+	;PALAM:潤滑をみる
+	IF PALAM:4 < PALAMLV:1
+		TIMES SOURCE:TARGET:痛み , 1.20
+		TIMES SOURCE:TARGET:反感 , 1.50
+	ELSEIF PALAM:4 < PALAMLV:2
+		TIMES SOURCE:TARGET:痛み , 0.70
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF PALAM:4 < PALAMLV:3
+		TIMES SOURCE:TARGET:痛み , 0.40
+	ELSEIF PALAM:4 < PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.10
+	ELSEIF PALAM:4 >= PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.10
+	ENDIF
+ENDIF
+
+;Aに道具を挿入している場合のみ見る
+IF R > 0
+	;Aへの苦痛は先に処理しておく
+	;EXP:Ａ経験をみる
+	IF EXP:1 < EXPLV:1
+		TIMES SOURCE:TARGET:痛み , 3.00
+		TIMES SOURCE:TARGET:反感 , 3.00
+	ELSEIF EXP:1 < EXPLV:2
+		TIMES SOURCE:TARGET:痛み , 1.20
+		TIMES SOURCE:TARGET:反感 , 2.00
+	ELSEIF EXP:1 < EXPLV:3
+		TIMES SOURCE:TARGET:痛み , 0.80
+		TIMES SOURCE:TARGET:反感 , 1.50
+	ELSEIF EXP:1 < EXPLV:4
+		TIMES SOURCE:TARGET:痛み , 0.60
+		TIMES SOURCE:TARGET:反感 , 1.20
+	ELSEIF EXP:1 < EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.40
+	ELSEIF EXP:1 >= EXPLV:5
+		TIMES SOURCE:TARGET:痛み , 0.20
+	ENDIF
+
+	;PALAM:潤滑をみる
+	IF PALAM:4 < PALAMLV:1
+		TIMES SOURCE:TARGET:痛み , 1.20
+		TIMES SOURCE:TARGET:反感 , 2.00
+	ELSEIF PALAM:4 < PALAMLV:2
+		TIMES SOURCE:TARGET:痛み , 1.00
+		TIMES SOURCE:TARGET:反感 , 1.50
+	ELSEIF PALAM:4 < PALAMLV:3
+		TIMES SOURCE:TARGET:痛み , 0.60
+	ELSEIF PALAM:4 < PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.30
+	ELSEIF PALAM:4 >= PALAMLV:4
+		TIMES SOURCE:TARGET:痛み , 0.20
+	ENDIF
+ENDIF
+
+;特にハードなコマンドでは、AbnormalEXPに応じて効果を減らす
+IF EXP:50 < EXPLV:1
+	TIMES SOURCE:TARGET:恐れ , 1.20
+	TIMES SOURCE:TARGET:逸脱 , 1.20
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:50 < EXPLV:2
+	TIMES SOURCE:TARGET:恐れ , 0.90
+	TIMES SOURCE:TARGET:逸脱 , 0.90
+	TIMES SOURCE:TARGET:反感 , 0.90
+ELSEIF EXP:50 < EXPLV:3
+	TIMES SOURCE:TARGET:恐れ , 0.80
+	TIMES SOURCE:TARGET:逸脱 , 0.80
+	TIMES SOURCE:TARGET:反感 , 0.80
+ELSEIF EXP:50 < EXPLV:4
+	TIMES SOURCE:TARGET:恐れ , 0.70
+	TIMES SOURCE:TARGET:逸脱 , 0.70
+	TIMES SOURCE:TARGET:反感 , 0.70
+ELSEIF EXP:50 < EXPLV:5
+	TIMES SOURCE:TARGET:恐れ , 0.60
+	TIMES SOURCE:TARGET:逸脱 , 0.60
+	TIMES SOURCE:TARGET:反感 , 0.60
+ELSE
+	TIMES SOURCE:TARGET:恐れ , 0.50
+	TIMES SOURCE:TARGET:逸脱 , 0.50
+	TIMES SOURCE:TARGET:反感 , 0.50
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;粘液の汚れ
+;STAIN:TARGET:1 = 32
+;STAIN:TARGET:2 = 32
+;STAIN:TARGET:3 = 32
+CALL SET_STAIN("手", "粘液", TARGET)
+CALL SET_STAIN("ペニス", "粘液", TARGET)
+CALL SET_STAIN("ヴァギナ", "粘液", TARGET)
+;SIF R > 0
+SIF !USE_ANUS(TARGET)
+	CALL SET_STAIN("アナル", "粘液", TARGET)
+	;STAIN:TARGET:4 = 32
+;STAIN:TARGET:5 = 32
+;IF F > 0
+CALL SET_STAIN("胸", "粘液", TARGET)
+IF !USE_VAGINA(TARGET)	
+	CALL SET_STAIN("膣内", "粘液", TARGET)
+	;STAIN:TARGET:6 = 32
+	;膣内に破瓜の血の汚れを付加
+	SIF TALENT:0 == 1 || TALENT:1 == 1
+		CALL SET_STAIN("膣内", "破瓜の血", TARGET)
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;V経験
+IF F > 0
+	IF EXP:0 == 0
+;		EXP:50 += 2
+;		PRINTL AbnormalEXP＋２
+		CALL ADDS_ABNORMAL_EXP("Lost virginity（Eel bath）", TARGET)
+	ENDIF
+	CALL ADDS_EXP("Ｖ経験", 2, TARGET)
+ENDIF
+
+;A経験
+IF R > 0
+	CALL ADDS_EXP("Ａ経験", 2, TARGET)
+	;PRINTL ＡEXP＋２
+	STAIN:TARGET:4 = 8
+ENDIF
+
+;AbnormalEXPが5未満のとき、AbnormalEXP追加
+IF EXP:50 < 5
+;	EXP:50 += 2
+;	PRINTL AbnormalEXP＋２
+	CALL ADDS_ABNORMAL_EXP("Eel bath", TARGET)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_151
+RETURN COMTYPE("ハード系")
+
+
+
+

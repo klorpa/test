@@ -1,0 +1,1641 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:デビオク.ERB
+;	Facility	:デビオクに関する関数群です。
+;
+;	Licence		:ライセンスフリー
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2014/09/17		ネトリス					
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;デビオク
+;売却した固有キャラ（主に人間）の買戻しと、他作品キャラの落札が出来る(NOは5100台:メガテンキャラ、5200台:その他キャラ)
+;書品リストは１買い戻し、２他作品キャラで4枠づつ表示される
+;買戻しは売却額+売却額/2
+;商品の入れ替えは１週間
+;入れ替えられた商品は他へ変われた扱いになり、買い取られた先にちなんだ経験を受ける
+;
+;
+;会員情報変更では魔貨を支払う事でランクを上げる事が出来る
+;ランクが上がると商品の枠が増える
+;予約する事で１週間過ぎてもその枠だけ商品が入れ替えられなくなる
+;ただし、一日に付き購入額の１％（最低額５００魔貨）を支払わなければいけない
+;
+;==========================================================
+;==========================================================
+;SHOPCOMABLE_124
+; ショップ画面での表示設定
+;<引数>
+;	ARG = 店舗番号
+;<戻り値>
+;	なし
+;========================================================
+@SHOPCOMABLE_124
+;イベント『デビオク利用登録のお知らせ』終了後から表示
+IF イベントフラグ:40:0
+	RESULTS = Devil Auction
+	RETURN 1
+;条件を満たしていない場合は表示しない
+ELSE
+	RESULTS = ？？？？？
+	RETURN 0
+ENDIF
+
+
+
+;==========================================================
+;SHOP_COM_124
+; デビオク処理
+;<引数>
+;	ARG = 店舗番号
+;<戻り値>
+;	なし
+;========================================================
+@SHOP_COM_124
+CLEARLINE LINECOUNT
+PRINTFORMW Welcome to Devil Auction
+$LOOP_START
+CLEARLINE LINECOUNT
+PRINTFORML [1] Look at goods
+PRINTFORML [2] Change membership details
+PRINTFORML [3] Help
+PRINTFORML [100] Return
+
+CALL INPUTINT(1, 2, 3, 100)
+
+SELECTCASE RESULT
+	;商品を見る
+	CASE 1
+		CALL デビオク_リスト
+		GOTO LOOP_START
+		
+	;会員情報変更
+	CASE 2
+		LOCALS = -Basic-
+		;普通
+		LOCALS:1 = -Gold-
+		;ゴールド
+		LOCALS:2 = -Platinum-
+		;プラチナ
+		LOCALS:3 = -Underground-
+		;アングラ
+		;次ランクに必要な魔貨
+		LOCAL = 80000
+		LOCAL:1 = 300000
+		LOCAL:2 = 1500000
+		
+		$LOOP_会員情報変更_1
+		CLEARLINE LINECOUNT
+		
+		PRINTFORML 
+		PRINTFORML Current Rank:　%LOCALS:(FLAG:デビオクランク)%
+		PRINTFORML 
+		
+		SELECTCASE FLAG:デビオクランク
+			CASE IS < 3
+				PRINTFORML [1] Increase rank　{LOCAL:(FLAG:デビオクランク)} macca
+				PRINTFORML [100] Return
+				CALL INPUTINT(1, 100)
+				SELECTCASE RESULT
+					;ランクを上げる
+					CASE 1
+						;魔貨が足りない場合
+						IF MONEY:1 < LOCAL:(FLAG:デビオクランク)
+							PRINTFORMW Not enough macca
+							GOTO LOOP_会員情報変更_1
+						ENDIF
+						
+						PRINTFORMW Your rank became %LOCALS:(FLAG:デビオクランク+1)%
+						
+						MONEY:1 -= LOCAL:(FLAG:デビオクランク)
+						FLAG:デビオクランク += 1
+						
+					;もどる
+					CASE 100
+						GOTO LOOP_START
+						
+				
+				ENDSELECT
+
+			CASE 3
+				PRINTFORML [100] Return
+				;ただ押すだけ
+				CALL INPUTINT(100)
+				GOTO LOOP_START
+
+		ENDSELECT
+		GOTO LOOP_START
+		
+	;ヘルプ
+	CASE 3
+		$LOOP_ヘルプ
+		CLEARLINE LINECOUNT
+		PRINTFORML [1] How to bid successfully
+		PRINTFORML [2] Used and new goods
+		PRINTFORML [3] Reservation
+		PRINTFORML [4] Changing membership details
+		PRINTFORML [100] Return
+		
+		CALL INPUTINT(1, 2, 3, 4, 100)
+		SELECTCASE RESULT
+			CASE 1
+				PRINTFORML -How to bid successfully-
+				PRINTFORML 
+				PRINTFORML Choose what you want to buy and press 『Bid』
+				PRINTFORMW Then、to confirm the bid、choose『Bid for it』when you are sure
+				PRINTFORML 
+				PRINTFORMW Bidding to completed with this
+				PRINTFORML 
+				
+				
+			CASE 2
+				
+				PRINTFORML -Used and new goods-
+				PRINTFORML 
+				PRINTFORML Used goods can be the following
+				PRINTFORML 
+				PRINTFORML 『Sold unique human characters（CSV:NO.4500～4999）and Devil Auction exclusive demons（CSV:NO.5100～5299）』
+				PRINTFORML 
+				PRINTFORMW If the is no 『character that was sold』 then it'll be out of stock.
+				PRINTFORML 
+				PRINTFORML 
+				PRINTFORML New goods are 『キャラCSV：5100～5299』 characters
+				PRINTFORML (Megaten Characters:5100～5199、non-Megaten Characters:5200～5299)
+				PRINTFORMW When there aren't any, ＜Out of stock＞ will shown instead.
+				PRINTFORML 
+				PRINTFORML You could get characters that are hard to get through events
+				PRINTFORML Of if you want characters of others works to appear
+				PRINTFORMW Use this for those cases
+				PRINTFORML 
+				PRINTFORML ＜Attention＞
+				PRINTFORML 
+				PRINTFORML The new and used goods categories get new stock every Monday.
+				PRINTFORMW If you didn't bid for an NPC you wanted, they might not be there next time.
+				PRINTFORML 
+				PRINTFORMW You can ensure they'll stay there by making a reservation.
+				PRINTFORML 
+				PRINTFORML 
+				PRINTFORML Devil Auction information is not carried over in new game plus.
+				PRINTFORMW Please note that characters still that weren't bought weren't initialized
+				PRINTFORML 
+				
+			CASE 3
+				
+				PRINTFORML -Reservation-
+				PRINTFORML 
+				PRINTFORML You can make a reservation to prevent a product from being removed when the stock changes
+				PRINTFORML But you must pay １％ of the bid price to do this
+				PRINTFORMW Note: Minimum price is ５００ macca
+				PRINTFORML 
+				PRINTFORML 
+				
+				
+			CASE 4
+				
+				PRINTFORML -Changing membership details-
+				PRINTFORML 
+				PRINTFORML You can pay a set sum to increase the products available each week.
+				PRINTFORMW You can do this up to ４ times.
+				PRINTFORML 
+				
+			CASE 100
+				GOTO LOOP_START
+
+		ENDSELECT
+		GOTO LOOP_ヘルプ
+		
+	;もどる
+	CASE 100
+		RETURN
+
+ENDSELECT
+
+
+;==========================================================
+;デビオク_リスト
+; デビオク商品処理
+;<引数>
+;	ARG = 店舗番号
+;<戻り値>
+;	なし
+;========================================================
+@デビオク_リスト, ARG
+#DIM 商品, 4
+#DIM 固有番号退避
+CLEARLINE LINECOUNT
+PRINTFORML [1] Used goods
+PRINTFORML [2] New goods
+PRINTFORML [100] Return
+
+CALL INPUTINT(1, 2, 100)
+
+SELECTCASE RESULT
+	;中古品
+	CASE 1
+		$L00P_予約_1
+		;見やすいように入れ替え
+		FOR LOCAL, 0, 4
+			商品:LOCAL = デビオク商品リスト:0:LOCAL
+			
+		NEXT
+		CLEARLINE LINECOUNT
+		PRINTFORML -List of used goods-
+		FOR LOCAL, 0, FLAG:デビオクランク+1
+			IF 商品:LOCAL > 0
+				PRINTFORM [{LOCAL+1}]%CSVNAME(商品:LOCAL,0), 18, LEFT%　　　{中古キャラ売却価格:(商品:LOCAL-4500):0*2} macca
+				;予約しているかどうか
+				IF デビオク予約フラグ:0:LOCAL
+					SETCOLOR COLOR("PINK")
+					PRINTFORML 　　Already reserved
+					RESETCOLOR
+				
+				ELSE
+					PRINTFORML 
+				ENDIF
+				
+			ELSE
+				PRINTFORML ＜Out of stock＞
+			ENDIF
+		NEXT
+		
+		PRINTFORML [100] Return
+		$LOOP_1
+		;普通にINPUT使えばいいのだろうけれど、INPUTINTが気に入ってるので回りくどく
+		SELECTCASE FLAG:デビオクランク
+			CASE 0
+				CALL INPUTINT(1, 100)
+			CASE 1
+				CALL INPUTINT(1, 2, 100)
+		
+			CASE 2
+				CALL INPUTINT(1, 2, 3, 100)
+		
+			CASE 3
+				CALL INPUTINT(1, 2, 3, 4, 100)
+		
+		ENDSELECT
+		
+		;もどる
+		SIF RESULT == 100
+			RESTART
+		
+		
+		;在庫がない場合はループ
+		SIF 商品:(RESULT-1) < 1
+			GOTO LOOP_1
+		
+		
+		;選択したキャラ番号
+		ARG = 商品:(RESULT-1)
+		
+		;売却価格
+		ARG:1 = 中古キャラ売却価格:(ARG-4500):0*2
+		
+		;選んだデビオク商品リスト:0:LOCALの番号を保存
+		ARG:2 = RESULT-1
+		PRINTFORML 
+		PRINTFORML %CSVNAME(ARG,0)%　　　Price:{ARG:1} macca
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML [1] Bid
+		PRINTFORML [2] Reserve
+		PRINTFORML [100] Return
+		CALL INPUTINT( 1, 2, 100)
+		
+		
+		SELECTCASE RESULT
+			;落札
+			CASE 1
+				
+				PRINTFORML Bid for %CSVNAME(ARG,0)%?　　　Successful bid price:{ARG:1} macca
+				PRINTFORML 
+				CALL INPUT_YN, "Bid", "Do not"
+				
+				;やめる
+				SIF RESULT == 1
+					RESTART
+				
+				
+				;足りない場合はもどる
+				IF MONEY:1 < ARG:1
+					PRINTFORMW Not enough macca
+					RETURN
+				ENDIF
+				
+				PRINTFORMW %CSVNAME(ARG,0)% was bought.
+				
+				MONEY:1 -= ARG:1
+				
+				CALL ADD_NEW_COMPANION, ARG
+				ARG = GETCHARA(ARG)
+				
+				固有番号退避 = CFLAG:ARG:キャラ固有の番号
+				
+				;ABL入れ替え
+				FOR LOCAL, 0, 291
+					ABL:ARG:LOCAL = 中古キャラABL:(NO:ARG-4500):LOCAL
+				NEXT
+
+				;BASE入れ替え
+				FOR LOCAL, 0, 100
+					BASE:ARG:LOCAL = 中古キャラBASE:(NO:ARG-4500):LOCAL
+				NEXT
+				
+				;CFLAG保存入れ替え
+				FOR LOCAL, 200, 600
+					CFLAG:ARG:LOCAL = 中古キャラCFLAG:(NO:ARG-4500):(LOCAL-200)
+				NEXT
+				
+				;CFLAG保存2入れ替え
+				FOR LOCAL, 600, 1000
+					CFLAG:ARG:LOCAL = 中古キャラCFLAG2:(NO:ARG-4500):(LOCAL-600)
+				NEXT
+				
+				;CFLAG保存3入れ替え
+				FOR LOCAL, 1551, 1572
+					CFLAG:ARG:LOCAL = 中古キャラCFLAG3:(NO:ARG-4500):(LOCAL-1551)
+				NEXT
+
+				;CFLAGAbnormalEXP記録保存
+				CFLAG:ARG:異常経験記録 = 中古キャラCFLAG異常経験記録:(NO:ARG-4500):0
+				
+				CFLAG:ARG:キャラ固有の番号 = 固有番号退避
+	
+				;EXP入れ替え
+				FOR LOCAL, 0, 84
+					EXP:ARG:LOCAL = 中古キャラEXP:(NO:ARG-4500):LOCAL
+				NEXT
+
+				;TALENT入れ替え
+				FOR LOCAL, 0, 160
+					TALENT:ARG:LOCAL = 中古キャラTALENT:(NO:ARG-4500):LOCAL
+				NEXT
+				
+				;MARK保存
+				FOR LOCAL, 0, 4
+					MARK:ARG:LOCAL = 中古キャラMARK:(NO:ARG-4500):LOCAL
+				NEXT
+				
+				;恋慕・親愛の場合は反発刻印をつける
+				SIF Affection(ARG) || Love(ARG)
+					MARK:ARG:反発刻印 = 3
+
+				;とりあえず否定の珠を５万にしておく（きつ過ぎる場合は要変更）
+				JUEL:ARG:否定 = 50000
+				
+				
+				;中古フラグ解除
+				中古キャラ売却済み:(NO:ARG-4500):0 = 0
+
+				;売却価格リセット
+				中古キャラ売却価格:(NO:ARG-4500):0 = 0
+				
+				;売り切れ処理
+				デビオク商品リスト:0:(ARG:2) = -1
+				
+				;予約解除
+				デビオク予約フラグ:0:(ARG:2) = 0
+				GOTO L00P_予約_1
+
+				;予約料計算（落札価格の１％を毎日支払う、最低額は500）
+				LOCAL = ARG:1/100
+				SIF LOCAL < 500
+					LOCAL = 500
+				FLAG:デビオク予約料金 -= LOCAL
+
+			;予約
+			CASE 2
+			
+				;予約料計算（落札価格の１％を毎日支払う、最低額は500）
+				LOCAL = ARG:1/100
+				SIF LOCAL < 500
+					LOCAL = 500
+				
+				SELECTCASE デビオク予約フラグ:0:(ARG:2)
+					;予約
+					CASE 0
+							
+						PRINTFORML %CSVNAME(ARG,0)% was reserved.
+						PRINTFORMW {LOCAL} macca will be taken every day
+						デビオク予約フラグ:0:(ARG:2) = ARG
+						FLAG:デビオク予約料金 += LOCAL
+					
+					
+					;予約解除（取り消しは無料）
+					CASEELSE
+						PRINTFORMW Reservation canceled.
+						デビオク予約フラグ:0:(ARG:2) = 0
+						FLAG:デビオク予約料金 -= LOCAL
+						
+				ENDSELECT
+				GOTO L00P_予約_1
+			CASE 100
+				RESTART
+		ENDSELECT
+		
+		
+		
+	;新品
+	CASE 2
+		$L00P_予約_新品
+		;見やすいように入れ替え
+		FOR LOCAL, 0, 4
+			商品:LOCAL = デビオク商品リスト:1:LOCAL
+			
+		NEXT
+		CLEARLINE LINECOUNT
+		PRINTFORML -List of new goods-
+		FOR LOCAL, 0, FLAG:デビオクランク+1
+			IF 商品:LOCAL > 0
+				PRINTFORM [{LOCAL+1}]%CSVNAME(商品:LOCAL,0), 18, LEFT%　　　{中古キャラ売却価格:(商品:LOCAL-4500):0} macca
+				;予約しているかどうか
+				IF デビオク予約フラグ:1:LOCAL
+					SETCOLOR COLOR("PINK")
+					PRINTFORML 　　Reserved
+					RESETCOLOR
+				
+				ELSE
+					PRINTFORML 
+				ENDIF
+				
+			ELSE
+				PRINTFORML ＜Out of stock＞
+			ENDIF
+		NEXT
+		
+		PRINTFORML [100] Return
+		$LOOP_2
+		;普通にINPUT使えばいいのだろうけれど、INPUTINTが気に入ってるので回りくどく
+		SELECTCASE FLAG:デビオクランク
+			CASE 0
+				CALL INPUTINT(1, 100)
+			CASE 1
+				CALL INPUTINT(1, 2, 100)
+		
+			CASE 2
+				CALL INPUTINT(1, 2, 3, 100)
+		
+			CASE 3
+				CALL INPUTINT(1, 2, 3, 4, 100)
+		
+		ENDSELECT
+		
+		;もどる
+		SIF RESULT == 100
+			RESTART
+		
+		
+		;在庫がない場合はループ
+		SIF 商品:(RESULT-1) < 1
+			GOTO LOOP_2
+		
+		
+		;選択したキャラ番号
+		ARG = 商品:(RESULT-1)
+		
+		;売却価格
+		ARG:1 = 中古キャラ売却価格:(ARG-4500):0
+		
+		;選んだデビオク商品リスト:1:LOCALの番号を保存
+		ARG:2 = RESULT-1
+		PRINTFORML 
+		PRINTFORML %CSVNAME(ARG,0)%　　　Successful bid price:{ARG:1} macca
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML [1] Bid
+		PRINTFORML [2] Reserve
+		PRINTFORML [100] Return
+		CALL INPUTINT( 1, 2, 100)
+		
+		
+		SELECTCASE RESULT
+			;落札
+			CASE 1
+				
+				PRINTFORML Bid for %CSVNAME(ARG,0)%?　　　Successful bid price:{ARG:1} macca
+				PRINTFORML 
+				CALL INPUT_YN, "Bid", "Do not"
+				
+				;やめる
+				SIF RESULT == 1
+					RESTART
+				
+				
+				;足りない場合はもどる
+				IF MONEY:1 < ARG:1
+					PRINTFORMW Not enough macca.
+					RETURN
+				ENDIF
+				
+				PRINTFORMW %CSVNAME(ARG,0)% purchased.
+				
+				MONEY:1 -= ARG:1
+				
+				CALL ADD_NEW_COMPANION, ARG
+				ARG = GETCHARA(ARG)
+
+				;売り切れ処理
+				デビオク商品リスト:1:(ARG:2) = -1
+				
+				;予約解除
+				デビオク予約フラグ:1:(ARG:2) = 0
+
+				;予約料計算（落札価格の１％を毎日支払う、最低額は500）
+				LOCAL = ARG:1/100
+				SIF LOCAL < 500
+					LOCAL = 500
+				FLAG:デビオク予約料金 -= LOCAL
+				
+			;予約
+			CASE 2
+				
+				;予約料計算（落札価格の１％を毎日支払う、最低額は500）
+				LOCAL = ARG:1/100
+				SIF LOCAL < 500
+					LOCAL = 500
+
+				SELECTCASE デビオク予約フラグ:1:(ARG:2)
+					;予約
+					CASE 0
+							
+						PRINTFORML %CSVNAME(ARG,0)% was reserved.
+						PRINTFORMW {LOCAL} macca will be taken per day
+						デビオク予約フラグ:1:(ARG:2) = ARG
+						FLAG:デビオク予約料金 += LOCAL
+					
+					
+					;予約解除（取り消しは無料）
+					CASEELSE
+						PRINTFORMW Reservation canceled.
+						デビオク予約フラグ:1:(ARG:2) = 0
+						FLAG:デビオク予約料金 -= LOCAL
+				
+				ENDSELECT
+				GOTO L00P_予約_新品
+			CASE 100
+				RESTART
+		ENDSELECT
+	;もどる
+	CASE 100
+		RETURN
+
+ENDSELECT
+
+
+
+;==========================================================
+;デビオク_リスト更新_新品
+; デビオクの商品リスト更新の処理
+; リストは日曜日に更新される
+;<引数>
+;	ARG   = キャラ番号
+;	LOCAL:1 = リストに入っている番号の数
+;	LOCAL:2～3 = 自由枠
+;<戻り値>
+;	なし
+;========================================================
+@デビオク_リスト更新_新品
+#DIM リスト, 1000
+#DIM 商品, 5
+#DIM 予約済み商品, 5
+;新品リスト更新
+VARSET リスト , -1
+VARSET 商品 , -1
+VARSET 予約済み商品 , 0
+
+LOCAL:1 = -1
+
+;メガテン系イベント以外不許可の場合
+IF GETBIT(FLAG:EXTRAイベント設定, 0) == 0
+	FOR LOCAL, 5100, 5200
+		;定義されていないは弾く
+		SIF EXISTCSV(LOCAL) == 0
+			CONTINUE
+
+		;すでに所有している場合は弾く
+		SIF GETCHARA(LOCAL) > 0
+			CONTINUE
+		
+		;売却されている場合は弾く（新品で陳列され、そのままリスト更新された場合も中古になる）
+		SIF 中古キャラ売却済み:(LOCAL-4500):0 == 1
+			CONTINUE
+		
+		;リストの番号を１進める
+		LOCAL:1++
+		
+		;フラグの立っているキャラNOを保存
+		リスト:(LOCAL:1) = LOCAL
+	NEXT
+
+;メガテン系以外イベント許可の場合
+ELSE
+	FOR LOCAL, 5100, 5300
+		;定義されていないは弾く
+		SIF EXISTCSV(LOCAL) == 0
+			CONTINUE
+
+		;すでに所有している場合は弾く
+		SIF GETCHARA(LOCAL) > 0
+			CONTINUE
+		
+		;売却されている場合は弾く（新品で陳列され、そのままリスト更新された場合も中古になる）
+		SIF 中古キャラ売却済み:(LOCAL-4500):0 == 1
+			CONTINUE
+		
+		;リストの番号を１進める
+		LOCAL:1++
+		
+		;フラグの立っているキャラNOを保存
+		リスト:(LOCAL:1) = LOCAL
+	NEXT
+ENDIF
+
+
+;一人もいない場合は戻る
+SIF リスト == -1
+	RETURN
+
+FOR LOCAL:2 , 0, 4
+	IF デビオク予約フラグ:1:(LOCAL:2) == 0
+		;予約されていなかった場合は他へ落札される、次からは中古品として棚に上がる
+		IF デビオク商品リスト:1:(LOCAL:2) > 0
+			;対象キャラを一時的に加入
+			CALL ADD_NEW_COMPANION, デビオク商品リスト:1:(LOCAL:2)
+			;売却額取得
+			CALL CHARA_SELL, GETCHARA(デビオク商品リスト:1:(LOCAL:2)), 1
+			;デビオク用の経験保管処理
+			CALL CHARASELL_AFTER_デビオク, GETCHARA(デビオク商品リスト:1:(LOCAL:2)), 3000+RESULT*2
+			;キャラ削除
+			CALL キャラ削除, GETCHARA(デビオク商品リスト:1:(LOCAL:2))
+		ENDIF
+	;予約されているキャラを保管
+	ELSE
+		予約済み商品:(LOCAL:2) = デビオク予約フラグ:1:(LOCAL:2)
+		
+	ENDIF
+	;リスト:Xの中にある予約キャラの番号を-1にする
+	FOR LOCAL , 0, LOCAL:1+1
+		SIF リスト:LOCAL == デビオク商品リスト:1:(LOCAL:2)
+			リスト:LOCAL = -1
+	NEXT
+NEXT
+;デビオク商品リスト:1:Xに-1を入れる
+FOR LOCAL, 0, 4
+	デビオク商品リスト:1:LOCAL = -1
+NEXT
+
+;登録された人数が現在の枠より少ない場合は順に並べる
+;IF FLAG:デビオクランク >= LOCAL:1
+;	FOR LOCAL, 0, 4
+;		;ランクが足りない場合は終わる
+;		SIF FLAG:デビオクランク < LOCAL
+;			BREAK
+;		
+;		商品:LOCAL = リスト:LOCAL
+;	NEXT
+;
+;登録された人数がデビオクランクより多い場合
+;ELSE
+	;番号を商品0～3に入れる
+	FOR LOCAL, 0, 4
+		PRINTFORML {LOCAL}J
+		;ランクが足りない場合は終わる
+		SIF FLAG:デビオクランク < LOCAL
+			BREAK
+		
+		;予約がある場合は入れて次へ
+		IF 予約済み商品:LOCAL > 0
+			商品:LOCAL = 予約済み商品:LOCAL
+			CONTINUE
+			
+		;予約以外の商品が１つの場合
+		ELSEIF LOCAL:1 == 0
+			商品:LOCAL = リスト:0
+			LOCAL:1 = -10
+			CONTINUE
+
+		;リストが空の場合は飛ばす、予約があるかもしれないので最後まで回すため
+		ELSEIF LOCAL:1 == -10
+			CONTINUE
+		ENDIF
+		
+		LOCAL:2 = RAND:(LOCAL:1)
+		
+		LOCAL:3 = 0
+		$LOOP_2
+		
+		;無限ループ防止処理、登録されている数より多くループした場合は終わる
+		SIF LOCAL:3 > LOCAL:1
+			CONTINUE
+
+		;LOCAL:2に-1が入っている場合（他の　商品:Ｘ　に使われていた場合）は有効な数字になるまで一つずつずらす
+		IF リスト:(LOCAL:2) == -1
+		
+			;LOCAL:2　と　LOCAL:1　が同じ場合は0に
+			IF LOCAL:2 == LOCAL:1
+				LOCAL:2 = 0
+			
+			;LOCAL:2　が　LOCAL:1　より小さい場合は1足す
+			ELSEIF LOCAL:2 < LOCAL:1
+				LOCAL:2++
+			
+			ENDIF
+			
+			;無限ループ防止処理用カウント
+			LOCAL:3++
+			
+			GOTO LOOP_2
+			
+		ENDIF
+
+		商品:LOCAL = リスト:(LOCAL:2)
+		
+		;使用した番号を-1にする
+		リスト:(LOCAL:2) = -1
+	
+	NEXT
+	
+
+;ENDIF
+FOR LOCAL, 0, 4
+
+;	;予約されている場合
+;	IF 予約済み商品:LOCAL > 0
+;		デビオク商品リスト:1:LOCAL = 予約済み商品:LOCAL
+;	
+;	ELSE
+;
+	;-1が入っている場合は弾く
+	SIF 商品:LOCAL < 0
+		CONTINUE
+	デビオク商品リスト:1:LOCAL = 商品:LOCAL
+	
+	;入荷のお知らせイベントフラグ
+	イベントフラグ:40:0 = 2
+	;入荷お知らせを表示するためにFLAG:イベント出現1をリセットする
+	CLEARBIT FLAG:イベント出現1, 40
+
+;	ENDIF
+	IF デビオク商品リスト:1:LOCAL > 0
+		;落札価格設定
+		;対象キャラを一時的に加入
+		CALL ADD_NEW_COMPANION, デビオク商品リスト:1:LOCAL
+		;売却額取得
+		CALL CHARA_SELL, GETCHARA(デビオク商品リスト:1:LOCAL), 1
+		;価格は3000+売却額*2
+		中古キャラ売却価格:(デビオク商品リスト:1:LOCAL-4500):0 = 3000+RESULT*2
+		;キャラ削除
+		CALL キャラ削除, GETCHARA(デビオク商品リスト:1:LOCAL)
+	ENDIF
+NEXT
+
+
+
+
+;==========================================================
+;デビオク_リスト更新_中古
+; デビオクの商品リスト更新の処理
+; リストは日曜日に更新される
+;<引数>
+;	ARG   = キャラ番号
+;	LOCAL:1 = リストに入っている番号の数
+;	LOCAL:2～3 = 自由枠
+;<戻り値>
+;	なし
+;========================================================
+@デビオク_リスト更新_中古
+#DIM リスト, 1000
+#DIM 商品, 5
+#DIM 予約済み商品, 5
+VARSET リスト , -1
+VARSET 商品 , -1
+;中古リスト更新
+LOCAL:1 = -1
+FOR LOCAL, 1, 2000
+	
+	;中古キャラ売却済みフラグがない場合は弾く
+	SIF 中古キャラ売却済み:LOCAL:0 == 0
+		CONTINUE
+	
+	;リストの番号を１進める
+	LOCAL:1++
+	
+	;フラグの立っているキャラ番号を保存、4500を引いて保存しているため足しなおす
+	リスト:(LOCAL:1) = LOCAL+4500
+	
+NEXT
+
+;一人もいない場合は戻る
+SIF LOCAL:1 == -1
+	RETURN
+
+;予約されているキャラを保管
+FOR LOCAL:2 , 0, 4
+	SIF デビオク予約フラグ:0:(LOCAL:2) == 0
+		CONTINUE
+		
+	予約済み商品:(LOCAL:2) = デビオク予約フラグ:0:(LOCAL:2)
+	;リスト:Xの中にある予約キャラの番号を-1にする
+	FOR LOCAL , 0, LOCAL:1+1
+		IF リスト:LOCAL == 予約済み商品:(LOCAL:2)
+			リスト:LOCAL = -1
+	ENDIF
+	NEXT
+NEXT
+
+
+;棚に上がっているキャラを弾く、二週連続載せないための処理
+FOR LOCAL:2 , 0, 4
+	SIF デビオク商品リスト:0:(LOCAL:2) == -1
+		CONTINUE
+		
+	;リスト:Xの中にある予約キャラの番号を-1にする
+	FOR LOCAL , 0, LOCAL:1+1
+		IF リスト:LOCAL == デビオク商品リスト:0:(LOCAL:2)
+			リスト:LOCAL = -1
+	ENDIF
+	NEXT
+NEXT
+
+
+;番号を商品0～3に入れる
+FOR LOCAL, 0, 4
+	;ランクが足りない場合は終わる
+	SIF FLAG:デビオクランク < LOCAL
+		BREAK
+	
+	;予約がある場合は入れて次へ
+	IF 予約済み商品:LOCAL > 0
+		商品:LOCAL = 予約済み商品:LOCAL
+		CONTINUE
+		
+	;予約以外の商品が１つの場合
+	ELSEIF LOCAL:1 == 0
+		商品:LOCAL = リスト:0
+		LOCAL:1 = -10
+		CONTINUE
+
+	;リストが空の場合は飛ばす、予約があるかもしれないので最後まで回すため
+	ELSEIF LOCAL:1 == -10
+		CONTINUE
+	ENDIF
+	
+	LOCAL:2 = RAND:(LOCAL:1)
+	
+	LOCAL:3 = 0
+	$LOOP_1
+	
+	;無限ループ防止処理、登録されている数より多くループした場合は終わる
+	SIF LOCAL:3 > LOCAL:1
+		CONTINUE
+
+	;LOCAL:2に-1が入っている場合（他の　商品:Ｘ　に使われていた場合）は有効な数字になるまで一つずつずらす
+	IF リスト:(LOCAL:2) == -1
+	
+		;LOCAL:2　と　LOCAL:1　が同じ場合は0に
+		IF LOCAL:2 == LOCAL:1
+			LOCAL:2 = 0
+		
+		;LOCAL:2　が　LOCAL:1　より小さい場合は1足す
+		ELSEIF LOCAL:2 < LOCAL:1
+			LOCAL:2++
+		
+		ENDIF
+		
+		;無限ループ防止処理用カウント
+		LOCAL:3++
+		
+		GOTO LOOP_1
+		
+	ENDIF
+
+	商品:LOCAL = リスト:(LOCAL:2)
+	
+	;使用した番号を-1にする
+	リスト:(LOCAL:2) = -1
+
+NEXT
+
+;デビオク商品リスト:0:Xに-1を入れる
+FOR LOCAL, 0, 4
+	デビオク商品リスト:0:LOCAL = -1
+NEXT
+
+;登録の際に4500引いているので足して記録する
+FOR LOCAL, 0, 4
+;	;予約されている場合
+;	IF 予約済み商品:LOCAL > 0
+;		デビオク商品リスト:0:LOCAL = 予約済み商品:LOCAL
+;		CONTINUE
+;	ENDIF
+
+	;-1が入っている場合は弾く
+	SIF 商品:LOCAL < 0
+		CONTINUE
+
+	デビオク商品リスト:0:LOCAL = 商品:LOCAL
+
+	;入荷のお知らせイベントフラグ
+	イベントフラグ:40:0 = 2
+	;入荷お知らせを表示するためにFLAG:イベント出現1をリセットする
+	CLEARBIT FLAG:イベント出現1, 40
+
+	;売られていた間の経験加算と次の相手を決める、予約されている場合は飛ばす
+	SIF 予約済み商品:LOCAL == 0
+		CALL デビオク_中古経験処理, デビオク商品リスト:0:LOCAL
+NEXT
+
+;==========================================================
+;CHARASELL_AFTER_デビオク
+; 売却されたキャラの調教に関する能力、素質、経験、価格を保存
+; 中古キャラ～にそれぞれ保存
+; NO:X-4500で登録する、戻す時には4500を足すのを忘れないように
+;<引数>
+;	ARG   = キャラ番号
+;	ARG:1 = 売却価格
+;	ARG:2 = 中古キャラ売却先の設定
+;<戻り値>
+;	なし
+;========================================================
+@CHARASELL_AFTER_デビオク, ARG, ARG:1, ARG:2 = -1, ARGS = "売却処理"
+
+;Humanではない場合（CSV:NO.4500～4999以外）とデビオク専用でない場合（CSV:NO.5100～5299）は記録しない
+SIF NO:ARG < 4500 || NO:ARG > 4999 && NO:ARG < 5100 || NO:ARG > 5299
+	RETURN
+
+
+;中古済み判定
+中古キャラ売却済み:(NO:ARG-4500):0 = 1
+
+;売却価格保存
+中古キャラ売却価格:(NO:ARG-4500):0 = ARG:1
+
+;売却先、商品として上がった時には次の売却先を決定している
+;設定がない場合はランダム
+SIF ARG:2 == -1
+	ARG:2 = RAND:6
+中古キャラ売却先:(NO:ARG-4500):0 = ARG:2
+
+;『@デビオク_中古経験処理』で使う場合は、この処理を省く（必要なかったので休止）
+;IF ARGS == "売却処理"
+
+	;売却日保存
+	中古キャラ売却日:(NO:ARG-4500):0 = DAY
+;ENDIF
+
+;ABL保存
+FOR LOCAL, 0, 291
+	中古キャラABL:(NO:ARG-4500):LOCAL = ABL:ARG:LOCAL
+NEXT
+
+;BASE保存
+FOR LOCAL, 0, 100
+	中古キャラBASE:(NO:ARG-4500):LOCAL = BASE:ARG:LOCAL
+NEXT
+
+;CFLAG保存
+FOR LOCAL, 200, 600
+	中古キャラCFLAG:(NO:ARG-4500):(LOCAL-200) = CFLAG:ARG:LOCAL
+NEXT
+;CFLAG保存2
+FOR LOCAL, 600, 1000
+	中古キャラCFLAG2:(NO:ARG-4500):(LOCAL-600) = CFLAG:ARG:LOCAL
+NEXT
+
+;CFLAG保存3
+FOR LOCAL, 1551, 1572
+	中古キャラCFLAG3:(NO:ARG-4500):(LOCAL-1551) = CFLAG:ARG:LOCAL
+NEXT
+
+;CFLAGAbnormalEXP記録保存
+中古キャラCFLAG異常経験記録:(NO:ARG-4500):0 = CFLAG:ARG:異常経験記録
+
+;EXP保存
+FOR LOCAL, 0, 84
+	中古キャラEXP:(NO:ARG-4500):LOCAL = EXP:ARG:LOCAL
+NEXT
+
+;TALENT保存
+FOR LOCAL, 0, 160
+	中古キャラTALENT:(NO:ARG-4500):LOCAL = TALENT:ARG:LOCAL
+NEXT
+
+;MARK保存
+FOR LOCAL, 0, 4
+	中古キャラMARK:(NO:ARG-4500):LOCAL = MARK:ARG:LOCAL
+NEXT
+
+
+;妊娠相手保存
+;中古キャラ妊娠相手:(NO:ARG-4500):LOCAL = ABL:ARG:LOCAL
+
+
+
+
+
+
+;==========================================================
+;デビオク_中古経験処理
+; 売られていた間の経験を加算する
+; 経験は売却先によって変わる
+; 落札されずに流れた際の次の買い手も決める
+; 
+;<引数>
+;	ARG   = キャラ番号
+;<戻り値>
+;	なし
+;========================================================
+@デビオク_中古経験処理, ARG
+#DIM 売却日
+#DIM 固有番号退避
+;対象キャラを一時的に加入
+CALL ADD_NEW_COMPANION, ARG
+ARG = GETCHARA(ARG)
+
+;ABL入れ替え
+FOR LOCAL, 0, 291
+	ABL:ARG:LOCAL = 中古キャラABL:(NO:ARG-4500):LOCAL
+NEXT
+
+;BASE入れ替え
+FOR LOCAL, 0, 100
+	BASE:ARG:LOCAL = 中古キャラBASE:(NO:ARG-4500):LOCAL
+NEXT
+
+固有番号退避 = CFLAG:ARG:キャラ固有の番号
+
+;CFLAG保存入れ替え
+FOR LOCAL, 200, 600
+	CFLAG:ARG:LOCAL = 中古キャラCFLAG:(NO:ARG-4500):(LOCAL-200)
+NEXT
+;CFLAG保存2入れ替え
+FOR LOCAL, 600, 1000
+	CFLAG:ARG:LOCAL = 中古キャラCFLAG2:(NO:ARG-4500):(LOCAL-600)
+NEXT
+
+;CFLAG保存3入れ替え
+FOR LOCAL, 1551, 1572
+	CFLAG:ARG:LOCAL = 中古キャラCFLAG3:(NO:ARG-4500):(LOCAL-1551)
+NEXT
+
+CFLAG:ARG:キャラ固有の番号 = 固有番号退避
+
+;CFLAGAbnormalEXP記録保存
+CFLAG:ARG:異常経験記録 = 中古キャラCFLAG異常経験記録:(NO:ARG-4500):0
+
+;EXP入れ替え
+FOR LOCAL, 0, 84
+	EXP:ARG:LOCAL = 中古キャラEXP:(NO:ARG-4500):LOCAL
+NEXT
+
+;TALENT入れ替え
+FOR LOCAL, 0, 160
+	TALENT:ARG:LOCAL = 中古キャラTALENT:(NO:ARG-4500):LOCAL
+NEXT
+
+;MARK保存
+FOR LOCAL, 0, 4
+	MARK:ARG:LOCAL = 中古キャラMARK:(NO:ARG-4500):LOCAL
+NEXT
+
+
+;『中古キャラ売却先:ARG:0』で経験の種類を、『中古キャラ売却期間:ARG:0』で回数を決める
+;もしなんらかの不具合で『中古キャラ売却期間:ARG:0』が『0』になってしまっている場合、もしくは『DAY』以上の場合は『DAY-7』を入れる
+SIF 中古キャラ売却日:(NO:ARG-4500):0 == 0 || 中古キャラ売却日:(NO:ARG-4500):0 >= DAY
+	中古キャラ売却日:(NO:ARG-4500):0 = DAY-7
+;変数が長いので入れ替え
+売却日 = 中古キャラ売却日:(NO:ARG-4500):0
+$LOOP_1
+LOCAL:1 = 0
+SELECTCASE 中古キャラ売却先:(NO:ARG-4500):0
+	;ノーマル（一日０～３回の計算）
+	CASE 0
+		;総プレイ回数計算
+		FOR LOCAL, 0, DAY-売却日
+			LOCAL:1 += RAND:4
+		NEXT
+		
+		;プレイ内容計算
+		FOR LOCAL, 0, LOCAL:1
+			;オンナの場合
+			IF IS_MALE(ARG) == 0
+				SELECTCASE RAND:100
+					;フェラ
+					CASE 0 TO 29
+						TCVAR:ARG:獲得フェラ経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得奉仕快楽経験 += 1
+
+					;本番
+					CASE 30 TO 79
+						;処女喪失
+						IF TALENT:ARG:処女
+							CALL ADDS_ABNORMAL_EXP, "Lost virginity（Rape）", ARG
+							TALENT:ARG:処女 = 0
+						ENDIF
+						TCVAR:ARG:獲得Ｖ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						
+						;約５０％の確立で中出し
+						SIF RAND:100 < 50
+							TCVAR:ARG:獲得膣射経験 += 1
+							
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+					;アナル
+					CASE 80 TO 99
+						TCVAR:ARG:獲得Ａ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+				
+				ENDSELECT
+				
+			;オトコの場合
+			ELSE
+				TCVAR:ARG:獲得性交経験 += 1
+				;約７０％の確立で絶頂
+				IF RAND:100 < 30
+					TCVAR:ARG:獲得射精経験 += 1
+					TCVAR:ARG:獲得絶頂経験 += 1
+				ENDIF
+				
+			ENDIF
+		NEXT
+	
+	;同性（一日０～３回の計算）
+	CASE 1
+		;総プレイ回数計算
+		FOR LOCAL, 0, DAY-売却日
+			LOCAL:1 += RAND:4
+		NEXT
+		
+		;プレイ内容計算
+		FOR LOCAL, 0, LOCAL:1
+			;オンナの場合
+			IF IS_MALE(ARG) == 0
+				SELECTCASE RAND:100
+					;愛撫
+					CASE 0 TO 39
+						TCVAR:ARG:獲得レズ経験 += 1
+
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+						;約５０％の確立でServicPlsEXP
+						SIF RAND:100 < 50
+							TCVAR:ARG:獲得奉仕快楽経験 += 1
+
+					;バイブ
+					CASE 40 TO 59
+						SELECTCASE RAND:100
+							;バイブ
+							CASE 0 TO 49
+								;処女喪失
+								IF TALENT:ARG:処女
+									CALL ADDS_ABNORMAL_EXP, "Lost virginity（Vibrator）", ARG
+									TALENT:ARG:処女 = 0
+								ENDIF
+								
+								TCVAR:ARG:獲得Ｖ経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+									
+							;アナルバイブ
+							CASE 50 TO 99
+								TCVAR:ARG:獲得Ａ経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+						ENDSELECT
+
+					;ペニバン
+					CASE 60 TO 99
+						SELECTCASE RAND:100
+							;本番
+							CASE 0 TO 49
+								;処女喪失
+								IF TALENT:ARG:処女
+									CALL ADDS_ABNORMAL_EXP, "Lost virginity（Same sex）", ARG
+									TALENT:ARG:処女 = 0
+								ENDIF
+								
+								TCVAR:ARG:獲得Ｖ経験 += 1
+								TCVAR:ARG:獲得性交経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+									
+							;アナル
+							CASE 50 TO 99
+								TCVAR:ARG:獲得Ａ経験 += 1
+								TCVAR:ARG:獲得性交経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+						ENDSELECT
+				ENDSELECT
+				
+			;オトコの場合
+			ELSE
+				SELECTCASE RAND:100
+					;フェラ
+					CASE 0 TO 29
+						TCVAR:ARG:獲得フェラ経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得奉仕快楽経験 += 1
+						TCVAR:ARG:獲得ＢＬ経験 += 1
+
+					;本番
+					CASE 30 TO 79
+						TCVAR:ARG:獲得Ａ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得ＢＬ経験 += 1
+						
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+				ENDSELECT
+				
+			ENDIF
+		NEXT
+	;獣姦（一日１～５回の計算）
+	CASE 2
+		;総プレイ回数計算
+		FOR LOCAL, 0, DAY-売却日
+			LOCAL:1 += 1+RAND:5
+		NEXT
+		
+		;プレイ内容計算
+		FOR LOCAL, 0, LOCAL:1
+			;オンナの場合
+			IF IS_MALE(ARG) == 0
+				SELECTCASE RAND:100
+					;フェラ
+					CASE 0 TO 19
+						TCVAR:ARG:獲得フェラ経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得奉仕快楽経験 += 1
+						TCVAR:ARG:獲得吸血経験 += 1
+
+					;本番
+					CASE 20 TO 79
+						;処女喪失
+						IF TALENT:ARG:処女
+							CALL ADDS_ABNORMAL_EXP, "Lost virginity（Rape）", ARG
+							TALENT:ARG:処女 = 0
+						ENDIF
+						TCVAR:ARG:獲得Ｖ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得吸血経験 += 1
+						
+						;約５０％の確立で中出し
+						SIF RAND:100 < 50
+							TCVAR:ARG:獲得膣射経験 += 1
+							
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+					;アナル
+					CASE 80 TO 99
+						TCVAR:ARG:獲得Ａ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得吸血経験 += 1
+						
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+				
+				ENDSELECT
+				
+			;オトコの場合
+			ELSE
+				TCVAR:ARG:獲得性交経験 += 1
+				TCVAR:ARG:獲得吸血経験 += 1
+				;約７０％の確立で絶頂
+				IF RAND:100 < 30
+					TCVAR:ARG:獲得射精経験 += 1
+					TCVAR:ARG:獲得絶頂経験 += 1
+				ENDIF
+				
+			ENDIF
+		NEXT
+	;ノーマル輪姦（一日３～１０回の計算）
+	CASE 3
+		;総プレイ回数計算
+		FOR LOCAL, 0, DAY-売却日
+			LOCAL:1 += 3+RAND:8
+		NEXT
+		
+		;プレイ内容計算
+		FOR LOCAL, 0, LOCAL:1
+			;オンナの場合
+			IF IS_MALE(ARG) == 0
+				SELECTCASE RAND:100
+					;フェラ
+					CASE 0 TO 29
+						TCVAR:ARG:獲得フェラ経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得奉仕快楽経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+
+					;本番
+					CASE 30 TO 79
+						;処女喪失
+						IF TALENT:ARG:処女
+							CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+							TALENT:ARG:処女 = 0
+						ENDIF
+						TCVAR:ARG:獲得Ｖ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+						
+						;約５０％の確立で中出し
+						SIF RAND:100 < 50
+							TCVAR:ARG:獲得膣射経験 += 1
+							
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+					;アナル
+					CASE 80 TO 99
+						TCVAR:ARG:獲得Ａ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+						
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+				
+				ENDSELECT
+				
+			;オトコの場合
+			ELSE
+				TCVAR:ARG:獲得性交経験 += 1
+				;約７０％の確立で絶頂
+				IF RAND:100 < 30
+					TCVAR:ARG:獲得射精経験 += 1
+					TCVAR:ARG:獲得絶頂経験 += 1
+					TCVAR:ARG:獲得輪姦経験 += 1
+				ENDIF
+				
+			ENDIF
+		NEXT
+	;同性輪姦（一日３～１０回の計算）
+	CASE 4
+		;総プレイ回数計算
+		FOR LOCAL, 0, DAY-売却日
+			LOCAL:1 += 3+RAND:8
+		NEXT
+		
+		;プレイ内容計算
+		FOR LOCAL, 0, LOCAL:1
+			;オンナの場合
+			IF IS_MALE(ARG) == 0
+				SELECTCASE RAND:100
+					;愛撫
+					CASE 0 TO 39
+						TCVAR:ARG:獲得レズ経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+						;約５０％の確立でServicPlsEXP
+						SIF RAND:100 < 50
+							TCVAR:ARG:獲得奉仕快楽経験 += 1
+
+					;バイブ
+					CASE 40 TO 59
+						SELECTCASE RAND:100
+							;バイブ
+							CASE 0 TO 49
+								;処女喪失
+								IF TALENT:ARG:処女
+									CALL ADDS_ABNORMAL_EXP, "Lost virginity（Vibrator）", ARG
+									TALENT:ARG:処女 = 0
+								ENDIF
+								
+								TCVAR:ARG:獲得Ｖ経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								TCVAR:ARG:獲得輪姦経験 += 1
+									
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+									
+							;アナルバイブ
+							CASE 50 TO 99
+								TCVAR:ARG:獲得Ａ経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								TCVAR:ARG:獲得輪姦経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+						ENDSELECT
+
+					;ペニバン
+					CASE 60 TO 99
+						SELECTCASE RAND:100
+							;本番
+							CASE 0 TO 49
+								;処女喪失
+								IF TALENT:ARG:処女
+									CALL ADDS_ABNORMAL_EXP, "Lost virginity（Same sex）", ARG
+									CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+									TALENT:ARG:処女 = 0
+								ENDIF
+								
+								TCVAR:ARG:獲得Ｖ経験 += 1
+								TCVAR:ARG:獲得性交経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								TCVAR:ARG:獲得輪姦経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+									
+							;アナル
+							CASE 50 TO 99
+								TCVAR:ARG:獲得Ａ経験 += 1
+								TCVAR:ARG:獲得性交経験 += 1
+								TCVAR:ARG:獲得レズ経験 += 1
+								TCVAR:ARG:獲得輪姦経験 += 1
+								
+								;約３０％の確立で絶頂
+								SIF RAND:100 < 30
+									TCVAR:ARG:獲得絶頂経験 += 1
+						ENDSELECT
+				ENDSELECT
+				
+			;オトコの場合
+			ELSE
+				SELECTCASE RAND:100
+					;フェラ
+					CASE 0 TO 29
+						TCVAR:ARG:獲得フェラ経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得奉仕快楽経験 += 1
+						TCVAR:ARG:獲得ＢＬ経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+
+					;本番
+					CASE 30 TO 79
+						TCVAR:ARG:獲得Ａ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得ＢＬ経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+						
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+				ENDSELECT
+				
+			ENDIF
+		NEXT
+	
+	;獣姦輪姦（一日５～２０回の計算）
+	CASE 5
+		;総プレイ回数計算
+		FOR LOCAL, 0, DAY-売却日
+			LOCAL:1 += 5+RAND:16
+		NEXT
+		
+		;プレイ内容計算
+		FOR LOCAL, 0, LOCAL:1
+			;オンナの場合
+			IF IS_MALE(ARG) == 0
+				SELECTCASE RAND:100
+					;フェラ
+					CASE 0 TO 19
+						TCVAR:ARG:獲得フェラ経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得奉仕快楽経験 += 1
+						TCVAR:ARG:獲得吸血経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+
+					;本番
+					CASE 20 TO 79
+						;処女喪失
+						IF TALENT:ARG:処女
+							CALL ADDS_ABNORMAL_EXP, "Lost virginity（Gang rape）", ARG
+							TALENT:ARG:処女 = 0
+						ENDIF
+						TCVAR:ARG:獲得Ｖ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得吸血経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+						
+						;約５０％の確立で中出し
+						SIF RAND:100 < 50
+							TCVAR:ARG:獲得膣射経験 += 1
+							
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+
+					;アナル
+					CASE 80 TO 99
+						TCVAR:ARG:獲得Ａ経験 += 1
+						TCVAR:ARG:獲得性交経験 += 1
+						TCVAR:ARG:獲得精液経験 += 1
+						TCVAR:ARG:獲得吸血経験 += 1
+						TCVAR:ARG:獲得輪姦経験 += 1
+						
+						;約３０％の確立で絶頂
+						SIF RAND:100 < 30
+							TCVAR:ARG:獲得絶頂経験 += 1
+				
+				ENDSELECT
+				
+			;オトコの場合
+			ELSE
+				TCVAR:ARG:獲得性交経験 += 1
+				TCVAR:ARG:獲得吸血経験 += 1
+				TCVAR:ARG:獲得輪姦経験 += 1
+				;約７０％の確立で絶頂
+				IF RAND:100 < 30
+					TCVAR:ARG:獲得射精経験 += 1
+					TCVAR:ARG:獲得絶頂経験 += 1
+				ENDIF
+				
+			ENDIF
+		NEXT
+
+	;どれにも当てはまらない場合は中古キャラ売却先:ARG:0に0を入れてループ
+	CASEELSE
+		中古キャラ売却先:ARG:0 = 0
+		GOTO LOOP_1
+
+ENDSELECT
+;SellingEXP付与
+TCVAR:ARG:獲得売却経験 = 1
+;経験反映
+CALL SHOW_ADD_EXP, ARG, "非表示"
+;AbnormalEXP処理
+IF TCVAR:ARG:獲得異常経験
+	FOR LOCAL, 0, 64
+		SIF !GETBIT(TCVAR:ARG:50, LOCAL)
+			CONTINUE
+		LOCAL:1 = RANK_ABNORMAL_EXP( , LOCAL)
+		EXP:ARG:異常経験 += LOCAL:1
+		SETBIT CFLAG:ARG:異常経験記録 , LOCAL
+	NEXT
+	TCVAR:ARG:獲得異常経験 = 0
+ENDIF
+;経験の再格納
+CALL CHARASELL_AFTER_デビオク, ARG, 中古キャラ売却価格:(NO:ARG-4500):0, , 
+
+;キャラ削除
+CALL キャラ削除, ARG
+
+;==========================================================
+;デビオク_予約料金処理
+; 予約料金を徴収する
+; 
+;<引数>
+;	
+;<戻り値>
+;	なし
+;========================================================
+@デビオク_予約料金処理
+SETCOLOR COLOR("pink")
+PRINTFORMW As a reservation fee {FLAG:デビオク予約料金} macca was taken
+RESETCOLOR
+
+MONEY:1 -= FLAG:デビオク予約料金
+
+DRAWLINE
+
+

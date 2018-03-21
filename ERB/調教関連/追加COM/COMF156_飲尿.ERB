@@ -1,0 +1,125 @@
+;-------------------------------------------------
+;飲尿
+;ハードな調教コマンド、レベル4
+;-------------------------------------------------
+@ACT_COM156
+PRINTL 飲尿
+TSTR:0 = 飲尿
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 20
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:性行動 = 300
+SOURCE:TARGET:屈従 = 2200
+SOURCE:TARGET:不潔 = 1000
+SOURCE:TARGET:逸脱 = 1500
+SOURCE:TARGET:反感 = 1000
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;マゾを見る
+IF TALENT:84 == 1
+	TIMES SOURCE:TARGET:屈従 , 2.50
+ENDIF
+
+;TALENT:プライド高いをみる
+IF TALENT:15 == 1
+	TIMES SOURCE:TARGET:反感 , 2.00
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;奴隷の口⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("口", TARGET, "ペニス", PLAYER)
+
+;奉仕精神ＬＶ４以上、技巧ＬＶ２以上なら汚れをなめ取る（ボールギャグ使用時は除く）
+IF ABL:7 >= 4 && ABL:2 >= 2 && TEQUIP:20 == 0
+	STAIN:PLAYER:2 = 2
+		TFLAG:8 = 1
+ENDIF
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:3+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+A = 2
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+	CALL ADDS_ABNORMAL_EXP("Drinking urine", TARGET)
+
+;依存度ベクトル
+TFLAG:33 = 3
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+@COM_ORDER_156, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "従順", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "奉仕精神", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "マゾっ気", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "ABL", "精液中毒", 4, ARG, ARG:1
+CALL ADD_COM_ORDER, "MARK", "快楽刻印", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "PALAM", "欲情", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "恥じらい", -3, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭鈍感", 1, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "汚臭敏感", -6, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "献身的", 6, ARG, ARG:1
+SIF !TALENT:ARG:淫乱 && !TALENT:ARG:娼婦
+	CALL ADD_COM_ORDER, "TALENT", "快感の否定", -1, ARG, ARG:1
+;男嫌い（恋慕、親愛で無効）
+SIF HATE(ARG, ARG:1)
+	CALL ADD_COM_ORDER, "TALENT", \@IS_MALE(PLAYER) ? 男嫌い # 女嫌い \@, -12, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "服従", 5, ARG, ARG:1
+CALL ADD_COM_ORDER, "TALENT", "隷属", 10, ARG, ARG:1
+;調教者がふたなり
+CALL ADD_COM_ORDER, "TALENT", "ふたなり", 8, ARG:1, ARG
+CALL ADD_COM_ORDER, "STAIN", "ペニス", 100, ARG, ARG:1
+CALL ADD_COM_ORDER, "RELATION", , , ARG, ARG:1
+
+;-------------------------------------------------
+;実行値
+;-------------------------------------------------
+@COM_ORDER_NUM_156
+RETURN 80
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_156
+RETURN COMTYPE("ハード系")
+

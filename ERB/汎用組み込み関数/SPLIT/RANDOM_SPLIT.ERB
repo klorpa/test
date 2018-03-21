@@ -1,0 +1,34 @@
+;==========================================================
+;@RANDOM_SPLIT
+;文字列ARGSをARGS:1を区切りとしてSPLIT命令にかけ、
+;ランダムに抽出した項目だけを選んでARGS:1で繋ぎ直す
+;==========================================================
+;ARGS   = 抽出元の文章
+;ARGS:1 = 文の区切り
+;ARG    = 抽出する項目の数
+@RANDOM_SPLIT,ARGS,ARGS:1,ARG
+#FUNCTIONS
+#DIMS 結果, 1
+#DIM 項目数,1
+#LOCALSIZE 2
+#LOCALSSIZE 10000
+VARSET LOCAL
+VARSET 項目数
+DO
+	LOCAL   = STRFIND(ARGS, ARGS:1, LOCAL) + 1
+	項目数 += 1
+LOOP LOCAL != 0
+SIF ARG > 項目数
+	ARG = 項目数
+SPLIT ARGS, ARGS:1 ,LOCALS
+VARSET 結果
+FOR LOCAL,0,ARG
+	LOCAL:1 = RAND(0,項目数)
+	結果 = %結果%%LOCALS:(LOCAL:1)%
+	SIF ARG-LOCAL > 1
+		結果  = %結果%%ARGS:1%
+	項目数 --
+	ARRAYREMOVE LOCALS, LOCAL:1,1
+NEXT
+VARSET LOCALS
+RETURNF 結果

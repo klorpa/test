@@ -1,0 +1,121 @@
+@EVENT_BATTLE_TURNEND_COLOSSEUM55
+CALL SKILL_2504_RESISTBREAK
+CALL サタン相性セット(CHARANUM-1,FLAG:経過ターン数)
+
+;戦闘開始時、ターン終了時に呼び出される
+;eraMegaten仕様として火炎と核熱、地変と重力、電撃と疾風、氷結と水撃はリンクさせる
+;ARG = 経過ターン数
+@サタン相性セット(ARG,ARG:1)
+SELECTCASE ARG:1 % 4
+CASE 0
+	;4n+1ターン目 Fire・Ice・電撃反射　地変と衝撃と物理が有効
+	BASE:ARG:剣撃 = 100
+	BASE:ARG:火炎 = 999
+	BASE:ARG:氷結 = 999
+	BASE:ARG:電撃 = 999
+	BASE:ARG:衝撃 = 100
+	BASE:ARG:地変 = 100
+CASE 1
+	;4n+2ターン目 Ice・Elect・衝撃反射　火炎と地変と物理が有効
+	BASE:ARG:剣撃 = 100
+	BASE:ARG:火炎 = 100
+	BASE:ARG:氷結 = 999
+	BASE:ARG:電撃 = 999
+	BASE:ARG:衝撃 = 999
+	BASE:ARG:地変 = 100
+CASE 2
+	;4n+3ターン目 Earth・Elect・衝撃反射　火炎と氷結と物理が有効
+	BASE:ARG:剣撃 = 100
+	BASE:ARG:火炎 = 100
+	BASE:ARG:氷結 = 100
+	BASE:ARG:電撃 = 999
+	BASE:ARG:衝撃 = 999
+	BASE:ARG:地変 = 999
+CASE 3
+	;4n+4ターン目 物理反射　それ以外が有効	
+	BASE:ARG:剣撃 = 999
+	BASE:ARG:火炎 = 100
+	BASE:ARG:氷結 = 100
+	BASE:ARG:電撃 = 100
+	BASE:ARG:衝撃 = 100
+	BASE:ARG:地変 = 100
+ENDSELECT
+BASE:ARG:飛具 = BASE:ARG:剣撃
+BASE:ARG:打撃 = BASE:ARG:剣撃
+BASE:ARG:戦技 = BASE:ARG:剣撃
+BASE:ARG:核熱 = BASE:ARG:火炎
+BASE:ARG:水撃 = BASE:ARG:氷結
+BASE:ARG:重力 = BASE:ARG:地変
+BASE:ARG:疾風 = BASE:ARG:電撃
+FOR LOCAL,GETNUM(BASE,"剣撃"),GETNUM(BASE,"サイコ")+1
+	MAXBASE:ARG:LOCAL = BASE:ARG:LOCAL
+NEXT
+
+;相手の弱点を探す関数
+@SATAN_GET_WEAK(ARG,ARG:1)
+#DIM L_COUNT
+#DIM CHARA
+#DIM 相性
+#DIM L_PARTY,6
+VARSET L_COUNT
+VARSET L_PARTY
+VARSET 相性
+IF ARG:1 == 17
+	LOCAL:1 = 1
+	LOCAL:2 = 4
+ELSEIF ARG:1 == 18
+	LOCAL:1 = 4
+	LOCAL:2 = 7
+ELSEIF ARG:1 == 19
+	LOCAL:1 = 1
+	LOCAL:2 = 7
+ELSEIF ARG:1 == 20
+	LOCAL:1 = 7
+	LOCAL:2 = 12
+ELSEIF ARG:1 == 21
+	LOCAL:1 = 12
+	LOCAL:2 = 17
+ELSEIF ARG:1 == 22
+	LOCAL:1 = 7
+	LOCAL:2 = 17
+ELSEIF ARG:1 == 23
+	LOCAL:1 = 1
+	LOCAL:2 = 17
+ELSE
+	CHARA = POS(ARG:1)
+	GOTO SKIP_CHARASELECT
+ENDIF
+FOR LOCAL,LOCAL:1,LOCAL:2
+	SIF POS(LOCAL) < 0
+		CONTINUE
+	L_PARTY:(L_COUNT++) = POS(LOCAL)
+NEXT
+CHARA = L_PARTY:(RAND:L_COUNT)
+$SKIP_CHARASELECT
+PRINTFORM Senseing Weakness：%CALLNAME:CHARA%　
+;Light・呪殺のうち耐性が低い方
+RESULT:1 = 相性係数(CHARA,"破魔") > 相性係数(CHARA,"呪殺") ? GET_TYPE_NUM("破魔") # GET_TYPE_NUM("呪殺")
+PRINTFORM Weakness１：%GET_TYPE_E(RESULT:1)%　
+;Fire・Ice・Elect・Force・地変のうち最も弱い相性の
+;行動阻害を与えられる電撃・氷結は若干出しやすい
+相性 = 相性係数(CHARA,"電撃")
+RESULT:2 = GET_TYPE_NUM("電撃")
+FOR LOCAL,1, 5
+	SELECTCASE LOCAL
+	CASE 1
+		LOCALS = 氷結
+	CASE 2
+		LOCALS = 火炎
+	CASE 3
+		LOCALS = 衝撃
+	CASE 4
+		LOCALS = 地変
+	ENDSELECT
+	;よく通る属性に変更
+	IF 相性 < 相性係数(CHARA,LOCALS)
+		相性 = 相性係数(CHARA,LOCALS)
+		RESULT:2 = GET_TYPE_NUM(LOCALS)
+	ENDIF
+NEXT
+PRINTFORMW Weakness２：%GET_TYPE_E(RESULT:2)%({相性})
+RETURN CHARA

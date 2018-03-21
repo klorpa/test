@@ -1,0 +1,109 @@
+;-------------------------------------------------
+;空気浣腸
+;ハードな調教コマンド、レベル3
+;-------------------------------------------------
+@ACT_COM147
+PRINTL Air Enema
+TSTR:0 = 空気浣腸
+;CALL KOJO_MESSAGE_COM
+
+;調教者→調教対象
+TFLAG:28 = 2
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 40
+DOWNBASE:TARGET:気力 += 100
+
+SOURCE:TARGET:快Ａ = 100
+SOURCE:TARGET:痛み = 150
+SOURCE:TARGET:露出 = 100
+SOURCE:TARGET:屈従 = 50
+SOURCE:TARGET:逸脱 = 100
+SOURCE:TARGET:反感 = 100
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 100
+
+;Aへの苦痛は先に処理しておく
+;EXP:Ａ経験をみる
+IF EXP:1 < EXPLV:1
+	TIMES SOURCE:TARGET:痛み , 3.00
+	TIMES SOURCE:TARGET:反感 , 3.00
+ELSEIF EXP:1 < EXPLV:2
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF EXP:1 < EXPLV:3
+	TIMES SOURCE:TARGET:痛み , 0.80
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF EXP:1 < EXPLV:4
+	TIMES SOURCE:TARGET:痛み , 0.60
+	TIMES SOURCE:TARGET:反感 , 1.20
+ELSEIF EXP:1 < EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.40
+ELSEIF EXP:1 >= EXPLV:5
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+;PALAM:潤滑をみる
+IF PALAM:4 < PALAMLV:1
+	TIMES SOURCE:TARGET:痛み , 1.20
+	TIMES SOURCE:TARGET:反感 , 2.00
+ELSEIF PALAM:4 < PALAMLV:2
+	TIMES SOURCE:TARGET:痛み , 1.00
+	TIMES SOURCE:TARGET:反感 , 1.50
+ELSEIF PALAM:4 < PALAMLV:3
+	TIMES SOURCE:TARGET:痛み , 0.60
+ELSEIF PALAM:4 < PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.30
+ELSEIF PALAM:4 >= PALAMLV:4
+	TIMES SOURCE:TARGET:痛み , 0.20
+ENDIF
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;ＡEXP
+CALL ADDS_EXP("Ａ経験", 1, TARGET)
+;PRINTL ＡEXP＋１
+
+;LesbianEXP
+A = 1
+IF IS_LESBIAN(TARGET,PLAYER)
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 5
+
+;依存度補正値(服従で1、隷属で2）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_147
+RETURN COMTYPE("ハード系")
+
+
+
+
+

@@ -1,0 +1,1137 @@
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_5
+SELECTCASE FLAG:現M
+	;ミコンの街
+	CASE 0
+		FLAG:未遭遇歩数 = 0
+		FLAG:エンカウント率 = 0
+		FLAG:MAG消費率 = 0
+	;ビエン1F/2Fはメデューサ撃破後は敵がでない
+	CASE 13, 14
+		IF STRFLAG_D("メデューサ撃破")
+			FLAG:未遭遇歩数 = 0
+			FLAG:エンカウント率 = 0
+			FLAG:MAG消費率 = 0
+		ELSE
+			FLAG:エンカウント率 = MAX(FLAG:未遭遇歩数 * 5 - 25, 0)
+			FLAG:MAG消費率 = 100
+		ENDIF
+	CASEELSE
+		FLAG:エンカウント率 = MAX(FLAG:未遭遇歩数 * 5 - 25, 0)
+		FLAG:MAG消費率 = 100
+ENDSELECT
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_5
+#LOCALSIZE 3
+IF RAND:100 < FLAG:エンカウント率
+	;一方通行の処理
+	CALL ONE_WAY(902, 912, 922, 932, 942, 952, 962, 972)
+	;冥界は専用処理をする
+	IF FLAG:現M == 60
+		FOR LOCAL, 7, 17
+			IF LOCAL == 7 || LOCAL == 12
+				SELECTCASE RAND:100
+					CASE IS < 60
+						LOCAL:1 = LOCAL == 7 ? [[キャラ:ゾンビーサムライ]] # [[キャラ:ゾンビーケンペイ]]
+					CASE IS < 80
+						LOCAL:1 = [[キャラ:コープス]]
+						LOCAL:2 = 30 + RAND:3 * 3
+					CASEELSE
+						LOCAL:1 = [[キャラ:レギオン]]
+						LOCAL:2 = 30 + RAND:3 * 3
+				ENDSELECT
+				LOCAL:2 = 30 + RAND:3 * 3
+			ENDIF
+			CALL SET_ENEMY, LOCAL, LOCAL:1, LOCAL:2, 0
+			IF LOCAL:1 == [[キャラ:ゾンビーサムライ]] || [[キャラ:ゾンビーケンペイ]]
+				CALL SET_BATTLE_STATUS(CHARANUM-1, MAXBASE:(CHARANUM-1):ＨＰ * 2, "ＨＰ")
+				SIF LOCAL:1 == [[キャラ:ゾンビーサムライ]]
+					ABL:(CHARANUM-1):スキル3 = [[スキル:玉砕破]]
+				CFLAG:(CHARANUM-1):速度補正 -= 20
+				CALL SYNC_STATUS, CHARANUM-1
+				CALL HEALTH_CHARA, CHARANUM-1
+			ENDIF
+		NEXT
+	ELSE
+		CALL ENEMY_TABLE
+	ENDIF
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_5
+SELECTCASE FLAG:現M
+	;ダイダロス
+	CASE IS < 8
+		RETURN CLASS_NUM_COMMON("中級")
+	;ヴァルハラ・ビエン・マズルカ
+	CASE IS < 31
+		RETURN CLASS_NUM_COMMON("上級")
+	;腐海・アンフィニ
+	CASE IS < 54
+		RETURN CLASS_NUM_COMMON("最上級")
+ENDSELECT
+
+;=======================================================================
+;敵の総数
+;=======================================================================
+@ENEMY_NUM_5, ARG
+SELECTCASE FLAG:現M
+	;ダイダロス
+	CASE IS < 8
+		RETURN ENEMY_NUM_COMMON("中級", ARG)
+	;ヴァルハラ・ビエン・マズルカ
+	CASE IS < 31
+		RETURN ENEMY_NUM_COMMON("上級", ARG)
+	;腐海・アンフィニ
+	CASE IS < 54
+		RETURN ENEMY_NUM_COMMON("最上級", ARG)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_5, ARG
+SELECTCASE FLAG:現M
+	;ミコンの街
+	CASE 0
+	;ダイダロス上層
+	CASE 1, 2, 3
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:ユキジョロウ]], 21
+			CASE IS < 30
+				RETURN [[キャラ:グーラー]], 21
+			CASE IS < 45
+				RETURN [[キャラ:リャナンシー]], 20
+			CASE IS < 60
+				RETURN [[キャラ:ルサールカ]], 19
+			CASE IS < 75
+				RETURN [[キャラ:ロア]], 19
+			CASE IS < 90
+				RETURN [[キャラ:コッパテング]], 19
+			CASE IS < 100
+				RETURN [[キャラ:グルル]], 20
+		ENDSELECT
+	;ダイダロス中層
+	CASE 4, 5, 6
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:ユキジョロウ]], 21
+			CASE IS < 30
+				RETURN [[キャラ:グーラー]], 21
+			CASE IS < 45
+				RETURN [[キャラ:ブラックウィドウ]], 23
+			CASE IS < 60
+				RETURN [[キャラ:エルフ]], 23
+			CASE IS < 75
+				RETURN [[キャラ:オニ]], 21
+			CASE IS < 90
+				RETURN [[キャラ:ジャックランタン]], 23
+			CASE IS < 100
+				RETURN [[キャラ:グルル]], 22
+		ENDSELECT
+	;ダイダロス下層
+	CASE 7
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:ユキジョロウ]], 21+RAND:2*3
+			CASE IS < 30
+				RETURN [[キャラ:グーラー]], 21+RAND:2*3
+			CASE IS < 45
+				RETURN [[キャラ:ブラックウィドウ]], 23+RAND:2*3
+			CASE IS < 55
+				RETURN [[キャラ:エルフ]], 23+RAND:2*3
+			CASE IS < 65
+				RETURN [[キャラ:イソラ]], 23+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:オニ]], 21+RAND:2*3
+			CASE IS < 85
+				RETURN [[キャラ:ジャックランタン]], 23+RAND:2*3
+			CASE IS < 95
+				RETURN [[キャラ:グルル]], 22+RAND:2*3
+			CASEELSE
+				RETURN [[キャラ:モムノフ]], 22+RAND:2*3
+		ENDSELECT
+	;ヴァルハラ
+	CASE 9, 10
+		;奥
+		IF FLAG:現X > 27
+			SELECTCASE RAND:100
+				CASE IS < 25
+					RETURN [[キャラ:ヘル]], 35+RAND:2*3
+				CASE IS < 40
+					RETURN [[キャラ:アルラウネ]], 33+RAND:2*3
+				CASE IS < 55
+					RETURN [[キャラ:ダフネ]], 34+RAND:2*3
+				CASE IS < 70
+					RETURN [[キャラ:ズェラロンズ]], 35+RAND:2*3
+				CASE IS < 80
+					RETURN [[キャラ:ヤクシニー]], 35+RAND:2*3
+				CASE IS < 90
+					RETURN [[キャラ:バフォメット]], 33+RAND:2*3
+				CASE IS < 100
+					RETURN [[キャラ:コープス]], 34+RAND:2*3
+			ENDSELECT
+		ELSE
+			SELECTCASE RAND:100
+				CASE IS < 25
+					RETURN [[キャラ:ヘル]], 32+RAND:2*3
+				CASE IS < 40
+					RETURN [[キャラ:アルラウネ]], 32+RAND:2*3
+				CASE IS < 55
+					RETURN [[キャラ:アエロー]], 31+RAND:2*3
+				CASE IS < 70
+					RETURN [[キャラ:ゴルゴン]], 30+RAND:2*3
+				CASE IS < 80
+					RETURN [[キャラ:エリゴール]], 29+RAND:2*3
+				CASE IS < 90
+					RETURN [[キャラ:バフォメット]], 31+RAND:2*3
+				CASE IS < 100
+					RETURN [[キャラ:コープス]], 32+RAND:2*3
+			ENDSELECT
+		ENDIF
+	;ビエン1F/2F
+	CASE 13, 14
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:ハンニャ]], 25+RAND:2*3
+			CASE IS < 40
+				RETURN [[キャラ:ケライノー]], 25+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:ゴルゴン]], 28+RAND:2
+			CASE IS < 70
+				RETURN [[キャラ:アエーシュマ]],27+RAND:2
+			CASE IS < 80
+				RETURN [[キャラ:モムノフ]], 25+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:シトリー]], 25+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:ジャックランタン]], 25+RAND:2*3
+		ENDSELECT
+	;ビエンB1F/3F/4F
+	CASE 12, 15, 16
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:バンシー]], 27+RAND:2*3
+			CASE IS < 40
+				RETURN [[キャラ:マンイーター]], 27+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:ゴルゴン]], 30
+			CASE IS < 70
+				RETURN [[キャラ:アエーシュマ]], 27+RAND:2*3
+			CASE IS < 80
+				RETURN [[キャラ:メガイラ]], 27+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:インキュバス]], 27+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:ナーガ]], 28+RAND:2*3
+		ENDSELECT
+	;マズルカ ヴァルハラ側
+	CASE IS < 25
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:マッハ]], 42+RAND:2*3
+			CASE IS < 30
+				RETURN [[キャラ:ペレ]], 40+RAND:2*3
+			CASE IS < 45
+				RETURN [[キャラ:ニュクス]], 42+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:ライラ]], 41+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:レギオン]], 40+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:ナーガ・ラジャ]], 42+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:カマソッソ]], 40+RAND:2*3
+		ENDSELECT
+	;マズルカ 7F 8F
+	CASE 25, 26
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:マッハ]], 44+RAND:2*3
+			CASE IS < 30
+				RETURN [[キャラ:ペレ]], 42+RAND:2*3
+			CASE IS < 45
+				RETURN [[キャラ:ニュクス]], 44+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:ライラ]], 43+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:レギオン]], 42+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:ナーガ・ラジャ]], 42+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:カマソッソ]], 42+RAND:2*3
+		ENDSELECT
+	;マズルカ　腐海側
+	CASE IS < 31
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:マッハ]], 45+RAND:2*3
+			CASE IS < 30
+				RETURN [[キャラ:セクメト]], 44+RAND:2*3
+			CASE IS < 45
+				RETURN [[キャラ:ニュクス]], 45+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:サキュバス]], 44+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:レギオン]], 44+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:ナーガ・ラジャ]], 44+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:ベルセルク]], 45+RAND:2*3
+		ENDSELECT
+	;腐海　マズルカ側
+	CASE IS < 36
+		SELECTCASE RAND:100
+			CASE IS < 15
+				RETURN [[キャラ:マッハ]], 48+RAND:2*3
+			CASE IS < 30
+				RETURN [[キャラ:ダーキニー]], 48+RAND:2*3
+			CASE IS < 45
+				RETURN [[キャラ:セドナ]], 48+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:モーリアン]], 48+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:クラマテング]], 48+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:ヴァンパイア]], 49+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:シャドウ]], 48+RAND:2*3
+		ENDSELECT
+	;炎の腐海　アンフィニ側下層
+	CASE IS < 38
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:バステト]],54 + RAND:2*3
+			CASE IS < 40
+				RETURN [[キャラ:ティターニア]], 53+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:モーリアン]], 52+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:ケルヌンノス]], 53+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:ケツアルカトル]], 54+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:ハヌマーン]], 53+RAND:2*3
+		ENDSELECT
+	;炎の腐海　アンフィニ側上層
+	CASE IS < 40
+		SELECTCASE RAND:100
+			CASE IS < 20
+				RETURN [[キャラ:バステト]], 55+RAND:2*3
+			CASE IS < 40
+				RETURN [[キャラ:パールヴァティ]], 56+RAND:2*3
+			CASE IS < 60
+				RETURN [[キャラ:アラミサキ]], 56+RAND:2*3
+			CASE IS < 75
+				RETURN [[キャラ:アガレス]], 55+RAND:2*3
+			CASE IS < 90
+				RETURN [[キャラ:ケツアルカトル]], 56+RAND:2*3
+			CASE IS < 100
+				RETURN [[キャラ:アレクト]], 55+RAND:2*3
+		ENDSELECT
+	;アンフィニ
+	CASE IS < 48
+		SELECTCASE RAND:100
+			CASE IS < 25
+				RETURN [[キャラ:ピクシー]], 80
+			CASE IS < 50
+				RETURN [[キャラ:ゾンビちゃん]],80
+			CASE IS < 75
+				RETURN [[キャラ:ハーピー]], 80
+			CASEELSE
+				RETURN [[キャラ:アプサラス]], 80
+		ENDSELECT
+ENDSELECT
+;=================================
+;特殊調整
+;=================================
+@SET_ENEMY_STATUS_5, ARG
+#LOCALSIZE 1
+IF RANGE(FLAG:現M, 41, 53)
+	SELECTCASE NO:ARG
+		CASE [[キャラ:ピクシー]]
+			ABL:ARG:スキル1 = [[スキル:ジオダイン]]
+			ABL:ARG:スキル2 = [[スキル:ジオダイン]]
+			ABL:ARG:スキル3 = [[スキル:ハッピーステップ]]
+			ABL:ARG:スキル4 = [[スキル:ポズムディ]]
+			ABL:ARG:スキル5 = [[スキル:メ・ディアラハン]]
+			ABL:ARG:スキル6 = [[スキル:メ・ディアラハン]]
+			ABL:ARG:スキル7 = [[スキル:メギドラオン]]
+			ABL:ARG:スキル8 = [[スキル:メギドラオン]]
+		CASE [[キャラ:ゾンビちゃん]]
+			ABL:ARG:スキル1 = [[スキル:マインドスライス]]
+			ABL:ARG:スキル2 = [[スキル:マインドスライス]]
+			ABL:ARG:スキル3 = [[スキル:石化かみつき]]
+			ABL:ARG:スキル4 = [[スキル:石化かみつき]]
+			ABL:ARG:スキル5 = [[スキル:メテオフィスト]]
+			ABL:ARG:スキル6 = [[スキル:メテオフィスト]]
+			ABL:ARG:スキル7 = [[スキル:三分の活泉]]
+			ABL:ARG:スキル8 = [[スキル:食いしばり]]
+		CASE [[キャラ:ハーピー]]
+			ABL:ARG:スキル1 = [[スキル:マハ・ザンダイン]]
+			ABL:ARG:スキル2 = [[スキル:マハ・ザンダイン]]
+			ABL:ARG:スキル3 = [[スキル:旋風陣]]
+			ABL:ARG:スキル4 = [[スキル:旋風陣]]
+			ABL:ARG:スキル5 = [[スキル:アクセルクロー]]
+			ABL:ARG:スキル6 = [[スキル:アクセルクロー]]
+			ABL:ARG:スキル7 = [[スキル:天羽の舞]]
+			ABL:ARG:スキル8 = [[スキル:天羽の舞]]
+		CASE [[キャラ:アプサラス]]
+			ABL:ARG:スキル1 = [[スキル:マハ・ジオダイン]]
+			ABL:ARG:スキル2 = [[スキル:マハ・ジオダイン]]
+			ABL:ARG:スキル3 = [[スキル:アクアリータイド]]
+			ABL:ARG:スキル4 = [[スキル:アクアリータイド]]
+			ABL:ARG:スキル5 = [[スキル:テンタラフー]]
+			ABL:ARG:スキル6 = [[スキル:テンタラフー]]
+			ABL:ARG:スキル7 = [[スキル:ファイナルヌード]]
+			ABL:ARG:スキル8 = [[スキル:ファイナルヌード]]
+	ENDSELECT
+	ABL:ARG:会話タイプ = 331
+	FOR LOCAL, 1, 6
+		BASE:ARG:GET_BASESTATUS(LOCAL) = BASE:ARG:GET_BASESTATUS(LOCAL) * 3 / 2
+	NEXT
+	FOR LOCAL, 0, FLAG:相性数
+		SIF BASE:ARG:GET_TYPE(LOCAL) < 100
+			BASE:ARG:GET_TYPE(LOCAL) = 999
+		SIF BASE:ARG:GET_TYPE(LOCAL) == 100
+			BASE:ARG:GET_TYPE(LOCAL) = 50
+		MAXBASE:ARG:GET_TYPE(LOCAL) = BASE:ARG:GET_TYPE(LOCAL)
+	NEXT
+ENDIF
+;---------------------------------------------------------------
+;ボス敵
+;---------------------------------------------------------------
+;---------------------------------------------------------------
+;ミノタウロス
+;---------------------------------------------------------------
+@SET_MINOTAUR
+#LOCALSIZE 2
+CALL SET_ENEMY,9,[[キャラ:ミノタウロス]],30,0,1
+LOCAL = CHARANUM-1
+IF !ITEM:しず玉
+	ABL:LOCAL:アイテム3 = GETNUM(ITEM, "しず玉")
+	ABL:LOCAL:入手確率3 = 100
+ENDIF
+CFLAG:LOCAL:行動回数 = 2
+BASE:LOCAL:力 = 25
+BASE:LOCAL:耐力 = 25
+BASE:LOCAL:速さ = 20
+BASE:LOCAL:魔力 = 15
+BASE:LOCAL:知恵 = 15
+BASE:LOCAL:運 = 10
+BASE:LOCAL:火炎 = 100
+BASE:LOCAL:氷結 = 100
+BASE:LOCAL:衝撃 = 200
+BASE:LOCAL:地変 = 100
+BASE:LOCAL:重力 = 100
+BASE:LOCAL:核熱 = 150
+MAXBASE:LOCAL:火炎 = 100
+MAXBASE:LOCAL:氷結 = 100
+MAXBASE:LOCAL:衝撃 = 200
+MAXBASE:LOCAL:地変 = 100
+MAXBASE:LOCAL:重力 = 100
+MAXBASE:LOCAL:核熱 = 150
+LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+CALL SET_BATTLE_STATUS(LOCAL, 30 * LOCAL:1, "ＨＰ")
+CALL SET_BATTLE_STATUS(LOCAL, 5 * LOCAL:1, "ＭＰ")
+ABL:LOCAL:スキル4 = [[スキル:雄叫び]]
+ABL:LOCAL:スキル5 = [[スキル:ギガンフィスト]]
+ABL:LOCAL:スキル6 = [[スキル:挑発]]
+ABL:LOCAL:スキル7 = [[スキル:メガトンプレス]]
+ABL:LOCAL:スキル8 = [[スキル:マハ・ジオンガ]]
+
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+;---------------------------------------------------------------
+;メデューサ
+;---------------------------------------------------------------
+@SET_MEDOUSA
+#LOCALSIZE 2
+CALL SET_ENEMY, 9, [[キャラ:メデューサ]], 50, 0, 1
+LOCAL = CHARANUM -1
+LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+CALL SET_BATTLE_STATUS(LOCAL, 60 * LOCAL:1, "ＨＰ")
+CALL SET_BATTLE_STATUS(LOCAL, 10 * LOCAL:1, "ＭＰ")
+CSTR:LOCAL:思考パターン = MEDOUSA
+BASE:LOCAL:LV -= 10
+BASE:LOCAL:BIND = -80
+BASE:LOCAL:PANIC = -80
+BASE:LOCAL:CLOSE = -80
+BASE:LOCAL:疾風 = 50
+BASE:LOCAL:重力 = 50
+BASE:LOCAL:核熱 = 50
+ABL:LOCAL:スキル4 = [[スキル:マハエイハ]]
+ABL:LOCAL:スキル5 = [[スキル:子守唄]]
+ABL:LOCAL:スキル6 = [[スキル:マハ・ラギダイン]]
+ABL:LOCAL:スキル7 = [[スキル:暴れまくり]]
+ABL:LOCAL:スキル7 = [[スキル:ＳＴＯＮＥ]]
+ABL:LOCAL:追加効果命中率 = 30
+ABL:LOCAL:追加効果最大命中率 = 60
+ABL:LOCAL:最大攻撃回数 = 5
+CFLAG:LOCAL:行動回数 = 2
+CALL SYNC_STATUS, LOCAL
+CALL HEALTH_CHARA, LOCAL
+
+@SET_ACTION_MEDOUSA, ARG
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+SIF CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ == 0
+	CFLAG:ARG:行動回数 = 2 + RAND:3
+;1more時
+IF CFLAG:ARG:１moreフラグ == 2
+	SELECTCASE RAND:100
+		CASE IS < 40
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASE IS < 80
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:ＳＴＯＮＥ]]
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 < 2
+	SELECTCASE RAND:100
+		CASE IS < 15
+			CFLAG:ARG:入力行動 = [[スキル:子守唄]]
+		CASE IS < 30
+			CFLAG:ARG:入力行動 = [[スキル:暴れまくり]]
+		CASE IS < 45
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASE IS < 60
+			CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:ＳＴＯＮＥ]]
+	ENDSELECT
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 50
+			CFLAG:ARG:入力行動 = 0
+		CASE IS < 75
+			CFLAG:ARG:入力行動 = [[スキル:アギダイン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:巻きつき]]
+	ENDSELECT
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+;タバサの像があれば怯む。ただし、HPにより確率でひるまない
+IF CFLAG:ARG:入力行動 == [[スキル:ＳＴＯＮＥ]] && ITEM:タバサの像
+	IF RAND:100 > 現HP割合(ARG) / 4
+		CFLAG:ARG:入力行動 = [[スキル:ＤＵＭＭＹ]]
+		TSTR = ＳＴＯＮＥ
+	ENDIF
+ENDIF
+RETURN 1
+
+@ENEMY_BATTLE_MESSAGE_K208, ARG
+SIF CFLAG:ARG:入力行動 == [[スキル:ＤＵＭＭＹ]]
+	PRINTFORMW メデューサはタバサの像を見て怯んだ！
+
+;---------------------------------------------------------------
+;ロキ
+;---------------------------------------------------------------
+@SET_LOKI
+#LOCALSIZE 2
+CALL SET_ENEMY, 9, [[キャラ:ロキ]], 60, 0, 1
+LOCAL = CHARANUM -1
+LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+CSTR:LOCAL:思考パターン = LOKI
+BASE:LOCAL:LV -= 20
+IF !ITEM:あら玉
+	ABL:LOCAL:アイテム3 = GETNUM(ITEM, "あら玉")
+	ABL:LOCAL:入手確率3 = 100
+ENDIF
+CALL SYNC_STATUS, LOCAL
+CALL SET_BATTLE_STATUS(LOCAL, 80 * LOCAL:1, "ＨＰ")
+CALL SET_BATTLE_STATUS(LOCAL, 100 * LOCAL:1, "ＭＰ")
+BASE:LOCAL:速さ *= 2
+CFLAG:LOCAL:速度補正 = BASE:LOCAL:速さ
+IF !STRFLAG_D("魔除け完成")
+	CALL SET_BATTLE_STATUS(LOCAL, 2 * MAXBASE:LOCAL:ＨＰ, "ＨＰ")
+	BASE:LOCAL:魔力 *= 3
+	BASE:LOCAL:知恵 *= 3
+	CFLAG:LOCAL:速度補正 *= 2
+ENDIF
+BASE:LOCAL:運 = 25
+BASE:LOCAL:BIND = -80
+BASE:LOCAL:CLOSE = -100
+BASE:LOCAL:核熱 = 150
+ABL:LOCAL:スキル4 = [[スキル:マハエイハ]]
+ABL:LOCAL:スキル5 = [[スキル:デ・カジャ]]
+ABL:LOCAL:スキル6 = [[スキル:アカシャアーツ]]
+ABL:LOCAL:スキル7 = [[スキル:ブフダイン]]
+ABL:LOCAL:スキル8 = [[スキル:マリンカリン]]
+CFLAG:LOCAL:行動回数 = 2
+CALL SYNC_STATUS, LOCAL
+CALL HEALTH_CHARA, LOCAL
+;------------------------------
+;ロキの思考パターン
+;1.PTメンバーの氷結相性によってニブルヘイムをメギドラオンにうちかえてくる
+;2.万能攻撃にたいしてメギドラオンカウンター
+;3.火属性・核熱属性を食らった場合、一時的に万能が弱点に
+;4.3の状態の時はカウンターをしてこない
+;------------------------------
+@SET_ACTION_LOKI, ARG
+#LOCALSIZE 1
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+IF CFLAG:ARG:行動した回数 == 0 && CFLAG:ARG:１moreフラグ == 0
+	SIF FLAG:経過ターン数 == 0
+		TFLAG:437 = CFLAG:ARG:速度補正
+	CFLAG:ARG:速度補正 = TFLAG:437
+	CFLAG:ARG:行動回数 = 2
+	MAXBASE:ARG:万能 = 100
+	FOR LOCAL, 1, 7
+		SIF POS(LOCAL) < 0
+			CONTINUE
+		SIF GET_STATE(CFLAG:POS(LOCAL):ステート)== "DYING"
+			CONTINUE
+		SELECTCASE MAXBASE:POS(LOCAL):氷結
+			CASE 0
+				TFLAG:401 += 5
+			CASE 999
+				TFLAG:401 += 10
+			CASE IS < 0
+				TFLAG:401 += 20
+			CASE 100
+				TFLAG:401 -= 5
+			CASE IS > 100
+				TFLAG:401 -= 10
+		ENDSELECT
+	NEXT
+ENDIF
+;1more時
+IF CFLAG:ARG:１moreフラグ == 2
+	SELECTCASE RAND:100
+		CASE IS < 40
+			CFLAG:ARG:入力行動 = [[スキル:ニブルヘイム]]
+		CASE IS < 80
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 == 0
+	SELECTCASE RAND:100
+		CASE IS < 50
+			IF 現HP割合(ARG) < 30 || RAND:2
+				CFLAG:ARG:入力行動 = [[スキル:ニブルヘイム]]
+			ELSE
+				CFLAG:ARG:入力行動 = [[スキル:ブフダイン]]
+			ENDIF
+			SIF MAX(TFLAG:401, 5) > RAND:100
+				CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		CASE IS < 60
+			CFLAG:ARG:入力行動 = [[スキル:アカシャアーツ]]
+		CASE IS < 70
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASE IS < 80
+			IF CFLAG:ARG:攻撃強化 + CFLAG:ARG:防御強化 + CFLAG:ARG:命中強化 < -16
+				CFLAG:ARG:入力行動 = [[スキル:デ・クンダ]]
+			ELSE
+				CFLAG:ARG:入力行動 = [[スキル:マリンカリン]]
+			ENDIF
+		CASEELSE
+			CFLAG:ARG:入力行動 = 0
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 == 1
+	SELECTCASE RAND:100
+		CASE IS < 10
+			CFLAG:ARG:入力行動 = [[スキル:マハエイハ]]
+		CASE IS < 20
+			CFLAG:ARG:入力行動 = [[スキル:アカシャアーツ]]
+		CASE IS < 30
+			CFLAG:ARG:入力行動 = [[スキル:マリンカリン]]
+		CASE IS < 70
+			IF (現HP割合(ARG) < 25 && RAND:2) || (現HP割合(ARG) < 50 && RAND:3)||RAND:4
+				CFLAG:ARG:入力行動 = [[スキル:ニブルヘイム]]
+			ELSE
+				CFLAG:ARG:入力行動 = [[スキル:ブフダイン]]
+			ENDIF
+			SIF MAX(TFLAG:401, 5) > RAND:100
+				CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = 0
+	ENDSELECT
+ELSE
+	CFLAG:ARG:入力行動 = [[スキル:メギドラオン]]
+ENDIF
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+;---------------------------------------------------------------
+;ヘカーテ
+;ステータスは新月でレベル60相当、満月でレベル80相当
+;HP10000
+;物理に弱く、物理魔法に若干強く、精霊魔法に強い
+;また、魔法に強く、物理に弱い
+;ラトスの像がない場合、物理4属性無効なので、耐久力に大幅な違いが
+;※像がない場合は属性武器による打撃や、Corona Shell、ノヴァサイザーなどの物理魔法系統の物理攻撃は有効
+;---------------------------------------------------------------
+@SET_HECATE
+#LOCALSIZE 2
+CALL SET_ENEMY, 9, [[キャラ:ヘカーテ]], 60 + FLAG:月齢 * 5 / 2, 0, 1
+LOCAL = CHARANUM -1
+LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+BASE:LOCAL:LV = 50
+IF !ITEM:ふる玉
+	ABL:LOCAL:アイテム3 = GETNUM(ITEM, "ふる玉")
+	ABL:LOCAL:入手確率3 = 100
+ENDIF
+CALL SYNC_STATUS, LOCAL
+CALL SET_BATTLE_STATUS(LOCAL, 100 * LOCAL:1, "ＨＰ")
+CALL SET_BATTLE_STATUS(LOCAL, 100 * LOCAL:1, "ＭＰ")
+CSTR:LOCAL:思考パターン = HECATE
+CFLAG:LOCAL:速度補正 = BASE:LOCAL:速さ/2
+CFLAG:LOCAL:行動回数 = 2
+CFLAG:LOCAL:魔法被ダメージ補正 = -50
+CFLAG:LOCAL:物理被ダメージ補正 = 50
+CFLAG:LOCAL:単独リンケージ = 1
+FOR LOCAL:1, 0, FLAG:相性数
+	SELECTCASE GET_TYPE(LOCAL:1)
+		CASE "剣撃", "飛具", "打撃", "戦技"
+			BASE:LOCAL:GET_TYPE(LOCAL:1) = ITEM:ラトスの像 ? 125 # 0
+		CASE "破魔", "呪殺"
+			BASE:LOCAL:GET_TYPE(LOCAL:1) = 0
+		CASE "重力", "核熱", "衝撃", "電撃", 
+			BASE:LOCAL:GET_TYPE(LOCAL:1) = 75
+		CASE "神経", "精神" 
+			BASE:LOCAL:GET_TYPE(LOCAL:1) = 50
+		CASE "火炎", "氷結", "疾風", "地変", "水撃"
+			BASE:LOCAL:GET_TYPE(LOCAL:1) = 25
+	ENDSELECT
+NEXT
+CALL SYNC_STATUS, LOCAL
+CALL HEALTH_CHARA, LOCAL
+
+;------------------------------
+;ヘカーテの思考パターン
+;満月の女王・マハムドオン・マハグラダイン・グラダイン
+;ブフダイン・マグダイン・マカラカーン・マリンカリン・シバブー
+;マハマカカジャ・デカジャ・デクンダ
+
+;1.相性学習型で、グラダイン・ブフダイン・マグダイン・マリンカリン・シバブー・マハムドオンは
+;  無効以下だと把握した場合は避け、弱点だと優先して撃ってくる
+;　また、無効以下で判定しなおす際に満月の女王・マハマカカジャのいずれかを使ってくる可能性が生まれる
+;
+;2.HP30%未満で行動回数3回に
+;3.カジャンダは3回を超えると剥がしてくる
+;4.満月の女王は基本的にはターン中1回だけど、1MOREで撃ってくる可能性がある
+;　なお、満月の女王は特別版で、新月60/満月240/その他120となっている
+;
+;TIPS
+;新月なら満月の女王の威力がかなり控えめになるので、範囲攻撃が弱まり、攻撃がかなりぬるくなるはず
+;マハ・マカカジャに対してデカジャあるいはンダで上回ってれば、攻撃を凌ぐのはそこまで大変じゃない…はず
+;ラトス像を使ってれば、わりと低耐久な感じになるので、一気に押しきれるはずたぶん
+;
+;雄叫び＋タルンダ1回でデクンダ誘発で、行動回数を1回潰すことも可能
+;さらに挑発＋カジャ1回でデカジャも誘発すれば、行動2回なうちは完全に行動潰せる
+;
+;マカラカーン対策はしてないので、わりとダメを減らせる
+;
+;満月＋像なしは相当レベル必要そうな予感
+;------------------------------
+@SET_ACTION_HECATE, ARG
+#LOCALSIZE 10
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+CFLAG:ARG:行動回数 = 現HP割合(ARG) < 30 ? 3 # 2
+;1more時
+IF CFLAG:ARG:１moreフラグ == 2
+	SELECTCASE RAND:100
+		CASE IS < 50
+			CFLAG:ARG:入力行動 = 9999
+		CASE IS < 80
+			CFLAG:ARG:入力行動 = [[スキル:マハ・マカカジャ]]
+			SIF CFLAG:ARG:魔法威力強化 == 32
+				CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 == 0
+	SELECTCASE RAND:100
+		CASE IS < 60
+			CFLAG:ARG:入力行動 = 9999
+		CASE IS < 80
+			CFLAG:ARG:入力行動 = [[スキル:マカラカーン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = [[スキル:マハ・マカカジャ]]
+			SIF CFLAG:ARG:魔法威力強化 == 32
+				CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+	ENDSELECT
+ELSEIF CFLAG:ARG:行動した回数 == 1
+	IF 現HP割合(ARG) < 30
+		CFLAG:ARG:入力行動 = 9999
+	ELSE
+		SELECTCASE RAND:100
+			CASE IS < 15
+				CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+			CASE IS < 40
+				CFLAG:ARG:入力行動 = [[スキル:マハ・グラダイン]]
+			CASEELSE
+				CFLAG:ARG:入力行動 = 9999
+		ENDSELECT
+	ENDIF
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 30
+			CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+		CASE IS < 60
+			CFLAG:ARG:入力行動 = [[スキル:マハ・グラダイン]]
+		CASEELSE
+			CFLAG:ARG:入力行動 = 9999
+	ENDSELECT
+ENDIF
+LOCAL:9 = 0
+WHILE CFLAG:ARG:入力行動 == 9999
+	;対象キャラ決定作業
+	LOCAL = RAND:3 ? RAND(1, 4) # RAND(4, 7)
+	SIF POS(LOCAL) < 0
+		CONTINUE
+	SIF GET_STATE(CFLAG:POS(LOCAL):ステート) == "DYING"
+		CONTINUE
+	LOCAL:8 = -1
+	FOR LOCAL:1, 2, 8
+		;保持している相性を取得
+		LOCAL:(LOCAL:1) = CHECK_WEAKNESS(MEMORIZE_WEAKNESS(ARG, LOCAL, AUTO_SPLIT("0/1/Grav/Ice/地変/精神/神経/呪殺", "/", LOCAL:1), 1))
+		;弱点にひっかかったらそこで決定
+		IF LOCAL:(LOCAL:1) == 1
+			LOCAL:8 = LOCAL:1
+			BREAK
+		ENDIF
+	NEXT
+	LOCAL:1 = RAND:10 < 7 ? RAND(2, 5) # RAND(5, 8)
+	IF GROUPMATCH(CHECK_WEAKNESS(MEMORIZE_WEAKNESS(ARG, LOCAL, AUTO_SPLIT("0/1/Grav/Ice/地変/精神/神経/呪殺", "/", LOCAL:1))), 1000, 0, -1, 1)
+		SELECTCASE AUTO_SPLIT("0/1/Grav/Ice/地変/精神/神経/呪殺", "/", LOCAL:8 == -1 ? LOCAL:1 # LOCAL:8)
+			CASE "重力"
+				CFLAG:ARG:入力行動 = [[スキル:マハ・グラダイン]]
+				CFLAG:ARG:ターゲット = LOCAL < 4 ? 20 # 21
+			CASE "氷結"
+				CFLAG:ARG:入力行動 = [[スキル:ブフダイン]]
+				CFLAG:ARG:ターゲット = LOCAL
+			CASE "地変"
+				CFLAG:ARG:入力行動 = [[スキル:マグダイン]]
+				CFLAG:ARG:ターゲット = LOCAL
+			CASE "精神"
+				CFLAG:ARG:入力行動 = [[スキル:マリンカリン]]
+				CFLAG:ARG:ターゲット = LOCAL
+			CASE "精神"
+				CFLAG:ARG:入力行動 = [[スキル:シバブー]]
+				CFLAG:ARG:ターゲット = LOCAL
+			CASE "呪殺"
+				CFLAG:ARG:入力行動 = [[スキル:マハムドオン]]
+				CFLAG:ARG:ターゲット = LOCAL < 4 ? 20 # 21
+		ENDSELECT
+	ELSE
+		IF RAND:100 < LOCAL:9*10
+			IF RAND:100 < 20
+				CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+			ELSEIF RAND:100 < 50
+				CFLAG:ARG:入力行動 = [[スキル:マハ・マカカジャ]]
+				SIF CFLAG:ARG:魔法威力強化 == 32
+					CFLAG:ARG:入力行動 = [[スキル:満月の女王]]
+			ENDIF
+		ENDIF
+	ENDIF
+	LOCAL:9++
+WEND
+;カジャンダの許容は2回まで
+FOR LOCAL:1, 0, 5
+	FOR LOCAL, 1, 7
+		IF POS(LOCAL) > 0 && CFLAG:POS(LOCAL):AUTO_SPLIT("命中強化/回避強化/魔法威力強化/攻撃強化/防御強化", "/", LOCAL:1) > 8
+			CFLAG:ARG:入力行動 = [[スキル:デ・カジャ]]
+			CFLAG:ARG:ターゲット = -1
+		ENDIF
+	NEXT
+	IF CFLAG:ARG:AUTO_SPLIT("命中強化/回避強化/魔法威力強化/攻撃強化/防御強化", "/", LOCAL:1) < -8
+		CFLAG:ARG:入力行動 = [[スキル:デ・クンダ]]
+		CFLAG:ARG:ターゲット = -1
+	ENDIF
+NEXT
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+RETURN 1
+;---------------------------------------------------------------
+;セト
+;ステータスはレベル80相当で60レベルで登場
+;HP15000
+;はじめは行動回数2回
+;---------------------------------------------------------------
+@SET_SET
+#LOCALSIZE 2
+CALL SET_ENEMY, 9, [[キャラ:セト]], 66, 0, 1
+LOCAL = CHARANUM -1
+;通常悪魔と同数値程度だとあからさまにボスとしては弱くなるので
+FOR LOCAL:1, 1, 7
+	TIMES BASE:LOCAL:GET_BASESTATUS(LOCAL:1), 1.50
+NEXT
+CALL SYNC_STATUS, LOCAL
+LOCAL:1 = FLAG:戦闘難易度 - 3 > 0 ? 120 + (FLAG:戦闘難易度 - 3) * 20 # 100
+CALL SET_BATTLE_STATUS(LOCAL, 150 * LOCAL:1, "ＨＰ")
+CALL SET_BATTLE_STATUS(LOCAL, 300 * LOCAL:1, "ＭＰ")
+CSTR:LOCAL:思考パターン = SET
+CFLAG:LOCAL:行動回数 = 2
+CALL SYNC_STATUS, LOCAL
+CALL HEALTH_CHARA, LOCAL
+
+;------------------------------
+;セトの思考パターン
+;妬みの暴圧・アゲンストペイン・砂漠の風・色即是空
+;ラスタキャンディ・ランダマイザ・気合
+;(マハ)ブフ・アギ・マグ・ジオ・ザンダイン(9999)
+;
+;元にしたのはアバチュ2版
+;とはいえ、再現しきると隠しボスだけあってひどいことになるので
+;とりあえず物理系と色即是空以外の状態異常系とメギドラオンを抜いて作成
+;
+;TIPS
+;専用スキル
+;妬みの暴圧				威力が200～1000まで変動する万能全体 タルンダの効果が2重に掛かるので、ンダMAXで威力1/4になる
+;						行動回数の合計が12回を越えてるとき、1回目の行動がこれになる(カウントは撃ったらリセット)
+;アゲンストペイン		威力500・クリティカル率補正60 スクンダの効果が二重にかかるので、ンダMAXで命中率1/4になる
+;砂漠の風				ダメージを与えつつ味方をＣＯＭＰに引っ込める。引っ込まない場合はCOOP
+;
+;主力攻撃となる万能のうち上記２種は弱体をかけることで飛躍的に弱まるので基本的にはンダを維持して戦うことに
+;また、デカジャも持ってないのでカジャも有効
+;ただし、ラスタ・ランダで相殺を狙ってくるので更新も必要
+;
+;あとは原作通り５種ダイン＋色即是空
+;
+;有効なのは
+;行動なしで味方を復帰させられるＤＤＳ
+;壁系(単体魔法が多いのもあってかなり場持ちする)・札(ブフ・ジオ・アギが弱点の悪魔は貼っておくとかなり違う)・マカラカーン(ただし20%割るまで)
+;クリ対策にコーチング
+;突撃の狼煙・Lランダマイザ・雄叫び・フォッグブレス
+;強力な飛具スキル(飛具でCOOP取れるので)
+;アムリタ・Ｌメシアライザー・メディアラハン
+;------------------------------
+@SET_ACTION_SET, ARG
+#LOCALSIZE 5
+#DIM 行動周期
+;入力行動を-1とターゲットを-1にしておく
+CFLAG:ARG:入力行動 = -1
+CFLAG:ARG:ターゲット = -1
+;20%を割ると3回行動
+CFLAG:ARG:行動回数 = 現HP割合(ARG) < 20 ? 3 # 2
+;行動1回目
+IF CFLAG:ARG:行動した回数 == 0
+	IF 行動周期 > 12
+		CFLAG:ARG:入力行動 = [[スキル:妬みの暴圧]]
+		行動周期 = 0
+	ELSE
+		;気合フラグがあるときは必ずアゲンストペイン
+		IF CFLAG:ARG:気合フラグ
+			CFLAG:ARG:入力行動 = [[スキル:アゲンストペイン]]
+		ELSE
+			SELECTCASE RAND:100
+				CASE IS < 30
+					CFLAG:ARG:入力行動 = [[スキル:アゲンストペイン]]
+				CASE IS < 50
+					CFLAG:ARG:入力行動 = [[スキル:色即是空]]
+				CASE IS < 70
+					CFLAG:ARG:入力行動 = 9999
+				CASEELSE
+					CFLAG:ARG:入力行動 = 0
+			ENDSELECT
+		ENDIF
+	ENDIF
+ELSE
+	SELECTCASE RAND:100
+		CASE IS < 15
+			CFLAG:ARG:入力行動 = [[スキル:アゲンストペイン]]
+		CASE IS < 30
+			CFLAG:ARG:入力行動 = [[スキル:砂漠の風]]
+		CASE IS < 50
+			CFLAG:ARG:入力行動 = [[スキル:ランダマイザ]]
+		CASE IS < 65
+			CFLAG:ARG:入力行動 = [[スキル:ラスタキャンディ]]
+		CASE IS < 80
+			CFLAG:ARG:入力行動 = 9999
+		CASEELSE
+			IF CFLAG:ARG:行動した回数 == CFLAG:ARG:行動回数 - 1 && RAND:2
+				CFLAG:ARG:入力行動 = [[スキル:気合]]
+			ELSE
+				CFLAG:ARG:入力行動 = 0
+			ENDIF
+	ENDSELECT
+ENDIF
+IF CFLAG:ARG:入力行動 == 9999
+	;ランダマイザ・ラスタキャンディの追加判定
+	LOCAL:2 = 0
+	LOCAL:3 = 0
+	;反射フラグの取得
+	LOCAL:4 = 0
+	FOR LOCAL:1, 0, 5
+		FOR LOCAL, 1, 7
+			IF POS(LOCAL) > 0 
+				LOCAL:2 = MAX(LOCAL:2, CFLAG:POS(LOCAL):AUTO_SPLIT("命中強化/回避強化/魔法威力強化/攻撃強化/防御強化", "/", LOCAL:1))
+				SIF CFLAG:POS(LOCAL):魔法反射フラグ
+					LOCAL:4 = 1
+			ENDIF
+		NEXT
+		LOCAL:3 = MAX(LOCAL:3, -CFLAG:ARG:AUTO_SPLIT("命中強化/回避強化/魔法威力強化/攻撃強化/防御強化", "/", LOCAL:1))
+	NEXT
+	;強化度によって最大25%の確率でランダマイザ
+	IF LOCAL:2 > RAND:128
+		CFLAG:ARG:入力行動 = [[スキル:ランダマイザ]]
+	;強化度によって最大25%の確率でラスタキャンディ
+	ELSEIF LOCAL:3 > RAND:64
+		CFLAG:ARG:入力行動 = [[スキル:ラスタキャンディ]]
+	ELSE
+		IF 現HP割合(ARG) < 50 && !RAND:5
+			SELECTCASE RAND:100
+				CASE IS < 20
+					CFLAG:ARG:入力行動 = [[スキル:マハ・ラギダイン]]
+				CASE IS < 40
+					CFLAG:ARG:入力行動 = [[スキル:マハ・ブフダイン]]
+				CASE IS < 60
+					CFLAG:ARG:入力行動 = [[スキル:マハ・ジオダイン]]
+				CASE IS < 80
+					CFLAG:ARG:入力行動 = [[スキル:マハ・ザンダイン]]
+				CASEELSE
+					CFLAG:ARG:入力行動 = [[スキル:マハ・マグダイン]]
+			ENDSELECT
+		ELSE
+			SELECTCASE RAND:100
+				CASE IS < 20
+					CFLAG:ARG:入力行動 = [[スキル:アギダイン]]
+				CASE IS < 40
+					CFLAG:ARG:入力行動 = [[スキル:ブフダイン]]
+				CASE IS < 60
+					CFLAG:ARG:入力行動 = [[スキル:ジオダイン]]
+				CASE IS < 80
+					CFLAG:ARG:入力行動 = [[スキル:ザンダイン]]
+				CASEELSE
+					CFLAG:ARG:入力行動 = [[スキル:マグダイン]]
+			ENDSELECT
+		ENDIF
+		;瀕死になると反射に対して反応
+		IF LOCAL:4 && 現HP割合(ARG) < 20
+			SELECTCASE RAND:100
+				CASE IS < 20
+					CFLAG:ARG:入力行動 = [[スキル:妬みの暴圧]]
+				CASE IS < 60
+					CFLAG:ARG:入力行動 = [[スキル:アゲンストペイン]]
+				CASEELSE
+					CFLAG:ARG:入力行動 = [[スキル:色即是空]]
+			ENDSELECT
+		ENDIF
+	ENDIF
+ENDIF
+;砂漠の風で1MOREを取った場合は50％の確率で再び使う
+SIF CFLAG:ARG:１moreフラグ == 2 && CFLAG:ARG:200 == [[スキル:砂漠の風]] && RAND:2
+	CFLAG:ARG:入力行動 = [[スキル:砂漠の風]]
+;アクション実行不能なら自動的に通常攻撃にする
+CALL CHECK_ACTIONABLE, ARG, CFLAG:ARG:入力行動
+IF RESULT == 0
+	CFLAG:ARG:入力行動 = 0
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+ENDIF
+;ここまでターゲットが決まってなかったら、ランダムターゲットをよんで決定
+SIF CFLAG:ARG:ターゲット == -1
+	CALL RANDOM_TARGET, ARG, CFLAG:ARG:入力行動
+;前回の行動をとっておく
+CFLAG:ARG:200 = CFLAG:ARG:入力行動
+;暴圧用の行動回数を加算
+行動周期++
+RETURN 1
+
+
+
+@EVENT_BATTLE_ACTEND_DUNGEON5
+#LOCALSIZE 1
+;一応
+SIF FLAG:行動順1 == -1
+	RETURN 0
+;敵のロキを探す
+SIF !FINDCHARA_ENEMY([[キャラ:ロキ]])
+	RETURN 0
+LOCAL = RESULT:1
+IF CFLAG:(FLAG:行動順1):PTフラグ
+	TRYCCALLFORM SKILL_EFECT_{CFLAG:(FLAG:行動順1):入力行動}
+		;攻撃かつロキのＨＰが変動していることが条件
+		IF RESULT == 1 && TFLAG:436 != BASE:LOCAL:ＨＰ
+			TRYCALLFORM SKILL_TYPE_{CFLAG:(FLAG:行動順1):入力行動}
+			SIF RESULT == GET_TYPE_NUM("万能")
+				TFLAG:400 += 1
+			SIF MAXBASE:LOCAL:GET_TYPE(RESULT) > 100
+				TFLAG:400 -= 1
+		ENDIF
+	CATCH
+	ENDCATCH
+	CFLAG:LOCAL:行動回数 = MAX(2, 2 + TFLAG:400)
+	MAXBASE:LOCAL:万能 = TFLAG:400 < 0 ? 200 # 100
+	IF CFLAG:LOCAL:行動回数 > CFLAG:LOCAL:行動した回数
+		CFLAG:LOCAL:入力行動 = [[スキル:メギドラオン]]
+		CFLAG:LOCAL:速度補正 = 10000
+	ENDIF
+ENDIF
+;毎ターンＨＰを記録する
+TFLAG:436 = BASE:LOCAL:ＨＰ
+@EVENT_BATTLE_TURNEND_DUNGEON5
+;敵のロキを探す
+SIF !FINDCHARA_ENEMY([[キャラ:ロキ]])
+	RETURN 0
+MAXBASE:(RESULT:1):万能 = 100
+
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_5
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE FLAG:現M
+	CASE 1 , 2 , 3
+		RETURN [[キャラ:コッパテング]] , 3 + RAND:10 , CSVBASE([[キャラ:コッパテング]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 4 , 5 , 6
+		RETURN [[キャラ:オニ]] , 3 + RAND:10 , CSVBASE([[キャラ:オニ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 7
+		RETURN [[キャラ:モムノフ]] , 3 + RAND:10 , CSVBASE([[キャラ:モムノフ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 9 , 10
+		RETURN [[キャラ:コープス]] , 6 + RAND:10 , CSVBASE([[キャラ:コープス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 13 , 14
+		RETURN [[キャラ:モムノフ]] , 3 + RAND:10 , CSVBASE([[キャラ:モムノフ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 12 , 15 , 16
+		RETURN [[キャラ:インキュバス]] , 3 + RAND:10 , CSVBASE([[キャラ:インキュバス]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 17 TO 25
+		RETURN [[キャラ:レギオン]] , 6 + RAND:10 , CSVBASE([[キャラ:レギオン]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 25 , 26
+		RETURN [[キャラ:ナーガ・ラジャ]] , 3 + RAND:10 , CSVBASE([[キャラ:ナーガ・ラジャ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 27 TO 31
+		RETURN [[キャラ:ベルセルク]] , 3 + RAND:10 , CSVBASE([[キャラ:ベルセルク]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 32 TO 36
+		RETURN [[キャラ:ヴァンパイア]] , 3 + RAND:10 , CSVBASE([[キャラ:ヴァンパイア]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT

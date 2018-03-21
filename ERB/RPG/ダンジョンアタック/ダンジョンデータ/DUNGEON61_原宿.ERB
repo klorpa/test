@@ -1,0 +1,1066 @@
+
+;=======================================================================
+;ダンジョンフラグ:61:0 イベント進行度 0:未進行 1:家（刹那ルートはプチフロスト×3） 2:刹那ルートは道を聞く、未来ルートはラタトスク 3:刹那ルートは刹那戦、未来ルートは未来戦 5:クリア
+;ダンジョンフラグ:61:1 0:未進入 1:刹那を選択 2:未来を選択
+;ダンジョンフラグ:61:2 警官ブチギレカウンター
+
+;=======================================================================
+
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_61
+RETURN 1
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_61
+RESULTS = Harajuku
+@FLOORNAME_61
+PRINT Harajuku 
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL Boulevard
+		;大通り
+	CASE 1
+		PRINTL Underground shopping center
+		;地下街
+	CASE 2
+		PRINTL Park
+		;公園
+	CASE 3
+		PRINTL Shrine
+		;神社
+	CASE 4
+		PRINTL Mansion
+		;マンション
+	CASE 5
+		PRINTL School・Exterior
+		;学校・外
+	CASE 6
+		PRINTL School・１F
+		;学校・１F
+	CASE 7
+		PRINTL School・２F
+		;学校
+	CASE 8
+		PRINTL School・Rooftop
+		;学校・屋上
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_61, ARG
+FLAG:現M = 0
+FLAG:現X =11
+FLAG:現Y = 1
+;CALL AUTOMAP
+RETURN 0
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_61
+IF ダンジョンフラグ:61:1 == 5
+ダンジョンフラグ:61:1 = 0
+ENDIF
+IF ダンジョンフラグ:61:1 == 0
+	CALL SHOW_PICTURE, "D"
+	CALL MESSAGE_WINDOW_D, "", "＞There seem to be children born from the unison of a human and a demon,/called Devil Children."
+	CALL MESSAGE_WINDOW_D, "", "＞You received a request to capture one such child in Harajuku."
+IF 闘技場フラグ:3:0 == 1
+	CALL MESSAGE_WINDOW_D, "", "＞Your target is a girl named Mirai Kaname."
+	ダンジョンフラグ:61:1 = 2
+ELSEIF 闘技場フラグ:4:0 == 1
+	CALL MESSAGE_WINDOW_D, "", "＞Your target is a boy named Setsuna Kai."
+	ダンジョンフラグ:61:1 = 1
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞It seems there are two children who qualify, a boy and a girl."
+	CALL MESSAGE_WINDOW_D, "", "＞Who would you like to target?"
+	CALL INPUT_SELECT_D, @"[1]The boy named Setsuna Kai/[2]The girl named Mirai Kaname"
+		SELECTCASE RESULT
+			CASE 1
+				ダンジョンフラグ:61:1 = 1
+			CASE 2
+				ダンジョンフラグ:61:1 = 2
+		ENDSELECT
+ENDIF
+	PRINTL 
+	CALL MESSAGE_WINDOW_D, "", "＞According to the documents, the target mother's died/and the father missing."
+		IF ダンジョンフラグ:61:1 == 1
+			CALL MESSAGE_WINDOW_D, "", "＞It seems he is currently living with his aunt/and his younger brother in south Harajuku."
+		ELSEIF ダンジョンフラグ:61:1 == 2
+			CALL MESSAGE_WINDOW_D, "", "＞It seems she is currently living with her aunt in south Harajuku."
+		ENDIF
+	CALL MESSAGE_WINDOW_D, "", "＞...The documents also state that the aunt often leaves home to work..."
+	CALL MESSAGE_WINDOW_D, "", "＞You decided to head to the target's house in the southwest."
+ENDIF
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+;マンション
+@TILE_MARK_61_0_2_11
+RESULTS = ↑
+@TILE_MARK_61_0_5_2
+RESULTS = ↑
+;公園入口
+@TILE_MARK_61_0_13_14
+RESULTS = →
+
+@TILE_MARK_61_2_0_12
+RESULTS = ←
+
+@TILE_MARK_61_2_14_7
+RESULTS = ↑
+
+@TILE_MARK_61_3_7_19
+RESULTS = ↓
+
+@TILE_MARK_61_4_2_8
+RESULTS = ↓
+
+
+@TILE_MARK_61_5_6_4
+RESULTS = ↑
+
+@TILE_MARK_61_5_6_8
+RESULTS = ↓
+
+@TILE_MARK_61_6_3_9
+RESULTS = ↓
+
+
+@TILE_MARK_COMMON_61_4, ARG , ARG:1 , ARG:2
+SELECTCASE ARG / 10
+	CASE 2 , 4 , 5
+	SETCOLOR 0x00ff00
+	RESULTS = ｍ
+	CASE 3
+	IF ダンジョンフラグ:61:1 == 1 && ダンジョンフラグ:61:0 == 1
+	SETCOLOR 0x00ff00
+	RESULTS = ｍ
+	ELSE
+	RESULTS = □
+	ENDIF
+	CASE 1
+	IF ダンジョンフラグ:61:1 == 1 && ダンジョンフラグ:61:0 == 0  || ダンジョンフラグ:61:1 == 2 && ダンジョンフラグ:61:0 != 5
+	SETCOLOR 0x00ff00
+	RESULTS = ｍ
+	ELSE
+	RESULTS = □
+	ENDIF
+	CASE 10
+	SETCOLOR 0xFFFF00
+	RESULTS = Ｃ
+	CASE 100
+	RESULTS = □
+	CASE 200
+	IF ダンジョンフラグ:61:1 == 2 && ダンジョンフラグ:61:0 == 1
+	RESULTS = ！
+	ELSE
+	RESULTS = □
+	ENDIF
+	CASE 300 , 400
+	IF ダンジョンフラグ:61:0 == 2
+	RESULTS = ！
+	ELSE
+	RESULTS = □
+	ENDIF
+	CASEELSE
+		RETURN 1
+ENDSELECT
+;=======================================================================
+;タイル定義
+;=======================================================================
+@DEFINE_TILES_61, ARGS, ARG, ARG:1
+SELECTCASE ARGS
+	CASE "!"
+		RETURN 14
+	CASE "'"
+		RETURN 24
+	CASE "#"
+		RETURN 34
+	CASE "$"
+		RETURN 44
+	CASE "%"
+		RETURN 54
+	CASE "C"
+		RETURN 104
+	CASE "&"
+		RETURN 1004
+	CASE "="
+		RETURN 2004
+	CASE "("
+		RETURN 3004
+	CASE ")"
+		RETURN 4004
+ENDSELECT
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_61,ARG,ARG:1
+IF FLAG:現M == 0 && ARG == 13 && ARG:1 == 14
+	IF ダンジョンフラグ:61:0 == 0 || ダンジョンフラグ:61:1 == 2 && ダンジョンフラグ:61:0 != 5
+		RETURN 0
+	ENDIF
+;未来
+ELSEIF FLAG:現M == 4 && ARG == 10 && ARG:1 == 2
+		CALL MESSAGE_WINDOW_D, "", "＞「Mirai Kaname」 is written"
+		IF ダンジョンフラグ:61:1 == 2 
+			CALL MESSAGE_WINDOW_D, "", "＞This seems to be the target's house"
+			CALL MESSAGE_WINDOW_D, "", "＞...however, it seems she is currently at school."
+			IF ダンジョンフラグ:61:1 == 2 && ダンジョンフラグ:61:0 == 0
+			ダンジョンフラグ:61:0 = 1
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞But it doesn't seem like anybody is home..."
+		ENDIF
+
+		RETURN 0
+;刹那
+ELSEIF FLAG:現M == 4 && ARG == 7 && ARG:1 == 2
+	IF ダンジョンフラグ:61:1 == 1 && ダンジョンフラグ:61:0 == 0
+		CALL MESSAGE_WINDOW_D, "", "＞「Setsuna Kai」 is written"
+		CALL MESSAGE_WINDOW_D, "", "＞This seems to be the target's house."
+		CALL MESSAGE_WINDOW_D, "", "＞Enter?"
+	CALL INPUT_YN_D,"Yes","No"
+		IF RESULT == 0;y
+			RETURN 1
+		ELSEIF RESULT == 1;n
+			RETURN 0
+		ENDIF
+	ELSEIF ダンジョンフラグ:61:1 == 1 && ダンジョンフラグ:61:0 >= 1
+		RETURN 1
+	ELSE
+		CALL MESSAGE_WINDOW_D, "", "＞「Setsuna Kai」 is written"
+		CALL MESSAGE_WINDOW_D, "", "＞But it doesn't seem like anybody is home..."
+		RETURN 0
+	ENDIF
+
+ELSEIF FLAG:現M == 5 && ARG == 6 && ARG:1 == 4
+	IF  ダンジョンフラグ:61:1 == 2 && ダンジョンフラグ:61:0 == 0 ||ダンジョンフラグ:61:1 == 1 && ダンジョンフラグ:61:0 != 5
+		CALL MESSAGE_WINDOW_D, "", "＞There is a boy blocking the way."
+		CALL MESSAGE_WINDOW_D, "Boy", "What is it?/I'm going out with him today, so don't bother me!"
+		;何だよ！/今日こそあいつと付き合うんだから邪魔すんなよ！
+		CALL MESSAGE_WINDOW_D, "", "＞It looks like you can't go this way./＞Lets go to the targets house."
+		RETURN 0
+	ELSE
+		RETURN 1
+	ENDIF
+ENDIF
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_61
+SELECTCASE FLAG:現M
+	CASE 0
+		;原宿大通り
+		FLAG:最大X = 14
+		FLAG:最大Y = 16
+		;						 01234567890123
+		CALL MAKE_FLOOR_LINE, 0,"           88 "
+		CALL MAKE_FLOOR_LINE, 1,"           11 "
+		CALL MAKE_FLOOR_LINE, 2,"     9    711 "
+		CALL MAKE_FLOOR_LINE, 3,"     1     11 "
+		CALL MAKE_FLOOR_LINE, 4,"     1     11 "
+		CALL MAKE_FLOOR_LINE, 5,"     1     11 "
+		CALL MAKE_FLOOR_LINE, 6,"     1     11 "
+		CALL MAKE_FLOOR_LINE, 7,"811111111111' "
+		CALL MAKE_FLOOR_LINE, 8,"8111111111111 "
+		CALL MAKE_FLOOR_LINE, 9,"  71 1   1 11 "
+		CALL MAKE_FLOOR_LINE,10,"     1 1 1 11 "
+		CALL MAKE_FLOOR_LINE,11,"  9  1 2 1 11 "
+		CALL MAKE_FLOOR_LINE,12,"  11#11111111 "
+		CALL MAKE_FLOOR_LINE,13,"    1111   11 "
+		CALL MAKE_FLOOR_LINE,14,"    1111   1!9"
+		CALL MAKE_FLOOR_LINE,15,"              "
+
+	CASE 1
+		;地下街
+		FLAG:最大X = 20
+		FLAG:最大Y = 10
+		;						 0123456789012345678901
+		CALL MAKE_FLOOR_LINE, 0,"                    "
+		CALL MAKE_FLOOR_LINE, 1,"                 16 "
+		CALL MAKE_FLOOR_LINE, 2,"                 1  "
+		CALL MAKE_FLOOR_LINE, 3,"  3  C  3  T  1  1  "
+		CALL MAKE_FLOOR_LINE, 4,"  2  2  2  2  2  1  "
+		CALL MAKE_FLOOR_LINE, 5," 11111111111111111  "
+		CALL MAKE_FLOOR_LINE, 6," 11111111111111111  "
+		CALL MAKE_FLOOR_LINE, 7," 1                  "
+		CALL MAKE_FLOOR_LINE, 8," 6                  "
+		CALL MAKE_FLOOR_LINE, 9,"                    "
+
+
+	CASE 2
+		;公園
+	
+		FLAG:最大X = 16
+		FLAG:最大Y = 17
+		;						 0123456789012345
+		CALL MAKE_FLOOR_LINE, 0,"                "
+		CALL MAKE_FLOOR_LINE, 1,"   3111         "
+		CALL MAKE_FLOOR_LINE, 2," 111111111      "
+		CALL MAKE_FLOOR_LINE, 3," 111111111      "
+		CALL MAKE_FLOOR_LINE, 4," 111   111      "
+		CALL MAKE_FLOOR_LINE, 5,"  11   111      "
+		CALL MAKE_FLOOR_LINE, 6,"   1111111      "
+		CALL MAKE_FLOOR_LINE, 7,"   1111111    9 "
+		CALL MAKE_FLOOR_LINE, 8,"    $1111111  1 "
+		CALL MAKE_FLOOR_LINE, 9,"    11111 111%1 "
+		CALL MAKE_FLOOR_LINE,10,"    1111   1111 "
+		CALL MAKE_FLOOR_LINE,11,"    111     111 "
+		CALL MAKE_FLOOR_LINE,12,"91111111   3111 "
+		CALL MAKE_FLOOR_LINE,13,"    11111 11111 "
+		CALL MAKE_FLOOR_LINE,14,"    1111111111 "
+		CALL MAKE_FLOOR_LINE,15,"    11111111    "
+		CALL MAKE_FLOOR_LINE,16,"                "
+
+
+	CASE 3
+		;神社
+		FLAG:最大X = 15 
+		FLAG:最大Y = 20 
+		;						 012345678901234
+		CALL MAKE_FLOOR_LINE, 0,"               "
+		CALL MAKE_FLOOR_LINE, 1,"  11111111111  "
+		CALL MAKE_FLOOR_LINE, 2,"  1         1  "
+		CALL MAKE_FLOOR_LINE, 3,"  1         1  "
+		CALL MAKE_FLOOR_LINE, 4,"  1         1  "
+		CALL MAKE_FLOOR_LINE, 5,"  1         1  "
+		CALL MAKE_FLOOR_LINE, 6,"  1         1  "
+		CALL MAKE_FLOOR_LINE, 7,"  11111111111  "
+		CALL MAKE_FLOOR_LINE, 8,"      111      "
+		CALL MAKE_FLOOR_LINE, 9,"      1(1      "
+		CALL MAKE_FLOOR_LINE,10,"       1       "
+		CALL MAKE_FLOOR_LINE,11,"      111      "
+		CALL MAKE_FLOOR_LINE,12,"       1       "
+		CALL MAKE_FLOOR_LINE,13,"      111      "
+		CALL MAKE_FLOOR_LINE,14,"       1       "
+		CALL MAKE_FLOOR_LINE,15,"      111      "
+		CALL MAKE_FLOOR_LINE,16,"      111      "
+		CALL MAKE_FLOOR_LINE,17,"       1       "
+		CALL MAKE_FLOOR_LINE,18,"       1       "
+		CALL MAKE_FLOOR_LINE,19,"       9       "
+
+
+	CASE 4
+		;マンション
+		FLAG:最大X = 13 
+		FLAG:最大Y = 9 
+		;						 0123456789012
+		CALL MAKE_FLOOR_LINE, 0,"             "
+		CALL MAKE_FLOOR_LINE, 1,"       &  1  "
+		CALL MAKE_FLOOR_LINE, 2," 111   2  2  "
+		CALL MAKE_FLOOR_LINE, 3," 11111111111 "
+		CALL MAKE_FLOOR_LINE, 4," 11111111111 "
+		CALL MAKE_FLOOR_LINE, 5," 111         "
+		CALL MAKE_FLOOR_LINE, 6,"  1          "
+		CALL MAKE_FLOOR_LINE, 7,"  1          "
+		CALL MAKE_FLOOR_LINE, 8,"  9          "
+
+	CASE 5
+		FLAG:最大X = 13
+		FLAG:最大Y =  9
+							;	  0123456789012
+   		CALL MAKE_FLOOR_LINE, 0, "             "
+   		CALL MAKE_FLOOR_LINE, 1, "             "
+   		CALL MAKE_FLOOR_LINE, 2, " 1         1 "
+   		CALL MAKE_FLOOR_LINE, 3, " 1         1 "
+   		CALL MAKE_FLOOR_LINE, 4, " 1    9    1 "
+   		CALL MAKE_FLOOR_LINE, 5, " 1    1    1 "
+   		CALL MAKE_FLOOR_LINE, 6, " 11111111111 "
+   		CALL MAKE_FLOOR_LINE, 7, "      1      "
+   		CALL MAKE_FLOOR_LINE, 8, "      9      "
+
+	CASE 6
+		FLAG:最大X = 17
+		FLAG:最大Y = 10
+							;	  01234567890123456
+   		CALL MAKE_FLOOR_LINE, 0, "                 "
+   		CALL MAKE_FLOOR_LINE, 1, "   6    3 1 3 1  "
+   		CALL MAKE_FLOOR_LINE, 2, " 11=11  2 2 2 2  "
+   		CALL MAKE_FLOOR_LINE, 3, " 111111111111111 "
+   		CALL MAKE_FLOOR_LINE, 4, "   1             "
+   		CALL MAKE_FLOOR_LINE, 5, " 11111           "
+   		CALL MAKE_FLOOR_LINE, 6, "   1             "
+   		CALL MAKE_FLOOR_LINE, 7, " 11111           "
+   		CALL MAKE_FLOOR_LINE, 8, "   1             "
+   		CALL MAKE_FLOOR_LINE, 9, "   9             "
+
+	CASE 7
+		FLAG:最大X = 13
+		FLAG:最大Y =  6
+							;	  0123456789012
+   		CALL MAKE_FLOOR_LINE, 0, "             "
+   		CALL MAKE_FLOOR_LINE, 1, "  7 6    3   "
+   		CALL MAKE_FLOOR_LINE, 2, " 11111   2   "
+   		CALL MAKE_FLOOR_LINE, 3, " 11111111111 "
+   		CALL MAKE_FLOOR_LINE, 4, " 11111111111 "
+   		CALL MAKE_FLOOR_LINE, 5, "             "
+
+	CASE 8
+		FLAG:最大X = 10
+		FLAG:最大Y =  6
+							;	  0123456789
+   		CALL MAKE_FLOOR_LINE, 0, "          "
+   		CALL MAKE_FLOOR_LINE, 1, "  7       "
+   		CALL MAKE_FLOOR_LINE, 2, " 111      "
+   		CALL MAKE_FLOOR_LINE, 3, " 111111)1 "
+   		CALL MAKE_FLOOR_LINE, 4, " 11111111 "
+   		CALL MAKE_FLOOR_LINE, 5, "          "
+
+	CASEELSE
+ENDSELECT
+
+;=======================================================================
+;タイル調整
+;=======================================================================
+@MAKE_FLOOR_LINE_COMMON_61, ARG, ARG:1, ARG:2
+#LOCALSIZE 30
+;LOCAL:3 宝箱 ダンジョンフラグ:70~99
+;LOCAL:4 イベント
+;(0/0)でLOCALを消去
+SIF ARG:1 == 0 && ARG:2 == 0
+	VARSET LOCAL
+SELECTCASE ARG
+	CASE 3
+		IF GETBIT(ダンジョンフラグ:(FLAG:現ダンジョン):(FLAG:現M+70), LOCAL:3)
+			DA:(ARG:1):(ARG:2) = 1
+		ELSE
+			DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:3 * 10 + 3
+		ENDIF
+		LOCAL:3++
+	CASE 4
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:4 * 10 + 4
+		LOCAL:4++
+	CASE 5
+		;DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:5 * 10 + 5
+		;LOCAL:5++
+	CASE 6
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:6 * 10 + 6
+		LOCAL:6++
+	CASE 7
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:7 * 10 + 7
+		LOCAL:7++
+	CASE 8
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:8 * 10 + 8
+		LOCAL:8++
+	CASE 9
+		DA:(ARG:1):(ARG:2) = FLAG:現M *1000 + LOCAL:9 * 10 + 9
+		LOCAL:9++
+
+ENDSELECT
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_61
+CALL EVENT_DUNGEON_61
+RETURN RESULT
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_61,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+CALL EVENT_DUNGEON_61, ARG , 0
+RETURN RESULT
+
+@EVENT_DUNGEON_61, ARG, ARG:1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+;==========
+;出口の処理
+;==========
+	CASE 8
+		CALL DUNGEON_EXIT
+	RETURN 1
+;==========
+;扉の処理
+;==========
+	CASE 2
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_61
+		RETURN 1
+
+;=======
+;階段
+;=======
+	CASE 6
+	CALL UPSTAIRS_61
+	RETURN RESULT
+
+	CASE 7
+	CALL DOWNSTAIRS_61
+	RETURN RESULT
+
+
+;=======================================================================
+;イベントまとめ
+;=======================================================================
+	CASE 4
+	IF FLAG:未遭遇歩数 > 0
+	FLAG:未遭遇歩数 -= 1
+	ENDIF
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) /10
+	CASE 1
+		IF ダンジョンフラグ:61:0 == 0  || ダンジョンフラグ:61:1 == 2 && ダンジョンフラグ:61:0 != 5
+			IF ダンジョンフラグ:61:2 == 0 
+				CALL MESSAGE_WINDOW_D, "", "＞A dirty man wearing a suit started talking"
+				CALL MESSAGE_WINDOW_D, "Man", "Ah, wait a minute! I'm a police officer."
+				CALL MESSAGE_WINDOW_D, "Man", "The park is currently blocked./However, I'm already withdrawing, so can you wait a bit?"
+				CALL MESSAGE_WINDOW_D, "Man", "I received the message 'A murder happened!'/So I hurried here to block the park..."
+				CALL MESSAGE_WINDOW_D, "Man", "But as it turns out, the corpse was just a mannequin./Hey, hey, hey, don't you believe me?"
+				CALL MESSAGE_WINDOW_D, "Man", "Uh, my boss will get angry if I talk any more about this."
+				CALL MESSAGE_WINDOW_D, "Man", "Well, just wait a bit and I'll be done here."
+				IF ダンジョンフラグ:61:1 == 1
+					ダンジョンフラグ:61:2 = 1
+				ENDIF	
+			ELSE
+			SELECTCASE ダンジョンフラグ:61:2
+				CASE 1
+					CALL MESSAGE_WINDOW_D, "", "＞You spoke to the dirty-looking detective..."
+					CALL MESSAGE_WINDOW_D, "Man", "You again....you are quite impatient. I still need a bit more time."
+					CALL MESSAGE_WINDOW_D, "Man", "Eh? Why am I not helping out? I would only get in the way"
+					CALL MESSAGE_WINDOW_D, "Man", "…I-I am not skipping out"
+					ダンジョンフラグ:61:2 += 1
+				CASE 2
+					CALL MESSAGE_WINDOW_D, "", "＞You spoke to the detective who is starting to look frustrated..."
+					CALL MESSAGE_WINDOW_D, "Man", "...Um, don't you have anything else to do?"
+					CALL MESSAGE_WINDOW_D, "Man", "Is it fun to disturb people's work?/Hm, is this fun for you?"
+					CALL MESSAGE_WINDOW_D, "Man", "A sight～ kid of thing"
+					CALL MESSAGE_WINDOW_D, "Man", "...Look, just leave."
+			ENDSELECT
+			ENDIF	
+		ENDIF	
+
+
+	CASE 2
+			CALL MESSAGE_WINDOW_D, "", "＞And idle woman is talking on her cellphone..."
+			CALL MESSAGE_WINDOW_D, "Woman", "…Actually, I saw a big squirrel and some snowmen running by"
+			CALL MESSAGE_WINDOW_D, "Woman", "Yeah, I guess so...I must be tired...I think I'll take a day off tomorrow..."
+			CALL MESSAGE_WINDOW_D, "", "＞Her conversation is going on..."
+
+	CASE 3
+		IF ダンジョンフラグ:61:1 == 1 && ダンジョンフラグ:61:0 == 1
+			CALL MESSAGE_WINDOW_D, "", "You showed a picture of the target to a young adult who seemed ill..."
+			CALL MESSAGE_WINDOW_D, "Youth", "Oh, I saw that boy going to the shrine."
+			CALL MESSAGE_WINDOW_D, "Youth", "...I have no problem with it but is it fashionable/to have blue dogs theese days?"
+			CALL MESSAGE_WINDOW_D, "Youth", "No, I'm certain that boy had a blue dog with him."
+			CALL MESSAGE_WINDOW_D, "Youth", "Even people in Kichijoji saw someone who brought a blue dog."
+			;以前に吉祥寺の方でも青い犬を連れた人を見かけてね
+			CALL MESSAGE_WINDOW_D, "Youth", "I wonder what kind of dog that is."
+			ダンジョンフラグ:61:0 = 2
+		ENDIF	
+
+	CASE 4
+			;冷え性の女性
+			CALL MESSAGE_WINDOW_D, "", "A woman is sitting on a bench, murmuring to herself..."
+			CALL MESSAGE_WINDOW_D, "Woman", "It's pretty cold..."
+			CALL MESSAGE_WINDOW_D, "Woman", "I wonder if this weather is normal....it's so cold..."
+
+	CASE 5
+			;迷信深いお兄さん
+			CALL MESSAGE_WINDOW_D, "Man", "There is a shrine in the back of here.../but it seems it will be demolished soon."
+			CALL MESSAGE_WINDOW_D, "Man", "It seems they are building a new subway...and they need the space."
+			CALL MESSAGE_WINDOW_D, "Man", "Still, to break down the shrine...it's regretable./It bothers me quite a bit..."
+	CASE 10
+			CALL SHOW_PICTURE, "D"
+			CALL MESSAGE_WINDOW_D, "", "＞It's a casino."
+			CALL CASINO, 4
+	CASE 100
+		IF ダンジョンフラグ:61:0 == 0
+			CALL MESSAGE_WINDOW_D, "", "＞You open the door, which wasn't locked./＞Inside, there is an empty parcel,/＞and there are traces of a fight and puddles as if ice melted."
+			CALL MESSAGE_WINDOW_D, "", "＞...it seems there is no-one home."
+			CALL MESSAGE_WINDOW_D, "", "＞When you head back to the entrance to look for the target elsewhere,/a small snowman appeared."
+			CALL MESSAGE_WINDOW_D, "Petit Frost", "Ho that came to cheer!"
+			;応援に来たホー！
+			CALL MESSAGE_WINDOW_D, "Petit Frost", "...did you steal something!?"
+			;……みんなやられたのかホー！？
+			CALL MESSAGE_WINDOW_D, "Petit Frost", "Ho I'll take your fingers for that!"
+			;みんなのカタキをとるホー！
+			CALL MESSAGE_WINDOW_D, "", "＞3 Fairy　Petit Frost appeared!" , , , , , , , , , "CENTER"
+
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				
+				;プチフロスト×3
+				CALL SET_ENEMY,8,[[キャラ:プチフロスト]],5,0,1
+				BASE:(CHARANUM-1):氷結 = -200
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CSTR:(CHARANUM-1):思考パターン = プチ攻撃
+				
+				CALL SET_ENEMY,9,[[キャラ:プチフロスト]],5,0,1
+				BASE:(CHARANUM-1):氷結 = -200
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CSTR:(CHARANUM-1):思考パターン = プチ攻撃
+				
+				CALL SET_ENEMY,10,[[キャラ:プチフロスト]],5,0,1
+				BASE:(CHARANUM-1):氷結 = -200
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CSTR:(CHARANUM-1):思考パターン = プチ攻撃
+				
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+			PRINTL 
+			CALL MESSAGE_WINDOW_D, "Petit Frost", "Ho we couldn't do it..."
+			;カタキとれなかったホー……
+			CALL MESSAGE_WINDOW_D, "", "＞You defeated the Petit Frosts!"
+					;Jack Glovesゲット
+			CALL MESSAGE_WINDOW_D, "", "＞You got Jack Gloves!"
+					ITEM:"Jack Gloves" += 1
+				ダンジョンフラグ:61:0 = 1
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞There is nothing useful here."
+			;ここに用はない
+		ENDIF
+
+	CASE 200
+		IF ダンジョンフラグ:61:0 == 1
+			CALL MESSAGE_WINDOW_D, "", "＞On the stairs to the second floor, there was a demon-like figure."
+			CALL MESSAGE_WINDOW_D, "Sauta", "Damn, I have to deal with the Devil Children or I'm done for..."
+			;ソウタ
+			CALL MESSAGE_WINDOW_D, "Sauta", "Y-you.../You are also after the Devil Children!"
+			CALL MESSAGE_WINDOW_D, "Sauta", "I won't let you get in the way!"
+			CALL MESSAGE_WINDOW_D, "", "＞１ Ratatoskr Sauta appeared!" , , , , , , , , , "CENTER"
+
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1		
+				CALL SET_ENEMY,9,[[キャラ:ラタトスク]],9,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				NAME:(CHARANUM-1) = Sauta
+				CALLNAME:(CHARANUM-1) = Sauta
+				ABL:(CHARANUM-1):スキル3 = [[スキル:マハ・マグナ]]
+				TALENT:(CHARANUM-1):オトコ = 1
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+			PRINTL 
+			CALL MESSAGE_WINDOW_D, "Sauta", "Damn it..."
+			CALL MESSAGE_WINDOW_D, "", "＞Ratatoskr Sauta was defeated."
+			CALL MESSAGE_WINDOW_D, "", "＞It seems the target is on the upper floor..."
+				ダンジョンフラグ:61:0 = 2
+		ENDIF
+
+	CASE 300
+		IF ダンジョンフラグ:61:0 == 2
+			CALL MESSAGE_WINDOW_D, "", "＞The target boy is in front of the shrine."
+			CALL MESSAGE_WINDOW_D, "Setsuna", "From here you can go to the Makai of Nagahisa."
+			;ここからナガヒサのいる魔界に行けるんだな
+			CALL MESSAGE_WINDOW_D, "Setsuna", "Who are you!?"
+			CALL MESSAGE_WINDOW_D, "", "＞He pulled out a gun-like object when he was about to be caught"
+			CALL MESSAGE_WINDOW_D, "Setsuna", "Call!"
+			;コール
+			CALL MESSAGE_WINDOW_D, "", "＞１ Devil Child Setsuna and ３ companions appeared!" , , , , , , , , , "CENTER"
+			;デビルチルドレン 刹那が１体と仲魔達が３体出た！
+
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+
+				CALL SET_ENEMY,14,[[キャラ:刹那]],8,0,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 150
+				CSTR:(CHARANUM-1):思考パターン = デビチル
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL SET_ENEMY,9,[[キャラ:クール]],10,0,0
+				NAME:(CHARANUM-1) = Cool
+				CALLNAME:(CHARANUM-1) = Cool
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL SET_ENEMY,8,[[キャラ:プチフロスト]],8,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 150
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL SET_ENEMY,10,[[キャラ:チョンチョン]],8,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 150
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+			PRINTL 
+			CALL MESSAGE_WINDOW_D, "", "＞Defeated, Setsuna fell to his knees."
+			CALL MESSAGE_WINDOW_D, "Setsuna", "Damn...sorry, Cool...Nagahisa..."
+			CALL MESSAGE_WINDOW_D, "", "＞You got Setsuna Kai."
+			CALL ADD_NEW_COMPANION,4529,500
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			CALL MESSAGE_WINDOW_D, "", "＞Cerberus Cool became an intermediary."
+			CALL ADD_NEW_COMPANION,861,200,1
+			CALL MESSAGE_COMP_OVER
+			CALL MESSAGE_WINDOW_D, "", "＞For completing the request,/＞￥30000 where paid to your account and your fame increased by 30."
+			MONEY += 30000
+			FLAG:名声 += 30
+			CALL MESSAGE_WINDOW_D, "", "＞You analyzed Setsuna's COMP and retrieved/the software 【BookOfRaziel】 from it."
+			;刹那の持っていたCOMPを解析し、インストールソフト【BookOfRaziel】を手に入れた
+			ITEM:BookOfRaziel = 1
+			ダンジョンフラグ:61:0 = 5
+			FLAG:脱出 = 1
+		ENDIF	
+
+	CASE 400
+		IF ダンジョンフラグ:61:0 == 2
+			CALL MESSAGE_WINDOW_D, "", "＞The target girl was on the roof."
+			CALL MESSAGE_WINDOW_D, "Mirai", "If you use this you can go to the Makai where your father is."
+			CALL MESSAGE_WINDOW_D, "Mirai", "Who are you!?"
+			CALL MESSAGE_WINDOW_D, "", "＞She pulled out a gun-like object when she was about to be caught"
+			CALL MESSAGE_WINDOW_D, "Mirai", "Call!"
+			CALL MESSAGE_WINDOW_D, "", "＞１ Devil Child Mirai and ３ companions appeared!" , , , , , , , , , "CENTER"
+
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+
+				CALL SET_ENEMY,14,[[キャラ:未来]],8,0,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 150
+				CSTR:(CHARANUM-1):思考パターン = デビチル
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL SET_ENEMY,9,[[キャラ:ベール]],10,0,1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 200
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				NAME:(CHARANUM-1) = Veil
+				CALLNAME:(CHARANUM-1) = Veil
+				ABL:(CHARANUM-1):スキル3 = 506
+				ABL:(CHARANUM-1):スキル4 = 904
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL SET_ENEMY,8,[[キャラ:ピクシー]],9,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 150
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				ABL:(CHARANUM-1):スキル1 = 404
+				ABL:(CHARANUM-1):スキル2 = 902
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+				CALL SET_ENEMY,10,[[キャラ:エンジェル]],8,0,0
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 150
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 50
+				ABL:(CHARANUM-1):スキル1 = 404
+				ABL:(CHARANUM-1):スキル3 = 1002
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CALL MESSAGE_WINDOW, "", "＞Defeated, Mirai fell to her knees."
+			CALL MESSAGE_WINDOW, "Mirai", "Sorry....Veil...Papa..."
+			CALL MESSAGE_WINDOW, "", "＞You got Mirai Kaname."
+			CALL ADD_NEW_COMPANION,4504,500
+			SIF RESULT
+				CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			CALL MESSAGE_WINDOW, "", "＞Griffon Veil became an intermediary."
+			CALL ADD_NEW_COMPANION,865,200,1
+			CALL MESSAGE_COMP_OVER
+			CALL MESSAGE_WINDOW_D, "", "＞For completing the request,/＞￥30000 where paid to your account and your fame increased by 30."
+			MONEY += 30000
+			FLAG:名声 += 30
+			CALL MESSAGE_WINDOW_D, "", "＞You analyzed Mirai's COMP and retrieved/the software 【BookOfRaziel】 from it."
+			ITEM:BookOfRaziel = 1
+			ダンジョンフラグ:61:0 = 5	
+			FLAG:脱出 = 1
+		ENDIF	
+			ENDSELECT
+
+RETURN 0
+;=======
+;ワープ
+;=======
+	CASE 9
+	SELECTCASE FLAG:現M
+		CASE 0
+			;マンション入り口
+			SIF FLAG:現X == 2 && FLAG:現Y == 11
+				CALL DUNGEON_WORP,4,2,7
+			;公園入り口
+			SIF FLAG:現X == 13 && FLAG:現Y == 14
+				CALL DUNGEON_WORP,2,1,12
+			;学校前へ
+			SIF FLAG:現X == 5 && FLAG:現Y == 2
+				CALL DUNGEON_WORP,5,6,7
+		;公園
+		CASE 2
+			;大通り口
+			SIF FLAG:現X == 0 && FLAG:現Y == 12
+				CALL DUNGEON_WORP,0,12,14
+			;神社口
+			SIF FLAG:現X == 14 && FLAG:現Y == 7
+				CALL DUNGEON_WORP,3,7,18
+		;神社
+		CASE 3
+			;公園へ
+			SIF FLAG:現X == 7 && FLAG:現Y == 19
+				CALL DUNGEON_WORP,2,14,8
+		CASE 4
+			;マンション出口
+			SIF FLAG:現X == 2 && FLAG:現Y == 8
+				CALL DUNGEON_WORP,0,2,12
+
+		CASE 5
+			SIF FLAG:現X == 6 && FLAG:現Y == 8
+				CALL DUNGEON_WORP,0,5,4
+			;学校へ
+			SIF FLAG:現X == 6 && FLAG:現Y == 4
+				CALL DUNGEON_WORP,6,3,8
+
+		CASE 6
+			;学校入り口
+			SIF FLAG:現X == 3 && FLAG:現Y == 9
+				CALL DUNGEON_WORP,5,6,5
+		CASEELSE
+	ENDSELECT
+	RETURN 1
+
+ENDSELECT
+RETURN 0
+;=================================
+;思考パターン
+;=================================
+
+@SET_ACTION_プチ攻撃,ARG
+	CFLAG:ARG:入力行動 = [[スキル:ブフ]]
+	CALL ATTACK_MIN_HP,ARG,0
+;@SET_ACTION_プチ回復,ARG
+;	CFLAG:ARG:入力行動 = [[スキル:ディア]]
+;	CALL ATTACK_MIN_HP,ARG,1
+;	IF MAXBASE:(POS(CFLAG:ARG:ターゲット)):ＨＰ == BASE:(POS(CFLAG:ARG:ターゲット)):ＨＰ 
+;		CALL SET_ACTION_プチ攻撃,ARG
+;	ENDIF
+
+@SET_ACTION_デビチル,ARG
+;味方の中で一番ＨＰが低く、かつ飛具相性が1未満or999ではないキャラにＧＵＮ攻撃
+
+;全員の中で一番ＨＰが低いキャラクターを狙う
+CFLAG:ARG:入力行動 = 2101
+CFLAG:ARG:ターゲット = -1
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS == -1
+		CONTINUE
+	SIF CFLAG:(FLAG:LOCALS):ステート >= GET_STATE_NUM("STONE")
+		CONTINUE
+	SIF MAXBASE:(FLAG:LOCALS):飛具 < 1 || MAXBASE:(FLAG:LOCALS):飛具 == 999
+		CONTINUE
+	IF FLAG:LOCALS > -1 && CFLAG:ARG:ターゲット == -1 
+		CFLAG:ARG:ターゲット = LOCAL
+		CONTINUE
+	ENDIF
+	IF FLAG:LOCALS > -1 && BASE:(FLAG:LOCALS):ＨＰ < BASE:((POS(CFLAG:ARG:ターゲット))):ＨＰ
+		CFLAG:ARG:ターゲット = LOCAL
+	ENDIF
+NEXT
+
+IF CFLAG:ARG:ターゲット == -1
+	CFLAG:ARG:入力行動 = -1
+	CFLAG:ARG:防御フラグ = 1
+ENDIF
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_61
+#LOCALSIZE 8
+LOCAL = FLAG:現M + 70
+LOCAL:1 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;マップ番号*100+そのマップで何番目の宝箱かを示す数値でどの宝箱かを判別します。
+	;例えば0の場合、0版のマップの0番目の宝箱であることを表しています。
+	CASE 100
+		CALL GET_TREASURE, [[アイテム:ValueMedicine]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 101
+		CALL GET_TREASURE, [[アイテム:スキルカード【マハ・ラギ】]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 200
+		CALL GET_TREASURE, [[アイテム:MaIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 201
+		CALL GET_TREASURE, [[アイテム:OxBezoar]] , 2 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 600
+		CALL GET_TREASURE, [[アイテム:OxBezoar]] , 2 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 601
+		CALL GET_TREASURE, [[アイテム:Jack Gloves]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+	CASE 700
+		CALL GET_TREASURE, [[アイテム:EnIncense]] , 1 , FLAG:現ダンジョン, LOCAL , LOCAL:1
+ENDSELECT
+RETURN 1
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_61
+;位置とIDが対応しているはずなので、同IDの階段を探させれば良い
+SELECTCASE FLAG:現M
+	CASE 6, 7
+		CALL DUNGEON_UPSTAIRS_ID, FLAG:現M+1 , DA:(FLAG:現X):(FLAG:現Y) + 1000 + 1
+	CASEELSE
+		CALL DUNGEON_UPSTAIRS_ID, FLAG:現M-1 , DA:(FLAG:現X):(FLAG:現Y) - 1000 + 1
+ENDSELECT
+RETURN 1
+
+
+@DOWNSTAIRS_61
+SELECTCASE FLAG:現M
+	CASE 7, 8
+		CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M-1 , DA:(FLAG:現X):(FLAG:現Y) - 1000 - 1
+	CASEELSE
+		CALL DUNGEON_DOWNSTAIRS_ID, FLAG:現M+1 , DA:(FLAG:現X):(FLAG:現Y) + 1000 - 1
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_61
+SELECTCASE FLAG:現M
+CASE 2 , 3 , 6 , 7 , 8
+	FLAG:エンカウント率 = FLAG:未遭遇歩数*5
+CASEELSE
+	FLAG:エンカウント率 = FLAG:未遭遇歩数*5+5
+ENDSELECT
+SIF FLAG:未遭遇歩数 < 5
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_61
+RETURN 5,  3, 7, 9
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_61
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_61
+SELECTCASE FLAG:現M
+CASE 2 , 3 , 6 , 7 , 8
+RETURN CLASS_NUM_COMMON("中級")
+CASEELSE
+RETURN CLASS_NUM_COMMON("初級")
+ENDSELECT
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;=======================================================================
+@ENEMY_NUM_61, ARG
+SELECTCASE FLAG:現M
+CASE 2 , 3 , 6 , 7 , 8
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+CASEELSE
+RETURN ENEMY_NUM_COMMON("初級", ARG)
+ENDSELECT
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_61, ARG
+SELECTCASE FLAG:現M
+CASE 2 , 3 , 6 , 7 , 8
+SELECTCASE RAND:100
+	CASE IS < 10
+		RETURN [[キャラ:プチフロスト]], 7
+	CASE IS < 20
+		RETURN [[キャラ:ピクシー]],7
+	CASE IS < 30
+		RETURN [[キャラ:ホーリーゴースト]], 6
+	CASE IS < 40
+		RETURN [[キャラ:ナハトコボルト]], 6
+	CASE IS < 50
+		RETURN [[キャラ:ラタトスク]], 6
+	CASE IS < 60
+		RETURN [[キャラ:モコイ]], 6
+	CASE IS < 70
+		RETURN [[キャラ:カーシー]],7
+	CASE IS < 80
+		RETURN [[キャラ:ユキンコ]], 7
+	CASE IS < 90
+		RETURN [[キャラ:ザシキワラシ]], 7
+	CASE IS < 100
+		RETURN [[キャラ:カハク]], 7
+	ENDSELECT
+	
+
+
+CASEELSE
+SELECTCASE RAND:100
+	CASE IS < 15
+		RETURN [[キャラ:プチフロスト]], 3
+	CASE IS < 30
+		RETURN [[キャラ:ナイトメア]], 3
+	CASE IS < 45
+		RETURN [[キャラ:ピクシー]],3
+	CASE IS < 60
+		RETURN [[キャラ:コダマ]], 3
+	CASE IS < 70
+		RETURN [[キャラ:ハーピー]], 4
+	CASE IS < 80
+		RETURN [[キャラ:カブソ]], 3
+	CASE IS < 90
+		RETURN [[キャラ:キューピッド]], 4
+	CASE IS < 95
+		RETURN [[キャラ:ホーリーゴースト]], 5
+	CASE IS < 100
+		RETURN [[キャラ:ナハトコボルト]], 5
+	ENDSELECT
+ENDSELECT
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_61
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:3
+	CASE 0
+		RETURN [[キャラ:カブソ]] , 3 + RAND:10 , CSVBASE([[キャラ:カブソ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:コダマ]] , 3 + RAND:10 , CSVBASE([[キャラ:コダマ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 2
+		RETURN [[キャラ:カーシー]] , 3 + RAND:10 , CSVBASE([[キャラ:カーシー]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+

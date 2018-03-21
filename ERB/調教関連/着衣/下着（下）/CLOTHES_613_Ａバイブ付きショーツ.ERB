@@ -1,0 +1,124 @@
+
+@CLOTHES_NAME_613
+RESULTS = A-Vibrator Panties
+
+;露出部位
+@CLOTHES_EXPOSE_613,ARG
+;ARG = 露出する部位
+;1 = 腕露出 2 = 足露出 3 = 脚露出 4 = 乳房露出 5 = 乳首露出 6 = ヘソ露出 7 = 陰唇露出 8 = 臀部露出
+
+
+SELECTCASE ARG
+	CASE 7,8
+		RETURN 0
+	CASEELSE
+		RETURN 1
+ENDSELECT
+
+;装備部位
+@CLOTHES_PART_613
+RETURN 6
+
+;服の前が開くか
+;1 開けられる、2 開きっぱなし
+@CLOTHES_OPENFRONT_613
+RETURN 0
+
+;股間の構造
+;1 = ズボン、2 = ビキニタイプ、3 = スカート、4 = 穴開き、5 前開き、6 開閉可能
+@CLOTHES_CROTCH_613
+RETURN 2
+
+;装備時の調教効果
+@CLOTHES_SOURCE_613,ARG
+IF FLAG:ショップコマンド == 0
+	SOURCE:ARG:快Ａ += 125
+	SOURCE:ARG:痛み += 100
+	SOURCE:ARG:露出 += 25
+	SOURCE:ARG:逸脱 += 25
+	SOURCE:ARG:反感 += 40
+
+	;抑圧、抵抗持ちには、抑鬱ソース追加
+	SIF TALENT:ARG:抑圧 || TALENT:ARG:抵抗
+		SOURCE:ARG:鬱屈 += 20
+		
+	;Vへの苦痛は先に処理しておく
+	;EXP:ARG:Ｖ経験をみる（処女はありえない）
+	A = 100
+	B = 40
+	IF EXP:ARG:1 < EXPLV:1
+		TIMES A , 3.00
+		TIMES B , 3.00
+	ELSEIF EXP:ARG:1 < EXPLV:2
+		TIMES A , 1.20
+		TIMES B , 2.00
+	ELSEIF EXP:ARG:1 < EXPLV:3
+		TIMES A , 0.80
+		TIMES B , 1.50
+	ELSEIF EXP:ARG:1 < EXPLV:4
+		TIMES A , 0.60
+		TIMES B , 1.20
+	ELSEIF EXP:ARG:1 < EXPLV:5
+		TIMES A , 0.40
+	ELSEIF EXP:ARG:1 >= EXPLV:5
+		TIMES A , 0.20
+	ENDIF
+
+
+	;PALAM:ARG:潤滑をみる
+	IF PALAM:ARG:4 < PALAMLV:1
+		TIMES A , 1.20
+		TIMES B , 2.00
+	ELSEIF PALAM:ARG:4 < PALAMLV:2
+		TIMES A , 1.00
+		TIMES B , 1.50
+	ELSEIF PALAM:ARG:4 < PALAMLV:3
+		TIMES A , 0.60
+	ELSEIF PALAM:ARG:4 < PALAMLV:4
+		TIMES A , 0.30
+	ELSEIF PALAM:ARG:4 >= PALAMLV:4
+		TIMES A , 0.20
+	ENDIF
+	SOURCE:ARG:7 += A
+	SOURCE:ARG:18 += B
+	IF ARG == TARGET
+		DOWNBASE:ARG:0 += 30
+		DOWNBASE:ARG:1 += 80
+	ENDIF
+	
+ELSE
+ENDIF
+
+;装備時の経験追加
+@CLOTHES_EXP_613,ARG
+IF FLAG:ショップコマンド == 0
+	SIF ARG == -1
+		RETURN 0
+	PRINTFORML <Ａバイブ挿入中>\@ ARG == MASTER ? (主人) #\@\@ ARG == ASSI ? (助手) #\@
+	IF SELECTCOM == 11
+		CALL ADDS_EXP("Ａ経験", 2, ARG)
+	ELSE
+		CALL ADDS_EXP("Ａ経験", 1, ARG)
+	ENDIF
+ELSE
+
+ENDIF
+
+;装備するための条件
+@CLOTHES_PREREQUISITE_613,ARG
+SIF ARG == MASTER
+	RETURN 1
+SIF EXP:ARG:Ａ経験 < 30 && ABL:ARG:Ａ感覚 < 2
+	RETURN 0
+SIF TALENT:ARG:小人体型 && EXP:ARG:Ａ拡張経験 < 3 && TALENT:MASTER:禁断の知識 == 0
+	RETURN 0
+SIF ABL:ARG:従順 >= 3
+	RETURN 1
+SIF ABL:ARG:マゾっ気 >= 2
+	RETURN 1
+SIF ABL:ARG:Ａ感覚 >= 3
+	RETURN 1
+RETURN 0
+
+@CLOTHES_PRICE_613
+RETURN 2000

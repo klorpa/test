@@ -1,0 +1,1158 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:REQUEST_xxx_yyy.ERB
+;	Facility	:依頼:030(デビルサバイバー２) １日目。
+;				 REQUEST_30のサブファイル。
+;				 １日目のデータを管理する。
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		2011/08/23		旅人					新規作成
+;	002		2011/09/01		旅人					パーティー加入に調教が必要なバグを修正
+;	003		2011/09/03		旅人					周回用の処理を追加
+;	004		2015/01/15		セーロGUN				デビオクに対応
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;-------------------------------------------------------------------------------
+; 【フラグついて】
+; フラグは下記のみ使用。
+;
+;
+; [00-09] 戦闘:ドゥベ
+; FLAG:デビサバ２進行度 = 000;初回
+; FLAG:デビサバ２進行度 = 001;訪問済み
+; FLAG:デビサバ２進行度 = 005;戦闘中
+; FLAG:デビサバ２進行度 = 006;戦闘中(ドゥベ耐性変化後)
+; FLAG:デビサバ２進行度 = 010;戦闘クリア
+;
+; [10-19] イオ加入
+; FLAG:デビサバ２進行度 = 010;イオ引き取り初回
+; FLAG:デビサバ２進行度 = 011;イオイキ顔
+; FLAG:デビサバ２進行度 = 100;終了(1ST DAY)
+;
+;
+; 【メモ】
+; ・ドゥベは最初全部無効、10ターン経過で通常耐性に戻る。
+; ・イオ加入はイキ顔有り。
+;
+;
+;-------------------------------------------------------------------------------
+
+;===============================================================================
+;  ◇記載関数一覧(記載順)
+;
+;		Module Name						Explanation
+;
+;	・ REQUEST_xxx_yyy					依頼:メイン処理(yyy)
+;	・ EVENT_BATTLE_TURNEND_REQUESTxxx_yyy
+;										依頼:戦闘中処理(ターン終了時)(yyy)
+;
+; *- 独自関数
+;
+;	・ REQUEST30_1_FIND_ROOM			依頼:部屋探し
+;	・ REQUEST_30_1_FIND_ROOM_BTL		依頼:部屋探し(戦闘)
+;
+;===============================================================================
+
+
+;====================
+;内容
+;====================
+@REQUEST_30_1
+#DIM L_FLAG_REQ
+#DIM L_FLAG_EVENT_DIGIT
+#DIM L_FLAG_EVENT_FIRST_DIGIT
+#DIM L_BTL_FLG
+#DIM L_TMP
+#DIM L_ADD_RESULT
+
+IF (GETBIT(FLAG:発見ED,43) || GETBIT(FLAG:発見ED,44)) && FLAG:デビサバ２進行度 == 0
+	PRINTL この世界におけるジプスは…。
+	CALL INPUT_YN("独自の目的を最優先にする組織だ…", "人命救助なども行っている組織だ…")
+	;BRルート突入
+	IF RESULT
+		FLAG:デビサバ２進行度 = 5000
+		CALL REQUEST_30_50
+		RETURN
+	ENDIF
+ENDIF
+
+;- フラグをセット
+L_FLAG_REQ = FLAG:デビサバ２進行度
+
+;- フラグをセット(イベントフラグ:２桁)
+L_FLAG_EVENT_DIGIT = L_FLAG_REQ % 100
+
+;- フラグをセット(イベントフラグ:１桁目)
+L_FLAG_EVENT_FIRST_DIGIT = L_FLAG_REQ % 10
+
+;- 戦闘フラグ(デバッグ用。OFFで戦闘無しで実行出来る)
+L_BTL_FLG = 1
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+SELECTCASE L_FLAG_EVENT_DIGIT
+	;- 戦闘:ドゥベ
+	CASE 00 TO 09
+		;- 初回
+		IF L_FLAG_EVENT_FIRST_DIGIT == 0
+			;- フラグセット
+			FLAG:デビサバ２進行度 = 001
+			FLAG:デビサバ２イキ顔動画進行度 = 0
+
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞正面玄関にて待機していた職員と会話し、中に案内された・・・。
+			PRINTFORMW ＞地下へのエレベータ・・・。
+			PRINTFORMW ＞どんどん地下へと入っていく。
+			PRINTFORMW ＞エレベータの操作盤には、「JP's」とロゴが書かれていた。
+			;'ジプス説明
+			PRINTFORML
+			PRINTFORMW ＞ジプス。
+			PRINTFORML ＞「Japan Meteorological Agency,Prescribed Geomagnetism research Department」の略。
+			PRINTFORMW ＞日本語に訳せば、「気象庁・指定地磁気調査部」となる。
+			PRINTFORMW ＞東京各地への悪魔の出現に伴い、要所で顔を出している機関である。
+			PRINTFORMW ＞だが中身は得体が知れず、ファントムでさえ全容がつかめていない。
+			PRINTFORMW ＞彼らは災害による被災者の救助を行わず、独自の目的を最優先に活動している。
+			PRINTFORMW ＞そういう意味では、ある意味ファントムに近い、「そちら側」の組織であると言えるだろう。
+			PRINTFORMW ＞国営と言う点が、実に悪質だが。
+			PRINTFORML
+			PRINTFORMW ＞この依頼は、今後の大きな流れの一旦になるかも知れない。
+
+			PRINT ＞それぞれの分岐点では、
+			;- 水色
+			SETCOLOR 0xCCFFFF
+			PRINT 選択には気を付けた方が良い
+			RESETCOLOR
+			PRINTFORMW だろう。
+			PRINTFORMW ＞エレベータが止まる様だ・・・。
+			PRINTFORML
+			PRINTFORML
+			PRINTFORML
+			PRINTFORMW ＞エレベータを出ると、広間に出た。
+			PRINTFORMW ＞中央に巨大な時計が飾ってある、図書館の様な広い広間である。
+			PRINTFORMW ＞円形の広間の中央で、銀髪の少年が立っている。
+			PRINTFORMW 「ようこそジプスへ」
+			PRINTFORMW …見た所、端正な顔立ちの少年である。
+			PRINTFORML
+			PRINTFORMW 「さて、ファントムのサマナーよ。今日は良く来てくれた」
+			PRINTFORMW 「私はこのジプスの局長をしている、峰津院　大和（ホウツイン　ヤマト）だ」
+			PRINTFORMW 「君の経歴は聞いている。優秀なサマナーだと」
+			PRINTFORMW ………。
+			PRINTFORMW どうやら、甘く見ない方が良い手合いの様だ。
+			PRINTFORMW こういった交渉事も、場馴れしている様に見受けられる。
+			PRINTFORMW 「依頼内容を説明する。こちらへ」
+			PRINTFORMW ＞奥に案内された。
+			PRINTFORML
+			PRINTFORMW 「さて、極秘任務と言うのは承知だと思う。本題に移りたい」
+			PRINTFORMW 「我々ジプスは、日本を霊的な面で守護している機関である」
+			PRINTFORMW 「"霊的な面"というのは、悪魔使いの君なら、その意味が分かるだろう」
+			PRINTFORMW 「四方を守護する鬼神達、将門塚、果ては鳴海探偵社の葛葉ライドウ…」
+			PRINTFORMW 「日本の守護者は多い。東京ばかりが目立つが、我々は日本全土を守護している訳だ」
+			PRINTFORMW 「もっとも、規模も年月も、彼らなど比較にならないほど長く…この国を守って来たがね」
+			PRINTFORMW 少年は、感情の含みを持たせた声で語りかけて来た。
+			PRINTFORML
+			PRINTFORMW 「さて、君にはある"敵"を倒して貰いたい」
+			PRINTFORMW 「この敵は我々の"とある技術"で、一時的に静止軌道上に"留めて"ある」
+			PRINTFORML 「本来は空から降って来るのを地上で叩く手筈だったが、
+			PRINTFORMW   予測を外れて大幅に"技術"に回せる魔力が確保出来ていてね」
+			PRINTFORMW 「早い話が、いつでも戦える様に鳥カゴに入れている様な状況だ」
+			PRINTFORMW 「その為、この敵の迎撃はそれ程切迫しては居ない」
+			PRINTFORMW 「だがいつまでもそうしては居られない。倒さなければならない」
+			PRINTFORMW 「数もそれなりに居てね。現在網から漏れて落下して来た"敵"を、ジプスの局員が対応している」
+			PRINTFORMW …悪魔騒ぎの度に現れる、黄色い制服のジプス局員。彼らの戦力は高く、強力な悪魔使い達である。
+			PRINTFORMW 彼らは、どうやらこの「極秘の敵」の処理を行っていた様だ。
+			PRINTFORMW もっとも、他にも用件はあるのだろうが・・・。
+			PRINTFORMW 日本古来より続く霊的な守護機関。
+			PRINTFORMW 恐らくファントムすら凌駕する、強力な組織だろう・・・。
+
+		;- ２回目以降
+		ELSE
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞エレベータを抜け、ヤマトと面会した。
+		ENDIF
+
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW 「・・・それでは依頼を再確認したい」
+		PRINTFORMW 「君には我々が"来訪"を留めている、人類の脅威を排除して貰いたい」
+		PRINTFORMW 「空に張ってある網を外し、予定通り全対象を地上戦にて殲滅する」
+		PRINTFORMW 「残念だが敵に火器は通用しない。君の様なサマナーと、悪魔使いである局員だけが頼りだ」
+		PRINTFORMW 「場所は東京。詳細はこちらから伝える」
+		PRINTFORMW 「敵は正確には悪魔では無いが、悪魔と思って貰って構わないだろう。悪魔を処理する様に処理してくれ」
+		PRINTFORMW 「なお敵の詳細については、不明である」
+
+		PRINTFORMW 「さて、どうする？」
+		PRINTFORML
+		PRINTFORML  （ Please note: The day will end after this request ）
+		;注意：この依頼を受けると、時間帯に関わらず一日が終了します 
+		PRINTFORMW
+
+		CALL INPUT_YN("依頼を受ける", "まだ準備が")
+		IF RESULT == 0
+			PRINTFORMW 「そうか。それでは作戦に入ろう」
+			PRINTFORMW 「君には都内に存在するある駅の周辺に向かって貰う」
+			PRINTFORMW 「高架線路の駅だ。場所も分かりやすいだろう」
+		ELSE
+			PRINTFORMW 「そうか。幸いまだ時間はある」
+			PRINTFORMW 「準備が出来たらまたここに来てくれ」
+			PRINTFORMW ＞準備を整えたら、またここへ来よう。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			RETURN
+		ENDIF
+
+		PRINTFORML
+		PRINTFORMW 「サポートには、彼女を連れて行かせよう」
+		PRINTFORMW 「君の周囲の露払いを任せてある」
+		PRINTFORMW 「戦闘には加わらない。サマナーは自分の悪魔との方が、やりやすいだろう」
+		PRINTFORMW ＞紹介された女性が、こちらに進み出る・・・。
+		PRINTFORML
+		PRINTFORMW 『迫　真琴(サコ　マコト)です。宜しくお願いします』
+		PRINTFORMW 『周囲の悪魔を私が処理するので、本命の撃破をお願いします』
+		PRINTFORMW ＞生真面目そうな女性だ・・・。
+		PRINTFORMW ＞だが容姿は、パーフェクトと言えるだろう。大人の魅力、と言ったところだろうか。
+		PRINTFORML
+		PRINTFORMW ＞ジプスより、特殊な携帯端末が支給された。
+		PRINTFORMW ＞どうやら特定の悪魔を、最初からアナライズ100\%にしてくれる様だ。
+		PRINTFORMW ＞端末は高解像度の画面を持っており、画像から動画まで、閲覧作業には最適だろう。
+		PRINTFORMW ＞出発の時間までは、まだ多少時間がある。
+		PRINTFORMW ＞%CALLNAME:MASTER%は準備不足が無いか、入念にチェックを始めた…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+
+		;-----------------------------
+		;- タイトル
+		;-----------------------------
+		;- 依頼:一日のタイトル
+		CALL REQUEST_30_DAY_TITLE("1ST DAY", "憂鬱の第一日")
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞出発直前 ― 国会議事堂地下…ジプス東京支局内。
+		PRINTFORMW ＞出発直前に東京に大きな災害が起こり、各地で停電や火災騒ぎが起きている様だ。
+		PRINTFORMW ＞東京都内の各地で悪魔が出現し、殺人騒ぎなどが起きている。
+		PRINTFORMW ＞どうやら災害は、作戦開始の時刻と一致している様だ。
+		PRINTFORMW ＞%CALLNAME:MASTER%は気にせず、依頼の遂行の為、ジプス東京支局を出発した。
+		PRINTFORML
+		PRINTFORMW ＞東京 ― 都内某駅周辺。
+		PRINTFORMW ＞現場に付くと、少年と少女が悪魔に襲われていた。
+		PRINTFORMW ＞少年達は悪魔使いの様で、悪魔を展開して応戦している。
+		PRINTFORMW ＞そして悪魔の群れの中に、一際異質な悪魔が居た。
+		PRINTFORMW ＞ジプスより支給された携帯端末には、『ドゥベ』と表示されている。
+		PRINTFORMW ＞きのこの様な形をした、悪魔で無い"何か"。人類の天敵。
+		PRINTFORMW ＞ドゥベと言われる悪魔は、その胞子の様な頭頂部を膨らましていく。
+		PRINTFORMW ＞少年達の悲鳴が聞こえる。
+		PRINTFORMW 「ドゥベ・・・大きくなったよ」
+		PRINTFORMW ＞ドゥベは２体存在し、その内一体が少年達の周囲で爆発した。
+		PRINTFORML 
+		PRINTFORML ドォォォン・・・
+		PRINTFORMW 
+		PRINTFORMW ＞吹き飛ばされる少年達。ボロ雑巾の様に地面を転がって行く。
+		PRINTFORMW ＞どうやらあの『ドゥベ』は、自身を爆発させて対象を殺傷する様だ。
+		PRINTFORMW ＞周囲の悪魔は身体が飛び散り、絶命している。
+		PRINTFORMW ＞幸い少年達は、ある程度離れていた様だ。
+		PRINTFORML
+		PRINTFORMW ＞遠目だが、少年達はかすかに動いている。瀕死の重傷ではあるが、生きている様だ。
+		PRINTFORMW ＞・・・見れば、少女の方はなかなか顔立ちが良い。
+		PRINTFORMW ＞血まみれだがスカートがめくれ上がり、健康そうな太ももと下着が見えていた。
+		PRINTFORMW ＞胸も大きく、男を愉しませるには十分だろう。遠目で見ても、煽情的である。
+		PRINTFORML
+		PRINTFORMW ＞マコトを見ると、どうやら任務を優先する気の様だ。
+		PRINTFORMW ＞だが、その顔は明らかに曇っている。
+		PRINTFORMW ＞%CALLNAME:MASTER%は、マコトに彼らを救助する様伝えた。
+		PRINTFORMW 『………！？』
+		PRINTFORMW 『――了解しました』
+		PRINTFORMW ＞マコトは彼らに回復魔法を掛け、少年達の身体を引きずりながら後退していく。
+		PRINTFORML
+		PRINTFORMW ＞これでもう、サポートは一切期待出来ないだろう・・・。
+		PRINTFORMW ＞目の前の異質な"ナニか"を、撃破しなければならない。
+		PRINTFORMW ＞携帯端末には、相手の情報が表示されている。
+		PRINTFORML
+		PRINTFORMW ＞敵の耐性は――――
+		PRINT ＞――――全て、
+		;- 赤
+		SETCOLOR 0xFF6699
+		PRINT 無効
+		RESETCOLOR
+		PRINTFORMW と表示されていた――――
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW ＞%CALLNAME:MASTER%は、目の前の悪魔と対峙した――――
+
+		;- 戦闘前処理
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		;-----------------------------
+		;- 戦闘開始
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 005
+
+		PRINTFORMW 
+		PRINTFORMW セプテントリオン 貪狼星ドゥベが一体出た！
+
+		CUSTOMDRAWLINE =
+		WAIT
+
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- 悪魔解析度増加処理(1000でMAX)
+			CALL INCREASE_ANALYZE([[キャラ:ドゥベ]],1000)
+
+			;- SET:ドゥベ
+			CALL SET_ENEMY,9,[[キャラ:ドゥベ]],REQUEST_30_BASE_LV(1),1,1
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			
+			;耐性(全属性無効)
+			FOR LOCAL , GETNUM(MAXBASE, "剣撃") , GETNUM(MAXBASE, "剣撃") + FLAG:相性数
+				BASE:(CHARANUM-1):LOCAL = 0
+			NEXT
+			ABL:(CHARANUM-1):スキル1 = [[スキル:連星の炎]]
+			
+			CALL SYNC_STATUS,(CHARANUM-1)
+
+			;- 戦闘開始
+			CALL BATTLE_START
+		ENDIF
+
+		;-----------------------------
+		;- 戦闘イベント(中断)
+		;-----------------------------
+		IF FLAG:勝利フラグ
+			PRINTFORMW ＞スキルを駆使し、ダメージを与えはしたが、ドゥベはまだ余裕がありそうだ。
+			PRINTFORMW ＞しかもドゥベはその胞子の様な円形部を大きくし、爆発体勢を取っている。
+		ELSE
+			PRINTFORMW ＞攻撃が全く効かない為、一旦退く事にする。
+			PRINTFORMW ＞だがドゥベはその胞子の様な円形部を大きくし、爆発体勢を取っている。
+		ENDIF
+		PRINTFORMW ＞この距離では、致命傷は免れないだろう。
+		PRINTFORMW ＞どこかから車のエンジン音がする・・・。
+		PRINTFORML 
+		PRINTFORML ブロロロロ！！！
+		PRINTFORMW 
+		PRINTFORMW ＞見上げると、高架線路から軽トラックが飛び出して来た！
+		PRINTFORMW ＞そのまま線路を飛び出し、数ｍの高さから落下してくる。
+		PRINTFORMW ＞あのトラックは、ドゥベを狙っている様だ。
+		PRINTFORMW ＞トラックは勢いよくドゥベに突っ込んで行く。
+		PRINTFORML 
+		PRINTFORML ドォォン・・・
+		PRINTFORMW 
+		PRINTFORMW ＞トラックの衝突と同時に、ドゥベが吹き飛ばされる。
+		PRINTFORMW ＞幸い今のトラックのおかげで、大爆発は起きなかった様だ。
+		PRINTFORMW ＞不完全な爆発の為か、ドゥベは円形部が破裂して損傷している。
+		PRINTFORMW ＞携帯端末を見ると、ドゥベの一部の耐性が変化していた・・・。
+		PRINTFORML 
+		PRINTFORMW ＞チャンスは今しかない――――
+		PRINTFORML 
+		PRINTFORMW ＞%CALLNAME:MASTER%は再び、ドゥベと対峙した――――
+		
+		;- 戦闘前処理
+		FLAG:逃走不可フラグ = 1
+		
+		;-----------------------------
+		;- 戦闘開始(２戦目)
+		;-----------------------------
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 006
+		
+		PRINTFORML
+		PRINTFORML セプテントリオン 貪狼星ドゥベが一体出た！
+		
+		CUSTOMDRAWLINE =
+		WAIT
+		
+		;- CHK:戦闘フラグ
+		IF L_BTL_FLG
+			;- SET:ドゥベ
+			CALL SET_ENEMY,9,[[キャラ:ドゥベ]],REQUEST_30_BASE_LV(1),1,1
+			CFLAG:(CHARANUM-1):ＨＰ補正 = 500
+			CFLAG:(CHARANUM-1):ＭＰ補正 = 1000
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			;耐性(飛具火炎核熱以外弱点)
+			FOR LOCAL , GETNUM(MAXBASE, "剣撃") , GETNUM(MAXBASE, "万能")
+				SIF LOCAL == GETNUM(MAXBASE, "飛具") || LOCAL == GETNUM(MAXBASE, "火炎") || LOCAL == GETNUM(MAXBASE, "核熱")
+					CONTINUE
+				BASE:(CHARANUM-1):LOCAL = 200
+			NEXT
+			ABL:(CHARANUM-1):スキル1 = [[スキル:連星の炎]]
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			
+			;- 戦闘開始
+			CALL BATTLE_START
+			
+		ENDIF
+		PRINTFORMW ＞ドゥベは崩れ落ちた…
+		CUSTOMDRAWLINE =
+		
+		;-----------------------------
+		;- 勝利後
+		;-----------------------------
+		
+		;- 戦闘終了
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		;合体解禁
+		FLAG:(10000 + [[キャラ:ドゥベ]]) = 1
+		
+		PRINTFORMW ＞ドゥベを撃破した直後、ヤマトが姿を現した。
+		PRINTFORMW ＞…どうやら見ていたらしい。
+		PRINTFORMW 「ほう。ドゥベを撃破するとは」
+		PRINTFORMW 「いや。失礼した。君が本当に強者なのか、調べたくてな」
+		PRINTFORMW 「だが、これで判明した。今後も君に仕事を依頼しても良さそうだと言う事が」
+		PRINTFORMW …どうやら、今の働きで多少は信頼された様だ。
+		PRINTFORMW 政府組織との直接契約ならば、ファントムの評価も大きく上がるだろう。
+		PRINTFORML
+		PRINTFORMW マコトの方を見ると、周囲には悪魔の残骸が残っていた。
+		PRINTFORMW 救助した少年少女を守る為、壁を背に背水の姿勢で戦っていた様だ。
+		PRINTFORMW 衣服は傷付き、黒いコートに隠れた柔らかな素肌が見えている。
+		PRINTFORMW 目当ての少女を見ると、一通りの治療は行われた様だ。
+		PRINTFORML
+		PRINTFORMW 「しかし民間人を助けるとは、もしかして余裕だったのか？」
+		PRINTFORMW ヤマトは、意外そうに聞いて来た。
+		PRINTFORMW 彼はファントムという組織を知っている。その疑問も頷けるだろう。
+		PRINTFORMW %CALLNAME:MASTER%は「救助した少年達を預かりたい」と伝えた。
+		PRINTFORML
+		PRINTFORMW 「ふむ。確かにあの民間人の救助はイレギュラーだ。予定に無い」
+		PRINTFORMW 「しかし助けたのはジプスのサコだ」
+		PRINTFORMW …どうやら、遠まわしに交渉している様だ。
+		PRINTFORMW %CALLNAME:MASTER%はこう付け加えた。
+		PRINTFORMW …戦利品として貰いたい、と。
+		PRINTFORML
+		PRINTFORMW ＞ヤマトは一瞬の思考の後、薄く笑って見せた。
+		PRINTFORMW 「そういえば君は奴隷商人だったな」
+		PRINTFORMW 「戦利品。なるほど、救助したのはそれが目的か」
+		PRINTFORMW 「少年少女ならば、裏の世界では高く売れるだろう」
+		PRINTFORMW 「いやなに。真の強者が栄えるのならば、それは正しい世界だ」
+		PRINTFORMW 「血筋や親の財産などでは無く、真に個人の能力に由来するのならな」
+		PRINTFORMW ＞ヤマトは何やら思考している…。
+		PRINTFORMW 「…そうだな。弱者は強者に所有されるのが常」
+		PRINTFORMW 「君なら存外、彼らを上手く使うのかもしれない」
+		PRINTFORMW 「元より凡人に興味は無い。好きにすると良い」
+		PRINTFORMW 「治療と君への譲渡を約束しよう」
+		PRINTFORMW 「彼らは精密検査が必要だ。ひとまずジプス東京支局にて保護する」
+		PRINTFORMW 「君には後日引き取りに来て貰いたい」
+		PRINTFORMW ヤマトは、そのまま引きつれていた局員に指示し、少年達を車に乗せた。
+		PRINTFORMW 車は自衛隊の車両の様だ。
+		PRINTFORMW ジプスは、自衛隊ですら使用可能なのだろうか・・・。
+		PRINTFORML
+		PRINTFORMW 先程のトラックの付近では、ジプス局員が回収作業を行っている。
+		PRINTFORMW どうやら運転していた人物が、まだ生きていた様だ。
+		PRINTFORMW 担架で運ばれるのを見ると、少年の様である。
+		PRINTFORMW 気を失っている少年は、そのまま車に乗せられていった。
+		PRINTFORML
+		PRINTFORMW 気が付くと、マコトがヤマトと会話をしている。
+		PRINTFORMW その後こちらに話しかけて来た。
+		PRINTFORMW 『お見事でした。あのドゥベを撃破するとは』
+		PRINTFORMW 『…正直、あなたを誤解していました』
+		PRINTFORMW 『失礼かもしれませんが、ファントムの方が一般人を救助するとは思っていませんでした』
+		PRINTFORMW 『救助の指示を出して頂き、有難う御座いました』
+		PRINTFORMW …恐らく理由を聞いたら、"その"誤解も解けるだろう。
+		PRINTFORMW 彼女は礼をし、車に乗って行った…。
+		PRINTFORML
+		PRINTFORMW …ヤマトが話しかけて来た。
+		PRINTFORMW 「これで今回の依頼は完了だ」
+		PRINTFORMW 「もう深夜を回る、今日はゆっくりと休んでくれ」
+		PRINTFORMW 「ジプスに部屋を用意している。利用したい場合はそこを使ってくれると良い」
+		PRINTFORMW 「今後についてはまたメールで連絡をする。次は恐らく戦利品の回収をお願いするだろう」
+		PRINTFORMW 「現在ドゥベの残骸を回収している。あと３０分で帰還する予定だ」
+		PRINTFORMW 「もし帰宅方法が無いならば、東京支局までは車で送れるだろう」
+		PRINTFORMW …多少は気を使って貰えている様だ。
+		PRINTFORMW そちら側の人間と思っていたが、それ程冷酷な人間では無いのかもしれない。
+		PRINTFORML
+		PRINTFORMW …あと３０分ほどで、帰宅方法を選ぶ必要がある。
+		PRINTFORMW ひとまず休憩をしよう。
+		PRINTFORMW %CALLNAME:MASTER%は近くの自販機に向かって歩き始めた…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW …ヤマト達から離れた一角。
+		PRINTFORMW 自販機の前に、誰かが居る。
+		PRINTFORMW 赤い服装を身に纏った、銀髪の少年である。
+		PRINTFORMW 『…輝く者よ』
+		PRINTFORMW …少年は語りかけて来た。
+		PRINTFORML
+		PRINTFORMW 『…君には伝えておかなければならない』
+		PRINTFORMW 『…今後、君には様々な脅威が降りかかるだろう』
+		PRINTFORMW 『…私は、君のすぐ傍に居る…』
+		PRINTFORMW …要領を掴めない。
+		PRINTFORMW だが、この異様な空気は、人外のソレに近い。
+		PRINTFORMW …ひとまず何者なのかを聞いた。
+		PRINTFORMW 『…私は"憂う者"…』
+		PRINTFORMW …少年は、姿を消した。
+		PRINTFORML
+		PRINTFORML
+		PRINTFORMW …ジプスに支給された携帯端末が鳴っている。
+		PRINTFORMW 見てみると、何やらアプリが登録されていた。
+		PRINTFORMW 動画閲覧ソフトである。
+		PRINTFORMW 開いて見ると、『ニカイア』というサイトが現れた。
+		PRINTFORML サブタイトルには、
+		PRINTFORMW 『Orgasm Face Delivery Site』と書かれている。
+		PRINTFORMW 操作して先に進むと、女性型のキャラクターが話しかけて来た。
+		PRINTFORML
+		PRINTFORMW 『イキ顔配信サイト、ニカイアへようこそっ！』
+		PRINTFORMW 『ワタクシ、案内役のティコティコ、あなたのティコりんですっ★』
+		PRINTFORMW 画面から痛い雰囲気が伝わって来る…。
+		PRINTFORML
+		PRINTFORMW 『当サイトでは、あなたが犯してやりたいと思ってる人達…』
+		PRINTFORML 『つまり知り合うだけじゃ無くて、
+		PRINTFORMW   性奴隷にしたい、種付けしたいと思ってる人達が…』
+		PRINTFORMW 『イっちゃう時？処女を奪われちゃう時？
+		PRINTFORMW   とかそんなんを～、先にあなたに見せちゃうって感じ』
+		PRINTFORMW 『あ、犯されちゃう時の感じとかは、動画でアップして、それから知らせるからね～』
+		PRINTFORMW 『犯され始めたら、リアルタイムで配信してあげるよっ★』
+		PRINTFORMW 『配信はあなただけだから、あなたが何とかしないと、ナンとかされちゃうよね～』
+		PRINTFORMW 『動画がアップされたらアナウンスしますので、絶対に見に来てね～★』
+		PRINTFORML 『それではっ！
+		PRINTFORMW   ハブ・ア・ナイスた～★』
+		PRINTFORML
+		PRINTFORMW …アプリは切れた。
+		PRINTFORMW 良く分からないが、どうやら事前に襲われる相手が分かる様だ…。
+		PRINTFORMW これを使えば、誰かに自分の奴隷を奪われる事を、回避出来るのかもしれない。
+		PRINTFORML
+		PRINTFORMW ジプス…謎の敵…赤い少年…ニカイア。
+		PRINTFORMW 今日は激動の一日だった…。
+		PRINTFORMW そろそろヤマト達も帰る頃だ。
+		PRINTFORMW 相乗りさせて貰おう。
+		PRINTFORMW %CALLNAME:MASTER%はヤマト達の方へと、歩き始めた…。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORMW 
+		PRINTFORMW ￥30000を入手しました。
+		PRINTL 
+		PRINTL 
+
+		MONEY += 30000
+
+		;- フラグをセット
+		FLAG:デビサバ２進行度 = 010
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_30_FLAG_RESET
+
+		;- 依頼:一日の終了
+		CALL REQUEST_30_DAY_END
+
+	;- イオ加入
+	CASE 10 TO 19
+
+		;- 初回
+		IF L_FLAG_EVENT_FIRST_DIGIT == 0
+			;- フラグセット
+			FLAG:デビサバ２進行度 = 011
+
+			PRINTFORMW ＞東京 ― 国会議事堂。
+			PRINTFORMW ＞ジプス東京支局に着いた。
+			PRINTFORMW ＞エレベータを降り、広間に出た。
+			PRINTFORML
+			PRINTFORMW ＞広間には、ヤマトが居た。
+			PRINTFORMW 「サマナー、ちょうど良い所に来た。連絡がある」
+			PRINTFORMW 「もっとも、同じ用件かも知れんが」
+			PRINTFORMW 「先日救助した少年少女の氏名を伝える」
+			PRINTFORML
+			PRINTFORMW 「救助したのは３名、少女一人に少年二人だ」
+			PRINTFORMW 「少女が"新田　維緒(ニッタ　イオ)"」
+			PRINTFORMW 「少年の一人が"志島　大地(シジマ　ダイチ)"」
+			PRINTFORMW 「もう一人の少年については、まだ書類が来ていない」
+			PRINTFORML
+			PRINTFORMW 「新田なら宿泊区画に居る」
+			PRINTFORMW 「どれもホテルの様な上等な部屋だ。ここはいわゆるエリートばかりだからな」
+			PRINTFORMW 「滞在で不自由はさせていない事を伝えておこう」
+			PRINTFORMW 「それと救助した３人だが、全員両親が死亡している」
+			PRINTFORMW 「先日の悪魔騒ぎで、亡くなった様だ」
+			PRINTFORMW 「メンタルに支障が出ているかも知れん」
+			PRINTFORMW 「８号室だ。面会しに行くと良い」
+			PRINTFORMW 「面会後、ここに戻って来てくれ。渡す書類がある」
+			PRINTFORMW %CALLNAME:MASTER%は宿泊区画に向かった…。
+			PRINTFORML
+			PRINTFORMW ＞伝えられた部屋に着いた。
+			PRINTFORMW ＞ノックを数回して数秒後、ゆっくりとドアを空けた。
+			PRINTFORMW ＞シングルベッドの上に、イオが座っていた。
+			PRINTFORML
+			PRINTFORMW 『あ、はい。あの、あなたがその、身元引受人…なんですよね』
+			PRINTFORMW 『その、宜しくお願いします』
+			PRINTFORMW 『…』
+			PRINTFORMW イオは暗い顔をしている。
+			PRINTFORMW 両親の悲報は、既に耳に入っている様だ…。
+			PRINTFORMW %CALLNAME:MASTER%は、奴隷として引き取った事を伝えた…。
+			PRINTFORML
+			PRINTFORMW 『え、奴隷ですか？』
+			PRINTFORMW 『奴隷って、もしかしてその…』
+			PRINTFORMW イオは何やら、顔を赤らめている…。
+			PRINTFORMW 多少の知識はあるのかもしれない…。
+			PRINTFORMW %CALLNAME:MASTER%は、場合によってはそう言う事もやらせる、と伝えた。
+			PRINTFORMW 悪魔使いとしての能力がある為、そちらで働いて貰うかも知れない、とも伝えた。
+			PRINTFORMW 『…私にはあなたしか頼る人が居ません…お母さんも死んじゃったし…』
+			PRINTFORMW 『で、でも、出来るなら悪魔を使う方が良いです…』
+			PRINTFORMW 『エッチな事はその…嫌です』
+			PRINTFORML イオは両手を胸の前で小さくバンザイさせながら、崩れた笑顔のまま…。
+			PRINTFORMW 性奴隷は嫌、としっかりと答えた…。
+			PRINTFORMW ファントムで調べた情報では、周りに合わせ流されやすい性格、と書いてあったが…。
+			PRINTFORMW 案外自分の意見はちゃんと持っている、芯はしっかりしているタイプなのかも知れない。
+			PRINTFORMW 「お前次第だ」と伝え、イオを連れて広間に戻る事にした。
+			PRINTFORML
+			PRINTFORMW …あまり堅苦しいのは、仕事に支障が出る。
+			PRINTFORMW 広間に戻る最中、イオとつまらない話をした。
+			PRINTFORMW 『わ…フフ、イケナイ人』
+			PRINTFORMW 『こんな物騒な世の中なら、サマナーさんと一緒に居た方が安全かも…』
+			PRINTFORMW …多少は気楽に接して貰える様になった様だ。
+			PRINTFORML
+			PRINTFORMW 広間に戻った。
+			PRINTFORMW ヤマトがこちらに来た。
+			PRINTFORMW 「新田を連れて来たか」
+			PRINTFORMW 「連絡を伝える」
+			PRINTFORMW 「今回救助した３人を引き渡す予定だったが、内２名は不可能になった」
+			PRINTFORMW 「新田以外の少年二人は、こちらで預かる。人材が不足していてな」
+			PRINTFORMW 「特に救助した少年の一人、志島　大地（シジマ　ダイチ）は車の運転免許を持っている」
+			PRINTFORMW 「交通手段が発達し過ぎたのか、免許を持っている者は少なくてな。彼は名古屋で使いたい」
+			PRINTFORMW 「もう片方の少年は、君と同じで『ドゥベ』を倒している」
+			PRINTFORMW 「こちらは純粋に戦力として貴重だ。ジプスで使用したい」
+			PRINTFORMW 「本音を言うと新田も預かりたいのだが、君との約束もあるしそれは止めておこう」
+			PRINTFORMW 「君との契約はこれで完了だ。何人引き渡すかは、決めていなかっただろう？」
+			PRINTFORMW …そういえば、誰を引き渡して貰うかは決めて無かったな。
+			PRINTFORML
+			PRINTFORMW …ここでこの少年を襲って性奴隷にしてやろうかとも思ったが、実力は相当と思われる。止めておこう。
+			PRINTFORMW しかし、彼は免許を持っていないのだろうか？
+			PRINTFORMW 「私は１７歳だからな。法律上、車の免許は持てん。アレは１８歳からだ」
+			PRINTFORMW 「局長をやっているのが意外か？大学レベルの課程なら幼少の頃に済ませている」
+			PRINTFORMW 「常識に囚われない様にな」
+			PRINTFORMW …１７歳だったのか。
+			PRINTFORMW …秀才で顔も良く、プライドの高い少年。
+			PRINTFORMW 機会があれば、奴隷にするのも悪くなさそうだ。
+			PRINTFORML
+			PRINTFORMW 「書類は渡しておく。目を通しておいてくれ。今後の依頼の展望だ」
+			PRINTFORMW 「そして新田を連れて来て貰って悪いのだが、まだ引き渡す事が出来ない」
+			PRINTFORMW 「まだ治療が済んでいなくてな。データも取りたい」
+			PRINTFORMW 「また後で来て欲しい。心配せずとも、終わればちゃんと引き渡す」
+			PRINTFORMW …恐らく治療は終わっていて、データが欲しいだけだろう。
+			PRINTFORML
+			PRINTFORMW また後で来る事にしよう。
+			PRINTFORMW 「ではサマナー、次の依頼も宜しく頼む」
+			PRINTFORMW …広間を後にした
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+
+			RETURN
+
+		;- イオ回収
+		ELSE
+			PRINTFORMW そろそろイオを回収しに行こう。
+		ENDIF
+
+		;-----------------------------
+		;- この時点で追加
+		;-----------------------------
+
+		;- キャラ追加(イオ)
+		CALL ADD_NEW_COMPANION,[[キャラ:イオ]],200
+		L_ADD_RESULT = RESULT
+
+		;調教の有無に関わらず戦闘には常に参加可能
+		SIF L_ADD_RESULT
+			CFLAG:(CHARANUM - 1):戦闘参加不可能 = 0
+
+		PRINTL
+		PRINTL
+		PRINTFORMW …ジプスに支給された携帯端末が鳴っている。
+		PRINTFORMW 見てみると、ニカイアが再生された…。
+		PRINTL 
+		CALL REQUEST_30_NICAEA_BOOTVIEW("βver.","Orgasm Face Delivery Site")
+		PRINTFORMW ダブルベッドとイオ、そして複数の男達が映っている…。
+		PRINTFORMW イオは男達に押し倒され、衣服を剥がれ身体をメチャクチャに愛撫されている…。
+		PRINTFORMW 両腕を掴まれ、涙を流しながら正常位で揺さぶられるイオが映っている…。
+		PRINTFORMW 男に跨り、騎乗位で腰を振るイオが映っている…。
+		PRINTFORMW 後背位で前と後ろを塞がれ、男の欲望を受けているイオが映っている…。
+		PRINTFORMW 男のペニスをしゃぶりながら、パイズリフェラで奉仕をするイオが映っている…。
+		PRINTFORMW 最後は男達の前で、背中をブリッジさせながらオナニーで絶頂している様だ…。
+		CUSTOMDRAWLINE =
+		PRINTFORMW 映像はここで切れている…。
+		PRINTL
+		PRINTFORMW …
+		PRINTFORMW イオの貞操が危ない様だ…。
+		PRINTL
+		PRINTL
+
+		CALL INPUT_YN("イオを助けに行く", "イオを助けに行かない")
+		IF RESULT == 1
+			PRINTFORMW %CALLNAME:MASTER%は助けに行かない事にした。
+			PRINTFORMW ………
+			PRINTFORMW ……
+			PRINTFORMW …
+			PRINTFORMW ストリーミングが配信され始めた…。
+
+			;- 再生ループ
+			FOR L_TMP,1,11
+				PRINTL
+				;- 依頼:イキ顔動画(イオ)
+				CALL REQUEST_30_DELIVERY_イオ(L_TMP)
+
+				;- 追加した場合
+				SIF L_ADD_RESULT
+					;- 依頼:イキ顔動画 調教度加算(イオ)
+					CALL REQUEST_30_DELIVERY_イオ_ADD(L_TMP,CHARANUM-1)
+
+				PRINTL
+				PRINTW
+			NEXT
+
+			PRINTFORMW ストリーミングの再生が終わった。
+			PRINTFORMW イオは男達に処女を奪われ、慰め者にされた様だ。
+			PRINTFORMW 
+			PRINTFORMW その後、数名のジプス局員が行方を眩まし、イオも同時に姿を消したという
+			PRINTFORML ヤマトは、現場の状況から行方を眩ました局員にイオが拉致されたと見ているらしいが、
+			PRINTFORMW 他に優先すべき事項があるということで、積極的な捜索は行わないとの事だった…
+			;- 追加した場合
+			IF L_ADD_RESULT
+				;デビオク処理
+				;売却されたキャラの調教に関する能力、素質、経験、価格を保存
+				;イキ顔で淫乱化したイオを即売却した場合よりほんのちょびっと安い価格
+				CALL CHARASELL_AFTER_デビオク, GETCHARA([[キャラ:イオ]]), 1000
+				
+				;キャラクタ‐削除
+				CALL キャラ削除, GETCHARA([[キャラ:イオ]])
+			ENDIF
+			;--------------------------------------------
+			;PRINTFORMW …
+			;PRINTFORMW ……後程、回収に向かった。
+			PRINTL
+			PRINTL
+			;PRINTFORMW ………
+			;PRINTFORMW ……
+			;PRINTFORMW …
+			;PRINTFORMW 調教されたイオを回収した。
+			;--------------------------------------------
+		ELSE
+
+			;-----------------------------
+			;- 以下、助けに行く場合
+			;-----------------------------
+
+			PRINTFORMW イオはジプスの東京支局に居る。
+			PRINTFORMW 急いで向かおう。
+
+			PRINTFORMW 現地に到着し、エレベーターを降り、広間に入った。
+			PRINTFORMW …
+			PRINTFORMW ……
+			PRINTFORML
+			PRINTFORMW 「サマナー…背後を取られない様にな」
+			PRINTFORML
+			PRINTFORMW …ヤマトの様だ。危うく手刀を繰り出す所だった…。
+			PRINTFORML
+			PRINTFORMW 「新田の回収をしに来たのか？」
+			PRINTFORMW 「そういえば新田の階の部屋割りを変更していてな」
+			PRINTFORMW 「丁度真ん中を中心に、180度部屋を動いて貰った」
+			PRINTFORMW 「点対象と言う奴だ。360度で一回転…元通りだな」
+			PRINTFORMW 「それと、今のところ次の依頼は無い」
+			PRINTFORMW 「個人的には許したい所だが、あいにくここは機密だらけの場所だ」
+			PRINTFORMW 「月並みなセリフだが、用が無い時は出入りしない様に頼みたい」
+			PRINTFORMW …早く用件を済まそう。
+			PRINTFORML
+			PRINTFORMW 広間からイオの部屋に行く事にした。
+			PRINTFORMW …
+			PRINTFORMW ……
+			PRINTFORMW ………マコトと出会った。
+			PRINTFORML
+			PRINTFORMW 『これはサマナー、先日以来ですね』
+			PRINTFORMW 『…新田の引き取りですか？』
+			PRINTFORMW 『ああ、部屋割りの変更自体は聞いたんですね？』
+			PRINTFORMW 『新田なら部屋割りの変更後、一番上の部屋に移動して貰いました』
+			PRINTFORMW 『窓も無い部屋は可哀想ですしね』
+			PRINTFORMW 『北側の部屋は全部、この広間への窓が付いているんですよ』
+			PRINTFORMW 『なのでまぁ、地下と言えどそれなりに開放感を得れます』
+			PRINTFORMW 『要人向けの部屋なので、ベッドもダブルベッドになっています』
+			PRINTFORMW 『これから局長に報告しに行く所です』
+			PRINTFORMW …配置替えか…部屋の場所が変わるとは、厄介な事になっている様だ。
+			PRINTFORML
+			PRINTFORML
+			PRINTFORML 携帯端末が鳴っている…。
+			PRINTFORMW
+			PRINTFORMW 端末を開いてみると、動画がストリーミングで再生されはじめた…。
+			PRINTFORMW 急がないと、イオは男達に…。
+
+			;- 依頼:部屋探し
+			CALL REQUEST_30_1_FIND_ROOM(L_ADD_RESULT)
+
+		ENDIF
+
+		PRINTFORML 
+		PRINTFORMW もうここに用は無い。帰る事にした。
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORMW …
+		PRINTFORML
+		PRINTFORML
+		PRINTFORML 『1ST DAY』 が完了しました。
+		PRINTFORML
+		PRINTFORMW
+
+		;- フラグセット
+		FLAG:デビサバ２進行度 = 100
+
+		;- 依頼:フラグリセット
+		CALL REQUEST_30_FLAG_RESET
+
+ENDSELECT
+
+
+
+;=================================================
+;   sub EVENT_BATTLE_TURNEND_REQUESTxxx_yyy
+;=================================================
+;   依頼:戦闘中処理(ターン終了時)
+;-------------------------------------------------
+;   FLAG:勝利フラグに1をセットすると、戦闘を強制終了出来る
+;   FLAG:敗北フラグに1をセットすると、ゲームオーバーに出来る
+;-------------------------------------------------
+@EVENT_BATTLE_TURNEND_REQUEST30_1
+#DIM L_FLAG_EVENT_DIGIT
+
+;- フラグをセット(イベントフラグ:２桁)
+L_FLAG_EVENT_DIGIT = FLAG:デビサバ２進行度 % 100
+
+;-----------------------------
+;- 処理開始
+;-----------------------------
+
+SELECTCASE L_FLAG_EVENT_DIGIT
+	;-----------------------------
+	;- 05:戦闘中(ドゥベ)
+	;-----------------------------
+	CASE 05
+		;- 10ターン経過で逃走可能に
+		SELECTCASE FLAG:経過ターン数
+			CASE 9
+				CUSTOMDRAWLINE =
+				PRINTFORML
+				;- 赤
+				SETCOLOR 0xFF0000
+				CALL MESSAGE_B(3,"駄目だ…","全く効果が無い………。",)
+				PRINTL
+				CALL MESSAGE_B(3,"ここは一旦引くべきか…",,)
+				RESETCOLOR
+				;こっそりオフにしておく
+				FLAG:逃走不可フラグ = 0
+		ENDSELECT
+
+ENDSELECT
+
+
+;-------------------------------------------------------------------------------
+;   独自関数
+;-------------------------------------------------------------------------------
+
+;=================================================
+;   sub REQUEST30_1_FIND_ROOM
+;=================================================
+;   依頼:部屋探し
+;-------------------------------------------------
+; Input:
+;  ARG:0				登録成功フラグ
+;-------------------------------------------------
+@REQUEST_30_1_FIND_ROOM(ARG)
+#DIM L_BAD
+#DIM L_CNT
+#DIM L_進行度
+#DIM L_ADD_RESULT
+
+L_ADD_RESULT = ARG
+L_CNT = 1
+L_進行度 = 1
+
+PRINTL
+PRINTL
+;- 依頼:イキ顔動画(イオ)
+CALL REQUEST_30_DELIVERY_イオ(L_進行度)
+PRINTL
+PRINTL
+PRINTW
+
+
+;- 部屋探しループ
+L_BAD = 0
+WHILE 1
+
+	PRINTL
+	CUSTOMDRAWLINE =
+
+	;- 部屋探し
+	PRINTFORML ┏━┳━┳━┳━┳━┳━┳━┳━┳━┓ 探索回数:{L_CNT}回目
+	PRINTFORML ┃　┃１┃　┃２┃　┃３┃　┃４┃　┃ 
+	PRINTFORML ┃　┗─┛　┗─┛　┗─┛　┗─┛　┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃　┏━┓　┏━┓　┏━┓　┏━┓　┃
+	PRINTFORML ┃　┃５┃　┃６┃　┃７┃　┃８┃　┃
+	PRINTFORML ┃　┗─┛　┗─┛　┗─┛　┗─┛　┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃　┏━┓　┏━┓　┏━┓　┏━┓　┃
+	PRINTFORML ┃　┃９┃　┃10┃　┃11┃　┃12┃　┃
+	PRINTFORML ┃　┗─┛　┗─┛　┗─┛　┗─┛　┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┃　┏━┓　┏━┓　┏━┓　┏━┓　┃
+	PRINTFORML ┃　┃13┃　┃14┃　┃15┃　┃16┃　┃
+	PRINTFORML ┃　┗─┛　┗─┛　┗─┛　┗─┛　┃
+	PRINTFORML ┃　　　　　　　　　　　　　　　　　┃
+	PRINTFORML ┗━━━━━━━━━━━━━━━━━┛
+	PRINTFORML
+	PRINTFORML [ 1] １号室  [ 2] ２号室  [ 3] ３号室  [ 4] ４号室
+	PRINTFORML [ 5] ５号室  [ 6] ６号室  [ 7] ７号室  [ 8] ８号室
+	PRINTFORML [ 9] ９号室  [10] 10号室  [11] 11号室  [12] 12号室
+	PRINTFORML [13] 13号室  [14] 14号室  [15] 15号室  [16] 16号室
+	PRINTFORML
+	PRINTFORML 探索する部屋を選んでください。
+	PRINTFORML
+
+	;- 入力
+	$INPUT_LOOP
+	INPUT
+	SELECTCASE RESULT
+		CASE 1
+			BREAK
+		CASE 2 TO 16
+			PRINTFORMW {RESULT}号室のドアを開けた…
+			PRINTFORMW だが、部屋には誰も居なかった…
+			PRINTFORMW {RESULT}号室では無い様だ…
+		CASEELSE
+			CLEARLINE 1
+			REUSELASTLINE （入力値 {RESULT} は範囲外です）
+			GOTO INPUT_LOOP
+	ENDSELECT
+
+	;- 探索回数で進行
+	SELECTCASE L_CNT
+		;- 進行度:1
+		CASE 1 TO 2
+			L_進行度 = 1
+
+		;- 進行度:2～10
+		CASE 3 TO 11
+			L_進行度 = L_CNT - 1
+
+		CASEELSE
+			L_BAD = 1
+			BREAK
+	ENDSELECT
+
+	PRINTL
+	PRINTL
+	PRINTL
+
+	;- 依頼:イキ顔動画(イオ)
+	CALL REQUEST_30_DELIVERY_イオ(L_進行度)
+
+	;- 追加した場合
+	IF L_ADD_RESULT
+		;- 依頼:イキ顔動画 調教度加算(イオ)
+		CALL REQUEST_30_DELIVERY_イオ_ADD(L_進行度,CHARANUM-1)
+	ENDIF
+
+	PRINTL
+	PRINTL
+
+	PRINTL
+	PRINTL
+	PRINTW
+
+	L_CNT ++
+
+WEND
+
+;-----------------------------
+;- BAD
+;-----------------------------
+IF L_BAD
+	PRINTFORMW ………
+	PRINTFORMW ……
+	PRINTFORMW …
+	PRINTFORMW あれから大分時間が経ってしまった…
+	PRINTFORMW 恐らくこの部屋だろう…
+	PRINTFORMW
+	PRINTFORMW %CALLNAME:MASTER%は1号室のドアを開けた…
+	;-------------------------------------------------------------------------------------
+	;PRINTFORMW 既に男達の姿は無く、凌辱されたイオだけがベッドに横たわっていた…
+	;PRINTFORMW イオは暫く放心していたが、自分のされた事を思い出し、静かに泣き崩れた…
+	;PRINTFORMW
+	;PRINTFORMW %CALLNAME:MASTER%はイオを保護した…
+	;-------------------------------------------------------------------------------------
+	PRINTFORMW 部屋の中には誰もおらず、漂う性臭とベッドの乱れたシーツがここで起きた事を物語っていた…
+	PRINTFORMW 
+	PRINTFORMW 逃亡した男達によってイオは拉致されてしまったようだ…
+	;- 追加した場合
+	IF L_ADD_RESULT
+		;デビオク処理
+		;売却されたキャラの調教に関する能力、素質、経験、価格を保存
+		;イキ顔で淫乱化したイオを即売却した場合よりほんのちょびっと安い価格
+		CALL CHARASELL_AFTER_デビオク, GETCHARA([[キャラ:イオ]]), 1000
+		
+		;キャラクタ‐削除
+		CALL キャラ削除, GETCHARA([[キャラ:イオ]])
+	ENDIF
+	RETURN
+ENDIF
+
+
+;-----------------------------
+;- BAD以外
+;-----------------------------
+PRINTFORMW {RESULT}号室のドアを開けた…
+PRINTFORMW 中には、イオと男が５人居た…
+PRINTFORMW 男達は、あっけに取られている…
+PRINTFORML
+
+SELECTCASE L_進行度
+	;- 無傷
+	CASE 1
+		PRINTFORMW イオは急いで%CALLNAME:MASTER%の元に飛び込んだ。
+		PRINTFORMW ５人の男は、%CALLNAME:MASTER%ににじり寄って来る。
+		PRINTFORMW 「ファントムの殺し屋を雇ったって噂だが、お前の事だな？」
+		PRINTFORMW 「イオちゃんに教えてやってたんだよ。お前が奴隷商人だって事を」
+		PRINTFORMW 「性奴隷にされる前に、俺達に優しく処女を奪われた方が絶対イイって」
+		PRINTFORMW イオの身体を舐め回す様に見る５人。
+		PRINTFORMW イオは%CALLNAME:MASTER%の背中に隠れ、服を掴んでいる。
+		PRINTFORMW 処女のイオにとっては、男の欲望は恐怖そのものだったろう。
+		PRINTL
+		PRINTFORMW %CALLNAME:MASTER%は、全員皆殺しにする事にした。
+	;- 愛撫
+	CASE 2 TO 4
+		PRINTFORMW イオの着衣は乱れ、胸が露わになっている…。
+		PRINTFORMW 今まさに、男達に身体を玩具にされていた様だ…。
+		PRINTFORMW イオは急いで%CALLNAME:MASTER%の元に飛び込んだ。
+		PRINTFORMW ５人の男は、%CALLNAME:MASTER%ににじり寄って来る。
+		PRINTFORMW 「ファントムの殺し屋を雇ったって噂だが、お前の事だな？」
+		PRINTFORMW 「イオちゃんに教えてやってたんだよ。お前が奴隷商人だって事を」
+		PRINTFORMW 「性奴隷にされる前に、俺達に優しく処女を奪われた方が絶対イイって」
+		PRINTFORMW イオの身体を舐め回す様に見る５人。
+		PRINTFORMW イオは%CALLNAME:MASTER%の背中に隠れ、泣きながら服を掴んでいる。
+		PRINTFORMW 処女のイオにとっては、男の欲望は恐怖そのものだろう。
+		PRINTL
+		PRINTFORMW %CALLNAME:MASTER%の物であるイオの身体に手を付けた、この男達の罪は重い。
+		PRINTFORMW %CALLNAME:MASTER%は、全員皆殺しにする事にした。
+	;- 性交
+	CASE 5 TO 7
+		PRINTFORMW イオは殆ど裸の状態で、男に秘所を貫かれていた。
+		PRINTFORMW 秘所だけではなく、きっと胸も、口も、身体中を犯されたのだろう。
+		PRINTFORMW 全裸や半裸の男達は、端末を片手に%CALLNAME:MASTER%に話しかけて来た。
+		PRINTFORMW 「ファントムの殺し屋を雇ったって噂だが、お前の事だな？」
+		PRINTFORMW 「イオちゃんに教えてやってたんだよ。セックスの快楽を」
+		PRINTFORMW 「性奴隷にされる前に、俺達が優しく処女を奪ってあげたって訳」
+		PRINTFORMW 「イオちゃんは処女を捧げる程、俺達の事が大好きだってさ」
+		PRINTFORMW イオは涙を流しながら、男からの性行為を受け入れている。
+		PRINTFORMW 処女のイオにとっては、想像すらしなかった初体験だろう。
+		PRINTFORMW イオの秘所からは、赤い鮮血が流れている…。
+		PRINTFORMW 泣きじゃくるイオは、無理矢理処女を奪われたのだ…。
+		PRINTFORMW イオはあなたに、小さく「たすけて」と言った…。
+		PRINTL
+		PRINTFORMW %CALLNAME:MASTER%の物であるイオの身体に手を出した、この男達の罪は重い。
+		PRINTFORMW %CALLNAME:MASTER%は、全員皆殺しにする事にした。
+	;- 性奴隷
+	CASE IS >= 8
+		PRINTFORMW イオは裸の状態で、男に奉仕をしていた。
+		PRINTFORMW 秘所からは大量の精液が溢れている。
+		PRINTFORMW 秘所だけではなく、きっと胸も、口も、身体中を犯されたのだろう。
+		PRINTFORMW 全裸や半裸の男達は、端末を片手に%CALLNAME:MASTER%に話しかけて来た。
+		PRINTFORMW 「ファントムの殺し屋を雇ったって噂だが、お前の事だな？」
+		PRINTFORMW 「イオちゃんに教えてやってたんだよ。性奴隷の身分を」
+		PRINTFORMW 「お前より俺達の方が、性奴隷の調教師に向いてそうだな」
+		PRINTFORMW 「イオちゃんも性奴隷になれて、嬉しーってさ」
+		PRINTFORMW 「自分から腰を振って初絶頂する様は、お前に見せたかったよ」
+		PRINTFORMW イオは快楽に浮かされた表情のまま、男のペニスをしゃぶって奉仕を続けている。
+		PRINTFORMW その指は片方はペニスを扱き、片方は自分の秘所を弄り、快楽を貪っている様だった…。
+		PRINTFORMW 処女を奪われ、奉仕を強要され、男の精を子宮で受け止め続けたイオ。
+		PRINTFORMW イオは身も心も汚され、清純で純情な少女では無くなってしまった様だ…。
+		PRINTL
+		PRINTFORMW %CALLNAME:MASTER%の物であるイオの身体に手を出した、この男達の罪は重い。
+		PRINTFORMW %CALLNAME:MASTER%は、全員皆殺しにする事にした。
+ENDSELECT
+
+
+;- 依頼:部屋探し(戦闘)
+CALL REQUEST_30_1_FIND_ROOM_BTL
+
+PRINTFORMW 男達を皆殺しにし、制裁を終えた…。
+PRINTFORMW イオは暫く放心していたが、自分のされた事を思い出し、静かに泣き崩れた…。
+PRINTFORMW
+PRINTFORMW %CALLNAME:MASTER%はイオを保護した…
+
+
+
+;=================================================
+;   sub REQUEST_30_1_FIND_ROOM_BTL
+;=================================================
+;   依頼:部屋探し(戦闘)
+;-------------------------------------------------
+@REQUEST_30_1_FIND_ROOM_BTL
+#DIM L_BTL_FLG
+#DIM L_ENEMY
+#DIM L_LV
+
+;- 戦闘フラグ
+L_BTL_FLG = 1
+
+PRINTL
+PRINTFORMW 「や、やる気か！？」
+PRINTFORMW 「ファントムの犬如きが、我らジプスに！」
+
+;-----------------------------
+;- 戦闘開始
+;-----------------------------
+
+PRINTFORMW 
+PRINTFORMW 人間 ジプス局員が五体出た！
+
+CUSTOMDRAWLINE =
+WAIT
+
+;- CHK:戦闘フラグ
+IF L_BTL_FLG
+
+	;-----------------------------
+	;- ジプス局員を５体設定
+	;-----------------------------
+
+	L_LV = REQUEST_30_BASE_LV(1)
+	L_ENEMY = [[キャラ:ジプス局員]]
+
+	;- 悪魔解析度増加処理(1000でMAX)
+	CALL INCREASE_ANALYZE(L_ENEMY,1000)
+
+	;- SET:xxx(ジプス局員)
+	CALL SET_ENEMY,07,L_ENEMY,L_LV,1,0
+	CALL SET_ENEMY,08,L_ENEMY,L_LV,1,0
+	CALL SET_ENEMY,09,L_ENEMY,L_LV,1,0
+	CALL SET_ENEMY,10,L_ENEMY,L_LV,1,0
+	CALL SET_ENEMY,11,L_ENEMY,L_LV,1,0
+
+	;- 戦闘前処理
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	FLAG:先制不意打ちキャンセル = 1
+
+	;- 戦闘開始
+	CALL BATTLE_START
+
+	;- 戦闘終了
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	FLAG:先制不意打ちキャンセル = 0
+
+ENDIF
+
+PRINTFORMW ＞ジプス局員の肉片が、部屋に飛び散っている…
+CUSTOMDRAWLINE =
+
+
+

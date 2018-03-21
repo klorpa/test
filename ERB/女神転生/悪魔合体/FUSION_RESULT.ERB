@@ -1,0 +1,545 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:FUSION_RESULT.ERB
+;	Facility	:悪魔合体の結果を出力するための関数群です
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/28		P						GenderFreeの処理を追加
+;	003		2011/02/10		P						リスト作成の処理を変更。怪異合体で一部ランダムが残っていたのを排除
+;	003		2011/05/08		Ｎ鳥					３身合体追加
+;	004		2012/03/30		黒天					合体事故で仲魔と同じ悪魔が作成される問題の対処
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;================================================================
+;
+;================================================================
+
+
+;=====================================================
+;合体結果
+;=====================================================
+@RESULT_FUSION,ARG,ARG:1,ARG:2 = -1
+RESULT:1 = 0
+;特殊合体チェック
+CALL FUSION_SPECIAL , ARG , ARG:1 , ARG:2
+IF RESULT > 0
+	RETURN RESULT , 1
+ELSE
+	$NORMAL
+	IF ARG:2 == -1
+		;---- EDIT 002 ADD START -------------------------
+		;GenderFree用の措置。とりあえず、Kishin・魔神は地母神・女神として扱う
+		;特殊種族の同族判定の調整
+		SELECTCASE ABL:ARG:種族
+			CASE 15,16
+				LOCAL = ABL:ARG:種族 - 14
+			CASEELSE
+				LOCAL = ABL:ARG:種族
+		ENDSELECT
+		SELECTCASE ABL:(ARG:1):種族
+			CASE 15,16
+				LOCAL:1 = ABL:(ARG:1):種族 - 14
+			CASEELSE
+				LOCAL:1 = ABL:(ARG:1):種族
+		ENDSELECT
+		;怪異同志だとお互いの NO % 12を掛け合わせる
+		IF LOCAL == 32 && LOCAL:1 == 32
+			LOCAL = NO:ARG % 12
+			LOCAL:1 = NO:(ARG:1) % 12
+		ENDIF
+		;同じ種族なら精霊作成合体
+		IF LOCAL == LOCAL:1 && ARG:2 == -1
+		;---- EDIT 002 ADD END　 -------------------------
+			$ELEMENTAL
+			SELECTCASE LOCAL
+				CASE 1,2,5,7,8,15,16
+					IF TALENT:ARG:オトコ
+						RETURN 1204
+					ELSE
+						;デビチルコンバータ
+						SIF EQUIP:MASTER:BookOfRaziel
+							RETURN 1205, 1
+						RETURN 1202
+					ENDIF
+				;CASE 3,4,6,8,9,10,11,18
+				CASEELSE
+					IF TALENT:ARG:オトコ
+						RETURN 1203
+					ELSE
+						RETURN 1201
+					ENDIF
+			ENDSELECT
+		ENDIF
+		;一応破壊
+		LOCAL = 0
+		LOCAL:1 = 0
+		
+		;==================================================
+		;片方（種族ナンバーが大きい方）が精霊なら精霊合体()
+		;==================================================
+		IF ((ABL:ARG:種族 == 13 && ABL:(ARG:1):種族 != 13) || (ABL:ARG:種族 != 13 && ABL:(ARG:1):種族 == 13))
+			;ランク変化する方の悪魔を特定しておく
+			IF ABL:ARG:種族 == 13
+				LOCAL:1 = ARG:1
+				LOCAL:4 = ARG
+			ELSE
+				LOCAL:1 = ARG
+				LOCAL:4 = ARG:1
+			ENDIF
+			;種族リスト作成
+			CALL MAKE_RACE_LIST,ABL:(LOCAL:1):種族,TALENT:(LOCAL:1):オトコ
+
+
+			;精霊合体処理
+			CALL RESULT_ELEMENT_FUSION,NO:(LOCAL:1),NO:(LOCAL:4)
+			;コンバーターが適応されたかどうかを見る
+			RESULT:1 = RESULT
+			;デビチルコンバータ
+			SIF EQUIP:MASTER:BookOfRaziel
+				CALL CONVERT_DEVIL_CHILDREN, RESULT
+			;偽典女神転生コンバータ
+			SIF EQUIP:MASTER:ラビスシジル
+				CALL CONVERT_GIGATEN, RESULT
+			SIF CSVCFLAG(RESULT , GETNUM(CFLAG, "合体条件有り"),0) && FLAG:(10000+RESULT) == 0
+				RETURN 0
+			;結果の悪魔を返す
+			RETURN RESULT, RESULT:1 != RESULT
+		ENDIF
+	ENDIF
+
+	;=================================================
+	;以上のいずれかにもひっからなかったら通常合体
+	;=================================================
+	;合体結果の種族を検索
+	IF ARG:2 > 0
+		LOCAL:1 = ABL:(ARG:0):種族
+		LOCAL:2 = ABL:(ARG:1):種族
+		LOCAL:3 = ABL:(ARG:2):種族
+		;バブルソートもどき
+		SIF LOCAL:1 > LOCAL:2
+			SWAP LOCAL:1 , LOCAL:2
+		SIF LOCAL:2 > LOCAL:3
+			SWAP LOCAL:2 , LOCAL:3
+		SIF LOCAL:1 > LOCAL:2
+			SWAP LOCAL:1 , LOCAL:2
+		CALL SEARCH_RACE, LOCAL:1 , LOCAL:2
+		SIF RESULT == 13
+			RESULT = LOCAL:1
+		CALL SEARCH_RACE, MIN(RESULT , LOCAL:3), MAX(RESULT , LOCAL:3)
+		IF RESULT == 13
+			LOCAL = LOCAL:3
+			GOTO ELEMENTAL
+		ELSE
+		
+		ENDIF
+	ELSE
+		CALL SEARCH_RACE,MIN(ABL:ARG:種族,ABL:(ARG:1):種族),MAX(ABL:ARG:種族,ABL:(ARG:1):種族)
+	ENDIF
+	;種族コンバーターが噛んでるかどうかを判定する。ここで種族を取り、コンバーター処理の後で変更されてたら噛んでる
+	LOCAL:5 = RESULT
+	;GoetiaONの場合、堕天使にコンバートする（※　女堕天使が思いつかないので～　←参戦しました！
+	SIF EQUIP:MASTER:Goetia && RESULT == 4
+		RESULT = 18
+	;変更されてたら.LOCAL:5を真にしておく
+	LOCAL:5 = LOCAL:5 == RESULT ? 0 # 1
+	;その種族の悪魔をリスト化 Ｄあたりにリストを入れる
+	;女専用種族を男で作ろうとする場合、オトコ専用種族に変換する。
+	IF RESULT == 1 && TALENT:ARG:オトコ
+		RESULT = 15
+	ELSEIF RESULT == 2 && TALENT:ARG:オトコ
+		RESULT = 16
+	ENDIF
+	LOCAL = RESULT
+
+	;合体不可の組み合わせなら0を返す
+	SIF LOCAL == 0
+		RETURN 0
+	CALL MAKE_RACE_LIST,LOCAL,TALENT:ARG:オトコ
+	;作成したリストから二体の平均レベルに合わせて悪魔を選ぶ
+	IF ARG:2 > 0
+		;平均に足すレベル
+		IF EQUIP:MASTER:Paracelsus == 0
+			CALL OUTPUT_DEVIL, (CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:1),GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:2),GETNUM(BASE,"LV"),0))/3,FUSION_PLUS_LV(3,1)
+		ELSE
+			CALL OUTPUT_DEVIL, (BASE:ARG:LV + BASE:(ARG:1):LV + BASE:(ARG:2):LV)/3,FUSION_PLUS_LV(3,1)
+		ENDIF
+	ELSE
+		;平均に足すレベル
+		IF EQUIP:MASTER:Paracelsus == 0
+			CALL OUTPUT_DEVIL,(CSVBASE(NO:ARG,GETNUM(BASE,"LV"),0) + CSVBASE(NO:(ARG:1),GETNUM(BASE,"LV"),0))/2,FUSION_PLUS_LV(2,1)
+		ELSE
+			CALL OUTPUT_DEVIL,(BASE:ARG:LV + BASE:(ARG:1):LV)/2,FUSION_PLUS_LV(2,1)
+		ENDIF
+	ENDIF
+	;悪魔指定コンバーターが噛んでるかどうかを判定する。ここでNOを取り、コンバーター処理の後で変更されてたら噛んでる
+	LOCAL:6 = RESULT
+	;デビチルコンバータ
+	SIF EQUIP:MASTER:BookOfRaziel
+		CALL CONVERT_DEVIL_CHILDREN, RESULT
+	SIF EQUIP:MASTER:ラビスシジル
+		CALL CONVERT_GIGATEN, RESULT
+	;東方ＭＯＤ追加分
+	SIF EQUIP:MASTER:TohoGumonShiki
+		CALL CONVERT_TOUHOU, ARG , ARG:1 , ARG:2 , RESULT
+	;東方ＭＯＤ追加分ここまで
+	;東方旧作MOD追加分
+	SIF EQUIP:MASTER:幺樂団の歴史
+		CALL CONVERT_TOUHOUOLD, ARG , ARG:1 , ARG:2 , RESULT
+	;東方旧作MOD追加分ここまで
+	;東方ＭＯＤEX追加分
+	SIF EQUIP:MASTER:後戸の扉
+		CALL CONVERT_TOUHOUEX, ARG , ARG:1 , ARG:2 , RESULT
+	;東方ＭＯＤEX追加分ここまで
+	SIF CSVCFLAG(RESULT , GETNUM(CFLAG, "合体条件有り"),0) && FLAG:(10000+RESULT) == 0
+		RETURN 0
+	;変更されてたら.LOCAL:5を真にしておく
+	LOCAL:6 = LOCAL:6 == RESULT ? 0 # 1
+	;LOCAL:5か6が真ならRESULT:1は真
+	RESULT:1 = LOCAL:5 + LOCAL:6
+	;結果の悪魔を返す
+	RETURN RESULT, RESULT:1
+ENDIF
+
+;================================================================
+;加算レベル算出
+;四身も五身も十五身合体もここに追加していきゃ管理が楽
+;いや、ごめん。OUTPUT_DEVILの中に入れても良かったかも。
+;================================================================
+@FUSION_PLUS_LV(ARG, ARG:1 = 0)
+#FUNCTION
+#LOCALSIZE 1
+; ARG = 合体数（２身合体なら２）
+; ARG:1は、現在装備しているソフトによる修正を適用するか。
+LOCAL = 0
+; ２身なら平均レベル＋４
+SIF ARG == 2
+	LOCAL = 4
+; ３身なら平均レベル＋４
+SIF ARG == 3
+	LOCAL = 8
+; ラブプラス間違えたLaplaceが付いてると＋４
+SIF EQUIP:MASTER:Laplace == 1 && LOCAL > 0
+	LOCAL = LOCAL + 4
+RETURNF LOCAL
+
+;================================================================
+;特殊な合体用の記述
+;================================================================
+@FUSION_SPECIAL_X1_X2
+RETURN 0
+
+;================================================================
+;検索結果の種族をリスト化
+;================================================================
+@MAKE_RACE_LIST,ARG,ARG:1
+;ARG:1　性別　0　オンナ　1　オトコ
+VARSET D, -1
+VARSET E, -1
+LOCAL:3 = 0
+FOR LOCAL,((ARG - 1) * 100) + 1, (ARG * 100) + 1
+	;CSVファイルのナンバリングを種族判定に代えている。
+	SIF EXISTCSV(LOCAL,0) != 1
+		CONTINUE
+	SIF CSVCFLAG(LOCAL,(GETNUM(CFLAG,"合体条件有り")),0) == 1 && FLAG:(10000+LOCAL) == 0
+		CONTINUE
+	SIF CSVTALENT(LOCAL,GETNUM(TALENT,"オトコ"),0) != ARG:1
+		CONTINUE
+	SIF CSVCFLAG(LOCAL,(GETNUM(CFLAG,"特殊合体のみ")),0) == 1
+		CONTINUE
+	;D:(LV)の配列にNOをしまっていく
+	;---- EDIT 003 ADD START -------------------------
+	D:(CSVBASE(LOCAL,GETNUM(BASE,"LV"),0)) = LOCAL
+	;---- EDIT 003 ADD END   -------------------------
+	;---- EDIT 003 DEL START -------------------------
+	;FOR LOCAL:1,0,100
+	;	IF D:(LOCAL:1) == -1
+	;			D:(LOCAL:1) = LOCAL
+	;			LOCAL:3 += 1
+	;			BREAK
+	;	ELSEIF CSVBASE(LOCAL,GETNUM(BASE,"LV"),0) <= CSVBASE(D:(LOCAL:1),GETNUM(BASE,"LV"),0)
+	;		CONTINUE
+	;	ELSE
+	;			FOR LOCAL:2,LOCAL:3,LOCAL:1,-1
+	;				SIF D:(LOCAL:2-1) > -1
+	;					D:(LOCAL:2) = D:(LOCAL:2-1)
+	;			NEXT
+	;			D:(LOCAL:1) = LOCAL
+	;			LOCAL:3 += 1
+	;			BREAK
+	;	ENDIF
+	;NEXT
+	;---- EDIT 003 DEL END   -------------------------
+NEXT
+
+;================================================================
+;リストから条件を満たす最もレベルの高い悪魔を出力
+;================================================================
+@OUTPUT_DEVIL,ARG,ARG:1
+;---- EDIT 003 ADD START -------------------------
+;テーブル登録の変更にあわせて、基準LVから開始し、一つ減らすのと増やすのを交互に実行し、最初に引っかかった番号を返すように
+;条件のうち最大レベル
+LOCAL = ARG+ARG:1
+LOCAL:1 = ARG+ARG:1
+DO
+	IF D:LOCAL < 0
+		LOCAL += 1
+	ELSE
+		RETURN D:LOCAL
+	ENDIF
+	;先にマイナス突入した場合はCONTINUEいれる
+	SIF LOCAL:1 < 0
+		CONTINUE
+	IF D:(LOCAL:1) < 0
+		LOCAL:1 -= 1
+	ELSE
+		RETURN D:(LOCAL:1)
+	ENDIF
+;とりあえず、150レベル超えたら撃ち切って0を返すように
+LOOP LOCAL < 150
+RETURN 0
+;---- EDIT 003 ADD END   -------------------------
+;---- EDIT 003 DEL START -------------------------
+;LOCAL:1 = -1
+;SIF D:0 == -1
+;	RETURN 0
+;FOR LOCAL,0,5000
+;SIF D:LOCAL == -1
+;	RETURN LOCAL:1
+;SIF LOCAL:1 == -1
+;	LOCAL:1 = D:LOCAL
+;SIF ABS(CSVBASE(D:LOCAL,GETNUM(BASE,"LV"),0) - (ARG + ARG:1)) < ABS(CSVBASE(LOCAL:1,GETNUM(BASE,"LV"),0) - (ARG + ARG:1))
+;	LOCAL:1 = D:LOCAL
+;NEXT
+;RETURN LOCAL:1
+;---- EDIT 003 DEL END   -------------------------
+
+;================================================================
+;合体結果の種族を検索
+;================================================================
+@SEARCH_RACE,ARG,ARG:1
+;ARGが通常の悪魔合体法則に入ってる種族じゃない場合
+;---- EDIT 002 MOD START -------------------------
+;特殊種族の種族番号置き換えが怪異の処理のあとになってたのを前に移動
+;これで鬼神などでも新しい怪異の法則にならうように
+SELECTCASE ARG
+	CASE 15, 16, 18
+		ARG -= 14
+ENDSELECT
+SELECTCASE ARG:1
+	CASE 15, 16, 18
+		ARG:1 -= 14
+ENDSELECT
+;怪異用
+IF ARG == 32 && ARG:1 <= 11 && ARG:1 > 0
+	IF ARG:1 != 11
+		RETURN ARG:1 + 1
+	ELSE
+		RETURN 1
+	ENDIF
+ELSEIF ARG:1 == 32 && ARG <= 11 && ARG > 0
+	IF ARG != 11
+		RETURN ARG + 1
+	ELSE
+		RETURN 1
+	ENDIF
+ENDIF
+;---- EDIT 002 MOD START -------------------------
+SELECTCASE ARG
+	CASE 32
+		ARG = RAND:11 + 1
+ENDSELECT
+SELECTCASE ARG:1
+	CASE 32
+		ARG:1 = RAND:11 + 1
+ENDSELECT
+SIF ARG > ARG:1
+	SWAP ARG,ARG:1
+SIF ARG == ARG:1
+	RETURN 13
+	;Element・御魂合体につきキャンセル
+
+SELECTCASE ARG
+	CASE 1
+		SPLIT ";　　,　　,Divine,Foul,神族,Tyrant,Yoma,Foul,Beast,Yoma,Beast,Tyrant", ",", LOCALS
+	CASE 2
+		SPLIT ";　　,　　,　　,Kishin,Kishin,Divine,Brute,Snake,Flight,Fairy,Fairy,Divine", ",", LOCALS
+	CASE 3
+		SPLIT ";　　,　　,　　,　　,Snake,Brute,Snake,Fairy,Beast,Yoma,Divine,Kishin", ",", LOCALS
+	CASE 4
+		SPLIT ";　　,　　,　　,　　,　　,Kishin,神族,Foul,Yoma,Flight,神族,Brute", ",", LOCALS
+	CASE 5
+		SPLIT ";　　,　　,　　,　　,　　,　　,Brute,Fairy,Tyrant,Flight,Foul,Fairy", ",", LOCALS
+	CASE 6
+		SPLIT ";　　,　　,　　,　　,　　,　　,　　,Beast,Brute,神族,Divine,Beast", ",", LOCALS
+	CASE 7
+		SPLIT ";　　,　　,　　,　　,　　,　　,　　,　　,Foul,Tyrant,Yoma,Flight", ",", LOCALS
+	CASE 8
+		SPLIT ";　　,　　,　　,　　,　　,　　,　　,　　,　　,Flight,Beast,神族", ",", LOCALS
+	CASE 9
+		SPLIT ";　　,　　,　　,　　,　　,　　,　　,　　,　　,　　,Snake,Snake", ",", LOCALS
+	CASE 10
+		SPLIT ";　　,　　,　　,　　,　　,　　,　　,　　,　　,　　,　　,Yoma", ",", LOCALS
+	CASEELSE
+		SPLIT ";　　,　　,　　,　　,　　,　　,　　,　　,　　,　　,　　,　　", ",", LOCALS
+ENDSELECT
+SELECTCASE LOCALS:(ARG:1)
+	CASE "Kishin"
+		RETURN 1
+	CASE "神族"
+		RETURN 2
+	CASE "Tyrant"
+		RETURN 3
+	CASE "Divine"
+		RETURN 4
+	CASE "Yoma"
+		RETURN 5
+	CASE "Fairy"
+		RETURN 6
+	CASE "Brute"
+		RETURN 7
+	CASE "Snake"
+		RETURN 8
+	CASE "Beast"
+		RETURN 9
+	CASE "Flight"
+		RETURN 10
+	CASE "Foul"
+		RETURN 11
+	CASEELSE
+		RETURN 0
+ENDSELECT
+
+;================================================================
+;精霊合体検索
+;================================================================
+
+@RESULT_ELEMENT_FUSION,ARG,ARG:1
+;引数：悪魔番号、精霊の悪魔番号
+;戻り値：合体結果
+;変化の方向を定義
+LOCAL = CSVABL(ARG,GETNUM(ABL,"種族"),0)
+SELECTCASE LOCAL
+	;地母神、Megami、Yoma、Brute、Snake、Kishin、Deity
+	CASE 1,2,5,7,8,15,16
+		LOCAL:3 = 1
+	;Tyrant、Divine、Fairy、Beast、Flight、Foul、Fallen
+	CASE 3,4,6,9,10,11,18
+		LOCAL:3 = -1
+	;精霊合体非対応種族
+	CASEELSE
+		RETURN 0
+ENDSELECT
+SELECTCASE ARG:1
+	;ウンディーネorサラマンダー
+	CASE 1202, 1204,1205
+		LOCAL = LOCAL:3
+	;シルフorノーム
+	CASE 1201, 1203
+		LOCAL = LOCAL:3 * -1
+	;精霊合体非対応精霊
+	CASEELSE
+		RETURN 0
+ENDSELECT
+LOCAL:1 = CSVBASE(ARG, GETNUM(BASE, "LV"),0)
+DO
+	;---- EDIT 002 MOD START -------------------------
+	;テーブル登録の変更にあわせて、LVから開始し増減させ、最初に引っかかった番号を返すように
+	LOCAL:1 += LOCAL
+	SIF LOCAL:1 < 0 || LOCAL:1 > 150
+		RETURN 0
+	SIF LOCAL:1 < 0
+		RETURN 0
+	SIF D:(LOCAL:1) < 0
+		CONTINUE
+	RETURN D:(LOCAL:1)
+	;---- EDIT 002 MOD END    -------------------------
+;	SIF D:(LOCAL:1) < 0
+;		RETURN 0
+;	IF D:(LOCAL:1) == ARG
+;		;合体結果の悪魔を戻す
+;		LOCAL:1 -= LOCAL
+;		IF LOCAL:1 < 0
+;			RETURN 0
+;		ELSEIF D:(LOCAL:1) < 0
+;			RETURN 0
+;		ELSE
+;			RETURN D:(LOCAL:1)
+;		ENDIF
+;	ENDIF
+LOOP 1 + 1 == 2
+
+
+
+;================================================================
+;合体事故
+;================================================================
+@FUSION_ACCIDENT,ARG,ARG:1,ARG:2,ARG:3 = -1
+#LOCALSIZE 5
+#DIM カウント , 1
+#DIM 作成種族 , 1
+LOCAL:4 = 0
+FOR カウント , 0 , 10
+	;種族を決定
+	$LOOP_RACE
+	LOCAL:1 = RAND(1,19)
+	;一部の種族を除外
+	SIF GROUPMATCH(LOCAL:1 , 12 , 14 , 17)
+		GOTO LOOP_RACE
+	;神族・鬼神族の調整
+	SIF GROUPMATCH(LOCAL:1 , 15 , 16) && TALENT:ARG:オトコ == 0
+		LOCAL:1 -= 14
+	SIF GROUPMATCH(LOCAL:1 , 1 , 2) && TALENT:ARG:オトコ
+		LOCAL:1 += 14
+	;種族リスト作成
+	CALL MAKE_RACE_LIST,LOCAL:1,TALENT:ARG:オトコ
+	LOCAL:2 = D:LIMIT(RAND:21 + CSVBASE(NO:ARG , GETNUM(BASE,"LV") , 0) -15 , 1 , VARSIZE("D"))
+	;事故結果の悪魔が合体予定悪魔と異なり、仲魔(未契約かつＣＯＭＰに居る)でない
+	IF LOCAL:2 > 0 && NO:ARG != LOCAL:2 && (FINDCHARA_NO_C(LOCAL:2) == -1 || FLAG:ショップコマンド == [[ショップ:邪教の館]])
+		作成種族 = LOCAL:2
+		SIF FINDCHARA_NO_C(LOCAL:2) > -1
+			LOCAL:4 = 1
+		BREAK
+	ELSEIF カウント == 9
+		作成種族 = [[キャラ:スライム]]
+	ENDIF
+NEXT
+	LOCAL:3 = TALENT:ARG:オトコ
+	;作られるはずだったキャラを削除
+	CALL キャラ削除,ARG
+	;合体結果の悪魔をキャラ登録
+	IF ARG:3 < 1
+		CALL ADD_NEW_COMPANION,作成種族,MAX(100 , (BASE:(ARG:1):忠誠度 + BASE:(ARG:2):忠誠度)/2), -1
+	ELSE
+		CALL ADD_NEW_COMPANION,作成種族,MAX(100 , (BASE:(ARG:1):忠誠度 + BASE:(ARG:2):忠誠度 + BASE:(ARG:3):忠誠度)/3), -1
+	ENDIF
+	
+	;女体化処理
+	IF LOCAL:3 == 0 && 作成種族 == [[キャラ:スライム]]
+		TALENT:ARG:オトコ = 0
+		TALENT:ARG:腕 = 1
+		TALENT:ARG:足 = 1
+		TALENT:ARG:ふたなり = 1
+	ENDIF
+	;スキル継承
+	CALL SUCCESS_SKILL,ARG,ARG:1,ARG:2,ARG:3,0
+	;邪教の館扱いでスキルを継承
+	CALL SUCCESS_SKILL,ARG,ARG:1,ARG:2,ARG:3,1
+	;邪教の館扱いで素質継承
+	CALL SUCCESS_TALENT,ARG,ARG:1,ARG:2,ARG:3
+	;ステータス強化
+	CALL FUSION_ENHANCE_STATUS,ARG,ARG:1,ARG:2,ARG:3
+	SIF LOCAL:4 
+		CFLAG:ARG:所属ＣＯＭＰ = -1
+	
+	
+	CALL SYNC_STATUS,ARG
+
+
+RETURN 1
+
+
+

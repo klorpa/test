@@ -1,0 +1,33 @@
+;-------------------------------------------------
+;@ONCETURN
+;1ターンに1回のみ起こるイベントのフラグ管理をする
+;ARGSにフラグ名を記入、ARGは真の時、フラグ更新をしない
+;ARG:1は真のとき、フラグオールリセット
+;SAVESTR:0～9を使用
+;-------------------------------------------------
+@ONCETURN,ARGS,ARG,ARG:1
+#FUNCTION
+;初期化処理
+IF ARG:1
+	FOR LOCAL,10,19
+		SAVESTR:LOCAL = /
+	NEXT
+	RETURNF 0
+ENDIF
+SIF STRLENS(ARGS) > 18
+	THROW "ARGSが長すぎます"
+FOR LOCAL,10,20
+	SIF SAVESTR:LOCAL == ""
+		SAVESTR:LOCAL = /
+	LOCALS = /%ARGS%/
+	IF STRCOUNT(SAVESTR:LOCAL,LOCALS) == 0
+		IF ARG == 0
+			SAVESTR:LOCAL = %SAVESTR:LOCAL%%ARGS%/
+		ENDIF
+		SIF STRLENS(SAVESTR:19) > 2000
+			THROW "記録可能なイベント数を超えてしまいました"
+		RETURNF 1
+	ELSE
+		RETURNF 0
+	ENDIF
+NEXT

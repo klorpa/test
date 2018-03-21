@@ -1,0 +1,253 @@
+;-----------------------------------------------------
+;ライセンスについて
+;	・基本項目(許可する項目を"○"に、許可しない項目を"×"に変更してください。)
+;	+----+----+-------------------------------+
+;	|番号|許可|ライセンス内容                 |
+;	+----+----+-------------------------------+
+;	|   1| ○ | 処理上のバグ修正              |
+;	+----+----+-------------------------------+
+;	|   2| ○ | 口上の誤字・脱字の修正        |
+;	+----+----+-------------------------------+
+;	|   3| ○ | 口上まとめへの収録            |
+;	+----+----+-------------------------------+
+;	|   4| ○ | 口上の新規追加                |
+;	+----+----+-------------------------------+
+;	|   5| ○ | 既存口上の改変                |
+;	+----+----+-------------------------------+
+;	|   6| ○ | 改変した口上の自由な再配布    |
+;	+----+----+-------------------------------+
+;	|   7| ○ | 口上内容の転載                |
+;	+----+----+-------------------------------+
+@BATTLE_MESSAGE_K4538, ARG,ARG:1 = 0
+LOCAL:1 = 1
+LOCAL = CFLAG:ARG:入力行動
+LOCALS = EMPTY
+;タイプ取得
+CALLFORM SKILL_EFECT_{LOCAL}
+IF LOCAL == 0
+	IF RAND:3 == 0
+		LOCALS = 動くな！
+	ELSEIF !RAND:2
+		LOCALS = 逮捕する！
+	ELSE
+		LOCALS = はぁっ！
+	ENDIF
+ELSEIF LOCAL == [[スキル:ＧＵＮ]]
+	IF RAND:2
+		LOCALS = 撃つぞ！
+	ELSE
+		LOCALS = 手をあげろ！
+	ENDIF
+;攻撃
+ELSEIF RESULT == 1 && RAND:3 == 0
+	CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+	SELECTCASE RESULT
+		;Slash・Strke・Skill
+		CASE 0, 2, 3
+			IF RAND:2
+				LOCALS = 大人しくしろ！
+			ELSE
+				LOCALS = 取り押さえろ！
+			ENDIF
+		;Gun
+		CASE 1
+			IF LOCAL == [[スキル:ジャスティスショット]]
+				LOCALS = これで決まりだ！
+			ELSEIF RAND:3 == 0
+				LOCALS = 正当防衛だ！　文句はないな！
+			ELSEIF RAND:2
+				LOCALS = 撃つぞ！
+			ELSE
+				LOCALS = 食らえっ！
+			ENDIF
+		;Fire
+		CASE 4
+			IF RAND:2
+				LOCALS = 燃え尽きろっ！
+			ELSE
+				LOCALS = 警察を舐めるなっ！
+			ENDIF
+		;Ice・Water
+		CASE 5, 13
+			LOCALS = 頭を冷やすんだな！
+		;Elect
+		CASE 6
+			LOCALS = 動きを止めるっ！
+		;Force
+		CASE 7
+			LOCALS = 全員動くな！
+		;Nerve
+		;CASE 8
+		;Mind
+		;CASE 9
+		;Light
+		CASE 10
+			LOCALS = おまえたちの罪穢れ、僕が払ってやる！
+		;Dark
+;		CASE 11
+	;	;Earth
+	;	CASE 12
+	;		LOCALS = 大地よ！　震えろー！
+		;Wind
+	;CASE 14
+	;		LOCALS = 
+	;	;Grav
+	;	CASE 15
+	;		LOCALS = 
+	;Nuclr
+		CASE 16
+			LOCALS = 地方公務員を舐めんことだ
+		;Almig
+		CASE 17
+			LOCALS = 言い訳なら、署で聞く！
+		;Psych
+		;CASE 18
+		CASEELSE
+			IF RAND:2
+				LOCALS = ペルソナ！
+			ELSE
+				LOCALS = 終りだな
+			ENDIF
+	ENDSELECT
+;回復
+ELSEIF RESULT == 2 && RAND:3 == 0
+	IF CFLAG:ARG:ターゲット > 6
+		IF RAND:2
+			LOCALS = みんな！　大丈夫か！？
+		ELSE
+			LOCALS = まだ、これからだ！　意地を見せてやろう！
+		ENDIF
+	ELSE
+		IF RAND:2
+			LOCALS = 同僚をやらせはしないっ
+		ELSE
+			LOCALS = 一人では戦えないからな
+		ENDIF
+	ENDIF
+;状態変化
+;ELSEIF RESULT == 3
+;特殊
+;ELSEIF RESULT == 4
+;状態回復
+;ELSEIF RESULT == 5
+ELSE
+	IF RAND:3 == 0
+		LOCALS = 行きたまえ
+	ELSEIF RAND:2
+		LOCALS = ペルソナ！
+	ELSE
+		LOCALS = 僕の番だ
+	ENDIF
+ENDIF
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)
+
+@BATTLE_EVENT_K4538, ARG, ARG:1, ARG:2
+SIF ARG < 0 && NO:ARG != 4538
+	RETURN 0
+LOCAL:1 = 1
+LOCALS = EMPTY
+SELECTCASE TFLAG:戦闘イベント
+	;COOP発動 ARGは発動者
+	CASE 1
+		IF RAND:3 == 0
+			LOCALS = お前ら、全員現逮だ！
+		ELSEIF RAND:2 == 0
+			LOCALS = 確保ー！
+		ELSE
+			LOCALS = 援護を頼む！
+		ENDIF
+	CASE 2
+	;攻撃　ARGが攻撃をする仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 11
+		CALLFORM SKILL_TYPE_{CFLAG:ARG:入力行動}
+		LOCAL = MAXBASE:(ARG:1):GET_TYPE(RESULT)
+		;相手が死んだ
+		IF BASE:(ARG:1):ＨＰ <= 0
+				IF RAND:2
+					LOCALS = 君には、弁護士を雇う権利がある
+				ELSE
+					LOCALS = 被疑者確保!
+				ENDIF
+		;弱点をついた。つまりCOOP
+		ELSEIF LOCAL > 100 && LOCAL < 999
+			IF CFLAG:(ARG:1):防御フラグ
+				IF RAND:2
+					LOCALS = むっ…
+				ELSE
+					LOCALS = 頭を使ったか
+				ENDIF
+			ELSE
+				;こっちはCOOP発動に回すためにカット
+				RETURN 0
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 50
+			IF RAND:2
+				LOCALS = よし！
+			ELSE
+				LOCALS = 自首するならいまだぞ！
+			ENDIF
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 20
+			IF RAND:2
+				LOCALS = もう、やめないか。殺されないうちにね
+			ELSE
+				LOCALS = まだ、やる気か？
+			ENDIF
+		ELSEIF ダメージ割合(ARG:1, ARG:2) > 0
+			IF RAND:2
+				LOCALS = 次は本気で撃つぞ
+			ELSE
+				LOCALS = これで終わりと思うな
+			ENDIF
+		ELSEIF ARG:2 == 0
+			LOCALS = 例え、きかなかろうが諦めはしないぞ！
+		ELSEIF ARG:2 < 0
+			LOCALS = 犯人に力を貸してしまうとは…
+		ENDIF
+	;被ダメージ
+	;ARGが攻撃を受ける仲魔、ARG:1が敵、ARG:2がダメージ量
+	CASE 12
+		;死んだ
+		IF BASE:ARG:ＨＰ <= 0
+			IF RAND:2
+				LOCALS = 弟…よ…
+			ELSE
+				LOCALS = 殉職には……ならないか……
+			ENDIF
+		;大ダメージ
+		ELSEIF ダメージ割合(ARG, ARG:2) > 50 || 現HP割合(ARG) < 25
+			LOCALS = 所轄の意地を見せてやる…！
+		ELSEIF ダメージ割合(ARG, ARG:2) > 20
+			IF RAND:2
+				LOCALS = あぁっ！
+			ELSE
+				LOCALS = バカな…
+			ENDIF
+		ELSEIF ダメージ割合(ARG, ARG:2) > 0
+		;無効
+		ELSEIF ARG:2 == 0
+			IF RAND:2
+				LOCALS = それで終わりか！
+			ELSE
+				LOCALS = 悪いことは言わない。もうやめるんだ
+			ENDIF
+		;吸収
+		ELSEIF ARG:2 < 0
+			LOCALS = いい加減に諦めろ！
+		ENDIF
+	CASE 15
+		LOCALS = しまった！？
+	CASE 16
+		LOCALS = これで自分の間違いがわかっただろう？
+	CASE 17
+		IF RAND:2
+			LOCALS = 外した…のか…
+		ELSE
+			LOCALS = 訓練が足りなかったか…
+		ENDIF
+	CASE 18
+		LOCALS = 無駄だ！
+ENDSELECT
+SIF LOCALS != "EMPTY"
+	CALL MESSAGE_BL(LOCAL:1, LOCALS, LOCALS:1, LOCALS:2, LOCALS:3, LOCALS:4)

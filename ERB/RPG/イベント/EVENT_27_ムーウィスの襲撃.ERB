@@ -1,0 +1,257 @@
+;====================
+;イベント　ムーウィスの襲撃
+;====================
+;27を依頼番号に変換
+
+
+
+;イベントフラグ:27:0	（0:終了前、1:終了済み）
+
+;イベント内で依頼33「構成員探索」の依頼フラグ:33:0、闘技場6「二人組みの女」の闘技場フラグ:6:0を使用
+
+;====================
+;条件
+;====================
+@PLAYABLE_EVENT_27
+;イベント終了前で依頼「構成員探索」と闘技場「二人組みの女」終了済み。
+IF イベントフラグ:27:0 == 0 && 依頼フラグ:33:0 == 2 && 闘技場フラグ:6:0 == 1
+	;ネミッサがパーティ内にいる
+	IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+		;朝か昼
+		IF TIME == 0 || TIME == 1
+			RESULTS = Conversation with Nemissa
+			RETURN 1
+		;夕方か夜
+		ELSEIF TIME == 2 || TIME == 3
+			RESULTS = Surprise attack
+			RETURN 1
+		ENDIF
+	;ネミッサが加入している
+	ELSEIF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) >= 1 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) >= 1 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) >= 1)
+		RESULTS = Conversation with Nemissa
+		RETURN 1
+	ENDIF
+ENDIF
+RETURN 0
+
+;====================
+;内容
+;====================
+@SHOPCOM_EVENT_27
+
+;ネミッサがパーティ内にいる
+IF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) == 2 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) == 2)
+	;朝か昼
+	IF TIME == 0 || TIME == 1
+		;ネミッサとの会話
+		CALL EVENT_27_01
+	;夕方か夜
+	ELSEIF TIME == 2 || TIME == 3
+		;ムーウィスの襲撃
+		CALL EVENT_27_00
+	ENDIF
+;ネミッサが加入している
+ELSEIF (FINDCHARA_B([[キャラ:ネミッサ(明るい)]]) >= 1 || FINDCHARA_B([[キャラ:ネミッサ(クール)]]) >= 1 || FINDCHARA_B([[キャラ:ネミッサ(セクシー)]]) >= 1)
+	;ネミッサとの会話
+	CALL EVENT_27_01
+ENDIF
+
+
+
+
+;ネミッサとの会話
+@EVENT_27_01
+PRINTW Recently, Nemissa has been strange.
+PRINTW She has an unpleasant feeling about her in the evenings and at night.
+PRINTL 　
+PRINTW Something may happen if you accompany her during that time...
+
+;ムーウィスの襲撃
+@EVENT_27_00
+;キャロルＪがパーティ内にいる
+IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+	PRINTW On your way back from a small job with Nemissa...
+	CUSTOMDRAWLINE =
+	PRINTL 　
+	PRINTW 「Since I worked hard today, I want a reward♪」
+	;「今日は頑張ったから、ご褒美ほしいなー♪」
+	PRINTW Nemissa was in a good mood when you walked home on a road with little people.
+	;楽しそうに身を寄せてくるネミッサと話しながら、仲間達と人通りの少ない道を歩く。
+ELSE
+	PRINTW On your way back from a small job with Nemissa...
+	;ネミッサと共に、ちょっとした依頼を済ませた帰り道……
+	CUSTOMDRAWLINE =
+	PRINTL 　
+	PRINTW 「Since I worked hard today, I want a reward♪」
+	PRINTW Nemissa was in a good mood when you walked home on a road with little people.
+	;楽しそうに身を寄せてくるネミッサと話しながら、人通りの少ない道を歩く。
+ENDIF
+
+PRINTL 　
+PRINTFORMW 「%CALLNAME:MASTER% what can I expect from you?...」
+;も期待して……。
+PRINTL 　
+PRINTW 「Fuuuuuuu...Fuuuuu...」
+PRINTL 　
+PRINTW 「Wait, what!?」
+PRINTW A strange person approached from a side street. Nemissa raised her voice in surprise upon seeing it.
+;横道から現れた異様な人影。それに気付いたネミッサが声をあげた。
+PRINTL 　
+PRINTW 「Fuu...Haaa.....」
+PRINTW 「強キ……ソウル……。」
+PRINTW From the gap between it's coat and hat, the creature looked at you with gleaming red eyes.
+;それは、真っ赤なコートと帽子の隙間から覗く目を光らせ、こちらを睨みつけてきた。
+;クリア状態あなたがクリア
+IF ダンジョンフラグ:89:1 == 1 || ダンジョンフラグ:89:1 == 2 || ダンジョンフラグ:89:1 == 3
+	;キャロルＪがパーティ内にいる
+	IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+		PRINTL 　
+		PRINTW 「That sound....it's Moowis!?」
+		;「この気配……む、ムーウィスか！？」
+		PRINTW Remembering what happened at the Astro Museum, Carol J. cried out in surprise.
+		;博物館でのこともあってか、いち早く正体を見抜いたキャロルＪが声をあげた。
+	ELSE
+		PRINTW From it's characteristic sounds, this must be the Moowis that disappeared at the Astro Museum.
+		;特徴的な呼吸音とソウルを求める言葉からして、あれの正体は天体博物館で逃したムーウィスに違いない。
+	ENDIF
+ELSE
+	PRINTL The sounds it emits remind you of a report you read.
+	;組織の報告書で見かけた、特徴的な呼吸音とソウルを求める言葉。
+	PRINTW This must be the Moowis that was encountered at the Astro museum.
+	;あれは天体博物館に現れたムーウィスという悪魔に違いない。
+ENDIF
+PRINTL 　
+PRINTW 「ソウル……ヲ……。　……！？」
+PRINTL 「コ、コレハ……Nemissa……ナノカ……?」
+;「コ、コレハ……ネミッサ……ナノカ……？」
+PRINTW Searching a soul, Moowis stopped when it noticed Nemissa and started to change.
+;ソウルを求め、こちらを見つめるムーウィスの様子がネミッサを見たとたん、変わった。
+PRINTL 　
+PRINTL 「Y-you know about me?」
+;「ア、アタシを知ってるの？」
+PRINTW Nemissa blurted out, surprised by the sudden utterance of her name.
+;突然飛び出た自分の名前にネミッサが驚き声をあげる。
+PRINTL 　
+PRINTW 「Fuu.....Haaa.....」
+PRINTW 「貴様マデ地上ニ……居タトハ……。」
+PRINTL 　
+PRINTL 「You...do you know about Nemissa!?」
+;「あんた……ネミッサの事を知ってるの！？」
+PRINTW 「我ラガ脅威……。　貴様サエ居ナケレバ……。」
+PRINTW Ignoring Nemissa's question, Moowis continued to reshape it's body.
+;ネミッサの問いかけを無視し、ムーウィスは体からいくつものマニピュレーターを展開させる。
+PRINTL 　
+;キャロルＪがパーティ内にいる
+IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+	PRINTW 「You! Let me repay you for possessing me at the museum!」
+	;「くるぞッ！　博物館での借り、返させてもらうぜッ！」
+	PRINTL 
+	PRINTW 「止めは刺さないでよ！　聞きたいことがあるんだから！」
+	PRINTL 　
+ENDIF
+PRINTW Moowis attacked!
+PRINTL 　
+
+
+;戦闘
+;ムーウィスと戦闘
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+
+;他のイベントとの調整でムーウィスのレベルを35に（原作は25）
+CALL SET_ENEMY,9,1115,35,0,1
+CFLAG:(CHARANUM-1):ＨＰ補正 += 1000
+ABL:(CHARANUM-1):スキル1 = [[スキル:アギラオ]]
+ABL:(CHARANUM-1):スキル2 = [[スキル:ザンマ]]
+ABL:(CHARANUM-1):スキル3 = [[スキル:メギド]]
+ABL:(CHARANUM-1):スキル4 = [[スキル:アクセルクロー]]
+ABL:(CHARANUM-1):スキル5 = 0
+
+ABL:(CHARANUM-1):スキル6 = 0
+ABL:(CHARANUM-1):スキル7 = 0
+ABL:(CHARANUM-1):スキル8 = 0
+
+BASE:(CHARANUM-1):戦技 = 100
+MAXBASE:(CHARANUM-1):戦技 = 100
+
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+
+CALL BATTLE_START
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+
+CUSTOMDRAWLINE =
+;キャロルＪがパーティ内にいる
+IF FINDCHARA_B([[キャラ:キャロルＪ]]) == 2
+	PRINTL 　
+	PRINTW 「Yeah!　We did it!」
+ENDIF
+PRINTFORML 　
+;クリア状態あなたがクリア
+IF ダンジョンフラグ:89:1 == 1 || ダンジョンフラグ:89:1 == 2 || ダンジョンフラグ:89:1 == 3
+	PRINTW 「Im-impossible……。　コノ体デモ……カナワヌトハ……。」
+ELSE
+	PRINTW 「Im-impossible……。　コノ体ガ……負ケルトハ……。」
+ENDIF
+PRINTL 　
+PRINTW 「オノレ……。　貴様ハ消サネバナラン。」
+PRINTW 「Nemissa……、貴様ハ我ガ主ノ脅威トナル……。　我々ノ脅威トナル……。」
+PRINTW Moowis spoke with a voice full of fear and hatred, then quickly retreated back into the alley.
+;ネミッサへ恐れと憎しみのこもった声を投げかけると、ムーウィスは思いのほか素早く路地の奥へと消えていった。
+PRINTL 　
+PRINTL 「It runs away!? I am so close...」
+;「逃げた！？　もう、あと少しだったのに。」
+PRINTL 「A clue to the one who confined me....I'll absolutely catch it!」
+;「アタシを閉じ込めたヤツの手がかり……。　絶対捕まえてやるんだから！」
+PRINTW Before she could run off after it, you grabbed Nemissas hand, trying to calm her down.
+;そのまま追いかけようとするネミッサの手を掴み落ち着くように言い聞かせる。
+PRINTL 　
+PRINTL 「Let go! I have to case after...」
+;「落ち着けって！　追いかけないと……。」
+PRINTW You directed Nemissas attenting to the spot wher you just fought Moowis.
+;今にも駆け出していきそうなネミッサにムーウィスと戦っていた場所を示す。
+PRINTL 　
+PRINTW 「Hm?　What's that?」
+;「Hm？　そこがどうかしたの？」
+PRINTW 「...it dropped something...what is it?」
+;「……何か落ちてる……何だろう？」
+PRINTL 　
+PRINTL 「This is...?」
+;「これは……？」
+PRINTW You took the metal piece Nemissa picked up to confirm your suspicion.
+;ネミッサが拾い上げた『金属片』を受け取り確認する。
+PRINTW On it, there was a familiar mark.
+;そこには、見覚えのあるマークがついていた。
+PRINTL 　
+PRINTL 「Well....Leon Car...」
+;「なるほど……、レオン自動車か……。」
+PRINTFORMW Nemissa said whe you showed the mark to her %CALLNAME:MASTER%.
+;%CALLNAME:MASTER%の言葉を聞きネミッサがつぶやいた。
+PRINTL 　
+PRINTW There must a Leon Automotive Plant nearby....
+;確か、この近くにもレオン自動車の工場があったはずだ……。
+PRINTW And that must be where Moowis is hinding.
+;ムーウィスが潜んでいる場所はそこに間違いないだろう。
+PRINTL 　
+PRINTW It seems you now know where to find Moowis.
+;ムーウィスの潜伏場所はわかった。
+PRINTW You should go to that plant and search for it soon...
+;近いうちに出向いてケリをつける必要があるだろう……
+PRINTL 　
+PRINTW .......
+PRINTW .....
+PRINTW ...
+PRINTL 　
+PRINTW 「When you go after Moowis, take me with you!」
+;「ムーウィスのところに行くなら、アタシも連れて行ってね！」
+PRINTW 「Because of my memory....so I get more clues!」
+;「記憶の……手がかりなんだから！」
+PRINTW It seems Moowis has become Nemissa's primary hope for learning more about herself.
+;去り際の台詞からしてムーウィスのターゲットはネミッサになってしまったのだろう。
+PRINTW If you go to the Leon Automotive Plant without Nemissa, Moowis may hide from you...
+
+;ムーウィスの襲撃イベント終了済みへ
+イベントフラグ:27:0 = 1

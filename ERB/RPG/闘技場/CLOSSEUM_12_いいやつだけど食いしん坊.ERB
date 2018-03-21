@@ -1,0 +1,232 @@
+
+
+;====================
+;条件
+;====================
+@PLAYABLE_COLOSSEUM_12
+IF  闘技場フラグ:12:0 == 0 && FLAG:百合の花ルート >= 2
+	RESULTS = A good but gluttonous guy
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;====================
+;内容
+;====================
+@COLOSSEUM_12
+FLAG:逃走不可フラグ = 1
+FLAG:会話不能フラグ = 1
+FLAG:先制不意打ちキャンセル = 1
+CUSTOMDRAWLINE =
+PRINTL Because you responded to that mysterious cult the other day,
+PRINTFORML %CALLNAME:MASTER%'s name became well-known among the vistors of the collosseum.
+PRINTL A special match was prepared for today.
+PRINTW ...but how come todays fight will be along the coast?
+PRINTL 
+PRINTL 「Ladieeeeeeees and Gentlemen!」
+PRINTL 「Today's challenger has chosen to give a self-introduction!」　
+PRINTL 「The usual one is in the red corner!」
+PRINTL 「What splendid battle will we see today!」
+PRINTL 「And from the blue corner...Wow!This fellow is big!」
+PRINTW 「Nuaaaan! Total length of 75,000?......Did the staff add a digit or two by mistake?」
+PRINTL 
+PRINTL It would be impossible to need such a large demon..., when you thought about it
+PRINTW The right half of the Collosseum broke away, a huge...a gigantic tortoise appeared.
+PRINTL 
+PRINTL 「Uwaaaaaaa!」
+PRINTL Naturally, the audience tried to run away....
+PRINTW The tortoise slowly opened its mouth.
+PRINTL 
+PRINTL 「I am Mora.」
+PRINTL 「I have no grudge against you...」
+PRINTL 「But isn't there prize money if I win?」
+PRINTL 「Well, surrender quickly, and I'll have mercy.」
+PRINTW 「I want to go eat tasty food.」
+PRINTL 
+PRINTW 1 Super Beast Mora appeared!
+CUSTOMDRAWLINE =
+WAIT
+CALL SET_ENEMY,9, [[キャラ:モーラ]], 76, 0,1
+BASE:(CHARANUM-1):LV -= 30
+BASE:(CHARANUM-1):力 -= 5
+BASE:(CHARANUM-1):知恵 -= 5
+BASE:(CHARANUM-1):魔力 -= 5
+BASE:(CHARANUM-1):耐力 -= 5
+BASE:(CHARANUM-1):速さ -= 5
+BASE:(CHARANUM-1):運 -= 5
+CFLAG:(CHARANUM-1):ＨＰ補正 = 2022
+CFLAG:(CHARANUM-1):ＭＰ補正 = 9000
+CALL SYNC_STATUS,(CHARANUM-1)
+CALL HEALTH_CHARA,(CHARANUM-1)
+CSTR:(CHARANUM-1):思考パターン = モーラ
+CFLAG:(CHARANUM-1):行動回数 = 2
+CALL BATTLE_START
+CUSTOMDRAWLINE =
+PRINTL 「Hmmmmm, you are tough to beat.」
+PRINTW Mora hasn't moved an inch....Did you even do any damage?
+PRINTL 
+PRINTL 「I heard a『samurai』speaks with their fist.」
+PRINTW 「I have decided! You are my close friend starting from today!」
+PRINTL 
+PRINTW ...You seem to have convinced them.
+PRINTL 
+PRINTL 「That's why, close friend.」
+PRINTW 「I want some food from you.」
+PRINTL 
+PRINTW ...as expexted, after all...You don't seem to be able to decline....
+PRINTL 
+PRINTW You fed Mora a beef stroganoff!
+PRINTL 
+PRINTL 「This is good! The meat and the gravy go well together...」
+PRINTW Mora is happy....
+PRINTL 
+PRINTW 「The price is ￥200,000」
+IF MONEY < 200000
+	PRINTL 
+	PRINTW You don't have enough....
+	PRINTL 
+	PRINTL 「What is it, you? You don't have enough?」
+	PRINTL 「It cannot be helped. Sorry, but can you settle it with a card?」
+	PRINTW 「Get a grip, close friend.」
+	PRINTL 
+	PRINTW ...You lost....You lost all your money....
+ELSE
+	PRINTL 
+	PRINTW You somehow had enough....What an expensive dish....
+	PRINTL 
+	PRINTL 「Indeed close friend. You have a lot of cash.」
+	PRINTW 「Our friendship is forever indestructable.Gahaha!」
+	PRINTL 
+	PRINTW ...Though you should have won the fight....
+	PRINTL 
+	PRINTW ￥200,000 was lost.
+	MONEY -= 200000
+ENDIF
+
+CUSTOMDRAWLINE =
+WAIT
+FLAG:逃走不可フラグ = 0
+FLAG:会話不能フラグ = 0
+FLAG:先制不意打ちキャンセル = 0
+PRINTW ￥250000 prize money obtained.
+MONEY += 250000
+PRINTFORMW %CALLNAME:MASTER% got 420 fame.
+FLAG:名声 += 420
+闘技場フラグ:12:0 = 1
+
+
+FOR LOCAL,0,CHARANUM
+	CALL HEALTH_CHARA,LOCAL
+NEXT
+
+
+@SET_ACTION_モーラ, ARG
+IF FLAG:経過ターン数 % 10 == 9
+	IF CFLAG:ARG:行動した回数 == 0
+		CFLAG:(CHARANUM-1):速度補正 = 24
+		CALL CHECK_ACTIONABLE,ARG,403
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 403
+		CALL RANDOM_TARGET,ARG,403
+		RETURN 1
+	ELSEIF CFLAG:ARG:行動した回数 == 1
+		CFLAG:(CHARANUM-1):速度補正 = 0
+		CALL CHECK_ACTIONABLE,ARG,326
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 326
+		CALL RANDOM_TARGET,ARG,326
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:ARG:気合フラグ
+	IF RAND:2 == 0
+		CALL CHECK_ACTIONABLE,ARG,326
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 326
+		CALL RANDOM_TARGET,ARG,326
+		RETURN 1
+	ELSE
+		CALL CHECK_ACTIONABLE,ARG,0
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 0
+		CALL RANDOM_TARGET,ARG,0
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:ARG:魔法反射フラグ
+	IF RAND:2 == 0
+		CALL CHECK_ACTIONABLE,ARG,1603
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 1603
+		CALL RANDOM_TARGET,ARG,1603
+		RETURN 1
+	ELSE
+		CALL CHECK_ACTIONABLE,ARG,1606
+		SIF RESULT == 0
+			GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 1606
+		CALL RANDOM_TARGET,ARG,1606
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:ARG:攻撃強化 < 0 || CFLAG:ARG:防御強化 < 0 || CFLAG:ARG:命中強化 < 0
+	IF RAND:2 == 0
+		CALL CHECK_ACTIONABLE,ARG,505
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 505
+		CALL RANDOM_TARGET,ARG,505
+		RETURN 1
+	ELSE
+		GOTO DECIDE_ACTION
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:MASTER:攻撃強化 > 3 || CFLAG:MASTER:防御強化 > 3 || CFLAG:MASTER:命中強化 > 3
+	IF RAND:2 == 0
+		CALL CHECK_ACTIONABLE,ARG,509
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 509
+		CALL RANDOM_TARGET,ARG,509
+		RETURN 1
+	ELSE
+		GOTO DECIDE_ACTION
+		RETURN 1
+	ENDIF
+ELSEIF CFLAG:MASTER:攻撃強化 > -9
+	IF RAND:3 == 0
+		CALL CHECK_ACTIONABLE,ARG,514
+			SIF RESULT == 0
+				GOTO DECIDE_ACTION
+		CFLAG:ARG:入力行動 = 514
+		CALL RANDOM_TARGET,ARG,505
+		RETURN 1
+	ELSE
+		GOTO DECIDE_ACTION
+		RETURN 1
+	ENDIF
+ELSE
+	$DECIDE_ACTION
+	CALL SEARCH_ACT,ARG
+	IF RESULT == 0
+		CFLAG:ARG:入力行動 = -1
+		CFLAG:ARG:防御フラグ = 1
+		RETURN 0
+	ENDIF
+	LOCAL = RAND:RESULT
+	;スキル番号決定
+	LOCAL:1 = S:(10+LOCAL)
+	$TARGET_LOOP
+	
+	CALL RANDOM_TARGET,ARG,LOCAL:1
+	CALLFORM SKILL_TARGET_{LOCAL:1}
+	;ここでスキル番号を行動内容に代入
+	SIF CFLAG:ARG:ターゲット == -1
+		GOTO DECIDE_ACTION
+	CFLAG:ARG:入力行動 = LOCAL:1
+ENDIF
+
+

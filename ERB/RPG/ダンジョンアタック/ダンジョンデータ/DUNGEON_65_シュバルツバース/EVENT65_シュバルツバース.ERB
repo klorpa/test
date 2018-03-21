@@ -1,0 +1,971 @@
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_65
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y)% 10
+	;イベントタイル
+	CASE 1
+		CALL TILE_65
+		RETURN RESULT
+	;========
+	;宝の処理
+	;========
+	CASE 3
+		CALL TREASURE_65
+		RETURN 1
+	;========================
+	;イベント
+	;========================
+	CASE 4
+		CALL EVENT_65
+		RETURN 1
+	;=======
+	;罠
+	;=======
+	CASE 5
+		CALL TRAP_65
+		RETURN 1
+	;=======
+	;昇り階段
+	;=======
+	CASE 6
+		CALL UPSTAIRS_65
+		RETURN 1
+	;=======
+	;下り階段
+	;=======
+	CASE 7
+		CALL DOWNSTAIRS_65
+		RETURN 1
+	;=======
+	;メッセンジャー
+	;=======
+	CASE 8
+		CALL MESSAGE_65, 0
+		RETURN 1
+	;=======
+	;特殊タイル
+	;=======
+	CASE 9
+		CALL SPECIAL_65
+		RETURN 1
+	;=======
+	;ダークゾーン
+	;=======
+	CASE -1
+		IF DA:(FLAG:現X):(FLAG:現Y) < -10
+			CALL DARK_65
+			RETURN RESULT
+		ENDIF
+	CASEELSE
+		CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 0
+ENDSELECT
+
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_65,ARG
+;ARG = 進入時の向き　0の場合ワープなど
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) % 10
+	;イベントタイル
+	CASE 1
+		CALL TILE_65, 1
+		RETURN RESULT
+	;==========
+	;扉の処理
+	;==========
+	CASE 2
+		SIF GROUPMATCH(DA:(FLAG:現X):(FLAG:現Y),902,922,942,962)
+			DA:(FLAG:現X):(FLAG:現Y) += 10
+		CALL DUNGEON_DOOR,ARG
+		RETURN 1
+;========
+;宝の処理
+;========
+	CASE 3
+		CALL TREASURE_65
+		RETURN 1
+;========================
+;イベント
+;========================
+	CASE 4
+		CALL EVENT_65, 1
+		RETURN 1
+;=======
+;罠
+;=======
+CASE 5
+	CALL TRAP_65
+	RETURN 1
+;=======
+;昇り階段
+;=======
+CASE 6
+	CALL UPSTAIRS_65
+	RETURN 1
+;=======
+;下り階段
+;=======
+CASE 7
+	CALL DOWNSTAIRS_65
+	RETURN 1
+;=======
+;メッセンジャー
+;=======
+	CASE 8
+		CALL MESSAGE_65, 1
+		RETURN 1
+;=======
+;特殊タイル
+;=======
+	CASE 9
+		CALL SPECIAL_65
+		RETURN 1
+;=======
+;ダークゾーン
+;=======
+	CASE -1
+		CALL DARK_65, 1
+		RETURN RESULT
+ENDSELECT
+
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_65
+CALLF STRFLAG_NUM_D("調査船位置", "=", , 0)
+IF STRFLAG_NUM_D("シュバルツバース進行度") == 0
+	CALL MESSAGE_WINDOW_D, "", "........../......./.../"
+	CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% went to join up with the Schwarzwelt Investigation Team./＞The captain came to welcome you on board..."
+	CALL MESSAGE_WINDOW_D, "Research Team Captain", "Welcome, I am the captain of the Schwarzwelt Investigation Team./Our goal here is to secure access to Sector Carina./Be careful out there."
+	CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+ENDIF
+
+
+
+;=======================================
+;床
+;=======================================
+@TILE_MARK_COMMON_65_1, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASE 100
+		IF STRFLAG_NUM_D("調査船位置") == 0
+			RESULTS = ■
+		ELSE
+			RESULTS = 外
+		ENDIF
+	CASE 2300
+		RESULTS = 艦
+	CASE 1500, 1501, 1502, 1503, 1900, 1902, 1905, 1906, 2001, 2003, 2004, 2007, 2101, 2103, 2104, 2107, 2201, 2203, 2204, 2207
+		RESULTS = →
+	CASE 1504, 1907
+		RESULTS = ↑
+	CASE 1600, 1601, 1602, 1603, 1700, 1701, 1702, 1703, 1800, 1801, 1802, 1803, 1901, 1903, 1904, 1908, 2000, 2002, 2005, 2006, 2100, 2102, 2105, 2106, 2200, 2202, 2205, 2206
+		RESULTS = ←
+	CASE 1604, 1704, 1804, 2008, 2108, 2209
+		RESULTS = ↓
+	
+	
+	CASEELSE
+		RESULTS = □
+ENDSELECT
+
+@TILE_65, ARG
+#LOCALSIZE 10
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+
+	CASE 100
+		IF EQUIP:MASTER:Demonica != 1
+			CALL MESSAGE_WINDOW_D, "Man", "Hey you!/Do you have a death wish?/Don't fool around now, go activate Demonica at the terminal."
+			FLAG:現X -= 1
+		ELSEIF STRFLAG_NUM_D("調査船位置") != 0
+			CALL MESSAGE_WINDOW_D, "", "Will you go out to explore?"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "Man", "Watch yourself out there."
+				IF STRFLAG_NUM_D("調査船位置") == 1
+					CALL DUNGEON_WORP,1,19,34
+				ELSEIF STRFLAG_NUM_D("調査船位置") == 2
+					CALL DUNGEON_WORP,4,4,23
+				ELSEIF STRFLAG_NUM_D("調査船位置") == 3
+					CALL DUNGEON_WORP,22,3,11
+				ELSEIF STRFLAG_NUM_D("調査船位置") == 4
+					CALL DUNGEON_WORP,23,14,23
+				ELSEIF STRFLAG_NUM_D("調査船位置") == 5
+					CALL DUNGEON_WORP,32,18,17
+				ENDIF
+			ELSEIF RESULT == 1
+				FLAG:現X -= 1
+			ENDIF
+		ENDIF
+	
+	CASE 2300
+		CALL MESSAGE_WINDOW_D, "", "Do you want to return to the ship?"
+		CALL INPUT_YN_D,"Yes","No"
+		IF RESULT == 0
+			CALL DUNGEON_WORP,0,37,7
+			RETURN 1
+		ELSEIF RESULT == 1
+			FLAG:現X += 1
+		ENDIF
+	CASE 2301
+		IF STRFLAG_NUM_D("シュバルツバース進行度") == 1
+			CALL MESSAGE_WINDOW_D, "", "＞Sector Carina.../According to the reports, this is the third sector the original Schwarzwelt Investigation Team explored./It seems this sector has the appearance of a big shopping mall..."
+			CALL MESSAGE_WINDOW_D, "", "………………/…………/……/"
+			CALL MESSAGE_WINDOW_D, "", "なるほど、確かに報告にあったとおりだ。/だが、このシュバルツバースは魔界のはずである。/このショッピングモールのような、人間界にあるものが/魔界で見られるとは一体どういうことであろうか…。"
+			CALL MESSAGE_WINDOW_D, "", "……"
+			CALL MESSAGE_WINDOW_D, "", @"考えてもどうしようもないことである。/そう考えた%CALLNAME:MASTER%はシュバルツバースに足を踏み入れた…。"
+			CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+		ENDIF
+	CASEELSE
+		CALL WORP_65
+
+ENDSELECT
+SIF !ARG
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+RETURN 0
+
+;=======================================
+;扉
+;=======================================
+@TILE_MARK_COMMON_65_2, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+
+	;一方通行
+	CASE 90, 92, 94, 96
+		RESULTS = 扉
+	CASE 91, 93, 95, 97,
+		RESULTS = ■
+	CASEELSE
+		RESULTS = 扉
+ENDSELECT
+
+@DOOR_65, ARG
+SELECTCASE ARG
+	CASE 1400, 1402
+		IF STRFLAG_NUM_D("プラズマウォール") == 0
+			CALL MESSAGE_WINDOW_D, "Surveyor", "おい、なんでシュバルツバースの壁に/プラズマウォールが展開されているんだ…？/これじゃ先に進めないぜ…"
+			RETURN 0
+		ELSEIF STRFLAG_NUM_D("プラズマウォール") == 1
+			CALL MESSAGE_WINDOW_D, "Surveyor", "プラズマウォール発生装置を停止してきただと？/ここの扉には何も変化はないぞ。/あっちの方にも扉はあるらしいから見てきてくれ。"
+			CALL MESSAGE_WINDOW_D, "Surveyor", "その先にまた別の発生装置があるかもしれん。/それも停止してきてくれ。"
+			RETURN 0
+		ELSEIF STRFLAG_NUM_D("プラズマウォール") == 3
+			CALL MESSAGE_WINDOW_D, "Surveyor", "プラズマウォール発生装置を停止してきてくれたようだな。/先に進めるようになったぞ。/"
+			CALLF STRFLAG_NUM_D("プラズマウォール", "+=", , 1)
+		ENDIF
+	CASE 1401, 1403
+		IF STRFLAG_NUM_D("プラズマウォール") == 4
+			CALL MESSAGE_WINDOW_D, "Surveyor", "クソッ、またプラズマウォールかよ！/また探すのかよっ！もう目と鼻の先なのにっ！"
+			RETURN 0
+		ELSEIF STRFLAG_NUM_D("プラズマウォール") == 5
+			CALL MESSAGE_WINDOW_D, "Surveyor", "ようやくこれで先に進めるな。/量子トンネルは目の前だ、行こうぜっ！"
+			CALLF STRFLAG_NUM_D("プラズマウォール", "+=", , 1)
+		ENDIF
+	CASE 1404
+		IF STRFLAG_NUM_D("プラズマウォール") == 0
+			CALL MESSAGE_WINDOW_D, "Surveyor", "おい、なんでシュバルツバースの壁に/プラズマウォールが展開されているんだ…？/これじゃ先に進めないぜ…"
+			RETURN 0
+		ELSEIF STRFLAG_NUM_D("プラズマウォール") == 1
+			CALL MESSAGE_WINDOW_D, "Surveyor", "どうやらここのプラズマウォールは解除されたみたいだな…"
+			CALL MESSAGE_WINDOW_D, "", "向こうのプラズマウォールはまだ解除されてない、か…。/この先にまた装置があるのか？"
+			CALLF STRFLAG_NUM_D("プラズマウォール", "+=", , 1)
+		ENDIF
+ENDSELECT
+RETURN 1
+
+;=======================================
+;宝箱
+;=======================================
+@TREASURE_65
+#LOCALSIZE 3
+#LOCALSSIZE 3
+LOCAL:2 = (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+;個数,-1のとき、魔貨・0の時、\となる
+LOCAL = 1
+;IDは現M*100＋X個目の宝箱の法則でふられている
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+
+	;
+	CASE 1200
+		LOCALS = Bead
+		LOCAL = 2
+	CASE 1300
+		LOCALS = YamataNoDrink
+		LOCAL = 1
+	CASE 1301
+		LOCALS = AgIncense
+		LOCAL = 1
+	CASE 1302
+		LOCALS = RevivalBead
+		LOCAL = 2
+	CASE 1303
+		LOCALS = 魔貨
+		LOCAL = 150
+	CASE 1400
+		LOCALS = BalmOfLife
+		LOCAL = 1
+	CASE 2200
+		LOCALS = LuIncense
+		LOCAL = 1
+	
+
+ENDSELECT
+IF LOCALS == "￥"
+	CALL GET_TREASURE_MONEY, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "魔貨"
+	CALL GET_TREASURE_MONEY, 1, LOCAL, FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "MAG" || LOCALS == "ＭＡＧ"
+	CALL GET_TREASURE_MAG, 0, LOCAL, FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSEIF LOCALS == "罠"
+	;LOCALS:1 種類 LOCAL ダメージ量or確率 LOCALS:2 相性
+	CALL GET_TREASURE_TRAP, LOCALS:1, LOCAL, GET_TYPE_NUM(LOCALS:2), FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+ELSE
+	IF GETNUM(ITEM, LOCALS) == -1
+		PRINTL ＞アイテム名の指定が間違ってます
+		PRINTW ＞アイテムの取得処理を中断します
+	ELSE
+		CALL GET_TREASURE, GETNUM(ITEM, LOCALS), LOCAL , FLAG:現ダンジョン, FLAG:現M + 25, (DA:(FLAG:現X):(FLAG:現Y) / 10) % 100
+	ENDIF
+ENDIF
+
+
+
+;=======================================
+;イベント
+;=======================================
+@TILE_MARK_COMMON_65_4, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+
+	CASEELSE
+		RESULTS = ！
+ENDSELECT
+
+@EVENT_65, ARG
+#LOCALSIZE 10
+#LOCALSSIZE 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+
+	CASE 1200
+		IF STRFLAG_NUM_D("プラズマウォール") == 2
+		CALL MESSAGE_WINDOW_D, "", "プラズマウォール発生装置がある。/＞機械を止めますか？"
+		CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "", "プラズマウォール発生装置は無事に止まった。/プラズマウォールか解除されているだろう。"
+				CALL MESSAGE_WINDOW_D, "？？？", "プラズマウォールが解除されているから様子を見に来たら…/何故人間がここにいる？"
+				CALL MESSAGE_WINDOW_D, "？？？", "何故かを考えても仕方がない、オーカス様達に連絡だ"
+				CALL MESSAGE_WINDOW_D, "", "＞声が聞こえたため振り返ったが、すでに姿はなかった…。/どうやら誰かがプラズマウォールを展開しているらしい/調査を進めていくうちに遭遇するかもしれない/覚悟を決めておこう"
+			CALLF STRFLAG_NUM_D("プラズマウォール", "+=", , 1)
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", @"何が起こるかわからない。/%CALLNAME:MASTER%は機械のそばから去った。"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "機械は停止している…。"
+		ENDIF
+	
+	CASE 1300
+		IF STRFLAG_NUM_D("シュバルツバース進行度") == 4
+			CALL MESSAGE_WINDOW_D, "Demon", "ブォォォオーーーノ！/またこの地に人間が来たのか…"
+			CALL MESSAGE_WINDOW_D, "", "クラマテングを破った貴様らは、/このオーカス様が直々に喰らいつくしてくれる！"
+			FLAG:逃走不可フラグ = 1
+			FLAG:会話不能フラグ = 1
+			FLAG:先制不意打ちキャンセル = 1
+			CALL SET_ENEMY,9,260,66,0,1
+			ABL:(CHARANUM-1):スキル5 = 402
+			ABL:(CHARANUM-1):スキル6 = 505	
+			ABL:(CHARANUM-1):スキル7 = 509
+			;CSTR:(CHARANUM-1):思考パターン = 260
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CFLAG:(CHARANUM-1):ＭＰ補正 += 1000
+			CFLAG:(CHARANUM-1):行動回数 = 2
+			CALL SYNC_STATUS,(CHARANUM-1)
+			CALL HEALTH_CHARA,(CHARANUM-1)
+			CALL BATTLE_START
+			FLAG:逃走不可フラグ = 0
+			FLAG:会話不能フラグ = 0
+			FLAG:先制不意打ちキャンセル = 0
+			CALL MESSAGE_WINDOW_D, "オーカス", "ブォォォ…/このワシが、三度…人間に敗れ…"
+			CALL MESSAGE_WINDOW_D, "", @"＞オーカスを撃破した/＞%CALLNAME:MASTER%はロゼッタ:Carを手に入れた"
+			CALL MESSAGE_WINDOW_D, "", @"＞オーカスのいた場所の奥に、何かが見える…/＞%CALLNAME:MASTER%は近くに寄って行った… "
+			CALL MESSAGE_WINDOW_D, "", "………………/…………/……/"
+			CALL MESSAGE_WINDOW_D, "", "＞おそらくあれが、他のセクターへと/移動するための量子トンネルなのだろう/これで、セクター・カリーナでの任務は達成した/調査船に帰り、報告しよう"
+			CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞量子トンネルが、他のセクターへと誘うかのように動いている…"
+		ENDIF
+
+	CASE 1400
+		IF STRFLAG_NUM_D("プラズマウォール") == 0
+			CALL MESSAGE_WINDOW_D, "", "謎の機械が唸りをあげている。/プラズマウォールを形成する機械に似ているようだ…。/＞機械を止めてみますか？"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "", "機械は簡単にとまった。/プラズマウォールが消えているかもしれない。/１Ｆに戻るべきだろう。"
+				CALLF STRFLAG_NUM_D("プラズマウォール", "+=", , 1)
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", @"何が起こるかわからない。/%CALLNAME:MASTER%は機械のそばから去った。"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "機械は停止している…。"
+		ENDIF
+	CASE 1900
+		IF STRFLAG_NUM_D("プラズマウォール") == 4
+			CALL MESSAGE_WINDOW_D, "", "There is a plasma barrier generator./＞Do you want to shut it down?"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "？？？", "コッパどもの報告を受けて来てみれば…/お前か、プラズマウォール発生装置を停止させているのは/オーカス様の所へ行くのが目的だな/オーカス様の所へは行かせん、ここで成敗してやろう！"
+				CALL MESSAGE_WINDOW_D, "", "＞悪魔が問答無用で襲い掛かってきた！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				FLAG:不意打ちフラグ = 1
+				CALL SET_ENEMY,9,[[キャラ:クラマテング]],52,0,1
+				ABL:(CHARANUM-1):スキル5 = 0
+				ABL:(CHARANUM-1):スキル6 = 0
+				CFLAG:(CHARANUM-1):行動回数 = 1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 5000
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				FLAG:不意打ちフラグ = 0
+				CALL MESSAGE_WINDOW_D, "クラマテング", "オーカス様…/申し…あり…"
+				CALL MESSAGE_WINDOW_D, "", "プラズマウォール発生装置を止めた。/おそらく量子トンネル前のプラズマウォールか解除されているだろう。"
+				CALLF STRFLAG_NUM_D("プラズマウォール", "+=", , 1)
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", @"何が起こるかわからない。/%CALLNAME:MASTER%は機械のそばから去った。"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "The generator is powered down..."
+		ENDIF
+	CASE 2200
+		IF !STRFLAG_D("DemonicaＣ入手")
+			CALL MESSAGE_WINDOW_D, "", "＞ガキの後ろにゴミの山がある…。"
+			CALL MESSAGE_WINDOW_D, "ガキ", "あ、何だ人間？/何ジロジロ見てんだ？/ここにあるのは俺様のモンだ。/どっか行けよ。"
+			CALL MESSAGE_WINDOW_D, "", "＞ゴミの山の中にDemonica Suitのようなものが見える…。"
+			CALL MESSAGE_WINDOW_D, "ガキ", "ジロジロ見てんじゃねーよ。/あ、何だその目は？お前らにやるモンなんざねぇぞ。/おら、さっさとどっかに行け。"
+			CALL MESSAGE_WINDOW_D, "", "＞どうやら力ずくで奪うしかないようだ…。/無理矢理奪いますか？/"
+			CALL INPUT_YN_D,"Yes","No"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "ガキ", "あ？/やる気かオラァ！/いいぜ、かかってこいやぁ！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,[[キャラ:ガキ]],68,0,1
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				FLAG:不意打ちフラグ = 0
+				CALL MESSAGE_WINDOW_D, "ガキ", "せっかく蓄えた宝が…"
+				CALL MESSAGE_WINDOW_D, "", "＞宝の山からDemonica Suitの残骸を手に入れた/＞ラボに持っていけばDemonicaアプリを作ってくれるかもしれない"
+				CALLF STRFLAG_D("DemonicaＣ入手", 1)
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "無理矢理奪うのはよくない。/やめておこう"
+			ENDIF
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "＞ゴミの山がある。/＞役に立ちそうなものは何も無いようだ"
+		ENDIF
+	CASE 2201
+		IF !STRFLAG_D("クー・フーリン撃破")
+			IF !STRFLAG_D("クー・フーリン初回")
+				CALL MESSAGE_WINDOW_D, "", "＞美しい容貌の男が居る"
+				CALL MESSAGE_WINDOW_D, "Man", "ふむ、人間ですか/私はクー・フーリン/影の国にて業を修める騎士の一人です"
+				CALL MESSAGE_WINDOW_D, "Cu Chulainn", "ところでこのような地に居る以上、/貴方も相応の腕前を持っているとお見受けします/"
+				CALL MESSAGE_WINDOW_D, "", "実は我が師の命を狙う輩と一戦交えたばかりなのですが、/期待外れだったもので/闘いに滾った我が半身の血が治まらず/持て余しているのです"
+				CALL MESSAGE_WINDOW_D, "", "よければ一つ、お手合わせを願えませんか？/もしも私を打ち負かしたのなら、相応のお礼も差し上げましょう"
+			ELSE
+				CALL MESSAGE_WINDOW_D, "Cu Chulainn", "おや、気が変わったのですか？"
+				IF STRFLAG_D("クー・フーリン食事")
+					CALL MESSAGE_WINDOW_D, "", "それともまたも、私に誓いを守らせようという魂胆ですか？"
+					CALL MESSAGE_WINDOW_D, "", "＞クー・フーリンはくっくっと笑っている"
+				ENDIF
+			ENDIF
+			CALL INPUT_SELECT_D, "[0] Yes/[1] No/[2] 食事に誘う"
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "Cu Chulainn", "では、クランの猛犬と呼ばれた我が力と技、お見せしましょう！"
+				CALL MESSAGE_WINDOW_D, "", "＞Hero　クー・フーリンが一体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				CALL SET_ENEMY,9,4301,62,0,1
+				CFLAG:(CHARANUM-1):行動回数 = 1
+				CFLAG:(CHARANUM-1):ＨＰ補正 += 5000
+				CFLAG:(CHARANUM-1):ＭＰ補正 += 5000
+				CFLAG:(CHARANUM-1):行動回数 = 2
+				CALL SYNC_STATUS,(CHARANUM-1)
+				CALL HEALTH_CHARA,(CHARANUM-1)
+				CALL BATTLE_START
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL SHOW_PICTURE, "D"
+				CALL MESSAGE_WINDOW_D, "Cu Chulainn", "……お見事です/血沸き肉踊るとはまさにこのこと。/楽しませていただきました"
+				CALL MESSAGE_WINDOW_D, "", "そうそう、私が敗れたのですから約束を守らねばなりませんね/これを差し上げましょう。受け取っていただけますね？"
+				CALL MESSAGE_WINDOW_D, "", @"＞そう言ってクー・フーリンは何かを差し出してきた/＞%CALLNAME:MASTER%は差し出されたものを受け取った"
+				CALL MESSAGE_WINDOW_D, "", "＞力の香をもらった"
+				CALL MESSAGE_WINDOW_D, "Cu Chulainn", "では、また。/いずれ見える事もあるでしょう"
+				CALL MESSAGE_WINDOW_D, "", "＞そういってクー・フーリンは去って行った…。"
+				CALL GET_ITEMS, "StIncense", 1
+				CALLF STRFLAG_D("クー・フーリン撃破", 1)
+				DA:(FLAG:現X):(FLAG:現Y) = 1
+			ELSEIF RESULT == 1
+				CALL MESSAGE_WINDOW_D, "Cu Chulainn", "残念です/もし気が変わることがあれば此処を訪ねてください/暫くは此処にいるつもりですので"
+				CALLF STRFLAG_D("クー・フーリン初回", 1)
+			ELSE
+				IF !STRFLAG_D("クー・フーリン食事")
+					CALL MESSAGE_WINDOW_D, "Cu Chulainn", "……ふむ/よもや我が誓約が知られていようとは/私が騎士であり、貴方が世に住まう民草である以上は断るわけにはいきません/では、参りましょう。/人の供す食事は、何時の世も楽しみというものです"
+					CALL MESSAGE_WINDOW_D, "", "＞クー･フーリンと食事を楽しんだ"
+				ELSE
+					CALL MESSAGE_WINDOW_D, "Cu Chulainn", "く、断れぬと知っていながら卑怯な/……なんてね。そういうとぼけた所は嫌いではありませんよ/では行きますか"
+				ENDIF
+				CALLF STRFLAG_D("クー・フーリン初回", 1)
+				CALLF STRFLAG_D("クー・フーリン食事", 1)
+				FLAG:脱出 = 1
+			ENDIF
+		ENDIF
+
+ENDSELECT
+
+
+
+;=======================================
+;罠
+;=======================================
+@TILE_MARK_COMMON_65_5, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	;落とし穴(P)
+	CASE 1
+		RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?　#□\@
+	CASEELSE
+		RESULTS = \@GET_FLOOR_ANALYZE_T(ARG:1, ARG:2) == 2 ?罠#□\@
+ENDSELECT
+
+@TRAP_65
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	;落とし穴
+	CASE 1
+	
+	;HPダメージ(H)
+	CASE 2
+		CALL DUNGEON_TRAP_HP, 10 + RAND:11
+ENDSELECT
+RETURN 1
+
+;=======================================
+;昇り階段
+;=======================================
+@TILE_MARK_COMMON_65_6, ARG, ARG:1, ARG:2
+	RESULTS = 昇
+
+@UPSTAIRS_65
+#LOCALSIZE 1
+LOCAL = DA:(FLAG:現X):(FLAG:現Y)
+SELECTCASE LOCAL / 10
+	
+	CASE 1200
+		CALL DUNGEON_UPSTAIRS,13,17,19
+	CASE 1300
+		CALL DUNGEON_UPSTAIRS,14,30,5
+	CASE 1301
+		CALL DUNGEON_UPSTAIRS,14,10,11
+	CASE 1302
+		CALL DUNGEON_UPSTAIRS,14,21,19
+	CASE 1400
+		CALL DUNGEON_UPSTAIRS,18,2,3
+	CASE 1401
+		CALL DUNGEON_UPSTAIRS,18,17,19
+	CASE 1800
+		CALL DUNGEON_UPSTAIRS,22,30,5
+	CASE 1801
+		CALL DUNGEON_UPSTAIRS,22,30,15
+	CASE 1802
+		CALL DUNGEON_UPSTAIRS,22,21,19
+	
+ENDSELECT
+
+;=======================================
+;下り階段
+;=======================================
+@TILE_MARK_COMMON_65_7, ARG, ARG:1, ARG:2
+	RESULTS = 降
+
+@DOWNSTAIRS_65
+#LOCALSIZE 1
+LOCAL = DA:(FLAG:現X):(FLAG:現Y)
+SELECTCASE LOCAL / 10
+	
+	CASE 1300
+		CALL DUNGEON_DOWNSTAIRS,12,17,19
+	CASE 1400
+		CALL DUNGEON_DOWNSTAIRS,13,30,5
+	CASE 1401
+		CALL DUNGEON_DOWNSTAIRS,13,10,11
+	CASE 1402
+		CALL DUNGEON_DOWNSTAIRS,13,21,19
+	CASE 1800
+		CALL DUNGEON_DOWNSTAIRS,14,2,3
+	CASE 1801
+		CALL DUNGEON_DOWNSTAIRS,14,17,19
+	CASE 2200
+		CALL DUNGEON_DOWNSTAIRS,18,30,5
+	CASE 2201
+		CALL DUNGEON_DOWNSTAIRS,18,30,15
+	CASE 2202
+		CALL DUNGEON_DOWNSTAIRS,18,21,19
+	
+ENDSELECT
+
+
+;=======================================
+;メッセンジャー(8)
+;ARGは進入時の時に真
+;IDは50未満が部屋の中、50以上外
+;ARGがの場合RETURNして打ち切る
+;=======================================
+@TILE_MARK_COMMON_65_8, ARG, ARG:1, ARG:2
+SETCOLOR 0x00ff00
+RESULTS = ｍ
+@MESSAGE_65, ARG
+#LOCALSIZE 10
+;移動時でイベントタイルである場合、表示更新する
+SIF DA:(FLAG:現X):(FLAG:現Y) > 10 && ARG
+	CALL SHOW_PICTURE, "D"
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0
+		IF STRFLAG_NUM_D("シュバルツバース進行度") > 2
+			CALL MESSAGE_WINDOW_D, "Man", "すまない、アプリの回収は難航している/開発も、フォルマがあればできるんだがな…"
+		ELSEIF STRFLAG_NUM_D("シュバルツバース進行度") == 2
+			CALL MESSAGE_WINDOW_D, "Man", "ほぅ、Demonica Suitの残骸か…/いいものを見つけてきたな、何かアプリを作れるかもしれない、少し待っていろ"
+			CALL MESSAGE_WINDOW_D, "", "………………/…………/……/"
+			CALL MESSAGE_WINDOW_D, "Man", "よし、出来たぞ/とりあえずはスペーススキャナだけだがな/他のアプリは少し時間がかかりそうだ、探索を続けてきてくれ"
+			CALL MESSAGE_WINDOW_D, "", "＞スペーススキャナを手に入れました。/管制ポイントより、隠された空間へ移動できます。"
+			CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+		ELSEIF STRFLAG_NUM_D("シュバルツバース進行度") < 2
+			CALL MESSAGE_WINDOW_D, "Man", "ここはラボだ/だが、今は資源が足りないから何も作れないんだ"
+		ENDIF
+	CASE 1
+		LOCAL = STRFLAG_NUM_D("調査船位置")
+		LOCALS = 
+		SIF LOCAL == 0
+			CALL MESSAGE_WINDOW_D, "Man", "We haven't touched down yet./Where do you want us to go?"
+		SIF LOCAL == 1
+			CALL MESSAGE_WINDOW_D, "Man", "We are currently in Sector Antlia./Where do you want us to go?"
+		SIF LOCAL == 2
+			CALL MESSAGE_WINDOW_D, "Man", "We are currently in Sector Bootes./Where do you want us to go?"
+		SIF LOCAL == 3
+			CALL MESSAGE_WINDOW_D, "Man", "We are currently in Sector Carina./Where do you want us to go?"
+		SIF LOCAL == 4
+			CALL MESSAGE_WINDOW_D, "Man", "We are currently in Sector Delphinus./Where do you want us to go?"
+		SIF LOCAL == 5
+			CALL MESSAGE_WINDOW_D, "Man", "We are currently in Sector Eridanus./Where do you want us to go?"
+		LOCALS += "[0] Stay here/"
+		SIF STRFLAG_D("アントリア可能") && LOCAL != 1
+			LOCALS += "[1] To Sector Antlia/"
+		SIF STRFLAG_D("ボーティーズ可能") && LOCAL != 2
+			LOCALS += "[2] To Sector Bootes/"
+		SIF  LOCAL != 3
+			LOCALS += "[3] To Sector Carina/"
+		SIF STRFLAG_D("デルファイナス可能") && LOCAL != 4
+			LOCALS += "[4] To Sector Delphinus/"
+		SIF STRFLAG_D("エリダヌス可能") && LOCAL != 5
+			LOCALS += "[5] To Sector Eridanus/"
+		CALL INPUT_SELECT_D, LOCALS
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "Man", "Alright, then we won't change sector for now."
+			RETURN 0
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "Man", "Alright, we are setting course to Sector Antlia./"
+			CALL MESSAGE_WINDOW_D, "", "............/....../.../"
+			CALL MESSAGE_WINDOW_D, "", "You arrived savely."
+			CALLF STRFLAG_NUM_D("調査船位置", "=", , 1)
+		ELSEIF RESULT == 2
+			CALL MESSAGE_WINDOW_D, "Man", "Alright, we are setting course to Sector Bootes./"
+			CALL MESSAGE_WINDOW_D, "", "............/....../.../"
+			CALL MESSAGE_WINDOW_D, "", "You arrived savely."
+			CALLF STRFLAG_NUM_D("調査船位置", "=", , 2)
+		ELSEIF RESULT == 3
+			CALL MESSAGE_WINDOW_D, "Man", "Alright, we are setting course to Sector Carina./"
+			CALL MESSAGE_WINDOW_D, "", "............/....../.../"
+			CALL MESSAGE_WINDOW_D, "", "You arrived savely."
+			CALLF STRFLAG_NUM_D("調査船位置", "=", , 3)
+		ELSEIF RESULT == 4
+			CALL MESSAGE_WINDOW_D, "Man", "Alright, we are setting course to Sector Delphinus./"
+			CALL MESSAGE_WINDOW_D, "", "............/....../.../"
+			CALL MESSAGE_WINDOW_D, "", "You arrived savely."
+			CALLF STRFLAG_NUM_D("調査船位置", "=", , 4)
+		ELSEIF RESULT == 5
+			CALL MESSAGE_WINDOW_D, "Man", "Alright, we are setting course to Eridanus./"
+			CALL MESSAGE_WINDOW_D, "", "............/....../.../"
+			CALL MESSAGE_WINDOW_D, "", "You arrived savely."
+			CALLF STRFLAG_NUM_D("調査船位置", "=", , 5)
+		ENDIF
+	CASE 2
+		CALL MESSAGE_WINDOW_D, "Navigator", "Do you want to leave the Schwarzwelt?"
+		CALL INPUT_YN_D,"Yes","No"
+		IF RESULT == 0
+			CALL MESSAGE_WINDOW_D, "Navigator", "Understood, we are departing now."
+			FLAG:脱出スキル禁止 = 0
+			FLAG:脱出 = 1
+		ELSEIF RESULT == 1
+			CALL MESSAGE_WINDOW_D, "Navigator", "Understood./Just tell me when you want to leave then."
+		ENDIF
+	CASE 3
+		SELECTCASE STRFLAG_NUM_D("シュバルツバース進行度")
+			CASE IS < 5
+				CALL MESSAGE_WINDOW_D, "Captain", "今の任務を確認しよう。/セクター・カリーナの量子トンネルまでの道の確保だ/気をつけていけよ"
+			CASE 5
+				CALL MESSAGE_WINDOW_D, "Captain", "量子トンネルまでの道程を確保できたようだな/ごくろうだった/ロゼッタ多様体も回収できたようだな"
+				CALL MESSAGE_WINDOW_D, "", "量子場自体が若干変化しているようで、/ロゼッタ多様体がなければ侵入できないところだった"
+				CALL MESSAGE_WINDOW_D, "", "さぁ、ひとまず地上に帰ろう/後日また連絡しよう"
+				CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+				FLAG:脱出スキル禁止 = 0
+				FLAG:脱出 = 1
+			ENDSELECT
+	CASE 4
+		CALL MESSAGE_WINDOW_D, "Nurse", "ここは治療室よ/でも、今はやってないの/作者がサボってるわけじゃないからね"
+		
+		
+
+	CASE 1200
+		IF !STRFLAG_D("フロスト初回")
+			CALL MESSAGE_WINDOW_D, "", "＞べストのようなものを着た、ジャックフロストらしき悪魔がいる…/どうやら向こうもこっちに気づいたようだ…"
+			CALL MESSAGE_WINDOW_D, "Demon", "ホ？/ニンゲンだホ、久しぶりに見るホ"
+			CALL MESSAGE_WINDOW_D, "", "オイラはカオスなセカイのダークヒーロー、フロストエースだホ/覚えておくホ"
+			CALLF STRFLAG_D("フロスト初回", 1)
+		ENDIF
+		CALL MESSAGE_WINDOW_D, "フロストエース", "オイラに何か用かホ？"
+		CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER%は何も用がない事を伝えた…。"
+		CALL MESSAGE_WINDOW_D, "フロストエース", "そうかホ、もし何か用があったらオイラに依頼するホ"
+	CASE 1201
+		CALL MESSAGE_WINDOW_D, "Surveyor", "この先は暗闇になっている/視界がかなり悪いから気をつけろ"
+		IF EQUIP:MASTER:DarkScanner && NUM_SUMMONER()
+			CALL MESSAGE_WINDOW_D, "", "まぁ、DarkScannerを持っているから大丈夫だろうがな。"
+		ELSE
+			CALL MESSAGE_WINDOW_D, "", "DarkScannerがあれば見えるんだがな…。"
+		ENDIF
+
+ENDSELECT
+
+
+
+
+;=======================================
+;特殊タイル
+;=======================================
+@TILE_MARK_COMMON_65_9, ARG, ARG:1, ARG:2
+SELECTCASE ARG / 10
+	CASE 0, 1200, 1301, 1302, 1901, 2201, 2202
+		RESULTS = Ｔ
+	CASE 1300, 2200
+		RESULTS = Ｅ
+	CASE 1500, 1501, 1600, 1601, 1700, 1701, 1900, 2000, 2100
+		RESULTS = 管
+	
+ENDSELECT
+
+@SPECIAL_65
+#LOCALSIZE 7
+#LOCALSSIZE 1
+SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+	CASE 0, 1200, 1301, 1302, 1901, 2201, 2202
+		CALL SJ_TERMINAL_65
+	CASE 1300, 2200
+		CALL SJ_ELEVATOR_65
+	CASE 1500, 1501, 1600, 1601, 1700, 1701, 1900, 2000, 2100
+		CALL ANOTHER_DIMENTION_65
+
+ENDSELECT
+
+;=======================================
+;ダークゾーン
+;=======================================
+@TILE_MARK_COMMON_65_D, ARG, ARG:1, ARG:2
+IF FLAG:ライトマ || (EQUIP:MASTER:DarkScanner && NUM_SUMMONER())
+	SELECTCASE -ARG/10
+		CASEELSE
+			RESULTS = □
+	ENDSELECT
+ELSE
+	SETCOLOR 0x202020
+	SELECTCASE -ARG/10
+		CASEELSE
+			RESULTS = □
+	ENDSELECT
+ENDIF
+
+
+
+@DARK_65, ARG
+#LOCALSIZE 2
+
+SELECTCASE -DA:(FLAG:現X):(FLAG:現Y)/10
+
+ENDSELECT
+
+
+;=======================================================================
+;ワープゾーン
+;=======================================================================
+@WORP_65
+#LOCALSIZE 1
+LOCAL = DA:(FLAG:現X):(FLAG:現Y)
+SELECTCASE LOCAL / 10
+
+	CASE 1500, 1501, 1502, 1503, 1504
+		IF STRFLAG_NUM_D("カリーナ隠し場") == 0
+			FLAG:現M = 15
+		ELSEIF STRFLAG_NUM_D("カリーナ隠し場") == 1
+			FLAG:現M = 16
+		ELSEIF STRFLAG_NUM_D("カリーナ隠し場") == 1
+			FLAG:現M = 17
+		ENDIF
+	CASE 1600, 1601, 1602, 1603, 1604, 1700, 1701, 1702, 1703, 1704, 1800, 1801, 1802, 1803, 1804
+		FLAG:現M = 14
+	CASE 1900, 1901, 1902, 1903, 1904, 1905, 1906, 1907, 1908
+		IF STRFLAG_NUM_D("カリーナ隠し場") == 0
+			FLAG:現M = 19
+		ELSEIF STRFLAG_NUM_D("カリーナ隠し場") == 1
+			FLAG:現M = 20
+		ELSEIF STRFLAG_NUM_D("カリーナ隠し場") == 2
+			FLAG:現M = 21
+		ENDIF
+	CASE 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208
+		FLAG:現M = 18
+
+ENDSELECT
+CALL MAKE_FLOOR, FLAG:現ダンジョン
+CALL AUTOMAP
+
+
+;=======================================================================
+;SJ用ターミナル
+;=======================================================================
+@SJ_TERMINAL_65
+CUSTOMDRAWLINE =
+PRINTL ＞There's a Terminal.
+CALLFORM GET_FLOORNAME_{FLAG:現ダンジョン}
+PRINTFORMW Voice： This is the %RESULTS% Terminal
+PRINTFORML What would you like to do?
+PRINTL [1] Save
+PRINTL [2] Change Installed Software
+SIF FLAG:現M != 0
+	PRINTL [3] Return to the Research Ship
+DRAWLINE
+PRINTL [0]Nothing
+
+CALL INPUTINT,0,1,2,3
+
+SELECTCASE RESULT
+	CASE 0
+		RETURN 1
+	CASE 1
+		CALL TITLE_SAVEGAME
+	CASE 2
+		CALL SETUP_SOFT
+	CASE 3 
+		PRINTW Voice: Transfer start
+		PRINTFORMW ＞%CALLNAME:MASTER% returned to the Research Ship.
+		CALL DUNGEON_WORP,0,29,4
+		RETURN 1
+ENDSELECT
+
+RESTART
+
+
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+@SJ_ELEVATOR_65
+#LOCALSIZE 10
+LOCAL = DA:(FLAG:現X):(FLAG:現Y) / 10
+LOCALS = 
+CALL MESSAGE_WINDOW_D, "", "There's an elevator/＞Please decide which floor you want to move to/"
+LOCALS += "[0] Leave/"
+SELECTCASE LOCAL
+	
+	CASE 1300, 2200
+		SIF LOCAL != 1300
+			LOCALS += "[1] １Ｆ/"
+		SIF LOCAL != 2200
+			LOCALS += "[2] ４Ｆ/"
+		CALL INPUT_SELECT_D, LOCALS
+		IF RESULT == 0
+			RETURN 0
+		ELSEIF RESULT == 1
+			CALL DUNGEON_WORP,13,20,1
+		ELSEIF RESULT == 2
+			CALL DUNGEON_WORP,22,20,1
+		ENDIF
+
+ENDSELECT
+
+
+;=======================================================================
+;管制ポイント
+;=======================================================================
+@ANOTHER_DIMENTION_65
+
+IF STRFLAG_NUM_D("シュバルツバース進行度") == 3
+	CALL MESSAGE_WINDOW_D, "", "The Demonica Software shows a notification.../Apparently, you can move to a hidden sub-sector from here."
+	CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+;	ELSEIF STRFLAG_NUM_D("シュバルツバース進行度") > 10
+;		CALL MESSAGE_WINDOW_D, "", "Demonicaアプリが反応を示す…/どうやら、ここからさらに別の空間へと移動する事ができるようだ…"
+;		CALLF STRFLAG_NUM_D("シュバルツバース進行度", "+=", , 1)
+ELSEIF STRFLAG_NUM_D("シュバルツバース進行度") < 3
+	CALL MESSAGE_WINDOW_D, "", "＞謎の装置がある…。/スイッチなどは見当たらず、Demonicaアプリも何も反応を示さない…"
+ENDIF
+
+IF STRFLAG_NUM_D("シュバルツバース進行度") >= 4
+	SELECTCASE DA:(FLAG:現X):(FLAG:現Y) / 10
+		
+		CASE 1500, 1501, 1600, 1601, 1700, 1701, 1900, 2000, 2100
+			LOCAL = STRFLAG_NUM_D("カリーナ隠し場")
+			LOCALS = 
+			CALL MESSAGE_WINDOW_D, "", "＞Which sub-sector do you want to move to?"
+			SIF LOCAL != 0
+				LOCALS += "[0] General sector/"
+			SIF LOCAL != 1
+				LOCALS += "[1] 隠し場Ａ/"
+			SIF LOCAL != 2 && STRFLAG_D("隠し場Ｂ探索可能")
+				LOCALS += "[2] 隠し場Ｂ"
+			LOCALS += "[9] Don't move"
+			CALL INPUT_SELECT_D, LOCALS
+			IF RESULT == 0
+				CALLF STRFLAG_NUM_D("カリーナ隠し場", "=", , 0)
+				CALL MESSAGE_WINDOW_D, "", "通常空間に移動します…"
+				SIF FLAG:現M == 16 || FLAG:現M == 17
+					FLAG:現M = 15
+				SIF FLAG:現M == 20 || FLAG:現M == 21
+					FLAG:現M = 19
+				CALL MAKE_FLOOR, FLAG:現ダンジョン
+				CALL AUTOMAP
+			ELSEIF RESULT == 1
+				CALLF STRFLAG_NUM_D("カリーナ隠し場", "=", , 1)
+				CALL MESSAGE_WINDOW_D, "", "隠し場Ａに移動します…"
+				SIF FLAG:現M == 15 || FLAG:現M == 17
+					FLAG:現M = 16
+				SIF FLAG:現M == 19 || FLAG:現M == 21
+					FLAG:現M = 20
+				CALL MAKE_FLOOR, FLAG:現ダンジョン
+				CALL AUTOMAP
+			ELSEIF RESULT == 2
+				CALLF STRFLAG_NUM_D("カリーナ隠し場", "=", , 2)
+				CALL MESSAGE_WINDOW_D, "", "隠し場Ｂに移動します…"
+				SIF FLAG:現M == 15 || FLAG:現M == 16
+					FLAG:現M = 17
+				SIF FLAG:現M == 19 || FLAG:現M == 20
+					FLAG:現M = 21
+			ELSEIF RESULT == 9
+				CALL MESSAGE_WINDOW_D, "", @"%CALLNAME:MASTER% decided not to change sub-sector for now."
+			ENDIF
+
+	ENDSELECT
+ENDIF

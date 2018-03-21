@@ -1,0 +1,898 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/02/25		黒天					能力上昇画面で対象キャラを切り替えられるように変更
+;	003		2011/03/25		UNP						SHOW_ABLUP_SELECTに売却・陥落条件表示を追加（呼び出しのみ）
+;	004		2011/03/25								能力一覧に屈服刻印を追加（参照のみ）
+;	005		2013/01/25		ネトリス				『Auto-upgrade abilities』『オート能力値アップ』を追加
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+@SHOPCOMABLE_111
+RESULTS = Increase Ability
+RETURN 1
+
+@SHOP_COM_111
+CALL ABL_MANUAL_MENU
+RETURN 1
+
+;=============================================================================
+;手動能力アップ
+;=============================================================================
+;-------------------------------------------------
+;能力上昇キャラ選択処理
+;-------------------------------------------------
+@CASTING_ABL_MANUAL
+MARK:COUNT:98 = 0
+SIF CFLAG:COUNT:この場に居ないフラグ >= 1
+	RETURN 0
+SIF CFLAG:COUNT:労役フラグ == 3
+	RETURN 0
+SIF CFLAG:COUNT:フィルタリングフラグ
+	RETURN 0
+;SIF ((TALENT:COUNT:妊娠 && CFLAG:COUNT:出産予定日 - 2 <= DAY) || TALENT:COUNT:育児中) && FLAG:出産機能ONOFF == 1
+;	RETURN 0
+RETURN 1
+
+@ABL_MANUAL_MENU
+VARSET LOCAL
+;ターゲット退避(TFLAG:75)
+LOCAL:3 = TARGET
+
+$INPUT_LIST
+;キャラリストを表示・選択
+CALL INPUT_CHARA_LIST("Whose abilities will you improve?", "CASTING_ABL_MANUAL")
+IF RESULT == 1000
+	SWAP LOCAL:3 , TARGET
+	RETURN 0
+ENDIF
+TARGET = RESULT
+CALL ABL_MANUAL_MAIN, A
+GOTO INPUT_LIST
+
+;-------------------------------------------------
+;上昇させる能力選択の処理
+;-------------------------------------------------
+@ABL_MANUAL_MAIN,ARG
+#LOCALSIZE 1
+;リストの何人目かをLOCALに保存
+LOCAL = FINDELEMENT(Q, TARGET)
+CALL DENIAL_CHECK
+$ABLUP_LOOP1
+DRAWLINE
+PRINTFORML Which of %CALLNAME:TARGET%'s abilities do you improve?
+CALL SHOW_JUEL
+
+CALL SHOW_ABLUP_SELECT
+
+IF FLAG:ショップコマンド == [[ショップ:能力の上昇]]
+	PRINTFORMLC \@(LOCAL > 0) ? [1001]Previous character  # %" " * 16%\@
+	PRINTFORMLC   %" " * 18%
+	PRINTFORMLC \@(LOCAL < ARG - 1) ? [1003]Next character # %" " * 16%\@
+ENDIF
+I = 0
+Z = 0
+$INPUT_LOOP1
+INPUT
+IF 0 <= RESULT && RESULT < 100
+	TRYCALLFORM ABLUP{RESULT}
+	GOTO ABLUP_LOOP1
+ELSEIF RESULT == 1001 && FLAG:ショップコマンド == [[ショップ:能力の上昇]] && LOCAL > 0
+	LOCAL -= 1
+	TARGET = Q:LOCAL
+	RESTART
+ELSEIF RESULT == 1003 && FLAG:ショップコマンド == [[ショップ:能力の上昇]] && LOCAL < ARG - 1
+	LOCAL += 1
+	TARGET = Q:LOCAL
+	RESTART
+ELSEIF RESULT == 200
+	CALL AUTOMAX
+	RESTART
+ELSEIF RESULT == 100
+	CALL JUJUN_UP_CHECK
+	CALL YOKUBO_UP_CHECK
+ELSE
+	GOTO INPUT_LOOP1
+ENDIF
+
+;-------------------------------------------------
+;珠の表示
+;-------------------------------------------------
+
+@SHOW_JUEL
+DRAWLINE
+T = TARGET
+CALL SHOW_INFO_EXP
+A = 0
+X = 0
+
+REPEAT 13
+	IF COUNT == 12
+		X = 100
+	ELSE
+		X = COUNT
+	ENDIF
+
+	PRINTFORM %PALAMNAME_E(X)% Orbs:
+	
+	;表示位置そろえる
+	PRINTFORM {JUEL:X,11}
+
+	;改行or表示位置あけ
+	IF A%4 == 3
+		PRINTL 
+	ELSE
+		PRINT 　 
+	ENDIF
+	A = A + 1
+REND
+PRINTL 　
+DRAWLINE
+
+@SHOW_ABLUP_SELECT
+;売却・助手条件
+CALL SPOILER_PRINT_SELL
+;陥落条件
+CALL SPOILER_PRINT_FALLTALENT
+VARSET LOCALS, "", 0, 20
+
+
+REPEAT 26
+	SIF COUNT == 20 || COUNT == 21
+		CONTINUE
+	
+	IF COUNT == 0
+		X = 0
+		CALL ISABLUP0
+	ELSEIF COUNT == 1
+		X = 1
+		CALL ISABLUP1
+	ELSEIF COUNT == 2
+		X = 2
+		CALL ISABLUP2
+	ELSEIF COUNT == 3
+		X = 3
+		CALL ISABLUP3
+	ELSEIF COUNT == 4
+		X = 4
+		CALL ISABLUP4
+	ELSEIF COUNT == 5
+		X = 5
+		CALL ISABLUP5
+	ELSEIF COUNT == 6
+		X = 6
+		CALL ISABLUP6
+	ELSEIF COUNT == 7
+		X = 7
+		CALL ISABLUP7
+	ELSEIF COUNT == 8
+		X = 8
+		CALL ISABLUP8
+	ELSEIF COUNT == 9
+		X = 9
+		CALL ISABLUP9
+	ELSEIF COUNT == 10
+		X = 10
+		CALL ISABLUP10
+	ELSEIF COUNT == 11
+		IF IS_MALE(TARGET)
+			X = 20
+			CALL ISABLUP20
+		ELSE
+			X = 11
+			CALL ISABLUP11
+		ENDIF
+	ELSEIF COUNT == 12
+		X = 12
+		CALL ISABLUP12
+	ELSEIF COUNT == 13
+		X = 13
+		CALL ISABLUP13
+	ELSEIF COUNT == 14
+		X = 14
+		CALL ISABLUP14
+	ELSEIF COUNT == 15
+		X = 15
+		CALL ISABLUP15
+	ELSEIF COUNT == 16
+		X = 16
+		CALL ISABLUP16
+	ELSEIF COUNT == 17
+		IF IS_MALE(TARGET)
+			X = 21
+			CALL ISABLUP21
+		ELSE
+			X = 17
+			CALL ISABLUP17
+		ENDIF
+	ELSEIF COUNT == 18
+		X = 18
+		CALL ISABLUP18
+	ELSEIF COUNT == 19
+		X = 19
+		CALL ISABLUP19
+	ELSEIF COUNT == 22
+		X = 22
+		CALL ISABLUP22
+	ELSEIF COUNT == 23
+		X = 23
+		CALL ISABLUP23
+	ELSEIF COUNT == 24
+		X = 24
+		CALL ISABLUP24
+	ELSEIF COUNT == 25
+		X = 25
+		CALL ISABLUP25
+	ENDIF
+	
+	
+	SIF RESULT != 1
+		SETCOLOR 0x555555
+	LOCALS:1 = [{X}]%ABLNAME_E(X)%
+	FOR LOCAL, 0, 19
+		SIF STRLENS(LOCALS:1) >= 19
+			BREAK
+		LOCALS:1 += "-"
+	NEXT
+	PRINTFORM %LOCALS:1,19,RIGHT%LV{ABL:X,2,LEFT}
+	IF RESULT == 1
+		PRINTFORM *
+	ELSE
+		PRINTFORM  
+		RESETCOLOR 
+	ENDIF
+
+	IF X==2 ||X==6 ||X==10 || X==14 || X==18 || X==24 || X==25
+		PRINTL 
+	ELSE
+		PRINT 　
+	ENDIF
+
+REND
+
+SETCOLOR 0x555555
+PRINTFORM [96]%MARKNAME_E(0)%-------LV{MARK:0,2,LEFT} 
+PRINT 　
+PRINTFORM [97]%MARKNAME_E(1)%---LV{MARK:1,2,LEFT} 
+PRINT 　
+PRINTFORM [98]%MARKNAME_E(2)%-LV{MARK:2,2,LEFT} 
+PRINT 　
+RESETCOLOR
+
+CALL ISABLUP99
+IF RESULT == 1
+	PRINTFORM [99]%MARKNAME_E(3)%--LV{MARK:3,2,LEFT}*
+ELSE
+	SETCOLOR 0x555555
+	PRINTFORM [99]%MARKNAME_E(3)%--LV{MARK:3,2,LEFT}
+	RESETCOLOR
+
+ENDIF
+
+PRINTL 
+PRINTL 
+PRINTLC [100] End ability upgrade
+PRINTFORMLC   %" " * 42%
+PRINTL [200] Auto-upgrade abilities
+
+@USERABLUP
+
+IF RESULT == 100
+	CALL JUJUN_UP_CHECK
+	CALL YOKUBO_UP_CHECK
+	BEGIN TURNEND
+	RETURN 1
+ELSEIF RESULT == 200
+	CALL AUTOMAX
+ENDIF
+
+RETURN 0
+
+;能力値アップオート
+@AUTOMAX, ARG = -1
+SIF ARG > -1
+	GOTOFORM 個別オート{ARG}
+;ABL判別用
+LOCAL:2 = 0
+
+$AUTOMAX_LOOP
+;チェック用
+LOCAL:1 = 0
+
+SELECTCASE LOCAL:2
+	CASE 0
+		$個別オート0
+		WHILE 1
+			SIF 陥落() == 0 && ABL:0 == 5
+				BREAK
+			SIF ABL:0 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP0
+			IF I == 0
+				JUEL:11 -= A
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:5 -= B
+				LOCAL:1 = 0
+			ELSEIF K == 0
+				JUEL:6 -= C
+				LOCAL:1 = 0
+			ELSEIF L == 0
+				JUEL:7 -= D
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:0 += 1
+		WEND
+	CASE 1
+		$個別オート1
+		WHILE 1
+			SIF 陥落() == 0 && ABL:1 == 5
+				BREAK
+			SIF ABL:1 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP1
+			IF I == 0
+				JUEL:6 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:1 += 1
+		WEND
+	CASE 2
+		$個別オート2
+		WHILE 1
+			SIF 陥落() == 0 && ABL:2 == 5
+				BREAK
+			SIF ABL:2 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP2
+			IF I == 0
+				JUEL:8 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:2 += 1
+		WEND
+	CASE 3
+		$個別オート3
+		WHILE 1
+			SIF 陥落() == 0 && ABL:3 == 5
+				BREAK
+			SIF ABL:3 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP3
+			IF I == 0
+				JUEL:0 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:3 += 1
+		WEND
+	CASE 4
+		$個別オート4
+		WHILE 1
+			SIF 陥落() == 0 && ABL:4 == 5
+				BREAK
+			SIF ABL:4 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP4
+			IF I == 0
+				JUEL:1 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:4 += 1
+		WEND
+	CASE 5
+		$個別オート5
+		WHILE 1
+			SIF 陥落() == 0 && ABL:5 == 5
+				BREAK
+			SIF ABL:5 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP5
+			IF I == 0
+				JUEL:2 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:5 += 1
+		WEND
+	CASE 6
+		$個別オート6
+		WHILE 1
+			SIF 陥落() == 0 && ABL:6 == 5
+				BREAK
+			SIF ABL:6 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP6
+			IF I == 0
+				JUEL:3 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:6 += 1
+		WEND
+	CASE 7
+		$個別オート7
+		WHILE 1
+			SIF 陥落() == 0 && ABL:7 == 5
+				BREAK
+			SIF ABL:7 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP7
+			IF I == 0
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:5 -= B
+				LOCAL:1 = 0
+			ELSEIF K == 0
+				JUEL:8 -= C
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:7 += 1
+		WEND
+	CASE 8
+		$個別オート8
+		WHILE 1
+			SIF 陥落() == 0 && ABL:8 == 5
+				BREAK
+			SIF ABL:8 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP8
+			IF I == 0
+				JUEL:9 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:8 += 1
+		WEND
+	CASE 9
+		$個別オート9
+		WHILE 1
+			SIF 陥落() == 0 && ABL:9 == 5
+				BREAK
+			SIF ABL:9 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP9
+			IF I == 0
+				JUEL:10 -= A
+				JUEL:6 -= B
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:10 -= D
+				JUEL:7 -= E
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:9 += 1
+		WEND
+	CASE 10
+		$個別オート10
+		WHILE 1
+			SIF 陥落() == 0 && ABL:10 == 5
+				BREAK
+			SIF ABL:10 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP10
+			IF I == 0
+				JUEL:6 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:10 += 1
+		WEND
+	CASE 11
+		$個別オート11
+		WHILE 1
+			SIF 陥落() == 0 && ABL:11 == 5
+				BREAK
+			SIF ABL:11 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP11
+			IF I == 0
+				JUEL:6 -= A
+				JUEL:7 -= C
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:0 -= D
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:11 += 1
+		WEND
+	CASE 12
+		$個別オート12
+		WHILE 1
+			SIF 陥落() == 0 && ABL:12 == 5
+				BREAK
+			SIF ABL:12 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP12
+			IF I == 0
+				JUEL:8 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:12 += 1
+		WEND
+	CASE 13
+		$個別オート13
+		WHILE 1
+			SIF 陥落() == 0 && ABL:13 == 5
+				BREAK
+			SIF ABL:13 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP13
+			IF I == 0
+				JUEL:8 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:13 += 1
+		WEND
+	CASE 14
+		$個別オート14
+		WHILE 1
+			SIF 陥落() == 0 && ABL:14 == 5
+				BREAK
+			SIF ABL:14 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP14
+			IF I == 0
+				JUEL:8 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:14 += 1
+		WEND
+	CASE 15
+		$個別オート15
+		WHILE 1
+			SIF 陥落() == 0 && ABL:15 == 5
+				BREAK
+			SIF ABL:15 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP15
+			IF I == 0
+				JUEL:6 -= A
+				JUEL:0 -= B
+				JUEL:9 -= C
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:6 -= A
+				JUEL:0 -= B
+				JUEL:9 -= C
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:15 += 1
+		WEND
+	CASE 16
+		$個別オート16
+		WHILE 1
+			SIF 陥落() == 0 && ABL:16 == 5
+				BREAK
+			SIF ABL:16 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP16
+			IF I == 0
+				JUEL:6 -= A
+				JUEL:7 -= B
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:6 -= A*3
+				JUEL:7 -= B*3
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:16 += 1
+		WEND
+	CASE 17
+		$個別オート17
+		WHILE 1
+			SIF 陥落() == 0 && ABL:17 == 5
+				BREAK
+			SIF ABL:17 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP17
+			IF I == 0
+				JUEL:0 -= B
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:17 += 1
+		WEND
+	CASE 18
+		$個別オート18
+		WHILE 1
+			SIF 陥落() == 0 && ABL:18 == 5
+				BREAK
+			SIF ABL:18 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP18
+			IF I == 0
+				JUEL:6 -= A
+				JUEL:1 -= B
+				JUEL:7 -= C
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:6 -= A
+				JUEL:1 -= B
+				JUEL:7 -= C
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:18 += 1
+		WEND
+	CASE 19
+		$個別オート19
+		WHILE 1
+			SIF 陥落() == 0 && ABL:19 == 5
+				BREAK
+			SIF ABL:19 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP19
+			IF I == 0
+				JUEL:6 -= A
+				JUEL:3 -= B
+				JUEL:7 -= C
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:6 -= A
+				JUEL:3 -= B
+				JUEL:7 -= C
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:19 += 1
+		WEND
+	CASE 20
+		$個別オート20
+		WHILE 1
+			SIF 陥落() == 0 && ABL:20 == 5
+				BREAK
+			SIF ABL:20 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP20
+			IF I == 0
+				JUEL:6 -= A
+				JUEL:7 -= C
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:0 -= D
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:20 += 1
+		WEND
+	CASE 21
+		$個別オート21
+		WHILE 1
+			SIF 陥落() == 0 && ABL:21 == 5
+				BREAK
+			SIF ABL:21 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP21
+			IF I == 0
+				JUEL:0 -= B
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:21 += 1
+		WEND
+	CASE 22
+		$個別オート22
+		WHILE 1
+			SIF 陥落() == 0 && ABL:22 == 5
+				BREAK
+			SIF ABL:22 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP22
+			IF I == 0
+				JUEL:1 -= B
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:2 -= D
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:22 += 1
+		WEND
+	CASE 23
+		$個別オート23
+		WHILE 1
+			SIF 陥落() == 0 && ABL:23 == 5
+				BREAK
+			SIF ABL:23 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP23
+			IF I == 0
+				JUEL:1 -= B
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:2 -= D
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:23 += 1
+		WEND
+	CASE 24
+		$個別オート24
+		WHILE 1
+			SIF 陥落() == 0 && ABL:24 == 5
+				BREAK
+			SIF ABL:24 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP24
+			IF I == 0
+				JUEL:1 -= B
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSEIF J == 0
+				JUEL:2 -= D
+				JUEL:6 -= A
+				JUEL:7 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:24 += 1
+		WEND
+	CASE 25
+		$個別オート25
+		WHILE 1
+			SIF 陥落() == 0 && ABL:25 == 5
+				BREAK
+			SIF ABL:25 == 10
+				BREAK
+			TRYCALLFORM DECIDE_ABLUP25
+			IF I == 0
+				JUEL:恭順 -= A
+				LOCAL:1 = 0
+			ELSE
+				LOCAL:1 += 1
+				SIF LOCAL:1 == 4
+					BREAK
+				CONTINUE
+			ENDIF
+			ABL:25 += 1
+		WEND
+ENDSELECT
+;個別の場合はココで終わり
+SIF ARG > -1
+	RETURN
+LOCAL:2 += 1
+SIF LOCAL:2 < 26
+	GOTO AUTOMAX_LOOP
+
+
+PRINTW オート終了
+
+
+
+
+
+
+
+
+
+
+

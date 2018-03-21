@@ -1,0 +1,737 @@
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+;
+;	Module		:TALK_PUB302.ERB
+;	Facility	:会話タイプ：シャドウの会話用メッセージ＋挨拶・問答処理
+;
+;	Licence		:ライセンスフリー。
+;
+;	Modification Data:
+;
+;	Edit	Date			Author					Reason
+;	001		20XX/XX/XX		----					新規作成
+;	002		2011/01/10		Ｎ鳥					基本処理をTALK_COMMONに一元化し、メッセージを口上呼び出し用関数に移植
+;
+;_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+
+;=====================================================================
+;口調タイプ：○○の汎用口上＋会話用ファイルです
+;=====================================================================
+
+;=====================================================================
+;戦闘時会話および合体時会話の口上テンプレートです。
+
+;個別の悪魔に対応させたい場合はX1をキャラ番号に
+;会話タイプ別に対応させたい場合はKX1をPUB(会話タイプの番号)に
+;置き換えてください。
+
+;例）ピクシーの口上を作りたいならX1⇒501に置き換え
+;　　会話タイプ：女、淑女ならKX1⇒PUB304に置き換え
+
+;知ってると便利そうな表記
+;　%CSTR:ARG:X%　X = 11:一人称 12:二人称 20:種族
+;　\@ CSTR:ARG:種族名 != "" ? %CSTR:ARG:種族名% # %STR:(ABL:ARG:種族)%
+;　┗CSTRに種族名が記載されていればそれを、されていなければABLから種族名を割り出して表示する
+;====================================================================
+
+@KOJO_TALK_PUB332,ARG,ARG:1
+SELECTCASE ARG:1
+	CASE 1
+		;1:Ladyｰkiller
+		PRINTFORML %CALLNAME:ARG%は%CALLNAME:PLAYER%にメロメロのようだ
+		
+	CASE 2
+		; 2:おねだり前の逡巡時(あいさつor問答で目的が決まっている場合)
+		IF RAND:2 == 0
+			PRINTFORML 「騙サレナイゾォ、絶対ニダアアア」
+		ELSE
+			PRINTFORML 「※△☆×○●□」
+		ENDIF
+	CASE 3
+		; 3:交渉の目的を尋ねる
+		SELECTCASE CFLAG:ARG:友好度
+			CASE IS < 25
+				;友好度低い
+				PRINTFORMW 「%CSTR:ARG:11%…die die die die」
+				PRINTFORML 「ウひゃヒャヒャ」
+			CASE IS < 50
+				;友好度普通
+				PRINTFORMW 「%CSTR:ARG:11%を騙す気だナぁ」
+				PRINTFORML 「%CSTR:ARG:11%はぜェたいさ、騙サレナイぞぉ」
+			CASEELSE
+				;友好度高い
+				IF RAND:2 == 0
+					PRINTFORMW 「%CSTR:ARG:11%の仲魔になれぇ」
+					PRINTFORM 「%CSTR:ARG:12%のごゴろにぉぉ…や、みをぅ、
+					IF RAND:2 == 0
+						PRINTFORML 開放シロぅ」
+					ELSE
+						PRINTFORML あルダろぅ」
+					ENDIF
+				ELSE
+					PRINTFORMW 「お前のいう事聞いダら、%CSTR:ARG:11%はぁ…」
+				ENDIF
+		ENDSELECT
+	CASE 84
+		;84:要求前の1文
+		IF RAND:2 == 0
+			PRINT 「Give give give give give give」
+		ELSE
+			PRINT 「It's oveeeeeeeeer」
+		ENDIF
+	CASE 4
+		; 4-6:交渉目的：やらせてくれと言った時の反応
+		; 4:取り付く島もなし
+			PRINTFORMW Refused intensely
+	CASE 5
+		; 5:交渉次第
+		PRINTFORMW 条件次第でヤらせてくれるようだ
+	CASE 6
+		; 6:一発おｋ
+		PRINTFORMW 快く承諾してくれた
+	CASE 7
+		; 7-9:交渉目的：やらせてくれと言った時の反応
+		; 7:取り付く島もなし
+			PRINTFORMW 激しく拒否された
+	CASE 8
+		; 8:交渉次第
+		PRINTFORMW 条件次第で犯してくれるようだ
+	CASE 9
+		; 9:一発おｋ
+		PRINTFORMW 快く承諾してくれた
+	CASE 10
+		;10:要求額を提示：￥
+		PRINTFORML 「￥{TFLAG:TALK用要求値}だぁ、よごぜぇえええ」
+	CASE 11
+		;11-13:￥を払おうとしてお金が足りない
+		;11:別のものを要求する
+		PRINTFORMW 「I don't knoooooow！！」
+		PRINTFORMW 「身体でぇええばらぇええ」
+	CASE 85
+		;85 恵まれる
+		PRINTFORMW 所持金が足りません
+		PRINTFORMW ＞%CALLNAME:ARG%に哀れに思われたようだ
+	CASE 12
+		;12:交渉失敗。立ち去る
+		PRINTFORMW 「I don't knoooooow！！」
+		PRINTFORMW 「きぇへいやあっ」
+		PRINTFORMW 「かえるぅううううっ！！」
+	CASE 13
+		;13:交渉失敗。敵対する
+		PRINTFORMW 「I don't knoooooow！！」
+		PRINTFORMW 「ごろす、殺す…殺す殺す殺す殺殺殺殺殺」
+	CASE 14
+		;14-16:￥を支払った
+		;14:払ったのに逃げられる
+		PRINTFORMW 「満足だ、まだあぉう」
+	CASE 15
+		;15:さらに要求される
+		PRINTFORML 「だリネエ、もっどだ」
+	CASE 16
+		;16:交渉成功
+		PRINTFORMW 「Thank you…」
+		PRINTFORMW 奇怪な姿の%CALLNAME:ARG%は不気味な動きを止め、人間の声音で礼を言った。
+	CASE 17
+		;17-19:￥を支払うのを断った::
+		;17:交渉失敗。奇襲する
+		PRINTFORMW 「シネ、死死死死死死死死死」
+	CASE 18
+		;18:交渉失敗。敵対する
+		PRINTFORMW 「ぐげぇエエエエ」
+		PRINTFORMW 「やっパリぃ、騙シたカアああア」
+	CASE 19
+		;19:他のものを要求する:
+		PRINTFORMW 「別のダ、くれれれクレくれくれくれ」
+	CASE 20
+		;20:要求額を提示：ＭＡＧ
+		PRINTFORML 「{TFLAG:TALK用要求値}MAG」
+	CASE 21
+		;21-23:ＭＡＧを支払おうとしたが足りない
+		;21:別のものを要求する
+		PRINTFORMW 「だりんぇえええええ！！」
+		PRINTFORMW 「別のモノだぁあ」
+	CASE 86
+		;86 恵まれる
+		PRINTFORMW Not enough MAG
+		PRINTFORMW ＞%CALLNAME:ARG%に哀れに思われたようだ
+	CASE 22
+		;22:交渉失敗。立ち去る
+		PRINTFORMW 「だりんぇえええええ！！」
+		PRINTFORMW 「グギャィエエアアアッ」
+		PRINTFORMW 「帰るううっ」
+	CASE 23
+		;23:交渉失敗。敵対する
+		PRINTFORMW 「だりんぇえええええ！！」
+		PRINTFORMW 「殺る犯る解す、殺殺殺殺殺殺殺殺！！」
+	CASE 24
+		;24-26:ＭＡＧを支払った
+		;24:払ったのに逃げられる
+		PRINTFORMW 「まん足だぁああ」
+		PRINTFORMW 「帰るぅうう」
+	CASE 25
+		;25:さらに要求される
+		PRINTFORMW 「足りネェ…モっどだ」
+	CASE 26
+		;26:交渉成功
+		PRINTFORMW 「Thank you…」
+		PRINTFORMW 奇怪な姿の%CALLNAME:ARG%は奇妙な動きを止め、人間の声で礼を言った。
+	CASE 27
+		;27-29:ＭＡＧを支払うのを断った
+		;27:交渉失敗。奇襲する
+		PRINTFORMW 「Die！！　Death death  death  death  death  death  death  death ！！」
+	CASE 28
+		;28:交渉失敗。敵対する
+		PRINTFORMW 「Guu…ウジャジャジャジャ」
+		PRINTFORMW 「ビャあああっ！！」
+		PRINTFORMW %CALLNAME:ARG% is openly hostile。
+	CASE 29
+		;29:他のものを要求する
+		PRINTFORMW 「別のモのをグれぇ」
+	CASE 30
+		;30:魔石を要求
+		PRINTFORML 魔石を要求されました
+		
+	CASE 31
+		;31-33:魔石を渡そうとしたが持っていない
+		;31:別のものを要求する
+		PRINTFORMW 魔石を持っていません
+	CASE 87
+		;87 恵まれる
+		PRINTFORMW 魔石を持っていません
+		PRINTFORMW ＞%CALLNAME:ARG%に哀れに思われたようだ
+	CASE 32
+		;32:交渉失敗。立ち去る
+		PRINTFORMW 魔石を持っていません
+	CASE 33
+		;33:交渉失敗。敵対する
+		PRINTFORMW 魔石を持っていません
+	CASE 34
+		;34-36:魔石を渡した
+		;34:払ったのに逃げられる
+	CASE 35
+		;35:さらに要求される
+	CASE 36
+		;36:交渉成功
+	CASE 37
+		;37-39:魔石を渡すのを断った
+		;37:交渉失敗。奇襲する
+	CASE 38
+		;38:交渉失敗。敵対する
+	CASE 39
+		;39:他のものを要求する
+	CASE 40
+		;40:異性との性交渉を要求
+		PRINTFORML \@TALENT:ARG:オトコ ?女#男\@を要求されました
+	CASE 41
+		;18:異性を宛がってもらった時の反応
+		CALL MESSAGE_TALK
+	CASE 42
+		;42-46:性交渉が終わった後
+		;42:敗北してる場合ここでゲームオーバー
+	CASE 43
+		;43:話しかけたキャラが倒れている
+	CASE 44
+		;44:ヤらせたのに逃げられる
+		PRINTFORMW %CALLNAME:ARG%に逃げられた
+	CASE 45
+		;45:満足してない
+		PRINTFORML %CALLNAME:ARG%はまだ満足していないようだ
+	CASE 46
+		;46:満足
+		PRINTFORMW %CALLNAME:ARG%は満足したようだ
+	CASE 47
+		;47-49:性交渉を断った
+		;47:交渉失敗。奇襲する
+	CASE 48
+		;48:交渉失敗。敵対する
+	CASE 49
+		;49:他のものを要求する
+	CASE 50
+		;50-55:ヤらせてもらった後
+		;50:敗北してる場合ここでゲームオーバー
+	CASE 51
+		;51:話かけたキャラが倒れいる
+	CASE 52
+		;52:去っていく
+	CASE 53
+		;53:満足し、仲魔になる
+	CASE 54
+		;54:満足し、アイテムをくれる
+	CASE 53
+		;53:満足し、見逃してくれる
+		;現状、死に処理
+	CASE 56
+		;56-61:犯してもらった後
+		;56:敗北してる場合ここでゲームオーバー
+	CASE 57
+		;57:話かけたキャラが倒れいる
+	CASE 58
+		;58:去っていく
+	CASE 59
+		;59:満足し、仲魔になる
+	CASE 60
+		;60:満足し、アイテムをくれる
+	CASE 61
+		;61:満足し、見逃してくれる
+		;現状、死に処理
+	CASE 62
+		;62:仲魔になる
+			IF FLAG:交渉目的 > 3
+				PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、%CALLNAME:ARG%が仲魔になってくれました
+			ELSE
+				PRINTFORML 「%CSTR:ARG:11%、%STR:(ABL:ARG:種族)% %CALLNAME:ARG%」
+				PRINTFORMW 「%CSTR:ARG:12%とイげばぁ…モトの姿にぃ、なれるがぁ？」
+			ENDIF
+	CASE 63
+		;63:マスターのレベルより高い場合
+		PRINTFORMW 「Weeeeeeeeeak」
+	CASE 64
+		;64:ＣＯＭＰの空きが無い場合
+		IF TALENT:PLAYER:オトコ == 0
+			PRINTFORML 「Big sister…」
+		ELSE
+			PRINTFORML 「Big brother…」
+		ENDIF
+		PRINTFORMW 「ゾンな大っぎいの入んなイヨォぉおお」
+	CASE 65
+		;65:搾りとられた
+	CASE 66
+		;66:お金をくれる
+		IF FLAG:交渉目的 > 3
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、お金を恵んでもらいました
+		ELSE
+			PRINTFORML 「グレてやるぅうう」
+		ENDIF
+	CASE 67
+		;67:ＭＡＧをくれる
+		IF FLAG:交渉目的 > 3
+			PRINTFORMW %CALLNAME:PLAYER%の体に大変満足し、ＭＡＧを恵んでもらいました
+		ELSE
+			PRINTFORML 「%CSTR:ARG:11%のぬぅこうなノヲくレてやるぅうう」
+		ENDIF
+	CASE 68
+		;68:ダメージをくれる
+		PRINTFORML 「ＵＲＹＹＹＹＹ！！」
+	CASE 69 TO 75
+		;69-75:アイテムをくれるor回復してくれる
+		PRINTFORML 「グレてやるぅうう」
+		;69:ソーマを使ってくれる
+;	CASE 70
+;		;70:BeadChainを使ってくれる
+;	CASE 71
+;		;71:ITEMor魔石をくれる
+;	CASE 72
+;		;72:魔石をくれる
+;	CASE 73
+;		;73:魔石を使ってくれる
+;	CASE 74
+;		;74:宝玉を使ってくれる
+;	CASE 75
+;		;75:宝玉をくれる
+	CASE 76
+		;76-78:気まずくなった
+		;76:会話失敗。奇襲する
+		PRINTFORMW 「死ヌ、%CSTR:ARG:11%で%CSTR:ARG:12%が死殺死死殺死死！！」
+	CASE 77
+		;77:会話失敗。敵対する
+		PRINTFORMW 「むがづぐぅ～！！」
+		PRINTFORMW 「もぅじらねぇ！　イヒャアアアッ！！」
+	CASE 78
+		;78:会話継続
+		PRINTFORMW 「ドウデモイイ…」
+	CASE 79
+		;79-83:立ち去る
+		;79:同じ仲魔がいる場合
+		PRINTFORML 「グフ、グフフフフフフ♪」
+	CASE 80
+		;険悪な雰囲気
+		PRINTFORML 「づ、づギは殺ス」
+	CASE 81
+		;友好度が低い
+		PRINTFORML 「近よルナぁああっ」
+	CASE 82
+		;友好度が普通
+		PRINTFORML 「%CSTR:ARG:11%は誰だ…」
+	CASE 83
+		;友好度が高い
+		PRINTFORML 「マダ会おう」
+	CASE 88
+		;ヤらせてもらう・交渉が成功した場合
+		PRINTFORMW 交渉に成功し、犯させてもらえることになった
+		CALL MESSAGE_TALK
+	CASE 89
+		;犯してもらう・交渉が成功した場合
+		PRINTFORMW 交渉に成功し、犯してもらえることになった
+		CALL MESSAGE_TALK
+	CASE 91
+		;敵が命乞いCASE91～93
+		;91:命乞い
+	CASE 92
+		;92:助けた場合（RETURN 0, X = 0.逃げる　1.仲魔になる　2.何か貰う　3.奇襲）
+		;『@KOJO_TALK』をはさむ為、RESULT:0が上書きされてしまうのでRESULT:1を使う
+		;とりあえずランダムにしてみる
+	CASE 93
+		;93:断った場合
+	CASE 94
+		;敵から助ける代わりに取引を持ちかけられるCASE94～101
+		;94:取引内容（RETURN 0, X = 1.￥　2.魔貨　3.異性）
+		PRINTFORML %CALLNAME:ARG%が%CALLNAME:PLAYER%に取引を持ちかけてきた
+	CASE 95
+		;95:要求をのむ（￥）
+	CASE 96
+		;96:要求をのむ（魔貨）
+	CASE 97
+		;97:要求をのむ（異性）
+		CALL MESSAGE_TALK
+	CASE 98
+		;98:約束を守るかどうか口上内で決める（RETURN 0, X = 1.去っていく　2.戦闘続行）
+	CASE 99
+		;99:約束を守って去っていく
+	CASE 100
+		;100:約束を守らず戦闘続行
+	CASE 101
+		;101:要求を断る
+ENDSELECT
+
+
+;===========================================================================
+;会話時挨拶
+;===========================================================================
+@GREET_PUB332,ARG
+;最初の挨拶
+PRINTFORMW 「%CSTR:ARG:11%とはなじだぃだああ？」
+PRINTFORML 「いぃだろぅ……」
+PRINTFORML 奇怪な動きを悪魔は止めた。
+PRINTFORML 交渉に応じるらしい。
+
+;質問を増やした場合、RAND:XのXを増やす
+;RETURNの値により回答後の雰囲気が変わる。
+;0.会話継続 1.直接仲魔になる 2.何かくれる 3.奇襲される 4.敵対する 5.逃げる 6.気まずくなる
+SELECTCASE RAND:2
+	CASE 0
+		;「%CSTR:ARG:11%は外道　水○燈よぉ…今後ともよろしくねぇ」
+		;「悪魔に話しかけるおバカさんはいないわよねぇ？」
+		PRINTFORMW 「What on earth are you thinking、talking to a shadow？」
+		PRINTFORML 「%CSTR:ARG:11%は悪魔であって、悪魔ではない」
+		PRINTFORML 先ほどまでの声音とは明らかに違う凛とした声で悪魔は話掛けてきた。
+		PRINTFORML [1]I know　　　　　[2]I don't know
+		PRINTFORML [3]Fall silent　　　　　　　　[4]It does not matter
+		$INPUT_LOOP0
+		INPUT
+		PRINTFORML
+		IF RESULT == 1
+			;１．知っている
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+;			素質によって判定値がランダムに上下することもある
+;			SIF TALENT:ARG:反抗的
+;				LOCAL -= RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「You know？」
+					PRINTFORMW 「what is it、what do you understand…」
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「Do you know」
+					PRINTFORMW 「Tartarus…appears only at midnight……」
+					PRINTFORMW As the demon spoke、it suddenly stopped moving。
+					PRINTFORMW 「Come、come come come、nights are crazy crazy crazy crazy crazy crazy crazy crazy！！」
+					RETURN 1
+			ENDIF
+		ELSEIF RESULT == 2
+			;２．知らない
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「Is that so…」
+					PRINTFORMW The demons suddenly stopped with those words。
+					RETURN 6
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「It may be said ignorance is bliss」
+					PRINTFORMW The demon muttered quietly、as it suddenly stopped。
+					PRINTFORMW 
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 3
+			;３．黙れ
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「You deserve certain death」
+					PRINTFORMW The demons suddenly stopped with those words。
+					RETURN 3
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「聞きたくないか…」
+					PRINTFORMW 「確かに君には関係の無い事だな」
+					PRINTFORMW 悪魔は落胆と共にピタリと動きを止めた。
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 4
+			;４．どうでもいい
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「It is execution」
+					PRINTFORMW The demons suddenly stopped with those words。
+					RETURN 4
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「…………」
+					PRINTFORMW The demon continued to calmly move at %CALLNAME:PLAYER%'s words。
+					RETURN 6
+			ENDIF
+		ELSE
+			GOTO INPUT_LOOP0
+		ENDIF
+	CASE 1
+		;外道ゆかビッチが現れた
+		;ゆかビッチ「ビッチを騙しても平気なの？」
+		;こっちは台詞のみにしてみる
+		IF TALENT:PLAYER:服従 == 1
+			PRINTFORMW 「Hey…What on earth have you come here to do？」
+			PRINTFORML   
+			PRINTFORML [1]Looking for a master　[2]Don't say
+			PRINTFORML [3]君に見て欲しい　[4]野外露出プレイ中
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW 「Who are you？」
+				PRINTFORML 
+				PRINTFORML [1]Devil summoner　[2]Don't say
+				PRINTFORML [3]Your destined partner　[4]Demon trainer
+			ELSE
+				PRINTFORMW 「Hey…What on earth have you come here to do？」
+				PRINTFORML   
+				PRINTFORML [1]Trying to reach the top　[2]Don't say
+				PRINTFORML [3]君に会う為　　　[4]奴隷を探してる
+			ENDIF
+		ENDIF
+		$INPUT_LOOP1
+		INPUT
+		PRINTFORML
+		IF RESULT == 1
+			;１．頂上を目指して
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+;			素質によって判定値がランダムに上下することもある
+;			SIF TALENT:ARG:反抗的
+;				LOCAL -= RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「Heh is that so」
+					RETURN 0
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「You seem interesting」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 2
+			;２．教えない
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「あっそ」
+					RETURN 4
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「Hiding it only make me more interested」
+					RETURN 0
+			ENDIF
+		ELSEIF RESULT == 3
+			;３．君に会う為
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+			;ビッチなので成功率高/友好度低下低
+			IF LOCAL < 10
+				CFLAG:ARG:友好度 -= RAND:20
+				;失敗
+					PRINTFORMW 「Huh？　what stupidity」
+					RETURN 5
+			ELSE
+				CFLAG:ARG:友好度 += RAND:50
+				;成功
+				IF TALENT:PLAYER:服従 == 1
+					PRINTFORMW 「Eh、what are you suddenly taking off！？」
+					PRINTFORMW 「バ、バカ、見ちゃったじゃないの…」
+					RETURN 0
+				ELSE
+					PRINTFORMW  ｢えっ、いきなり口説いちゃったり！？」
+					PRINTFORMW 「バ、バカじゃないの…」
+					RETURN 7
+				ENDIF
+			ENDIF
+		ELSEIF RESULT == 4
+			;４．どうでもいい
+			LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2) - RAND:20
+			IF LOCAL < 30
+				CFLAG:ARG:友好度 -= RAND:50
+				;失敗
+					PRINTFORMW 「ふぅん…そっか」
+					RETURN 0
+			ELSE
+				CFLAG:ARG:友好度 += RAND:30
+				;成功
+					PRINTFORMW 「Ahaha…」
+					RETURN 0
+			ENDIF
+		ELSE
+			GOTO INPUT_LOOP1
+		ENDIF
+
+ENDSELECT
+
+;===========================================================================
+;会話時問答
+;===========================================================================
+@QUESTION_PUB332,ARG,ARG:1
+
+PRINTFORML
+CUSTOMDRAWLINE ･
+PRINTFORML
+
+DO
+	;設問を増やした場合、RAND:XのXを増やす
+	RESULT:1 = RAND:2
+
+
+	;RETURNの値により回答後の雰囲気が変わる。
+	;0.会話継続 1.直接仲魔になる 2.何かくれる 3.奇襲される 4.敵対する 5.逃げる 6.気まずくなる 7.交渉開始
+	SELECTCASE RESULT:1
+		CASE ARG:1
+			CONTINUE
+		CASE 0
+			PRINTFORMW 「I have something to tell you from now...In general, imagination will go on」
+			;「今から君に話す事がある…大体、想像はつくだろう」 
+			PRINTFORMW 「If you do not tell me, this is the end of the story with you...」
+			;「つかないようなら、君との話はこれで終わりだ……」 
+			PRINTFORML
+			PRINTFORML [1]Imagination goes on　[2]I can not imagine
+			;[1]想像はつく　　　　　[2]想像出来ない
+			PRINTFORML [3]I do not like you
+			;お前が気に入らない
+			$INPUT_LOOP2
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1.想像はつく
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+	;			素質によって判定値がランダムに上下することもある
+	;			SIF TALENT:ARG:反抗的
+	;				LOCAL -= RAND:20
+				IF LOCAL < 10
+					CFLAG:ARG:友好度 -= RAND:20
+					;失敗
+						PRINTFORMW 「すまない…この話はやめておこう」
+						PRINTFORMW 悪魔は唐突に話を遮って会話を終わらせた。
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:50
+					;成功
+						PRINTFORMW 「まわりくどい事は嫌いだ」
+						PRINTFORMW 「単刀直入に言おう」
+						PRINTFORMW 「君はこの塔に巣食う私達が何者か、気がついているな」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2.想像出来ない
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「解らないか…」
+						RETURN 6
+				ELSE
+					CFLAG:ARG:友好度 += RAND:30
+					;成功
+						PRINTFORMW 「お願いだ…想像して欲しい……」
+						RETURN 0
+				ENDIF
+			ELSEIF RESULT == 3
+				;3.お前が気に入らない
+				PRINTFORMW 「Is that so…It cannot be helped」
+				PRINTFORMW 「There is no choice but for one to die」
+				RETURN 4
+			ELSE
+				GOTO INPUT_LOOP2
+			ENDIF
+		CASE 1
+			PRINTFORMW 「…Be frank」 
+			PRINTFORMW 「Are we already…Are we useless？」 
+			PRINTFORML
+			PRINTFORML [1]That's right　　　　[2]There is no such thing
+			PRINTFORML [3]Don't understand　[4]Your head is useless
+			$INPUT_LOOP3
+			INPUT
+			PRINTFORML
+			IF RESULT == 1
+				;1.その通り
+				CFLAG:ARG:友好度 -= 50
+				IF RAND:20 == 0
+					PRINTFORMW 「I'll take your life！！」
+					RETURN 3
+				ELSE
+					PRINTFORMW 「I understand、you made it clear」
+					RETURN 0
+				ENDIF
+			ELSEIF RESULT == 2
+				;2.そんな事はない
+				PRINTFORMW 「Eh…really？」
+				PRINTFORMW 「Can I believe this…」
+				CFLAG:ARG:友好度 += 50
+				RETURN 0
+			ELSEIF RESULT == 3
+				;3.意味が解らない
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 30
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「Such a way of speaking…」
+						RETURN 4
+				ELSE
+					CFLAG:ARG:友好度 += RAND:20
+					;成功
+						PRINTFORMW 「Not terrible？」
+						PRINTFORMW 「This is true」
+						RETURN 6
+				ENDIF
+			ELSEIF RESULT == 4
+				;4.お前の頭がダメだ
+				LOCAL = RAND:100 + RAND:(MAXBASE:PLAYER:知恵+MAXBASE:PLAYER:運/2)
+				IF LOCAL < 80
+					CFLAG:ARG:友好度 -= RAND:50
+					;失敗
+						PRINTFORMW 「……idiot」
+						RETURN 5
+				ELSE
+					CFLAG:ARG:友好度 += RAND:20
+					;成功
+						PRINTFORMW 「Whose head is no good！！」
+						RETURN 6
+				ENDIF
+			ELSE
+				GOTO INPUT_LOOP3
+			ENDIF
+
+	ENDSELECT
+
+LOOP 1
+
+@FUSION_MESSAGE_PUB332,ARG
+;合体時口上
+PRINTFORMW 「%CSTR:ARG:11%は\@ CSTR:ARG:種族名 != "" ? %CSTR:ARG:種族名% # %STR:(ABL:ARG:種族)% \@ %CALLNAME:ARG%」
+IF TALENT:PLAYER:オトコ == 1
+	PRINTFORM 「お兄ちゃん
+ELSE
+	PRINTFORM 「お姉ちゃん
+ENDIF
+PRINTFORMW と一緒にいれば普通の悪魔になれるよね%UNICODE(0x2661)%」

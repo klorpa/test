@@ -1,0 +1,927 @@
+;=======================================================================
+;SEBECビル
+;ボス　超人 武多
+;ダンジョンナンバー10  MAP 0-5
+;=======================================================================
+;
+;ダンジョンフラグ:(FLAG:現ダンジョン):0 = 初回進入フラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):1-7 = 宝箱
+;ダンジョンフラグ:(FLAG:現ダンジョン):8 = 武多撃破フラグ
+;ダンジョンフラグ:(FLAG:現ダンジョン):9 = クリアフラグ
+;
+;ダンジョンフラグ:(FLAG:現ダンジョン):10 = アヤセ・エリー・マキの状態
+;0:麻希登場イベント無視(SEBECビル内で遭遇しなかった)
+;1:アヤセ和解ルート(イベント『御影町にて１』でアヤセを説得した状態でSEBECビル内で遭遇し、マキとアヤセ加入した)
+;2:エリー和解ルート(イベント『御影町にて２』でエリーと情報交換した状態でSEBECビル内で遭遇し、マキとエリー加入した)
+;3:放置ルート(イベント放置もしくは友好関係築いていない状態でSEBECビル内で遭遇した)
+;4:3人奴隷化ルート(イベントでアヤセかエリーを拉致していて、SEBECビル内で輪姦されていた残りの２人を持ち帰る)
+;5:エリー、麻希、輪姦後放置(イベントでアヤセ拉致、SEBECビル内で輪姦されていた２人は放置)
+;6:アヤセ、麻希、輪姦後放置(イベントでエリー拉致、SEBECビル内で輪姦されていた２人は放置)
+;7:協力を断った(イベントで友好関係を築き、SEBECビル内で出会ったがクリア後協力を断った)
+;
+;=======================================================================
+;攻略条件
+;=======================================================================
+@PREREQUISITE_DUNGEON_10
+;地下鉄クリア
+IF ダンジョンフラグ:9:1 == 1 && ダンジョンフラグ:10:9 == 0
+	RETURN 1
+ELSE
+	RETURN 0
+ENDIF
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_10
+RESULTS = SEBEC Building
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_10
+PRINT SEBEC Building
+SELECTCASE FLAG:現M
+	CASE 0
+		PRINTL 1F
+	CASE 1
+		PRINTL 2F
+	CASE 2
+		PRINTL 3F
+	CASE 3
+		PRINTL 4F
+	CASE 4
+		PRINTL 5F
+	CASE 5
+		PRINTL Underground facility
+		;地下施設
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+;=======================================================================
+;特殊タイル表示
+;=======================================================================
+@TILE_MARK_10_5_5_13
+RESULTS = Ｔ
+@TILE_MARK_10_0_15_17
+RESULTS = Ｔ
+@TILE_MARK_10_3_17_6
+RESULTS = Ｔ
+
+;=======================================================================
+;スタート地点入力
+;=======================================================================
+@START_DUNGEON_10,ARG
+IF イベントフラグ:20:0 >= 3
+	FLAG:現M = 0
+	FLAG:現X = 6
+	FLAG:現Y = 1
+ELSE
+	FLAG:現M = 0
+	FLAG:現X = 0
+	FLAG:現Y = 13
+ENDIF
+FLAG:MAG消費率 = 75
+
+;=======================================================================
+;スタート時イベント
+;=======================================================================
+@EVENT_DUNGEON_START_10
+IF ダンジョンフラグ:(FLAG:現ダンジョン):0 == 0
+	CALL SHOW_PICTURE, "D"
+	CALL MESSAGE_WINDOW_D, "", "＞About the differentiation at the Town of Mikage-Cho,/＞it seems the cause is stemming from the Saeki Energy, Biological & Electronics Corporation.../＞or SEBEC for short."
+	;御影町における異界化事件/＞どうも元凶は佐伯Erergy&Biological&Electronics・Corporation社…/＞通称SEBECにあるらしい
+	CALL MESSAGE_WINDOW_D, "", "＞御影町には神取鷹久という男が率いる支社があるのだが/＞そこが妙な動きをしていたらしい/＞……と、なるとスポンサーは本社の方かも知れない"
+	CALL MESSAGE_WINDOW_D, "", "＞これ以上厄介なことになる前に支社を切ったか？/＞まぁ、そこら辺の事情は忖度しても始まらないのだが"
+	CALL MESSAGE_WINDOW_D, "", "………………/…………/……"
+	IF イベントフラグ:20:0 >= 3
+		CALL MESSAGE_WINDOW_D, "", @"＞以前黒服から奪ったIDカードと女生徒の話を合わせて考えれば/＞廃工場には何かがあると言う事になる/＞%CALLNAME:MASTER%は廃工場を調べて、隠し通路を発見し、/＞そこからSEBECビルに侵入した"
+		ダンジョンフラグ:(FLAG:現ダンジョン):0 = 1
+	ELSE
+		CALL MESSAGE_WINDOW_D, "Man in black suit", "Stop, there is no trespassing beyond here."
+		;"黒スーツの男", "止まれ、ここからは部外者立ち入り禁止だ"
+		CALL MESSAGE_WINDOW_D, "", "＞支社ビルに近付いた時点で、黒スーツの男たちに止められた/＞それは良いのだが、いきなりGunを向けてくる辺り/＞この事件は我々がやりましたと言わんばかりではある/＞で、あればこちらも問答無用で良いだろう"
+		CALL MESSAGE_WINDOW_D, "", "＞超人ブラックマンが出た"
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,8,4212,15,0,0
+		CALL SET_ENEMY,9,4212,15,0,0
+		CALL SET_ENEMY,10,4212,15,0,0
+		CALL SET_ENEMY,14,4212,25,0,1
+		CALL BATTLE_START
+		CALL SHOW_PICTURE, "D"
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		ダンジョンフラグ:(FLAG:現ダンジョン):0 = 1
+		CALL MESSAGE_WINDOW_D, "", "＞...defeated the black-suited men and began exploring the SEBEC building."
+		;……黒スーツの男達を倒して、SEBECビルに侵入した
+	ENDIF
+ENDIF
+
+;=======================================================================
+;指定したマスに進入可能か
+;=======================================================================
+@CAN_ENTER_10,ARG,ARG:1
+CALL CAN_ENTER,ARG,ARG:1
+RETURN RESULT
+
+;=======================================================================
+;フロアデータ
+;=======================================================================
+@MAKE_FLOOR_10
+SELECTCASE FLAG:現M
+	CASE 0
+	;北東
+		
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0000011100000000000"
+		CALL MAKE_FLOOR_LINE, 2,"0111011100000000000"
+		CALL MAKE_FLOOR_LINE, 3,"0111002000000000000"
+		CALL MAKE_FLOOR_LINE, 4,"0020011101110000000"
+		CALL MAKE_FLOOR_LINE, 5,"0111110001110000160"
+		CALL MAKE_FLOOR_LINE, 6,"0000010000200000100"
+		CALL MAKE_FLOOR_LINE, 7,"0111011111110000100"
+		CALL MAKE_FLOOR_LINE, 8,"0111010000000000100"
+		CALL MAKE_FLOOR_LINE, 9,"0020010000111111100"
+		CALL MAKE_FLOOR_LINE,10,"0111110000600111110"
+		CALL MAKE_FLOOR_LINE,11,"0000010000000000010"
+		CALL MAKE_FLOOR_LINE,12,"0111110000001110010"
+		CALL MAKE_FLOOR_LINE,13,"8111000000001110010"
+		CALL MAKE_FLOOR_LINE,14,"0111110000000200010"
+		CALL MAKE_FLOOR_LINE,15,"000E010110011111110"
+		CALL MAKE_FLOOR_LINE,16,"0000012110000002000"
+		CALL MAKE_FLOOR_LINE,17,"0000010110000009000"
+		CALL MAKE_FLOOR_LINE,18,"0000000000000000000"
+
+		;イベントの設置
+		CALL SET_TILE,10,4,ダンジョンフラグ:(FLAG:現ダンジョン):1,0,3
+		SIF イベントフラグ:22:0 != 1 && イベントフラグ:22:0 != 2
+			CALL SET_TILE,13,9,ダンジョンフラグ:(FLAG:現ダンジョン):10,0,4
+		SIF イベントフラグ:22:0 == 1 || イベントフラグ:22:0 == 2
+			CALL SET_TILE,13,13,ダンジョンフラグ:(FLAG:現ダンジョン):10,0,4
+
+	CASE 1
+		;北西
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0111111011111111110"
+		CALL MAKE_FLOOR_LINE, 2,"0100001110000000010"
+		CALL MAKE_FLOOR_LINE, 3,"0100001000000000110"
+		CALL MAKE_FLOOR_LINE, 4,"0100000000000000100"
+		CALL MAKE_FLOOR_LINE, 5,"0100000000000000170"
+		CALL MAKE_FLOOR_LINE, 6,"0100100001116000000"
+		CALL MAKE_FLOOR_LINE, 7,"0111100001010000000"
+		CALL MAKE_FLOOR_LINE, 8,"0000100001110000000"
+		CALL MAKE_FLOOR_LINE, 9,"0111110000100000000"
+		CALL MAKE_FLOOR_LINE,10,"0100010000700101010"
+		CALL MAKE_FLOOR_LINE,11,"0100010000000101210"
+		CALL MAKE_FLOOR_LINE,12,"0600110000000111010"
+		CALL MAKE_FLOOR_LINE,13,"0000100000000001000"
+		CALL MAKE_FLOOR_LINE,14,"0111111111111111110"
+		CALL MAKE_FLOOR_LINE,15,"000E100200100000010"
+		CALL MAKE_FLOOR_LINE,16,"0000101110100000010"
+		CALL MAKE_FLOOR_LINE,17,"0000101110000001110"
+		CALL MAKE_FLOOR_LINE,18,"0000000000000000000"
+
+	
+		;イベントの設置
+		CALL SET_TILE,7,17,ダンジョンフラグ:(FLAG:現ダンジョン):2,0,3
+		CALL SET_TILE,17,11,ダンジョンフラグ:(FLAG:現ダンジョン):3,0,3
+
+	CASE 2
+		;南西
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0111000000000001110"
+		CALL MAKE_FLOOR_LINE, 2,"0101111111111100200"
+		CALL MAKE_FLOOR_LINE, 3,"0111000000000111110"
+		CALL MAKE_FLOOR_LINE, 4,"0001000000000010000"
+		CALL MAKE_FLOOR_LINE, 5,"0001000060000011100"
+		CALL MAKE_FLOOR_LINE, 6,"0001000011117000110"
+		CALL MAKE_FLOOR_LINE, 7,"0001000010100000010"
+		CALL MAKE_FLOOR_LINE, 8,"0001000011100000010"
+		CALL MAKE_FLOOR_LINE, 9,"0001000000000000110"
+		CALL MAKE_FLOOR_LINE,10,"0001000000000001100"
+		CALL MAKE_FLOOR_LINE,11,"0001000000000011000"
+		CALL MAKE_FLOOR_LINE,12,"0701000000001110000"
+		CALL MAKE_FLOOR_LINE,13,"0101111111111000010"
+		CALL MAKE_FLOOR_LINE,14,"0101000000000011110"
+		CALL MAKE_FLOOR_LINE,15,"010E000000000010010"
+		CALL MAKE_FLOOR_LINE,16,"0100000000111110000"
+		CALL MAKE_FLOOR_LINE,17,"0111111111106011110"
+		CALL MAKE_FLOOR_LINE,18,"0000000000000000000"
+	
+		;イベントの設置
+		CALL SET_TILE,16,1,ダンジョンフラグ:(FLAG:現ダンジョン):4,0,3
+
+	CASE 3
+		;南東
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0111000000000111110"
+		CALL MAKE_FLOOR_LINE, 2,"0111000000000100010"
+		CALL MAKE_FLOOR_LINE, 3,"0020010000000111110"
+		CALL MAKE_FLOOR_LINE, 4,"0111010000000001000"
+		CALL MAKE_FLOOR_LINE, 5,"0100010070000001000"
+		CALL MAKE_FLOOR_LINE, 6,"0100010011100001290"
+		CALL MAKE_FLOOR_LINE, 7,"0111010010100001000"
+		CALL MAKE_FLOOR_LINE, 8,"0001110011100001000"
+		CALL MAKE_FLOOR_LINE, 9,"0111000000600001010"
+		CALL MAKE_FLOOR_LINE,10,"0100000000000001210"
+		CALL MAKE_FLOOR_LINE,11,"0100000000000001010"
+		CALL MAKE_FLOOR_LINE,12,"0111110000000001000"
+		CALL MAKE_FLOOR_LINE,13,"0000100000000001000"
+		CALL MAKE_FLOOR_LINE,14,"0111100000000001000"
+		CALL MAKE_FLOOR_LINE,15,"010E001011001111000"
+		CALL MAKE_FLOOR_LINE,16,"0100001211001001000"
+		CALL MAKE_FLOOR_LINE,17,"0111111011007001160"
+		CALL MAKE_FLOOR_LINE,18,"0000000000000000000"
+		;イベントの設置
+		CALL SET_TILE,2,1,ダンジョンフラグ:(FLAG:現ダンジョン):5,0,3
+		CALL SET_TILE,9,16,ダンジョンフラグ:(FLAG:現ダンジョン):6,0,3
+
+	CASE 4
+		;南東
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0100100000000000000"
+		CALL MAKE_FLOOR_LINE, 2,"0100100011111000000"
+		CALL MAKE_FLOOR_LINE, 3,"0100111110000000000"
+		CALL MAKE_FLOOR_LINE, 4,"0100100011111111110"
+		CALL MAKE_FLOOR_LINE, 5,"0100100000000000010"
+		CALL MAKE_FLOOR_LINE, 6,"0110100700000001110"
+		CALL MAKE_FLOOR_LINE, 7,"0010101110000001000"
+		CALL MAKE_FLOOR_LINE, 8,"0010101110000001000"
+		CALL MAKE_FLOOR_LINE, 9,"0011101110700001110"
+		CALL MAKE_FLOOR_LINE,10,"0001000200100000200"
+		CALL MAKE_FLOOR_LINE,11,"0111000111100001110"
+		CALL MAKE_FLOOR_LINE,12,"0101000000000001110"
+		CALL MAKE_FLOOR_LINE,13,"0101000000000000000"
+		CALL MAKE_FLOOR_LINE,14,"0101000000000000000"
+		CALL MAKE_FLOOR_LINE,15,"010E000000000000000"
+		CALL MAKE_FLOOR_LINE,16,"0100000000000000000"
+		CALL MAKE_FLOOR_LINE,17,"0111111111111111170"
+		CALL MAKE_FLOOR_LINE,18,"0000000000000000000"
+
+		;イベントの設置
+		CALL SET_TILE,16,12,ダンジョンフラグ:(FLAG:現ダンジョン):7,0,3
+		CALL SET_TILE,7,9,ダンジョンフラグ:(FLAG:現ダンジョン):8,0,4
+
+	CASE 5
+		;南東
+		FLAG:最大X = 19
+		FLAG:最大Y = 19
+		CALL MAKE_FLOOR_LINE, 0,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 1,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 2,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 3,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 4,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 5,"0000000000000000000"
+		CALL MAKE_FLOOR_LINE, 6,"0000000000000001110"
+		CALL MAKE_FLOOR_LINE, 7,"0111111111111121410"
+		CALL MAKE_FLOOR_LINE, 8,"0100000000000001110"
+		CALL MAKE_FLOOR_LINE, 9,"0100000000000000000"
+		CALL MAKE_FLOOR_LINE,10,"0100000000000000000"
+		CALL MAKE_FLOOR_LINE,11,"0100000000000000000"
+		CALL MAKE_FLOOR_LINE,12,"0100000111600000000"
+		CALL MAKE_FLOOR_LINE,13,"0100092100000000000"
+		CALL MAKE_FLOOR_LINE,14,"0100000100000000000"
+		CALL MAKE_FLOOR_LINE,15,"0101110100000000000"
+		CALL MAKE_FLOOR_LINE,16,"0121112100000000000"
+		CALL MAKE_FLOOR_LINE,17,"0101110100000000000"
+		CALL MAKE_FLOOR_LINE,18,"0000000000000000000"
+
+	CASEELSE
+
+
+
+
+
+ENDSELECT
+
+
+
+;=======================================================================
+;[5]調べる　実行時のイベント
+;=======================================================================
+@EVENT_CHECK_DUNGEON_10
+
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_10
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_10
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_10
+	RETURN RESULT
+
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+;========
+;イベントの処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	RETURN 1
+ELSE
+	CALL MESSAGE_WINDOW_D, "", "＞Nothing seems to be here."
+	RETURN 1
+ENDIF
+;=======================================================================
+;エレベーター定義
+;=======================================================================
+@DUNGEON_ELEVATOR_10, ARG
+VARSET RESULT, -1
+VARSET RESULTS
+RESULT:1 = 0
+RESULT:2 = 1
+RESULT:3 = 2
+RESULT:4 = 3
+RESULT:5 = 4
+RESULTS:1 = 1F
+RESULTS:2 = 2F
+RESULTS:3 = 3F
+RESULTS:4 = 4F
+RESULTS:5 = 5F
+RETURN -1
+;=======================================================================
+;タイル進入時のイベント
+;=======================================================================
+@EVENT_ENTER_DUNGEON_10,ARG
+#LOCALSIZE 1
+;ARG = 進入時の向き　0の場合ワープなど
+;==========
+;出口の処理
+;==========
+IF DA:(FLAG:現X):(FLAG:現Y) == 8
+	CALL DUNGEON_EXIT
+	RETURN 1
+;========
+;宝の処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 3
+	CALL TREASURE_10
+	RETURN RESULT
+;=======
+;階段
+;=======
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 6
+	CALL UPSTAIRS_10
+	RETURN RESULT
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 7
+	CALL DOWNSTAIRS_10
+	RETURN RESULT
+
+
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 9
+	CALL DUNGEON_TERMINAL
+	RETURN 1
+
+;========
+;イベントの処理
+;========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 4
+	IF FLAG:現M == 0 && FLAG:現X == 13
+		CALL SHOW_PICTURE, "D"
+		;麻希登場イベント？
+		IF イベントフラグ:20:0 == 5
+			;アヤセ和解
+			CALL MESSAGE_WINDOW_D, "", @"＞You encountered 3 girls wearing uniforms of the St. Hermelin high school./＞They looked tired, breathing heavy from exhaustion./＞One of them, the freckled Ayase, brightened her expression when she noticed %CALLNAME:MASTER%."
+			;そこには聖エルミン学園の制服を着た３人の少女がいた/＞彼女たちは随分と疲労している様子で、肩で息を吐いている/＞その内の１人……そばかすの少女、アヤセは%CALLNAME:MASTER%に気がつくと表情を明るくした
+			CALL MESSAGE_WINDOW_D, "Ayase", @"%ANATANAME("It's you")%!/You came just at the right time./We are saved～Ayase was already at her limit..."
+			;@"%ANATANAME("あんたは")%！/あんたもこんなとこまで来たんだ/助かった～アヤセ達もうダメかと……
+			CALL MESSAGE_WINDOW_D, "", "＞Ayase then introduced the girl that where with her./＞The healthy-looking girl with the red ribbon is 「Maki Sonomura」/＞and the elegant girl with the ponytail is called 「Eriko Kirishima」./＞The ３ of them are persona-users and like you, were investigating the cause of this incident."
+			;＞アヤセは自分の仲間をも紹介してくれた/＞赤いリボンの元気そうな少女が「園村 麻希」、/＞ポニーテールの気品のある少女が「桐島 英理子」と言うそうだ/＞３人ともペルソナ使いで、ここが事件の元凶だと見て突っ込んだらしい
+			CALL MESSAGE_WINDOW_D, "", "＞However, since their magic energy had reached it's limit, it would be reckless if the continued./＞Because they are quite vulnerable without their magic,/＞you recommended they retreat to a safe spot./＞After the ３ of them consulted for a bit, they decided on a suitable hiding place."
+			;それで魔力が尽きて現在に至ると言う訳だ、無謀も良い所だろう/＞取りあえず魔力が尽きているなら引き上げるか、/＞何処か安全そうな場所に隠れている様に言うと、/＞３人はしばらく相談した後、ここらへんで適当に隠れている事に決まった
+			CALL MESSAGE_WINDOW_D, "Ayase", "あとで迎えに来てね～"
+			CALL MESSAGE_WINDOW_D, "", @"＞Encourage by Ayase's sweet voice,/＞%CALLNAME:MASTER% decided to move on."
+			;気楽なアヤセの声に送られて、/＞%CALLNAME:MASTER%は先に進む事にした
+			ダンジョンフラグ:(FLAG:現ダンジョン):10 = 1
+		ELSEIF イベントフラグ:21:0 == 3
+			;エリー和解
+			CALL MESSAGE_WINDOW_D, "", @"＞You encountered 3 girls wearing uniforms of the St. Hermelin high school./＞They looked tired, breathing heavy from exhaustion./＞One of them, you remember seeing her before.../＞Eriko's expression brightened when she noticed %CALLNAME:MASTER%."
+			;＞そこには聖エルミン学園の制服を着た３人の少女がいた。/＞彼女たちは随分と疲労している様子で、肩で息を吐いている/＞その内の１人……何処か品の良さを感じさせる少女、/＞エリーは%CALLNAME:MASTER%に気がつくと表情を明るくした
+			CALL MESSAGE_WINDOW_D, "Eriko", @"%ANATANAME("Ah, it's you")%!/To think we'd meet again in such a place..."
+			;@"%ANATANAME("貴方は")%！/まさか、こんな所まで来られるなんて……"
+			CALL MESSAGE_WINDOW_D, "", "＞Eriko then introduced you to her friends./＞The healthy-looking girl with the red ribbon is 「Maki Sonomura」,/＞and the freckled cheeky girl is called 「Ayase Yuka」/＞The ３ of them are persona-users and like you, were investigating the cause of this incident."
+			;＞エリーは自分の仲間をも紹介してくれた/＞赤いリボンの元気そうな少女が「園村 麻希」、/＞そばかすの生意気そうな少女が「綾瀬 優香」と言うそうだ/＞３人ともペルソナ使いで、ここが事件の元凶だと見て突っ込んだらしい
+			CALL MESSAGE_WINDOW_D, "", "＞However, since their magic energy had reached it's limit, it would be reckless if the continued./＞Because they are quite vulnerable without their magic,/＞you recommended they retreat to a safe spot./＞After the ３ of them consulted for a bit, they decided on a suitable hiding place."
+			CALL MESSAGE_WINDOW_D, "Eriko", "Sorry……ご迷惑をおかけしますが、/貴方にお願いするしかなさそうですわ"
+			CALL MESSAGE_WINDOW_D, "", @"＞After Eriko, who seemed somewhat weak, said her goodbye,/＞%CALLNAME:MASTER% decided to move on."
+			;＞少し気を落としたエリーに見送られ、/＞%CALLNAME:MASTER%は先に進む事にした
+			ダンジョンフラグ:(FLAG:現ダンジョン):10 = 2
+		ELSEIF イベントフラグ:20:0 == 2 || イベントフラグ:20:0 == 3 || イベントフラグ:21:0 == 1
+			;アヤセ放置orエリー放置
+			CALL MESSAGE_WINDOW_D, "", "＞You encountered 3 girls wearing uniforms of the St. Hermelin high school./＞They looked tired, breathing heavy from exhaustion./＞One of them, an energetic looking girl with a red ribbon, took the initative and approached to greet you."
+			;"＞そこには聖エルミン学園の制服を着た３人の少女がいた/＞彼女たちは随分と疲労している様子で、肩で息を吐いている/＞その内の１人、赤いリボンの元気そうな少女が率先して挨拶をしようとしたが、"
+			CALL MESSAGE_WINDOW_D, "そばかすの目立つ少女", "……園村ぁ、こんなとこ平気でうろついてる様な奴ヤバいよ……(ボソボソ)"
+			CALL MESSAGE_WINDOW_D, "ポニーテールの少女", "Ayaseの言う事が正しい様に思いますわ、Makiもう少し慎重に……(ボソボソ)"
+			CALL MESSAGE_WINDOW_D, "", "...for now, those 3 didn't seem very cooperatice./＞You decided to leave them and move on."
+			;……取りあえず、こちらもこの３人に特に用はない/＞放っておいて立ち去る事にした
+			ダンジョンフラグ:(FLAG:現ダンジョン):10 = 3
+		ELSEIF イベントフラグ:20:0 == 4
+			;アヤセ奴隷化
+			CALL MESSAGE_WINDOW_D, "", "＞その部屋では複数の悪魔が、２人の少女を囲んでいた/＞周囲を包むムッとする程の淫臭から、/＞何が起こっているのかは明白だ＞"
+			CALL MESSAGE_WINDOW_D, "", "＞……人形のように犯され続けている少女たちに見覚えはない/＞片方は、長いポニーテールの髪の少女だ/＞独特の光沢をもつ長い髪は振り乱され、/＞目は、膜が掛かったように何も映していない"
+			CALL MESSAGE_WINDOW_D, "", "＞もう片方は、赤いリボンの少女だ/＞本来なら元気な雰囲気を持っていたのかもしれないが、/＞今は人形のように転がっているだけだった"
+			CALL MESSAGE_WINDOW_D, "", "＞２人とも、顔も体も白濁した液体で汚れており、/＞身を隠すべき制服はボロ布と化して周囲に散らばっている"
+			CALL MESSAGE_WINDOW_D, "", "＞悪魔達はこちらに反応すらしないが……"
+			CALL INPUT_YN_D("悪魔達を倒して少女を確保する", "放っておく")
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "", "＞妖鬼 オニが１０体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				;オニ10体
+				FOR LOCAL, 7, 17
+					CALL SET_ENEMY,LOCAL,654,20,0,0
+					CFLAG:(CHARANUM-1):ＨＰ補正 = 150
+					CALL SYNC_STATUS, CHARANUM-1
+					CALL HEALTH_CHARA, CHARANUM-1
+				NEXT
+				CALL BATTLE_START
+				CALL SHOW_PICTURE, "D"
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞悪魔達は力尽きた…"
+				CALL INCREASE_LD, -8
+				CALL MESSAGE_WINDOW_D, "", "＞輪姦されていた少女・桐島 英理子、園村 麻希を手に入れた"
+				CALL ADD_NEW_COMPANION,4514,200
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:Ｃ感覚 = 1
+					ABL:LOCAL:Ｖ感覚 = 2
+					ABL:LOCAL:Ａ感覚 = 1
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:露出癖 = 1
+					ABL:LOCAL:マゾっ気 = 2
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:4 = 2
+					MARK:LOCAL:反発刻印 = 2
+					EXP:LOCAL:Ｖ経験 = 20
+					EXP:LOCAL:Ａ経験 = 10
+					EXP:LOCAL:キス経験 += 10
+					EXP:LOCAL:絶頂経験 = 5
+					EXP:LOCAL:性交経験 = 20
+					EXP:LOCAL:膣射経験 = 10
+					EXP:LOCAL:自慰経験 = 5
+					EXP:LOCAL:調教自慰経験 = 5
+					EXP:LOCAL:精液経験 = 15
+					EXP:LOCAL:フェラ経験 = 10
+					EXP:LOCAL:苦痛快楽経験 = 5
+					EXP:LOCAL:緊縛経験 = 20
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				CALL ADD_NEW_COMPANION,4519,200
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:Ｃ感覚 = 1
+					ABL:LOCAL:Ｖ感覚 = 2
+					ABL:LOCAL:Ａ感覚 = 1
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:露出癖 = 1
+					ABL:LOCAL:マゾっ気 = 2
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:反発刻印 = 2
+					MARK:LOCAL:4 = 2
+					EXP:LOCAL:Ｖ経験 = 20
+					EXP:LOCAL:Ａ経験 = 10
+					EXP:LOCAL:キス経験 += 10
+					EXP:LOCAL:絶頂経験 = 5
+					EXP:LOCAL:性交経験 = 20
+					EXP:LOCAL:膣射経験 = 10
+					EXP:LOCAL:自慰経験 = 5
+					EXP:LOCAL:調教自慰経験 = 5
+					EXP:LOCAL:精液経験 = 15
+					EXP:LOCAL:フェラ経験 = 10
+					EXP:LOCAL:苦痛快楽経験 = 5
+					EXP:LOCAL:緊縛経験 = 20
+					EXP:LOCAL:異常経験 = 2
+					ダンジョンフラグ:(FLAG:現ダンジョン):10 = 4
+				ENDIF
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞汚れきった少女たちをどうする気にもなれず、そのまま放置した"
+				ダンジョンフラグ:(FLAG:現ダンジョン):10 = 5
+			ENDIF
+		ELSEIF イベントフラグ:21:0 == 2
+			;エリー奴隷化
+			CALL MESSAGE_WINDOW_D, "", "＞その部屋では複数の悪魔が、２人の少女を囲んでいた/＞周囲を包むムッとする程の淫臭から、何が起こっているのかは明白だ/＞……人形のように犯され続けている少女たちに見覚えはない"
+			CALL MESSAGE_WINDOW_D, "", "＞片方は、そばかすの目立つ少女だ/＞どの位犯され続けたのか、/＞彼女の眼は焦点があっていなかった"
+			CALL MESSAGE_WINDOW_D, "", "＞もう片方は、赤いリボンの少女だ/＞本来なら元気な雰囲気を持っていたのかもしれないが、/＞今は人形のように転がっているだけだ"
+			CALL MESSAGE_WINDOW_D, "", "＞２人とも、顔も体も白濁した液体で汚れており、/＞身を隠すべき制服はボロ布と化して周囲に散らばっている。"
+			CALL MESSAGE_WINDOW_D, "", "＞悪魔達はこちらに反応すらしないが……"
+			CALL INPUT_YN_D("悪魔達を倒して少女を確保する", "放っておく")
+			IF RESULT == 0
+				CALL MESSAGE_WINDOW_D, "", "＞妖鬼 オニが１０体出た！"
+				FLAG:逃走不可フラグ = 1
+				FLAG:会話不能フラグ = 1
+				FLAG:先制不意打ちキャンセル = 1
+				;オニ10体
+				FOR LOCAL, 7, 17
+					CALL SET_ENEMY,LOCAL,654,20,0,0
+					CFLAG:(CHARANUM-1):ＨＰ補正 = 150
+					CALL SYNC_STATUS, CHARANUM-1
+					CALL HEALTH_CHARA, CHARANUM-1
+				NEXT
+				CALL BATTLE_START
+				CALL SHOW_PICTURE, "D"
+				FLAG:逃走不可フラグ = 0
+				FLAG:会話不能フラグ = 0
+				FLAG:先制不意打ちキャンセル = 0
+				CALL MESSAGE_WINDOW_D, "", "＞悪魔達は力尽きた…"
+				CALL INCREASE_LD, -8
+				CALL MESSAGE_WINDOW_D, "", "＞輪姦されていた少女・綾瀬 優香、園村 麻希を手に入れた"
+				CALL ADD_NEW_COMPANION,4515,200
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:Ｃ感覚 = 1
+					ABL:LOCAL:Ｖ感覚 = 2
+					ABL:LOCAL:Ａ感覚 = 1
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:露出癖 = 1
+					ABL:LOCAL:マゾっ気 = 2
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:4 = 2
+					MARK:LOCAL:反発刻印 = 2
+					EXP:LOCAL:Ｖ経験 = 20
+					EXP:LOCAL:Ａ経験 = 10
+					EXP:LOCAL:キス経験 += 10
+					EXP:LOCAL:絶頂経験 = 5
+					EXP:LOCAL:性交経験 = 20
+					EXP:LOCAL:膣射経験 = 10
+					EXP:LOCAL:自慰経験 = 5
+					EXP:LOCAL:調教自慰経験 = 5
+					EXP:LOCAL:精液経験 = 15
+					EXP:LOCAL:フェラ経験 = 10
+					EXP:LOCAL:苦痛快楽経験 = 5
+					EXP:LOCAL:緊縛経験 = 20
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				CALL ADD_NEW_COMPANION,4519,200
+				IF RESULT == 1
+					LOCAL = RESULT:1
+					TALENT:LOCAL:処女 = 0
+					ABL:LOCAL:Ｃ感覚 = 1
+					ABL:LOCAL:Ｖ感覚 = 2
+					ABL:LOCAL:Ａ感覚 = 1
+					ABL:LOCAL:Ｂ感覚 = 1
+					ABL:LOCAL:露出癖 = 1
+					ABL:LOCAL:マゾっ気 = 2
+					ABL:LOCAL:精液中毒 = 1
+					MARK:LOCAL:反発刻印 = 2
+					MARK:LOCAL:4 = 2
+					EXP:LOCAL:Ｖ経験 = 20
+					EXP:LOCAL:Ａ経験 = 10
+					EXP:LOCAL:キス経験 += 10
+					EXP:LOCAL:絶頂経験 = 5
+					EXP:LOCAL:性交経験 = 20
+					EXP:LOCAL:膣射経験 = 10
+					EXP:LOCAL:自慰経験 = 5
+					EXP:LOCAL:調教自慰経験 = 5
+					EXP:LOCAL:精液経験 = 15
+					EXP:LOCAL:フェラ経験 = 10
+					EXP:LOCAL:苦痛快楽経験 = 5
+					EXP:LOCAL:緊縛経験 = 20
+					EXP:LOCAL:異常経験 = 2
+				ENDIF
+				ダンジョンフラグ:(FLAG:現ダンジョン):10 = 4
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", "＞汚れきった少女たちをどうする気にもなれず、そのまま放置した"
+				ダンジョンフラグ:(FLAG:現ダンジョン):10 = 6
+			ENDIF
+		ELSE
+			;アヤセ、エリーイベント放置
+			CALL MESSAGE_WINDOW_D, "", "＞You encountered 3 girls wearing uniforms of the St. Hermelin high school./＞They looked tired, breathing heavy from exhaustion."
+			;＞そこには聖エルミン学園の制服を着た３人の少女がいた/＞彼女たちは随分と疲労している様子で、/＞肩で息を吐いている。
+			CALL MESSAGE_WINDOW_D, "", "＞One of them, an energetic looking girl with a red ribbon, tried to approach you/＞but was stopped by the other ２."
+			;その内の１人、赤いリボンの元気そうな少女が、/＞率先して挨拶をしようとするが、残りの２人が
+			CALL MESSAGE_WINDOW_D, "そばかすの目立つ少女", "……園村ぁ、こんなとこ平気でうろついてる様な奴ヤバいよ……(ボソボソ)"
+			CALL MESSAGE_WINDOW_D, "ポニーテールの少女", "Ayaseの言う事が正しい様に思いますわ、/＞Makiもう少し慎重に……(ボソボソ)"
+			CALL MESSAGE_WINDOW_D, "", "＞...for now, those 3 didn't seem very cooperatice./＞You decided to leave them and move on."
+			;……取りあえず、こちらもこの３人に特に用はない/＞放っておいて先に進む事にした"
+			ダンジョンフラグ:(FLAG:現ダンジョン):10 = 3
+		ENDIF
+	ELSEIF FLAG:現M == 4 && FLAG:現X == 7 && FLAG:現Y == 9
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", @"＞There were several men discussing somting in thisd room, which seems to be the presidents office./＞One of them was a young and dignified looking man./＞He could be the chief manager of this branch, Kandori Takahisa./＞Kandori ignored %CALLNAME:MASTER% and called to his subordinates."	
+		;＞社長室と思われる部屋で数人の男が何やら話し合っている/＞そのうちの若いが身なりの良い、尊大な男が/＞恐らくは支社長 神取鷹久なのだろう/＞神取は%CALLNAME:MASTER%達を無視して、部下に声を掛ける
+		CALL MESSAGE_WINDOW_D, "Kandori", "It's a blunder, Takeda（たけだ）/To let the intruders come here.../...I'll leave this to you. Fix it./I won't stay here."
+		;失態だな、武多（たけだ）/侵入者をこんな所まで通すとは/…ここはお前に任せる。侵入者共を始末しろ/部屋は汚さんようにな
+		CALL MESSAGE_WINDOW_D, "Takeda" , "Yes!/Leave this to us Kandori!"
+		;武多" , "ハッ！/神取様、お下がりください！
+		CALL MESSAGE_WINDOW_D, "Takeda" , "Are you ready?/Don't let a single one of them escape!"
+		;いいかお前達/１匹たりとも生かして帰すな！
+		CALL MESSAGE_WINDOW_D, "", "＞Kandori got away."
+		;神取は去って行った
+		CALL MESSAGE_WINDOW_D, "Takeda" , "Rats!/You won't take one step further!/Face my persona!"
+		;ネズミども！/ここから先は１歩も行かせん！/俺のペルソナをくらえぇぇい！
+		CALL MESSAGE_WINDOW_D, "", "＞Superman Takeda and Men in Black appeared!"
+		;超人 武多とブラックマンたちが出た！
+		FLAG:逃走不可フラグ = 1
+		FLAG:会話不能フラグ = 1
+		FLAG:先制不意打ちキャンセル = 1
+		CALL SET_ENEMY,8,4212,24,0,0
+		CALL SET_ENEMY,9,4212,24,0,0
+		CALL SET_ENEMY,10,4212,24,0,0
+		CALL SET_ENEMY,14,4212,30,0,1
+		NAME:(CHARANUM-1) = Takeda
+		CALLNAME:(CHARANUM-1) = Takeda
+		ABL:(CHARANUM-1):スキル1 = [[スキル:マハ・マグナス]]
+		ABL:(CHARANUM-1):スキル2 = [[スキル:地の烈風]]
+		ABL:(CHARANUM-1):スキル3 = [[スキル:ミドルショット]]
+		ABL:(CHARANUM-1):スキル4 = [[スキル:回し蹴り]]
+		ABL:(CHARANUM-1):スキル5 = [[スキル:スク・ンダ]]
+		ABL:(CHARANUM-1):スキル6 = [[スキル:スク・カジャ]]
+		CALL BATTLE_START
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞By the time you defeated his henchman, Kandori had escaped./＞You'll have to give case..."
+		;抵抗する者達を倒した頃には、神取の姿は無かった/＞追わなければ……
+		FLAG:逃走不可フラグ = 0
+		FLAG:会話不能フラグ = 0
+		FLAG:先制不意打ちキャンセル = 0
+		DA:(FLAG:現X):(FLAG:現Y) = 1
+		ダンジョンフラグ:(FLAG:現ダンジョン):8 = 1
+	ELSEIF FLAG:現M == 5
+		CALL SHOW_PICTURE, "D"
+		CALL MESSAGE_WINDOW_D, "", "＞In front of you, a huge machine was towering./＞Ther ewas no sign of Kandori./＞However, he must have gone this way./＞Perhaps the machine has a terminal function?"
+		;＞正面で巨大な機械がうなりを上げている/＞神取の姿は無い/＞他に道はなさそうではあるし、/＞恐らくこの機械がターミナル機能を持っているのだろう
+		CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% approached the machine and looked it over./＞As you thought, I has a terminal function./＞However, it is locked and can't be used now."
+		;%CALLNAME:MASTER%は機械を実際に起動し、動作を確認することにした/＞想像通り、ターミナル機能が内蔵されている/＞が、ロックされていて今は使用できない
+		CALL MESSAGE_WINDOW_D, "", @"＞All you can do now, is gather as much information here as possible,/＞then bring it home to analize and find the destination./＞Think so, %CALLNAME:MASTER% pulled up a seat to look through some files./＞There was a folder on something called a persona reinforcement prgram."
+		;今回の所は持ち帰れるだけの資料を持って帰り、/＞行き先の解析を依頼するしかなさそうだ/＞そう考え、席を立とうとした%CALLNAME:MASTER%の目に/＞ペルソナ強化プログラムという文字が飛び込んできた
+		CALL MESSAGE_WINDOW_D, "", "＞Curious, you checked the contents./It seems Kandori made his subordinates create software,/＞specifically COMP software, that should strengthen personas."
+		;興味を惹かれ、内容をチェックすると、どうやら神取は部下に命じ、/＞ペルソナを強化するインストールソフトを作成させていたようだ
+		CALL MESSAGE_WINDOW_D, "", "＞You downloaded a copy of the SynchroGear Software/＞You downloaded a copy of the AdjustmentGear software."
+		;インストールソフト SynchroGear を手に入れた/＞インストールソフト AdjustmentGear を手に入れた
+		ITEM:SynchroGear = 1
+		ITEM:AdjustmentGear = 1
+		ダンジョンフラグ:(FLAG:現ダンジョン):9 = 1
+		IF ダンジョンフラグ:(FLAG:現ダンジョン):10 == 1 || ダンジョンフラグ:(FLAG:現ダンジョン):10 == 2
+			CALL MESSAGE_WINDOW_D, "", "......../...../..."
+			CALL SHOW_PICTURE, "EMPTY"
+			CALL SHOW_PICTURE, "NONFLOORD", "SEBEC Building"
+			CALL MESSAGE_WINDOW_D, "", "＞Before you left, you met the ３ persona-users from St. Hermelin again."
+			;脱出前に、待たせておいたエルミン学園のペルソナ使い３人と合流した
+			CALL MESSAGE_WINDOW_D, "Ayase", "You are late～I was starting to worry you got hurt."
+			;遅かったね～、やられちゃったんじゃないかと思ったよ
+			CALL MESSAGE_WINDOW_D, "", "＞As you listened to Ayase's word, you left the building together./＞When you reached the exit, Maki had something to say."
+			;アヤセの軽口を聞き流して、ビルの外へ誘導する/＞出口が近付いた所で、麻希が口を開いた
+			CALL MESSAGE_WINDOW_D, "Maki", @"Hey, everyone?/This person, %HE_SHE(MASTER)% could do in this building what we couldn't manage and can break through the barrier./Well, shouldn't we ask %HIM_HER(MASTER)% to help us with our goal?"
+			;ねぇ、皆？/この人、私たちではどうにもならなかったこのビルを突破できる人なんだよね？/だったら、手を貸して貰う訳にはいかないのかな？
+			CALL MESSAGE_WINDOW_D, "", "＞After saying so, Maiki turned to you and bowed politely."
+			;麻希は、その後こちらに向き直って頭を下げる。
+			CALL MESSAGE_WINDOW_D, "Maki", "In order to restore this town and our school, could you lend me your strength?"
+			;の街と学校を元に戻す為に、力を貸して頂けませんか？
+			CALL INPUT_YN_D("I don't mind", "I can't do that")
+			;別に構わない", "それは出来ない
+			IF RESULT == 0
+				CALL INCREASE_LD,8
+				IF ダンジョンフラグ:(FLAG:現ダンジョン):10 == 1
+					CALL MESSAGE_WINDOW_D, "", @"＞When %CALLNAME:MASTER% nooded, Maki and Ayase boke out in cheer./＞After they parted from Eriko, who wanted to return to the School of St. Hermelin,/＞%CALLNAME:MASTER% took the ２ girls with %HIM_HER(MASTER)%."
+					;%CALLNAME:MASTER%が頷くと、麻希とアヤセが歓声を上げる/＞一度エルミン学園の方に戻りたいと言うエリーと別れて、/＞%CALLNAME:MASTER%は２人を連れて引き上げた。
+					CALL MESSAGE_WINDOW_D, "", "＞Maki Sonomura and Ayase Yuka became your companions."
+					;園村 麻希と綾瀬 優香が仲間になった
+					CALL ADD_NEW_COMPANION,4515,500
+					SIF RESULT
+						CFLAG:(RESULT:1):戦闘参加不可能 = -1
+				ELSE
+					CALL MESSAGE_WINDOW_D, "", @"＞When %CALLNAME:MASTER% nooded, Maki and Eriko boke out in cheer./＞After they parted from Ayase, who wanted to return to the School of St. Hermelin,/＞%CALLNAME:MASTER% took the ２ girls with %HIM_HER(MASTER)%."
+					;%CALLNAME:MASTER%が頷くと、麻希とエリーが歓声を上げる/＞一度エルミン学園の方に戻りたいと言うアヤセと別れて、/＞%CALLNAME:MASTER%は二人を連れて引き上げた。
+					CALL MESSAGE_WINDOW_D, "", "＞Maki Sonomura and Eriko Kirishima became your companions."
+					;園村 麻希と桐島 英理子が仲間になった
+					CALL ADD_NEW_COMPANION,4514,500
+					SIF RESULT
+						CFLAG:(RESULT:1):戦闘参加不可能 = -1
+				ENDIF
+				CALL ADD_NEW_COMPANION,4519,500
+				SIF RESULT
+					CFLAG:(RESULT:1):戦闘参加不可能 = -1
+			ELSE
+				CALL MESSAGE_WINDOW_D, "", @"＞%CALLNAME:MASTER% refused her request and parted from the ３ people, leaving the builing."
+				;申し出を断った%CALLNAME:MASTER%はビルを出た所で３人と分かれた
+				ダンジョンフラグ:(FLAG:現ダンジョン):10 = 7
+			ENDIF
+		ENDIF
+		FLAG:脱出 = 1
+	ENDIF
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	RETURN 1
+;==========
+;扉の処理
+;==========
+ELSEIF DA:(FLAG:現X):(FLAG:現Y) == 2
+	CALL DUNGEON_DOOR,ARG
+	RETURN 1
+ENDIF
+RETURN 0
+
+;=======================================================================
+;宝箱の中身
+;=======================================================================
+@TREASURE_10
+SELECTCASE FLAG:現M
+	CASE 0
+		CALL GET_TREASURE,3002,1,FLAG:現ダンジョン,1
+	CASE 1
+		SIF FLAG:現X == 7 && FLAG:現Y == 17
+			CALL GET_TREASURE,2007,1,FLAG:現ダンジョン,2
+		SIF FLAG:現X == 17 && FLAG:現Y == 11
+			CALL GET_TREASURE,2505,1,FLAG:現ダンジョン,3
+	CASE 2
+		CALL GET_TREASURE,3508,1,FLAG:現ダンジョン,4
+	CASE 3
+		SIF FLAG:現X == 2 && FLAG:現Y == 1
+			CALL GET_TREASURE,2007,1,FLAG:現ダンジョン,5
+		SIF FLAG:現X == 9 && FLAG:現Y == 16
+			CALL GET_TREASURE,2505,1,FLAG:現ダンジョン,6
+	CASE 4
+		CALL GET_TREASURE,4503,1,FLAG:現ダンジョン,7
+	CASE 8
+		IF FLAG:現X == 13 && FLAG:現Y == 3
+			CALL GET_TREASURE,1012,1,FLAG:現ダンジョン,5
+		ENDIF
+	CASE 11
+		IF FLAG:現X == 11 && FLAG:現Y == 3
+			CALL GET_TREASURE,1012,1,FLAG:現ダンジョン,6
+		ENDIF
+	CASE 12
+		IF FLAG:現X == 11 && FLAG:現Y == 1
+			CALL GET_TREASURE,1012,1,FLAG:現ダンジョン,7
+		ENDIF
+	CASE 14
+		IF FLAG:現X == 11 && FLAG:現Y == 3
+			CALL GET_TREASURE,1012,1,FLAG:現ダンジョン,8
+		ENDIF
+	CASE 15
+		IF FLAG:現X == 11 && FLAG:現Y == 5
+			CALL GET_TREASURE,1012,1,FLAG:現ダンジョン,9
+		ENDIF
+			
+ENDSELECT
+RETURN 1
+
+;=======================================================================
+;階段置き場
+;=======================================================================
+@UPSTAIRS_10
+SELECTCASE FLAG:現M
+	CASE 0
+		SIF FLAG:現X == 10 && FLAG:現Y == 10
+			CALL DUNGEON_UPSTAIRS,1,10,10
+		SIF FLAG:現X == 17 && FLAG:現Y == 5
+			CALL DUNGEON_UPSTAIRS,1,17,5
+	CASE 1
+		SIF FLAG:現X == 12 && FLAG:現Y == 6
+			CALL DUNGEON_UPSTAIRS,2,12,6
+		SIF FLAG:現X == 1 && FLAG:現Y == 12
+			CALL DUNGEON_UPSTAIRS,2,1,12
+	CASE 2
+		SIF FLAG:現X == 8 && FLAG:現Y == 5
+			CALL DUNGEON_UPSTAIRS,3,8,5
+		SIF FLAG:現X == 12 && FLAG:現Y == 17
+			CALL DUNGEON_UPSTAIRS,3,12,17
+	CASE 3
+		SIF FLAG:現X == 10 && FLAG:現Y == 9
+			CALL DUNGEON_UPSTAIRS,4,10,9
+		SIF FLAG:現X == 17 && FLAG:現Y == 17
+			CALL DUNGEON_UPSTAIRS,4,17,17
+	CASE 5
+		SIF FLAG:現X == 10 && FLAG:現Y == 12
+			CALL DUNGEON_UPSTAIRS,4,7,6
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+@DOWNSTAIRS_10
+SELECTCASE FLAG:現M
+	CASE 1
+		SIF FLAG:現X == 10 && FLAG:現Y == 10
+			CALL DUNGEON_DOWNSTAIRS,0,10,10
+		SIF FLAG:現X == 17 && FLAG:現Y == 5
+			CALL DUNGEON_DOWNSTAIRS,0,17,5
+	CASE 2
+		SIF FLAG:現X == 12 && FLAG:現Y == 6
+			CALL DUNGEON_DOWNSTAIRS,1,12,6
+		SIF FLAG:現X == 1 && FLAG:現Y == 12
+			CALL DUNGEON_DOWNSTAIRS,1,1,12
+	CASE 3
+		SIF FLAG:現X == 8 && FLAG:現Y == 5
+			CALL DUNGEON_DOWNSTAIRS,2,8,5
+		SIF FLAG:現X == 12 && FLAG:現Y == 17
+			CALL DUNGEON_DOWNSTAIRS,2,12,17
+	CASE 4
+		SIF FLAG:現X == 10 && FLAG:現Y == 9
+			CALL DUNGEON_DOWNSTAIRS,3,10,9
+		SIF FLAG:現X == 17 && FLAG:現Y == 17
+			CALL DUNGEON_DOWNSTAIRS,3,17,17
+		SIF FLAG:現X == 7 && FLAG:現Y == 6
+			CALL DUNGEON_DOWNSTAIRS,5,10,12
+	CASEELSE
+ENDSELECT
+RETURN 1
+
+
+;=======================================================================
+;エンカウント率
+;=======================================================================
+@ENCOUNT_RATE_10
+FLAG:エンカウント率 = FLAG:未遭遇歩数*4
+SIF FLAG:未遭遇歩数 < 6
+	FLAG:エンカウント率 = 0
+;=======================================================================
+;必要レベル目安
+;推奨LV 雑魚最低LV 雑魚最高LV ボスLV 
+;=======================================================================
+@GET_DUNGEON_LV_10
+RETURN 23, 20, 21, 25
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_10
+IF RAND:100 < FLAG:エンカウント率
+	CALL ENEMY_TABLE
+	RETURN 1
+ELSE
+	FLAG:未遭遇歩数 += 1
+	RETURN 0
+ENDIF
+;=======================================================================
+;敵の種族の種類数
+;=======================================================================
+@CLASS_NUM_10
+RETURN CLASS_NUM_COMMON("中級")
+;=======================================================================
+;敵の総数
+;ARGは出現する敵の種類です
+;RAND(X, Y)はX～Y-1のうちのどれかになるRANDです
+;なお、ここで帰った数字は下限を種族数、上限を10として自動的に調整されます
+;=======================================================================
+@ENEMY_NUM_10, ARG
+RETURN ENEMY_NUM_COMMON("中級", ARG)
+;=======================================================================
+;敵の種類
+;=======================================================================
+@ENEMY_10, ARG
+SELECTCASE RAND:100
+	CASE IS < 30
+		;30%でブラックマン 21
+		RETURN 4212, 21,0
+	CASE IS < 50
+		;20%でモーショボー 21
+		RETURN 902, 21,0
+	CASE IS < 70
+		;20%でオニ 20
+		RETURN 654, 20,0
+	CASE IS < 90
+		;20%でキヨヒメ 20
+		RETURN 703, 20,0
+	CASE IS < 100
+		;10%でリャナンシー 21
+		RETURN 403, 21,0
+ENDSELECT
+
+
+;=======================================================================
+;輪姦参加悪魔
+;=======================================================================
+@DUNGEON_RAPE_DEVIL_10
+;ランダムにどの悪魔が出るか決定
+;RETURN CSV番号 , 人数 , レベル
+SELECTCASE RAND:2
+	CASE 0
+		RETURN [[キャラ:ブラックマン]] , 3 + RAND:10 , CSVBASE([[キャラ:ブラックマン]] , GETNUM(BASE , "LV") , 0) + RAND:3
+	CASE 1
+		RETURN [[キャラ:オニ]] , 3 + RAND:10 , CSVBASE([[キャラ:オニ]] , GETNUM(BASE , "LV") , 0) + RAND:3
+ENDSELECT
+

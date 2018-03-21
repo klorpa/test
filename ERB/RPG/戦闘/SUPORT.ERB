@@ -1,0 +1,554 @@
+;------------------------------
+;助手がHeadsetを装着していると、アナウンスをしてくれる
+;------------------------------
+;LOCAL:1 シチュエーション１
+;LOCAL:2 シチュエーション２
+;LOCAL:3 敵の初期数
+;LOCAL:4 現在の敵数
+;LOCAL:5 現在の味方の数
+;LOCAL:6 配置保存
+;LOCAL:7 状態異常の味方の数
+;LOCAL:8 HPが50%を切った味方の数
+;LOCAL:9 HPが25%を切った味方の数
+;LOCAL:10 死亡している味方の数
+;LOCAL:11 初ターンのSUPORT関数二重呼び出し防止用
+;LOCAL:12 対象キャラの番号取得用
+;LOCAL:13 対象キャラの番号取得用２
+;LOCAL:14 敵のレベル取得用
+;LOCAL:15 味方のレベル取得用
+;LOCAL:16 不要だったので削除
+;LOCAL:17 敵レベルの平均値取得用
+;LOCAL:18 味方レベルの平均値取得用
+;LOCAL:19 味方の初期数
+;LOCAL:20 人間の死亡を優先してアナウンスさせるためのカウンタ
+;LOCAL:21 死んだ味方悪魔の数
+
+
+
+@SUPORT(LOCAL:1, LOCAL:2)
+SIF ASSI < 1
+	RETURN -1
+SIF EQUIP:ASSI:アクセサリ != 5204
+	RETURN -1
+LOCAL:15 = 0
+LOCAL:5 = 0
+;助手がＰＴにいる場合はアナウンスできない
+FOR LOCAL,1,7
+	LOCALS = ポジション{LOCAL}
+	SIF FLAG:LOCALS < 0
+		CONTINUE
+	SIF FLAG:LOCALS == ASSI
+		RETURN -1
+;味方情報取得
+	LOCAL:15 += BASE:(FLAG:LOCALS):LV
+	LOCAL:5 += 1
+NEXT
+LOCAL:18 = (LOCAL:15 / LOCAL:5)
+LOCAL:7 = 0
+LOCAL:8 = 0
+LOCAL:9 = 0
+LOCAL:10 = 0
+;戦闘開始時
+IF LOCAL:1 == 1
+	LOCAL:14 = 0
+	LOCAL:11 += 1
+	LOCAL:3 = 0
+	LOCAL:19 = 0
+	FOR LOCAL,1,7
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS < 0
+			CONTINUE
+		LOCAL:19 += 1
+	NEXT
+	FOR LOCAL,7,17
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS < 0
+			CONTINUE
+		LOCAL:14 += BASE:(FLAG:LOCALS):LV
+		LOCAL:3 += 1
+	NEXT
+	LOCAL:17 = LOCAL:14 / LOCAL:3
+	PRINTL 
+	DRAWLINE
+	PRINTL
+	;通常
+	IF LOCAL:2 == 0
+		;味方のレベルが敵のレベルより１０以上高い
+		IF LOCAL:18 - LOCAL:17 >= 10
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(0, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORMW %CALLNAME:ASSI%「Enemy detected, there \@ LOCAL:3 > 1 ? are {LOCAL:3} of them. They seem# is only one. It seems\@ weak but don't let your guard down.」
+				;「敵発見、数{LOCAL:3}体、相手は格下ですが気を抜かないでください」
+			ENDCATCH
+		;味方のレベルが敵のレベルより１０以上低い
+		ELSEIF LOCAL:17 - LOCAL:18 >= 10
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(1, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORMW %CALLNAME:ASSI%「Strong enemy detected! There \@ LOCAL:3 > 1 ? are {LOCAL:3} of them! # is only one! \@ Please don't push yourself too hard!」
+				;「き、強敵です！数{LOCAL:3}体！絶対に無理はしないでください！」
+			ENDCATCH
+		;同レベル帯
+		ELSE
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(2, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				IF RAND:2 == 1
+					PRINTFORML %CALLNAME:ASSI%「Enemy detected! Their number is {LOCAL:3}, I'll help!」
+					;「敵発見！数{LOCAL:3}体、来ます！」
+					PRINTFORMW %CALLNAME:ASSI%「%CSTR:ASSI:12%, do your best.」
+					;「%CSTR:ASSI:12%、がんばってください」
+				ELSE
+					PRINTFORMW %CALLNAME:ASSI%「Enem\@ LOCAL:3 > 1 ? ies, {LOCAL:3} of them. # y, it's only one. \@ Strength seems evenly matched, you can do it!」
+					;「敵、数{LOCAL:3}体、勝てる相手です！」
+				ENDIF
+			ENDCATCH
+		ENDIF
+	;先制攻撃
+	ELSEIF LOCAL:2 == 1
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(3, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORML %CALLNAME:ASSI%「Enemy detected! Their number is {LOCAL:3}. You haven't been noticed yet.」
+			;「敵発見！数{LOCAL:3}体、まだこちらの存在に気がついてません」
+			PRINTFORMW %CALLNAME:ASSI%「You can make the first strike, %CSTR:ASSI:12%.」
+			;「先制攻撃攻撃できますよ、%CSTR:ASSI:12%」
+		ENDCATCH
+	;バックアタック
+	ELSEIF LOCAL:2 == 2
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(4, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+				PRINTFORMW %CALLNAME:ASSI%「It's a surprise attack from behind, watch out!」
+				;「背後からの奇襲です、持ちこたえてください！」
+		ENDCATCH
+	;バックアタック（Hyakutaro発動）
+	ELSEIF LOCAL:2 == 3
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(5, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORML %CALLNAME:ASSI%「Hyakutaro has activated, an enemy back-attack was thwarted.」
+			;「Hyakutaro発動、敵のバックアタックを防ぎました」
+			PRINTFORMW %CALLNAME:ASSI%「There's \@ LOCAL:3 > 1 ? {LOCAL:3} enemies # one enemy\@. Intercept!」
+			;「敵の数{LOCAL:3}。迎撃を！」
+		ENDCATCH
+		LOCAL:11 = 0
+	;不意打ち
+	ELSEIF LOCAL:2 == 4
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(6, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORML %CALLNAME:ASSI%「Enemy surprise attack, there's {LOCAL:3}!」
+			;「敵の不意打ちです、数は{LOCAL:3}!」
+			PRINTFORMW %CALLNAME:ASSI%「Attack incoming, brace for it!」
+			;「攻撃来ます、耐えてください！」
+		ENDCATCH
+	;不意打ち（Hyakutaro発動）
+	ELSEIF LOCAL:2 == 5
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(7, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORML %CALLNAME:ASSI%「Hyakutaro has activated, an enemy surprise-attack was thwarted.」
+			;「Hyakutaro発動、敵の不意打ちを防ぎました！」
+			PRINTFORMW %CALLNAME:ASSI%「There's \@ LOCAL:3 > 1 ? {LOCAL:3} enemies # one enemy\@. Intercept!」
+			;「敵の数{LOCAL:3}。迎撃を！」
+		ENDCATCH
+		LOCAL:11 = 0
+	ENDIF
+ELSEIF LOCAL:1 == 2
+	PRINTL 
+	DRAWLINE
+	PRINTL
+	IF LOCAL:2 == 1
+		;味方のレベルが敵のレベルより１０以上高い
+		IF LOCAL:18 - LOCAL:18 >= 10
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(8, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORMW %CALLNAME:ASSI%「Enemy anihilation complete, good work!」
+				;「殲滅完了、お疲れ様でした！」
+			ENDCATCH
+		;味方のレベルが敵のレベルより１０以上低い
+		ELSEIF LOCAL:17 - LOCAL:18 >= 10
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(9, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORMW %CALLNAME:ASSI%「Awesome, that you can defeat such strong enemies...!」
+				;「すごい、あんな強敵を倒してしまうなんて……！」
+			ENDCATCH
+		;同レベル帯
+		ELSE
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(10, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORML %CALLNAME:ASSI%「Enemy elimination confirmed!」
+				;「すべての敵の排除を確認しました！」
+				PRINTFORMW %CALLNAME:ASSI%「Good work everyone.」
+				;「みなさん、お疲れ様です」
+			ENDCATCH
+		ENDIF
+	ELSEIF LOCAL:2 == 2
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(11, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORML %CALLNAME:ASSI%「What.....defeat!?」
+			;「そんな……全滅！？」
+			PRINTFORMW %CALLNAME:ASSI%「Get up %CSTR:ASSI:12%, %CSTR:ASSI:12%!」
+			;「起きてください%CSTR:ASSI:12%、%CSTR:ASSI:12%！」
+		ENDCATCH
+	ENDIF
+;戦闘中
+ELSEIF LOCAL:1 == 3
+	;初ターンフラグが立っていたらそれをへし折ってから何もせずに戻す
+	IF LOCAL:11 > 0
+		LOCAL:11 -= 1
+		RETURN 0
+	ENDIF
+	PRINTL 
+	DRAWLINE
+	PRINTL
+	;敵の現在の数をLOCAL:4に収める
+	LOCAL:4 = 0
+	FOR LOCAL,7,17
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS < 0
+			CONTINUE
+		LOCAL:4 += 1
+	NEXT
+
+	;人数差で優劣を報告　異常状態のメンバーを報告　ＨＰがやばいメンバーの報告
+	LOCAL:6 = 1		;ステータスチェック関数に引き渡すための自陣ポジションを収める変数
+	FOR LOCAL,1, 7
+		LOCALS = ポジション{LOCAL}
+		SIF FLAG:LOCALS < 0
+			CONTINUE
+		CALL CHECK_STATUS(LOCAL:6)
+		SELECTCASE RESULT
+			;報告事項なし
+			CASE 0
+			;ＨＰが50%を切った
+			CASE 1
+				LOCAL:8 += 1
+			;チャーム
+			CASE 2
+				LOCAL:7 += 1
+			;スリープ
+			CASE 3
+				LOCAL:7 += 1
+			;パニック
+			CASE 4
+				LOCAL:7 += 1
+			;ハッピー
+			CASE 5
+				LOCAL:7 += 1
+			;石化
+			CASE 6
+				LOCAL:7 += 1
+			;麻痺
+			CASE 7
+				LOCAL:7 += 1
+			;毒
+			CASE 8
+				LOCAL:7 += 1
+			;ＨＰ25%を切った
+			CASE 9
+				LOCAL:9 += 1
+			;死亡している
+			CASE 10
+				LOCAL:10 += 1
+		ENDSELECT
+		LOCAL:6 += 1
+	NEXT
+	;死亡している味方がいる
+	IF LOCAL:10 > 0
+		IF LOCAL:10 > 1 
+				IF FLAG:逃走不可フラグ
+					TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(12, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+					CATCH
+						PRINTFORMW %CALLNAME:ASSI%「{LOCAL:10} allies down! Revive as soon as possible!」
+						;「{LOCAL:10}名戦闘不能！全滅する前に早く蘇生を！」
+					ENDCATCH
+				ELSE
+					TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(13, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+					CATCH
+						IF RAND:2 == 1
+							PRINTFORMW %CALLNAME:ASSI%「{LOCAL:10} allies down. You took quite a beating, think about escaping!」
+							;「{LOCAL:10}名戦闘不能。被害甚大です、逃走も考えてください！」
+						ELSE
+							PRINTFORMW %CALLNAME:ASSI% 「{LOCAL:10} of {LOCAL:5} allies down! Please resuscitate immediately!」
+							;「{LOCAL:5}名中{LOCAL:10}名戦闘不能！直ちに蘇生してください！」
+						ENDIF
+					ENDCATCH
+				ENDIF
+		ELSE
+			LOCAL:6 = 1		;ステータスチェック関数に引き渡すための自陣ポジションを収める変数
+			LOCAL:20 = 0	;0人間の味方は死んでいない,1人間の味方が死んでいる
+			FOR LOCAL,1, 7
+				LOCALS = ポジション{LOCAL}
+				SIF FLAG:LOCALS < 0
+					CONTINUE
+				CALL CHECK_STATUS(LOCAL:6)
+				IF RESULT == 10
+					LOCAL:12 = FLAG:LOCALS
+					IF LOCAL:12 == MASTER
+						TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(14, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+						CATCH
+							PRINTFORMW %CALLNAME:ASSI%「Are you ok? %CSTR:ASSI:12%? Someone revive %HIM_HER(MASTER)% quickly!」
+							;「大丈夫ですか%CSTR:ASSI:12%！？誰か蘇生を！」
+						ENDCATCH
+					ELSE
+						TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(15, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+						CATCH
+							PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% is down! Please resurrect!」
+							;「%CALLNAME:(LOCAL:12)%戦闘不能！蘇生してください！」
+						ENDCATCH
+					ENDIF
+					LOCAL:20 = 1
+				ENDIF
+				LOCAL:6 += 1
+			NEXT
+		ENDIF
+	;COMPに戻っている場合カウントされないので、別で呼び出し。ただし人間優先
+	ELSEIF LOCAL:19 - LOCAL:5 > 0
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(32, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORMW %CALLNAME:ASSI%「Endurance critical, recall and replenish!」
+			;「戦力低下、召還して補充を！」
+		ENDCATCH
+	;ＨＰを25%切った味方がいる
+	ELSEIF LOCAL:9 > 0
+		IF LOCAL:9 > 1
+			IF FLAG:逃走不可フラグ
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(16, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					PRINTFORMW %CALLNAME:ASSI%「{LOCAL:9} allies are hurt badly! Heal before the next attack comes!」
+					;「{LOCAL:9}名瀕死！次の攻撃がくるまでに回復を！」
+				ENDCATCH
+			ELSE
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(17, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					PRINTFORMW %CALLNAME:ASSI%「{LOCAL:9} allies are badly hurt. Please heal as soon as possible.」
+					;「{LOCAL:9}名瀕死です。とにかく回復をしてください」
+				ENDCATCH
+			ENDIF
+		ELSE
+			LOCAL:6 = 1		;ステータスチェック関数に引き渡すための自陣ポジションを収める変数
+			FOR LOCAL,1, 7
+				LOCALS = ポジション{LOCAL}
+				SIF FLAG:LOCALS < 0
+					CONTINUE
+				CALL CHECK_STATUS(LOCAL:6)
+				IF RESULT == 9
+					LOCAL:12 = FLAG:LOCALS
+						IF LOCAL:12 == MASTER
+							TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(18, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+							CATCH
+								PRINTFORMW %CALLNAME:ASSI%「%CSTR:ASSI:12% is critically hurt, someone heal %HIM_HER(MASTER)%!」
+								;「%CSTR:ASSI:12%が瀕死です、回復してください！」
+							ENDCATCH
+						ELSE
+							TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(19, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+							CATCH
+								PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% is critically hurt, someone heal %HIM_HER(LOCAL:12)%!」
+								;「%CALLNAME:(LOCAL:12)%が瀕死です、回復してください！」
+							ENDCATCH
+						ENDIF
+				ENDIF
+				LOCAL:6 += 1
+			NEXT
+		ENDIF
+	;状態異常の味方がいる
+	ELSEIF LOCAL:7 > 0
+		IF LOCAL:7 > 1
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(20, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORMW %CALLNAME:ASSI%「{LOCAL:7} allies have abnormal stati. Please treat them.」
+				;「味方{LOCAL:7}名、状態異常。治療してください」
+			ENDCATCH
+		ELSE
+		LOCAL:6 = 1		;ステータスチェック関数に引き渡すための自陣ポジションを収める変数
+		FOR LOCAL,1, 7
+			LOCALS = ポジション{LOCAL}
+			SIF FLAG:LOCALS < 0
+				CONTINUE
+			CALL CHECK_STATUS(LOCAL:6)
+			LOCAL:12 = FLAG:LOCALS
+			;毒
+			IF RESULT == 8
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(21, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+				IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「%CSTR:ASSI:12%, are you ok?」
+						;「%CSTR:ASSI:12%、大丈夫ですか？」
+						PRINTFORMW %CALLNAME:ASSI%「You are poisoned, please remove it quickly!」
+						;「早急に毒状態を治療してください！」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% is poisoned, threat %HIM_HER(LOCAL:12)%!」
+						;「%CALLNAME:(LOCAL:12)%が毒状態です、治療を！」
+					ENDIF
+				ENDCATCH
+			;麻痺
+			ELSEIF RESULT == 7
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(22, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「%CSTR:ASSI:12%, are you ok?」
+						PRINTFORMW %CALLNAME:ASSI%「Someone, please cure %CSTR:ASSI:12%s paralysis!」
+						;「誰か%CSTR:ASSI:12%の麻痺を解除してください！」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% is paralyzed, threat %HIM_HER(LOCAL:12)%!」
+						;「%CALLNAME:(LOCAL:12)%が麻痺状態です、治療を！」
+					ENDIF
+				ENDCATCH
+			;石化
+			ELSEIF RESULT == 6
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(23, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+				IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「%CSTR:ASSI:12% has been petrified!?」
+						;「%CSTR:ASSI:12%が石像に！？」
+						PRINTFORMW %CALLNAME:ASSI%「Someone, please cure %CSTR:ASSI:12%!」
+						;「誰か%CSTR:ASSI:12%を元に戻してください！」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% has been petrified, threat %HIM_HER(LOCAL:12)%!」
+						;「%CALLNAME:(LOCAL:12)%が石化状態です、治療を！」
+					ENDIF
+				ENDCATCH
+			;ハッピー
+			ELSEIF RESULT == 5
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(24, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「%CSTR:ASSI:12% can't act properly because of mesmerisation.」
+						;「%CSTR:ASSI:12%が幸せな夢を見て動けなくなってます」
+						PRINTFORMW %CALLNAME:ASSI%「Someone bring %HIM_HER(MASTER)% back to reality!」
+						;「誰か現実に戻してあげてください！」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% is mesmerized by happyness, threat %HIM_HER(LOCAL:12)%!」
+						;「%CALLNAME:(LOCAL:12)%が幸福状態です、可能ならば治療を！」
+					ENDIF
+				ENDCATCH
+			;パニック
+			ELSEIF RESULT == 4
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(25, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「%CSTR:ASSI:12%, please calm down!」
+						;「%CSTR:ASSI:12%、正気に戻ってください！」
+						PRINTFORMW %CALLNAME:ASSI%「Someone please help %CSTR:ASSI:12%!」
+						;「誰か%CSTR:ASSI:12%の治療を！」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% has paniced, someone help %HIM_HER(LOCAL:12)% calm down!」
+						;「%CALLNAME:(LOCAL:12)%が混乱状態です、味方を殴る前に治療を！」
+					ENDIF
+				ENDCATCH
+			;スリープ
+			ELSEIF RESULT == 3
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(26, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「Please wake up %CSTR:ASSI:12%, you can't sleep now!」
+						;「起きてください%CSTR:ASSI:12%、寝てる場合じゃありませんよ！」
+						PRINTFORMW %CALLNAME:ASSI%「Someone please help %CSTR:ASSI:12%!」
+						;「誰か%CSTR:ASSI:12%をたたき起こしてください！」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% has been lulled to sleep, someone wake %HIM_HER(LOCAL:12)% up!」
+						;「%CALLNAME:(LOCAL:12)%が眠ってます、誰か起こしてあげてください！」
+					ENDIF
+				ENDCATCH
+			;チャーム
+			ELSEIF RESULT == 2
+				TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(27, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+				CATCH
+					IF LOCAL:12 == NO:MASTER
+						PRINTFORML %CALLNAME:ASSI%「%CSTR:ASSI:12%, do you hear me?」
+						;「%CSTR:ASSI:12%、こちらの声が届いてますか！？」
+						PRINTFORMW %CALLNAME:ASSI%「%CSTR:ASSI:12% has been charmed, someone help %HIM_HER(MASTER)% snap out of it!」
+					ELSE
+						PRINTFORMW %CALLNAME:ASSI%「%CALLNAME:(LOCAL:12)% has been charmed by the enemy, someone help %HIM_HER(LOCAL:12)% snap out of it!」
+						;「%CALLNAME:(LOCAL:12)%が魅了状態です、治療を！」
+					ENDIF
+				ENDCATCH
+			ENDIF
+			LOCAL:6 += 1
+		NEXT
+		ENDIF
+	;ＨＰを50%切った味方がいる
+	ELSEIF LOCAL:8 > 0
+		TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(28, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+		CATCH
+			PRINTFORMW %CALLNAME:ASSI%「\@ LOCAL:8 > 1 ? {LOCAL:8} allies are # 1 ally is \@ below 50\% ＨＰ. Please heal soon.」
+			;「味方{LOCAL:8}名、ＨＰ減少。大事になる前に回復してください」
+		ENDCATCH
+	;危険な状態の味方はいない
+	ELSE
+		IF FLAG:逃走不可フラグ
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(29, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				PRINTFORMW %CALLNAME:ASSI%「The enemy is strong, but you can win. Don't give up %CSTR:ASSI:12%!」
+				;「強敵ですが%CSTR:ASSI:12%なら倒せます、諦めないでください！」
+			ENDCATCH
+		ELSEIF (LOCAL:3 - LOCAL:4 > 0)
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(30, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				IF RAND:4 == 1
+					PRINTFORMW %CALLNAME:ASSI%「There are still {LOCAL:4} enemies, do your best!」
+					;「敵残り{LOCAL:3}体、がんばってください！」
+				ELSEIF RAND:3 == 1
+					PRINTFORMW %CALLNAME:ASSI%「You're doing fine, keep it up!」
+					;「その調子です、がんばってください！」
+				ELSEIF RAND:2 == 1
+					PRINTFORMW %CALLNAME:ASSI%「You defeated {(LOCAL:3 - LOCAL:4)} of {LOCAL:3} enemies already! Keep at it.」
+					;「敵{LOCAL:3}体中{(LOCAL:3 - LOCAL:4)}体撃破！引き続き撃破を目指してください」
+				ELSE
+					PRINTFORMW %CALLNAME:ASSI%「The enemy is taking casualties, keep it up!」
+					;「敵の数は減っています。このまま攻撃を続けてください！」
+				ENDIF
+			ENDCATCH
+		ELSE
+			TRYCCALLFORM BATTLE_NAVI_K{NO:ASSI}(31, LOCAL:3, LOCAL:4, LOCAL:5, LOCAL:7, LOCAL:8, LOCAL:9, LOCAL:10, LOCAL:12)
+			CATCH
+				IF RAND:2 == 1
+					PRINTFORMW %CALLNAME:ASSI%「There are still {LOCAL:4} enemies, do your best!」
+					;「敵残数{LOCAL:4}、がんばってください！」
+				ELSE
+					PRINTFORMW %CALLNAME:ASSI%「The enemy is still resisting, don't let up!」
+					;「敵勢力いまだ健在、油断しないでください！」
+				ENDIF
+			ENDCATCH
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;CHECK_STATUS
+@CHECK_STATUS(LOCAL:1)
+	LOCALS = ポジション{LOCAL:1}
+	SIF FLAG:LOCALS < 0
+		RETURN -1
+	LOCAL:2 = NO:(LOCAL:1)
+	LOCAL:1 = FLAG:LOCALS
+	;死亡していたら報告
+	IF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("DYING")
+		RETURN 10
+	;HPが25%を切ったら報告
+	ELSEIF (BASE:(LOCAL:1):ＨＰ * 100 / MAXBASE:(LOCAL:1):ＨＰ) < 25
+		RETURN 9
+	;毒なら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("POISON")
+		RETURN 8
+	;麻痺なら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("PALYZE")
+		RETURN 7
+	;石化なら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("STONE")
+		RETURN 6
+	;ハッピーなら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("HAPPY")
+		RETURN 5
+	;パニックなら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("PANIC")
+		RETURN 4
+	;スリープなら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("SLEEP")
+		RETURN 3
+	;チャームなら報告
+	ELSEIF CFLAG:(LOCAL:1):ステート == GET_STATE_NUM("CHARM")
+		RETURN 2
+	;HPが50%を切ったら報告
+	ELSEIF (BASE:(LOCAL:1):ＨＰ * 100 / MAXBASE:(LOCAL:1):ＨＰ) < 50
+		RETURN 1
+	;特に報告することなし
+	ELSE
+		RETURN 0
+	ENDIF
+RETURN -1

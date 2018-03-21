@@ -1,0 +1,243 @@
+
+
+;================================================
+;攻略条件
+;================================================
+@PREREQUISITE_DUNGEON_1
+RETURN 1
+
+
+;=======================================================================
+;ダンジョン名
+;=======================================================================
+@GET_DUNGEON_NAME_1
+RESULTS = エコービル
+
+
+;=======================================================================
+;フロア名表示
+;=======================================================================
+@FLOORNAME_1
+PRINT エコービル
+SELECTCASE FLAG:現階層
+	CASE 0
+		PRINTL １Ｆ
+	CASE 1
+		PRINTL ２Ｆ
+	CASE 2
+		PRINTL ３Ｆ
+		
+	CASEELSE
+		PRINTL
+ENDSELECT
+
+
+;================================================
+;階層呼び出し
+;================================================
+@START_DUNGEON_1
+FLAG:最大階層 = 3
+
+
+;================================================
+;フロア踏破時メッセージ
+;================================================
+@MESSAGE_NEXTFLOOR_1
+PRINTW 階段を上り、次のフロアへと進んだ。
+
+
+;================================================
+;開始時イベント
+;================================================
+@EVENT_START_DUNGEON_1
+RETURN 0
+
+;================================================
+;戦闘開始時イベント
+;================================================
+@EVENT_BATTLE_DUNGEON_1
+RETURN 0
+
+;================================================
+;探索時イベント
+;================================================
+@EVENT_SEARCH_DUNGEON_1
+RETURN 0
+
+@BOSS_DUNGEON_1
+IF DB:1:0 == 0
+	CUSTOMDRAWLINE =
+	PRINTL 怪しげな部屋で、怪しげな男がなにやら儀式を行っている
+	PRINTW 「我が同胞よ、いざ魔界より来たれ！」
+	PRINTL 「……むっ！？」
+	PRINTW 「怪しい奴め、何者かは知らんが儀式の邪魔はさせんぞ！」
+	PRINTL Meta ドウマンが１体出た！
+	CUSTOMDRAWLINE =
+	WAIT
+	FLAG:逃走不可フラグ = 1
+	FLAG:会話不能フラグ = 1
+	CALL SET_ENEMY,9,4201,101,0
+	CFLAG:(CHARANUM-1):行動回数 = 2
+	CALL BATTLE_START
+	FLAG:逃走不可フラグ = 0
+	FLAG:会話不能フラグ = 0
+	PRINTW 賞金首・超人ドウマンを撃破したことにより、口座に1000魔貨が支払われた
+	MONEY:1 += 1000
+	PRINTW ターミナルを開放し、次のダンジョンへ行けるようになった！
+	DB:1:0 = 1
+	DA:(FLAG:現X):(FLAG:現Y) = 1
+	FLAG:脱出 = 1
+ENDIF
+
+;================================================
+;１コマ毎の各確率の上昇
+;================================================
+@SEARCH_DUNGEON_1
+FLAG:踏破率 += RAND:25+1
+SIF FLAG:踏破率 > 100
+	FLAG:踏破率 = 100
+FLAG:遭遇率 += RAND:40+1
+SIF FLAG:遭遇率 > 100
+	FLAG:遭遇率 = 100
+FLAG:発見率 += RAND:20+1
+SIF FLAG:発見率 > 100
+	FLAG:発見率 = 100
+
+
+;=======================================================================
+;エンカウント処理
+;=======================================================================
+@CHECK_ENCOUNT_1
+	$LOOP_ENCOUNT
+	SELECTCASE FLAG:現M
+		
+		CASE 0
+		;１Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり10％の確率で出現
+				IF RAND:100 < 10
+					SELECTCASE RAND:100
+						CASE IS < 25
+							;25%でピクシー
+							CALL SET_ENEMY,LOCAL,501,0,0
+						CASE IS < 50
+							;25%でハーピー
+							CALL SET_ENEMY,LOCAL,901,0,0
+						CASE IS < 75
+							;25%でゾンビちゃん
+							CALL SET_ENEMY,LOCAL,1001,0,0
+						CASE IS < 90
+							;15%でピクシーランク１
+							CALL SET_ENEMY,LOCAL,501,1,0
+						CASE IS < 95
+							;5%でハーピーランク１
+							CALL SET_ENEMY,LOCAL,901,1,0
+						CASE IS < 100
+							;5%でゾンビちゃんランク１
+							CALL SET_ENEMY,LOCAL,1001,1,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+			
+		CASE 1
+		;２Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり10％の確率で出現
+				IF RAND:100 < 10
+					SELECTCASE RAND:100
+						CASE IS < 20
+							;20%でピクシー
+							CALL SET_ENEMY,LOCAL,501,1,0
+						CASE IS < 40
+							;20%でハーピー
+							CALL SET_ENEMY,LOCAL,901,1,0
+						CASE IS < 60
+							;20%でゾンビちゃん
+							CALL SET_ENEMY,LOCAL,1001,1,0
+						CASE IS < 70
+							;10%でカハク
+							CALL SET_ENEMY,LOCAL,601,0,0
+						CASE IS < 75
+							;10%でエンジェル
+							CALL SET_ENEMY,LOCAL,301,0,0
+						CASE IS < 80
+							;10%でエンジェル
+							CALL SET_ENEMY,LOCAL,301,1,0
+						CASE IS < 85
+							;10%でアプサラス
+							CALL SET_ENEMY,LOCAL,401,0,0
+						CASE IS < 85
+							;10%でアプサラス
+							CALL SET_ENEMY,LOCAL,401,1,0
+						CASE IS < 100
+							;10%でリリム
+							CALL SET_ENEMY,LOCAL,401,0,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+			
+		CASE 2
+		;３Ｆでの遭遇
+			LOCAL:2 = 0
+			FOR LOCAL,7,17,1
+				;１枠あたり15％の確率で出現
+				IF RAND:100 < 15
+					SELECTCASE RAND:100
+						CASE IS < 10
+							;10%でピクシー
+							CALL SET_ENEMY,LOCAL,501,2,0
+						CASE IS < 20
+							;10%でハーピー
+							CALL SET_ENEMY,LOCAL,901,2,0
+						CASE IS < 30
+							;10%でゾンビちゃん
+							CALL SET_ENEMY,LOCAL,1001,2,0
+						CASE IS < 50
+							;10%でカハク
+							CALL SET_ENEMY,LOCAL,601,1,0
+						CASE IS < 65
+							;10%でエンジェル
+							CALL SET_ENEMY,LOCAL,301,2,0
+						CASE IS < 80
+							;10%でアプサラス
+							CALL SET_ENEMY,LOCAL,401,2,0
+						CASE IS < 100
+							;10%でリリム
+							CALL SET_ENEMY,LOCAL,401,1,0
+					ENDSELECT
+					LOCAL:2 += 1
+				ENDIF
+			NEXT
+			SIF LOCAL:2 == 0
+				GOTO LOOP_ENCOUNT
+			
+	ENDSELECT
+	RETURN 1
+
+;================================================
+;発見するアイテム
+;================================================
+@CHECK_TREASURE_1
+SELECTCASE RAND:100
+	CASE IS < 10
+		RETURN 1102
+	CASE IS < 80 
+		RETURN 1001
+	CASE IS < 90
+		RETURN 1101
+	CASE IS < 92
+		RETURN 1008
+	CASE IS < 95
+		RETURN 2002
+	CASEELSE
+		RETURN 3501
+ENDSELECT
+

@@ -1,0 +1,25 @@
+@ボイコット判定, ARG
+CFLAG:ARG:ボイコットフラグ = 0
+
+;Human・Machine・HalfDemonはボイコットしない
+SELECTCASE ABL:ARG:種族
+	CASE GET_RACE_NUM("Human"),GET_RACE_NUM("Machine"),GET_RACE_NUM("HalfDemon")
+		RETURN
+ENDSELECT
+
+;ボイコット発生率は気力残存率*相性％
+LOCAL  = BASE:ARG:気力 * 10000 / MAXBASE:ARG:気力
+
+;《BlackCompany》はボイコットを阻止
+LOCAL += (EQUIP:MASTER:BlackCompany * 10000)
+
+;気力が0でなければ各種補正
+IF LOCAL != 0
+	;調教補正
+	LOCAL += (陥落(ARG) + MARK:ARG:屈服刻印 - POWER(MARK:ARG:反発刻印,2) ) * 1000
+	;相性・ストレス補正
+	LOCAL = LOCAL * (GET_RELATION(ARG, MASTER)-CFLAG:ARG:ストレス値) / 100
+ENDIF
+
+SIF RAND:10000 > LOCAL
+	CFLAG:ARG:ボイコットフラグ = 1

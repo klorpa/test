@@ -1,0 +1,228 @@
+
+@CHECK_COM_ABLE94
+;騎乗位する実行判定
+
+;調教者のヴァギナが使えないとダメ
+SIF !USE_VAGINA(PLAYER) 
+	RETURN 0
+	
+;調教対象のペニスが使えないとダメ
+SIF  !USE_PENIS(TARGET) && !USE_PBAND(TARGET)
+	RETURN 0
+
+;触手調教中はダメ
+SIF TEQUIP:25
+	RETURN 0
+
+;三角木馬騎乗中はダメ
+SIF TEQUIP:41
+	RETURN 0
+
+;お風呂場プレイ中はプレイマットが無いとダメ
+IF TEQUIP:31
+	SIF !EXIST_ITEM(20)
+		RETURN 0
+ENDIF
+
+RETURN 1
+
+@ACT_COM94
+;騎乗位する
+PRINTL Do Cowgirl
+TSTR:0 = 騎乗位する
+;実行できない
+
+
+
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+;CALL KOJO_MESSAGE_COM
+
+;調教者←→調教対象
+TFLAG:28 = 3
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+LOSEBASE:0 += 35
+LOSEBASE:1 += 140
+
+SOURCE:0 = 450
+SOURCE:5 = 500
+SOURCE:4 = 1000
+SOURCE:17 = 500
+SOURCE:18 = 500
+SIF IS_MALE(TARGET) && (TALENT:快感の否定 == 0 || ABL:欲望 > 2)
+	SOURCE:18 /= 10
+
+;調教者に快Ｖ
+SOURCE:PLAYER:1 = 500
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:16 += 700
+	
+SIF (TALENT:PLAYER:0 == 1 || TALENT:PLAYER:1 == 1)
+	TFLAG:31 = 1
+	
+;調教者が処女か再生処女（AbnormalEXPは一回のみ）
+IF (TALENT:PLAYER:0 == 1 || TALENT:PLAYER:1 == 1)
+	TIMES SOURCE:13 , 20.00
+	TIMES SOURCE:14 , 3.00
+	PRINTFORM ＜%CALLNAME:PLAYER%は
+	SIF TALENT:PLAYER:1 == 1
+		PRINT 再生
+	PRINTL 処女を失いました＞
+	;TALENT:PLAYER:0 = 0
+	;TALENT:PLAYER:1 = 0
+
+	;AbnormalEXP追加
+	SIF  !IS_MALE(TARGET)
+		CALL ADDS_ABNORMAL_EXP("Take Virginity（Same Sex）", TARGET)
+	SIF TALENT:PLAYER:処女
+		CALL ADDS_ABNORMAL_EXP("Lost virginity（Cowgirl）", PLAYER)
+	SIF !IS_MALE(TARGET)
+		CALL ADDS_ABNORMAL_EXP("Lost virginity（Same sex）", PLAYER)
+ENDIF
+;-------------------------------------------------
+;射精チェック
+;-------------------------------------------------
+
+;射精先タイプの設定
+TCVAR:PLAYER:ペニス使用対象 = TARGET
+TCVAR:PLAYER:射精箇所 = 14
+;射精先選択の可・不可
+TFLAG:704 = 0
+
+;-------------------------------------------------
+;吸精処理
+;-------------------------------------------------
+IF CFLAG:PLAYER:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,PLAYER,LOCAL,TARGET
+ELSEIF CFLAG:TARGET:ＭＡＧ非被吸収 == 0
+	LOCAL = (RAND:10+1) * BASE:LV
+	CALL DRAIN_MAG,TARGET,LOCAL,PLAYER
+ENDIF
+
+;-------------------------------------------------
+;汚れの処理
+;-------------------------------------------------
+;射精に関係なく行われる処理はここから
+;膣内に破瓜の血の汚れを付加
+SIF TALENT:PLAYER:0 == 1 || TALENT:PLAYER:1 == 1
+	CALL SET_STAIN("膣内", "破瓜の血", PLAYER)
+;奴隷の膣内⇔調教者のＰの汚れが移動
+CALL MOVE_STAIN("膣内", TARGET, "ペニス", PLAYER)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;調教者のV経験
+CALL ADDS_EXP("Ｖ経験", 1, PLAYER)
+;PRINTFORML ServicPlsEXP(調教者) + 1
+;EXP:PLAYER:奉仕快楽経験 += 1
+;PRINTFORML SexEXP(調教者) + 1
+;EXP:PLAYER:性交経験 += 1
+CALL ADDS_EXP("奉仕快楽経験", 1, PLAYER)
+CALL ADDS_EXP("性交経験", 1, PLAYER)
+;BestialEXP
+IF (TALENT:TARGET:獣 || TALENT:TARGET:鳥) && !(TALENT:PLAYER:獣 || TALENT:PLAYER:鳥)
+	CALL ADDS_EXP("獣姦経験", 1, PLAYER)
+	
+ENDIF
+;処女で同性の場合AbnormalEXP
+IF TALENT:PLAYER:処女 && !IS_MALE(TARGET)
+	CALL ADDS_ABNORMAL_EXP("Take Virginity（Same Sex）", TARGET)
+	CALL ADDS_ABNORMAL_EXP("Lost virginity（Same sex）", PLAYER)
+ENDIF
+;近親相姦の場合AbnormalEXP付与
+IF 近親チェック(PLAYER , TARGET)
+	CALL ADDS_ABNORMAL_EXP( @"Incest（%RESULTS:0%）", PLAYER)
+	CALL ADDS_ABNORMAL_EXP( @"Incest（%RESULTS:1%）", TARGET)
+ENDIF
+;LesbianEXP
+A = 4
+IF IS_LESBIAN(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:40%+{A}
+;	PRINTFORML %EXPNAME:40%(調教者)+{A}
+;	EXP:40 += A
+;	EXP:PLAYER:40 += A
+	CALL ADDS_EXP("レズ経験", A, TARGET)
+	CALL ADDS_EXP("レズ経験", A, PLAYER)
+ELSEIF IS_GAY(TARGET,PLAYER)
+;	PRINTFORML %EXPNAME:41%+{A}
+;	PRINTFORML %EXPNAME:41%(調教者)+{A}
+;	EXP:41 += A
+;	EXP:PLAYER:41 += A
+	CALL ADDS_EXP("ＢＬ経験", A, TARGET)
+	CALL ADDS_EXP("ＢＬ経験", A, PLAYER)
+	
+	
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 1
+
+;依存度補正値(主人かつ恋慕、淫乱、服従で1。親愛、娼婦、隷属で2）
+IF (TALENT:3 || TALENT:4 || TALENT:5) && ASSIPLAY == 0
+	TFLAG:30 += 1
+ELSEIF (TALENT:6 || TALENT:7 || TALENT:8) && ASSIPLAY == 0
+	TFLAG:30 += 2
+ENDIF
+
+
+RETURN 1
+
+
+@MESSAGE_COM94
+IF TEQUIP:主導権
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%に自分の体をまたがせると、
+	;「TARGETが真性のサドか」「サドっ気持ちか」で分岐
+	IF (TALENT:サド || ABL:サドっ気 == 5 || TALENT:獰猛) && RAND:3 == 0
+		PRINTFORM くびれを鷲掴みにして%CALLNAME:PLAYER%の体を引きよせ、
+	ELSEIF TALENT:サド || (ABL:サドっ気 >= 4 && RAND:2 == 0) || TALENT:獰猛
+		PRINTFORM 腰を掴んで%CALLNAME:PLAYER%の体を引きよせ
+	ELSEIF RAND:2 == 0
+		PRINTFORM ゆっくりと%CALLNAME:PLAYER%の体を引きよせ
+	ENDIF
+	;「TARGETが真性のサドか」「サドっ気持ちか」で分岐
+	IF (TALENT:サド || ABL:サドっ気 == 5 || TALENT:獰猛) && RAND:3 == 0
+		PRINT ペニスで串刺しにするように突き入れ、
+	ELSEIF ABL:サドっ気 >= 3 && RAND:2 == 0
+		PRINT 一気に腰を下ろさせて、
+	ELSE
+		PRINTFORM ペニスを挿入させると、
+	ENDIF
+	;恋慕で追加
+	SIF (TALENT:恋慕 || TALENT:親愛) && RAND:3 >= 1
+		PRINTFORM %CALLNAME:PLAYER%の名前を何度も叫びながら
+	;「TARGETが真性のサドか」「サドっ気持ちか」で分岐
+	IF (TALENT:サド || ABL:サドっ気 == 5 || TALENT:獰猛) && RAND:3 == 0
+		PRINTFORMW 下から激しく%CALLNAME:PLAYER%の体を跳ね上げた…
+	ELSEIF TALENT:サド || (ABL:サドっ気 >= 3 && RAND:2 == 0) || TALENT:獰猛
+		PRINTFORMW 自分も腰を打ちつけた…
+	ELSE
+		PRINTFORMW %CALLNAME:PLAYER%の膣内を堪能した…
+	ENDIF
+ELSE
+	PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%を仰向けに寝かせると、みずから
+	;プレイヤーが淫乱
+	SIF TALENT:PLAYER:淫乱
+		PRINTFORM 大きく脚を開いて
+	PRINTFORM 秘裂にペニスをあてがい、
+	SIF EXP:PLAYER:0 == 0
+		PRINT まだ男を受け入れた事のない
+	PRINTFORMW ヴァギナへ咥えこんだ…
+ENDIF
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_94
+RETURN COMTYPE("調教者奉仕系")
+
+

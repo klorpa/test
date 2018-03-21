@@ -1,0 +1,227 @@
+;-------------------------------------------------
+;ビデオカメラ
+;特殊コマンド
+;-------------------------------------------------
+@COMNAME183
+RESULTS = Video camera
+SIF TEQUIP:28
+	RESULTS = End Recording
+@ACT_COM183
+;カウントは10回とする
+K = 10
+
+;撮影者の処理
+$INPUT_LOOP
+IF TEQUIP:28 == 0 && ASSI >= 0
+	PRINTL Please choose cameraman it cannot be changed mid-film
+	PRINTL （To change cameraman、end the filming）
+	PRINTL 
+	PRINTFORML [0] %CALLNAME:MASTER%
+	PRINTFORML [1] %CALLNAME:ASSI%
+	PRINTFORML 
+	INPUT
+	IF RESULT == 0
+		FLAG:22 = 1
+		PRINTFORML %CALLNAME:MASTER% will be the cameraman
+	ELSEIF RESULT == 1 && ASSI > 0
+		FLAG:22 = 2
+		PRINTFORML %CALLNAME:ASSI% will be the cameraman
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+ELSEIF TEQUIP:28 == 0
+	FLAG:22 = 1
+	PRINTFORML %CALLNAME:MASTER% will be the cameraman
+ENDIF
+
+
+TSTR:0 = ビデオカメラ
+;CALL KOJO_MESSAGE_COM
+
+
+;着脱の処理
+IF TEQUIP:28
+;ビデオ撮影がされていれば終了させる
+;テープは終了時に数を減らす、さらにこれまでの値段と経験を加算する
+	TEQUIP:28 = 0
+	ITEM:43 -= 1
+	CALL PRICE_VIDEO
+	PRINTW ★★★Recording has ended★★★
+ELSE
+;ビデオ撮影してなければ初期化して開始
+;TODO 起動条件を作成する
+	TEQUIP:28 = 1
+	TFLAG:70 = 0
+	REPEAT K
+		S = COUNT + 110
+		TCVAR:S = -1
+	REND
+	PRINTW ★★★Recording has begun★★★
+ENDIF
+
+;依存度ベクトル
+TFLAG:33 = 0
+
+
+RETURN 1
+
+;-------------------------------------------------
+;装着継続の処理
+;-------------------------------------------------
+@EQUIP_COM183
+;撮影開始時はカウントに入れない
+IF TFLAG:70 == 0
+	TFLAG:70 += 1
+	RETURN 1
+ENDIF
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+;消費体力、Willpower
+DOWNBASE:TARGET:体力 += 0
+DOWNBASE:TARGET:気力 += 50
+
+SOURCE:TARGET:恐れ += 1000
+SOURCE:TARGET:逸脱 += 400
+SOURCE:TARGET:反感 += 700
+
+
+;-------------------------------------------------
+;特殊ソース処理
+;-------------------------------------------------
+;抑圧、抵抗持ちには、抑鬱ソース追加
+SIF TALENT:32 || TALENT:34
+	SOURCE:TARGET:鬱屈 += 700
+
+;苦痛を伴わないマゾっ気及びマゾの処理は先にしておく
+;マゾっ気を見る
+A = 1000
+IF ABL:9 == 0
+	TIMES A , 0.80
+	SOURCE:TARGET:液体 += 0
+	SOURCE:TARGET:欲情 += 0
+ELSEIF ABL:9 == 1
+	TIMES A , 1.00
+	SOURCE:TARGET:液体 += 20
+	SOURCE:TARGET:欲情 += 30
+ELSEIF ABL:9 == 2
+	TIMES A , 1.20
+	SOURCE:TARGET:液体 += 40
+	SOURCE:TARGET:欲情 += 70
+ELSEIF ABL:9 == 3
+	TIMES A , 1.40
+	SOURCE:TARGET:液体 += 70
+	SOURCE:TARGET:欲情 += 120
+ELSEIF ABL:9 == 4
+	TIMES A , 1.50
+	SOURCE:TARGET:液体 += 110
+	SOURCE:TARGET:欲情 += 180
+ELSEIF ABL:9 == 5
+	TIMES A , 1.70
+	SOURCE:TARGET:液体 += 150
+	SOURCE:TARGET:欲情 += 250
+ELSEIF ABL:9 == 6
+	TIMES A , 1.90
+	SOURCE:TARGET:液体 += 200
+	SOURCE:TARGET:欲情 += 300
+ELSEIF ABL:9 == 7
+	TIMES A , 2.10
+	SOURCE:TARGET:液体 += 250
+	SOURCE:TARGET:欲情 += 350
+ELSEIF ABL:9 == 8
+	TIMES A , 2.30
+	SOURCE:TARGET:液体 += 300
+	SOURCE:TARGET:欲情 += 400
+ELSEIF ABL:9 == 9
+	TIMES A , 2.50
+	SOURCE:TARGET:液体 += 350
+	SOURCE:TARGET:欲情 += 450
+ELSEIF ABL:9 >= 10
+	TIMES A , 3.00
+	SOURCE:TARGET:液体 += 500
+	SOURCE:TARGET:欲情 += 500
+ENDIF
+SOURCE:TARGET:露出 += A
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+IF FLAG:22 == 1
+	CALL ADDS_EXP("撮影経験", 1, MASTER)
+;	PRINTL 主人FilmingEXP＋１
+ELSEIF FLAG:22 == 2
+	CALL ADDS_EXP("撮影経験", 1, ASSI)
+;	PRINTL 助手FilmingEXP＋１
+ENDIF
+;EXP:TARGET:63 += 1
+;PRINTL 奴隷FilmedEXP＋１
+CALL ADDS_EXP("被写経験", 1, TARGET)
+;依存度ベクトルを強制的に変更
+SIF TFLAG:33 == 1 || TFLAG:33 == 2
+	TFLAG:33 = 3
+
+;依存度補正値(服従で1、隷属で2　強制変更なのでリセット）
+IF TALENT:5 && ASSIPLAY == 0
+	TFLAG:30 = 1
+ELSEIF TALENT:8 && ASSIPLAY == 0
+	TFLAG:30 = 2
+ENDIF
+
+
+;-------------------------------------------------
+;ビデオの処理
+;-------------------------------------------------
+;カウントは10回とします
+K = 10
+
+;テープ残量がなくなると強制的にEQUIPフラグを外す、さらにビデオの値段と経験の処理をする
+IF TFLAG:70 <= 0 || TFLAG:70 >= K
+	TEQUIP:28 = 0
+	ITEM:43 -= 1
+	;撮影内容の保存
+;	S = TFLAG:70+10
+	S = TFLAG:70 + 109
+;	FLAG:S = SELECTCOM
+	IF TFLAG:90
+		;特殊な場合
+		;TFLAG:90によって記録される
+		
+		TCVAR:S = TFLAG:90
+		;用が済んだTFLAG:90は初期化しておくか
+		TFLAG:90 = 0
+	ELSE
+		TCVAR:S = SELECTCOM
+	ENDIF
+	TFLAG:70 += 1
+	CALL PRICE_VIDEO
+	PRINTL ＜Ran out of film Recording has ended＞
+	RETURN 1
+ELSE
+	PRINTFORML ＜Video is recording {TFLAG:70}/{K}＞
+ENDIF
+
+;撮影内容の保存
+;S = TFLAG:70+10
+;FLAG:S = SELECTCOM
+S = TFLAG:70 + 109
+IF TFLAG:90
+	TCVAR:S = TFLAG:90
+	TFLAG:90 = 0
+ELSE
+	TCVAR:S = SELECTCOM
+ENDIF
+TFLAG:70 += 1
+
+
+RETURN 1
+
+
+;===================================================
+;調教タイプ
+;===================================================
+@COMTYPE_183
+RETURN COMTYPE("特殊コマンド系")
+
+
